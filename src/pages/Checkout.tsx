@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { CreditCard, Building2, CheckCircle, ArrowLeft } from 'lucide-react';
+import { loadStripe } from '@stripe/stripe-js';
 
 interface CreditPackage {
   id: string;
@@ -98,14 +99,15 @@ const Checkout = () => {
     
     setProcessingPayment(true);
     try {
-      // Create transaction record
+      // 1. Create transaction record
       const { data: transaction, error: transactionError } = await supabase
         .from('transactions')
         .insert({
           user_id: user.id,
           package_id: selectedPackage.id,
+          package_name: selectedPackage.name,
           amount_mxn: selectedPackage.price_mxn,
-          credits_purchased: selectedPackage.credits,
+          credits_amount: selectedPackage.credits,
           payment_method: 'stripe',
           payment_status: 'pending'
         })
@@ -114,21 +116,49 @@ const Checkout = () => {
 
       if (transactionError) throw transactionError;
 
-      // For now, simulate successful payment
-      // In production, integrate with Stripe Checkout or Elements
-      toast({
-        title: "Redirigiendo a Stripe",
-        description: "Te redirigiremos al checkout seguro de Stripe",
-      });
-      
-      // TODO: Implement actual Stripe integration
       console.log('Stripe payment for transaction:', transaction.id);
+
+      // 2. Call create-payment-intent Edge Function
+      const { data, error } = await supabase.functions.invoke('create-payment-intent', {
+        body: { transactionId: transaction.id }
+      });
+
+      if (error) {
+        console.error('Error creating payment intent:', error);
+        throw new Error(error.message || 'Error al crear el payment intent');
+      }
+
+      if (!data.clientSecret) {
+        throw new Error('No se recibió client secret de Stripe');
+      }
+
+      console.log('✅ PaymentIntent created:', data.paymentIntentId);
+
+      // 3. Initialize Stripe and redirect to payment
+      const stripe = await loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
       
+      if (!stripe) {
+        throw new Error('Stripe no está cargado correctamente');
+      }
+
+      // Redirect to Stripe Checkout using the client secret
+      const { error: stripeError } = await stripe.confirmPayment({
+        clientSecret: data.clientSecret,
+        confirmParams: {
+          return_url: `${window.location.origin}/payment-success?transaction_id=${transaction.id}`,
+        },
+      });
+
+      if (stripeError) {
+        console.error('Stripe payment error:', stripeError);
+        throw new Error(stripeError.message || 'Error en el procesamiento del pago');
+      }
+
     } catch (error) {
-      console.error('Stripe payment error:', error);
+      console.error('Payment error:', error);
       toast({
-        title: "Error",
-        description: "Error al procesar el pago con tarjeta",
+        title: "Error en el pago",
+        description: error.message || "Error al procesar el pago con tarjeta",
         variant: "destructive",
       });
     } finally {
@@ -149,8 +179,9 @@ const Checkout = () => {
         .insert({
           user_id: user.id,
           package_id: selectedPackage.id,
+          package_name: selectedPackage.name,
           amount_mxn: selectedPackage.price_mxn + 500, // Add $5 MXN SPEI fee
-          credits_purchased: selectedPackage.credits,
+          credits_amount: selectedPackage.credits,
           payment_method: 'spei',
           payment_status: 'pending',
           spei_reference: speiReference,
