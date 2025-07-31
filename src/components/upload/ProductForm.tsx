@@ -55,6 +55,39 @@ export const ProductForm = ({ product, imageUrl, onUpdate, priceDisplayMode }: P
   const shouldShowRetailPrice = priceDisplayMode === 'retail' || priceDisplayMode === 'both';
   const shouldShowWholesalePrice = priceDisplayMode === 'both';
 
+  // Validation status for visual feedback
+  const hasName = product.name?.trim();
+  const hasCategory = product.category?.trim();
+  const hasRetail = product.price_retail && product.price_retail > 0;
+
+  const getFieldStatus = (field: string) => {
+    switch (field) {
+      case 'name':
+        return hasName ? 'complete' : 'incomplete';
+      case 'category':
+        return hasCategory ? 'complete' : 'incomplete';
+      case 'price_retail':
+        if (priceDisplayMode === 'none') return 'optional';
+        return hasRetail ? 'complete' : 'incomplete';
+      default:
+        return 'optional';
+    }
+  };
+
+  const getFieldClassName = (field: string) => {
+    const status = getFieldStatus(field);
+    const baseClass = "transition-all duration-200";
+    
+    switch (status) {
+      case 'incomplete':
+        return `${baseClass} border-red-300 focus:border-red-500 focus:ring-red-500`;
+      case 'complete':
+        return `${baseClass} border-green-300 focus:border-green-500 focus:ring-green-500`;
+      default:
+        return baseClass;
+    }
+  };
+
   return (
     <Card className="overflow-hidden">
       <CardHeader className="pb-3">
@@ -67,7 +100,7 @@ export const ProductForm = ({ product, imageUrl, onUpdate, priceDisplayMode }: P
           <div className="flex-1">
             <CardTitle className="text-lg">Datos del Producto</CardTitle>
             <p className="text-sm text-neutral/60">
-              Completa la información para crear tu catálogo
+              Completa la información según tu configuración elegida
             </p>
           </div>
         </div>
@@ -75,12 +108,18 @@ export const ProductForm = ({ product, imageUrl, onUpdate, priceDisplayMode }: P
       
       <CardContent className="space-y-4">
         <div>
-          <Label htmlFor={`name-${product.id}`}>Nombre del Producto *</Label>
+          <Label htmlFor={`name-${product.id}`} className="flex items-center gap-1">
+            Nombre del Producto *
+            {getFieldStatus('name') === 'incomplete' && (
+              <span className="text-red-500 text-xs">(requerido)</span>
+            )}
+          </Label>
           <Input
             id={`name-${product.id}`}
             value={product.name}
             onChange={(e) => handleChange('name', e.target.value)}
             placeholder="Ej: Playera básica algodón"
+            className={getFieldClassName('name')}
             required
           />
         </div>
@@ -88,7 +127,12 @@ export const ProductForm = ({ product, imageUrl, onUpdate, priceDisplayMode }: P
         <div className="grid grid-cols-2 gap-4">
           {shouldShowRetailPrice && (
             <div>
-              <Label htmlFor={`price-retail-${product.id}`}>Precio Venta MXN *</Label>
+              <Label htmlFor={`price-retail-${product.id}`} className="flex items-center gap-1">
+                Precio Venta MXN *
+                {getFieldStatus('price_retail') === 'incomplete' && (
+                  <span className="text-red-500 text-xs">(requerido)</span>
+                )}
+              </Label>
               <Input
                 id={`price-retail-${product.id}`}
                 type="number"
@@ -96,17 +140,23 @@ export const ProductForm = ({ product, imageUrl, onUpdate, priceDisplayMode }: P
                 onChange={(e) => handleChange('price_retail', formatPrice(e.target.value))}
                 placeholder="299"
                 min="1"
-                required
+                className={getFieldClassName('price_retail')}
+                required={priceDisplayMode !== 'none'}
               />
             </div>
           )}
           <div>
-            <Label htmlFor={`category-${product.id}`}>Categoría *</Label>
+            <Label htmlFor={`category-${product.id}`} className="flex items-center gap-1">
+              Categoría *
+              {getFieldStatus('category') === 'incomplete' && (
+                <span className="text-red-500 text-xs">(requerido)</span>
+              )}
+            </Label>
             <Select
               value={product.category}
               onValueChange={(value) => handleChange('category', value)}
             >
-              <SelectTrigger>
+              <SelectTrigger className={getFieldClassName('category')}>
                 <SelectValue placeholder="Seleccionar" />
               </SelectTrigger>
               <SelectContent>

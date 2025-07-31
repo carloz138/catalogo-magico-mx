@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { ArrowLeft, CreditCard } from 'lucide-react';
+import { ArrowLeft, CreditCard, CheckCircle, AlertCircle, AlertTriangle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -24,6 +24,69 @@ const Upload = () => {
   const [priceDisplayMode, setPriceDisplayMode] = useState<PriceDisplayMode>('retail');
 
   const CREDITS_PER_PRODUCT = 15;
+
+  // Smart validation function
+  const getProductStatus = (product: ProductData, priceConfig: PriceDisplayMode) => {
+    const hasName = product.name?.trim();
+    const hasCategory = product.category?.trim();
+    const hasRetail = product.price_retail && product.price_retail > 0;
+    
+    switch(priceConfig) {
+      case 'none':
+        return (hasName && hasCategory) ? 'complete' : 'incomplete';
+      case 'retail':
+        return (hasName && hasCategory && hasRetail) ? 'complete' : 'incomplete';
+      case 'both':
+        return (hasName && hasCategory && hasRetail) ? 'complete' : 'incomplete';
+      default:
+        return 'incomplete';
+    }
+  };
+
+  const getPriceConfigLabel = () => {
+    switch(priceDisplayMode) {
+      case 'none': return 'Sin precios (solo productos)';
+      case 'retail': return 'Solo precio de venta';
+      case 'both': return 'Precio de venta + mayoreo';
+      default: return '';
+    }
+  };
+
+  const getConfigHelp = () => {
+    switch(priceDisplayMode) {
+      case 'none': return 'Perfecto para catálogos "Solicitar cotización"';
+      case 'retail': return 'Ideal para venta directa al público';
+      case 'both': return 'Completo para distribuidores B2B';
+      default: return '';
+    }
+  };
+
+  const getMissingFields = () => {
+    switch(priceDisplayMode) {
+      case 'none': return 'nombre y categoría';
+      case 'retail': return 'nombre, categoría y precio de venta';
+      case 'both': return 'nombre, categoría y precio de venta';
+      default: return 'campos requeridos';
+    }
+  };
+
+  // Status counts
+  const completeCount = products.filter(p => getProductStatus(p, priceDisplayMode) === 'complete').length;
+  const incompleteCount = products.length - completeCount;
+
+  const StatusIcon = ({ status }: { status: string }) => {
+    switch(status) {
+      case 'complete': return <CheckCircle className="w-4 h-4 text-green-500" />;
+      case 'incomplete': return <AlertCircle className="w-4 h-4 text-red-500" />;
+      default: return <AlertCircle className="w-4 h-4 text-gray-400" />;
+    }
+  };
+
+  const canProcess = () => {
+    return products.length > 0 && products.every(product => 
+      getProductStatus(product, priceDisplayMode) === 'complete'
+    );
+  };
 
   useEffect(() => {
     fetchUserCredits();
@@ -57,7 +120,6 @@ const Upload = () => {
     console.log('Files uploaded:', files);
     setUploadedFiles(files);
     
-    // Create product data for each successfully uploaded file
     const newProducts = files.map(file => ({
       id: file.id,
       name: '',
@@ -79,47 +141,11 @@ const Upload = () => {
     ));
   };
 
-  const validateProducts = () => {
-    const invalidProducts = products.filter(product => {
-      // Always require name and category
-      if (!product.name || !product.category) return true;
-      
-      // Price validation based on display mode
-      if (priceDisplayMode === 'retail' && !product.price_retail) return true;
-      if (priceDisplayMode === 'both') {
-        if (!product.price_retail) return true;
-        // Wholesale price is optional even in 'both' mode, but if provided, min qty is required
-        if (product.price_wholesale && !product.wholesale_min_qty) return true;
-      }
-      
-      return false;
-    });
-    
-    return invalidProducts;
-  };
-
-  const getValidationMessage = () => {
-    switch (priceDisplayMode) {
-      case 'none':
-        return 'Por favor completa el nombre y categoría de todos los productos';
-      case 'retail':
-        return 'Por favor completa el nombre, precio de venta y categoría de todos los productos';
-      case 'both':
-        return 'Por favor completa el nombre, precio de venta y categoría de todos los productos';
-      default:
-        return 'Por favor completa todos los campos obligatorios';
-    }
-  };
-
   const handleProcessCatalog = async () => {
-    if (products.length === 0) return;
-
-    // Validate required fields based on price display mode
-    const invalidProducts = validateProducts();
-    if (invalidProducts.length > 0) {
+    if (!canProcess()) {
       toast({
-        title: "Campos requeridos",
-        description: getValidationMessage(),
+        title: "Productos incompletos",
+        description: `Por favor completa los ${incompleteCount} productos marcados en rojo`,
         variant: "destructive",
       });
       return;
@@ -130,7 +156,6 @@ const Upload = () => {
     try {
       const totalCreditsNeeded = products.length * CREDITS_PER_PRODUCT;
       
-      // Check credits again
       if (userCredits < totalCreditsNeeded) {
         toast({
           title: "Créditos insuficientes",
@@ -140,7 +165,6 @@ const Upload = () => {
         return;
       }
 
-      // Insert products into database with pricing configuration
       const productInserts = products.map(product => ({
         user_id: user!.id,
         name: product.name,
@@ -162,7 +186,6 @@ const Upload = () => {
 
       if (insertError) throw insertError;
 
-      // Deduct credits from user
       const { error: creditError } = await supabase
         .from('users')
         .update({ credits: userCredits - totalCreditsNeeded })
@@ -170,7 +193,6 @@ const Upload = () => {
 
       if (creditError) throw creditError;
 
-      // Record credit usage
       const { error: usageError } = await supabase
         .from('credit_usage')
         .insert({
@@ -188,7 +210,6 @@ const Upload = () => {
         description: "Tus productos se están procesando. Te notificaremos cuando estén listos.",
       });
 
-      // Redirect to progress page
       navigate('/progress');
 
     } catch (error) {
@@ -272,6 +293,49 @@ const Upload = () => {
             </p>
           </div>
 
+          {/* Pricing Configuration */}
+          <Card className="p-4 mb-6 bg-blue-50">
+            <CardContent className="p-0">
+              <h3 className="font-semibold mb-3">Configuración de Catálogo</h3>
+              <div className="space-y-2 mb-3">
+                <label className="flex items-center cursor-pointer">
+                  <input 
+                    type="radio" 
+                    name="priceDisplay" 
+                    value="none"
+                    checked={priceDisplayMode === 'none'}
+                    onChange={(e) => setPriceDisplayMode(e.target.value as PriceDisplayMode)}
+                    className="mr-2"
+                  />
+                  <span>Sin precios (solo productos)</span>
+                </label>
+                <label className="flex items-center cursor-pointer">
+                  <input 
+                    type="radio" 
+                    name="priceDisplay" 
+                    value="retail"
+                    checked={priceDisplayMode === 'retail'}
+                    onChange={(e) => setPriceDisplayMode(e.target.value as PriceDisplayMode)}
+                    className="mr-2"
+                  />
+                  <span>Solo precio de venta</span>
+                </label>
+                <label className="flex items-center cursor-pointer">
+                  <input 
+                    type="radio" 
+                    name="priceDisplay" 
+                    value="both"
+                    checked={priceDisplayMode === 'both'}
+                    onChange={(e) => setPriceDisplayMode(e.target.value as PriceDisplayMode)}
+                    className="mr-2"
+                  />
+                  <span>Precio de venta + mayoreo</span>
+                </label>
+              </div>
+              <p className="text-sm text-blue-700 italic">{getConfigHelp()}</p>
+            </CardContent>
+          </Card>
+
           {/* File Upload Section */}
           <div className="mb-8">
             <FileUploader 
@@ -279,6 +343,35 @@ const Upload = () => {
               maxFiles={10}
             />
           </div>
+
+          {/* Validation Summary */}
+          {products.length > 0 && (
+            <div className="bg-gray-50 p-4 rounded-lg mb-6">
+              <h4 className="font-semibold flex items-center gap-2">
+                Estado del Catálogo
+                {canProcess() ? (
+                  <CheckCircle className="w-5 h-5 text-green-500" />
+                ) : (
+                  <AlertTriangle className="w-5 h-5 text-orange-500" />
+                )}
+              </h4>
+              <div className="mt-2 space-y-1">
+                <p className="flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4 text-green-500" />
+                  {completeCount} productos completos
+                </p>
+                {incompleteCount > 0 && (
+                  <p className="flex items-center gap-2 text-red-600">
+                    <AlertCircle className="w-4 h-4" />
+                    {incompleteCount} productos necesitan: {getMissingFields()}
+                  </p>
+                )}
+                <p className="text-sm text-gray-600">
+                  Configuración: {getPriceConfigLabel()}
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* Product Forms */}
           {uploadedFiles.length > 0 && (
@@ -289,30 +382,46 @@ const Upload = () => {
               <div className="grid gap-6">
                 {products.map((product, index) => {
                   const correspondingFile = uploadedFiles.find(f => f.id === product.id);
+                  const status = getProductStatus(product, priceDisplayMode);
+                  
                   return (
-                    <ProductForm
-                      key={product.id}
-                      product={product}
-                      imageUrl={correspondingFile?.preview || correspondingFile?.url || product.original_image_url}
-                      onUpdate={updateProduct}
-                      priceDisplayMode={priceDisplayMode}
-                    />
+                    <div key={product.id} className="relative">
+                      <div className="absolute -top-2 -right-2 z-10">
+                        <StatusIcon status={status} />
+                      </div>
+                      <ProductForm
+                        product={product}
+                        imageUrl={correspondingFile?.preview || correspondingFile?.url || product.original_image_url}
+                        onUpdate={updateProduct}
+                        priceDisplayMode={priceDisplayMode}
+                      />
+                    </div>
                   );
                 })}
               </div>
             </div>
           )}
 
-          {/* Large CTA Button */}
+          {/* Process Button */}
           {uploadedFiles.length > 0 && (
             <div className="mb-8">
               <Button 
                 size="lg" 
-                className="w-full bg-primary text-white py-4 text-xl"
-                disabled={userCredits < (uploadedFiles.length * 15)}
+                className={`w-full py-4 text-xl ${
+                  canProcess() 
+                    ? 'bg-primary text-white hover:bg-primary/90' 
+                    : 'bg-gray-400 text-gray-200 cursor-not-allowed'
+                }`}
+                disabled={!canProcess() || processing}
                 onClick={handleProcessCatalog}
               >
-                ¡Crear mi catálogo profesional! ({uploadedFiles.length * 15} créditos)
+                {processing ? (
+                  'Procesando...'
+                ) : canProcess() ? (
+                  `¡Crear mi catálogo profesional! (${uploadedFiles.length * CREDITS_PER_PRODUCT} créditos)`
+                ) : (
+                  'Completa productos marcados en rojo'
+                )}
               </Button>
             </div>
           )}
@@ -344,7 +453,7 @@ const Upload = () => {
               </div>
               <h3 className="font-semibold text-neutral mb-2">Completa los datos</h3>
               <p className="text-sm text-neutral/70">
-                Nombre y precio del producto
+                Según tu configuración elegida
               </p>
             </div>
             <div className="text-center p-6">
