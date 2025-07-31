@@ -1,12 +1,33 @@
-
 import { useState } from "react";
 import { ChevronDown, Star, Check, Play, ArrowRight, Zap, Clock, DollarSign, Shield, Users, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { LoginModal } from "@/components/auth/LoginModal";
+import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 const Index = () => {
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
+  const [loginModalOpen, setLoginModalOpen] = useState(false);
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
+
+  const handleMainCTA = () => {
+    if (user) {
+      navigate('/upload');
+    } else {
+      setLoginModalOpen(true);
+    }
+  };
+
+  const handleAuthButton = () => {
+    if (user) {
+      signOut();
+    } else {
+      setLoginModalOpen(true);
+    }
+  };
 
   const testimonials = [
     {
@@ -118,8 +139,19 @@ const Index = () => {
           </nav>
 
           <div className="flex items-center space-x-4">
-            <Button variant="outline" className="hidden sm:inline-flex">Iniciar sesión</Button>
-            <Button className="bg-primary hover:bg-primary/90">Prueba gratis</Button>
+            <Button 
+              variant="outline" 
+              className="hidden sm:inline-flex"
+              onClick={handleAuthButton}
+            >
+              {user ? 'Cerrar sesión' : 'Iniciar sesión'}
+            </Button>
+            <Button 
+              className="bg-primary hover:bg-primary/90"
+              onClick={handleMainCTA}
+            >
+              {user ? 'Ir a Dashboard' : 'Prueba gratis'}
+            </Button>
           </div>
         </div>
       </header>
@@ -160,7 +192,11 @@ const Index = () => {
               </div>
 
               <div className="flex flex-col sm:flex-row gap-4">
-                <Button size="lg" className="bg-primary hover:bg-primary/90 text-lg px-8 py-4">
+                <Button 
+                  size="lg" 
+                  className="bg-primary hover:bg-primary/90 text-lg px-8 py-4"
+                  onClick={handleMainCTA}
+                >
                   Transforma tus productos ahora
                   <ArrowRight className="ml-2 w-5 h-5" />
                 </Button>
@@ -427,6 +463,7 @@ const Index = () => {
                 <Button 
                   className={`w-full ${plan.popular ? 'bg-secondary hover:bg-secondary/90' : 'bg-primary hover:bg-primary/90'}`}
                   size="lg"
+                  onClick={handleMainCTA}
                 >
                   Comprar ahora
                 </Button>
@@ -488,7 +525,12 @@ const Index = () => {
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button size="lg" variant="secondary" className="bg-white text-primary hover:bg-gray-50 text-lg px-8 py-4">
+            <Button 
+              size="lg" 
+              variant="secondary" 
+              className="bg-white text-primary hover:bg-gray-50 text-lg px-8 py-4"
+              onClick={handleMainCTA}
+            >
               Prueba gratis tu primer catálogo
               <ArrowRight className="ml-2 w-5 h-5" />
             </Button>
@@ -523,8 +565,8 @@ const Index = () => {
             <div>
               <h4 className="font-semibold mb-4">Producto</h4>
               <ul className="space-y-2 text-white/70">
-                <li><a href="#" className="hover:text-white">Cómo funciona</a></li>
-                <li><a href="#" className="hover:text-white">Precios</a></li>
+                <li><a href="#como-funciona" className="hover:text-white">Cómo funciona</a></li>
+                <li><a href="#precios" className="hover:text-white">Precios</a></li>
                 <li><a href="#" className="hover:text-white">API</a></li>
               </ul>
             </div>
@@ -560,6 +602,8 @@ const Index = () => {
           </div>
         </div>
       </footer>
+
+      <LoginModal open={loginModalOpen} onOpenChange={setLoginModalOpen} />
     </div>
   );
 };
