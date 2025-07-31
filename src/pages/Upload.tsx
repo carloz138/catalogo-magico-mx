@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { Button } from '@/components/ui/button';
@@ -263,31 +262,6 @@ const Upload = () => {
                     />
                   );
                 })}
-              </div>
-            </div>
-          )}
-
-          {/* Cost Summary Section */}
-          {uploadedFiles.length > 0 && (
-            <div className="mb-8">
-              <div className="bg-blue-50 p-6 rounded-lg border border-blue-200">
-                <h3 className="font-bold text-lg mb-3 text-blue-900">Resumen de Costos</h3>
-                <p className="text-lg mb-2">
-                  <span className="font-semibold">{uploadedFiles.length} productos</span>
-                  {' × '}
-                  <span className="font-semibold">15 créditos</span>
-                  {' = '}
-                  <span className="font-bold text-blue-700">{uploadedFiles.length * 15} créditos total</span>
-                </p>
-                <div className="text-sm text-gray-600 mb-3">
-                  Créditos disponibles: <span className="font-semibold">{userCredits}</span>
-                </div>
-                {userCredits < (uploadedFiles.length * 15) && (
-                  <p className="text-red-600 font-medium flex items-center gap-2">
-                    <span>⚠️</span>
-                    <span>Necesitas {(uploadedFiles.length * 15) - userCredits} créditos más</span>
-                  </p>
-                )}
               </div>
             </div>
           )}
