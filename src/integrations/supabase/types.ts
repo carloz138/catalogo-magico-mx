@@ -1,0 +1,670 @@
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[]
+
+export type Database = {
+  // Allows to automatically instanciate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "12.2.12 (cd3cf9e)"
+  }
+  public: {
+    Tables: {
+      catalogs: {
+        Row: {
+          brand_colors: Json | null
+          created_at: string
+          credits_used: number
+          currency: string | null
+          description: string | null
+          file_size_bytes: number | null
+          id: string
+          logo_url: string | null
+          name: string
+          pdf_url: string | null
+          preview_image_url: string | null
+          product_ids: string[]
+          show_retail_prices: boolean | null
+          show_wholesale_prices: boolean | null
+          template_style: string | null
+          total_pages: number | null
+          total_products: number
+          user_id: string
+        }
+        Insert: {
+          brand_colors?: Json | null
+          created_at?: string
+          credits_used: number
+          currency?: string | null
+          description?: string | null
+          file_size_bytes?: number | null
+          id?: string
+          logo_url?: string | null
+          name: string
+          pdf_url?: string | null
+          preview_image_url?: string | null
+          product_ids: string[]
+          show_retail_prices?: boolean | null
+          show_wholesale_prices?: boolean | null
+          template_style?: string | null
+          total_pages?: number | null
+          total_products: number
+          user_id: string
+        }
+        Update: {
+          brand_colors?: Json | null
+          created_at?: string
+          credits_used?: number
+          currency?: string | null
+          description?: string | null
+          file_size_bytes?: number | null
+          id?: string
+          logo_url?: string | null
+          name?: string
+          pdf_url?: string | null
+          preview_image_url?: string | null
+          product_ids?: string[]
+          show_retail_prices?: boolean | null
+          show_wholesale_prices?: boolean | null
+          template_style?: string | null
+          total_pages?: number | null
+          total_products?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "catalogs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalogs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      credit_packages: {
+        Row: {
+          created_at: string
+          credits: number
+          description: string | null
+          discount_percentage: number | null
+          id: string
+          is_active: boolean | null
+          is_popular: boolean | null
+          name: string
+          price_mxn: number
+          price_usd: number
+        }
+        Insert: {
+          created_at?: string
+          credits: number
+          description?: string | null
+          discount_percentage?: number | null
+          id?: string
+          is_active?: boolean | null
+          is_popular?: boolean | null
+          name: string
+          price_mxn: number
+          price_usd: number
+        }
+        Update: {
+          created_at?: string
+          credits?: number
+          description?: string | null
+          discount_percentage?: number | null
+          id?: string
+          is_active?: boolean | null
+          is_popular?: boolean | null
+          name?: string
+          price_mxn?: number
+          price_usd?: number
+        }
+        Relationships: []
+      }
+      credit_usage: {
+        Row: {
+          catalog_id: string | null
+          created_at: string
+          credits_remaining: number
+          credits_used: number
+          description: string | null
+          id: string
+          product_id: string | null
+          transaction_id: string | null
+          usage_type: string
+          user_id: string
+        }
+        Insert: {
+          catalog_id?: string | null
+          created_at?: string
+          credits_remaining: number
+          credits_used: number
+          description?: string | null
+          id?: string
+          product_id?: string | null
+          transaction_id?: string | null
+          usage_type: string
+          user_id: string
+        }
+        Update: {
+          catalog_id?: string | null
+          created_at?: string
+          credits_remaining?: number
+          credits_used?: number
+          description?: string | null
+          id?: string
+          product_id?: string | null
+          transaction_id?: string | null
+          usage_type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_usage_catalog_id_fkey"
+            columns: ["catalog_id"]
+            isOneToOne: false
+            referencedRelation: "catalogs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_usage_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_usage_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_usage_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_usage_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      products: {
+        Row: {
+          ai_confidence_score: number | null
+          ai_description: string | null
+          ai_tags: string[] | null
+          brand: string | null
+          category: string | null
+          color: string | null
+          created_at: string
+          credits_used: number | null
+          custom_description: string | null
+          description: string | null
+          error_message: string | null
+          features: string[] | null
+          hd_image_url: string | null
+          id: string
+          model: string | null
+          name: string
+          original_image_url: string
+          price_retail: number | null
+          price_wholesale: number | null
+          processed_image_url: string | null
+          processing_progress: number | null
+          processing_status: string | null
+          service_type: string | null
+          sku: string | null
+          social_media_urls: Json | null
+          updated_at: string
+          user_id: string
+          video_url: string | null
+          wholesale_min_qty: number | null
+        }
+        Insert: {
+          ai_confidence_score?: number | null
+          ai_description?: string | null
+          ai_tags?: string[] | null
+          brand?: string | null
+          category?: string | null
+          color?: string | null
+          created_at?: string
+          credits_used?: number | null
+          custom_description?: string | null
+          description?: string | null
+          error_message?: string | null
+          features?: string[] | null
+          hd_image_url?: string | null
+          id?: string
+          model?: string | null
+          name: string
+          original_image_url: string
+          price_retail?: number | null
+          price_wholesale?: number | null
+          processed_image_url?: string | null
+          processing_progress?: number | null
+          processing_status?: string | null
+          service_type?: string | null
+          sku?: string | null
+          social_media_urls?: Json | null
+          updated_at?: string
+          user_id: string
+          video_url?: string | null
+          wholesale_min_qty?: number | null
+        }
+        Update: {
+          ai_confidence_score?: number | null
+          ai_description?: string | null
+          ai_tags?: string[] | null
+          brand?: string | null
+          category?: string | null
+          color?: string | null
+          created_at?: string
+          credits_used?: number | null
+          custom_description?: string | null
+          description?: string | null
+          error_message?: string | null
+          features?: string[] | null
+          hd_image_url?: string | null
+          id?: string
+          model?: string | null
+          name?: string
+          original_image_url?: string
+          price_retail?: number | null
+          price_wholesale?: number | null
+          processed_image_url?: string | null
+          processing_progress?: number | null
+          processing_status?: string | null
+          service_type?: string | null
+          sku?: string | null
+          social_media_urls?: Json | null
+          updated_at?: string
+          user_id?: string
+          video_url?: string | null
+          wholesale_min_qty?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "products_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      transactions: {
+        Row: {
+          amount_mxn: number
+          amount_usd: number | null
+          completed_at: string | null
+          created_at: string
+          credits_purchased: number
+          expires_at: string | null
+          failure_reason: string | null
+          id: string
+          oxxo_barcode: string | null
+          oxxo_reference: string | null
+          package_id: string | null
+          payment_metadata: Json | null
+          payment_method: string
+          payment_status: string | null
+          spei_clabe: string | null
+          spei_reference: string | null
+          stripe_charge_id: string | null
+          stripe_payment_intent_id: string | null
+          user_id: string
+        }
+        Insert: {
+          amount_mxn: number
+          amount_usd?: number | null
+          completed_at?: string | null
+          created_at?: string
+          credits_purchased: number
+          expires_at?: string | null
+          failure_reason?: string | null
+          id?: string
+          oxxo_barcode?: string | null
+          oxxo_reference?: string | null
+          package_id?: string | null
+          payment_metadata?: Json | null
+          payment_method: string
+          payment_status?: string | null
+          spei_clabe?: string | null
+          spei_reference?: string | null
+          stripe_charge_id?: string | null
+          stripe_payment_intent_id?: string | null
+          user_id: string
+        }
+        Update: {
+          amount_mxn?: number
+          amount_usd?: number | null
+          completed_at?: string | null
+          created_at?: string
+          credits_purchased?: number
+          expires_at?: string | null
+          failure_reason?: string | null
+          id?: string
+          oxxo_barcode?: string | null
+          oxxo_reference?: string | null
+          package_id?: string | null
+          payment_metadata?: Json | null
+          payment_method?: string
+          payment_status?: string | null
+          spei_clabe?: string | null
+          spei_reference?: string | null
+          stripe_charge_id?: string | null
+          stripe_payment_intent_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transactions_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "credit_packages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_preferences: {
+        Row: {
+          brand_colors: Json | null
+          brand_logo_url: string | null
+          brand_name: string | null
+          business_address: Json | null
+          created_at: string
+          default_currency: string | null
+          default_template: string | null
+          email_notifications: boolean | null
+          id: string
+          marketing_emails: boolean | null
+          processing_notifications: boolean | null
+          show_wholesale_by_default: boolean | null
+          tax_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          brand_colors?: Json | null
+          brand_logo_url?: string | null
+          brand_name?: string | null
+          business_address?: Json | null
+          created_at?: string
+          default_currency?: string | null
+          default_template?: string | null
+          email_notifications?: boolean | null
+          id?: string
+          marketing_emails?: boolean | null
+          processing_notifications?: boolean | null
+          show_wholesale_by_default?: boolean | null
+          tax_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          brand_colors?: Json | null
+          brand_logo_url?: string | null
+          brand_name?: string | null
+          business_address?: Json | null
+          created_at?: string
+          default_currency?: string | null
+          default_template?: string | null
+          email_notifications?: boolean | null
+          id?: string
+          marketing_emails?: boolean | null
+          processing_notifications?: boolean | null
+          show_wholesale_by_default?: boolean | null
+          tax_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_preferences_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "user_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_preferences_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      users: {
+        Row: {
+          avatar_url: string | null
+          business_name: string | null
+          business_type: string | null
+          created_at: string
+          credits: number | null
+          email: string
+          full_name: string | null
+          id: string
+          phone: string | null
+          total_credits_purchased: number | null
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          business_name?: string | null
+          business_type?: string | null
+          created_at?: string
+          credits?: number | null
+          email: string
+          full_name?: string | null
+          id: string
+          phone?: string | null
+          total_credits_purchased?: number | null
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          business_name?: string | null
+          business_type?: string | null
+          created_at?: string
+          credits?: number | null
+          email?: string
+          full_name?: string | null
+          id?: string
+          phone?: string | null
+          total_credits_purchased?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+    }
+    Views: {
+      user_stats: {
+        Row: {
+          business_name: string | null
+          credits: number | null
+          email: string | null
+          full_name: string | null
+          id: string | null
+          total_catalogs_created: number | null
+          total_credits_purchased: number | null
+          total_credits_used: number | null
+          total_products_processed: number | null
+          user_since: string | null
+        }
+        Relationships: []
+      }
+    }
+    Functions: {
+      [_ in never]: never
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
+}
+
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
+
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
+
+export const Constants = {
+  public: {
+    Enums: {},
+  },
+} as const
