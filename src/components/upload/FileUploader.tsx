@@ -23,7 +23,7 @@ interface FileUploaderProps {
   maxFiles?: number;
 }
 
-const MAX_FILES = 20;
+const MAX_FILES = 10;
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB per file
 const MAX_TOTAL_SIZE = 100 * 1024 * 1024; // 100MB total
 
@@ -260,7 +260,7 @@ export const FileUploader = ({ onFilesUploaded, maxFiles = MAX_FILES }: FileUplo
       <div className="mt-6 bg-blue-50 p-4 rounded-lg border border-blue-200">
         <h4 className="font-semibold text-blue-800 mb-2">¿Tienes muchos productos?</h4>
         <div className="text-blue-700 space-y-2">
-          <p>• Procesa en lotes de máximo 20 productos para mejor rendimiento</p>
+          <p>• Procesa en lotes de máximo {MAX_FILES} productos para mejor rendimiento</p>
           <p>• Guarda cada lote en tu biblioteca</p>
           <p>• Después puedes combinar productos de diferentes lotes en un solo catálogo</p>
         </div>
