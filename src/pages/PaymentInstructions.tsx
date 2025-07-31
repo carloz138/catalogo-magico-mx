@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -22,6 +21,7 @@ interface Transaction {
 }
 
 const PaymentInstructions = () => {
+  console.log('PaymentInstructions page rendering');
   const { transactionId } = useParams<{ transactionId: string }>();
   const { user } = useAuth();
   const { toast } = useToast();
@@ -32,15 +32,12 @@ const PaymentInstructions = () => {
   const [timeRemaining, setTimeRemaining] = useState('');
 
   useEffect(() => {
-    if (!user) {
-      navigate('/');
-      return;
-    }
+    console.log('PaymentInstructions useEffect running, user:', user, 'transactionId:', transactionId);
     
     if (transactionId) {
       fetchTransaction();
     }
-  }, [user, transactionId, navigate]);
+  }, [transactionId]);
 
   useEffect(() => {
     if (!transaction?.expires_at) return;
@@ -70,6 +67,8 @@ const PaymentInstructions = () => {
   const fetchTransaction = async () => {
     if (!transactionId || !user) return;
 
+    console.log('Fetching transaction:', transactionId, 'for user:', user.id);
+
     try {
       const { data, error } = await supabase
         .from('transactions')
@@ -92,6 +91,7 @@ const PaymentInstructions = () => {
 
       if (error) throw error;
       
+      console.log('Transaction fetched:', data);
       setTransaction({
         ...data,
         package: data.credit_packages || { name: 'Paquete de créditos' }

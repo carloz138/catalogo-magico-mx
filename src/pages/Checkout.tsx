@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -19,6 +18,7 @@ interface CreditPackage {
 }
 
 const Checkout = () => {
+  console.log('Checkout page rendering');
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -30,14 +30,12 @@ const Checkout = () => {
   const [processingPayment, setProcessingPayment] = useState(false);
 
   useEffect(() => {
-    if (!user) {
-      navigate('/');
-      return;
-    }
+    console.log('Checkout useEffect running, user:', user);
     fetchCreditPackages();
-  }, [user, navigate]);
+  }, []);
 
   const fetchCreditPackages = async () => {
+    console.log('Fetching credit packages...');
     try {
       const { data, error } = await supabase
         .from('credit_packages')
@@ -46,6 +44,7 @@ const Checkout = () => {
         .order('credits');
 
       if (error) throw error;
+      console.log('Credit packages fetched:', data);
       setPackages(data || []);
       
       // Auto-select popular package
