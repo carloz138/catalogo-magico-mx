@@ -37,7 +37,7 @@ export const FileUploader = ({ onFilesUploaded, maxFiles = 10 }: FileUploaderPro
     setUploadedFiles(prev => [...prev, ...newFiles]);
 
     // Upload files to Supabase Storage
-    for (const uploadFile of newFiles) {
+    const uploadPromises = newFiles.map(async (uploadFile) => {
       try {
         const fileExt = uploadFile.file.name.split('.').pop();
         const fileName = `${uploadFile.id}.${fileExt}`;
@@ -61,6 +61,8 @@ export const FileUploader = ({ onFilesUploaded, maxFiles = 10 }: FileUploaderPro
             ? { ...f, uploading: false, progress: 100, url: urlData.publicUrl }
             : f
         ));
+
+        return { ...uploadFile, url: urlData.publicUrl, uploading: false, progress: 100 };
       } catch (error) {
         setUploadedFiles(prev => prev.map(f => 
           f.id === uploadFile.id 
@@ -72,11 +74,17 @@ export const FileUploader = ({ onFilesUploaded, maxFiles = 10 }: FileUploaderPro
           description: `No se pudo subir ${uploadFile.file.name}`,
           variant: "destructive",
         });
+        return null;
       }
-    }
+    });
 
-    const successfulFiles = uploadedFiles.filter(f => f.url && !f.error);
-    onFilesUploaded(successfulFiles);
+    // Wait for all uploads to complete
+    const results = await Promise.all(uploadPromises);
+    const successfulFiles = results.filter(file => file !== null && file.url);
+    
+    // Call onFilesUploaded with all successful files (including previously uploaded ones)
+    const allSuccessfulFiles = uploadedFiles.filter(f => f.url && !f.error).concat(successfulFiles);
+    onFilesUploaded(allSuccessfulFiles);
   }, [uploadedFiles, maxFiles, onFilesUploaded]);
 
   const { getRootProps, getInputProps, isDragActive, fileRejections } = useDropzone({
@@ -92,7 +100,8 @@ export const FileUploader = ({ onFilesUploaded, maxFiles = 10 }: FileUploaderPro
   const removeFile = (id: string) => {
     setUploadedFiles(prev => {
       const newFiles = prev.filter(f => f.id !== id);
-      onFilesUploaded(newFiles.filter(f => f.url && !f.error));
+      const successfulFiles = newFiles.filter(f => f.url && !f.error);
+      onFilesUploaded(successfulFiles);
       return newFiles;
     });
   };

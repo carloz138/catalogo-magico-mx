@@ -18,6 +18,7 @@ const Upload = () => {
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [products, setProducts] = useState<ProductData[]>([]);
+  const [uploadedFiles, setUploadedFiles] = useState<any[]>([]);
 
   const CREDITS_PER_PRODUCT = 15;
 
@@ -50,6 +51,10 @@ const Upload = () => {
   };
 
   const handleFilesUploaded = (files: any[]) => {
+    console.log('Files uploaded:', files);
+    setUploadedFiles(files);
+    
+    // Create product data for each successfully uploaded file
     const newProducts = files.map(file => ({
       id: file.id,
       name: '',
@@ -61,6 +66,7 @@ const Upload = () => {
       custom_description: '',
       original_image_url: file.url,
     }));
+    
     setProducts(newProducts);
   };
 
@@ -147,7 +153,7 @@ const Upload = () => {
         description: "Tus productos se están procesando. Te notificaremos cuando estén listos.",
       });
 
-      // Redirect to progress page (we'll need to create this)
+      // Redirect to progress page
       navigate('/progress');
 
     } catch (error) {
@@ -163,7 +169,6 @@ const Upload = () => {
   };
 
   const handleBuyCredits = () => {
-    // Navigate to credits purchase page (we'll need to create this)
     navigate('/credits');
   };
 
@@ -240,21 +245,24 @@ const Upload = () => {
             />
           </div>
 
-          {/* Product Forms */}
-          {products.length > 0 && (
+          {/* Product Forms - This is the critical missing part */}
+          {uploadedFiles.length > 0 && (
             <div className="space-y-6 mb-8">
               <h2 className="text-2xl font-bold text-center">
                 Completa los datos de tus productos
               </h2>
               <div className="grid gap-6">
-                {products.map((product, index) => (
-                  <ProductForm
-                    key={product.id}
-                    product={product}
-                    imageUrl={product.original_image_url}
-                    onUpdate={updateProduct}
-                  />
-                ))}
+                {products.map((product, index) => {
+                  const correspondingFile = uploadedFiles.find(f => f.id === product.id);
+                  return (
+                    <ProductForm
+                      key={product.id}
+                      product={product}
+                      imageUrl={correspondingFile?.preview || correspondingFile?.url || product.original_image_url}
+                      onUpdate={updateProduct}
+                    />
+                  );
+                })}
               </div>
             </div>
           )}
