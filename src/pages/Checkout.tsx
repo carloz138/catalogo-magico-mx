@@ -1,11 +1,10 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { CreditCard, Building2, CheckCircle } from 'lucide-react';
+import { CreditCard, Building2, CheckCircle, ArrowLeft } from 'lucide-react';
 
 interface CreditPackage {
   id: string;
@@ -197,8 +196,21 @@ const Checkout = () => {
       {/* Header */}
       <header className="bg-white border-b">
         <div className="max-w-4xl mx-auto px-4 py-6">
-          <h1 className="text-2xl font-bold text-gray-900">Comprar Créditos</h1>
-          <p className="text-gray-600 mt-1">Selecciona un paquete y método de pago</p>
+          <div className="flex items-center gap-4">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => navigate('/')}
+              className="flex items-center gap-2"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Regresar al inicio
+            </Button>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Comprar Créditos</h1>
+              <p className="text-gray-600 mt-1">Selecciona un paquete y método de pago</p>
+            </div>
+          </div>
         </div>
       </header>
 
