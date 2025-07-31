@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { Upload, X, AlertCircle } from 'lucide-react';
@@ -59,6 +58,13 @@ export const FileUploader = ({ onFilesUploaded, maxFiles = MAX_FILES }: FileUplo
   const [error, setError] = useState<string>('');
 
   const onDrop = useCallback(async (acceptedFiles: File[], rejectedFiles: any[]) => {
+    // Check if too many files were selected (including rejected ones)
+    const totalFiles = acceptedFiles.length + rejectedFiles.length;
+    if (totalFiles > MAX_FILES) {
+      setError(`Recuerda que la cantidad máxima para subir archivos es de ${MAX_FILES}. Seleccionaste ${totalFiles} archivos.`);
+      return;
+    }
+
     // Validate file count and size
     const validation = validateFiles(acceptedFiles);
     if (!validation.valid) {
@@ -204,7 +210,12 @@ export const FileUploader = ({ onFilesUploaded, maxFiles = MAX_FILES }: FileUplo
           </div>
           {fileRejections.map(({ file, errors }) => (
             <div key={file.name} className="text-sm text-destructive/80">
-              {file.name}: {errors.map(e => e.message).join(', ')}
+              {file.name}: {errors.map(e => {
+                if (e.code === 'too-many-files') {
+                  return `Recuerda que la cantidad máxima para subir archivos es de ${MAX_FILES}`;
+                }
+                return e.message;
+              }).join(', ')}
             </div>
           ))}
         </div>
