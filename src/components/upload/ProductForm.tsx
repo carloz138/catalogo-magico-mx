@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { CheckCircle, AlertCircle, Clock } from 'lucide-react';
 
 export interface ProductData {
   id: string;
@@ -88,6 +89,37 @@ export const ProductForm = ({ product, imageUrl, onUpdate, priceDisplayMode }: P
     }
   };
 
+  const getProductStatus = () => {
+    const hasName = product.name?.trim();
+    const hasRetail = product.price_retail > 0;
+    
+    switch(priceDisplayMode) {
+      case 'none':
+        return hasName && hasCategory ? 'complete' : 'incomplete';
+      case 'retail':
+        return hasName && hasCategory && hasRetail ? 'complete' : 'incomplete';
+      case 'both':
+        return hasName && hasCategory && hasRetail ? 'complete' : 'incomplete';
+      default:
+        return 'incomplete';
+    }
+  };
+
+  const StatusIcon = ({ status }: { status: string }) => {
+    switch(status) {
+      case 'complete': 
+        return <CheckCircle className="w-4 h-4 text-green-500" />;
+      case 'incomplete': 
+        return <AlertCircle className="w-4 h-4 text-red-500" />;
+      case 'partial': 
+        return <Clock className="w-4 h-4 text-yellow-500" />;
+      default:
+        return null;
+    }
+  };
+
+  const productStatus = getProductStatus();
+
   return (
     <Card className="overflow-hidden">
       <CardHeader className="pb-3">
@@ -98,9 +130,14 @@ export const ProductForm = ({ product, imageUrl, onUpdate, priceDisplayMode }: P
             className="w-20 h-20 object-cover rounded-lg"
           />
           <div className="flex-1">
-            <CardTitle className="text-lg">Datos del Producto</CardTitle>
+            <div className="flex items-center gap-2">
+              <CardTitle className="text-lg">Datos del Producto</CardTitle>
+              <StatusIcon status={productStatus} />
+            </div>
             <p className="text-sm text-neutral/60">
-              Completa la información según tu configuración elegida
+              {priceDisplayMode === 'none' && "Solo nombre y categoría requeridos"}
+              {priceDisplayMode === 'retail' && "Nombre, categoría y precio de venta requeridos"}
+              {priceDisplayMode === 'both' && "Nombre, categoría y precio de venta requeridos"}
             </p>
           </div>
         </div>
