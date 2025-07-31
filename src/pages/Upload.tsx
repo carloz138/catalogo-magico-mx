@@ -1,15 +1,15 @@
+
 import React, { useState, useEffect } from 'react';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { ArrowLeft, CreditCard, CheckCircle, AlertCircle, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, CreditCard, CheckCircle, AlertCircle, AlertTriangle, BookOpen } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
 import { FileUploader } from '@/components/upload/FileUploader';
 import { ProductForm, ProductData } from '@/components/upload/ProductForm';
-import { CostCalculator } from '@/components/upload/CostCalculator';
 
 type PriceDisplayMode = 'none' | 'retail' | 'both';
 
@@ -18,12 +18,10 @@ const Upload = () => {
   const navigate = useNavigate();
   const [userCredits, setUserCredits] = useState<number>(0);
   const [loading, setLoading] = useState(true);
-  const [processing, setProcessing] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [products, setProducts] = useState<ProductData[]>([]);
   const [uploadedFiles, setUploadedFiles] = useState<any[]>([]);
   const [priceDisplayMode, setPriceDisplayMode] = useState<PriceDisplayMode>('retail');
-
-  const CREDITS_PER_PRODUCT = 15;
 
   // Smart validation function
   const getProductStatus = (product: ProductData, priceConfig: PriceDisplayMode) => {
@@ -82,7 +80,7 @@ const Upload = () => {
     }
   };
 
-  const canProcess = () => {
+  const canSaveToLibrary = () => {
     return products.length > 0 && products.every(product => 
       getProductStatus(product, priceDisplayMode) === 'complete'
     );
@@ -141,8 +139,8 @@ const Upload = () => {
     ));
   };
 
-  const handleProcessCatalog = async () => {
-    if (!canProcess()) {
+  const saveToLibrary = async () => {
+    if (!canSaveToLibrary()) {
       toast({
         title: "Productos incompletos",
         description: `Por favor completa los ${incompleteCount} productos marcados en rojo`,
@@ -151,20 +149,9 @@ const Upload = () => {
       return;
     }
 
-    setProcessing(true);
+    setSaving(true);
 
     try {
-      const totalCreditsNeeded = products.length * CREDITS_PER_PRODUCT;
-      
-      if (userCredits < totalCreditsNeeded) {
-        toast({
-          title: "Créditos insuficientes",
-          description: `Necesitas ${totalCreditsNeeded - userCredits} créditos adicionales`,
-          variant: "destructive",
-        });
-        return;
-      }
-
       const productInserts = products.map(product => ({
         user_id: user!.id,
         name: product.name,
@@ -175,8 +162,8 @@ const Upload = () => {
         category: product.category,
         custom_description: product.custom_description || null,
         original_image_url: product.original_image_url,
-        processing_status: 'pending',
-        credits_used: CREDITS_PER_PRODUCT,
+        processing_status: 'draft', // Save as draft, not processing
+        credits_used: 0, // No credits used for saving to library
       }));
 
       const { data: insertedProducts, error: insertError } = await supabase
@@ -186,41 +173,24 @@ const Upload = () => {
 
       if (insertError) throw insertError;
 
-      const { error: creditError } = await supabase
-        .from('users')
-        .update({ credits: userCredits - totalCreditsNeeded })
-        .eq('id', user!.id);
-
-      if (creditError) throw creditError;
-
-      const { error: usageError } = await supabase
-        .from('credit_usage')
-        .insert({
-          user_id: user!.id,
-          credits_used: totalCreditsNeeded,
-          credits_remaining: userCredits - totalCreditsNeeded,
-          usage_type: 'product_processing',
-          description: `Procesamiento de ${products.length} productos`,
-        });
-
-      if (usageError) throw usageError;
-
       toast({
         title: "¡Éxito!",
-        description: "Tus productos se están procesando. Te notificaremos cuando estén listos.",
+        description: `✅ ${products.length} productos guardados en tu biblioteca`,
       });
 
-      navigate('/progress');
+      // Clear the form
+      setProducts([]);
+      setUploadedFiles([]);
 
     } catch (error) {
-      console.error('Error processing catalog:', error);
+      console.error('Error saving products to library:', error);
       toast({
         title: "Error",
-        description: "Hubo un error al procesar tu catálogo. Inténtalo de nuevo.",
+        description: "Hubo un error al guardar tus productos. Inténtalo de nuevo.",
         variant: "destructive",
       });
     } finally {
-      setProcessing(false);
+      setSaving(false);
     }
   };
 
@@ -275,6 +245,10 @@ const Upload = () => {
                   Comprar más
                 </Button>
               )}
+              <Button variant="outline" size="sm" onClick={() => navigate('/products')}>
+                <BookOpen className="w-4 h-4 mr-2" />
+                Mi Biblioteca
+              </Button>
               <div className="text-sm text-neutral/60">
                 ¡Hola {user?.email}!
               </div>
@@ -286,10 +260,10 @@ const Upload = () => {
         <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-neutral mb-4">
-              Transforma tus productos en catálogos profesionales
+              Agrega productos a tu biblioteca
             </h1>
             <p className="text-xl text-neutral/70">
-              Sube las fotos de tus productos y nosotros haremos la magia
+              Sube las fotos de tus productos y guárdalos gratis. Después podrás crear catálogos con tus productos guardados.
             </p>
           </div>
 
@@ -348,8 +322,8 @@ const Upload = () => {
           {products.length > 0 && (
             <div className="bg-gray-50 p-4 rounded-lg mb-6">
               <h4 className="font-semibold flex items-center gap-2">
-                Estado del Catálogo
-                {canProcess() ? (
+                Estado de los Productos
+                {canSaveToLibrary() ? (
                   <CheckCircle className="w-5 h-5 text-green-500" />
                 ) : (
                   <AlertTriangle className="w-5 h-5 text-orange-500" />
@@ -402,39 +376,40 @@ const Upload = () => {
             </div>
           )}
 
-          {/* Process Button */}
+          {/* Save to Library Button */}
           {uploadedFiles.length > 0 && (
-            <div className="mb-8">
+            <div className="mb-8 space-y-4">
               <Button 
                 size="lg" 
                 className={`w-full py-4 text-xl ${
-                  canProcess() 
+                  canSaveToLibrary() 
                     ? 'bg-primary text-white hover:bg-primary/90' 
                     : 'bg-gray-400 text-gray-200 cursor-not-allowed'
                 }`}
-                disabled={!canProcess() || processing}
-                onClick={handleProcessCatalog}
+                disabled={!canSaveToLibrary() || saving}
+                onClick={saveToLibrary}
               >
-                {processing ? (
-                  'Procesando...'
-                ) : canProcess() ? (
-                  `¡Crear mi catálogo profesional! (${uploadedFiles.length * CREDITS_PER_PRODUCT} créditos)`
+                {saving ? (
+                  'Guardando...'
+                ) : canSaveToLibrary() ? (
+                  `Guardar ${uploadedFiles.length} productos en mi biblioteca (Gratis)`
                 ) : (
                   'Completa productos marcados en rojo'
                 )}
               </Button>
+              
+              {canSaveToLibrary() && (
+                <div className="flex gap-4 justify-center">
+                  <Button variant="outline" onClick={() => navigate('/products')}>
+                    Ver mi biblioteca
+                  </Button>
+                  <Button variant="outline" onClick={() => window.location.reload()}>
+                    Subir más productos
+                  </Button>
+                </div>
+              )}
             </div>
           )}
-
-          {/* Cost Calculator */}
-          <CostCalculator
-            productCount={products.length}
-            creditsPerProduct={CREDITS_PER_PRODUCT}
-            userCredits={userCredits}
-            onProcessCatalog={handleProcessCatalog}
-            onBuyCredits={handleBuyCredits}
-            processing={processing}
-          />
 
           {/* 3-Step Process Info */}
           <div className="mt-8 grid md:grid-cols-3 gap-6">
@@ -451,18 +426,18 @@ const Upload = () => {
               <div className="w-12 h-12 bg-accent/10 rounded-full flex items-center justify-center mx-auto mb-4">
                 <span className="text-xl font-bold text-accent">2</span>
               </div>
-              <h3 className="font-semibold text-neutral mb-2">Completa los datos</h3>
+              <h3 className="font-semibold text-neutral mb-2">Guarda en biblioteca</h3>
               <p className="text-sm text-neutral/70">
-                Según tu configuración elegida
+                Gratis y sin límites para organizar tus productos
               </p>
             </div>
             <div className="text-center p-6">
               <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
                 <span className="text-xl font-bold text-primary">3</span>
               </div>
-              <h3 className="font-semibold text-neutral mb-2">¡Listo!</h3>
+              <h3 className="font-semibold text-neutral mb-2">Crea catálogos</h3>
               <p className="text-sm text-neutral/70">
-                En 10 minutos tienes tu catálogo profesional
+                Selecciona productos y crea catálogos profesionales
               </p>
             </div>
           </div>
