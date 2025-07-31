@@ -29,6 +29,14 @@ const Index = () => {
     }
   };
 
+  const handlePurchasePackage = (packageName: string) => {
+    if (user) {
+      navigate('/checkout', { state: { selectedPackageName: packageName } });
+    } else {
+      setLoginModalOpen(true);
+    }
+  };
+
   const testimonials = [
     {
       name: "María González",
@@ -463,7 +471,7 @@ const Index = () => {
                 <Button 
                   className={`w-full ${plan.popular ? 'bg-secondary hover:bg-secondary/90' : 'bg-primary hover:bg-primary/90'}`}
                   size="lg"
-                  onClick={handleMainCTA}
+                  onClick={() => handlePurchasePackage(plan.name)}
                 >
                   Comprar ahora
                 </Button>
