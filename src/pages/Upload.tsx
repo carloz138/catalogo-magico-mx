@@ -152,6 +152,25 @@ const Upload = () => {
     setSaving(true);
 
     try {
+      // Validate products before insertion
+      const validateProduct = (product: ProductData) => {
+        if (!user?.id) return 'Missing user_id';
+        if (!product.name || product.name.trim() === '') return 'Missing product name';
+        if (!product.original_image_url) return 'Missing image URL';
+        return null;
+      };
+
+      const validationErrors = products.map(validateProduct).filter(Boolean);
+      if (validationErrors.length > 0) {
+        console.error('Validation errors:', validationErrors);
+        toast({
+          title: "Error de validación",
+          description: "Algunos productos tienen campos faltantes",
+          variant: "destructive",
+        });
+        return;
+      }
+
       const productInserts = products.map(product => ({
         user_id: user!.id,
         name: product.name,
@@ -162,16 +181,27 @@ const Upload = () => {
         category: product.category,
         custom_description: product.custom_description || null,
         original_image_url: product.original_image_url,
-        processing_status: 'draft', // Save as draft, not processing
+        processing_status: 'pending', // Use 'pending' instead of 'draft'
         credits_used: 0, // No credits used for saving to library
+        service_type: 'basic'
       }));
+
+      console.log('Inserting products:', productInserts);
 
       const { data: insertedProducts, error: insertError } = await supabase
         .from('products')
         .insert(productInserts)
-        .select('id');
+        .select('id, name, original_image_url');
 
-      if (insertError) throw insertError;
+      if (insertError) {
+        console.error('Detailed Supabase error:', {
+          message: insertError.message,
+          details: insertError.details,
+          hint: insertError.hint,
+          code: insertError.code
+        });
+        throw insertError;
+      }
 
       toast({
         title: "¡Éxito!",
