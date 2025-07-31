@@ -1,11 +1,10 @@
 
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { CheckCircle, AlertCircle, Clock } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export interface ProductData {
   id: string;
@@ -29,236 +28,168 @@ interface ProductFormProps {
 }
 
 const categories = [
-  'Ropa',
-  'Electrónicos', 
-  'Hogar',
-  'Belleza',
-  'Deportes',
-  'Alimentos',
-  'Otros'
+  'Electrónicos',
+  'Ropa y Accesorios',
+  'Hogar y Jardín',
+  'Deportes y Aire Libre',
+  'Salud y Belleza',
+  'Juguetes y Juegos',
+  'Automóviles',
+  'Libros y Medios',
+  'Alimentos y Bebidas',
+  'Oficina y Escuela',
+  'Mascotas',
+  'Arte y Manualidades',
+  'Música e Instrumentos',
+  'Bebés y Niños',
+  'Otro'
 ];
 
 export const ProductForm = ({ product, imageUrl, onUpdate, priceDisplayMode }: ProductFormProps) => {
-  const handleChange = (field: keyof ProductData, value: string | number) => {
-    onUpdate({ ...product, [field]: value });
-  };
-
-  const generateSKU = () => {
-    const randomSku = `${product.category?.slice(0, 3).toUpperCase() || 'PRD'}-${Date.now().toString().slice(-6)}`;
-    handleChange('sku', randomSku);
-  };
-
-  const formatPrice = (value: string) => {
-    const numValue = parseFloat(value.replace(/[^\d.]/g, ''));
-    return isNaN(numValue) ? 0 : numValue;
+  const handleInputChange = (field: keyof ProductData, value: string | number) => {
+    onUpdate({
+      ...product,
+      [field]: value
+    });
   };
 
   const shouldShowRetailPrice = priceDisplayMode === 'retail' || priceDisplayMode === 'both';
   const shouldShowWholesalePrice = priceDisplayMode === 'both';
 
-  // Validation status for visual feedback
-  const hasName = product.name?.trim();
-  const hasCategory = product.category?.trim();
-  const hasRetail = product.price_retail && product.price_retail > 0;
-
-  const getFieldStatus = (field: string) => {
-    switch (field) {
-      case 'name':
-        return hasName ? 'complete' : 'incomplete';
-      case 'category':
-        return hasCategory ? 'complete' : 'incomplete';
-      case 'price_retail':
-        if (priceDisplayMode === 'none') return 'optional';
-        return hasRetail ? 'complete' : 'incomplete';
-      default:
-        return 'optional';
-    }
-  };
-
-  const getFieldClassName = (field: string) => {
-    const status = getFieldStatus(field);
-    const baseClass = "transition-all duration-200";
-    
-    switch (status) {
-      case 'incomplete':
-        return `${baseClass} border-red-300 focus:border-red-500 focus:ring-red-500`;
-      case 'complete':
-        return `${baseClass} border-green-300 focus:border-green-500 focus:ring-green-500`;
-      default:
-        return baseClass;
-    }
-  };
-
-  const getProductStatus = () => {
-    const hasName = product.name?.trim();
-    const hasRetail = product.price_retail > 0;
-    
-    switch(priceDisplayMode) {
-      case 'none':
-        return hasName && hasCategory ? 'complete' : 'incomplete';
-      case 'retail':
-        return hasName && hasCategory && hasRetail ? 'complete' : 'incomplete';
-      case 'both':
-        return hasName && hasCategory && hasRetail ? 'complete' : 'incomplete';
-      default:
-        return 'incomplete';
-    }
-  };
-
-  const StatusIcon = ({ status }: { status: string }) => {
-    switch(status) {
-      case 'complete': 
-        return <CheckCircle className="w-4 h-4 text-green-500" />;
-      case 'incomplete': 
-        return <AlertCircle className="w-4 h-4 text-red-500" />;
-      case 'partial': 
-        return <Clock className="w-4 h-4 text-yellow-500" />;
-      default:
-        return null;
-    }
-  };
-
-  const productStatus = getProductStatus();
-
   return (
     <Card className="overflow-hidden">
-      <CardHeader className="pb-3">
-        <div className="flex gap-4">
-          <img
-            src={imageUrl}
-            alt="Producto"
-            className="w-20 h-20 object-cover rounded-lg"
-          />
-          <div className="flex-1">
-            <div className="flex items-center gap-2">
-              <CardTitle className="text-lg">Datos del Producto</CardTitle>
-              <StatusIcon status={productStatus} />
-            </div>
-            <p className="text-sm text-neutral/60">
-              {priceDisplayMode === 'none' && "Solo nombre y categoría requeridos"}
-              {priceDisplayMode === 'retail' && "Nombre, categoría y precio de venta requeridos"}
-              {priceDisplayMode === 'both' && "Nombre, categoría y precio de venta requeridos"}
-            </p>
+      <CardContent className="p-0">
+        <div className="grid md:grid-cols-2 gap-0">
+          {/* Image Section */}
+          <div className="aspect-square">
+            <img
+              src={imageUrl}
+              alt="Product preview"
+              className="w-full h-full object-cover"
+            />
           </div>
-        </div>
-      </CardHeader>
-      
-      <CardContent className="space-y-4">
-        <div>
-          <Label htmlFor={`name-${product.id}`} className="flex items-center gap-1">
-            Nombre del Producto *
-            {getFieldStatus('name') === 'incomplete' && (
-              <span className="text-red-500 text-xs">(requerido)</span>
-            )}
-          </Label>
-          <Input
-            id={`name-${product.id}`}
-            value={product.name}
-            onChange={(e) => handleChange('name', e.target.value)}
-            placeholder="Ej: Playera básica algodón"
-            className={getFieldClassName('name')}
-            required
-          />
-        </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          {shouldShowRetailPrice && (
-            <div>
-              <Label htmlFor={`price-retail-${product.id}`} className="flex items-center gap-1">
-                Precio Venta MXN *
-                {getFieldStatus('price_retail') === 'incomplete' && (
-                  <span className="text-red-500 text-xs">(requerido)</span>
-                )}
+          {/* Form Section */}
+          <div className="p-6 space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor={`name-${product.id}`} className="text-sm font-medium">
+                Nombre del producto *
               </Label>
               <Input
-                id={`price-retail-${product.id}`}
-                type="number"
-                value={product.price_retail || ''}
-                onChange={(e) => handleChange('price_retail', formatPrice(e.target.value))}
-                placeholder="299"
-                min="1"
-                className={getFieldClassName('price_retail')}
-                required={priceDisplayMode !== 'none'}
+                id={`name-${product.id}`}
+                value={product.name}
+                onChange={(e) => handleInputChange('name', e.target.value)}
+                placeholder="Ej: iPhone 15 Pro Max"
+                className="w-full"
               />
             </div>
-          )}
-          <div>
-            <Label htmlFor={`category-${product.id}`} className="flex items-center gap-1">
-              Categoría *
-              {getFieldStatus('category') === 'incomplete' && (
-                <span className="text-red-500 text-xs">(requerido)</span>
-              )}
-            </Label>
-            <Select
-              value={product.category}
-              onValueChange={(value) => handleChange('category', value)}
-            >
-              <SelectTrigger className={getFieldClassName('category')}>
-                <SelectValue placeholder="Seleccionar" />
-              </SelectTrigger>
-              <SelectContent>
-                {categories.map(cat => (
-                  <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
 
-        <div>
-          <Label htmlFor={`sku-${product.id}`}>SKU/Código</Label>
-          <div className="flex gap-2">
-            <Input
-              id={`sku-${product.id}`}
-              value={product.sku}
-              onChange={(e) => handleChange('sku', e.target.value)}
-              placeholder="PRD-123456"
-            />
-            <button
-              type="button"
-              onClick={generateSKU}
-              className="text-sm text-primary hover:underline px-2"
-            >
-              Generar
-            </button>
-          </div>
-        </div>
-
-        {shouldShowWholesalePrice && (
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor={`price-wholesale-${product.id}`}>Precio Mayoreo MXN</Label>
+            <div className="space-y-2">
+              <Label htmlFor={`sku-${product.id}`} className="text-sm font-medium">
+                SKU / Código
+              </Label>
               <Input
-                id={`price-wholesale-${product.id}`}
-                type="number"
-                value={product.price_wholesale || ''}
-                onChange={(e) => handleChange('price_wholesale', formatPrice(e.target.value) || undefined)}
-                placeholder="250"
-                min="1"
+                id={`sku-${product.id}`}
+                value={product.sku}
+                onChange={(e) => handleInputChange('sku', e.target.value)}
+                placeholder="Ej: IPH15PM-256GB"
+                className="w-full"
               />
             </div>
-            <div>
-              <Label htmlFor={`min-qty-${product.id}`}>Cantidad Mín. Mayoreo</Label>
-              <Input
-                id={`min-qty-${product.id}`}
-                type="number"
-                value={product.wholesale_min_qty}
-                onChange={(e) => handleChange('wholesale_min_qty', parseInt(e.target.value) || 12)}
-                min="1"
+
+            <div className="space-y-2">
+              <Label htmlFor={`category-${product.id}`} className="text-sm font-medium">
+                Categoría *
+              </Label>
+              <Select
+                value={product.category}
+                onValueChange={(value) => handleInputChange('category', value)}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Selecciona una categoría" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map((category) => (
+                    <SelectItem key={category} value={category}>
+                      {category}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {shouldShowRetailPrice && (
+              <div className="space-y-2">
+                <Label htmlFor={`price-retail-${product.id}`} className="text-sm font-medium">
+                  Precio de venta *
+                </Label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
+                  <Input
+                    id={`price-retail-${product.id}`}
+                    type="number"
+                    value={product.price_retail || ''}
+                    onChange={(e) => handleInputChange('price_retail', parseFloat(e.target.value) || 0)}
+                    placeholder="0.00"
+                    className="pl-8"
+                    step="0.01"
+                    min="0"
+                  />
+                </div>
+              </div>
+            )}
+
+            {shouldShowWholesalePrice && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor={`price-wholesale-${product.id}`} className="text-sm font-medium">
+                    Precio mayoreo
+                  </Label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
+                    <Input
+                      id={`price-wholesale-${product.id}`}
+                      type="number"
+                      value={product.price_wholesale || ''}
+                      onChange={(e) => handleInputChange('price_wholesale', parseFloat(e.target.value) || 0)}
+                      placeholder="0.00"
+                      className="pl-8"
+                      step="0.01"
+                      min="0"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor={`wholesale-min-${product.id}`} className="text-sm font-medium">
+                    Cantidad mínima mayoreo
+                  </Label>
+                  <Input
+                    id={`wholesale-min-${product.id}`}
+                    type="number"
+                    value={product.wholesale_min_qty || 12}
+                    onChange={(e) => handleInputChange('wholesale_min_qty', parseInt(e.target.value) || 12)}
+                    placeholder="12"
+                    min="1"
+                  />
+                </div>
+              </>
+            )}
+
+            <div className="space-y-2">
+              <Label htmlFor={`description-${product.id}`} className="text-sm font-medium">
+                Descripción personalizada
+              </Label>
+              <Textarea
+                id={`description-${product.id}`}
+                value={product.custom_description}
+                onChange={(e) => handleInputChange('custom_description', e.target.value)}
+                placeholder="Describe características especiales, beneficios, etc."
+                rows={3}
+                className="resize-none"
               />
             </div>
           </div>
-        )}
-
-        <div>
-          <Label htmlFor={`description-${product.id}`}>Descripción Personalizada</Label>
-          <Textarea
-            id={`description-${product.id}`}
-            value={product.custom_description}
-            onChange={(e) => handleChange('custom_description', e.target.value)}
-            placeholder="Describe las características especiales de tu producto..."
-            rows={3}
-          />
         </div>
       </CardContent>
     </Card>
