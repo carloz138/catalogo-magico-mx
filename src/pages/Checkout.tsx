@@ -1,9 +1,10 @@
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { CreditCard, Building2, CheckCircle } from 'lucide-react';
 
 interface CreditPackage {
@@ -22,6 +23,7 @@ const Checkout = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
   
   const [packages, setPackages] = useState<CreditPackage[]>([]);
   const [selectedPackage, setSelectedPackage] = useState<CreditPackage | null>(null);
@@ -29,10 +31,24 @@ const Checkout = () => {
   const [loading, setLoading] = useState(true);
   const [processingPayment, setProcessingPayment] = useState(false);
 
+  // Check for pre-selected package from navigation state
+  const preSelectedPackageId = location.state?.selectedPackage;
+
   useEffect(() => {
     console.log('Checkout useEffect running, user:', user);
     fetchCreditPackages();
   }, []);
+
+  useEffect(() => {
+    // Pre-select package if one was passed from navigation
+    if (preSelectedPackageId && packages.length > 0) {
+      const preSelected = packages.find(pkg => pkg.id === preSelectedPackageId);
+      if (preSelected) {
+        setSelectedPackage(preSelected);
+        console.log('Pre-selected package:', preSelected);
+      }
+    }
+  }, [packages, preSelectedPackageId]);
 
   const fetchCreditPackages = async () => {
     console.log('Fetching credit packages...');
@@ -47,9 +63,11 @@ const Checkout = () => {
       console.log('Credit packages fetched:', data);
       setPackages(data || []);
       
-      // Auto-select popular package
-      const popularPackage = data?.find(pkg => pkg.is_popular);
-      if (popularPackage) setSelectedPackage(popularPackage);
+      // Auto-select popular package only if no pre-selection
+      if (!preSelectedPackageId) {
+        const popularPackage = data?.find(pkg => pkg.is_popular);
+        if (popularPackage) setSelectedPackage(popularPackage);
+      }
       
     } catch (error) {
       console.error('Error fetching packages:', error);

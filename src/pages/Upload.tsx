@@ -225,7 +225,7 @@ const Upload = () => {
   };
 
   const handleBuyCredits = () => {
-    navigate('/credits');
+    navigate('/checkout');
   };
 
   if (loading) {
