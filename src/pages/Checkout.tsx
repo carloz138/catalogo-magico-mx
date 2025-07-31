@@ -132,6 +132,9 @@ const Checkout = () => {
       }
 
       console.log('✅ PaymentIntent created:', data.paymentIntentId);
+      console.log('🔍 STRIPE_PUBLISHABLE_KEY:', import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
+      console.log('🔍 Client Secret received:', data.clientSecret);
+      console.log('🔍 Full data from Edge Function:', data);
 
       // 3. Initialize Stripe and redirect to payment
       const stripe = await loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
