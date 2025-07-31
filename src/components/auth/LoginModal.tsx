@@ -4,6 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/components/ui/use-toast';
@@ -28,8 +29,17 @@ export const LoginModal = ({ open, onOpenChange }: LoginModalProps) => {
     password: '',
     full_name: '',
     business_name: '',
+    business_type: '',
     phone: '',
   });
+
+  const businessTypeOptions = [
+    { value: 'pyme', label: 'PyME / Pequeña Empresa' },
+    { value: 'ecommerce', label: 'Tienda en Línea / E-commerce' },
+    { value: 'distribuidor', label: 'Distribuidor / Mayorista' },
+    { value: 'freelancer', label: 'Freelancer / Consultor' },
+    { value: 'otros', label: 'Otros' },
+  ];
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,6 +71,7 @@ export const LoginModal = ({ open, onOpenChange }: LoginModalProps) => {
     const { error } = await signUp(signupData.email, signupData.password, {
       full_name: signupData.full_name,
       business_name: signupData.business_name,
+      business_type: signupData.business_type,
       phone: signupData.phone,
     });
     
@@ -169,6 +180,26 @@ export const LoginModal = ({ open, onOpenChange }: LoginModalProps) => {
                   onChange={(e) => setSignupData({ ...signupData, business_name: e.target.value })}
                   placeholder="Opcional"
                 />
+              </div>
+              
+              <div>
+                <Label htmlFor="business-type">Tipo de Negocio</Label>
+                <Select
+                  value={signupData.business_type}
+                  onValueChange={(value) => setSignupData({ ...signupData, business_type: value })}
+                  required
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecciona el tipo de negocio" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {businessTypeOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               
               <div>
