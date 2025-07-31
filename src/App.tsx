@@ -9,6 +9,8 @@ import Index from "./pages/Index";
 import Upload from "./pages/Upload";
 import Products from "./pages/Products";
 import Catalogs from "./pages/Catalogs";
+import Checkout from "./pages/Checkout";
+import PaymentInstructions from "./pages/PaymentInstructions";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -25,6 +27,8 @@ const App = () => (
             <Route path="/upload" element={<Upload />} />
             <Route path="/products" element={<Products />} />
             <Route path="/catalogs" element={<Catalogs />} />
+            <Route path="/checkout" element={<Checkout />} />
+            <Route path="/payment-instructions/:transactionId" element={<PaymentInstructions />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
