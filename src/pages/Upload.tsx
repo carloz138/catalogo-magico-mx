@@ -1,14 +1,184 @@
 
+import React, { useState, useEffect } from 'react';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Upload as UploadIcon, ArrowLeft } from 'lucide-react';
+import { ArrowLeft, CreditCard } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/components/ui/use-toast';
+import { FileUploader } from '@/components/upload/FileUploader';
+import { ProductForm, ProductData } from '@/components/upload/ProductForm';
+import { CostCalculator } from '@/components/upload/CostCalculator';
 
 const Upload = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [userCredits, setUserCredits] = useState<number>(0);
+  const [loading, setLoading] = useState(true);
+  const [processing, setProcessing] = useState(false);
+  const [products, setProducts] = useState<ProductData[]>([]);
+
+  const CREDITS_PER_PRODUCT = 15;
+
+  useEffect(() => {
+    fetchUserCredits();
+  }, [user]);
+
+  const fetchUserCredits = async () => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('credits')
+        .eq('id', user.id)
+        .single();
+
+      if (error) throw error;
+      setUserCredits(data?.credits || 0);
+    } catch (error) {
+      console.error('Error fetching user credits:', error);
+      toast({
+        title: "Error",
+        description: "No se pudieron cargar tus créditos",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFilesUploaded = (files: any[]) => {
+    const newProducts = files.map(file => ({
+      id: file.id,
+      name: '',
+      sku: '',
+      price_retail: 0,
+      price_wholesale: undefined,
+      wholesale_min_qty: 12,
+      category: '',
+      custom_description: '',
+      original_image_url: file.url,
+    }));
+    setProducts(newProducts);
+  };
+
+  const updateProduct = (updatedProduct: ProductData) => {
+    setProducts(prev => prev.map(p => 
+      p.id === updatedProduct.id ? updatedProduct : p
+    ));
+  };
+
+  const handleProcessCatalog = async () => {
+    if (products.length === 0) return;
+
+    // Validate required fields
+    const invalidProducts = products.filter(p => !p.name || !p.price_retail || !p.category);
+    if (invalidProducts.length > 0) {
+      toast({
+        title: "Campos requeridos",
+        description: "Por favor completa todos los campos obligatorios (*)",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setProcessing(true);
+
+    try {
+      const totalCreditsNeeded = products.length * CREDITS_PER_PRODUCT;
+      
+      // Check credits again
+      if (userCredits < totalCreditsNeeded) {
+        toast({
+          title: "Créditos insuficientes",
+          description: `Necesitas ${totalCreditsNeeded - userCredits} créditos adicionales`,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Insert products into database
+      const productInserts = products.map(product => ({
+        user_id: user!.id,
+        name: product.name,
+        sku: product.sku || null,
+        price_retail: Math.round(product.price_retail * 100), // Store in cents
+        price_wholesale: product.price_wholesale ? Math.round(product.price_wholesale * 100) : null,
+        wholesale_min_qty: product.wholesale_min_qty,
+        category: product.category,
+        custom_description: product.custom_description || null,
+        original_image_url: product.original_image_url,
+        processing_status: 'pending',
+        credits_used: CREDITS_PER_PRODUCT,
+      }));
+
+      const { data: insertedProducts, error: insertError } = await supabase
+        .from('products')
+        .insert(productInserts)
+        .select('id');
+
+      if (insertError) throw insertError;
+
+      // Deduct credits from user
+      const { error: creditError } = await supabase
+        .from('users')
+        .update({ credits: userCredits - totalCreditsNeeded })
+        .eq('id', user!.id);
+
+      if (creditError) throw creditError;
+
+      // Record credit usage
+      const { error: usageError } = await supabase
+        .from('credit_usage')
+        .insert({
+          user_id: user!.id,
+          credits_used: totalCreditsNeeded,
+          credits_remaining: userCredits - totalCreditsNeeded,
+          usage_type: 'product_processing',
+          description: `Procesamiento de ${products.length} productos`,
+        });
+
+      if (usageError) throw usageError;
+
+      toast({
+        title: "¡Éxito!",
+        description: "Tus productos se están procesando. Te notificaremos cuando estén listos.",
+      });
+
+      // Redirect to progress page (we'll need to create this)
+      navigate('/progress');
+
+    } catch (error) {
+      console.error('Error processing catalog:', error);
+      toast({
+        title: "Error",
+        description: "Hubo un error al procesar tu catálogo. Inténtalo de nuevo.",
+        variant: "destructive",
+      });
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleBuyCredits = () => {
+    // Navigate to credits purchase page (we'll need to create this)
+    navigate('/credits');
+  };
+
+  if (loading) {
+    return (
+      <ProtectedRoute>
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="text-center">
+            <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-neutral/60">Cargando...</p>
+          </div>
+        </div>
+      </ProtectedRoute>
+    );
+  }
 
   return (
     <ProtectedRoute>
@@ -27,14 +197,26 @@ const Upload = () => {
               </Button>
               <div className="flex items-center space-x-2">
                 <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                  <UploadIcon className="w-5 h-5 text-white" />
+                  <span className="text-white font-bold">C</span>
                 </div>
                 <span className="text-xl font-bold text-primary">Subir Productos</span>
               </div>
             </div>
             
-            <div className="text-sm text-neutral/60">
-              ¡Hola {user?.email}!
+            <div className="flex items-center space-x-4">
+              <div className="text-sm">
+                <span className="text-neutral/60">Créditos disponibles: </span>
+                <span className="font-bold text-primary text-lg">{userCredits}</span>
+              </div>
+              {userCredits < 50 && (
+                <Button variant="outline" size="sm" onClick={handleBuyCredits}>
+                  <CreditCard className="w-4 h-4 mr-2" />
+                  Comprar más
+                </Button>
+              )}
+              <div className="text-sm text-neutral/60">
+                ¡Hola {user?.email}!
+              </div>
             </div>
           </div>
         </header>
@@ -50,33 +232,44 @@ const Upload = () => {
             </p>
           </div>
 
-          <Card className="border-2 border-dashed border-gray-300 hover:border-primary transition-colors">
-            <CardHeader>
-              <CardTitle className="text-center flex items-center justify-center space-x-2">
-                <UploadIcon className="w-6 h-6" />
-                <span>Arrastra tus fotos aquí o haz clic para seleccionar</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="text-center py-12">
-              <div className="space-y-4">
-                <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
-                  <UploadIcon className="w-8 h-8 text-primary" />
-                </div>
-                <div>
-                  <p className="text-neutral/70 mb-2">
-                    Formatos aceptados: JPG, PNG, JPEG
-                  </p>
-                  <p className="text-sm text-neutral/60">
-                    Máximo 10MB por imagen
-                  </p>
-                </div>
-                <Button className="bg-primary hover:bg-primary/90">
-                  Seleccionar archivos
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+          {/* File Upload Section */}
+          <div className="mb-8">
+            <FileUploader 
+              onFilesUploaded={handleFilesUploaded}
+              maxFiles={10}
+            />
+          </div>
 
+          {/* Product Forms */}
+          {products.length > 0 && (
+            <div className="space-y-6 mb-8">
+              <h2 className="text-2xl font-bold text-center">
+                Completa los datos de tus productos
+              </h2>
+              <div className="grid gap-6">
+                {products.map((product, index) => (
+                  <ProductForm
+                    key={product.id}
+                    product={product}
+                    imageUrl={product.original_image_url}
+                    onUpdate={updateProduct}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Cost Calculator */}
+          <CostCalculator
+            productCount={products.length}
+            creditsPerProduct={CREDITS_PER_PRODUCT}
+            userCredits={userCredits}
+            onProcessCatalog={handleProcessCatalog}
+            onBuyCredits={handleBuyCredits}
+            processing={processing}
+          />
+
+          {/* 3-Step Process Info */}
           <div className="mt-8 grid md:grid-cols-3 gap-6">
             <div className="text-center p-6">
               <div className="w-12 h-12 bg-secondary/10 rounded-full flex items-center justify-center mx-auto mb-4">
