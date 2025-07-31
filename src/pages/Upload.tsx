@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import { ArrowLeft, CreditCard } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -10,6 +11,8 @@ import { FileUploader } from '@/components/upload/FileUploader';
 import { ProductForm, ProductData } from '@/components/upload/ProductForm';
 import { CostCalculator } from '@/components/upload/CostCalculator';
 
+type PriceDisplayMode = 'none' | 'retail' | 'both';
+
 const Upload = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -18,6 +21,7 @@ const Upload = () => {
   const [processing, setProcessing] = useState(false);
   const [products, setProducts] = useState<ProductData[]>([]);
   const [uploadedFiles, setUploadedFiles] = useState<any[]>([]);
+  const [priceDisplayMode, setPriceDisplayMode] = useState<PriceDisplayMode>('retail');
 
   const CREDITS_PER_PRODUCT = 15;
 
@@ -75,15 +79,47 @@ const Upload = () => {
     ));
   };
 
+  const validateProducts = () => {
+    const invalidProducts = products.filter(product => {
+      // Always require name and category
+      if (!product.name || !product.category) return true;
+      
+      // Price validation based on display mode
+      if (priceDisplayMode === 'retail' && !product.price_retail) return true;
+      if (priceDisplayMode === 'both') {
+        if (!product.price_retail) return true;
+        // Wholesale price is optional even in 'both' mode, but if provided, min qty is required
+        if (product.price_wholesale && !product.wholesale_min_qty) return true;
+      }
+      
+      return false;
+    });
+    
+    return invalidProducts;
+  };
+
+  const getValidationMessage = () => {
+    switch (priceDisplayMode) {
+      case 'none':
+        return 'Por favor completa el nombre y categoría de todos los productos';
+      case 'retail':
+        return 'Por favor completa el nombre, precio de venta y categoría de todos los productos';
+      case 'both':
+        return 'Por favor completa el nombre, precio de venta y categoría de todos los productos';
+      default:
+        return 'Por favor completa todos los campos obligatorios';
+    }
+  };
+
   const handleProcessCatalog = async () => {
     if (products.length === 0) return;
 
-    // Validate required fields
-    const invalidProducts = products.filter(p => !p.name || !p.price_retail || !p.category);
+    // Validate required fields based on price display mode
+    const invalidProducts = validateProducts();
     if (invalidProducts.length > 0) {
       toast({
         title: "Campos requeridos",
-        description: "Por favor completa todos los campos obligatorios (*)",
+        description: getValidationMessage(),
         variant: "destructive",
       });
       return;
@@ -104,14 +140,14 @@ const Upload = () => {
         return;
       }
 
-      // Insert products into database
+      // Insert products into database with pricing configuration
       const productInserts = products.map(product => ({
         user_id: user!.id,
         name: product.name,
         sku: product.sku || null,
-        price_retail: Math.round(product.price_retail * 100), // Store in cents
-        price_wholesale: product.price_wholesale ? Math.round(product.price_wholesale * 100) : null,
-        wholesale_min_qty: product.wholesale_min_qty,
+        price_retail: (priceDisplayMode !== 'none' && product.price_retail) ? Math.round(product.price_retail * 100) : null,
+        price_wholesale: (priceDisplayMode === 'both' && product.price_wholesale) ? Math.round(product.price_wholesale * 100) : null,
+        wholesale_min_qty: product.wholesale_min_qty || null,
         category: product.category,
         custom_description: product.custom_description || null,
         original_image_url: product.original_image_url,
@@ -236,6 +272,48 @@ const Upload = () => {
             </p>
           </div>
 
+          {/* Pricing Configuration */}
+          <Card className="p-4 mb-6 bg-blue-50">
+            <CardContent className="p-0">
+              <h3 className="font-semibold mb-3">Configuración de Catálogo</h3>
+              <div className="space-y-2">
+                <label className="flex items-center cursor-pointer">
+                  <input 
+                    type="radio" 
+                    name="priceDisplay" 
+                    value="none"
+                    checked={priceDisplayMode === 'none'}
+                    onChange={(e) => setPriceDisplayMode(e.target.value as PriceDisplayMode)}
+                    className="mr-2"
+                  />
+                  <span>Sin precios (solo productos)</span>
+                </label>
+                <label className="flex items-center cursor-pointer">
+                  <input 
+                    type="radio" 
+                    name="priceDisplay" 
+                    value="retail"
+                    checked={priceDisplayMode === 'retail'}
+                    onChange={(e) => setPriceDisplayMode(e.target.value as PriceDisplayMode)}
+                    className="mr-2"
+                  />
+                  <span>Solo precio de venta</span>
+                </label>
+                <label className="flex items-center cursor-pointer">
+                  <input 
+                    type="radio" 
+                    name="priceDisplay" 
+                    value="both"
+                    checked={priceDisplayMode === 'both'}
+                    onChange={(e) => setPriceDisplayMode(e.target.value as PriceDisplayMode)}
+                    className="mr-2"
+                  />
+                  <span>Precio de venta + mayoreo</span>
+                </label>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* File Upload Section */}
           <div className="mb-8">
             <FileUploader 
@@ -259,6 +337,7 @@ const Upload = () => {
                       product={product}
                       imageUrl={correspondingFile?.preview || correspondingFile?.url || product.original_image_url}
                       onUpdate={updateProduct}
+                      priceDisplayMode={priceDisplayMode}
                     />
                   );
                 })}
