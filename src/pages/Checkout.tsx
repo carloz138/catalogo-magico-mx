@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { CreditCard, Building2, CheckCircle, ArrowLeft } from 'lucide-react';
-import { loadStripe } from '@stripe/stripe-js';
 
 interface CreditPackage {
   id: string;
@@ -136,25 +135,8 @@ const Checkout = () => {
       console.log('🔍 Client Secret received:', data.clientSecret);
       console.log('🔍 Full data from Edge Function:', data);
 
-      // 3. Initialize Stripe and redirect to payment - HARDCODED KEY FOR TESTING
-      const stripe = await loadStripe('pk_live_51RHJEJJHVg16aYDKFQfn1YinlNUtpe77vIM4AnzqyU97KuXn2hQmG9HXmLHlBBVUeDXsMTL35srBs7wCPxEMOz7U00cMwOglQ0');
-      
-      if (!stripe) {
-        throw new Error('Stripe no está cargado correctamente');
-      }
-
-      // Redirect to Stripe Checkout using the client secret
-      const { error: stripeError } = await stripe.confirmPayment({
-        clientSecret: data.clientSecret,
-        confirmParams: {
-          return_url: `${window.location.origin}/payment-success?transaction_id=${transaction.id}`,
-        },
-      });
-
-      if (stripeError) {
-        console.error('Stripe payment error:', stripeError);
-        throw new Error(stripeError.message || 'Error en el procesamiento del pago');
-      }
+      // 3. Redirect to Stripe hosted checkout page
+      window.location.href = `https://checkout.stripe.com/pay/${data.clientSecret}#fidkdWxOYHwnPyd1blpxYHZxWjA0TlxgNlNnPDBKaERUPXF8V1Z3XGZNXHVjdmJ8dk9tcVw8dkFLU0xfNXRKc09%2FfSFkM0FJajdJdEJzYDJddk5RdkJuZV9VbElsdEMwQnRASFM3N1w0SDxCVVNhRlF8TjB9dScpJ3VpbGtuQH11anZgYUxhJz8nN0pXNlRbT2psZDB2T0luY2ozUjVoYHAycFc3STU8a1FBczJAN2JLdycpJ2hsYXYnPydtcXF1dj8qd2BjYSN3amhWYHdzYHcneCUl`;
 
     } catch (error) {
       console.error('Payment error:', error);
