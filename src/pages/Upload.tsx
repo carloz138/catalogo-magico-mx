@@ -2,7 +2,7 @@
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Upload, ArrowLeft } from 'lucide-react';
+import { Upload as UploadIcon, ArrowLeft } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
@@ -27,7 +27,7 @@ const Upload = () => {
               </Button>
               <div className="flex items-center space-x-2">
                 <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                  <Upload className="w-5 h-5 text-white" />
+                  <UploadIcon className="w-5 h-5 text-white" />
                 </div>
                 <span className="text-xl font-bold text-primary">Subir Productos</span>
               </div>
@@ -53,14 +53,14 @@ const Upload = () => {
           <Card className="border-2 border-dashed border-gray-300 hover:border-primary transition-colors">
             <CardHeader>
               <CardTitle className="text-center flex items-center justify-center space-x-2">
-                <Upload className="w-6 h-6" />
+                <UploadIcon className="w-6 h-6" />
                 <span>Arrastra tus fotos aquí o haz clic para seleccionar</span>
               </CardTitle>
             </CardHeader>
             <CardContent className="text-center py-12">
               <div className="space-y-4">
                 <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
-                  <Upload className="w-8 h-8 text-primary" />
+                  <UploadIcon className="w-8 h-8 text-primary" />
                 </div>
                 <div>
                   <p className="text-neutral/70 mb-2">
