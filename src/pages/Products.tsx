@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Plus, Upload, Eye, Edit, Trash2, CheckCircle, AlertCircle, Clock } from 'lucide-react';
+import { ArrowLeft, Plus, Upload, Eye, Edit, Trash2, CheckCircle, AlertCircle, Clock, CreditCard } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -358,8 +358,19 @@ const Products = () => {
                 </Button>
               </div>
               
-              <div className="text-sm text-gray-600">
-                Créditos disponibles: <span className="font-bold">{userCredits}</span>
+              <div className="flex items-center gap-3">
+                <div className="text-sm text-gray-600">
+                  Créditos disponibles: <span className="font-bold">{userCredits}</span>
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => navigate('/checkout')}
+                  className="flex items-center gap-2"
+                >
+                  <CreditCard className="w-4 h-4" />
+                  Comprar créditos
+                </Button>
               </div>
             </div>
           </div>
