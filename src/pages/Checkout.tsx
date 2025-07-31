@@ -116,27 +116,25 @@ const Checkout = () => {
 
       console.log('Stripe payment for transaction:', transaction.id);
 
-      // 2. Call create-payment-intent Edge Function
+      // 2. Call create-payment-intent Edge Function (now creates checkout session)
       const { data, error } = await supabase.functions.invoke('create-payment-intent', {
         body: { transactionId: transaction.id }
       });
 
       if (error) {
-        console.error('Error creating payment intent:', error);
-        throw new Error(error.message || 'Error al crear el payment intent');
+        console.error('Error creating checkout session:', error);
+        throw new Error(error.message || 'Error al crear la sesión de checkout');
       }
 
-      if (!data.clientSecret) {
-        throw new Error('No se recibió client secret de Stripe');
+      if (!data.checkoutUrl) {
+        throw new Error('No se recibió URL de checkout de Stripe');
       }
 
-      console.log('✅ PaymentIntent created:', data.paymentIntentId);
-      console.log('🔍 Using hardcoded Stripe key for testing');
-      console.log('🔍 Client Secret received:', data.clientSecret);
-      console.log('🔍 Full data from Edge Function:', data);
+      console.log('✅ Checkout Session created:', data.sessionId);
+      console.log('🔗 Redirecting to:', data.checkoutUrl);
 
-      // 3. Redirect to Stripe hosted checkout page
-      window.location.href = `https://checkout.stripe.com/pay/${data.clientSecret}#fidkdWxOYHwnPyd1blpxYHZxWjA0TlxgNlNnPDBKaERUPXF8V1Z3XGZNXHVjdmJ8dk9tcVw8dkFLU0xfNXRKc09%2FfSFkM0FJajdJdEJzYDJddk5RdkJuZV9VbElsdEMwQnRASFM3N1w0SDxCVVNhRlF8TjB9dScpJ3VpbGtuQH11anZgYUxhJz8nN0pXNlRbT2psZDB2T0luY2ozUjVoYHAycFc3STU8a1FBczJAN2JLdycpJ2hsYXYnPydtcXF1dj8qd2BjYSN3amhWYHdzYHcneCUl`;
+      // 3. Redirect to Stripe Checkout
+      window.location.href = data.checkoutUrl;
 
     } catch (error) {
       console.error('Payment error:', error);
