@@ -266,6 +266,20 @@ const Upload = () => {
             </div>
           )}
 
+          {/* Large CTA Button */}
+          {uploadedFiles.length > 0 && (
+            <div className="mb-8">
+              <Button 
+                size="lg" 
+                className="w-full bg-primary text-white py-4 text-xl"
+                disabled={userCredits < (uploadedFiles.length * 15)}
+                onClick={handleProcessCatalog}
+              >
+                ¡Crear mi catálogo profesional! ({uploadedFiles.length * 15} créditos)
+              </Button>
+            </div>
+          )}
+
           {/* Cost Calculator */}
           <CostCalculator
             productCount={products.length}
