@@ -272,48 +272,6 @@ const Upload = () => {
             </p>
           </div>
 
-          {/* Pricing Configuration */}
-          <Card className="p-4 mb-6 bg-blue-50">
-            <CardContent className="p-0">
-              <h3 className="font-semibold mb-3">Configuración de Catálogo</h3>
-              <div className="space-y-2">
-                <label className="flex items-center cursor-pointer">
-                  <input 
-                    type="radio" 
-                    name="priceDisplay" 
-                    value="none"
-                    checked={priceDisplayMode === 'none'}
-                    onChange={(e) => setPriceDisplayMode(e.target.value as PriceDisplayMode)}
-                    className="mr-2"
-                  />
-                  <span>Sin precios (solo productos)</span>
-                </label>
-                <label className="flex items-center cursor-pointer">
-                  <input 
-                    type="radio" 
-                    name="priceDisplay" 
-                    value="retail"
-                    checked={priceDisplayMode === 'retail'}
-                    onChange={(e) => setPriceDisplayMode(e.target.value as PriceDisplayMode)}
-                    className="mr-2"
-                  />
-                  <span>Solo precio de venta</span>
-                </label>
-                <label className="flex items-center cursor-pointer">
-                  <input 
-                    type="radio" 
-                    name="priceDisplay" 
-                    value="both"
-                    checked={priceDisplayMode === 'both'}
-                    onChange={(e) => setPriceDisplayMode(e.target.value as PriceDisplayMode)}
-                    className="mr-2"
-                  />
-                  <span>Precio de venta + mayoreo</span>
-                </label>
-              </div>
-            </CardContent>
-          </Card>
-
           {/* File Upload Section */}
           <div className="mb-8">
             <FileUploader 
