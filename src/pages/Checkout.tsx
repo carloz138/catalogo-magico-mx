@@ -105,9 +105,8 @@ const Checkout = () => {
         .insert({
           user_id: user.id,
           package_id: selectedPackage.id,
-          package_name: selectedPackage.name,
           amount_mxn: selectedPackage.price_mxn,
-          credits_amount: selectedPackage.credits,
+          credits_purchased: selectedPackage.credits,
           payment_method: 'stripe',
           payment_status: 'pending'
         })
@@ -179,9 +178,8 @@ const Checkout = () => {
         .insert({
           user_id: user.id,
           package_id: selectedPackage.id,
-          package_name: selectedPackage.name,
           amount_mxn: selectedPackage.price_mxn + 500, // Add $5 MXN SPEI fee
-          credits_amount: selectedPackage.credits,
+          credits_purchased: selectedPackage.credits,
           payment_method: 'spei',
           payment_status: 'pending',
           spei_reference: speiReference,
