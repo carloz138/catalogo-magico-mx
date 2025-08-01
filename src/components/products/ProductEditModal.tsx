@@ -33,21 +33,25 @@ interface ProductEditModalProps {
 }
 
 const categories = [
-  'Electrónicos',
-  'Ropa y Accesorios',
-  'Hogar y Jardín',
-  'Deportes y Aire Libre',
-  'Salud y Belleza',
-  'Juguetes y Juegos',
-  'Automóviles',
-  'Libros y Medios',
-  'Alimentos y Bebidas',
-  'Oficina y Escuela',
-  'Mascotas',
-  'Arte y Manualidades',
-  'Música e Instrumentos',
-  'Bebés y Niños',
-  'Otro'
+  // PIXELCUT CATEGORIES (13 categorías - productos con fondos uniformes)
+  'Electrónicos y Tecnología',      // Smartphones, laptops, tablets, cámaras
+  'Electrodomésticos',              // Microondas, licuadoras, cafeteras  
+  'Gadgets y Accesorios Tech',      // Cables, cargadores, fundas
+  'Muebles y Decoración',           // Mesas, sillas, lámparas
+  'Artículos para el Hogar',        // Utensilios cocina, organizadores
+  'Oficina y Papelería',            // Libretas, plumas, calculadoras
+  'Libros y Material Educativo',    // Libros, revistas, cursos
+  'Herramientas y Ferretería',      // Martillos, destornilladores
+  'Refacciones y Automóviles',      // Partes automotrices, aceites
+  'Juguetes y Figuras',             // Carros, robots, figuras de acción
+  'Equipos Deportivos',             // Balones, raquetas, pesas
+  'Instrumentos Musicales',         // Guitarras, teclados, micrófonos
+  'Alimentos Empaquetados',         // Productos en cajas/latas
+  
+  // REMOVE.BG CATEGORIES (3 categorías - productos complejos solamente)
+  'Ropa y Textiles',                // Camisas, vestidos, telas
+  'Belleza y Cuidado Personal',     // Productos para cabello, maquillaje
+  'Mascotas y Artículos Pet'        // Animales, juguetes blandos
 ];
 
 type PricingMode = 'none' | 'retail' | 'both';
