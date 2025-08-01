@@ -8,7 +8,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { toast as sonnerToast } from 'sonner';
 import { ProductEditModal } from '@/components/products/ProductEditModal';
+import { useBusinessInfo } from '../hooks/useBusinessInfo';
 
 interface Product {
   id: string;
@@ -116,6 +118,7 @@ const ProductCard = ({
 const Products = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { hasBusinessInfo } = useBusinessInfo();
   const [products, setProducts] = useState<Product[]>([]);
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [filter, setFilter] = useState<FilterType>('all');
@@ -257,6 +260,12 @@ const Products = () => {
 
   const createCatalogFromSelection = async () => {
     if (selectedProducts.length === 0) return;
+    
+    if (!hasBusinessInfo) {
+      sonnerToast.info('Primero configura la información de tu negocio');
+      navigate('/business-info');
+      return;
+    }
     
     const totalCost = selectedProducts.length * CREDITS_PER_PRODUCT;
     
