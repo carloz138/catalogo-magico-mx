@@ -19,7 +19,8 @@ export const useBusinessInfo = () => {
         return;
       }
 
-      const { data, error: fetchError } = await supabase
+      // Use any to bypass TypeScript issues with new table
+      const { data, error: fetchError } = await (supabase as any)
         .from('business_info')
         .select('*')
         .eq('user_id', user.id)
@@ -29,7 +30,7 @@ export const useBusinessInfo = () => {
         throw fetchError;
       }
 
-      setBusinessInfo(data);
+      setBusinessInfo(data as BusinessInfo);
     } catch (err) {
       console.error('Error loading business info:', err);
       setError('Error al cargar información del negocio');
@@ -43,7 +44,8 @@ export const useBusinessInfo = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Usuario no autenticado');
 
-      const { error } = await supabase
+      // Use any to bypass TypeScript issues with new table
+      const { error } = await (supabase as any)
         .from('business_info')
         .upsert({ 
           user_id: user.id, 
