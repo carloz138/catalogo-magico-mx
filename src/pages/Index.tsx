@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronDown, Star, Check, Play, ArrowRight, Zap, Clock, DollarSign, Shield, Users, TrendingUp } from "lucide-react";
+import { ChevronDown, Star, Check, Play, ArrowRight, Zap, Clock, DollarSign, Shield, Users, TrendingUp, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -146,7 +146,17 @@ const Index = () => {
             <a href="#testimonios" className="text-neutral hover:text-primary font-medium">Casos de éxito</a>
           </nav>
 
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-3">
+            {user && (
+              <Button 
+                variant="outline" 
+                className="hidden sm:inline-flex border-secondary text-secondary hover:bg-secondary/10"
+                onClick={() => navigate('/products')}
+              >
+                <BookOpen className="w-4 h-4 mr-2" />
+                Mi Biblioteca
+              </Button>
+            )}
             <Button 
               variant="outline" 
               className="hidden sm:inline-flex"
@@ -212,6 +222,17 @@ const Index = () => {
                   <Play className="mr-2 w-5 h-5" />
                   Ver demo
                 </Button>
+                {user && (
+                  <Button 
+                    variant="outline" 
+                    size="lg" 
+                    className="text-lg px-8 py-4 border-secondary text-secondary hover:bg-secondary/10"
+                    onClick={() => navigate('/products')}
+                  >
+                    <BookOpen className="mr-2 w-5 h-5" />
+                    Ver mi biblioteca
+                  </Button>
+                )}
               </div>
 
               <p className="text-sm text-neutral/60 mt-4">
