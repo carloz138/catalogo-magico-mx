@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Plus, Upload, Eye, Edit, Trash2, CheckCircle, AlertCircle, Clock, CreditCard } from 'lucide-react';
+import { ArrowLeft, Plus, Upload, Eye, Edit, Trash2, CheckCircle, AlertCircle, Clock, CreditCard, Search, X } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -118,6 +119,7 @@ const Products = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [filter, setFilter] = useState<FilterType>('all');
+  const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [userCredits, setUserCredits] = useState(0);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -171,10 +173,23 @@ const Products = () => {
     }
   };
 
-  const filteredProducts = products.filter(product => {
-    if (filter === 'all') return true;
-    return product.processing_status === filter;
-  });
+  const filteredProducts = useMemo(() => {
+    let filtered = products;
+    
+    // Apply status filter
+    if (filter !== 'all') {
+      filtered = filtered.filter(product => product.processing_status === filter);
+    }
+    
+    // Apply search filter
+    if (searchQuery.trim()) {
+      filtered = filtered.filter(product => 
+        product.name?.toLowerCase().includes(searchQuery.toLowerCase().trim()) || false
+      );
+    }
+    
+    return filtered;
+  }, [products, filter, searchQuery]);
 
   const toggleSelection = (productId: string) => {
     setSelectedProducts(prev => 
@@ -190,6 +205,10 @@ const Products = () => {
 
   const clearSelection = () => {
     setSelectedProducts([]);
+  };
+
+  const clearSearch = () => {
+    setSearchQuery('');
   };
 
   const handleEditProduct = (product: Product) => {
@@ -355,7 +374,28 @@ const Products = () => {
               </Button>
             </div>
             
-            <div className="flex flex-wrap items-center gap-4">
+            <div className="flex flex-col lg:flex-row lg:items-center gap-4 mb-4">
+              {/* Search Input */}
+              <div className="relative flex-1 max-w-md">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <Input
+                  type="text"
+                  placeholder="Buscar productos por nombre..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10 pr-10"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={clearSearch}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+              
+              {/* Status Filter */}
               <select 
                 value={filter} 
                 onChange={(e) => setFilter(e.target.value as FilterType)}
@@ -366,7 +406,9 @@ const Products = () => {
                 <option value="processing">Procesando</option>
                 <option value="completed">Completados</option>
               </select>
-              
+            </div>
+            
+            <div className="flex flex-wrap items-center gap-4">
               <div className="flex gap-2">
                 <Button variant="outline" onClick={selectAll}>
                   Seleccionar todos
@@ -399,15 +441,27 @@ const Products = () => {
             <div className="text-center py-12">
               <Upload className="w-16 h-16 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">
-                {filter === 'all' ? 'No tienes productos guardados' : `No tienes productos en estado "${filter}"`}
+                {searchQuery ? 
+                  'No se encontraron productos' : 
+                  (filter === 'all' ? 'No tienes productos guardados' : `No tienes productos en estado "${filter}"`)
+                }
               </h3>
               <p className="text-gray-600 mb-4">
-                Comienza subiendo fotos de tus productos para crear tu biblioteca
+                {searchQuery ? 
+                  `No hay productos que coincidan con "${searchQuery}"` :
+                  'Comienza subiendo fotos de tus productos para crear tu biblioteca'
+                }
               </p>
-              <Button onClick={() => navigate('/upload')}>
-                <Plus className="w-4 h-4 mr-2" />
-                Subir productos
-              </Button>
+              {searchQuery ? (
+                <Button variant="outline" onClick={clearSearch}>
+                  Limpiar búsqueda
+                </Button>
+              ) : (
+                <Button onClick={() => navigate('/upload')}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Subir productos
+                </Button>
+              )}
             </div>
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
