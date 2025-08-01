@@ -11,6 +11,7 @@ import { toast } from '@/hooks/use-toast';
 import { toast as sonnerToast } from 'sonner';
 import { ProductEditModal } from '@/components/products/ProductEditModal';
 import { useBusinessInfo } from '../hooks/useBusinessInfo';
+import { createCatalog } from '@/lib/catalogService';
 
 interface Product {
   id: string;
@@ -118,7 +119,7 @@ const ProductCard = ({
 const Products = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { hasBusinessInfo } = useBusinessInfo();
+  const { hasBusinessInfo, businessInfo } = useBusinessInfo();
   const [products, setProducts] = useState<Product[]>([]);
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [filter, setFilter] = useState<FilterType>('all');
@@ -267,79 +268,34 @@ const Products = () => {
       return;
     }
     
-    const totalCost = selectedProducts.length * CREDITS_PER_PRODUCT;
-    
-    // Check credits
-    if (userCredits < totalCost) {
-      toast({
-        title: "Créditos insuficientes",
-        description: `Necesitas ${totalCost - userCredits} créditos más`,
-        variant: "destructive",
-      });
-      return;
-    }
+    const selectedProductsData = products.filter(p => selectedProducts.includes(p.id));
     
     try {
-      // Create catalog record
-      const { data: catalog, error: catalogError } = await supabase
-        .from('catalogs')
-        .insert({
-          user_id: user!.id,
-          name: `Catálogo ${new Date().toLocaleDateString()}`,
-          product_ids: selectedProducts,
-          total_products: selectedProducts.length,
-          credits_used: totalCost,
-          template_style: 'professional'
-        })
-        .select()
-        .single();
+      sonnerToast.loading('Creando catálogo...', { id: 'creating-catalog' });
       
-      if (catalogError) throw catalogError;
+      const result = await createCatalog(selectedProductsData, businessInfo, 'professional');
       
-      // Update products status
-      const { error: productsError } = await supabase
-        .from('products')
-        .update({ processing_status: 'processing' })
-        .in('id', selectedProducts);
-      
-      if (productsError) throw productsError;
-      
-      // Deduct credits
-      const { error: creditsError } = await supabase
-        .from('users')
-        .update({ credits: userCredits - totalCost })
-        .eq('id', user!.id);
-      
-      if (creditsError) throw creditsError;
-      
-      // Record credit usage
-      const { error: usageError } = await supabase
-        .from('credit_usage')
-        .insert({
-          user_id: user!.id,
-          catalog_id: catalog.id,
-          credits_used: totalCost,
-          credits_remaining: userCredits - totalCost,
-          usage_type: 'catalog_generation',
-          description: `Catálogo con ${selectedProducts.length} productos`
+      if (result.success) {
+        sonnerToast.success('¡Catálogo creado! Se está procesando...', { 
+          id: 'creating-catalog',
+          description: 'Te notificaremos cuando esté listo.'
         });
-      
-      if (usageError) throw usageError;
-      
-      toast({
-        title: "¡Catálogo creado!",
-        description: "Tu catálogo se está procesando. Te notificaremos cuando esté listo.",
-      });
-      
-      // Redirect to catalogs page
-      navigate('/catalogs');
+        
+        // Clear selection
+        setSelectedProducts([]);
+        
+        // Redirect to catalogs page
+        navigate('/catalogs');
+        
+      } else {
+        throw new Error(result.error || 'Error desconocido');
+      }
       
     } catch (error) {
       console.error('Error creating catalog:', error);
-      toast({
-        title: "Error",
-        description: "No se pudo crear el catálogo. Inténtalo de nuevo.",
-        variant: "destructive",
+      sonnerToast.error('No se pudo crear el catálogo', { 
+        id: 'creating-catalog',
+        description: 'Inténtalo de nuevo más tarde.'
       });
     }
   };
@@ -492,19 +448,12 @@ const Products = () => {
               <div className="max-w-7xl mx-auto flex justify-between items-center">
                 <div>
                   <p className="font-semibold">{selectedProducts.length} productos seleccionados</p>
-                  <p className="text-sm text-gray-600">
-                    Costo: {selectedProducts.length * CREDITS_PER_PRODUCT} créditos
-                  </p>
                 </div>
                 <Button 
                   onClick={createCatalogFromSelection}
                   className="bg-primary text-white px-8 py-3"
-                  disabled={userCredits < selectedProducts.length * CREDITS_PER_PRODUCT}
                 >
-                  {userCredits < selectedProducts.length * CREDITS_PER_PRODUCT 
-                    ? `Necesitas ${(selectedProducts.length * CREDITS_PER_PRODUCT) - userCredits} créditos más`
-                    : 'Crear catálogo con selección'
-                  }
+                  Crear catálogo con selección
                 </Button>
               </div>
             </div>
