@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { Button } from '@/components/ui/button';
@@ -7,7 +6,8 @@ import { ArrowLeft, Plus, Upload, Eye, Edit, Trash2, CheckCircle, AlertCircle, C
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from '@/hooks/use-toast';
+import { ProductEditModal } from '@/components/products/ProductEditModal';
 
 interface Product {
   id: string;
@@ -120,6 +120,8 @@ const Products = () => {
   const [filter, setFilter] = useState<FilterType>('all');
   const [loading, setLoading] = useState(true);
   const [userCredits, setUserCredits] = useState(0);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   const CREDITS_PER_PRODUCT = 15;
 
@@ -188,6 +190,22 @@ const Products = () => {
 
   const clearSelection = () => {
     setSelectedProducts([]);
+  };
+
+  const handleEditProduct = (product: Product) => {
+    setEditingProduct(product);
+    setIsEditModalOpen(true);
+  };
+
+  const handleProductUpdate = (updatedProduct: Product) => {
+    setProducts(prev => 
+      prev.map(p => p.id === updatedProduct.id ? updatedProduct : p)
+    );
+  };
+
+  const handleCloseEditModal = () => {
+    setIsEditModalOpen(false);
+    setEditingProduct(null);
   };
 
   const deleteProduct = async (productId: string) => {
@@ -399,7 +417,7 @@ const Products = () => {
                   product={product}
                   selected={selectedProducts.includes(product.id)}
                   onSelect={() => toggleSelection(product.id)}
-                  onEdit={() => {/* TODO: Implement edit */}}
+                  onEdit={() => handleEditProduct(product)}
                   onDelete={() => deleteProduct(product.id)}
                 />
               ))}
@@ -429,6 +447,13 @@ const Products = () => {
             </div>
           )}
         </main>
+
+        <ProductEditModal
+          product={editingProduct}
+          isOpen={isEditModalOpen}
+          onClose={handleCloseEditModal}
+          onProductUpdate={handleProductUpdate}
+        />
       </div>
     </ProtectedRoute>
   );
