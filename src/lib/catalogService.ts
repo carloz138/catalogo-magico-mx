@@ -44,17 +44,17 @@ export const createCatalog = async (
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Usuario no autenticado');
 
-    // NUEVO: Obtener plan del usuario (with fallback)
+    // NUEVO: Obtener plan del usuario (with proper error handling)
     let userPlan = 'basic';
     try {
       const { data: userData, error } = await supabase
         .from('users')
         .select('plan_type')
         .eq('id', user.id)
-        .single();
+        .maybeSingle();
 
-      if (!error && userData) {
-        userPlan = userData.plan_type || 'basic';
+      if (!error && userData?.plan_type) {
+        userPlan = userData.plan_type;
       }
     } catch (error) {
       console.log('Plan type not available, using basic as default');

@@ -14,6 +14,79 @@ export type Database = {
   }
   public: {
     Tables: {
+      business_info: {
+        Row: {
+          address: string | null
+          business_name: string | null
+          created_at: string | null
+          description: string | null
+          email: string | null
+          id: string
+          logo_url: string | null
+          phone: string | null
+          primary_color: string | null
+          secondary_color: string | null
+          social_media: Json | null
+          updated_at: string | null
+          user_id: string | null
+          website: string | null
+        }
+        Insert: {
+          address?: string | null
+          business_name?: string | null
+          created_at?: string | null
+          description?: string | null
+          email?: string | null
+          id?: string
+          logo_url?: string | null
+          phone?: string | null
+          primary_color?: string | null
+          secondary_color?: string | null
+          social_media?: Json | null
+          updated_at?: string | null
+          user_id?: string | null
+          website?: string | null
+        }
+        Update: {
+          address?: string | null
+          business_name?: string | null
+          created_at?: string | null
+          description?: string | null
+          email?: string | null
+          id?: string
+          logo_url?: string | null
+          phone?: string | null
+          primary_color?: string | null
+          secondary_color?: string | null
+          social_media?: Json | null
+          updated_at?: string | null
+          user_id?: string | null
+          website?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "business_info_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "user_profile_status"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "business_info_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "user_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "business_info_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       catalogs: {
         Row: {
           brand_colors: Json | null
@@ -76,6 +149,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "catalogs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profile_status"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "catalogs_user_id_fkey"
             columns: ["user_id"]
@@ -194,6 +274,13 @@ export type Database = {
             foreignKeyName: "credit_usage_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "user_profile_status"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_usage_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "user_stats"
             referencedColumns: ["id"]
           },
@@ -219,6 +306,8 @@ export type Database = {
           custom_description: string | null
           description: string | null
           error_message: string | null
+          estimated_cost_mxn: number | null
+          estimated_credits: number | null
           features: string[] | null
           hd_image_url: string | null
           id: string
@@ -232,6 +321,7 @@ export type Database = {
           processing_status: string | null
           service_type: string | null
           sku: string | null
+          smart_analysis: Json | null
           social_media_urls: Json | null
           updated_at: string
           user_id: string
@@ -250,6 +340,8 @@ export type Database = {
           custom_description?: string | null
           description?: string | null
           error_message?: string | null
+          estimated_cost_mxn?: number | null
+          estimated_credits?: number | null
           features?: string[] | null
           hd_image_url?: string | null
           id?: string
@@ -263,6 +355,7 @@ export type Database = {
           processing_status?: string | null
           service_type?: string | null
           sku?: string | null
+          smart_analysis?: Json | null
           social_media_urls?: Json | null
           updated_at?: string
           user_id: string
@@ -281,6 +374,8 @@ export type Database = {
           custom_description?: string | null
           description?: string | null
           error_message?: string | null
+          estimated_cost_mxn?: number | null
+          estimated_credits?: number | null
           features?: string[] | null
           hd_image_url?: string | null
           id?: string
@@ -294,6 +389,7 @@ export type Database = {
           processing_status?: string | null
           service_type?: string | null
           sku?: string | null
+          smart_analysis?: Json | null
           social_media_urls?: Json | null
           updated_at?: string
           user_id?: string
@@ -301,6 +397,13 @@ export type Database = {
           wholesale_min_qty?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "products_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profile_status"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "products_user_id_fkey"
             columns: ["user_id"]
@@ -321,6 +424,7 @@ export type Database = {
         Row: {
           amount_mxn: number
           amount_usd: number | null
+          charge_id: string | null
           completed_at: string | null
           created_at: string
           credits_purchased: number
@@ -330,6 +434,7 @@ export type Database = {
           oxxo_barcode: string | null
           oxxo_reference: string | null
           package_id: string | null
+          payment_intent_id: string | null
           payment_metadata: Json | null
           payment_method: string
           payment_status: string | null
@@ -337,11 +442,13 @@ export type Database = {
           spei_reference: string | null
           stripe_charge_id: string | null
           stripe_payment_intent_id: string | null
+          updated_at: string | null
           user_id: string
         }
         Insert: {
           amount_mxn: number
           amount_usd?: number | null
+          charge_id?: string | null
           completed_at?: string | null
           created_at?: string
           credits_purchased: number
@@ -351,6 +458,7 @@ export type Database = {
           oxxo_barcode?: string | null
           oxxo_reference?: string | null
           package_id?: string | null
+          payment_intent_id?: string | null
           payment_metadata?: Json | null
           payment_method: string
           payment_status?: string | null
@@ -358,11 +466,13 @@ export type Database = {
           spei_reference?: string | null
           stripe_charge_id?: string | null
           stripe_payment_intent_id?: string | null
+          updated_at?: string | null
           user_id: string
         }
         Update: {
           amount_mxn?: number
           amount_usd?: number | null
+          charge_id?: string | null
           completed_at?: string | null
           created_at?: string
           credits_purchased?: number
@@ -372,6 +482,7 @@ export type Database = {
           oxxo_barcode?: string | null
           oxxo_reference?: string | null
           package_id?: string | null
+          payment_intent_id?: string | null
           payment_metadata?: Json | null
           payment_method?: string
           payment_status?: string | null
@@ -379,6 +490,7 @@ export type Database = {
           spei_reference?: string | null
           stripe_charge_id?: string | null
           stripe_payment_intent_id?: string | null
+          updated_at?: string | null
           user_id?: string
         }
         Relationships: [
@@ -387,6 +499,13 @@ export type Database = {
             columns: ["package_id"]
             isOneToOne: false
             referencedRelation: "credit_packages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profile_status"
             referencedColumns: ["id"]
           },
           {
@@ -462,6 +581,13 @@ export type Database = {
             foreignKeyName: "user_preferences_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: true
+            referencedRelation: "user_profile_status"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_preferences_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
             referencedRelation: "user_stats"
             referencedColumns: ["id"]
           },
@@ -484,7 +610,10 @@ export type Database = {
           email: string
           full_name: string | null
           id: string
+          monthly_removebg_limit: number | null
+          monthly_removebg_used: number | null
           phone: string | null
+          plan_type: string | null
           total_credits_purchased: number | null
           updated_at: string
         }
@@ -497,7 +626,10 @@ export type Database = {
           email: string
           full_name?: string | null
           id: string
+          monthly_removebg_limit?: number | null
+          monthly_removebg_used?: number | null
           phone?: string | null
+          plan_type?: string | null
           total_credits_purchased?: number | null
           updated_at?: string
         }
@@ -510,7 +642,10 @@ export type Database = {
           email?: string
           full_name?: string | null
           id?: string
+          monthly_removebg_limit?: number | null
+          monthly_removebg_used?: number | null
           phone?: string | null
+          plan_type?: string | null
           total_credits_purchased?: number | null
           updated_at?: string
         }
@@ -518,6 +653,48 @@ export type Database = {
       }
     }
     Views: {
+      user_profile_status: {
+        Row: {
+          business_name: string | null
+          business_type: string | null
+          created_at: string | null
+          credits: number | null
+          email: string | null
+          full_name: string | null
+          id: string | null
+          missing_fields: string[] | null
+          phone: string | null
+          profile_status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          business_name?: string | null
+          business_type?: string | null
+          created_at?: string | null
+          credits?: number | null
+          email?: string | null
+          full_name?: string | null
+          id?: string | null
+          missing_fields?: never
+          phone?: string | null
+          profile_status?: never
+          updated_at?: string | null
+        }
+        Update: {
+          business_name?: string | null
+          business_type?: string | null
+          created_at?: string | null
+          credits?: number | null
+          email?: string | null
+          full_name?: string | null
+          id?: string | null
+          missing_fields?: never
+          phone?: string | null
+          profile_status?: never
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       user_stats: {
         Row: {
           business_name: string | null
@@ -535,7 +712,16 @@ export type Database = {
       }
     }
     Functions: {
-      [_ in never]: never
+      complete_user_profile: {
+        Args: {
+          user_id: string
+          p_full_name?: string
+          p_phone?: string
+          p_business_name?: string
+          p_business_type?: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never
