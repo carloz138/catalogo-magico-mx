@@ -26,7 +26,6 @@ const Upload = () => {
   // Estados para análisis de complejidad
   const [imageAnalyses, setImageAnalyses] = useState<Map<string, ImageAnalysis>>(new Map());
   const [totalEstimatedCredits, setTotalEstimatedCredits] = useState(0);
-  const [totalEstimatedCost, setTotalEstimatedCost] = useState(0);
 
   // Smart validation function
   const getProductStatus = (product: ProductData, priceConfig: PriceDisplayMode) => {
@@ -126,14 +125,12 @@ const Upload = () => {
     // Analizar complejidad de cada imagen
     const analyses = new Map<string, ImageAnalysis>();
     let totalCredits = 0;
-    let totalCost = 0;
     
     for (const file of files) {
       try {
         const analysis = await analyzeImageQuality(file.file, file.name, 'Ropa y Textiles');
         analyses.set(file.id, analysis);
         totalCredits += analysis.estimatedCredits;
-        totalCost += analysis.estimatedCost;
       } catch (error) {
         console.error(`Error analyzing ${file.name}:`, error);
         // Fallback analysis con todas las propiedades requeridas
@@ -155,13 +152,11 @@ const Upload = () => {
         };
         analyses.set(file.id, fallbackAnalysis);
         totalCredits += 1;
-        totalCost += 0.20;
       }
     }
     
     setImageAnalyses(analyses);
     setTotalEstimatedCredits(totalCredits);
-    setTotalEstimatedCost(totalCost);
     
     // Crear productos con análisis incluido
     const newProducts = files.map(file => ({
@@ -264,7 +259,6 @@ const Upload = () => {
       setUploadedFiles([]);
       setImageAnalyses(new Map());
       setTotalEstimatedCredits(0);
-      setTotalEstimatedCost(0);
 
     } catch (error) {
       console.error('Error saving products to library:', error);
@@ -406,20 +400,16 @@ const Upload = () => {
           {imageAnalyses.size > 0 && (
             <div className="bg-blue-50 rounded-lg p-4 mb-6">
               <h3 className="font-semibold text-blue-800 mb-3">🧠 Análisis de Complejidad</h3>
-              <div className="grid grid-cols-3 gap-4 text-center mb-3">
+              <div className="grid grid-cols-2 gap-4 text-center mb-3">
                 <div>
-                  <div className="text-2xl font-bold text-green-600">{totalEstimatedCredits}</div>
+                  <div className="text-2xl font-bold text-blue-600">{totalEstimatedCredits}</div>
                   <div className="text-sm text-gray-600">Créditos estimados</div>
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-blue-600">${totalEstimatedCost.toFixed(2)}</div>
-                  <div className="text-sm text-gray-600">Costo estimado (MXN)</div>
-                </div>
-                <div>
-                  <div className="text-2xl font-bold text-purple-600">
-                    {Math.round((1 - (totalEstimatedCost / (uploadedFiles.length * 4.09))) * 100)}%
+                  <div className="text-2xl font-bold text-green-600">
+                    Optimizado
                   </div>
-                  <div className="text-sm text-gray-600">Ahorro vs método tradicional</div>
+                  <div className="text-sm text-gray-600">Procesamiento inteligente</div>
                 </div>
               </div>
               
@@ -438,10 +428,12 @@ const Upload = () => {
                         }`}>
                           {analysis.complexityScore}/100
                         </span>
-                        <span className="font-medium">
-                          {analysis.recommendedApi === 'removebg' ? '🎯 Premium' : '💰 Estándar'}
-                        </span>
-                        <span className="text-gray-600">{analysis.estimatedCredits} créditos</span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">
+                            {analysis.recommendedApi === 'removebg' ? 'Premium' : 'Estándar'}
+                          </span>
+                          <span className="text-gray-600">{analysis.estimatedCredits} crédito{analysis.estimatedCredits > 1 ? 's' : ''}</span>
+                        </div>
                       </div>
                     </div>
                   ) : null;
@@ -468,11 +460,7 @@ const Upload = () => {
                     </div>
                   </div>
                   <div className="text-center mt-2 text-sm text-gray-600">
-                    <strong>Total: {totalEstimatedCredits} créditos (${totalEstimatedCost.toFixed(2)} MXN)</strong>
-                    <br />
-                    <span className="text-purple-600">
-                      Ahorro vs método tradicional: {Math.round((1 - (totalEstimatedCost / (uploadedFiles.length * 4.09))) * 100)}%
-                    </span>
+                    <strong>Total: {totalEstimatedCredits} créditos</strong>
                   </div>
                 </div>
               )}
