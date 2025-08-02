@@ -1,10 +1,10 @@
-
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ImageAnalysis } from './ImageAnalysis';
 
 export interface ProductData {
   id: string;
@@ -16,6 +16,7 @@ export interface ProductData {
   category: string;
   custom_description: string;
   original_image_url: string;
+  smart_analysis?: ImageAnalysis;
 }
 
 type PriceDisplayMode = 'none' | 'retail' | 'both';

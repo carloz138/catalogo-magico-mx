@@ -6,6 +6,7 @@ const N8N_WEBHOOK_URL = 'https://min8n-tellezn8n.fqr2ax.easypanel.host/webhook-t
 export interface CatalogCreationRequest {
   catalog_id: string;
   user_id: string;
+  user_plan: string; // NUEVO: plan del usuario
   business_info: {
     business_name: string;
     logo_url?: string;
@@ -23,8 +24,14 @@ export interface CatalogCreationRequest {
     price_retail?: number;
     price_wholesale?: number;
     original_image_url: string;
+    smart_analysis?: any; // NUEVO
+    estimated_credits?: number; // NUEVO
+    estimated_cost_mxn?: number; // NUEVO
   }>;
   template_style: string;
+  // NUEVO: totales estimados
+  estimated_total_credits: number;
+  estimated_total_cost: number;
 }
 
 export const createCatalog = async (
@@ -36,6 +43,15 @@ export const createCatalog = async (
     // Get current user
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Usuario no autenticado');
+
+    // NUEVO: Obtener plan del usuario
+    const { data: userData } = await supabase
+      .from('users')
+      .select('plan_type')
+      .eq('id', user.id)
+      .single();
+
+    const userPlan = userData?.plan_type || 'basic';
 
     // Create catalog record in database first
     const { data: catalog, error: catalogError } = await supabase
@@ -60,10 +76,11 @@ export const createCatalog = async (
 
     if (catalogError) throw catalogError;
 
-    // Prepare webhook payload
+    // MODIFICAR webhookPayload para incluir análisis
     const webhookPayload: CatalogCreationRequest = {
       catalog_id: catalog.id,
       user_id: user.id,
+      user_plan: userPlan, // NUEVO: plan del usuario
       business_info: {
         business_name: businessInfo?.business_name || 'Mi Empresa',
         logo_url: businessInfo?.logo_url,
@@ -80,9 +97,15 @@ export const createCatalog = async (
         category: product.category,
         price_retail: product.price_retail,
         price_wholesale: product.price_wholesale,
-        original_image_url: product.original_image_url
+        original_image_url: product.original_image_url,
+        smart_analysis: product.smart_analysis ? JSON.parse(product.smart_analysis) : null, // NUEVO
+        estimated_credits: product.estimated_credits || 1, // NUEVO
+        estimated_cost_mxn: product.estimated_cost_mxn || 0.20 // NUEVO
       })),
-      template_style: templateStyle
+      template_style: templateStyle,
+      // NUEVO: totales estimados
+      estimated_total_credits: selectedProducts.reduce((sum, p) => sum + (p.estimated_credits || 1), 0),
+      estimated_total_cost: selectedProducts.reduce((sum, p) => sum + (p.estimated_cost_mxn || 0.20), 0)
     };
 
     console.log('🚀 Sending to n8n webhook:', webhookPayload);

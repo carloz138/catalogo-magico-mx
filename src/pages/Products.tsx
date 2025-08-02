@@ -25,6 +25,9 @@ interface Product {
   original_image_url: string;
   processing_status: string;
   created_at: string;
+  smart_analysis: string | null;
+  estimated_credits: number | null;
+  estimated_cost_mxn: number | null;
 }
 
 type FilterType = 'all' | 'draft' | 'processing' | 'completed';
@@ -82,6 +85,20 @@ const ProductCard = ({
       <p className="text-xs text-gray-500 truncate mb-2">
         {product.price_retail ? `$${(product.price_retail / 100).toLocaleString()} MXN` : 'Sin precio'}
       </p>
+      
+      {/* Smart Analysis Info */}
+      {product.smart_analysis && (
+        <div className="text-xs text-gray-600 mb-1 bg-gray-50 rounded p-1">
+          <div className="flex justify-between">
+            <span>Estimado:</span>
+            <span className="font-medium">{product.estimated_credits || 1} créditos</span>
+          </div>
+          <div className="flex justify-between">
+            <span>API:</span>
+            <span>{JSON.parse(product.smart_analysis).recommendedApi === 'removebg' ? '🎯 Remove.bg' : '💰 Pixelcut'}</span>
+          </div>
+        </div>
+      )}
       
       <div className="flex items-center justify-between mb-2">
         <StatusBadge status={product.processing_status} />
@@ -448,6 +465,16 @@ const Products = () => {
               <div className="max-w-7xl mx-auto flex justify-between items-center">
                 <div>
                   <p className="font-semibold">{selectedProducts.length} productos seleccionados</p>
+                  <p className="text-sm text-gray-600">
+                    Estimado: {selectedProducts.reduce((total, id) => {
+                      const product = products.find(p => p.id === id);
+                      return total + (product?.estimated_credits || 1);
+                    }, 0)} créditos 
+                    (${selectedProducts.reduce((total, id) => {
+                      const product = products.find(p => p.id === id);
+                      return total + (product?.estimated_cost_mxn || 0.20);
+                    }, 0).toFixed(2)} MXN)
+                  </p>
                 </div>
                 <Button 
                   onClick={createCatalogFromSelection}

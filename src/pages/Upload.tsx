@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { Button } from '@/components/ui/button';
@@ -10,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
 import { FileUploader } from '@/components/upload/FileUploader';
 import { ProductForm, ProductData } from '@/components/upload/ProductForm';
+import { analyzeImageQuality, ImageAnalysis } from '@/components/upload/ImageAnalysis';
 
 type PriceDisplayMode = 'none' | 'retail' | 'both';
 
@@ -22,6 +22,11 @@ const Upload = () => {
   const [products, setProducts] = useState<ProductData[]>([]);
   const [uploadedFiles, setUploadedFiles] = useState<any[]>([]);
   const [priceDisplayMode, setPriceDisplayMode] = useState<PriceDisplayMode>('retail');
+  
+  // NUEVO: Estados para análisis inteligente
+  const [imageAnalyses, setImageAnalyses] = useState<Map<string, ImageAnalysis>>(new Map());
+  const [totalEstimatedCredits, setTotalEstimatedCredits] = useState(0);
+  const [totalEstimatedCost, setTotalEstimatedCost] = useState(0);
 
   // Smart validation function
   const getProductStatus = (product: ProductData, priceConfig: PriceDisplayMode) => {
@@ -114,10 +119,43 @@ const Upload = () => {
     }
   };
 
-  const handleFilesUploaded = (files: any[]) => {
+  const handleFilesUploaded = async (files: any[]) => {
     console.log('Files uploaded:', files);
     setUploadedFiles(files);
     
+    // NUEVO: Analizar cada imagen
+    const analyses = new Map<string, ImageAnalysis>();
+    let totalCredits = 0;
+    let totalCost = 0;
+    
+    for (const file of files) {
+      try {
+        const analysis = await analyzeImageQuality(file.file, file.name, 'Ropa y Textiles');
+        analyses.set(file.id, analysis);
+        totalCredits += analysis.estimatedCredits;
+        totalCost += analysis.estimatedCost;
+      } catch (error) {
+        console.error(`Error analyzing ${file.name}:`, error);
+        // Fallback analysis
+        const fallbackAnalysis: ImageAnalysis = {
+          complexityScore: 50,
+          recommendedApi: 'pixelcut',
+          estimatedCredits: 1,
+          estimatedCost: 0.20,
+          confidence: 50,
+          tips: ['Análisis básico aplicado']
+        };
+        analyses.set(file.id, fallbackAnalysis);
+        totalCredits += 1;
+        totalCost += 0.20;
+      }
+    }
+    
+    setImageAnalyses(analyses);
+    setTotalEstimatedCredits(totalCredits);
+    setTotalEstimatedCost(totalCost);
+    
+    // Crear productos con análisis incluido
     const newProducts = files.map(file => ({
       id: file.id,
       name: '',
@@ -128,6 +166,7 @@ const Upload = () => {
       category: '',
       custom_description: '',
       original_image_url: file.url,
+      smart_analysis: analyses.get(file.id) // NUEVO: incluir análisis
     }));
     
     setProducts(newProducts);
@@ -181,9 +220,13 @@ const Upload = () => {
         category: product.category,
         custom_description: product.custom_description || null,
         original_image_url: product.original_image_url,
-        processing_status: 'pending', // Use 'pending' instead of 'draft'
-        credits_used: 0, // No credits used for saving to library
-        service_type: 'basic'
+        processing_status: 'pending',
+        credits_used: 0,
+        service_type: 'basic',
+        // NUEVO: guardar análisis inteligente
+        smart_analysis: product.smart_analysis ? JSON.stringify(product.smart_analysis) : null,
+        estimated_credits: product.smart_analysis?.estimatedCredits || 1,
+        estimated_cost_mxn: product.smart_analysis?.estimatedCost || 0.20
       }));
 
       console.log('Inserting products:', productInserts);
@@ -211,6 +254,9 @@ const Upload = () => {
       // Clear the form
       setProducts([]);
       setUploadedFiles([]);
+      setImageAnalyses(new Map());
+      setTotalEstimatedCredits(0);
+      setTotalEstimatedCost(0);
 
     } catch (error) {
       console.error('Error saving products to library:', error);
@@ -347,6 +393,54 @@ const Upload = () => {
               maxFiles={10}
             />
           </div>
+
+          {/* Smart Analysis Summary */}
+          {imageAnalyses.size > 0 && (
+            <div className="bg-blue-50 rounded-lg p-4 mb-6">
+              <h3 className="font-semibold text-blue-800 mb-3">🧠 Análisis Inteligente</h3>
+              <div className="grid grid-cols-3 gap-4 text-center mb-3">
+                <div>
+                  <div className="text-2xl font-bold text-green-600">{totalEstimatedCredits}</div>
+                  <div className="text-sm text-gray-600">Créditos estimados</div>
+                </div>
+                <div>
+                  <div className="text-2xl font-bold text-blue-600">${totalEstimatedCost.toFixed(2)}</div>
+                  <div className="text-sm text-gray-600">Costo estimado (MXN)</div>
+                </div>
+                <div>
+                  <div className="text-2xl font-bold text-purple-600">
+                    {Math.round((1 - (totalEstimatedCost / (uploadedFiles.length * 4.09))) * 100)}%
+                  </div>
+                  <div className="text-sm text-gray-600">Ahorro vs Remove.bg</div>
+                </div>
+              </div>
+              
+              {/* Lista de productos con análisis */}
+              <div className="space-y-2">
+                {uploadedFiles.map(file => {
+                  const analysis = imageAnalyses.get(file.id);
+                  return analysis ? (
+                    <div key={file.id} className="flex justify-between items-center bg-white rounded p-2 text-sm">
+                      <span className="truncate">{file.name}</span>
+                      <div className="flex items-center gap-2">
+                        <span className={`px-2 py-1 rounded text-xs ${
+                          analysis.complexityScore >= 75 ? 'bg-red-100 text-red-700' :
+                          analysis.complexityScore >= 40 ? 'bg-yellow-100 text-yellow-700' :
+                          'bg-green-100 text-green-700'
+                        }`}>
+                          {analysis.complexityScore}/100
+                        </span>
+                        <span className="font-medium">
+                          {analysis.recommendedApi === 'removebg' ? '🎯 Remove.bg' : '💰 Pixelcut'}
+                        </span>
+                        <span className="text-gray-600">{analysis.estimatedCredits} créditos</span>
+                      </div>
+                    </div>
+                  ) : null;
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Validation Summary */}
           {products.length > 0 && (
