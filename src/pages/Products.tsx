@@ -25,9 +25,9 @@ interface Product {
   original_image_url: string;
   processing_status: string;
   created_at: string;
-  smart_analysis: string | null;
-  estimated_credits: number | null;
-  estimated_cost_mxn: number | null;
+  smart_analysis: any;
+  estimated_credits: number;
+  estimated_cost_mxn: number;
 }
 
 type FilterType = 'all' | 'draft' | 'processing' | 'completed';
@@ -95,7 +95,11 @@ const ProductCard = ({
           </div>
           <div className="flex justify-between">
             <span>API:</span>
-            <span>{JSON.parse(product.smart_analysis).recommendedApi === 'removebg' ? '🎯 Remove.bg' : '💰 Pixelcut'}</span>
+            <span>{
+              typeof product.smart_analysis === 'string' 
+                ? (JSON.parse(product.smart_analysis).recommendedApi === 'removebg' ? '🎯 Remove.bg' : '💰 Pixelcut')
+                : (product.smart_analysis?.recommendedApi === 'removebg' ? '🎯 Remove.bg' : '💰 Pixelcut')
+            }</span>
           </div>
         </div>
       )}
