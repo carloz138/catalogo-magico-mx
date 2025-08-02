@@ -159,7 +159,22 @@ const Products = () => {
     try {
       const { data, error } = await supabase
         .from('products')
-        .select('*')
+        .select(`
+          id,
+          name,
+          sku,
+          price_retail,
+          price_wholesale,
+          wholesale_min_qty,
+          category,
+          custom_description,
+          original_image_url,
+          processing_status,
+          created_at,
+          smart_analysis,
+          estimated_credits,
+          estimated_cost_mxn
+        `)
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 

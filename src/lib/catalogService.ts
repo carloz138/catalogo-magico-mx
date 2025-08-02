@@ -44,14 +44,21 @@ export const createCatalog = async (
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Usuario no autenticado');
 
-    // NUEVO: Obtener plan del usuario
-    const { data: userData } = await supabase
-      .from('users')
-      .select('plan_type')
-      .eq('id', user.id)
-      .single();
+    // NUEVO: Obtener plan del usuario (with fallback)
+    let userPlan = 'basic';
+    try {
+      const { data: userData, error } = await supabase
+        .from('users')
+        .select('plan_type')
+        .eq('id', user.id)
+        .single();
 
-    const userPlan = userData?.plan_type || 'basic';
+      if (!error && userData) {
+        userPlan = userData.plan_type || 'basic';
+      }
+    } catch (error) {
+      console.log('Plan type not available, using basic as default');
+    }
 
     // Create catalog record in database first
     const { data: catalog, error: catalogError } = await supabase
