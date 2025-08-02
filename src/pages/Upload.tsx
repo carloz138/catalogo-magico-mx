@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { Button } from '@/components/ui/button';
@@ -24,7 +23,7 @@ const Upload = () => {
   const [uploadedFiles, setUploadedFiles] = useState<any[]>([]);
   const [priceDisplayMode, setPriceDisplayMode] = useState<PriceDisplayMode>('retail');
   
-  // Estados para análisis inteligente
+  // Estados para análisis de complejidad
   const [imageAnalyses, setImageAnalyses] = useState<Map<string, ImageAnalysis>>(new Map());
   const [totalEstimatedCredits, setTotalEstimatedCredits] = useState(0);
   const [totalEstimatedCost, setTotalEstimatedCost] = useState(0);
@@ -124,7 +123,7 @@ const Upload = () => {
     console.log('Files uploaded:', files);
     setUploadedFiles(files);
     
-    // Analizar cada imagen
+    // Analizar complejidad de cada imagen
     const analyses = new Map<string, ImageAnalysis>();
     let totalCredits = 0;
     let totalCost = 0;
@@ -137,7 +136,7 @@ const Upload = () => {
         totalCost += analysis.estimatedCost;
       } catch (error) {
         console.error(`Error analyzing ${file.name}:`, error);
-        // Fallback analysis with all required properties
+        // Fallback analysis con todas las propiedades requeridas
         const fallbackAnalysis: ImageAnalysis = {
           complexityScore: 50,
           confidence: 60,
@@ -403,10 +402,10 @@ const Upload = () => {
             />
           </div>
 
-          {/* Smart Analysis Summary */}
+          {/* Análisis de Complejidad Summary */}
           {imageAnalyses.size > 0 && (
             <div className="bg-blue-50 rounded-lg p-4 mb-6">
-              <h3 className="font-semibold text-blue-800 mb-3">🧠 Análisis Inteligente</h3>
+              <h3 className="font-semibold text-blue-800 mb-3">🧠 Análisis de Complejidad</h3>
               <div className="grid grid-cols-3 gap-4 text-center mb-3">
                 <div>
                   <div className="text-2xl font-bold text-green-600">{totalEstimatedCredits}</div>
@@ -420,7 +419,7 @@ const Upload = () => {
                   <div className="text-2xl font-bold text-purple-600">
                     {Math.round((1 - (totalEstimatedCost / (uploadedFiles.length * 4.09))) * 100)}%
                   </div>
-                  <div className="text-sm text-gray-600">Ahorro vs Remove.bg</div>
+                  <div className="text-sm text-gray-600">Ahorro vs método tradicional</div>
                 </div>
               </div>
               
@@ -440,7 +439,7 @@ const Upload = () => {
                           {analysis.complexityScore}/100
                         </span>
                         <span className="font-medium">
-                          {analysis.recommendedApi === 'removebg' ? '🎯 Remove.bg' : '💰 Pixelcut'}
+                          {analysis.recommendedApi === 'removebg' ? '🎯 Premium' : '💰 Estándar'}
                         </span>
                         <span className="text-gray-600">{analysis.estimatedCredits} créditos</span>
                       </div>
@@ -448,6 +447,35 @@ const Upload = () => {
                   ) : null;
                 })}
               </div>
+              
+              {/* Resumen por tipo de procesamiento */}
+              {uploadedFiles.length > 1 && (
+                <div className="mt-4 pt-3 border-t border-blue-200">
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div className="bg-white rounded p-2">
+                      <div className="font-medium text-green-700">💰 Procesamiento Estándar</div>
+                      <div className="text-gray-600">
+                        {Array.from(imageAnalyses.values()).filter(a => a.recommendedApi === 'pixelcut').length} productos
+                        · {Array.from(imageAnalyses.values()).filter(a => a.recommendedApi === 'pixelcut').reduce((sum, a) => sum + a.estimatedCredits, 0)} créditos
+                      </div>
+                    </div>
+                    <div className="bg-white rounded p-2">
+                      <div className="font-medium text-blue-700">🎯 Procesamiento Premium</div>
+                      <div className="text-gray-600">
+                        {Array.from(imageAnalyses.values()).filter(a => a.recommendedApi === 'removebg').length} productos
+                        · {Array.from(imageAnalyses.values()).filter(a => a.recommendedApi === 'removebg').reduce((sum, a) => sum + a.estimatedCredits, 0)} créditos
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-center mt-2 text-sm text-gray-600">
+                    <strong>Total: {totalEstimatedCredits} créditos (${totalEstimatedCost.toFixed(2)} MXN)</strong>
+                    <br />
+                    <span className="text-purple-600">
+                      Ahorro vs método tradicional: {Math.round((1 - (totalEstimatedCost / (uploadedFiles.length * 4.09))) * 100)}%
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

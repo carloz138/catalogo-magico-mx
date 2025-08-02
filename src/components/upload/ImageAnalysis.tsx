@@ -3,8 +3,8 @@ export interface ImageAnalysis {
   complexityScore: number;        // 0-100
   confidence: number;             // 0-100
   recommendedApi: 'pixelcut' | 'removebg';
-  estimatedCredits: number;       // 1 para pixelcut, 20 para removebg
-  estimatedCost: number;          // 0.20 para pixelcut, 4.09 para removebg
+  estimatedCredits: number;       // 1 para estándar, 20 para premium
+  estimatedCost: number;          // 0.20 para estándar, 4.09 para premium
   reasoning: string;
   tips: string[];
   breakdown: {
@@ -13,12 +13,12 @@ export interface ImageAnalysis {
     visual: number;
     context: number;
   };
-  savingsVsRemoveBg: number;      // % ahorro vs usar Remove.bg
+  savingsVsRemoveBg: number;      // % ahorro vs procesamiento tradicional
 }
 
 export const analyzeImageQuality = async (file: File, productName = '', category = '', description = ''): Promise<ImageAnalysis> => {
   try {
-    console.log(`🧠 Analizando: ${productName} (${category})`);
+    console.log(`🧠 Analizando complejidad: ${productName} (${category})`);
     
     // 1. ANÁLISIS POR CATEGORÍA (40% peso)
     const categoryScore = getCategoryComplexityScore(category);
@@ -43,7 +43,7 @@ export const analyzeImageQuality = async (file: File, productName = '', category
     const complexityScore = Math.max(0, Math.min(100, finalScore));
     const confidence = calculateConfidence(categoryScore, semanticScore, visualScore);
     
-    // Determinar API recomendada
+    // Determinar tipo de procesamiento recomendado
     const recommendedApi = complexityScore >= 75 ? 'removebg' : 'pixelcut';
     const estimatedCredits = recommendedApi === 'removebg' ? 20 : 1;
     const estimatedCost = recommendedApi === 'removebg' ? 4.09 : 0.20;
@@ -68,7 +68,7 @@ export const analyzeImageQuality = async (file: File, productName = '', category
     };
     
   } catch (error) {
-    console.error('Error in smart analysis:', error);
+    console.error('Error in complexity analysis:', error);
     
     // Fallback robusto
     return {
@@ -292,11 +292,11 @@ function calculateConfidence(categoryScore: number, semanticScore: number, visua
 // GENERACIÓN DE RAZONAMIENTO
 function generateReasoning(complexityScore: number, breakdown: any): string {
   if (complexityScore >= 75) {
-    return `Score alto (${complexityScore}/100): Múltiples factores de complejidad detectados. Remove.bg recomendado para garantizar calidad profesional.`;
+    return `Score alto (${complexityScore}/100): Múltiples factores de complejidad detectados. Procesamiento premium recomendado para garantizar calidad profesional.`;
   } else if (complexityScore >= 40) {
-    return `Score medio (${complexityScore}/100): Complejidad moderada detectada. Pixelcut viable con fotografía cuidadosa.`;
+    return `Score medio (${complexityScore}/100): Complejidad moderada detectada. Procesamiento estándar viable con fotografía cuidadosa.`;
   } else {
-    return `Score bajo (${complexityScore}/100): Producto de baja complejidad. Pixelcut óptimo para máximo ahorro.`;
+    return `Score bajo (${complexityScore}/100): Producto de baja complejidad. Procesamiento optimizado para máximo ahorro.`;
   }
 }
 
@@ -306,14 +306,14 @@ function generateTips(score: number, breakdown: any): string[] {
   
   if (score >= 75) {
     tips.push('🎯 Alta complejidad detectada');
-    tips.push('💎 Remove.bg recomendado para máxima calidad');
+    tips.push('💎 Procesamiento premium recomendado para máxima calidad');
     if (breakdown.semantic > 60) tips.push('⚠️ Texturas/detalles complejos detectados');
   } else if (score >= 40) {
     tips.push('📸 Use fondo blanco muy uniforme');
     tips.push('💡 Maximice contraste producto/fondo');
     if (breakdown.visual > 50) tips.push('🔍 Imagen con cierta complejidad visual');
   } else {
-    tips.push('✅ Excelente candidato para Pixelcut');
+    tips.push('✅ Excelente para procesamiento estándar');
     tips.push('💰 Máximo ahorro garantizado');
     tips.push('🚀 Procesamiento rápido y económico');
   }

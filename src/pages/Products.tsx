@@ -86,7 +86,7 @@ const ProductCard = ({
         {product.price_retail ? `$${(product.price_retail / 100).toLocaleString()} MXN` : 'Sin precio'}
       </p>
       
-      {/* Smart Analysis Info */}
+      {/* Análisis de Complejidad Info */}
       {product.smart_analysis && (
         <div className="text-xs text-gray-600 mb-1 bg-gray-50 rounded p-1">
           <div className="flex justify-between">
@@ -94,11 +94,11 @@ const ProductCard = ({
             <span className="font-medium">{product.estimated_credits || 1} créditos</span>
           </div>
           <div className="flex justify-between">
-            <span>API:</span>
+            <span>Tipo:</span>
             <span>{
               typeof product.smart_analysis === 'string' 
-                ? (JSON.parse(product.smart_analysis).recommendedApi === 'removebg' ? '🎯 Remove.bg' : '💰 Pixelcut')
-                : (product.smart_analysis?.recommendedApi === 'removebg' ? '🎯 Remove.bg' : '💰 Pixelcut')
+                ? (JSON.parse(product.smart_analysis).recommendedApi === 'removebg' ? '🎯 Premium' : '💰 Estándar')
+                : (product.smart_analysis?.recommendedApi === 'removebg' ? '🎯 Premium' : '💰 Estándar')
             }</span>
           </div>
         </div>
