@@ -137,14 +137,22 @@ const Upload = () => {
         totalCost += analysis.estimatedCost;
       } catch (error) {
         console.error(`Error analyzing ${file.name}:`, error);
-        // Fallback analysis
+        // Fallback analysis with all required properties
         const fallbackAnalysis: ImageAnalysis = {
           complexityScore: 50,
+          confidence: 60,
           recommendedApi: 'pixelcut',
           estimatedCredits: 1,
           estimatedCost: 0.20,
-          confidence: 50,
-          tips: ['Análisis básico aplicado']
+          reasoning: 'Análisis simplificado aplicado por precaución',
+          tips: ['📸 Use fondo uniforme para mejores resultados'],
+          breakdown: { 
+            category: 50, 
+            semantic: 50, 
+            visual: 50, 
+            context: 50 
+          },
+          savingsVsRemoveBg: 95
         };
         analyses.set(file.id, fallbackAnalysis);
         totalCredits += 1;
