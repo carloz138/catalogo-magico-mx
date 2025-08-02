@@ -6,7 +6,7 @@ const N8N_WEBHOOK_URL = 'https://min8n-tellezn8n.fqr2ax.easypanel.host/webhook-t
 export interface CatalogCreationRequest {
   catalog_id: string;
   user_id: string;
-  user_plan: string; // NUEVO: plan del usuario
+  user_plan: string;
   business_info: {
     business_name: string;
     logo_url?: string;
@@ -24,12 +24,11 @@ export interface CatalogCreationRequest {
     price_retail?: number;
     price_wholesale?: number;
     original_image_url: string;
-    smart_analysis?: any; // NUEVO
-    estimated_credits?: number; // NUEVO
-    estimated_cost_mxn?: number; // NUEVO
+    smart_analysis?: any;
+    estimated_credits?: number;
+    estimated_cost_mxn?: number;
   }>;
   template_style: string;
-  // NUEVO: totales estimados
   estimated_total_credits: number;
   estimated_total_cost: number;
 }
@@ -44,7 +43,7 @@ export const createCatalog = async (
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Usuario no autenticado');
 
-    // NUEVO: Obtener plan del usuario (with proper error handling)
+    // Obtener plan del usuario
     let userPlan = 'basic';
     try {
       const { data: userData, error } = await supabase
@@ -76,18 +75,18 @@ export const createCatalog = async (
         show_retail_prices: true,
         show_wholesale_prices: false,
         total_products: selectedProducts.length,
-        credits_used: 0 // Will be updated by webhook if needed
+        credits_used: 0
       })
       .select()
       .single();
 
     if (catalogError) throw catalogError;
 
-    // MODIFICAR webhookPayload para incluir análisis
+    // Webhook payload con análisis incluido
     const webhookPayload: CatalogCreationRequest = {
       catalog_id: catalog.id,
       user_id: user.id,
-      user_plan: userPlan, // NUEVO: plan del usuario
+      user_plan: userPlan,
       business_info: {
         business_name: businessInfo?.business_name || 'Mi Empresa',
         logo_url: businessInfo?.logo_url,
@@ -105,12 +104,11 @@ export const createCatalog = async (
         price_retail: product.price_retail,
         price_wholesale: product.price_wholesale,
         original_image_url: product.original_image_url,
-        smart_analysis: product.smart_analysis ? JSON.parse(product.smart_analysis) : null, // NUEVO
-        estimated_credits: product.estimated_credits || 1, // NUEVO
-        estimated_cost_mxn: product.estimated_cost_mxn || 0.20 // NUEVO
+        smart_analysis: product.smart_analysis ? JSON.parse(product.smart_analysis) : null,
+        estimated_credits: product.estimated_credits || 1,
+        estimated_cost_mxn: product.estimated_cost_mxn || 0.20
       })),
       template_style: templateStyle,
-      // NUEVO: totales estimados
       estimated_total_credits: selectedProducts.reduce((sum, p) => sum + (p.estimated_credits || 1), 0),
       estimated_total_cost: selectedProducts.reduce((sum, p) => sum + (p.estimated_cost_mxn || 0.20), 0)
     };

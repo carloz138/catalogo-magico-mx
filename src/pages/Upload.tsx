@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { Button } from '@/components/ui/button';
@@ -23,7 +24,7 @@ const Upload = () => {
   const [uploadedFiles, setUploadedFiles] = useState<any[]>([]);
   const [priceDisplayMode, setPriceDisplayMode] = useState<PriceDisplayMode>('retail');
   
-  // NUEVO: Estados para análisis inteligente
+  // Estados para análisis inteligente
   const [imageAnalyses, setImageAnalyses] = useState<Map<string, ImageAnalysis>>(new Map());
   const [totalEstimatedCredits, setTotalEstimatedCredits] = useState(0);
   const [totalEstimatedCost, setTotalEstimatedCost] = useState(0);
@@ -123,7 +124,7 @@ const Upload = () => {
     console.log('Files uploaded:', files);
     setUploadedFiles(files);
     
-    // NUEVO: Analizar cada imagen
+    // Analizar cada imagen
     const analyses = new Map<string, ImageAnalysis>();
     let totalCredits = 0;
     let totalCost = 0;
@@ -166,7 +167,7 @@ const Upload = () => {
       category: '',
       custom_description: '',
       original_image_url: file.url,
-      smart_analysis: analyses.get(file.id) // NUEVO: incluir análisis
+      smart_analysis: analyses.get(file.id)
     }));
     
     setProducts(newProducts);
@@ -223,7 +224,7 @@ const Upload = () => {
         processing_status: 'pending',
         credits_used: 0,
         service_type: 'basic',
-        // NUEVO: guardar análisis inteligente
+        // Guardar análisis inteligente
         smart_analysis: product.smart_analysis ? JSON.stringify(product.smart_analysis) : null,
         estimated_credits: product.smart_analysis?.estimatedCredits || 1,
         estimated_cost_mxn: product.smart_analysis?.estimatedCost || 0.20

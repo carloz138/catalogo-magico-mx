@@ -1,5 +1,4 @@
 
-// src/components/upload/ImageAnalysis.tsx
 export interface ImageAnalysis {
   complexityScore: number;        // 0-100
   recommendedApi: 'pixelcut' | 'removebg';
