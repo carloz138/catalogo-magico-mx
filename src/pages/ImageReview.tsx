@@ -417,7 +417,7 @@ const ImageReview = () => {
                 disabled={isProcessing || selectedImageIds.size === 0}
                 className="bg-primary text-white"
               >
-                {isProcessing ? 'Procesando...' : 'Guardar Seleccionadas'}
+                {isProcessing ? 'Guardando...' : 'Guardar y elegir template'}
               </Button>
             </div>
           </div>
