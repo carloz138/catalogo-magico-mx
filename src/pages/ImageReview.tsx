@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -27,10 +26,10 @@ interface ProcessedImage {
 interface SavedProduct {
   id: string;
   name: string;
-  processed_image_url: string;
-  processed_at: string;
-  credits_used: number;
-  api_used?: string;
+  image_url: string;
+  created_at: string;
+  category: string;
+  price_retail: number;
 }
 
 interface LocationState {
@@ -70,19 +69,30 @@ const ImageReview = () => {
     try {
       const { data, error } = await supabase
         .from('products')
-        .select('id, name, processed_image_url, processed_at, credits_used')
+        .select(`
+          id,
+          name,
+          image_url,
+          processing_status,
+          is_processed,
+          created_at,
+          original_image_url,
+          category,
+          price_retail
+        `)
         .eq('user_id', user.id)
         .eq('is_processed', true)
-        .order('processed_at', { ascending: false });
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
 
       const savedProducts: SavedProduct[] = (data || []).map(item => ({
         id: item.id,
         name: item.name,
-        processed_image_url: item.processed_image_url || '',
-        processed_at: item.processed_at || '',
-        credits_used: item.credits_used || 0
+        image_url: item.image_url || item.original_image_url || '',
+        created_at: item.created_at || '',
+        category: item.category || '',
+        price_retail: item.price_retail || 0
       }));
 
       setSavedImages(savedProducts);
@@ -188,7 +198,6 @@ const ImageReview = () => {
               processed_image_url: uploadedUrls.catalog,
               processing_status: 'completed',
               is_processed: true,
-              processed_at: new Date().toISOString(),
               credits_used: image.credits_estimated
             })
             .eq('id', productId);
@@ -481,7 +490,7 @@ const ImageReview = () => {
                     <CardContent className="p-0">
                       <div className="aspect-square relative">
                         <img
-                          src={product.processed_image_url}
+                          src={product.image_url}
                           alt={product.name}
                           className="w-full h-full object-cover"
                         />
@@ -497,8 +506,9 @@ const ImageReview = () => {
                         </h3>
                         
                         <div className="text-xs text-gray-500 space-y-1">
-                          <div>Procesado: {new Date(product.processed_at).toLocaleDateString()}</div>
-                          <div>Créditos usados: {product.credits_used}</div>
+                          <div>Guardado: {new Date(product.created_at).toLocaleDateString()}</div>
+                          <div>Categoría: {product.category}</div>
+                          <div>Precio: ${product.price_retail}</div>
                         </div>
                       </div>
                     </CardContent>
