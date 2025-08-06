@@ -439,6 +439,7 @@ const ImageReview = () => {
         }
       });
       console.log('✅ Navegación ejecutada correctamente');
+      console.log('🚀 URL actual después de navigate:', window.location.pathname);
 
       // ✅ TOAST DE CONFIRMACIÓN
       toast({
