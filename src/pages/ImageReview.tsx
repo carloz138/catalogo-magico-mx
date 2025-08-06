@@ -383,8 +383,12 @@ const ImageReview = () => {
     }
   };
 
-  // ✅ FUNCIÓN 3: Generar catálogo desde guardadas (sin cambios)
+  // ✅ FUNCIÓN 3: Generar catálogo desde guardadas - CON DEBUGGING
   const generateCatalogFromSaved = async () => {
+    console.log('🔍 generateCatalogFromSaved iniciado');
+    console.log('🔍 selectedSavedIds:', selectedSavedIds);
+    console.log('🔍 selectedSavedIds.size:', selectedSavedIds.size);
+
     if (selectedSavedIds.size === 0) {
       toast({
         title: "Selecciona imágenes",
@@ -395,14 +399,62 @@ const ImageReview = () => {
     }
 
     const selectedSavedProducts = savedImages.filter(img => selectedSavedIds.has(img.id));
-    
-    navigate('/template-selection', {
-      state: { 
-        products: selectedSavedProducts,
-        businessInfo: businessInfo,
-        skipProcessing: true 
-      }
+    console.log('🔍 selectedSavedProducts:', selectedSavedProducts);
+    console.log('🔍 businessInfo:', businessInfo);
+
+    // ✅ VALIDACIONES ADICIONALES
+    if (!businessInfo) {
+      console.error('❌ No hay businessInfo');
+      toast({
+        title: "Error",
+        description: "Información del negocio no disponible. Ve a configuración.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (selectedSavedProducts.length === 0) {
+      console.error('❌ No se encontraron productos seleccionados');
+      toast({
+        title: "Error",
+        description: "No se pudieron obtener los productos seleccionados",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // ✅ LOG ANTES DE NAVEGAR
+    console.log('🚀 Navegando a /template-selection con state:', {
+      products: selectedSavedProducts,
+      businessInfo: businessInfo,
+      skipProcessing: true 
     });
+
+    try {
+      navigate('/template-selection', {
+        state: { 
+          products: selectedSavedProducts,
+          businessInfo: businessInfo,
+          skipProcessing: true 
+        }
+      });
+      console.log('✅ Navegación ejecutada correctamente');
+
+      // ✅ TOAST DE CONFIRMACIÓN
+      toast({
+        title: "🎨 Selecciona tu template",
+        description: `${selectedSavedProducts.length} productos listos para el catálogo`,
+        variant: "default"
+      });
+
+    } catch (error) {
+      console.error('❌ Error en navegación:', error);
+      toast({
+        title: "Error de navegación",
+        description: "No se pudo acceder a la selección de templates",
+        variant: "destructive"
+      });
+    }
   };
 
   const toggleImageSelection = (productId: string) => {
@@ -945,7 +997,12 @@ const ImageReview = () => {
                 </span>
               </div>
               <Button 
-                onClick={generateCatalogFromSaved}
+                onClick={() => {
+                  console.log('🖱️ BOTÓN CLICKEADO - Generar catálogo');
+                  console.log('🖱️ selectedSavedIds en click:', selectedSavedIds);
+                  console.log('🖱️ selectedSavedIds.size en click:', selectedSavedIds.size);
+                  generateCatalogFromSaved();
+                }}
                 className="bg-green-600 hover:bg-green-700 text-white flex items-center gap-2 w-full sm:w-auto"
                 size="sm"
               >
