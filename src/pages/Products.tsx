@@ -261,13 +261,13 @@ const Products = () => {
 
       if (error) throw error;
       
-      // Add image_url from smart_analysis if available
+      // Add image_url from smart_analysis if available with proper type casting
       const productsWithImageUrl = (data || []).map(product => ({
         ...product,
         image_url: product.smart_analysis && typeof product.smart_analysis === 'object' && 'processed_image_url' in product.smart_analysis 
-          ? product.smart_analysis.processed_image_url 
+          ? String(product.smart_analysis.processed_image_url || '')
           : undefined
-      }));
+      })) as Product[];
       
       setProducts(productsWithImageUrl);
     } catch (error) {
