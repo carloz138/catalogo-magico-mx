@@ -1,14 +1,17 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Progress } from '@/components/ui/progress';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ArrowLeft, Download, Upload, Check, X, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useBusinessInfo } from '@/hooks/useBusinessInfo';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from '@/hooks/use-toast';
+import { downloadImageFromUrl, uploadImageToSupabase } from '@/utils/imageProcessing';
 
 interface ProcessedImage {
   product_id: string;
@@ -19,6 +22,16 @@ interface ProcessedImage {
   expires_at: string;
   credits_estimated: number;
   cost_mxn: number;
+}
+
+interface SavedProduct {
+  id: string;
+  name: string;
+  processed_image_url: string;
+  processed_images: any;
+  processed_at: string;
+  credits_used: number;
+  api_used?: string;
 }
 
 interface LocationState {
@@ -40,146 +53,65 @@ const ImageReview = () => {
   const navigate = useNavigate();
   const location = useLocation();
   
-  const [processedImages, setProcessedImages] = useState<ProcessedImage[]>([]);
+  const [activeTab, setActiveTab] = useState<'pending' | 'saved'>('pending');
+  const [pendingImages, setPendingImages] = useState<ProcessedImage[]>([]);
+  const [savedImages, setSavedImages] = useState<SavedProduct[]>([]);
   const [selectedProducts, setSelectedProducts] = useState<any[]>([]);
   const [selectedImageIds, setSelectedImageIds] = useState<Set<string>>(new Set());
   const [downloadProgress, setDownloadProgress] = useState<ImageDownloadProgress>({});
   const [isSaving, setIsSaving] = useState(false);
   const [overallProgress, setOverallProgress] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
 
   const state = location.state as LocationState;
 
-  useEffect(() => {
-    if (!state?.processedImages || !state?.selectedProducts) {
-      navigate('/products');
-      return;
-    }
+  const fetchSavedImages = async () => {
+    if (!user) return;
 
-    setProcessedImages(state.processedImages);
-    setSelectedProducts(state.selectedProducts);
-    
-    // Select all images by default
-    const allIds = new Set(state.processedImages.map(img => img.product_id));
-    setSelectedImageIds(allIds);
-  }, [state, navigate]);
-
-  const downloadImageFromUrl = async (url: string): Promise<Blob> => {
     try {
-      // Use a proxy service to bypass CORS restrictions
-      const proxyUrl = `https://cors-anywhere.herokuapp.com/${url}`;
-      const response = await fetch(proxyUrl, {
-        headers: {
-          'X-Requested-With': 'XMLHttpRequest'
-        }
-      });
-      
-      if (!response.ok) {
-        // Fallback: try direct fetch
-        const directResponse = await fetch(url, {
-          mode: 'cors',
-          credentials: 'omit'
-        });
-        
-        if (!directResponse.ok) {
-          throw new Error(`Failed to download image: ${response.status}`);
-        }
-        
-        return await directResponse.blob();
-      }
-      
-      return await response.blob();
-    } catch (error) {
-      console.error('Error downloading image:', error);
-      throw new Error('Failed to download processed image');
-    }
-  };
-
-  const resizeImage = (blob: Blob, maxWidth: number, maxHeight: number, quality = 0.85): Promise<Blob> => {
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-
-      if (!ctx) {
-        reject(new Error('Canvas context not available'));
-        return;
-      }
-
-      img.onload = () => {
-        // Calculate new dimensions
-        let { width, height } = img;
-        
-        if (width > height) {
-          if (width > maxWidth) {
-            height = (height * maxWidth) / width;
-            width = maxWidth;
-          }
-        } else {
-          if (height > maxHeight) {
-            width = (width * maxHeight) / height;
-            height = maxHeight;
-          }
-        }
-
-        canvas.width = width;
-        canvas.height = height;
-        
-        ctx.drawImage(img, 0, 0, width, height);
-        
-        canvas.toBlob(resolve, 'image/jpeg', quality);
-      };
-
-      img.onerror = () => reject(new Error('Failed to load image for resizing'));
-      img.src = URL.createObjectURL(blob);
-    });
-  };
-
-  const uploadImageToSupabase = async (
-    productId: string, 
-    originalBlob: Blob, 
-    filename: string
-  ): Promise<{ thumbnail: string; catalog: string; luxury: string; print: string }> => {
-    const timestamp = Date.now();
-    const baseFilename = `${timestamp}_${productId}`;
-    
-    // Generate different sizes
-    const [thumbnailBlob, catalogBlob, luxuryBlob, printBlob] = await Promise.all([
-      resizeImage(originalBlob, 300, 300, 0.8),   // Thumbnail: 300x300
-      resizeImage(originalBlob, 800, 800, 0.85),  // Catalog: 800x800
-      resizeImage(originalBlob, 1200, 1200, 0.9), // Luxury: 1200x1200
-      resizeImage(originalBlob, 2400, 2400, 0.95) // Print: 2400x2400
-    ]);
-
-    const sizes = [
-      { blob: thumbnailBlob, suffix: 'thumb', size: 'thumbnail' },
-      { blob: catalogBlob, suffix: 'catalog', size: 'catalog' },
-      { blob: luxuryBlob, suffix: 'luxury', size: 'luxury' },
-      { blob: printBlob, suffix: 'print', size: 'print' }
-    ];
-
-    const uploadedUrls: any = {};
-
-    for (const { blob, suffix, size } of sizes) {
-      const fileName = `${baseFilename}_${suffix}.jpg`;
-      
-      const { data, error } = await supabase.storage
-        .from('processed-images')
-        .upload(fileName, blob, {
-          contentType: 'image/jpeg',
-          upsert: false
-        });
+      const { data, error } = await supabase
+        .from('products')
+        .select('id, name, processed_image_url, processed_images, processed_at, credits_used')
+        .eq('user_id', user.id)
+        .eq('is_processed', true)
+        .order('processed_at', { ascending: false });
 
       if (error) throw error;
 
-      const { data: urlData } = supabase.storage
-        .from('processed-images')
-        .getPublicUrl(fileName);
-
-      uploadedUrls[size] = urlData.publicUrl;
+      setSavedImages(data || []);
+    } catch (error) {
+      console.error('Error fetching saved images:', error);
+      toast({
+        title: "Error",
+        description: "Error al cargar las imágenes guardadas",
+        variant: "destructive"
+      });
     }
-
-    return uploadedUrls;
   };
+
+  useEffect(() => {
+    const initializeComponent = async () => {
+      setIsLoading(true);
+      
+      // Always fetch saved images
+      await fetchSavedImages();
+
+      // Handle navigation state
+      if (state?.processedImages && state?.selectedProducts) {
+        setPendingImages(state.processedImages);
+        setSelectedProducts(state.selectedProducts);
+        
+        // Select all pending images by default
+        const allIds = new Set(state.processedImages.map(img => img.product_id));
+        setSelectedImageIds(allIds);
+        setActiveTab('pending');
+      }
+
+      setIsLoading(false);
+    };
+
+    initializeComponent();
+  }, [state, user]);
 
   const saveAndContinue = async () => {
     if (selectedImageIds.size === 0) {
@@ -192,7 +124,7 @@ const ImageReview = () => {
     }
 
     setIsSaving(true);
-    const selectedImages = processedImages.filter(img => selectedImageIds.has(img.product_id));
+    const selectedImages = pendingImages.filter(img => selectedImageIds.has(img.product_id));
     const totalImages = selectedImages.length;
     let completedImages = 0;
 
@@ -233,6 +165,7 @@ const ImageReview = () => {
 
           // Upload to Supabase with multiple sizes
           const uploadedUrls = await uploadImageToSupabase(
+            supabase,
             productId,
             imageBlob,
             `processed_${productId}.jpg`
@@ -245,7 +178,7 @@ const ImageReview = () => {
           const { error: updateError } = await supabase
             .from('products')
             .update({
-              processed_image_url: uploadedUrls.catalog, // Main catalog image
+              processed_image_url: uploadedUrls.catalog,
               processed_images: {
                 thumbnail: uploadedUrls.thumbnail,
                 catalog: uploadedUrls.catalog,
@@ -308,6 +241,16 @@ const ImageReview = () => {
           description: `${savedProducts.length} imágenes guardadas correctamente`
         });
 
+        // Refresh saved images
+        await fetchSavedImages();
+
+        // Clear pending images and reset selection
+        setPendingImages([]);
+        setSelectedImageIds(new Set());
+        
+        // Switch to saved tab
+        setActiveTab('saved');
+
         // Navigate to template selection with saved products
         navigate('/template-selection', {
           state: { 
@@ -349,7 +292,7 @@ const ImageReview = () => {
   };
 
   const selectAll = () => {
-    const allIds = new Set(processedImages.map(img => img.product_id));
+    const allIds = new Set(pendingImages.map(img => img.product_id));
     setSelectedImageIds(allIds);
   };
 
@@ -372,15 +315,12 @@ const ImageReview = () => {
     }
   };
 
-  if (!state?.processedImages) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <p className="text-gray-600 mb-4">No hay imágenes procesadas para revisar</p>
-          <Button onClick={() => navigate('/products')}>
-            Volver a Productos
-          </Button>
+          <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-4 animate-spin" />
+          <p className="text-gray-600">Cargando biblioteca de imágenes...</p>
         </div>
       </div>
     );
@@ -401,28 +341,23 @@ const ImageReview = () => {
                 <span>Volver a Productos</span>
               </Button>
               <div>
-                <h1 className="text-2xl font-bold">Revisar Imágenes Procesadas</h1>
+                <h1 className="text-2xl font-bold">Biblioteca de Imágenes</h1>
                 <p className="text-gray-600">
-                  {processedImages.length} imágenes procesadas • {selectedImageIds.size} seleccionadas
+                  Gestiona tus imágenes procesadas
                 </p>
               </div>
             </div>
             
-            <div className="flex items-center space-x-4">
-              <Button variant="outline" onClick={selectAll} disabled={isSaving}>
-                Seleccionar Todo
-              </Button>
-              <Button variant="outline" onClick={selectNone} disabled={isSaving}>
-                Deseleccionar Todo
-              </Button>
-              <Button 
-                onClick={saveAndContinue}
-                disabled={isSaving || selectedImageIds.size === 0}
-                className="bg-primary text-white"
-              >
-                {isSaving ? 'Guardando...' : `Guardar y elegir template (${selectedImageIds.size} productos)`}
-              </Button>
-            </div>
+            {activeTab === 'pending' && pendingImages.length > 0 && (
+              <div className="flex items-center space-x-4">
+                <Button variant="outline" onClick={selectAll} disabled={isSaving}>
+                  Seleccionar Todo
+                </Button>
+                <Button variant="outline" onClick={selectNone} disabled={isSaving}>
+                  Deseleccionar Todo
+                </Button>
+              </div>
+            )}
           </div>
           
           {isSaving && (
@@ -438,68 +373,170 @@ const ImageReview = () => {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 py-6">
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {processedImages.map((image) => {
-            const isSelected = selectedImageIds.has(image.product_id);
-            const progress = downloadProgress[image.product_id];
-            
-            return (
-              <Card key={image.product_id} className={`overflow-hidden transition-all ${
-                isSelected ? 'ring-2 ring-primary' : ''
-              }`}>
-                <CardContent className="p-0">
-                  <div className="aspect-square relative">
-                    <img
-                      src={image.processed_url}
-                      alt={image.product_name}
-                      className="w-full h-full object-cover"
-                    />
-                    
-                    <div className="absolute top-2 left-2">
-                      <Checkbox
-                        checked={isSelected}
-                        onCheckedChange={() => toggleImageSelection(image.product_id)}
-                        disabled={isSaving}
-                        className="bg-white"
-                      />
-                    </div>
-                    
-                    {progress && (
-                      <div className="absolute top-2 right-2">
-                        {getStatusIcon(progress.status)}
-                      </div>
-                    )}
-                  </div>
+        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'pending' | 'saved')}>
+          <TabsList className="grid w-full max-w-md grid-cols-2">
+            <TabsTrigger value="pending">
+              Por confirmar ({pendingImages.length})
+            </TabsTrigger>
+            <TabsTrigger value="saved">
+              Guardadas ({savedImages.length})
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="pending">
+            {pendingImages.length === 0 ? (
+              <div className="text-center py-12">
+                <AlertCircle className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-gray-700 mb-2">
+                  No hay imágenes por confirmar
+                </h3>
+                <p className="text-gray-600 mb-4">
+                  Las imágenes procesadas aparecerán aquí para tu revisión
+                </p>
+                <Button 
+                  onClick={() => setActiveTab('saved')}
+                  variant="outline"
+                >
+                  Ver imágenes guardadas
+                </Button>
+              </div>
+            ) : (
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mt-6">
+                {pendingImages.map((image) => {
+                  const isSelected = selectedImageIds.has(image.product_id);
+                  const progress = downloadProgress[image.product_id];
                   
-                  <div className="p-4">
-                    <h3 className="font-semibold text-sm mb-2 line-clamp-2">
-                      {image.product_name}
-                    </h3>
-                    
-                    <div className="text-xs text-gray-500 space-y-1">
-                      <div>API: {image.api_used}</div>
-                      <div>Créditos: {image.credits_estimated}</div>
-                      <div>Costo: ${image.cost_mxn} MXN</div>
-                    </div>
-                    
-                    {progress && progress.status !== 'pending' && (
-                      <div className="mt-3">
-                        <div className="flex justify-between text-xs text-gray-600 mb-1">
-                          <span className="capitalize">{progress.status}</span>
-                          <span>{progress.progress}%</span>
+                  return (
+                    <Card key={image.product_id} className={`overflow-hidden transition-all ${
+                      isSelected ? 'ring-2 ring-primary' : ''
+                    }`}>
+                      <CardContent className="p-0">
+                        <div className="aspect-square relative">
+                          <img
+                            src={image.processed_url}
+                            alt={image.product_name}
+                            className="w-full h-full object-cover"
+                          />
+                          
+                          <div className="absolute top-2 left-2">
+                            <Checkbox
+                              checked={isSelected}
+                              onCheckedChange={() => toggleImageSelection(image.product_id)}
+                              disabled={isSaving}
+                              className="bg-white"
+                            />
+                          </div>
+                          
+                          {progress && (
+                            <div className="absolute top-2 right-2">
+                              {getStatusIcon(progress.status)}
+                            </div>
+                          )}
                         </div>
-                        <Progress value={progress.progress} className="h-2" />
-                        {progress.error && (
-                          <p className="text-xs text-red-600 mt-1">{progress.error}</p>
-                        )}
+                        
+                        <div className="p-4">
+                          <h3 className="font-semibold text-sm mb-2 line-clamp-2">
+                            {image.product_name}
+                          </h3>
+                          
+                          <div className="text-xs text-gray-500 space-y-1">
+                            <div>API: {image.api_used}</div>
+                            <div>Créditos: {image.credits_estimated}</div>
+                            <div>Costo: ${image.cost_mxn} MXN</div>
+                          </div>
+                          
+                          {progress && progress.status !== 'pending' && (
+                            <div className="mt-3">
+                              <div className="flex justify-between text-xs text-gray-600 mb-1">
+                                <span className="capitalize">{progress.status}</span>
+                                <span>{progress.progress}%</span>
+                              </div>
+                              <Progress value={progress.progress} className="h-2" />
+                              {progress.error && (
+                                <p className="text-xs text-red-600 mt-1">{progress.error}</p>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="saved">
+            {savedImages.length === 0 ? (
+              <div className="text-center py-12">
+                <AlertCircle className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-gray-700 mb-2">
+                  No tienes imágenes guardadas
+                </h3>
+                <p className="text-gray-600 mb-4">
+                  Las imágenes que confirmes aparecerán aquí
+                </p>
+                <Button 
+                  onClick={() => navigate('/products')}
+                  variant="outline"
+                >
+                  Procesar imágenes
+                </Button>
+              </div>
+            ) : (
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mt-6">
+                {savedImages.map((product) => (
+                  <Card key={product.id} className="overflow-hidden">
+                    <CardContent className="p-0">
+                      <div className="aspect-square relative">
+                        <img
+                          src={product.processed_image_url}
+                          alt={product.name}
+                          className="w-full h-full object-cover"
+                        />
+                        
+                        <div className="absolute top-2 right-2 bg-green-500 text-white rounded-full p-1">
+                          <Check className="w-3 h-3" />
+                        </div>
                       </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
+                      
+                      <div className="p-4">
+                        <h3 className="font-semibold text-sm mb-2 line-clamp-2">
+                          {product.name}
+                        </h3>
+                        
+                        <div className="text-xs text-gray-500 space-y-1">
+                          <div>Procesado: {new Date(product.processed_at).toLocaleDateString()}</div>
+                          <div>Créditos usados: {product.credits_used}</div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
+
+        {/* Bottom action bar - only show for pending tab with selections */}
+        {activeTab === 'pending' && selectedImageIds.size > 0 && (
+          <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg">
+            <div className="max-w-7xl mx-auto px-4 py-4">
+              <div className="flex justify-between items-center">
+                <div className="text-sm text-gray-600">
+                  {selectedImageIds.size} imagen{selectedImageIds.size !== 1 ? 'es' : ''} seleccionada{selectedImageIds.size !== 1 ? 's' : ''}
+                </div>
+                <Button 
+                  onClick={saveAndContinue}
+                  disabled={isSaving || selectedImageIds.size === 0}
+                  className="bg-primary text-white"
+                >
+                  {isSaving ? 'Guardando...' : `Guardar y elegir template (${selectedImageIds.size} productos)`}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );
