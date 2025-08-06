@@ -10,6 +10,8 @@ import Index from "./pages/Index";
 import Upload from "./pages/Upload";
 import Products from "./pages/Products";
 import Catalogs from "./pages/Catalogs";
+import ImageReview from "./pages/ImageReview";
+import TemplateSelection from "./pages/TemplateSelection";
 import Checkout from "./pages/Checkout";
 import PaymentInstructions from "./pages/PaymentInstructions";
 import NotFound from "./pages/NotFound";
@@ -35,6 +37,16 @@ const App = () => (
             <Route path="/products" element={
               <ProtectedRoute>
                 <Products />
+              </ProtectedRoute>
+            } />
+            <Route path="/image-review" element={
+              <ProtectedRoute>
+                <ImageReview />
+              </ProtectedRoute>
+            } />
+            <Route path="/template-selection" element={
+              <ProtectedRoute>
+                <TemplateSelection />
               </ProtectedRoute>
             } />
             <Route path="/catalogs" element={
