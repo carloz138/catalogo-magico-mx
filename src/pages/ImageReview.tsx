@@ -29,6 +29,7 @@ interface SavedProduct {
   created_at: string;
   category: string;
   price_retail: number;
+  processed_at?: string; // ✅ Nueva propiedad para ordenamiento
 }
 
 interface LocationState {
@@ -168,25 +169,28 @@ const ImageReview = () => {
 
   const state = location.state as LocationState;
 
-  // ✅ Función simplificada que solo usa columnas existentes
+  // ✅ FIX 3 y 4: Función mejorada para obtener imágenes guardadas
   const fetchSavedImages = async () => {
     if (!user) return;
 
     try {
+      // ✅ Agregamos más columnas para image_url procesada y ordenamiento
       const { data, error } = await (supabase as any)
         .from('products')
         .select(`
           id,
           name,
           original_image_url,
+          image_url,
           processing_status,
           created_at,
+          updated_at,
           category,
           price_retail
         `)
         .eq('user_id', user.id)
         .eq('processing_status', 'completed')
-        .order('created_at', { ascending: false });
+        .order('updated_at', { ascending: false }); // ✅ FIX 3: Ordenar por updated_at (fecha de procesamiento)
 
       if (error) {
         console.warn('Error fetching saved images (might be expected if columns missing):', error);
@@ -197,52 +201,44 @@ const ImageReview = () => {
       const savedProducts: SavedProduct[] = (data || []).map((item: any) => ({
         id: item.id || '',
         name: item.name || 'Producto sin nombre',
-        image_url: item.original_image_url || '',
+        // ✅ FIX 4: Usar image_url procesada si existe, sino original_image_url como fallback
+        image_url: item.image_url || item.original_image_url || '',
         created_at: item.created_at || '',
         category: item.category || 'Sin categoría',
-        price_retail: item.price_retail || 0
+        price_retail: item.price_retail || 0,
+        processed_at: item.updated_at || item.created_at || ''
       }));
 
       setSavedImages(savedProducts);
+      console.log('✅ Fetched saved images:', savedProducts.length, 'products');
     } catch (error) {
       console.error('Error fetching saved images:', error);
       setSavedImages([]);
     }
   };
 
-      // ✅ DEBUGGING TEMPORAL - línea 210
-    useEffect(() => {
-      const initializeComponent = async () => {
-        setIsLoading(true);
-        await fetchSavedImages();
-    
-        // ✅ DEBUG: Log del state recibido
-        console.log('🔍 ImageReview recibió state:', state);
-        console.log('🔍 processedImages:', state?.processedImages);
-        console.log('🔍 selectedProducts:', state?.selectedProducts);
-    
-        if (state?.processedImages && state?.selectedProducts) {
-          console.log('✅ Datos válidos, inicializando pending images');
-          setPendingImages(state.processedImages);
-          setSelectedProducts(state.selectedProducts);
-          
-          const allIds = new Set(state.processedImages.map(img => img.product_id));
-          setSelectedImageIds(allIds);
-          setActiveTab('pending');
-        } else {
-          console.log('❌ Faltan datos en state:', {
-            hasProcessedImages: !!state?.processedImages,
-            hasSelectedProducts: !!state?.selectedProducts
-          });
-        }
-    
-        setIsLoading(false);
-      };
-    
-      initializeComponent();
-    }, [state, user]);
+  useEffect(() => {
+    const initializeComponent = async () => {
+      setIsLoading(true);
+      await fetchSavedImages();
 
-  // ✅ FUNCIÓN 1: Solo guardar imágenes
+      if (state?.processedImages && state?.selectedProducts) {
+        console.log('✅ Inicializando con', state.processedImages.length, 'imágenes procesadas');
+        setPendingImages(state.processedImages);
+        setSelectedProducts(state.selectedProducts);
+        
+        const allIds = new Set(state.processedImages.map(img => img.product_id));
+        setSelectedImageIds(allIds);
+        setActiveTab('pending');
+      }
+
+      setIsLoading(false);
+    };
+
+    initializeComponent();
+  }, [state, user]);
+
+  // ✅ FIX 1: FUNCIÓN 1 CORREGIDA - Solo guardar y QUEDARSE en ImageReview
   const saveImagesOnly = async () => {
     if (selectedImageIds.size === 0) {
       toast({
@@ -261,13 +257,18 @@ const ImageReview = () => {
       for (const image of selectedImages) {
         const productId = image.product_id;
         
+        setOverallProgress(((completedImages + 0.5) / selectedImages.length) * 100);
+        
         const imageBlob = await downloadImageFromUrl(image.processed_url);
         const uploadedUrls = await uploadImageToSupabase(supabase, productId, imageBlob, `processed_${productId}.jpg`);
 
+        // ✅ FIX 4: Guardar URL procesada en la BD
         await (supabase as any)
           .from('products')
           .update({
-            processing_status: 'completed'
+            processing_status: 'completed',
+            image_url: uploadedUrls.catalog, // ✅ Guardar URL procesada
+            updated_at: new Date().toISOString() // ✅ FIX 3: Actualizar timestamp
           })
           .eq('id', productId);
 
@@ -277,13 +278,24 @@ const ImageReview = () => {
 
       toast({
         title: "🎉 ¡Imágenes guardadas!",
-        description: `${completedImages} imágenes ya están en tu biblioteca`,
+        description: `${completedImages} imágenes ya están en tu biblioteca permanente`,
         variant: "default"
       });
 
-      await fetchSavedImages();
-      setPendingImages(prev => prev.filter(img => !selectedImageIds.has(img.product_id)));
-      setSelectedImageIds(new Set());
+      // ✅ FIX 1: Quedarse en ImageReview y cambiar a tab "saved"
+      await fetchSavedImages(); // Refrescar guardadas
+      setPendingImages(prev => prev.filter(img => !selectedImageIds.has(img.product_id))); // Limpiar pending
+      setSelectedImageIds(new Set()); // Limpiar selección
+      setActiveTab('saved'); // ✅ Cambiar a tab guardadas
+
+      // ✅ Toast adicional para guiar al usuario
+      setTimeout(() => {
+        toast({
+          title: "💡 Tip",
+          description: "Ahora puedes seleccionar imágenes guardadas para crear catálogos",
+          variant: "default"
+        });
+      }, 1500);
 
     } catch (error) {
       console.error('Error saving images:', error);
@@ -298,7 +310,7 @@ const ImageReview = () => {
     }
   };
 
-  // ✅ FUNCIÓN 2: Guardar y generar catálogo
+  // ✅ FIX 2: FUNCIÓN 2 CORREGIDA - Guardar y IR A template-selection
   const saveAndGenerateCatalog = async () => {
     if (selectedImageIds.size === 0) {
       toast({
@@ -324,16 +336,19 @@ const ImageReview = () => {
         const uploadedUrls = await uploadImageToSupabase(supabase, productId, imageBlob, `processed_${productId}.jpg`);
         const originalProduct = selectedProducts.find(p => p.id === productId);
 
+        // ✅ FIX 4: Guardar URL procesada
         await (supabase as any)
           .from('products')
           .update({
-            processing_status: 'completed'
+            processing_status: 'completed',
+            image_url: uploadedUrls.catalog, // ✅ Guardar URL procesada
+            updated_at: new Date().toISOString() // ✅ FIX 3: Timestamp
           })
           .eq('id', productId);
 
         savedProducts.push({
           ...originalProduct,
-          image_url: uploadedUrls.catalog,
+          image_url: uploadedUrls.catalog, // ✅ Usar URL procesada para template
           processing_status: 'completed'
         });
         
@@ -346,6 +361,7 @@ const ImageReview = () => {
         variant: "default"
       });
 
+      // ✅ FIX 2: IR A template-selection (mantener navegación correcta)
       navigate('/template-selection', {
         state: { 
           products: savedProducts,
@@ -367,7 +383,7 @@ const ImageReview = () => {
     }
   };
 
-  // ✅ FUNCIÓN 3: Generar catálogo desde guardadas
+  // ✅ FUNCIÓN 3: Generar catálogo desde guardadas (sin cambios)
   const generateCatalogFromSaved = async () => {
     if (selectedSavedIds.size === 0) {
       toast({
@@ -792,6 +808,7 @@ const ImageReview = () => {
                     >
                       <CardContent className="p-0">
                         <div className="aspect-square relative overflow-hidden">
+                          {/* ✅ FIX 4: Ahora usa image_url (procesada) */}
                           <img
                             src={product.image_url}
                             alt={product.name}
@@ -850,7 +867,7 @@ const ImageReview = () => {
                               <div className="flex items-center gap-2 text-green-700">
                                 <Check className="w-3 h-3 shrink-0" />
                                 <span className="text-xs font-medium">
-                                  Guardada: {new Date(product.created_at).toLocaleDateString('es-MX')}
+                                  Procesada: {new Date(product.processed_at || product.created_at).toLocaleDateString('es-MX')}
                                 </span>
                               </div>
                             </div>
