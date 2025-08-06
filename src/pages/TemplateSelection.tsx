@@ -104,7 +104,7 @@ const TemplateSelection = () => {
   };
 
   const TemplatePreview = ({ template }: { template: TemplateConfig }) => {
-    const isLocked = !template.isFree && userPlan === 'basic';
+    const isLocked = template.isPremium && userPlan === 'basic';
     const isCreating = creating && selectedTemplate === template.id;
 
     return (
@@ -137,11 +137,11 @@ const TemplateSelection = () => {
         <CardContent className="p-4">
           <div className="flex justify-between items-start mb-2">
             <div>
-              <h3 className="font-semibold text-lg">{template.name}</h3>
+              <h3 className="font-semibold text-lg">{template.displayName}</h3>
               <p className="text-sm text-gray-600 mb-2">{template.description}</p>
             </div>
-            {!template.isFree && (
-              <Badge variant="outline" className="bg-gradient-energy text-white border-none">
+            {template.isPremium && (
+              <Badge variant="outline" className="bg-gradient-to-r from-purple-500 to-pink-500 text-white border-none">
                 <Crown className="w-3 h-3 mr-1" />
                 Premium
               </Badge>
@@ -152,6 +152,7 @@ const TemplateSelection = () => {
             <div>• {template.productsPerPage} productos por página</div>
             <div>• Diseño {template.layout}</div>
             <div>• Colores: {template.colors.primary}</div>
+            <div>• Categoría: {template.category}</div>
           </div>
 
           <Button
@@ -225,7 +226,7 @@ const TemplateSelection = () => {
               {userPlan === 'basic' && (
                 <Button 
                   onClick={() => navigate('/checkout')}
-                  className="gradient-energy text-white"
+                  className="bg-gradient-to-r from-purple-500 to-pink-500 text-white"
                 >
                   <Crown className="w-4 h-4 mr-2" />
                   Actualizar a Premium
@@ -267,7 +268,7 @@ const TemplateSelection = () => {
                   }
                 </p>
               </div>
-              <Badge variant="outline" className="gradient-energy text-white border-none">
+              <Badge variant="outline" className="bg-gradient-to-r from-purple-500 to-pink-500 text-white border-none">
                 <Crown className="w-3 h-3 mr-1" />
                 {premiumTemplates.length} templates
               </Badge>
