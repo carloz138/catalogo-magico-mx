@@ -1,12 +1,12 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { 
-  ArrowLeft, Plus, Upload, Eye, Edit, Trash2, CheckCircle, AlertCircle, 
-  Clock, CreditCard, Search, X, Sparkles, Crown, Download, FileSpreadsheet,
-  HelpCircle, AlertTriangle
+  ArrowLeft, Plus, Eye, Edit, Trash2, CheckCircle, AlertCircle, 
+  Clock, CreditCard, Search, X, Sparkles, Crown, Upload
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -27,7 +27,7 @@ interface Product {
   category: string;
   custom_description: string | null;
   original_image_url: string;
-  image_url?: string; // ✅ URL de imagen procesada
+  image_url?: string;
   processing_status: string;
   created_at: string;
   smart_analysis: any;
@@ -36,48 +36,6 @@ interface Product {
 }
 
 type FilterType = 'all' | 'draft' | 'processing' | 'completed';
-
-// Native CSV parsing and generation utilities
-const parseCSV = (csvText: string): any[] => {
-  const lines = csvText.split('\n').filter(line => line.trim());
-  if (lines.length === 0) return [];
-  
-  const headers = lines[0].split(',').map(h => h.replace(/"/g, '').trim());
-  const data = [];
-  
-  for (let i = 1; i < lines.length; i++) {
-    const values = lines[i].split(',').map(v => v.replace(/"/g, '').trim());
-    if (values.length === headers.length) {
-      const row: any = {};
-      headers.forEach((header, index) => {
-        row[header] = values[index];
-      });
-      data.push(row);
-    }
-  }
-  
-  return data;
-};
-
-const generateCSV = (data: any[]): string => {
-  if (data.length === 0) return '';
-  
-  const headers = Object.keys(data[0]);
-  const csvRows = [
-    headers.join(','),
-    ...data.map(row => 
-      headers.map(header => {
-        const value = row[header] || '';
-        // Escape values that contain commas or quotes
-        return typeof value === 'string' && (value.includes(',') || value.includes('"')) 
-          ? `"${value.replace(/"/g, '""')}"` 
-          : value;
-      }).join(',')
-    )
-  ];
-  
-  return csvRows.join('\n');
-};
 
 const StatusBadge = ({ status }: { status: string }) => {
   const getStatusConfig = (status: string) => {
@@ -215,20 +173,6 @@ const Products = () => {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
-  // ✅ NUEVOS ESTADOS PARA CSV
-  const [showImportModal, setShowImportModal] = useState(false);
-  const [showCsvGuide, setShowCsvGuide] = useState(false);
-  const [csvFile, setCsvFile] = useState<File | null>(null);
-  const [csvPreview, setCsvPreview] = useState<any[]>([]);
-  const [csvValidation, setCsvValidation] = useState<{
-    valid: boolean;
-    errors: string[];
-    warnings: string[];
-    updates: number;
-    creates: number;
-  }>({ valid: false, errors: [], warnings: [], updates: 0, creates: 0 });
-  const [importing, setImporting] = useState(false);
-
   useEffect(() => {
     fetchProducts();
     fetchUserCredits();
@@ -315,7 +259,7 @@ const Products = () => {
     return filtered;
   }, [products, filter, searchQuery]);
 
-  // ✅ NUEVA FUNCIÓN: Analizar selección inteligente
+  // Analizar selección inteligente
   const analyzeSelection = () => {
     const selectedProductsData = products.filter(p => selectedProducts.includes(p.id));
     
@@ -338,7 +282,7 @@ const Products = () => {
     };
   };
 
-  // ✅ NUEVA FUNCIÓN: Procesar solo imágenes
+  // Procesar solo imágenes
   const processSelectedImages = async () => {
     const analysis = analyzeSelection();
     
@@ -368,7 +312,7 @@ const Products = () => {
           description: 'Revisa los resultados y selecciona cuáles guardar.'
         });
         
-        // ✅ NAVEGAR A PÁGINA DE REVISIÓN
+        // Navegar a página de revisión
         navigate('/image-review', { 
           state: { 
             processedImages: result.processed_images,
@@ -391,7 +335,7 @@ const Products = () => {
     }
   };
 
-  // ✅ FUNCIÓN MODIFICADA: Para productos ya procesados
+  // Para productos ya procesados
   const createCatalogFromSelection = async () => {
     if (selectedProducts.length === 0) return;
     
@@ -403,7 +347,7 @@ const Products = () => {
     
     const selectedProductsData = products.filter(p => selectedProducts.includes(p.id));
     
-    // ✅ VERIFICAR QUE TODOS ESTÉN PROCESADOS
+    // Verificar que todos estén procesados
     const unprocessed = selectedProductsData.filter(p => 
       p.processing_status !== 'completed' || !p.image_url
     );
@@ -420,7 +364,7 @@ const Products = () => {
     try {
       sonnerToast.loading('Preparando catálogo...', { id: 'preparing-catalog' });
       
-      // ✅ IR DIRECTO A TEMPLATE SELECTION
+      // Ir directo a template selection
       navigate('/template-selection', { 
         state: { 
           products: selectedProductsData,
@@ -443,7 +387,7 @@ const Products = () => {
     }
   };
 
-  // ✅ NUEVA FUNCIÓN: Para flujo mixto
+  // Para flujo mixto
   const processMixedSelection = async () => {
     const analysis = analyzeSelection();
     
@@ -463,7 +407,7 @@ const Products = () => {
     await processSelectedImages();
   };
 
-  // ✅ COMPONENTE: Smart Action Button
+  // Smart Action Button
   const SmartActionButton = () => {
     const analysis = analyzeSelection();
     
@@ -473,7 +417,7 @@ const Products = () => {
       total + (product.estimated_credits || 1), 0
     );
     
-    // 🟢 ESCENARIO 1: Todos ya procesados (GRATIS)
+    // ESCENARIO 1: Todos ya procesados (GRATIS)
     if (analysis.allProcessed) {
       return (
         <div className="space-y-2">
@@ -493,7 +437,7 @@ const Products = () => {
       );
     }
     
-    // 🔴 ESCENARIO 2: Todos sin procesar
+    // ESCENARIO 2: Todos sin procesar
     if (analysis.allUnprocessed) {
       return (
         <div className="space-y-2">
@@ -513,7 +457,7 @@ const Products = () => {
       );
     }
     
-    // 🟡 ESCENARIO 3: Mixto
+    // ESCENARIO 3: Mixto
     return (
       <div className="space-y-2">
         <Button 
@@ -539,253 +483,6 @@ const Products = () => {
         </div>
       </div>
     );
-  };
-
-  // ✅ UPDATED CSV FUNCTIONS WITH NATIVE PARSING
-  const exportToCSV = (selectedOnly = false) => {
-    const productsToExport = selectedOnly 
-      ? products.filter(p => selectedProducts.includes(p.id))
-      : products;
-
-    if (productsToExport.length === 0) {
-      toast({
-        title: "Sin productos para exportar",
-        description: selectedOnly ? "No has seleccionado productos" : "No tienes productos guardados",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const csvData = productsToExport.map(product => ({
-      id: product.id,
-      name: product.name || '',
-      sku: product.sku || '',
-      price_retail: product.price_retail ? (product.price_retail / 100).toFixed(2) : '',
-      price_wholesale: product.price_wholesale ? (product.price_wholesale / 100).toFixed(2) : '',
-      wholesale_min_qty: product.wholesale_min_qty || '',
-      category: product.category || '',
-      custom_description: product.custom_description || '',
-      // CAMPOS INFORMATIVOS
-      processing_status: product.processing_status || '',
-      has_processed_image: product.image_url ? 'YES' : 'NO',
-      estimated_credits: product.estimated_credits || 1,
-      created_at: product.created_at || '',
-      original_image_url: product.original_image_url || '',
-      processed_image_url: product.image_url || '',
-    }));
-
-    const csv = generateCSV(csvData);
-
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    
-    const fileName = selectedOnly 
-      ? `productos_seleccionados_${new Date().toISOString().split('T')[0]}.csv`
-      : `todos_los_productos_${new Date().toISOString().split('T')[0]}.csv`;
-    
-    link.setAttribute('download', fileName);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-
-    toast({
-      title: "¡CSV Exportado!",
-      description: `✅ ${productsToExport.length} productos exportados exitosamente`,
-    });
-  };
-
-  const downloadEmptyTemplate = () => {
-    const emptyTemplate = [{
-      id: '',
-      name: 'Ejemplo: Camisa Azul Clásica',
-      sku: 'CAM-001',
-      price_retail: '25.99',
-      price_wholesale: '18.50',
-      wholesale_min_qty: '12',
-      category: 'Ropa y Textiles',
-      custom_description: 'Camisa de algodón 100% en color azul marino',
-      processing_status: '',
-      has_processed_image: 'NO',
-      estimated_credits: 1,
-      created_at: '',
-      original_image_url: '',
-      processed_image_url: ''
-    }];
-
-    const csv = generateCSV(emptyTemplate);
-    
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', 'template_productos.csv');
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  const handleCsvUpload = async (file: File) => {
-    setCsvFile(file);
-    setImporting(true);
-
-    try {
-      const text = await file.text();
-      const parsedData = parseCSV(text);
-      setCsvPreview(parsedData);
-      validateCsvData(parsedData);
-    } catch (error) {
-      console.error('Error parsing CSV:', error);
-      toast({
-        title: "Error al leer CSV",
-        description: "El archivo no es un CSV válido",
-        variant: "destructive",
-      });
-    } finally {
-      setImporting(false);
-    }
-  };
-
-  const validateCsvData = (csvRows: any[]) => {
-    const errors: string[] = [];
-    const warnings: string[] = [];
-    let updates = 0;
-    let creates = 0;
-    
-    const validCategories = [
-      'Ropa y Textiles', 'Belleza y Cuidado Personal', 'Mascotas y Artículos Pet',
-      'Joyería y Accesorios', 'Electrónicos y Tecnología', 'Juguetes y Figuras',
-      'Muebles y Decoración', 'Artículos para el Hogar', 'Herramientas y Ferretería',
-      'Deportes y Fitness', 'Automotive', 'Otro'
-    ];
-
-    const existingProductIds = products.map(p => p.id);
-
-    csvRows.forEach((row, index) => {
-      const rowNum = index + 2;
-
-      // Validar campos requeridos
-      if (!row.name?.trim()) {
-        errors.push(`Fila ${rowNum}: El campo 'name' es obligatorio`);
-      }
-      if (!row.category?.trim()) {
-        errors.push(`Fila ${rowNum}: El campo 'category' es obligatorio`);
-      } else if (!validCategories.includes(row.category)) {
-        warnings.push(`Fila ${rowNum}: Categoría '${row.category}' no reconocida`);
-      }
-
-      // Validar precios
-      if (row.price_retail && (isNaN(parseFloat(row.price_retail)) || parseFloat(row.price_retail) < 0)) {
-        errors.push(`Fila ${rowNum}: Precio de venta inválido`);
-      }
-
-      // Detectar si es actualización o creación
-      if (row.id && existingProductIds.includes(row.id)) {
-        updates++;
-        const existingProduct = products.find(p => p.id === row.id);
-        if (existingProduct?.image_url) {
-          warnings.push(`Fila ${rowNum}: Producto ya tiene imagen procesada (se mantendrá)`);
-        }
-      } else {
-        creates++;
-      }
-    });
-
-    setCsvValidation({
-      valid: errors.length === 0,
-      errors,
-      warnings,
-      updates,
-      creates
-    });
-  };
-
-  const importCsvData = async () => {
-    if (!csvPreview.length) return;
-
-    setImporting(true);
-    
-    try {
-      const updates = [];
-      const creates = [];
-
-      for (const row of csvPreview) {
-        if (row.id && products.find(p => p.id === row.id)) {
-          const existingProduct = products.find(p => p.id === row.id);
-          
-          updates.push({
-            id: row.id,
-            name: row.name?.trim() || existingProduct.name,
-            sku: row.sku?.trim() || existingProduct.sku,
-            price_retail: row.price_retail ? Math.round(parseFloat(row.price_retail) * 100) : existingProduct.price_retail,
-            price_wholesale: row.price_wholesale ? Math.round(parseFloat(row.price_wholesale) * 100) : existingProduct.price_wholesale,
-            wholesale_min_qty: row.wholesale_min_qty ? parseInt(row.wholesale_min_qty) : existingProduct.wholesale_min_qty,
-            category: row.category?.trim() || existingProduct.category,
-            custom_description: row.custom_description?.trim() || existingProduct.custom_description,
-            // MANTENER imagen procesada
-            image_url: existingProduct.image_url,
-            processing_status: existingProduct.processing_status,
-            original_image_url: existingProduct.original_image_url
-          });
-        } else {
-          creates.push({
-            name: row.name?.trim(),
-            sku: row.sku?.trim() || null,
-            price_retail: row.price_retail ? Math.round(parseFloat(row.price_retail) * 100) : null,
-            price_wholesale: row.price_wholesale ? Math.round(parseFloat(row.price_wholesale) * 100) : null,
-            wholesale_min_qty: row.wholesale_min_qty ? parseInt(row.wholesale_min_qty) : null,
-            category: row.category?.trim(),
-            custom_description: row.custom_description?.trim() || null,
-            processing_status: 'pending',
-            user_id: user.id,
-            estimated_credits: 1
-          });
-        }
-      }
-
-      // Ejecutar cambios
-      if (updates.length > 0) {
-        for (const update of updates) {
-          const { error } = await supabase
-            .from('products')
-            .update(update)
-            .eq('id', update.id);
-          
-          if (error) throw error;
-        }
-      }
-
-      if (creates.length > 0) {
-        const { error } = await supabase
-          .from('products')
-          .insert(creates);
-          
-        if (error) throw error;
-      }
-
-      toast({
-        title: "¡Importación exitosa!",
-        description: `✅ ${updates.length} actualizados, ${creates.length} creados`,
-      });
-
-      await fetchProducts();
-      setShowImportModal(false);
-      setCsvFile(null);
-      setCsvPreview([]);
-
-    } catch (error) {
-      console.error('Error importing CSV:', error);
-      toast({
-        title: "Error en importación",
-        description: "Algunos productos no se pudieron importar",
-        variant: "destructive",
-      });
-    } finally {
-      setImporting(false);
-    }
   };
 
   const toggleSelection = (productId: string) => {
@@ -886,93 +583,11 @@ const Products = () => {
                 </div>
               </div>
               
-              {/* BOTONES PRINCIPALES */}
-              <div className="flex gap-3">
-                {/* CSV Controls */}
-                {products.length > 0 && (
-                  <div className="flex gap-2 mr-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => exportToCSV(false)}
-                      className="flex items-center gap-2"
-                    >
-                      <Download className="w-4 h-4" />
-                      Exportar CSV
-                    </Button>
-                    
-                    {selectedProducts.length > 0 && (
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => exportToCSV(true)}
-                        className="flex items-center gap-2 border-primary text-primary"
-                      >
-                        <Download className="w-4 h-4" />
-                        Seleccionados ({selectedProducts.length})
-                      </Button>
-                    )}
-                  </div>
-                )}
-                
-                <Button 
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowImportModal(true)}
-                  className="flex items-center gap-2"
-                >
-                  <Upload className="w-4 h-4" />
-                  Importar CSV
-                </Button>
-                
-                <Button onClick={() => navigate('/upload')} className="bg-primary">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Agregar productos
-                </Button>
-              </div>
+              <Button onClick={() => navigate('/upload')} className="bg-primary">
+                <Plus className="w-4 h-4 mr-2" />
+                Agregar productos
+              </Button>
             </div>
-            
-            {/* CSV Info Banner */}
-            {products.length > 0 && (
-              <div className="bg-gradient-to-r from-blue-50 to-green-50 border border-blue-200 rounded-lg p-4 mb-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <FileSpreadsheet className="w-6 h-6 text-blue-600" />
-                    <div>
-                      <h3 className="font-semibold text-blue-800 flex items-center gap-2">
-                        💡 Edición Masiva Disponible
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => setShowCsvGuide(true)}
-                          className="text-blue-600 p-1 h-6"
-                        >
-                          <HelpCircle className="w-4 h-4" />
-                        </Button>
-                      </h3>
-                      <p className="text-sm text-blue-700">
-                        Exporta a CSV, edita en Excel y vuelve a importar. 
-                        <span className="font-medium"> ¡Preservamos las imágenes ya procesadas!</span>
-                      </p>
-                    </div>
-                  </div>
-                  <div className="hidden md:flex items-center gap-4 text-sm">
-                    <div className="text-center">
-                      <div className="font-bold text-green-600">
-                        {products.filter(p => p.processing_status === 'completed').length}
-                      </div>
-                      <div className="text-gray-600">Procesadas</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="font-bold text-orange-600">
-                        {products.filter(p => p.processing_status !== 'completed').length}
-                      </div>
-                      <div className="text-gray-600">Pendientes</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
 
             <div className="flex flex-col lg:flex-row lg:items-center gap-4 mb-4">
               <div className="relative flex-1 max-w-md">
@@ -1076,7 +691,7 @@ const Products = () => {
             </div>
           )}
           
-          {/* ✅ SMART ACTION BUTTON DINÁMICO */}
+          {/* Smart Action Button */}
           {selectedProducts.length > 0 && (
             <div className="fixed bottom-0 left-0 right-0 bg-white border-t p-4 shadow-lg">
               <div className="max-w-7xl mx-auto flex justify-between items-center">
@@ -1101,131 +716,6 @@ const Products = () => {
             </div>
           )}
         </main>
-
-        {/* CSV IMPORT MODAL */}
-        {showImportModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold flex items-center gap-2">
-                  <FileSpreadsheet className="w-5 h-5" />
-                  Importar Productos desde CSV
-                </h2>
-                <Button 
-                  variant="ghost" 
-                  onClick={() => {
-                    setShowImportModal(false);
-                    setCsvFile(null);
-                    setCsvPreview([]);
-                  }}
-                >
-                  <X className="w-4 h-4" />
-                </Button>
-              </div>
-
-              {!csvFile ? (
-                <div className="space-y-4">
-                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-                    <FileSpreadsheet className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                    <p className="text-lg font-medium mb-2">Selecciona tu archivo CSV</p>
-                    <p className="text-gray-600 mb-4">
-                      Importa productos nuevos o actualiza existentes
-                    </p>
-                    <input
-                      type="file"
-                      accept=".csv,.xlsx,.xls"
-                      onChange={(e) => e.target.files?.[0] && handleCsvUpload(e.target.files[0])}
-                      className="hidden"
-                      id="csv-upload"
-                    />
-                    <label htmlFor="csv-upload" className="cursor-pointer">
-                      <Button className="mb-4">
-                        <Upload className="w-4 h-4 mr-2" />
-                        Seleccionar archivo CSV
-                      </Button>
-                    </label>
-                    
-                    <div className="flex justify-center">
-                      <Button variant="outline" onClick={downloadEmptyTemplate}>
-                        <Download className="w-4 h-4 mr-2" />
-                        Descargar Template
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {importing ? (
-                    <div className="text-center py-8">
-                      <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                      <p>Procesando archivo CSV...</p>
-                    </div>
-                  ) : (
-                    <>
-                      <div className="grid md:grid-cols-3 gap-4">
-                        <div className="bg-green-50 p-4 rounded-lg text-center">
-                          <CheckCircle className="w-8 h-8 text-green-500 mx-auto mb-2" />
-                          <div className="text-2xl font-bold text-green-600">{csvValidation.updates}</div>
-                          <div className="text-sm text-green-700">A actualizar</div>
-                        </div>
-                        <div className="bg-blue-50 p-4 rounded-lg text-center">
-                          <Plus className="w-8 h-8 text-blue-500 mx-auto mb-2" />
-                          <div className="text-2xl font-bold text-blue-600">{csvValidation.creates}</div>
-                          <div className="text-sm text-blue-700">Nuevos</div>
-                        </div>
-                        <div className="bg-orange-50 p-4 rounded-lg text-center">
-                          <AlertTriangle className="w-8 h-8 text-orange-500 mx-auto mb-2" />
-                          <div className="text-2xl font-bold text-orange-600">{csvValidation.errors.length}</div>
-                          <div className="text-sm text-orange-700">Errores</div>
-                        </div>
-                      </div>
-
-                      {csvValidation.errors.length > 0 && (
-                        <div className="bg-red-50 p-4 rounded-lg">
-                          <h3 className="font-semibold text-red-800 mb-2">❌ Errores:</h3>
-                          <div className="max-h-32 overflow-y-auto space-y-1">
-                            {csvValidation.errors.map((error, index) => (
-                              <div key={index} className="text-sm text-red-700">• {error}</div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      <div className="flex justify-end gap-4">
-                        <Button 
-                          variant="outline"
-                          onClick={() => {
-                            setCsvFile(null);
-                            setCsvPreview([]);
-                          }}
-                        >
-                          Seleccionar otro archivo
-                        </Button>
-                        
-                        <Button 
-                          onClick={importCsvData}
-                          disabled={!csvValidation.valid || importing}
-                          className={csvValidation.valid ? "bg-primary text-white" : ""}
-                        >
-                          {importing ? (
-                            <>
-                              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                              Importando...
-                            </>
-                          ) : csvValidation.valid ? (
-                            `✅ Importar ${csvValidation.updates + csvValidation.creates} productos`
-                          ) : (
-                            '❌ Corrige errores primero'
-                          )}
-                        </Button>
-                      </div>
-                    </>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
 
         <ProductEditModal
           product={editingProduct}
