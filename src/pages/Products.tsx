@@ -16,7 +16,6 @@ import { toast as sonnerToast } from 'sonner';
 import { ProductEditModal } from '@/components/products/ProductEditModal';
 import { useBusinessInfo } from '../hooks/useBusinessInfo';
 import { createCatalog, processImagesOnly } from '@/lib/catalogService';
-import Papa from 'papaparse';
 
 interface Product {
   id: string;
@@ -37,6 +36,48 @@ interface Product {
 }
 
 type FilterType = 'all' | 'draft' | 'processing' | 'completed';
+
+// Native CSV parsing and generation utilities
+const parseCSV = (csvText: string): any[] => {
+  const lines = csvText.split('\n').filter(line => line.trim());
+  if (lines.length === 0) return [];
+  
+  const headers = lines[0].split(',').map(h => h.replace(/"/g, '').trim());
+  const data = [];
+  
+  for (let i = 1; i < lines.length; i++) {
+    const values = lines[i].split(',').map(v => v.replace(/"/g, '').trim());
+    if (values.length === headers.length) {
+      const row: any = {};
+      headers.forEach((header, index) => {
+        row[header] = values[index];
+      });
+      data.push(row);
+    }
+  }
+  
+  return data;
+};
+
+const generateCSV = (data: any[]): string => {
+  if (data.length === 0) return '';
+  
+  const headers = Object.keys(data[0]);
+  const csvRows = [
+    headers.join(','),
+    ...data.map(row => 
+      headers.map(header => {
+        const value = row[header] || '';
+        // Escape values that contain commas or quotes
+        return typeof value === 'string' && (value.includes(',') || value.includes('"')) 
+          ? `"${value.replace(/"/g, '""')}"` 
+          : value;
+      }).join(',')
+    )
+  ];
+  
+  return csvRows.join('\n');
+};
 
 const StatusBadge = ({ status }: { status: string }) => {
   const getStatusConfig = (status: string) => {
@@ -209,7 +250,6 @@ const Products = () => {
           category,
           custom_description,
           original_image_url,
-          image_url,
           processing_status,
           created_at,
           smart_analysis,
@@ -220,7 +260,16 @@ const Products = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setProducts(data || []);
+      
+      // Add image_url from smart_analysis if available
+      const productsWithImageUrl = (data || []).map(product => ({
+        ...product,
+        image_url: product.smart_analysis && typeof product.smart_analysis === 'object' && 'processed_image_url' in product.smart_analysis 
+          ? product.smart_analysis.processed_image_url 
+          : undefined
+      }));
+      
+      setProducts(productsWithImageUrl);
     } catch (error) {
       console.error('Error fetching products:', error);
       toast({
@@ -492,7 +541,7 @@ const Products = () => {
     );
   };
 
-  // ✅ FUNCIONES CSV COMPLETAS
+  // ✅ UPDATED CSV FUNCTIONS WITH NATIVE PARSING
   const exportToCSV = (selectedOnly = false) => {
     const productsToExport = selectedOnly 
       ? products.filter(p => selectedProducts.includes(p.id))
@@ -525,7 +574,7 @@ const Products = () => {
       processed_image_url: product.image_url || '',
     }));
 
-    const csv = Papa.unparse(csvData, { header: true, delimiter: ',' });
+    const csv = generateCSV(csvData);
 
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
@@ -566,7 +615,7 @@ const Products = () => {
       processed_image_url: ''
     }];
 
-    const csv = Papa.unparse(emptyTemplate, { header: true });
+    const csv = generateCSV(emptyTemplate);
     
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
@@ -583,23 +632,21 @@ const Products = () => {
     setCsvFile(file);
     setImporting(true);
 
-    Papa.parse(file, {
-      header: true,
-      skipEmptyLines: true,
-      complete: (results) => {
-        setCsvPreview(results.data);
-        validateCsvData(results.data);
-        setImporting(false);
-      },
-      error: (error) => {
-        toast({
-          title: "Error al leer CSV",
-          description: "El archivo no es un CSV válido",
-          variant: "destructive",
-        });
-        setImporting(false);
-      }
-    });
+    try {
+      const text = await file.text();
+      const parsedData = parseCSV(text);
+      setCsvPreview(parsedData);
+      validateCsvData(parsedData);
+    } catch (error) {
+      console.error('Error parsing CSV:', error);
+      toast({
+        title: "Error al leer CSV",
+        description: "El archivo no es un CSV válido",
+        variant: "destructive",
+      });
+    } finally {
+      setImporting(false);
+    }
   };
 
   const validateCsvData = (csvRows: any[]) => {
@@ -1091,8 +1138,8 @@ const Products = () => {
                       className="hidden"
                       id="csv-upload"
                     />
-                    <label htmlFor="csv-upload">
-                      <Button as="span" className="cursor-pointer mb-4">
+                    <label htmlFor="csv-upload" className="cursor-pointer">
+                      <Button className="mb-4">
                         <Upload className="w-4 h-4 mr-2" />
                         Seleccionar archivo CSV
                       </Button>
