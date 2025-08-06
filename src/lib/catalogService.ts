@@ -1,6 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 
-const N8N_WEBHOOK_URL = 'https://min8n-tellezn8n.fqr2ax.easypanel.host/webhook-test/process-catalog';
+const N8N_WEBHOOK_URL = 'https://min8n-tellezn8n.fqr2ax.easypanel.host/webhook/process-catalog';
 
 export interface CatalogCreationRequest {
   catalog_id: string;
