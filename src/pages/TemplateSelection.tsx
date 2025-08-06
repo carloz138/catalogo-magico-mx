@@ -33,7 +33,7 @@ const TemplateSelection = () => {
 
   const state = location.state as LocationState;
 
-  // ✅ AGREGAR ESTILOS DINÁMICOS PARA TEMPLATES
+  // ✅ FIX: Properly handle cleanup function
   useEffect(() => {
     // Crear estilos CSS para cada template en contenedores aislados
     const styleElement = document.createElement('style');
@@ -105,7 +105,11 @@ const TemplateSelection = () => {
     `;
     
     document.head.appendChild(styleElement);
-    return () => document.head.removeChild(styleElement);
+    
+    // Return cleanup function that returns void
+    return () => {
+      document.head.removeChild(styleElement);
+    };
   }, []);
 
   useEffect(() => {
