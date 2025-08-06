@@ -123,26 +123,71 @@ const TemplateSelection = () => {
     const isLocked = template.isPremium && userPlan === 'basic';
     const isCreating = creating && selectedTemplate === template.id;
 
+    // ✅ FUNCIÓN PARA OBTENER COLORES DE PREVIEW
+    const getPreviewColors = (templateId: string) => {
+      switch (templateId) {
+        case 'minimalista-gris':
+          return { bg: 'bg-gray-50', header: 'bg-gray-800', price: 'text-gray-800', accent: 'border-gray-300' };
+        case 'profesional-corporativo':  
+          return { bg: 'bg-blue-50', header: 'bg-blue-600', price: 'text-blue-600', accent: 'border-blue-400' };
+        case 'naturaleza-organico':
+          return { bg: 'bg-green-50', header: 'bg-green-700', price: 'text-green-600', accent: 'border-green-400' };
+        case 'rustico-campestre':
+          return { bg: 'bg-amber-50', header: 'bg-amber-800', price: 'text-amber-700', accent: 'border-amber-400' };
+        case 'verano-tropical':
+          return { bg: 'bg-cyan-50', header: 'bg-cyan-600', price: 'text-cyan-600', accent: 'border-cyan-400' };
+        case 'elegante-oro':
+          return { bg: 'bg-yellow-50', header: 'bg-yellow-600', price: 'text-yellow-600', accent: 'border-yellow-400' };
+        case 'lujo-negro-oro':
+          return { bg: 'bg-gray-900', header: 'bg-yellow-500', price: 'text-yellow-500', accent: 'border-yellow-400' };
+        default:
+          return { bg: 'bg-gray-50', header: 'bg-gray-600', price: 'text-gray-600', accent: 'border-gray-300' };
+      }
+    };
+
+    const colors = getPreviewColors(template.id);
+
     return (
       <Card className={`overflow-hidden transition-all duration-200 hover:shadow-lg ${isLocked ? 'opacity-60' : ''}`}>
-        <div className={`template-preview ${template.id} relative h-48 flex items-center justify-center`}>
-          {/* Mock catalog preview */}
-          <div className="catalog max-w-xs scale-75">
-            <div className="header">
-              <h1>Mi Catálogo</h1>
+        {/* ✅ NUEVO PREVIEW LIMPIO Y CONTROLADO */}
+        <div className={`relative h-48 ${colors.bg} p-4 flex items-center justify-center overflow-hidden`}>
+          {/* Mini catalog preview */}
+          <div className="w-full max-w-[200px] h-full flex flex-col">
+            {/* Header simulado */}
+            <div className={`${colors.header} text-white px-3 py-2 rounded-t text-center mb-2`}>
+              <h1 className="text-xs font-bold truncate">Mi Catálogo</h1>
             </div>
-            <div className="product">
-              <div className="product-img bg-gray-200 flex items-center justify-center text-xs text-gray-500">
-                Producto
+            
+            {/* Producto simulado */}
+            <div className="bg-white rounded shadow-sm p-2 flex-1 flex flex-col">
+              <div className={`w-full h-16 bg-gray-200 rounded mb-2 flex items-center justify-center border ${colors.accent}`}>
+                <span className="text-xs text-gray-500">🖼️</span>
               </div>
-              <h2 className="product-title text-sm">Producto Ejemplo</h2>
-              <div className="product-price text-sm">$99.99</div>
-              <p className="product-desc text-xs">Descripción del producto</p>
+              <h3 className="text-xs font-semibold mb-1 line-clamp-1">Producto Ejemplo</h3>
+              <p className={`text-xs font-bold ${colors.price} mb-1`}>$99.99</p>
+              <p className="text-xs text-gray-500 line-clamp-2 flex-1">Descripción del producto aquí...</p>
+              
+              {/* Grid indicator si es grid layout */}
+              {template.layout === 'grid' && (
+                <div className="flex gap-1 mt-1">
+                  <div className="w-1 h-1 bg-gray-300 rounded"></div>
+                  <div className="w-1 h-1 bg-gray-300 rounded"></div>
+                  <div className="w-1 h-1 bg-gray-300 rounded"></div>
+                </div>
+              )}
             </div>
           </div>
           
+          {/* Template name overlay */}
+          <div className="absolute top-2 left-2">
+            <Badge variant="secondary" className="text-xs">
+              {template.category}
+            </Badge>
+          </div>
+          
+          {/* Lock overlay */}
           {isLocked && (
-            <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
+            <div className="absolute inset-0 bg-black/20 backdrop-blur-[1px] flex items-center justify-center">
               <div className="bg-white rounded-full p-3 shadow-lg">
                 <Crown className="w-6 h-6 text-yellow-500" />
               </div>
