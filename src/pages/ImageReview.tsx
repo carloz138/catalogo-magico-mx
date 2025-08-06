@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -45,7 +44,7 @@ const ImageReview = () => {
   const [selectedProducts, setSelectedProducts] = useState<any[]>([]);
   const [selectedImageIds, setSelectedImageIds] = useState<Set<string>>(new Set());
   const [downloadProgress, setDownloadProgress] = useState<ImageDownloadProgress>({});
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [overallProgress, setOverallProgress] = useState(0);
 
   const state = location.state as LocationState;
@@ -182,7 +181,7 @@ const ImageReview = () => {
     return uploadedUrls;
   };
 
-  const processSelectedImages = async () => {
+  const saveAndContinue = async () => {
     if (selectedImageIds.size === 0) {
       toast({
         title: "Error",
@@ -192,7 +191,7 @@ const ImageReview = () => {
       return;
     }
 
-    setIsProcessing(true);
+    setIsSaving(true);
     const selectedImages = processedImages.filter(img => selectedImageIds.has(img.product_id));
     const totalImages = selectedImages.length;
     let completedImages = 0;
@@ -204,7 +203,7 @@ const ImageReview = () => {
     });
     setDownloadProgress(initialProgress);
 
-    const processedProducts = [];
+    const savedProducts = [];
 
     try {
       for (const image of selectedImages) {
@@ -266,8 +265,8 @@ const ImageReview = () => {
 
           if (updateError) throw updateError;
 
-          // Add to processed products list with updated data
-          processedProducts.push({
+          // Add to saved products list with updated data
+          savedProducts.push({
             ...originalProduct,
             processed_image_url: uploadedUrls.catalog,
             processed_images: {
@@ -303,33 +302,37 @@ const ImageReview = () => {
         }
       }
 
-      if (processedProducts.length > 0) {
+      if (savedProducts.length > 0) {
         toast({
           title: "¡Éxito!",
-          description: `${processedProducts.length} imágenes procesadas correctamente`
+          description: `${savedProducts.length} imágenes guardadas correctamente`
         });
 
-        // Navigate to template selection with processed products
+        // Navigate to template selection with saved products
         navigate('/template-selection', {
-          state: { selectedProducts: processedProducts }
+          state: { 
+            products: savedProducts,
+            businessInfo: businessInfo,
+            skipProcessing: true 
+          }
         });
       } else {
         toast({
           title: "Error",
-          description: "No se pudieron procesar las imágenes seleccionadas",
+          description: "No se pudieron guardar las imágenes seleccionadas",
           variant: "destructive"
         });
       }
 
     } catch (error) {
-      console.error('Error processing images:', error);
+      console.error('Error saving images:', error);
       toast({
         title: "Error",
-        description: "Error al procesar las imágenes",
+        description: "Error al guardar las imágenes",
         variant: "destructive"
       });
     } finally {
-      setIsProcessing(false);
+      setIsSaving(false);
     }
   };
 
@@ -406,23 +409,23 @@ const ImageReview = () => {
             </div>
             
             <div className="flex items-center space-x-4">
-              <Button variant="outline" onClick={selectAll} disabled={isProcessing}>
+              <Button variant="outline" onClick={selectAll} disabled={isSaving}>
                 Seleccionar Todo
               </Button>
-              <Button variant="outline" onClick={selectNone} disabled={isProcessing}>
+              <Button variant="outline" onClick={selectNone} disabled={isSaving}>
                 Deseleccionar Todo
               </Button>
               <Button 
-                onClick={processSelectedImages}
-                disabled={isProcessing || selectedImageIds.size === 0}
+                onClick={saveAndContinue}
+                disabled={isSaving || selectedImageIds.size === 0}
                 className="bg-primary text-white"
               >
-                {isProcessing ? 'Guardando...' : 'Guardar y elegir template'}
+                {isSaving ? 'Guardando...' : `Guardar y elegir template (${selectedImageIds.size} productos)`}
               </Button>
             </div>
           </div>
           
-          {isProcessing && (
+          {isSaving && (
             <div className="mt-4">
               <div className="flex justify-between text-sm text-gray-600 mb-2">
                 <span>Progreso general</span>
@@ -456,7 +459,7 @@ const ImageReview = () => {
                       <Checkbox
                         checked={isSelected}
                         onCheckedChange={() => toggleImageSelection(image.product_id)}
-                        disabled={isProcessing}
+                        disabled={isSaving}
                         className="bg-white"
                       />
                     </div>
