@@ -198,58 +198,55 @@ const TemplateSelection = () => {
     const isLocked = template.isPremium && userPlan === 'basic';
     const isCreating = creating && selectedTemplate === template.id;
 
-    // ✅ CREAR PREVIEW REAL CON CSS DEL TEMPLATE
-    const RealTemplatePreview = () => (
-      <div className={`template-preview-container ${template.id} relative h-48 overflow-hidden`}>
-        {/* ✅ APLICAMOS LA CLASE BODY DEL TEMPLATE AL CONTENEDOR */}
-        <div 
-          className={`template-body-${template.id}`}
-          style={{ 
-            height: '100%', 
-            transform: 'scale(0.4)', 
-            transformOrigin: 'top left',
-            width: '250%'  // Compensar el scale para que se vea completo
-          }}
-        >
-          {/* ✅ MINI CATÁLOGO CON ESTILOS REALES */}
-          <div className="catalog">
-            <div className="header">
-              <h1>Mi Catálogo</h1>
-            </div>
-            <div className="product">
-              <div className="product-img bg-gray-100 flex items-center justify-center text-gray-400">
-                <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
-                </svg>
-              </div>
-              <h2 className="product-title">Producto Ejemplo</h2>
-              <div className="product-price">$99.99</div>
-              <p className="product-desc">Descripción del producto aquí. Texto de ejemplo para mostrar cómo se ve el template.</p>
-            </div>
-          </div>
-        </div>
-        
-        {/* Template name badge */}
-        <div className="absolute top-2 left-2">
-          <Badge variant="secondary" className="text-xs bg-white/90 text-gray-700">
-            {template.category}
-          </Badge>
-        </div>
-        
-        {/* Lock overlay */}
-        {isLocked && (
-          <div className="absolute inset-0 bg-black/30 backdrop-blur-[1px] flex items-center justify-center">
-            <div className="bg-white rounded-full p-3 shadow-lg">
-              <Crown className="w-6 h-6 text-yellow-500" />
-            </div>
-          </div>
-        )}
-      </div>
-    );
-
     return (
       <Card className={`overflow-hidden transition-all duration-200 hover:shadow-lg ${isLocked ? 'opacity-70' : ''}`}>
-        <RealTemplatePreview />
+        {/* ✅ PREVIEW REAL CON CSS DEL TEMPLATE */}
+        <div className={`template-preview-container ${template.id} relative h-48 overflow-hidden`}>
+          {/* ✅ APLICAMOS LA CLASE BODY DEL TEMPLATE AL CONTENEDOR */}
+          <div 
+            className={`template-body-${template.id}`}
+            style={{ 
+              height: '100%', 
+              transform: 'scale(0.4)', 
+              transformOrigin: 'top left',
+              width: '250%'  // Compensar el scale para que se vea completo
+            }}
+          >
+            {/* ✅ MINI CATÁLOGO CON ESTILOS REALES */}
+            <div className="catalog">
+              <div className="header">
+                <h1>Mi Catálogo</h1>
+              </div>
+              <div className="product">
+                <div className="product-img bg-gray-100 flex items-center justify-center text-gray-400">
+                  <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <h2 className="product-title">Producto Ejemplo</h2>
+                <div className="product-price">$99.99</div>
+                <p className="product-desc">Descripción del producto aquí. Texto de ejemplo para mostrar cómo se ve el template.</p>
+              </div>
+            </div>
+          </div>
+          
+          {/* Template name badge */}
+          <div className="absolute top-2 left-2">
+            <Badge variant="secondary" className="text-xs bg-white/90 text-gray-700">
+              {template.category}
+            </Badge>
+          </div>
+          
+          {/* Lock overlay */}
+          {isLocked && (
+            <div className="absolute inset-0 bg-black/30 backdrop-blur-[1px] flex items-center justify-center">
+              <div className="bg-white rounded-full p-3 shadow-lg">
+                <Crown className="w-6 h-6 text-yellow-500" />
+              </div>
+            </div>
+          )}
+        </div>
+
         <CardContent className="p-4">
           <div className="flex justify-between items-start mb-3">
             <div className="flex-1 min-w-0 pr-2">
