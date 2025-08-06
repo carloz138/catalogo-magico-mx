@@ -1,0 +1,875 @@
+
+/* Google Fonts Imports */
+@import url('https://fonts.googleapis.com/css2?family=Helvetica+Neue:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Creepster&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@300;400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Lato:wght@300;400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Comic+Neue:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Crimson+Text:ital,wght@1,400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@300;400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cabin:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Amatic+SC:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@1,300;1,600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap');
+
+/* Estilos base comunes */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Helvetica Neue', sans-serif; background: #fafafa; }
+.catalog { max-width: 600px; margin: 0 auto; padding: 20px; }
+.product { background: white; border-radius: 12px; padding: 25px; margin-bottom: 25px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
+.product-img { width: 100%; height: 280px; object-fit: contain; margin-bottom: 20px; }
+.product-title { font-size: 22px; color: #333; margin-bottom: 8px; }
+.product-price { font-size: 24px; color: #e74c3c; font-weight: bold; margin-bottom: 15px; }
+.product-desc { color: #777; line-height: 1.6; }
+.header { text-align: center; padding: 30px 0; }
+.header h1 { font-size: 36px; letter-spacing: -1px; color: #2c3e50; }
+
+/* Template 1: Minimalista Blanco - Estos son los estilos base */
+
+/* Template 2: Fiesta Mexicana */
+body.fiesta-mexicana { background: #f8f0e0; }
+.fiesta-mexicana .catalog { background: url('pattern-mexicano.png'); }
+.fiesta-mexicana .product { 
+    background: rgba(255,255,255,0.9); 
+    border: 3px solid #e30613;
+    border-radius: 0;
+}
+.fiesta-mexicana .product-title { color: #006847; }
+.fiesta-mexicana .product-price { color: #ce1126; }
+.fiesta-mexicana .header h1 { 
+    color: #e30613; 
+    text-shadow: 2px 2px 0 #f9e300;
+    font-family: 'Cinzel', serif;
+}
+
+/* Template 3: Halloween */
+body.halloween { background: #2c1b47; }
+.halloween .catalog { background: #1a0d2b; }
+.halloween .product { 
+    background: #4a235a; 
+    border: 2px dashed #ff6b00;
+}
+.halloween .product-title { color: #ff9e44; }
+.halloween .product-price { color: #ff3c38; }
+.halloween .product-desc { color: #e0c3ff; }
+.halloween .header h1 { 
+    color: #ff6b00; 
+    text-transform: uppercase;
+    font-family: 'Creepster', cursive;
+}
+
+/* Template 4: Elegante Oro */
+body.elegante-oro { background: #faf5e9; }
+.elegante-oro .product { 
+    background: #fffdf6; 
+    border: 1px solid #e8d8b6;
+    position: relative;
+}
+.elegante-oro .product:before {
+    content: "";
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    right: 10px;
+    bottom: 10px;
+    border: 1px solid #d4af37;
+}
+.elegante-oro .product-title { 
+    color: #8e6c3a; 
+    font-weight: 300;
+}
+.elegante-oro .product-price { 
+    color: #d4af37; 
+    font-size: 28px;
+}
+
+/* Template 5: Naturaleza Orgánico */
+body.naturaleza-organico { background: #f1f8e9; }
+.naturaleza-organico .product { 
+    background: #e8f5e9; 
+    border-radius: 0 20px;
+}
+.naturaleza-organico .product-title { 
+    color: #2e7d32; 
+    font-family: 'Merriweather', serif;
+}
+.naturaleza-organico .product-price { color: #43a047; }
+.naturaleza-organico .header h1 { 
+    color: #1b5e20; 
+    border-bottom: 2px solid #a5d6a7;
+    display: inline-block;
+}
+
+/* Template 6: Tecnológico Futurista */
+body.tecnologico-futurista { background: #0a0f1f; }
+.tecnologico-futurista .product { 
+    background: rgba(16, 42, 92, 0.7); 
+    border: 1px solid #00e5ff;
+    box-shadow: 0 0 15px rgba(0, 229, 255, 0.3);
+}
+.tecnologico-futurista .product-title { 
+    color: #00e5ff; 
+    font-family: 'Orbitron', sans-serif;
+}
+.tecnologico-futurista .product-price { color: #ff2a6d; }
+.tecnologico-futurista .product-desc { color: #b8f3ff; }
+
+/* Template 7: Día de Muertos */
+body.dia-muertos { background: #f7e4c8; }
+.dia-muertos .product { 
+    background: #fff; 
+    border: 5px solid #7b1c2a;
+    position: relative;
+}
+.dia-muertos .product:after {
+    content: "✸";
+    position: absolute;
+    top: -15px;
+    right: -15px;
+    font-size: 40px;
+    color: #ff9800;
+}
+.dia-muertos .product-title { 
+    color: #7b1c2a; 
+    font-family: 'Dancing Script', cursive;
+}
+.dia-muertos .header h1 {
+    background: #7b1c2a;
+    color: #ffca28;
+    padding: 10px 30px;
+    border-radius: 0 20px;
+}
+
+/* Template 8: Industrial */
+body.industrial { background: #e0e0e0; }
+.industrial .product { 
+    background: #f5f5f5; 
+    border: 2px solid #455a64;
+    border-radius: 0;
+}
+.industrial .product-title { 
+    color: #263238; 
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+.industrial .product-price { color: #ff5722; }
+.industrial .header h1 {
+    font-family: 'Roboto Condensed', sans-serif;
+    border-bottom: 3px solid #ff5722;
+}
+
+/* Template 9: Verano Tropical */
+body.verano-tropical { background: #e1f5fe; }
+.verano-tropical .product { 
+    background: #fff; 
+    border-radius: 20px 0;
+    overflow: hidden;
+}
+.verano-tropical .product:before {
+    content: "";
+    height: 5px;
+    background: linear-gradient(90deg, #ff5252, #ffab40, #ffd740);
+    display: block;
+    margin-bottom: 20px;
+}
+.verano-tropical .product-title { color: #0097a7; }
+.verano-tropical .product-price { color: #ff5252; }
+
+/* Template 10: Lujo Púrpura */
+body.lujo-purpura { background: #f3e5f5; }
+.lujo-purpura .product { 
+    background: #fff; 
+    box-shadow: 0 10px 30px rgba(142, 36, 170, 0.1);
+}
+.lujo-purpura .product-title { 
+    color: #6a1b9a; 
+    font-weight: 300;
+    font-size: 26px;
+}
+.lujo-purpura .product-price { 
+    background: #6a1b9a; 
+    color: white;
+    display: inline-block;
+    padding: 5px 15px;
+}
+
+/* TEMPLATE 11: BODA ELEGANTE */
+body.boda-elegante {
+    font-family: 'Lato', sans-serif; 
+    background: linear-gradient(135deg, #fff 0%, #f8f6f0 100%);
+    color: #333;
+}
+.boda-elegante .catalog { padding: 30px 20px; }
+.boda-elegante .header { 
+    padding: 40px 0; 
+    border-bottom: 2px solid #d4af37;
+    margin-bottom: 40px;
+}
+.boda-elegante .header h1 { 
+    font-family: 'Playfair Display', serif;
+    font-size: 42px; 
+    color: #8b4513;
+    font-weight: 300;
+    letter-spacing: 2px;
+    margin-bottom: 10px;
+}
+.boda-elegante .header .subtitle {
+    color: #d4af37;
+    font-size: 16px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+}
+.boda-elegante .product { 
+    background: rgba(255,255,255,0.9); 
+    padding: 35px;
+    margin-bottom: 30px; 
+    position: relative;
+    border: 1px solid #f0e68c;
+    box-shadow: 0 8px 25px rgba(212, 175, 55, 0.1);
+}
+.boda-elegante .product:before {
+    content: "";
+    position: absolute;
+    top: 15px; left: 15px; right: 15px; bottom: 15px;
+    border: 1px solid #d4af37;
+    pointer-events: none;
+}
+.boda-elegante .product-img { 
+    width: 100%; 
+    height: 300px; 
+    object-fit: contain; 
+    margin-bottom: 25px;
+    border-radius: 8px;
+}
+.boda-elegante .product-title { 
+    font-family: 'Playfair Display', serif;
+    font-size: 28px; 
+    color: #8b4513; 
+    margin-bottom: 12px;
+    font-weight: 400;
+}
+.boda-elegante .product-price { 
+    font-size: 26px; 
+    color: #d4af37; 
+    font-weight: 700;
+    margin-bottom: 18px;
+    text-shadow: 1px 1px 0 rgba(0,0,0,0.1);
+}
+.boda-elegante .product-desc { 
+    color: #666; 
+    line-height: 1.7;
+    font-size: 15px;
+}
+.boda-elegante .footer {
+    text-align: center;
+    padding: 30px 0;
+    border-top: 1px solid #d4af37;
+    margin-top: 40px;
+    color: #8b4513;
+}
+
+/* TEMPLATE 13: DEPORTIVO ENERGÉTICO */
+body.deportivo-energetico { 
+    background: linear-gradient(135deg, #ff4081 0%, #ff6ec7 50%, #40c4ff 100%);
+    font-family: 'Roboto Condensed', sans-serif;
+}
+.deportivo-energetico .header h1 { 
+    color: #fff;
+    font-size: 48px;
+    text-transform: uppercase;
+    font-weight: 700;
+    text-shadow: 3px 3px 0 rgba(0,0,0,0.3);
+    letter-spacing: 3px;
+}
+.deportivo-energetico .product { 
+    background: rgba(255,255,255,0.95);
+    border: 0;
+    border-left: 8px solid #ff4081;
+    box-shadow: 0 15px 40px rgba(0,0,0,0.2);
+    transform: perspective(1000px) rotateX(5deg);
+}
+.deportivo-energetico .product-title { 
+    color: #1e88e5;
+    text-transform: uppercase;
+    font-weight: 700;
+    letter-spacing: 1px;
+}
+.deportivo-energetico .product-price { 
+    background: linear-gradient(45deg, #ff4081, #ff6ec7);
+    color: white;
+    padding: 8px 20px;
+    border-radius: 25px;
+    display: inline-block;
+    font-weight: 700;
+}
+
+/* TEMPLATE 14: INFANTIL COLORIDO */
+body.infantil-colorido { 
+    background: #fff8e1;
+    background-image: 
+        radial-gradient(circle at 20% 30%, #ffeb3b 2px, transparent 2px),
+        radial-gradient(circle at 70% 20%, #e91e63 2px, transparent 2px),
+        radial-gradient(circle at 40% 70%, #4caf50 2px, transparent 2px),
+        radial-gradient(circle at 90% 80%, #2196f3 2px, transparent 2px);
+    font-family: 'Comic Neue', cursive;
+}
+.infantil-colorido .header h1 { 
+    color: #e91e63;
+    font-size: 40px;
+    text-shadow: 3px 3px 0 #ffeb3b;
+    transform: rotate(-2deg);
+}
+.infantil-colorido .product { 
+    background: #fff;
+    border: 4px dashed #4caf50;
+    border-radius: 20px;
+    transform: rotate(1deg);
+}
+.infantil-colorido .product:nth-child(even) { transform: rotate(-1deg); }
+.infantil-colorido .product-title { 
+    color: #e91e63;
+    font-size: 24px;
+    font-weight: 700;
+}
+.infantil-colorido .product-price { 
+    background: #ffeb3b;
+    color: #e91e63;
+    padding: 5px 15px;
+    border-radius: 15px;
+    font-weight: 700;
+    transform: rotate(-2deg);
+    display: inline-block;
+}
+
+/* TEMPLATE 15: GOURMET DELICADO */
+body.gourmet-delicado { 
+    background: #2c2c2c;
+    color: #f5f5dc;
+    font-family: 'Crimson Text', serif;
+}
+.gourmet-delicado .header h1 { 
+    color: #daa520;
+    font-size: 38px;
+    font-weight: 300;
+    font-style: italic;
+    border-bottom: 2px solid #daa520;
+    display: inline-block;
+}
+.gourmet-delicado .product { 
+    background: #3a3a3a;
+    border: 1px solid #8b7355;
+    position: relative;
+}
+.gourmet-delicado .product:before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #daa520, #cd853f, #daa520);
+}
+.gourmet-delicado .product-title { 
+    color: #f5deb3;
+    font-size: 26px;
+    font-style: italic;
+}
+.gourmet-delicado .product-price { 
+    color: #daa520;
+    font-size: 24px;
+    font-weight: 600;
+}
+.gourmet-delicado .product-desc { color: #d2b48c; }
+
+/* TEMPLATE 16: NOCHE ESTRELLADA */
+body.noche-estrellada { 
+    background: #0f1419;
+    background-image: 
+        radial-gradient(2px 2px at 20px 30px, #fff, transparent),
+        radial-gradient(2px 2px at 40px 70px, rgba(255,255,255,0.8), transparent),
+        radial-gradient(1px 1px at 90px 40px, #fff, transparent),
+        radial-gradient(1px 1px at 130px 80px, rgba(255,255,255,0.6), transparent);
+    background-repeat: repeat;
+    background-size: 200px 100px;
+    color: #e6f3ff;
+    font-family: 'Nunito', sans-serif;
+}
+.noche-estrellada .header h1 { 
+    color: #87ceeb;
+    font-size: 36px;
+    text-shadow: 0 0 20px rgba(135, 206, 235, 0.6);
+}
+.noche-estrellada .product { 
+    background: rgba(25, 25, 112, 0.3);
+    border: 1px solid #4169e1;
+    box-shadow: 0 0 25px rgba(65, 105, 225, 0.3);
+}
+.noche-estrellada .product-title { 
+    color: #b0e0e6;
+    font-weight: 600;
+}
+.noche-estrellada .product-price { 
+    color: #ffd700;
+    text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+}
+
+/* TEMPLATE 17: PLAYERO RELAJADO */
+body.playero-relajado { 
+    background: linear-gradient(180deg, #87ceeb 0%, #f0f8ff 30%, #f5deb3 100%);
+    font-family: 'Quicksand', sans-serif;
+}
+.playero-relajado .header h1 { 
+    color: #4682b4;
+    font-size: 40px;
+    font-weight: 300;
+    letter-spacing: 2px;
+}
+.playero-relajado .product { 
+    background: rgba(255,255,255,0.8);
+    border-radius: 20px;
+    border: 2px solid #20b2aa;
+    backdrop-filter: blur(10px);
+}
+.playero-relajado .product-title { 
+    color: #008b8b;
+    font-weight: 600;
+}
+.playero-relajado .product-price { 
+    color: #ff7f50;
+    background: rgba(255,255,255,0.9);
+    padding: 5px 15px;
+    border-radius: 20px;
+    display: inline-block;
+}
+.playero-relajado .product-desc { color: #5f9ea0; }
+
+/* TEMPLATE 18: OTOÑO ACOGEDOR */
+body.otono-acogedor { 
+    background: linear-gradient(135deg, #ff8c00 0%, #ff6347 25%, #cd853f 50%, #d2691e 100%);
+    background-size: 400% 400%;
+    animation: autumn 20s ease infinite;
+    font-family: 'Merriweather', serif;
+}
+@keyframes autumn {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+}
+.otono-acogedor .header h1 { 
+    color: #8b4513;
+    font-size: 38px;
+    text-shadow: 2px 2px 0 #ffa500;
+}
+.otono-acogedor .product { 
+    background: rgba(255,228,196,0.95);
+    border: 3px solid #d2691e;
+    border-radius: 15px;
+}
+.otono-acogedor .product-title { 
+    color: #a0522d;
+    font-weight: 700;
+}
+.otono-acogedor .product-price { 
+    color: #ff4500;
+    font-weight: 700;
+    text-shadow: 1px 1px 0 rgba(0,0,0,0.2);
+}
+
+/* TEMPLATE 19: RÚSTICO CAMPESTRE */
+body.rustico-campestre { 
+    background: #f4f1e8;
+    background-image: url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23d4b996' fill-opacity='0.1'%3E%3Cpath d='M20 20c0 11.046-8.954 20-20 20s-20-8.954-20-20 8.954-20 20-20 20 8.954 20 20zm-30 0c0 5.523 4.477 10 10 10s10-4.477 10-10-4.477-10-10-10-10 4.477-10 10z'/%3E%3C/g%3E%3C/svg%3E");
+    font-family: 'Cabin', sans-serif;
+}
+.rustico-campestre .header h1 { 
+    color: #6b4423;
+    font-size: 36px;
+    font-weight: 700;
+    border-bottom: 4px solid #8b4513;
+    display: inline-block;
+}
+.rustico-campestre .product { 
+    background: #fff;
+    border: 2px solid #d2b48c;
+    border-radius: 0;
+    box-shadow: 5px 5px 0 #deb887;
+}
+.rustico-campestre .product-title { 
+    color: #8b4513;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+.rustico-campestre .product-price { 
+    background: #8b4513;
+    color: #fff;
+    padding: 8px 16px;
+    font-weight: 700;
+}
+
+/* TEMPLATE 20: ARTESANAL BOHEMIO */
+body.artesanal-bohemio { 
+    background: #f7f3e9;
+    background-image: repeating-linear-gradient(45deg, transparent, transparent 35px, rgba(139,69,19,.1) 35px, rgba(139,69,19,.1) 70px);
+    font-family: 'Amatic SC', cursive;
+}
+.artesanal-bohemio .header h1 { 
+    color: #b8860b;
+    font-size: 48px;
+    font-weight: 700;
+    transform: rotate(-2deg);
+    text-shadow: 3px 3px 0 rgba(0,0,0,0.1);
+}
+.artesanal-bohemio .product { 
+    background: #fff;
+    border: 3px solid #daa520;
+    border-radius: 0 20px 0 20px;
+    position: relative;
+}
+.artesanal-bohemio .product:before {
+    content: "✦";
+    position: absolute;
+    top: -10px; right: -10px;
+    font-size: 24px;
+    color: #b8860b;
+}
+.artesanal-bohemio .product-title { 
+    color: #8b4513;
+    font-size: 32px;
+    font-weight: 700;
+}
+.artesanal-bohemio .product-price { 
+    color: #cd853f;
+    font-size: 28px;
+    font-weight: 700;
+}
+
+/* TEMPLATE 21: LUJO NEGRO Y ORO */
+body.lujo-negro-oro { 
+    background: #1a1a1a;
+    color: #f5f5f5;
+    font-family: 'Playfair Display', serif;
+}
+.lujo-negro-oro .header h1 { 
+    color: #ffd700;
+    font-size: 42px;
+    font-weight: 300;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+}
+.lujo-negro-oro .product { 
+    background: #2a2a2a;
+    border: 2px solid #ffd700;
+    box-shadow: 0 0 30px rgba(255, 215, 0, 0.2);
+}
+.lujo-negro-oro .product-title { 
+    color: #f5f5f5;
+    font-weight: 400;
+    font-size: 28px;
+}
+.lujo-negro-oro .product-price { 
+    background: linear-gradient(45deg, #ffd700, #ffed4e);
+    color: #1a1a1a;
+    padding: 10px 20px;
+    font-weight: 700;
+    display: inline-block;
+}
+
+/* TEMPLATE 22: MINIMALISTA GRIS */
+body.minimalista-gris { 
+    background: #f8f9fa;
+    font-family: 'Inter', sans-serif;
+    color: #495057;
+}
+.minimalista-gris .header h1 { 
+    color: #6c757d;
+    font-size: 32px;
+    font-weight: 200;
+    letter-spacing: 8px;
+    text-transform: uppercase;
+}
+.minimalista-gris .product { 
+    background: #fff;
+    border: 1px solid #e9ecef;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    border-radius: 2px;
+}
+.minimalista-gris .product-title { 
+    color: #343a40;
+    font-weight: 300;
+    font-size: 24px;
+}
+.minimalista-gris .product-price { 
+    color: #495057;
+    font-weight: 600;
+    font-size: 20px;
+}
+.minimalista-gris .product-desc { 
+    color: #6c757d;
+    font-weight: 300;
+}
+
+/* TEMPLATE 23: PRIMAVERA FLORAL */
+body.primavera-floral { 
+    background: linear-gradient(135deg, #fff0f5 0%, #f0fff0 50%, #f5fffa 100%);
+    font-family: 'Cormorant Garamond', serif;
+}
+.primavera-floral .header h1 { 
+    color: #ff69b4;
+    font-size: 40px;
+    font-weight: 300;
+    font-style: italic;
+}
+.primavera-floral .product { 
+    background: rgba(255,255,255,0.9);
+    border: 2px solid #ff69b4;
+    border-radius: 25px;
+    position: relative;
+}
+.primavera-floral .product:after {
+    content: "🌸";
+    position: absolute;
+    top: -15px; right: 20px;
+    font-size: 30px;
+}
+.primavera-floral .product-title { 
+    color: #db7093;
+    font-weight: 600;
+    font-style: italic;
+}
+.primavera-floral .product-price { 
+    color: #ff1493;
+    font-weight: 700;
+}
+
+/* TEMPLATE 24: CAFETERÍA ACOGEDORA */
+body.cafeteria-acogedora { 
+    background: #8b4513;
+    background-image: radial-gradient(circle, #a0522d 1px, transparent 1px);
+    background-size: 20px 20px;
+    font-family: 'Cabin', sans-serif;
+}
+.cafeteria-acogedora .header h1 { 
+    color: #f5deb3;
+    font-size: 38px;
+    font-weight: 600;
+    text-shadow: 2px 2px 0 #8b4513;
+}
+.cafeteria-acogedora .product { 
+    background: #f5deb3;
+    border: 3px solid #d2691e;
+    color: #8b4513;
+}
+.cafeteria-acogedora .product-title { 
+    color: #654321;
+    font-weight: 700;
+}
+.cafeteria-acogedora .product-price { 
+    background: #8b4513;
+    color: #f5deb3;
+    padding: 8px 16px;
+    font-weight: 700;
+    border-radius: 5px;
+    display: inline-block;
+}
+
+/* TEMPLATE 25: FITNESS VIBRANTE */
+body.fitness-vibrante { 
+    background: #000;
+    background-image: 
+        linear-gradient(45deg, #ff0080 25%, transparent 25%),
+        linear-gradient(-45deg, #00ff80 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #ff0080 75%),
+        linear-gradient(-45deg, transparent 75%, #00ff80 75%);
+    background-size: 30px 30px;
+    font-family: 'Oswald', sans-serif;
+    color: #fff;
+}
+.fitness-vibrante .header h1 { 
+    color: #ff0080;
+    font-size: 44px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    text-shadow: 0 0 20px #ff0080;
+}
+.fitness-vibrante .product { 
+    background: rgba(0,0,0,0.8);
+    border: 2px solid #00ff80;
+    box-shadow: 0 0 20px rgba(0, 255, 128, 0.3);
+}
+.fitness-vibrante .product-title { 
+    color: #00ff80;
+    text-transform: uppercase;
+    font-weight: 700;
+    letter-spacing: 2px;
+}
+.fitness-vibrante .product-price { 
+    background: linear-gradient(45deg, #ff0080, #ff0040);
+    color: #fff;
+    padding: 10px 20px;
+    font-weight: 700;
+    text-transform: uppercase;
+    border-radius: 0;
+    display: inline-block;
+}
+
+/* TEMPLATE 26: VIAJES AVENTUREROS */
+body.viajes-aventureros {
+    background: #fdf5e6;
+    font-family: 'Poppins', sans-serif;
+    background-image: url('https://www.transparenttextures.com/patterns/lined-paper-2.png');
+}
+.viajes-aventureros .header h1 {
+    color: #2e8b57;
+    font-size: 38px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    border-bottom: 3px solid #b0c4de;
+}
+.viajes-aventureros .product {
+    background: #fff;
+    border: 2px solid #8b4513;
+    box-shadow: 8px 8px 0 #b0c4de;
+    transform: rotate(1deg);
+}
+.viajes-aventureros .product:nth-child(even) { transform: rotate(-1deg); }
+.viajes-aventureros .product-title {
+    color: #8b4513;
+    font-weight: 600;
+}
+.viajes-aventureros .product-price {
+    color: #2e8b57;
+    font-weight: 700;
+}
+
+/* TEMPLATE 27: MÚSICA FESTIVA */
+body.musica-festiva {
+    background: #0d0d1e;
+    font-family: 'Bebas Neue', sans-serif;
+    background-image: url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0h20v20H0zM20 20h20v20H20z' fill='%232c2c54' fill-opacity='0.5' fill-rule='evenodd'/%3E%3C/svg%3E");
+}
+.musica-festiva .header h1 {
+    color: #ff00ff;
+    font-size: 48px;
+    text-transform: uppercase;
+    text-shadow: 0 0 10px #00ffff;
+    letter-spacing: 4px;
+}
+.musica-festiva .product {
+    background: rgba(44, 44, 84, 0.7);
+    border: 2px solid #00ffff;
+    border-radius: 15px;
+    box-shadow: 0 0 20px rgba(255, 0, 255, 0.3);
+}
+.musica-festiva .product-title {
+    color: #00ffff;
+    font-weight: 400;
+    letter-spacing: 1px;
+}
+.musica-festiva .product-price {
+    color: #ff00ff;
+    font-weight: 700;
+    font-size: 26px;
+}
+
+/* TEMPLATE 28: PROFESIONAL CORPORATIVO */
+body.profesional-corporativo {
+    background: #e9ecef;
+    font-family: 'Roboto', sans-serif;
+}
+.profesional-corporativo .header h1 {
+    color: #2c3e50;
+    font-size: 36px;
+    font-weight: 300;
+    border-bottom: 2px solid #3498db;
+    display: inline-block;
+}
+.profesional-corporativo .product {
+    background: #fff;
+    border: 1px solid #dee2e6;
+    border-left: 5px solid #3498db;
+    border-radius: 0;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+.profesional-corporativo .product-title {
+    color: #2c3e50;
+    font-weight: 500;
+}
+.profesional-corporativo .product-price {
+    color: #e74c3c;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+/* TEMPLATE 29: GALÁCTICO ESPACIAL */
+body.galactico-espacial {
+    background: #0d0f21;
+    font-family: 'Space Mono', monospace;
+    color: #e6f3ff;
+    background-image: url('https://www.transparenttextures.com/patterns/stardust.png');
+}
+.galactico-espacial .header h1 {
+    color: #8a2be2;
+    font-size: 40px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 5px;
+    text-shadow: 0 0 15px rgba(138, 43, 226, 0.5);
+}
+.galactico-espacial .product {
+    background: rgba(30, 144, 255, 0.2);
+    border: 1px solid #1e90ff;
+    box-shadow: 0 0 20px rgba(30, 144, 255, 0.3);
+    backdrop-filter: blur(5px);
+}
+.galactico-espacial .product-title {
+    color: #fff;
+    font-weight: 400;
+    text-shadow: 0 0 5px rgba(255,255,255,0.5);
+}
+.galactico-espacial .product-price {
+    color: #ff69b4;
+    font-weight: 700;
+}
+
+/* TEMPLATE 30: ROMÁNTICO VINTAGE */
+body.romantico-vintage {
+    background: #fff8f5;
+    font-family: 'Great Vibes', cursive;
+}
+.romantico-vintage .header h1 {
+    color: #d8bfd8;
+    font-size: 48px;
+    font-weight: 400;
+    font-style: italic;
+    letter-spacing: 2px;
+    border-bottom: 1px dashed #e6e6fa;
+    display: inline-block;
+}
+.romantico-vintage .product {
+    background: #fff;
+    border: 2px solid #e6e6fa;
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(224,255,255,0.5);
+}
+.romantico-vintage .product-title {
+    color: #cd5c5c;
+    font-weight: 400;
+    font-size: 30px;
+}
+.romantico-vintage .product-price {
+    color: #d8bfd8;
+    font-weight: 700;
+    font-size: 26px;
+}
