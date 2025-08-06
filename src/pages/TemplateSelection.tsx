@@ -11,11 +11,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
 import { createCatalog } from '@/lib/catalogService';
 import { getFreeTemplates, getPremiumTemplates, getTemplateById, TemplateConfig } from '@/lib/templates';
-import '@/styles/template-styles.css'; // ✅ RE-IMPORTAMOS EL CSS
+import '@/styles/template-styles.css';
 
-// ✅ FIX 1: Interface corregida
 interface LocationState {
-  products?: any[];        // ✅ CAMBIO: selectedProducts → products
+  products?: any[];
   businessInfo?: any;
   skipProcessing?: boolean;
 }
@@ -109,20 +108,18 @@ const TemplateSelection = () => {
     return () => document.head.removeChild(styleElement);
   }, []);
 
-  // ✅ FIX 2: useEffect corregido con debugging
   useEffect(() => {
     console.log('🔍 TemplateSelection montado');
     console.log('🔍 location.state recibido:', state);
     console.log('🔍 state?.products:', state?.products);
     console.log('🔍 state?.businessInfo:', state?.businessInfo);
 
-    if (state?.products) {           // ✅ CAMBIO: selectedProducts → products
+    if (state?.products) {
       console.log('✅ Productos encontrados:', state.products.length, 'productos');
-      setSelectedProducts(state.products);  // ✅ CAMBIO: selectedProducts → products
+      setSelectedProducts(state.products);
     } else {
       console.log('❌ No hay productos en state, redirigiendo a /products');
       console.log('❌ Estructura completa del state:', JSON.stringify(state, null, 2));
-      // If no products selected, redirect to products page
       navigate('/products');
       return;
     }
@@ -209,7 +206,7 @@ const TemplateSelection = () => {
               height: '100%', 
               transform: 'scale(0.4)', 
               transformOrigin: 'top left',
-              width: '250%'  // Compensar el scale para que se vea completo
+              width: '250%'
             }}
           >
             {/* ✅ MINI CATÁLOGO CON ESTILOS REALES */}
@@ -294,55 +291,6 @@ const TemplateSelection = () => {
         </CardContent>
       </Card>
     );
-
-        <CardContent className="p-4">
-          <div className="flex justify-between items-start mb-3">
-            <div className="flex-1 min-w-0 pr-2"> {/* ✅ Prevenir overflow */}
-              <h3 className="font-semibold text-lg truncate">{template.displayName}</h3>
-              <p className="text-sm text-gray-600 mb-2 line-clamp-2">{template.description}</p>
-            </div>
-            {template.isPremium && (
-              <Badge variant="outline" className="bg-gradient-to-r from-purple-500 to-pink-500 text-white border-none shrink-0">
-                <Crown className="w-3 h-3 mr-1" />
-                Premium
-              </Badge>
-            )}
-          </div>
-
-          {/* ✅ SPECS EN GRID PARA MEJOR LAYOUT */}
-          <div className="text-xs text-gray-500 mb-4 grid grid-cols-2 gap-1">
-            <div>• {template.productsPerPage} por página</div>
-            <div>• Diseño {template.layout}</div>
-            <div>• {template.colors.primary}</div>
-            <div>• {template.category}</div>
-          </div>
-
-          <Button
-            onClick={() => handleTemplateSelect(template.id)}
-            disabled={isLocked || creating}
-            className="w-full"
-            variant={isLocked ? "outline" : "default"}
-          >
-            {isCreating ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Creando...
-              </>
-            ) : isLocked ? (
-              <>
-                <Crown className="w-4 h-4 mr-2" />
-                Requiere Premium
-              </>
-            ) : (
-              <>
-                <Check className="w-4 h-4 mr-2" />
-                Usar Template
-              </>
-            )}
-          </Button>
-        </CardContent>
-      </Card>
-    );
   };
 
   if (loading) {
@@ -371,11 +319,11 @@ const TemplateSelection = () => {
               <div className="flex items-center space-x-4">
                 <Button 
                   variant="ghost" 
-                  onClick={() => navigate('/image-review')} // ✅ CAMBIO: Volver a image-review en lugar de products
+                  onClick={() => navigate('/image-review')}
                   className="flex items-center space-x-2"
                 >
                   <ArrowLeft className="w-4 h-4" />
-                  <span>Volver a Biblioteca</span> {/* ✅ CAMBIO: Texto más específico */}
+                  <span>Volver a Biblioteca</span>
                 </Button>
                 <div>
                   <h1 className="text-2xl font-bold">Seleccionar Template</h1>
