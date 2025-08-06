@@ -28,7 +28,6 @@ interface SavedProduct {
   id: string;
   name: string;
   processed_image_url: string;
-  processed_images: any;
   processed_at: string;
   credits_used: number;
   api_used?: string;
@@ -71,14 +70,22 @@ const ImageReview = () => {
     try {
       const { data, error } = await supabase
         .from('products')
-        .select('id, name, processed_image_url, processed_images, processed_at, credits_used')
+        .select('id, name, processed_image_url, processed_at, credits_used')
         .eq('user_id', user.id)
         .eq('is_processed', true)
         .order('processed_at', { ascending: false });
 
       if (error) throw error;
 
-      setSavedImages(data || []);
+      const savedProducts: SavedProduct[] = (data || []).map(item => ({
+        id: item.id,
+        name: item.name,
+        processed_image_url: item.processed_image_url || '',
+        processed_at: item.processed_at || '',
+        credits_used: item.credits_used || 0
+      }));
+
+      setSavedImages(savedProducts);
     } catch (error) {
       console.error('Error fetching saved images:', error);
       toast({
@@ -179,16 +186,6 @@ const ImageReview = () => {
             .from('products')
             .update({
               processed_image_url: uploadedUrls.catalog,
-              processed_images: {
-                thumbnail: uploadedUrls.thumbnail,
-                catalog: uploadedUrls.catalog,
-                luxury: uploadedUrls.luxury,
-                print: uploadedUrls.print,
-                api_used: image.api_used,
-                processed_at: new Date().toISOString(),
-                credits_used: image.credits_estimated,
-                cost_mxn: image.cost_mxn
-              },
               processing_status: 'completed',
               is_processed: true,
               processed_at: new Date().toISOString(),
@@ -202,12 +199,6 @@ const ImageReview = () => {
           savedProducts.push({
             ...originalProduct,
             processed_image_url: uploadedUrls.catalog,
-            processed_images: {
-              thumbnail: uploadedUrls.thumbnail,
-              catalog: uploadedUrls.catalog,
-              luxury: uploadedUrls.luxury,
-              print: uploadedUrls.print
-            },
             processing_status: 'completed',
             is_processed: true
           });
