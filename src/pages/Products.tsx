@@ -283,57 +283,58 @@ const Products = () => {
   };
 
   // Procesar solo imágenes
-  const processSelectedImages = async () => {
-    const analysis = analyzeSelection();
-    
-    if (analysis.unprocessedProducts.length === 0) {
-      toast({
-        title: "Error",
-        description: "Todos los productos seleccionados ya están procesados",
-        variant: "destructive",
-      });
-      return;
-    }
 
-    if (!hasBusinessInfo) {
-      sonnerToast.info('Primero configura la información de tu negocio');
-      navigate('/business-info');
-      return;
-    }
+    const processSelectedImages = async () => {
+      const analysis = analyzeSelection();
+      
+      if (analysis.unprocessedProducts.length === 0) {
+        toast({
+          title: "Error",
+          description: "Todos los productos seleccionados ya están procesados",
+          variant: "destructive",
+        });
+        return;
+      }
     
-    try {
-      sonnerToast.loading('Procesando imágenes...', { id: 'processing-images' });
-      
-      const result = await processImagesOnly(analysis.unprocessedProducts, businessInfo);
-      
-      if (result.success) {
-        sonnerToast.success('¡Imágenes procesadas!', { 
-          id: 'processing-images',
-          description: 'Revisa los resultados y selecciona cuáles guardar.'
-        });
-        
-        // Navegar a página de revisión
-        navigate('/image-review', { 
-          state: { 
-            processedImages: result.processed_images,
-            originalProducts: analysis.unprocessedProducts,
-            alreadyProcessedProducts: analysis.processedProducts,
-            businessInfo: businessInfo
-          }
-        });
-        
-      } else {
-        throw new Error(result.error || 'Error desconocido');
+      if (!hasBusinessInfo) {
+        sonnerToast.info('Primero configura la información de tu negocio');
+        navigate('/business-info');
+        return;
       }
       
-    } catch (error) {
-      console.error('Error processing images:', error);
-      sonnerToast.error('No se pudieron procesar las imágenes', { 
-        id: 'processing-images',
-        description: 'Inténtalo de nuevo más tarde.'
-      });
-    }
-  };
+      try {
+        sonnerToast.loading('Procesando imágenes...', { id: 'processing-images' });
+        
+        const result = await processImagesOnly(analysis.unprocessedProducts, businessInfo);
+        
+        if (result.success) {
+          sonnerToast.success('¡Imágenes procesadas!', { 
+            id: 'processing-images',
+            description: 'Revisa los resultados y selecciona cuáles guardar.'
+          });
+          
+          // ✅ FIX: Navegar con nombres correctos
+          navigate('/image-review', { 
+            state: { 
+              processedImages: result.processed_images,
+              selectedProducts: analysis.unprocessedProducts, // ✅ CAMBIO: originalProducts → selectedProducts
+              alreadyProcessedProducts: analysis.processedProducts,
+              businessInfo: businessInfo
+            }
+          });
+          
+        } else {
+          throw new Error(result.error || 'Error desconocido');
+        }
+        
+      } catch (error) {
+        console.error('Error processing images:', error);
+        sonnerToast.error('No se pudieron procesar las imágenes', { 
+          id: 'processing-images',
+          description: 'Inténtalo de nuevo más tarde.'
+        });
+      }
+    };
 
   // Para productos ya procesados
   const createCatalogFromSelection = async () => {
