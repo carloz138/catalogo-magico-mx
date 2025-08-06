@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
@@ -14,8 +13,11 @@ import { createCatalog } from '@/lib/catalogService';
 import { getFreeTemplates, getPremiumTemplates, getTemplateById, TemplateConfig } from '@/lib/templates';
 import '@/styles/template-styles.css';
 
+// ✅ FIX 1: Interface corregida
 interface LocationState {
-  selectedProducts?: any[];
+  products?: any[];        // ✅ CAMBIO: selectedProducts → products
+  businessInfo?: any;
+  skipProcessing?: boolean;
 }
 
 const TemplateSelection = () => {
@@ -32,10 +34,19 @@ const TemplateSelection = () => {
 
   const state = location.state as LocationState;
 
+  // ✅ FIX 2: useEffect corregido con debugging
   useEffect(() => {
-    if (state?.selectedProducts) {
-      setSelectedProducts(state.selectedProducts);
+    console.log('🔍 TemplateSelection montado');
+    console.log('🔍 location.state recibido:', state);
+    console.log('🔍 state?.products:', state?.products);
+    console.log('🔍 state?.businessInfo:', state?.businessInfo);
+
+    if (state?.products) {           // ✅ CAMBIO: selectedProducts → products
+      console.log('✅ Productos encontrados:', state.products.length, 'productos');
+      setSelectedProducts(state.products);  // ✅ CAMBIO: selectedProducts → products
     } else {
+      console.log('❌ No hay productos en state, redirigiendo a /products');
+      console.log('❌ Estructura completa del state:', JSON.stringify(state, null, 2));
       // If no products selected, redirect to products page
       navigate('/products');
       return;
@@ -56,6 +67,7 @@ const TemplateSelection = () => {
 
       if (!error && data?.plan_type) {
         setUserPlan(data.plan_type);
+        console.log('✅ Plan de usuario:', data.plan_type);
       }
     } catch (error) {
       console.error('Error fetching user plan:', error);
@@ -78,6 +90,9 @@ const TemplateSelection = () => {
     setSelectedTemplate(templateId);
 
     try {
+      console.log('🎨 Creando catálogo con template:', templateId);
+      console.log('🎨 Productos:', selectedProducts.length);
+      
       const result = await createCatalog(selectedProducts, businessInfo, templateId);
       
       if (result.success) {
@@ -86,6 +101,7 @@ const TemplateSelection = () => {
           description: "Tu catálogo está siendo creado. Te notificaremos cuando esté listo.",
         });
         
+        console.log('✅ Catálogo creado, navegando a /catalogs');
         navigate('/catalogs');
       } else {
         throw new Error(result.error || 'Error al crear el catálogo');
@@ -209,11 +225,11 @@ const TemplateSelection = () => {
               <div className="flex items-center space-x-4">
                 <Button 
                   variant="ghost" 
-                  onClick={() => navigate('/products')}
+                  onClick={() => navigate('/image-review')} // ✅ CAMBIO: Volver a image-review en lugar de products
                   className="flex items-center space-x-2"
                 >
                   <ArrowLeft className="w-4 h-4" />
-                  <span>Volver a Productos</span>
+                  <span>Volver a Biblioteca</span> {/* ✅ CAMBIO: Texto más específico */}
                 </Button>
                 <div>
                   <h1 className="text-2xl font-bold">Seleccionar Template</h1>
@@ -237,6 +253,16 @@ const TemplateSelection = () => {
         </header>
         
         <main className="max-w-7xl mx-auto px-4 py-6">
+          {/* ✅ DEBUG INFO - Solo para desarrollo */}
+          {process.env.NODE_ENV === 'development' && (
+            <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <h3 className="font-semibold text-blue-800 mb-2">Debug Info:</h3>
+              <p className="text-sm text-blue-700">Productos recibidos: {selectedProducts.length}</p>
+              <p className="text-sm text-blue-700">Plan usuario: {userPlan}</p>
+              <p className="text-sm text-blue-700">Business info: {businessInfo ? '✅' : '❌'}</p>
+            </div>
+          )}
+
           {/* Free Templates Section */}
           <section className="mb-12">
             <div className="flex items-center justify-between mb-6">
