@@ -210,25 +210,37 @@ const ImageReview = () => {
     }
   };
 
-  useEffect(() => {
-    const initializeComponent = async () => {
-      setIsLoading(true);
-      await fetchSavedImages();
-
-      if (state?.processedImages && state?.selectedProducts) {
-        setPendingImages(state.processedImages);
-        setSelectedProducts(state.selectedProducts);
-        
-        const allIds = new Set(state.processedImages.map(img => img.product_id));
-        setSelectedImageIds(allIds);
-        setActiveTab('pending');
-      }
-
-      setIsLoading(false);
-    };
-
-    initializeComponent();
-  }, [state, user]);
+      // ✅ DEBUGGING TEMPORAL - línea 210
+    useEffect(() => {
+      const initializeComponent = async () => {
+        setIsLoading(true);
+        await fetchSavedImages();
+    
+        // ✅ DEBUG: Log del state recibido
+        console.log('🔍 ImageReview recibió state:', state);
+        console.log('🔍 processedImages:', state?.processedImages);
+        console.log('🔍 selectedProducts:', state?.selectedProducts);
+    
+        if (state?.processedImages && state?.selectedProducts) {
+          console.log('✅ Datos válidos, inicializando pending images');
+          setPendingImages(state.processedImages);
+          setSelectedProducts(state.selectedProducts);
+          
+          const allIds = new Set(state.processedImages.map(img => img.product_id));
+          setSelectedImageIds(allIds);
+          setActiveTab('pending');
+        } else {
+          console.log('❌ Faltan datos en state:', {
+            hasProcessedImages: !!state?.processedImages,
+            hasSelectedProducts: !!state?.selectedProducts
+          });
+        }
+    
+        setIsLoading(false);
+      };
+    
+      initializeComponent();
+    }, [state, user]);
 
   // ✅ FUNCIÓN 1: Solo guardar imágenes
   const saveImagesOnly = async () => {
