@@ -1,25 +1,7 @@
 
-import React from 'react';
-import { Document, Page, Text, View, Image, StyleSheet, Font, pdf } from '@react-pdf/renderer';
 import { getTemplateById, TemplateConfig } from '@/lib/templates';
 
-// ✅ REGISTRAR FONTS PERSONALIZADAS
-Font.register({
-  family: 'Inter',
-  src: 'https://fonts.gstatic.com/s/inter/v12/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyeMZhrib2Bg-4.woff2'
-});
-
-Font.register({
-  family: 'Playfair Display',
-  src: 'https://fonts.gstatic.com/s/playfairdisplay/v22/nuFiD-vYSZviVYUb_rj3ij__anPXBYf9pzDTwBH7.woff2'
-});
-
-Font.register({
-  family: 'Roboto',
-  src: 'https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxKKTU1Kg.woff2'
-});
-
-// ✅ INTERFACES
+// ✅ INTERFACES LIMPIAS
 interface PDFProduct {
   id: string;
   name: string;
@@ -39,36 +21,96 @@ interface BusinessInfo {
   address?: string;
 }
 
-// ✅ FUNCIÓN PRINCIPAL: Generar PDF
+// ✅ FUNCIÓN PRINCIPAL: Generar PDF con jsPDF + html2canvas
 export const generateCatalogPDF = async (
   products: PDFProduct[],
   businessInfo: BusinessInfo,
   templateId: string
 ): Promise<{ success: boolean; blob?: Blob; error?: string }> => {
   try {
-    console.log('🎨 Generando PDF con React-PDF');
-    console.log('🎨 Template:', templateId);
-    console.log('🎨 Productos:', products.length);
+    console.log('🎨 Iniciando generación PDF frontend');
+    console.log(`🎨 Template: ${templateId}`);
+    console.log(`🎨 Productos: ${products.length}`);
     
     const template = getTemplateById(templateId);
     if (!template) {
       throw new Error(`Template ${templateId} no encontrado`);
     }
 
-    // ✅ CREAR DOCUMENTO REACT-PDF
-    const CatalogDocument = React.createElement(CatalogPDFDocument, {
-      products,
-      businessInfo,
-      template
+    // ✅ CARGAR LIBRERÍAS DINÁMICAMENTE
+    await loadPDFLibraries();
+    
+    // ✅ CREAR HTML DEL CATÁLOGO
+    const catalogHTML = generateCatalogHTML(products, businessInfo, template);
+    
+    // ✅ CREAR CONTENEDOR TEMPORAL
+    const tempContainer = document.createElement('div');
+    tempContainer.style.position = 'absolute';
+    tempContainer.style.top = '-9999px';
+    tempContainer.style.left = '-9999px';
+    tempContainer.style.width = '794px'; // A4 width
+    tempContainer.style.background = '#ffffff';
+    tempContainer.innerHTML = catalogHTML;
+    document.body.appendChild(tempContainer);
+
+    // ✅ ESPERAR A QUE LAS IMÁGENES CARGUEN
+    await waitForImages(tempContainer);
+
+    // ✅ INICIALIZAR JSPDF
+    const { jsPDF } = (window as any);
+    if (!jsPDF) {
+      throw new Error('jsPDF no disponible');
+    }
+
+    const pdf = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: 'a4',
+      compress: true
     });
 
-    // ✅ GENERAR BLOB PDF
-    console.log('🔄 Generando blob PDF...');
-    const blob = await pdf(CatalogDocument).toBlob();
+    // ✅ PROCESAR CADA PÁGINA
+    const pages = tempContainer.querySelectorAll('.pdf-page');
+    console.log(`📄 Procesando ${pages.length} páginas`);
+
+    for (let i = 0; i < pages.length; i++) {
+      if (i > 0) pdf.addPage();
+      
+      const pageElement = pages[i] as HTMLElement;
+      console.log(`🔄 Capturando página ${i + 1}/${pages.length}`);
+      
+      // ✅ USAR html2canvas DISPONIBLE EN LOVABLE
+      const { html2canvas } = (window as any);
+      if (!html2canvas) {
+        throw new Error('html2canvas no disponible');
+      }
+
+      const canvas = await html2canvas(pageElement, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: false,
+        backgroundColor: template.colors.background,
+        logging: false,
+        width: 794,
+        height: 1123
+      });
+      
+      // ✅ AGREGAR AL PDF
+      const imgData = canvas.toDataURL('image/png', 0.95);
+      pdf.addImage(imgData, 'PNG', 0, 0, 210, 297, '', 'FAST');
+    }
+
+    // ✅ CLEANUP
+    document.body.removeChild(tempContainer);
+
+    // ✅ GENERAR BLOB
+    const pdfOutput = pdf.output('arraybuffer');
+    const blob = new Blob([pdfOutput], { type: 'application/pdf' });
     
     console.log('✅ PDF generado exitosamente:', {
       size: `${(blob.size / 1024 / 1024).toFixed(2)} MB`,
-      pages: Math.ceil(products.length / template.productsPerPage)
+      pages: pages.length,
+      template: templateId
     });
 
     return {
@@ -80,436 +122,427 @@ export const generateCatalogPDF = async (
     console.error('❌ Error generando PDF:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Error desconocido generando PDF'
+      error: error instanceof Error ? error.message : 'Error generando PDF'
     };
   }
 };
 
-// ✅ COMPONENTE PRINCIPAL DEL DOCUMENTO PDF
-const CatalogPDFDocument: React.FC<{
-  products: PDFProduct[];
-  businessInfo: BusinessInfo;
-  template: TemplateConfig;
-}> = ({ products, businessInfo, template }) => {
-  // ✅ CALCULAR PÁGINAS
+// ✅ FUNCIÓN: Cargar librerías PDF dinámicamente
+const loadPDFLibraries = async (): Promise<void> => {
+  // Verificar si ya están cargadas
+  if ((window as any).jsPDF && (window as any).html2canvas) {
+    return;
+  }
+
+  return new Promise((resolve, reject) => {
+    // ✅ CARGAR JSPDF
+    const jspdfScript = document.createElement('script');
+    jspdfScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+    jspdfScript.onload = () => {
+      // ✅ CARGAR HTML2CANVAS
+      const html2canvasScript = document.createElement('script');
+      html2canvasScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+      html2canvasScript.onload = () => {
+        console.log('✅ Librerías PDF cargadas');
+        resolve();
+      };
+      html2canvasScript.onerror = () => reject(new Error('Error cargando html2canvas'));
+      document.head.appendChild(html2canvasScript);
+    };
+    jspdfScript.onerror = () => reject(new Error('Error cargando jsPDF'));
+    document.head.appendChild(jspdfScript);
+  });
+};
+
+// ✅ FUNCIÓN: Esperar a que todas las imágenes carguen
+const waitForImages = async (container: HTMLElement): Promise<void> => {
+  const images = container.querySelectorAll('img');
+  const promises = Array.from(images).map(img => {
+    return new Promise<void>((resolve) => {
+      if (img.complete && img.naturalWidth > 0) {
+        resolve();
+      } else {
+        img.onload = () => resolve();
+        img.onerror = () => resolve(); // Continue even if image fails
+        // Timeout after 5 seconds
+        setTimeout(() => resolve(), 5000);
+      }
+    });
+  });
+  
+  await Promise.all(promises);
+  console.log(`✅ ${images.length} imágenes cargadas`);
+};
+
+// ✅ FUNCIÓN: Generar HTML como string (sin JSX)
+const generateCatalogHTML = (
+  products: PDFProduct[],
+  businessInfo: BusinessInfo,
+  template: TemplateConfig
+): string => {
+  
+  // ✅ DIVIDIR EN PÁGINAS
   const productsPerPage = template.productsPerPage;
   const totalPages = Math.ceil(products.length / productsPerPage);
   const pages = [];
-
-  // ✅ DIVIDIR PRODUCTOS EN PÁGINAS
-  for (let i = 0; i < totalPages; i++) {
-    const startIndex = i * productsPerPage;
-    const endIndex = startIndex + productsPerPage;
-    const pageProducts = products.slice(startIndex, endIndex);
-    pages.push(pageProducts);
+  
+  for (let i = 0; i < products.length; i += productsPerPage) {
+    pages.push(products.slice(i, i + productsPerPage));
   }
 
-  console.log(`📄 Generando ${totalPages} páginas con ${productsPerPage} productos c/u`);
+  console.log(`📄 Generando ${totalPages} páginas HTML`);
 
-  return (
-    <Document>
-      {pages.map((pageProducts, pageIndex) => (
-        <CatalogPage
-          key={pageIndex}
-          products={pageProducts}
-          businessInfo={businessInfo}
-          template={template}
-          pageNumber={pageIndex + 1}
-          totalPages={totalPages}
+  // ✅ GENERAR CSS
+  const css = generateTemplateCSS(template);
+  
+  // ✅ GENERAR PÁGINAS
+  const pagesHTML = pages.map((pageProducts, pageIndex) => 
+    generatePageHTML(pageProducts, businessInfo, template, pageIndex + 1, totalPages)
+  ).join('');
+
+  return `
+    <style>${css}</style>
+    <div class="catalog-container">
+      ${pagesHTML}
+    </div>
+  `;
+};
+
+// ✅ FUNCIÓN: HTML de una página
+const generatePageHTML = (
+  products: PDFProduct[],
+  businessInfo: BusinessInfo,
+  template: TemplateConfig,
+  pageNumber: number,
+  totalPages: number
+): string => {
+  
+  const productsHTML = products.map(product => `
+    <div class="product-card">
+      <div class="product-image-container">
+        <img 
+          src="${product.image_url}" 
+          alt="${escapeHtml(product.name)}"
+          class="product-image"
+          crossorigin="anonymous"
         />
-      ))}
-    </Document>
-  );
+      </div>
+      <div class="product-info">
+        <h3 class="product-name">${escapeHtml(product.name)}</h3>
+        ${product.category ? `<p class="product-category">${escapeHtml(product.category)}</p>` : ''}
+        <div class="product-price">$${((product.price_retail || 0) / 100).toFixed(2)} MXN</div>
+        ${product.description ? `<p class="product-description">${escapeHtml(product.description)}</p>` : ''}
+      </div>
+    </div>
+  `).join('');
+
+  return `
+    <div class="pdf-page template-${template.id}">
+      <!-- HEADER -->
+      <div class="page-header">
+        <div class="business-section">
+          ${businessInfo.logo_url ? `<img src="${businessInfo.logo_url}" class="business-logo" alt="Logo" crossorigin="anonymous" />` : ''}
+          <div class="business-info">
+            <h1 class="business-name">${escapeHtml(businessInfo.business_name)}</h1>
+            ${businessInfo.phone ? `<p class="contact-info">📞 ${escapeHtml(businessInfo.phone)}</p>` : ''}
+            ${businessInfo.email ? `<p class="contact-info">✉️ ${escapeHtml(businessInfo.email)}</p>` : ''}
+          </div>
+        </div>
+        <div class="catalog-header">
+          <h2 class="catalog-title">CATÁLOGO DE PRODUCTOS</h2>
+          <p class="template-subtitle">${template.displayName}</p>
+        </div>
+      </div>
+
+      <!-- PRODUCTOS -->
+      <div class="products-container layout-${template.layout}">
+        ${productsHTML}
+      </div>
+
+      <!-- FOOTER -->
+      <div class="page-footer">
+        <div class="footer-content">
+          <span class="page-number">Página ${pageNumber} de ${totalPages}</span>
+          <span class="separator">•</span>
+          <span class="generator">Generado con Catalgo AI</span>
+          <span class="separator">•</span>
+          <span class="date">${new Date().toLocaleDateString('es-MX')}</span>
+        </div>
+        ${businessInfo.address ? `<p class="address">${escapeHtml(businessInfo.address)}</p>` : ''}
+      </div>
+    </div>
+  `;
 };
 
-// ✅ COMPONENTE DE PÁGINA PDF
-const CatalogPage: React.FC<{
-  products: PDFProduct[];
-  businessInfo: BusinessInfo;
-  template: TemplateConfig;
-  pageNumber: number;
-  totalPages: number;
-}> = ({ products, businessInfo, template, pageNumber, totalPages }) => {
+// ✅ FUNCIÓN: CSS específico por template
+const generateTemplateCSS = (template: TemplateConfig): string => {
   
-  // ✅ ESTILOS ESPECÍFICOS POR TEMPLATE
-  const styles = getTemplateStyles(template);
-
-  return (
-    <Page size="A4" style={styles.page}>
-      {/* ✅ HEADER CON LOGO Y EMPRESA */}
-      <View style={styles.header}>
-        {businessInfo.logo_url && (
-          <Image 
-            src={businessInfo.logo_url} 
-            style={styles.logo}
-          />
-        )}
-        <View style={styles.headerText}>
-          <Text style={styles.businessName}>{businessInfo.business_name}</Text>
-          {businessInfo.phone && (
-            <Text style={styles.contactInfo}>📞 {businessInfo.phone}</Text>
-          )}
-          {businessInfo.email && (
-            <Text style={styles.contactInfo}>✉️ {businessInfo.email}</Text>
-          )}
-        </View>
-      </View>
-
-      {/* ✅ TÍTULO DEL CATÁLOGO */}
-      <View style={styles.titleSection}>
-        <Text style={styles.catalogTitle}>CATÁLOGO DE PRODUCTOS</Text>
-        <Text style={styles.templateName}>{template.displayName}</Text>
-      </View>
-
-      {/* ✅ GRID DE PRODUCTOS DINÁMICO */}
-      <View style={styles.productsGrid}>
-        {products.map((product, index) => (
-          <ProductCard
-            key={product.id}
-            product={product}
-            template={template}
-            styles={styles}
-            index={index}
-          />
-        ))}
-      </View>
-
-      {/* ✅ FOOTER CON PAGINACIÓN */}
-      <View style={styles.footer} fixed>
-        <Text style={styles.pageNumber}>
-          Página {pageNumber} de {totalPages}
-        </Text>
-        <Text style={styles.footerText}>
-          Generado con Catalgo AI • {new Date().toLocaleDateString('es-MX')}
-        </Text>
-        {businessInfo.address && (
-          <Text style={styles.address}>{businessInfo.address}</Text>
-        )}
-      </View>
-    </Page>
-  );
-};
-
-// ✅ COMPONENTE DE PRODUCTO
-const ProductCard: React.FC<{
-  product: PDFProduct;
-  template: TemplateConfig;
-  styles: any;
-  index: number;
-}> = ({ product, template, styles, index }) => {
+  const imageSize = Math.min(template.imageSize.width, template.imageSize.height) * 0.6;
   
-  return (
-    <View style={styles.productCard}>
-      {/* ✅ IMAGEN PNG CON TRANSPARENCIA */}
-      <View style={styles.imageContainer}>
-        <Image
-          src={product.image_url}
-          style={styles.productImage}
-        />
-      </View>
-
-      {/* ✅ INFO DEL PRODUCTO */}
-      <View style={styles.productInfo}>
-        <Text style={styles.productName}>{product.name}</Text>
-        
-        {product.category && (
-          <Text style={styles.productCategory}>{product.category}</Text>
-        )}
-        
-        {product.price_retail && (
-          <Text style={styles.productPrice}>
-            ${(product.price_retail / 100).toFixed(2)} MXN
-          </Text>
-        )}
-        
-        {product.description && (
-          <Text style={styles.productDescription}>
-            {product.description}
-          </Text>
-        )}
-      </View>
-    </View>
-  );
-};
-
-// ✅ FUNCIÓN: Estilos dinámicos por template
-const getTemplateStyles = (template: TemplateConfig) => {
-  
-  // ✅ ESTILOS BASE
-  const baseStyles = StyleSheet.create({
-    page: {
-      flexDirection: 'column',
-      backgroundColor: template.colors.background,
-      padding: 30,
-      fontFamily: 'Inter'
-    },
-    header: {
-      flexDirection: 'row',
-      marginBottom: 30,
-      paddingBottom: 20,
-      borderBottomWidth: 2,
-      borderBottomColor: template.colors.primary,
-      alignItems: 'center'
-    },
-    logo: {
-      width: 60,
-      height: 60,
-      marginRight: 20
-    },
-    headerText: {
-      flex: 1
-    },
-    businessName: {
-      fontSize: 24,
-      fontWeight: 'bold',
-      color: template.colors.primary,
-      marginBottom: 5
-    },
-    contactInfo: {
-      fontSize: 10,
-      color: template.colors.text,
-      marginBottom: 2
-    },
-    titleSection: {
-      alignItems: 'center',
-      marginBottom: 30
-    },
-    catalogTitle: {
-      fontSize: 20,
-      fontWeight: 'bold',
-      color: template.colors.primary,
-      marginBottom: 5,
-      letterSpacing: 2
-    },
-    templateName: {
-      fontSize: 12,
-      color: template.colors.secondary,
-      textTransform: 'uppercase'
-    },
-    footer: {
-      position: 'absolute',
-      bottom: 20,
-      left: 30,
-      right: 30,
-      textAlign: 'center',
-      borderTopWidth: 1,
-      borderTopColor: template.colors.secondary,
-      paddingTop: 10
-    },
-    pageNumber: {
-      fontSize: 10,
-      color: template.colors.text,
-      marginBottom: 5
-    },
-    footerText: {
-      fontSize: 8,
-      color: template.colors.secondary,
-      marginBottom: 3
-    },
-    address: {
-      fontSize: 8,
-      color: template.colors.text
+  return `
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@300;400;600;700&display=swap');
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
     }
-  });
-
-  // ✅ ESTILOS ESPECÍFICOS POR LAYOUT
-  const layoutStyles = getLayoutStyles(template);
-  
-  return { ...baseStyles, ...layoutStyles };
+    
+    .catalog-container {
+      font-family: 'Inter', sans-serif;
+    }
+    
+    .pdf-page {
+      width: 794px;
+      height: 1123px;
+      background: ${template.colors.background};
+      color: ${template.colors.text};
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      padding: 40px;
+      page-break-after: always;
+    }
+    
+    .page-header {
+      margin-bottom: 40px;
+      padding-bottom: 20px;
+      border-bottom: 2px solid ${template.colors.primary};
+    }
+    
+    .business-section {
+      display: flex;
+      align-items: center;
+      margin-bottom: 25px;
+    }
+    
+    .business-logo {
+      width: 60px;
+      height: 60px;
+      object-fit: contain;
+      margin-right: 20px;
+    }
+    
+    .business-name {
+      font-size: 28px;
+      font-weight: 600;
+      color: ${template.colors.primary};
+      margin: 0 0 8px 0;
+    }
+    
+    .contact-info {
+      font-size: 12px;
+      color: ${template.colors.text};
+      margin: 2px 0;
+    }
+    
+    .catalog-header {
+      text-align: center;
+    }
+    
+    .catalog-title {
+      font-size: 24px;
+      font-weight: 700;
+      color: ${template.colors.primary};
+      letter-spacing: 3px;
+      margin: 0 0 8px 0;
+    }
+    
+    .template-subtitle {
+      font-size: 14px;
+      color: ${template.colors.secondary};
+      text-transform: uppercase;
+      margin: 0;
+    }
+    
+    .products-container {
+      flex: 1;
+      margin-bottom: 40px;
+    }
+    
+    .page-footer {
+      border-top: 1px solid ${template.colors.secondary};
+      padding-top: 15px;
+      text-align: center;
+    }
+    
+    .footer-content {
+      font-size: 11px;
+      color: ${template.colors.text};
+      margin-bottom: 8px;
+    }
+    
+    .separator {
+      margin: 0 8px;
+      color: ${template.colors.secondary};
+    }
+    
+    .address {
+      font-size: 10px;
+      color: ${template.colors.secondary};
+      margin: 0;
+    }
+    
+    .product-image {
+      width: ${imageSize}px;
+      height: ${imageSize}px;
+      object-fit: contain;
+      border-radius: 8px;
+    }
+    
+    .product-name {
+      font-weight: 600;
+      color: ${template.colors.text};
+      margin-bottom: 8px;
+    }
+    
+    .product-category {
+      font-size: 11px;
+      color: ${template.colors.secondary};
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    
+    .product-price {
+      font-weight: 700;
+      color: ${template.colors.primary};
+      margin-bottom: 10px;
+    }
+    
+    .product-description {
+      font-size: 10px;
+      color: ${template.colors.text};
+      line-height: 1.4;
+    }
+    
+    /* ✅ LAYOUTS ESPECÍFICOS */
+    .layout-grid {
+      display: grid;
+      grid-template-columns: repeat(${template.productsPerPage <= 2 ? 2 : template.productsPerPage <= 4 ? 2 : 3}, 1fr);
+      gap: 20px;
+    }
+    
+    .layout-grid .product-card {
+      background: #ffffff;
+      border: 1px solid ${template.colors.secondary};
+      border-radius: 10px;
+      padding: 20px;
+      text-align: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    
+    .layout-list .product-card {
+      display: flex;
+      align-items: center;
+      background: #ffffff;
+      margin-bottom: 20px;
+      padding: 25px;
+      border-radius: 10px;
+      border-left: 5px solid ${template.colors.primary};
+      box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+    }
+    
+    .layout-list .product-image-container {
+      margin-right: 25px;
+      flex-shrink: 0;
+    }
+    
+    .layout-list .product-info {
+      flex: 1;
+    }
+    
+    .layout-magazine .product-card {
+      background: #ffffff;
+      margin-bottom: 25px;
+      padding: 25px;
+      border-radius: 15px;
+      text-align: center;
+      border: 2px solid ${template.colors.secondary};
+      position: relative;
+    }
+    
+    /* ✅ TEMPLATE ESPECÍFICOS */
+    .template-minimalista-gris {
+      font-family: 'Inter', sans-serif;
+    }
+    
+    .template-profesional-corporativo {
+      font-family: 'Roboto', sans-serif;
+      background: #e9ecef !important;
+    }
+    
+    .template-profesional-corporativo .product-card {
+      border-left: 5px solid #3498db !important;
+    }
+    
+    .template-lujo-negro-oro {
+      font-family: 'Playfair Display', serif;
+      background: #1a1a1a !important;
+      color: #f5f5f5 !important;
+    }
+    
+    .template-lujo-negro-oro .business-name {
+      color: #ffd700 !important;
+      letter-spacing: 4px !important;
+    }
+    
+    .template-lujo-negro-oro .product-card {
+      background: #2a2a2a !important;
+      border: 2px solid #ffd700 !important;
+    }
+    
+    .template-lujo-negro-oro .product-price {
+      background: linear-gradient(45deg, #ffd700, #ffed4e) !important;
+      color: #1a1a1a !important;
+      padding: 10px 15px !important;
+      border-radius: 5px !important;
+      display: inline-block !important;
+    }
+    
+    .template-naturaleza-organico {
+      background: #f1f8e9 !important;
+    }
+    
+    .template-naturaleza-organico .product-card {
+      background: #e8f5e9 !important;
+      border-radius: 0 20px !important;
+    }
+    
+    .template-rustico-campestre {
+      background: #f4f1e8 !important;
+    }
+    
+    .template-rustico-campestre .product-card {
+      background: #fff !important;
+      border: 2px solid #d2b48c !important;
+      box-shadow: 5px 5px 0 #deb887 !important;
+    }
+    
+    .template-rustico-campestre .product-name {
+      color: #8b4513 !important;
+      text-transform: uppercase !important;
+    }
+    
+    .template-rustico-campestre .product-price {
+      background: #8b4513 !important;
+      color: #fff !important;
+      padding: 8px 12px !important;
+      border-radius: 4px !important;
+      display: inline-block !important;
+    }
+  `;
 };
 
-// ✅ FUNCIÓN: Estilos por layout (grid, list, magazine)
-const getLayoutStyles = (template: TemplateConfig) => {
-  
-  const imageWidth = template.imageSize.width * 0.75; // Ajuste para PDF
-  const imageHeight = template.imageSize.height * 0.75;
-  
-  switch (template.layout) {
-    case 'grid':
-      return StyleSheet.create({
-        productsGrid: {
-          flexDirection: 'row',
-          flexWrap: 'wrap',
-          justifyContent: 'space-between',
-          marginBottom: 40
-        },
-        productCard: {
-          width: template.productsPerPage === 2 ? '48%' : 
-                 template.productsPerPage === 3 ? '31%' :
-                 template.productsPerPage === 4 ? '23%' : '18%',
-          marginBottom: 25,
-          backgroundColor: '#FFFFFF',
-          borderRadius: 8,
-          padding: 15,
-          borderWidth: 1,
-          borderColor: template.colors.secondary
-        },
-        imageContainer: {
-          alignItems: 'center',
-          marginBottom: 10
-        },
-        productImage: {
-          width: imageWidth,
-          height: imageHeight,
-          objectFit: 'contain'
-        },
-        productInfo: {
-          alignItems: 'center'
-        },
-        productName: {
-          fontSize: 14,
-          fontWeight: 'bold',
-          color: template.colors.text,
-          marginBottom: 5,
-          textAlign: 'center'
-        },
-        productCategory: {
-          fontSize: 10,
-          color: template.colors.secondary,
-          marginBottom: 5,
-          textTransform: 'uppercase'
-        },
-        productPrice: {
-          fontSize: 16,
-          fontWeight: 'bold',
-          color: template.colors.primary,
-          marginBottom: 8
-        },
-        productDescription: {
-          fontSize: 9,
-          color: template.colors.text,
-          textAlign: 'center',
-          lineHeight: 1.3
-        }
-      });
-
-    case 'list':
-      return StyleSheet.create({
-        productsGrid: {
-          flexDirection: 'column',
-          marginBottom: 40
-        },
-        productCard: {
-          flexDirection: 'row',
-          marginBottom: 20,
-          backgroundColor: '#FFFFFF',
-          padding: 20,
-          borderRadius: 10,
-          borderLeftWidth: 5,
-          borderLeftColor: template.colors.primary
-        },
-        imageContainer: {
-          marginRight: 20
-        },
-        productImage: {
-          width: imageWidth * 0.8,
-          height: imageHeight * 0.8,
-          objectFit: 'contain'
-        },
-        productInfo: {
-          flex: 1,
-          justifyContent: 'center'
-        },
-        productName: {
-          fontSize: 18,
-          fontWeight: 'bold',
-          color: template.colors.text,
-          marginBottom: 8
-        },
-        productCategory: {
-          fontSize: 12,
-          color: template.colors.secondary,
-          marginBottom: 5,
-          textTransform: 'uppercase'
-        },
-        productPrice: {
-          fontSize: 20,
-          fontWeight: 'bold',
-          color: template.colors.primary,
-          marginBottom: 10
-        },
-        productDescription: {
-          fontSize: 11,
-          color: template.colors.text,
-          lineHeight: 1.4
-        }
-      });
-
-    case 'magazine':
-      return StyleSheet.create({
-        productsGrid: {
-          flexDirection: 'column',
-          marginBottom: 40
-        },
-        productCard: {
-          marginBottom: 30,
-          backgroundColor: '#FFFFFF',
-          borderRadius: 15,
-          padding: 25,
-          borderWidth: 2,
-          borderColor: template.colors.secondary
-        },
-        imageContainer: {
-          alignItems: 'center',
-          marginBottom: 15
-        },
-        productImage: {
-          width: imageWidth * 1.2,
-          height: imageHeight * 1.2,
-          objectFit: 'contain'
-        },
-        productInfo: {
-          alignItems: 'center'
-        },
-        productName: {
-          fontSize: 20,
-          fontWeight: 'bold',
-          color: template.colors.text,
-          marginBottom: 10,
-          textAlign: 'center'
-        },
-        productCategory: {
-          fontSize: 14,
-          color: template.colors.secondary,
-          marginBottom: 8,
-          textTransform: 'uppercase',
-          letterSpacing: 1
-        },
-        productPrice: {
-          fontSize: 24,
-          fontWeight: 'bold',
-          color: template.colors.primary,
-          marginBottom: 12
-        },
-        productDescription: {
-          fontSize: 12,
-          color: template.colors.text,
-          textAlign: 'center',
-          lineHeight: 1.5
-        }
-      });
-
-    default:
-      return getLayoutStyles({ ...template, layout: 'grid' });
-  }
+// ✅ FUNCIÓN: Escape HTML para seguridad
+const escapeHtml = (text: string): string => {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
 };
 
-// ✅ FUNCIÓN: Estilos específicos por template ID
-export const getTemplateSpecificStyles = (templateId: string) => {
-  const baseFont = templateId.includes('lujo') || templateId.includes('elegante') 
-    ? 'Playfair Display' 
-    : templateId.includes('profesional') || templateId.includes('corporativo')
-    ? 'Roboto'
-    : 'Inter';
-
-  return {
-    fontFamily: baseFont,
-    // Estilos específicos por template pueden ir aquí
-    specialEffects: templateId.includes('halloween') || templateId.includes('fiesta')
-  };
-};
-
-// ✅ FUNCIÓN: Descargar PDF generado
+// ✅ FUNCIÓN: Descargar PDF inmediatamente
 export const downloadCatalogPDF = async (
   products: PDFProduct[],
   businessInfo: BusinessInfo,
@@ -517,87 +550,108 @@ export const downloadCatalogPDF = async (
   filename?: string
 ): Promise<{ success: boolean; error?: string }> => {
   try {
-    console.log('📄 Iniciando descarga de PDF...');
+    console.log('📄 Iniciando descarga directa...');
     
     const result = await generateCatalogPDF(products, businessInfo, templateId);
     
     if (!result.success || !result.blob) {
-      throw new Error(result.error || 'No se pudo generar el PDF');
+      throw new Error(result.error || 'Error generando PDF');
     }
 
-    // ✅ CREAR URL Y DESCARGAR
+    // ✅ DESCARGAR
     const url = URL.createObjectURL(result.blob);
     const link = document.createElement('a');
     link.href = url;
     link.download = filename || `catalogo-${templateId}-${Date.now()}.pdf`;
     
-    // ✅ TRIGGER DOWNLOAD
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     
-    // ✅ CLEANUP
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
     
-    console.log('✅ Descarga iniciada exitosamente');
-    
+    console.log('✅ Descarga iniciada');
     return { success: true };
 
   } catch (error) {
     console.error('❌ Error en descarga:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Error descargando PDF'
+      error: error instanceof Error ? error.message : 'Error descargando'
     };
   }
 };
 
-// ✅ FUNCIÓN: Preview del PDF (para mostrar antes de descargar)
-export const generatePreviewPDF = async (
+// ✅ FUNCIÓN: Preview en nueva tab
+export const previewCatalogPDF = async (
   products: PDFProduct[],
   businessInfo: BusinessInfo,
   templateId: string
-): Promise<{ success: boolean; url?: string; error?: string }> => {
+): Promise<{ success: boolean; error?: string }> => {
   try {
     const result = await generateCatalogPDF(products, businessInfo, templateId);
     
     if (!result.success || !result.blob) {
-      throw new Error(result.error || 'No se pudo generar preview');
+      throw new Error(result.error || 'Error generando preview');
     }
 
-    // ✅ CREAR URL PARA PREVIEW
     const url = URL.createObjectURL(result.blob);
+    window.open(url, '_blank');
     
-    return {
-      success: true,
-      url: url
-    };
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+    return { success: true };
 
   } catch (error) {
-    console.error('❌ Error generando preview:', error);
+    console.error('❌ Error en preview:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Error generando preview'
+      error: error instanceof Error ? error.message : 'Error en preview'
     };
   }
 };
 
-// ✅ FUNCIÓN: Estadísticas del PDF a generar
-export const getPDFStats = (products: PDFProduct[], template: TemplateConfig) => {
+// ✅ FUNCIÓN: Estadísticas del PDF
+export const getPDFEstimates = (products: PDFProduct[], template: TemplateConfig) => {
   const totalPages = Math.ceil(products.length / template.productsPerPage);
-  const avgImagesPerPage = products.length / totalPages;
-  const estimatedFileSize = (products.length * 0.8) + 2; // MB estimado
+  const estimatedSize = Math.max(1, (products.length * 0.4) + 0.5);
+  const estimatedTime = Math.max(2, products.length * 0.15);
 
   return {
     totalProducts: products.length,
     totalPages,
-    avgImagesPerPage: Math.round(avgImagesPerPage * 10) / 10,
     productsPerPage: template.productsPerPage,
-    estimatedFileSize: `${estimatedFileSize.toFixed(1)} MB`,
+    estimatedSize: `${estimatedSize.toFixed(1)} MB`,
+    estimatedTime: `${Math.ceil(estimatedTime)} seg`,
+    instantGeneration: true,
+    noCreditsCost: true,
     templateInfo: {
       name: template.displayName,
       layout: template.layout,
-      category: template.category
+      category: template.category,
+      imageSize: `${template.imageSize.width}×${template.imageSize.height}px`
     }
+  };
+};
+
+// ✅ FUNCIÓN: Validar productos antes de generar
+export const validateProductsForPDF = (products: any[]): { valid: boolean; errors: string[] } => {
+  const errors: string[] = [];
+  
+  if (!products || products.length === 0) {
+    errors.push('No hay productos seleccionados');
+  }
+  
+  products.forEach((product, index) => {
+    if (!product.name) {
+      errors.push(`Producto ${index + 1}: Sin nombre`);
+    }
+    if (!product.image_url && !product.original_image_url) {
+      errors.push(`Producto ${index + 1}: Sin imagen`);
+    }
+  });
+  
+  return {
+    valid: errors.length === 0,
+    errors
   };
 };
