@@ -1,4 +1,4 @@
-// 🔧 CÓDIGO COMPLETO CON DEBUGGING Y FIX DEFINITIVO
+// 🔧 ARCHIVO COMPLETO CORREGIDO - utils/imageProcessing.ts
 
 export const downloadImageFromUrl = async (url: string): Promise<Blob> => {
   try {
@@ -91,7 +91,7 @@ export const resizeImage = (blob: Blob, maxWidth: number, maxHeight: number, qua
         }
       } else {
         if (height > maxHeight) {
-          width = (width * maxHeight) / height;
+          width = (width * maxWidth) / height;
           height = maxHeight;
         }
       }
