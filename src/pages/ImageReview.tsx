@@ -29,7 +29,7 @@ interface SavedProduct {
   created_at: string;
   category: string;
   price_retail: number;
-  processed_at?: string; // ✅ Nueva propiedad para ordenamiento
+  processed_at?: string;
 }
 
 interface LocationState {
@@ -45,7 +45,7 @@ interface ImageDownloadProgress {
   };
 }
 
-// ✅ FUNCIONES DE UTILIDAD (antes importadas de utils)
+// ✅ FUNCIONES DE UTILIDAD OPTIMIZADAS PARA PNG
 const downloadImageFromUrl = async (url: string): Promise<Blob> => {
   try {
     const response = await fetch(url, {
@@ -64,7 +64,8 @@ const downloadImageFromUrl = async (url: string): Promise<Blob> => {
   }
 };
 
-const resizeImage = (blob: Blob, maxWidth: number, maxHeight: number, quality = 0.85): Promise<Blob> => {
+// ✅ FUNCIÓN ACTUALIZADA: resizeImage ahora usa PNG para preservar transparencia
+const resizeImage = (blob: Blob, maxWidth: number, maxHeight: number): Promise<Blob> => {
   return new Promise((resolve, reject) => {
     const img = new Image();
     const canvas = document.createElement('canvas');
@@ -78,6 +79,7 @@ const resizeImage = (blob: Blob, maxWidth: number, maxHeight: number, quality = 
     img.onload = () => {
       let { width, height } = img;
       
+      // ✅ Mantener aspect ratio
       if (width > height) {
         if (width > maxWidth) {
           height = (height * maxWidth) / width;
@@ -92,9 +94,15 @@ const resizeImage = (blob: Blob, maxWidth: number, maxHeight: number, quality = 
 
       canvas.width = width;
       canvas.height = height;
+      
+      // ✅ IMPORTANTE: No llenar fondo para preservar transparencia
+      // ctx.fillStyle = 'white'; // ❌ NO hacer esto
+      // ctx.fillRect(0, 0, width, height); // ❌ NO hacer esto
+      
       ctx.drawImage(img, 0, 0, width, height);
       
-      canvas.toBlob(resolve, 'image/jpeg', quality);
+      // ✅ CAMBIO CRÍTICO: PNG en lugar de JPEG para preservar transparencia
+      canvas.toBlob(resolve, 'image/png'); // ✅ PNG preserva transparencia
     };
 
     img.onerror = () => reject(new Error('Failed to load image for resizing'));
@@ -102,6 +110,7 @@ const resizeImage = (blob: Blob, maxWidth: number, maxHeight: number, quality = 
   });
 };
 
+// ✅ FUNCIÓN ACTUALIZADA: uploadImageToSupabase ahora usa PNG
 const uploadImageToSupabase = async (
   supabaseClient: any,
   productId: string, 
@@ -111,11 +120,12 @@ const uploadImageToSupabase = async (
   const timestamp = Date.now();
   const baseFilename = `${timestamp}_${productId}`;
   
+  // ✅ CREAR MÚLTIPLES TAMAÑOS EN PNG
   const [thumbnailBlob, catalogBlob, luxuryBlob, printBlob] = await Promise.all([
-    resizeImage(originalBlob, 300, 300, 0.8),
-    resizeImage(originalBlob, 800, 800, 0.85),
-    resizeImage(originalBlob, 1200, 1200, 0.9),
-    resizeImage(originalBlob, 2400, 2400, 0.95)
+    resizeImage(originalBlob, 300, 300),    // Thumbnail: 300x300
+    resizeImage(originalBlob, 800, 800),    // Catalog: 800x800  
+    resizeImage(originalBlob, 1200, 1200),  // Luxury: 1200x1200
+    resizeImage(originalBlob, 2400, 2400)   // Print: 2400x2400 (alta resolución)
   ]);
 
   const sizes = [
@@ -128,12 +138,13 @@ const uploadImageToSupabase = async (
   const uploadedUrls: any = {};
 
   for (const { blob, suffix, size } of sizes) {
-    const fileName = `${baseFilename}_${suffix}.jpg`;
+    // ✅ CAMBIO CRÍTICO: Usar extensión .png
+    const fileName = `${baseFilename}_${suffix}.png`;
     
     const { data, error } = await supabaseClient.storage
       .from('processed-images')
       .upload(fileName, blob, {
-        contentType: 'image/jpeg',
+        contentType: 'image/png', // ✅ PNG content type
         upsert: false
       });
 
@@ -169,12 +180,11 @@ const ImageReview = () => {
 
   const state = location.state as LocationState;
 
-  // ✅ FIX 3 y 4: Función mejorada para obtener imágenes guardadas
+  // ✅ Función mejorada para obtener imágenes guardadas
   const fetchSavedImages = async () => {
     if (!user) return;
 
     try {
-      // ✅ Agregamos más columnas para image_url procesada y ordenamiento
       const { data, error } = await (supabase as any)
         .from('products')
         .select(`
@@ -190,7 +200,7 @@ const ImageReview = () => {
         `)
         .eq('user_id', user.id)
         .eq('processing_status', 'completed')
-        .order('updated_at', { ascending: false }); // ✅ FIX 3: Ordenar por updated_at (fecha de procesamiento)
+        .order('updated_at', { ascending: false });
 
       if (error) {
         console.warn('Error fetching saved images (might be expected if columns missing):', error);
@@ -201,7 +211,7 @@ const ImageReview = () => {
       const savedProducts: SavedProduct[] = (data || []).map((item: any) => ({
         id: item.id || '',
         name: item.name || 'Producto sin nombre',
-        // ✅ FIX 4: Usar image_url procesada si existe, sino original_image_url como fallback
+        // ✅ Usar image_url procesada (ahora en PNG) como prioritaria
         image_url: item.image_url || item.original_image_url || '',
         created_at: item.created_at || '',
         category: item.category || 'Sin categoría',
@@ -210,7 +220,7 @@ const ImageReview = () => {
       }));
 
       setSavedImages(savedProducts);
-      console.log('✅ Fetched saved images:', savedProducts.length, 'products');
+      console.log('✅ Fetched saved images (PNG format):', savedProducts.length, 'products');
     } catch (error) {
       console.error('Error fetching saved images:', error);
       setSavedImages([]);
@@ -238,7 +248,7 @@ const ImageReview = () => {
     initializeComponent();
   }, [state, user]);
 
-  // ✅ FIX 1: FUNCIÓN 1 CORREGIDA - Solo guardar y QUEDARSE en ImageReview
+  // ✅ FUNCIÓN 1: Solo guardar y QUEDARSE en ImageReview
   const saveImagesOnly = async () => {
     if (selectedImageIds.size === 0) {
       toast({
@@ -259,16 +269,19 @@ const ImageReview = () => {
         
         setOverallProgress(((completedImages + 0.5) / selectedImages.length) * 100);
         
+        console.log(`🖼️ Procesando imagen ${completedImages + 1}/${selectedImages.length} como PNG`);
+        
         const imageBlob = await downloadImageFromUrl(image.processed_url);
-        const uploadedUrls = await uploadImageToSupabase(supabase, productId, imageBlob, `processed_${productId}.jpg`);
+        // ✅ uploadImageToSupabase ahora genera múltiples tamaños en PNG
+        const uploadedUrls = await uploadImageToSupabase(supabase, productId, imageBlob, `processed_${productId}.png`);
 
-        // ✅ FIX 4: Guardar URL procesada en la BD
+        // ✅ Guardar URL procesada en PNG
         await (supabase as any)
           .from('products')
           .update({
             processing_status: 'completed',
-            image_url: uploadedUrls.catalog, // ✅ Guardar URL procesada
-            updated_at: new Date().toISOString() // ✅ FIX 3: Actualizar timestamp
+            image_url: uploadedUrls.catalog, // ✅ URL de imagen PNG con transparencia
+            updated_at: new Date().toISOString()
           })
           .eq('id', productId);
 
@@ -277,30 +290,29 @@ const ImageReview = () => {
       }
 
       toast({
-        title: "🎉 ¡Imágenes guardadas!",
-        description: `${completedImages} imágenes ya están en tu biblioteca permanente`,
+        title: "🎉 ¡Imágenes guardadas en PNG!",
+        description: `${completedImages} imágenes con transparencia guardadas en tu biblioteca`,
         variant: "default"
       });
 
-      // ✅ FIX 1: Quedarse en ImageReview y cambiar a tab "saved"
-      await fetchSavedImages(); // Refrescar guardadas
-      setPendingImages(prev => prev.filter(img => !selectedImageIds.has(img.product_id))); // Limpiar pending
-      setSelectedImageIds(new Set()); // Limpiar selección
-      setActiveTab('saved'); // ✅ Cambiar a tab guardadas
+      // ✅ Refrescar y cambiar a tab guardadas
+      await fetchSavedImages();
+      setPendingImages(prev => prev.filter(img => !selectedImageIds.has(img.product_id)));
+      setSelectedImageIds(new Set());
+      setActiveTab('saved');
 
-      // ✅ Toast adicional para guiar al usuario
       setTimeout(() => {
         toast({
-          title: "💡 Tip",
-          description: "Ahora puedes seleccionar imágenes guardadas para crear catálogos",
+          title: "💡 PNG con transparencia",
+          description: "Tus imágenes mantienen fondos transparentes para mejores catálogos",
           variant: "default"
         });
       }, 1500);
 
     } catch (error) {
-      console.error('Error saving images:', error);
+      console.error('Error saving PNG images:', error);
       toast({
-        title: "Error al guardar",
+        title: "Error al guardar PNG",
         description: "Algo salió mal. Inténtalo de nuevo",
         variant: "destructive"
       });
@@ -310,7 +322,7 @@ const ImageReview = () => {
     }
   };
 
-  // ✅ FIX 2: FUNCIÓN 2 CORREGIDA - Guardar y IR A template-selection
+  // ✅ FUNCIÓN 2: Guardar y IR A template-selection
   const saveAndGenerateCatalog = async () => {
     if (selectedImageIds.size === 0) {
       toast({
@@ -332,23 +344,26 @@ const ImageReview = () => {
         
         setOverallProgress(((i + 0.5) / selectedImages.length) * 100);
         
+        console.log(`🖼️ Guardando imagen ${i + 1}/${selectedImages.length} como PNG con transparencia`);
+        
         const imageBlob = await downloadImageFromUrl(image.processed_url);
-        const uploadedUrls = await uploadImageToSupabase(supabase, productId, imageBlob, `processed_${productId}.jpg`);
+        // ✅ uploadImageToSupabase ahora crea múltiples tamaños en PNG
+        const uploadedUrls = await uploadImageToSupabase(supabase, productId, imageBlob, `processed_${productId}.png`);
         const originalProduct = selectedProducts.find(p => p.id === productId);
 
-        // ✅ FIX 4: Guardar URL procesada
+        // ✅ Guardar URL procesada en PNG
         await (supabase as any)
           .from('products')
           .update({
             processing_status: 'completed',
-            image_url: uploadedUrls.catalog, // ✅ Guardar URL procesada
-            updated_at: new Date().toISOString() // ✅ FIX 3: Timestamp
+            image_url: uploadedUrls.catalog, // ✅ PNG con transparencia para catalogo
+            updated_at: new Date().toISOString()
           })
           .eq('id', productId);
 
         savedProducts.push({
           ...originalProduct,
-          image_url: uploadedUrls.catalog, // ✅ Usar URL procesada para template
+          image_url: uploadedUrls.catalog, // ✅ PNG optimizada para templates
           processing_status: 'completed'
         });
         
@@ -356,12 +371,12 @@ const ImageReview = () => {
       }
 
       toast({
-        title: "🚀 ¡Listo para crear!",
-        description: `${savedProducts.length} imágenes guardadas. Elige tu template`,
+        title: "🚀 ¡PNG listas para templates!",
+        description: `${savedProducts.length} imágenes con transparencia optimizadas`,
         variant: "default"
       });
 
-      // ✅ FIX 2: IR A template-selection (mantener navegación correcta)
+      // ✅ Navegar a template-selection con productos PNG
       navigate('/template-selection', {
         state: { 
           products: savedProducts,
@@ -371,9 +386,9 @@ const ImageReview = () => {
       });
 
     } catch (error) {
-      console.error('Error saving and generating catalog:', error);
+      console.error('Error saving PNG and generating catalog:', error);
       toast({
-        title: "Error al procesar",
+        title: "Error al procesar PNG",
         description: "Algo salió mal. Revisa tu conexión e inténtalo de nuevo",
         variant: "destructive"
       });
@@ -383,15 +398,14 @@ const ImageReview = () => {
     }
   };
 
-  // ✅ FUNCIÓN 3: Generar catálogo desde guardadas - CON DEBUGGING
+  // ✅ FUNCIÓN 3: Generar catálogo desde guardadas PNG
   const generateCatalogFromSaved = async () => {
-    console.log('🔍 generateCatalogFromSaved iniciado');
+    console.log('🔍 generateCatalogFromSaved iniciado con PNG');
     console.log('🔍 selectedSavedIds:', selectedSavedIds);
-    console.log('🔍 selectedSavedIds.size:', selectedSavedIds.size);
 
     if (selectedSavedIds.size === 0) {
       toast({
-        title: "Selecciona imágenes",
+        title: "Selecciona imágenes PNG",
         description: "Marca las imágenes que quieras incluir en tu catálogo",
         variant: "destructive"
       });
@@ -399,10 +413,9 @@ const ImageReview = () => {
     }
 
     const selectedSavedProducts = savedImages.filter(img => selectedSavedIds.has(img.id));
-    console.log('🔍 selectedSavedProducts:', selectedSavedProducts);
-    console.log('🔍 businessInfo:', businessInfo);
+    console.log('🔍 selectedSavedProducts (PNG):', selectedSavedProducts);
 
-    // ✅ VALIDACIONES ADICIONALES
+    // ✅ VALIDACIONES
     if (!businessInfo) {
       console.error('❌ No hay businessInfo');
       toast({
@@ -414,7 +427,7 @@ const ImageReview = () => {
     }
 
     if (selectedSavedProducts.length === 0) {
-      console.error('❌ No se encontraron productos seleccionados');
+      console.error('❌ No se encontraron productos PNG seleccionados');
       toast({
         title: "Error",
         description: "No se pudieron obtener los productos seleccionados",
@@ -423,11 +436,12 @@ const ImageReview = () => {
       return;
     }
 
-    // ✅ LOG ANTES DE NAVEGAR
-    console.log('🚀 Navegando a /template-selection con state:', {
+    // ✅ LOG DE NAVEGACIÓN CON PNG
+    console.log('🚀 Navegando con productos PNG:', {
       products: selectedSavedProducts,
       businessInfo: businessInfo,
-      skipProcessing: true 
+      skipProcessing: true,
+      imageFormat: 'PNG'
     });
 
     try {
@@ -438,18 +452,17 @@ const ImageReview = () => {
           skipProcessing: true 
         }
       });
-      console.log('✅ Navegación ejecutada correctamente');
-      console.log('🚀 URL actual después de navigate:', window.location.pathname);
+      
+      console.log('✅ Navegación con PNG ejecutada correctamente');
 
-      // ✅ TOAST DE CONFIRMACIÓN
       toast({
-        title: "🎨 Selecciona tu template",
-        description: `${selectedSavedProducts.length} productos listos para el catálogo`,
+        title: "🎨 PNG listas para templates",
+        description: `${selectedSavedProducts.length} imágenes con transparencia seleccionadas`,
         variant: "default"
       });
 
     } catch (error) {
-      console.error('❌ Error en navegación:', error);
+      console.error('❌ Error en navegación PNG:', error);
       toast({
         title: "Error de navegación",
         description: "No se pudo acceder a la selección de templates",
@@ -486,8 +499,8 @@ const ImageReview = () => {
     const allIds = new Set(pendingImages.map(img => img.product_id));
     setSelectedImageIds(allIds);
     toast({
-      title: "Todas seleccionadas",
-      description: `${allIds.size} imágenes temporales seleccionadas`,
+      title: "Todas las PNG seleccionadas",
+      description: `${allIds.size} imágenes temporales con transparencia`,
       variant: "default"
     });
   };
@@ -496,8 +509,8 @@ const ImageReview = () => {
     const allIds = new Set(savedImages.map(img => img.id));
     setSelectedSavedIds(allIds);
     toast({
-      title: "Todas seleccionadas", 
-      description: `${allIds.size} imágenes guardadas seleccionadas`,
+      title: "Todas las PNG seleccionadas", 
+      description: `${allIds.size} imágenes guardadas con transparencia`,
       variant: "default"
     });
   };
@@ -547,8 +560,8 @@ const ImageReview = () => {
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center p-4">
         <div className="text-center max-w-sm">
           <div className="w-12 h-12 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-6"></div>
-          <h3 className="text-lg font-semibold text-gray-800 mb-2">Cargando biblioteca</h3>
-          <p className="text-gray-600 text-sm">Preparando tus imágenes...</p>
+          <h3 className="text-lg font-semibold text-gray-800 mb-2">Cargando biblioteca PNG</h3>
+          <p className="text-gray-600 text-sm">Preparando imágenes con transparencia...</p>
         </div>
       </div>
     );
@@ -556,7 +569,7 @@ const ImageReview = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-      {/* ✅ HEADER OPTIMIZADO - Responsive y sticky */}
+      {/* ✅ HEADER OPTIMIZADO */}
       <header className="bg-white/90 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-6">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -572,14 +585,14 @@ const ImageReview = () => {
                 <span className="sm:hidden">Volver</span>
               </Button>
               <div className="min-w-0">
-                <h1 className="text-xl sm:text-2xl font-bold text-gray-900 truncate">Biblioteca de Imágenes</h1>
+                <h1 className="text-xl sm:text-2xl font-bold text-gray-900 truncate">Biblioteca PNG</h1>
                 <p className="text-gray-600 text-sm hidden sm:block">
-                  Gestiona tus imágenes procesadas y crea catálogos
+                  Imágenes con transparencia para catálogos profesionales
                 </p>
               </div>
             </div>
             
-            {/* ✅ CONTROLES MÓVILES OPTIMIZADOS */}
+            {/* ✅ CONTROLES MÓVILES */}
             {((activeTab === 'pending' && pendingImages.length > 0) || 
               (activeTab === 'saved' && savedImages.length > 0)) && (
               <div className="flex items-center space-x-2 w-full sm:w-auto">
@@ -609,25 +622,25 @@ const ImageReview = () => {
             )}
           </div>
           
-          {/* ✅ PROGRESS BAR MEJORADO */}
+          {/* ✅ PROGRESS BAR MEJORADO PARA PNG */}
           {isSaving && (
             <div className="mt-4 bg-white rounded-lg p-4 border shadow-sm">
               <div className="flex justify-between items-center text-sm text-gray-700 mb-3">
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></div>
-                  <span className="font-medium">Procesando imágenes</span>
+                  <span className="font-medium">Guardando en formato PNG</span>
                 </div>
                 <span className="font-semibold text-orange-600">{Math.round(overallProgress)}%</span>
               </div>
               <Progress value={overallProgress} className="w-full h-2" />
-              <p className="text-xs text-gray-500 mt-2">Guardando en alta calidad...</p>
+              <p className="text-xs text-gray-500 mt-2">Preservando transparencia en múltiples resoluciones...</p>
             </div>
           )}
         </div>
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-6 pb-32">
-        {/* ✅ TABS MÓVILES OPTIMIZADOS */}
+        {/* ✅ TABS OPTIMIZADOS */}
         <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'pending' | 'saved')}>
           <TabsList className="grid w-full max-w-md grid-cols-2 mb-6 h-12 mx-auto sm:mx-0">
             <TabsTrigger value="pending" className="flex items-center gap-2 text-sm">
@@ -640,8 +653,8 @@ const ImageReview = () => {
             </TabsTrigger>
             <TabsTrigger value="saved" className="flex items-center gap-2 text-sm">
               <Bookmark className="w-4 h-4" />
-              <span className="hidden sm:inline">Guardadas</span>
-              <span className="sm:hidden">Guardadas</span>
+              <span className="hidden sm:inline">PNG Guardadas</span>
+              <span className="sm:hidden">PNG</span>
               <span className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full">
                 {savedImages.length}
               </span>
@@ -659,7 +672,7 @@ const ImageReview = () => {
                     Sin imágenes pendientes
                   </h3>
                   <p className="text-gray-600 mb-6 text-sm leading-relaxed">
-                    Las imágenes que proceses aparecerán aquí para tu revisión antes de guardarlas
+                    Las imágenes procesadas (con fondo removido) aparecerán aquí para confirmar y guardar como PNG
                   </p>
                   <div className="flex flex-col sm:flex-row gap-3 justify-center">
                     <Button 
@@ -668,7 +681,7 @@ const ImageReview = () => {
                       className="flex items-center gap-2"
                     >
                       <Bookmark className="w-4 h-4" />
-                      Ver guardadas
+                      Ver PNG guardadas
                     </Button>
                     <Button 
                       onClick={() => navigate('/products')}
@@ -702,7 +715,7 @@ const ImageReview = () => {
                     >
                       <CardContent className="p-0">
                         <div className="aspect-square relative overflow-hidden">
-                          {/* ✅ IMAGEN PRINCIPAL - Con lazy loading y fallback */}
+                          {/* ✅ IMAGEN CON TRANSPARENCIA */}
                           <img
                             src={image.processed_url}
                             alt={image.product_name}
@@ -714,7 +727,7 @@ const ImageReview = () => {
                             onLoadStart={() => handleImageStart(image.product_id)}
                             onLoad={() => handleImageLoad(image.product_id)}
                             onError={(e) => {
-                              console.error('Failed to load processed image:', image.processed_url);
+                              console.error('Failed to load processed PNG:', image.processed_url);
                               (e.target as HTMLImageElement).src = image.original_url;
                             }}
                           />
@@ -726,7 +739,7 @@ const ImageReview = () => {
                             </div>
                           )}
                           
-                          {/* ✅ CHECKBOX MEJORADO - Más touch-friendly */}
+                          {/* ✅ CHECKBOX */}
                           <div className="absolute top-3 left-3">
                             <div className={`
                               w-6 h-6 rounded-full flex items-center justify-center transition-all
@@ -739,11 +752,11 @@ const ImageReview = () => {
                             </div>
                           </div>
                           
-                          {/* ✅ STATUS BADGE MEJORADO */}
+                          {/* ✅ STATUS BADGE MEJORADO PARA PNG */}
                           <div className="absolute top-3 right-3">
-                            <div className="bg-orange-500 text-white text-xs px-3 py-1.5 rounded-full shadow-lg font-medium flex items-center gap-1">
-                              <Clock className="w-3 h-3" />
-                              Temporal
+                            <div className="bg-blue-500 text-white text-xs px-3 py-1.5 rounded-full shadow-lg font-medium flex items-center gap-1">
+                              <ImageIcon className="w-3 h-3" />
+                              PNG
                             </div>
                           </div>
                           
@@ -762,14 +775,14 @@ const ImageReview = () => {
                           )}
                         </div>
                         
-                        {/* ✅ CARD CONTENT OPTIMIZADO */}
+                        {/* ✅ CARD CONTENT CON INFO PNG */}
                         <div className="p-4">
                           <h3 className="font-semibold text-sm mb-3 line-clamp-2 text-gray-800 min-h-[2.5rem]">
                             {image.product_name}
                           </h3>
                           
                           <div className="space-y-2">
-                            {/* ✅ API INFO - Más visual */}
+                            {/* ✅ API INFO */}
                             <div className="flex items-center justify-between text-xs">
                               <span className="text-gray-500">Procesado con:</span>
                               <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded font-medium">
@@ -777,7 +790,15 @@ const ImageReview = () => {
                               </span>
                             </div>
                             
-                            {/* ✅ COST INFO - Más prominent */}
+                            {/* ✅ FORMAT INFO - Destacar PNG */}
+                            <div className="flex items-center justify-between text-xs">
+                              <span className="text-gray-500">Formato:</span>
+                              <span className="bg-green-100 text-green-700 px-2 py-1 rounded font-medium">
+                                PNG con transparencia
+                              </span>
+                            </div>
+                            
+                            {/* ✅ COST INFO */}
                             <div className="flex items-center justify-between text-xs">
                               <span className="text-gray-500">Costo:</span>
                               <span className="text-gray-800 font-semibold">
@@ -785,7 +806,7 @@ const ImageReview = () => {
                               </span>
                             </div>
                             
-                            {/* ✅ EXPIRY WARNING - Más visible */}
+                            {/* ✅ EXPIRY WARNING */}
                             <div className="bg-orange-50 border border-orange-200 rounded-lg p-2 mt-3">
                               <div className="flex items-center gap-2 text-orange-700">
                                 <AlertCircle className="w-3 h-3 shrink-0" />
@@ -796,7 +817,7 @@ const ImageReview = () => {
                             </div>
                           </div>
                           
-                          {/* ✅ PROGRESS SECTION MEJORADO */}
+                          {/* ✅ PROGRESS SECTION */}
                           {progress && progress.status !== 'pending' && (
                             <div className="mt-4 bg-gray-50 rounded-lg p-3">
                               <div className="flex justify-between text-xs text-gray-700 mb-2">
@@ -828,10 +849,10 @@ const ImageReview = () => {
                     <Bookmark className="w-8 h-8 text-green-600" />
                   </div>
                   <h3 className="text-xl font-semibold text-gray-800 mb-3">
-                    Sin imágenes guardadas
+                    Sin PNG guardadas
                   </h3>
                   <p className="text-gray-600 mb-6 text-sm leading-relaxed">
-                    Las imágenes que confirmes se guardarán aquí de forma permanente para crear catálogos
+                    Las imágenes PNG con transparencia que confirmes se guardarán aquí para crear catálogos profesionales
                   </p>
                   <Button 
                     onClick={() => navigate('/products')}
@@ -861,7 +882,7 @@ const ImageReview = () => {
                     >
                       <CardContent className="p-0">
                         <div className="aspect-square relative overflow-hidden">
-                          {/* ✅ FIX 4: Ahora usa image_url (procesada) */}
+                          {/* ✅ IMAGEN PNG CON TRANSPARENCIA */}
                           <img
                             src={product.image_url}
                             alt={product.name}
@@ -869,7 +890,7 @@ const ImageReview = () => {
                             loading="lazy"
                           />
                           
-                          {/* ✅ CHECKBOX VERDE PARA GUARDADAS */}
+                          {/* ✅ CHECKBOX VERDE */}
                           <div className="absolute top-3 left-3">
                             <div className={`
                               w-6 h-6 rounded-full flex items-center justify-center transition-all
@@ -882,15 +903,15 @@ const ImageReview = () => {
                             </div>
                           </div>
                           
-                          {/* ✅ SAVED BADGE */}
+                          {/* ✅ PNG BADGE */}
                           <div className="absolute top-3 right-3">
                             <div className="bg-green-500 text-white text-xs px-3 py-1.5 rounded-full shadow-lg font-medium flex items-center gap-1">
-                              <Check className="w-3 h-3" />
-                              Guardada
+                              <ImageIcon className="w-3 h-3" />
+                              PNG
                             </div>
                           </div>
 
-                          {/* ✅ SELECTED OVERLAY VERDE */}
+                          {/* ✅ SELECTED OVERLAY */}
                           {isSelected && (
                             <div className="absolute inset-0 bg-green-500/20 border-2 border-green-500 rounded-lg"></div>
                           )}
@@ -916,11 +937,12 @@ const ImageReview = () => {
                               </span>
                             </div>
                             
+                            {/* ✅ PNG QUALITY BADGE */}
                             <div className="bg-green-50 border border-green-200 rounded-lg p-2 mt-3">
                               <div className="flex items-center gap-2 text-green-700">
                                 <Check className="w-3 h-3 shrink-0" />
                                 <span className="text-xs font-medium">
-                                  Procesada: {new Date(product.processed_at || product.created_at).toLocaleDateString('es-MX')}
+                                  PNG guardada: {new Date(product.processed_at || product.created_at).toLocaleDateString('es-MX')}
                                 </span>
                               </div>
                             </div>
@@ -936,7 +958,7 @@ const ImageReview = () => {
         </Tabs>
       </main>
 
-      {/* ✅ BOTTOM ACTION BAR - MÓVIL OPTIMIZADO */}
+      {/* ✅ BOTTOM ACTION BAR ACTUALIZADO PARA PNG */}
       {/* Tab Pending - 2 botones */}
       {activeTab === 'pending' && selectedImageIds.size > 0 && (
         <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-t border-gray-200 shadow-xl">
@@ -945,7 +967,7 @@ const ImageReview = () => {
               <div className="text-sm text-gray-700 font-medium">
                 <span className="flex items-center gap-2">
                   <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                  {selectedImageIds.size} imagen{selectedImageIds.size !== 1 ? 'es' : ''} temporal{selectedImageIds.size !== 1 ? 'es' : ''} seleccionada{selectedImageIds.size !== 1 ? 's' : ''}
+                  {selectedImageIds.size} PNG temporal{selectedImageIds.size !== 1 ? 'es' : ''} seleccionada{selectedImageIds.size !== 1 ? 's' : ''}
                 </span>
               </div>
               <div className="flex gap-3 w-full sm:w-auto">
@@ -957,7 +979,7 @@ const ImageReview = () => {
                   size="sm"
                 >
                   <Bookmark className="w-4 h-4" />
-                  <span className="hidden sm:inline">Solo guardar ({selectedImageIds.size})</span>
+                  <span className="hidden sm:inline">Guardar PNG ({selectedImageIds.size})</span>
                   <span className="sm:hidden">Guardar ({selectedImageIds.size})</span>
                 </Button>
                 <Button 
@@ -970,13 +992,13 @@ const ImageReview = () => {
                   {isSaving ? (
                     <>
                       <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      <span className="hidden sm:inline">Guardando...</span>
+                      <span className="hidden sm:inline">Guardando PNG...</span>
                       <span className="sm:hidden">...</span>
                     </>
                   ) : (
                     <>
-                      <span className="hidden sm:inline">Guardar y crear catálogo ({selectedImageIds.size})</span>
-                      <span className="sm:hidden">Crear catálogo ({selectedImageIds.size})</span>
+                      <span className="hidden sm:inline">PNG → Catálogo ({selectedImageIds.size})</span>
+                      <span className="sm:hidden">Crear ({selectedImageIds.size})</span>
                     </>
                   )}
                 </Button>
@@ -994,22 +1016,21 @@ const ImageReview = () => {
               <div className="text-sm text-gray-700 font-medium">
                 <span className="flex items-center gap-2">
                   <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  {selectedSavedIds.size} imagen{selectedSavedIds.size !== 1 ? 'es' : ''} guardada{selectedSavedIds.size !== 1 ? 's' : ''} seleccionada{selectedSavedIds.size !== 1 ? 's' : ''}
+                  {selectedSavedIds.size} PNG guardada{selectedSavedIds.size !== 1 ? 's' : ''} seleccionada{selectedSavedIds.size !== 1 ? 's' : ''}
                 </span>
               </div>
               <Button 
                 onClick={() => {
-                  console.log('🖱️ BOTÓN CLICKEADO - Generar catálogo');
+                  console.log('🖱️ BOTÓN PNG CLICKEADO - Generar catálogo');
                   console.log('🖱️ selectedSavedIds en click:', selectedSavedIds);
-                  console.log('🖱️ selectedSavedIds.size en click:', selectedSavedIds.size);
                   generateCatalogFromSaved();
                 }}
                 className="bg-green-600 hover:bg-green-700 text-white flex items-center gap-2 w-full sm:w-auto"
                 size="sm"
               >
                 <Sparkles className="w-4 h-4" />
-                <span className="hidden sm:inline">Generar catálogo ({selectedSavedIds.size} productos)</span>
-                <span className="sm:hidden">Crear catálogo ({selectedSavedIds.size})</span>
+                <span className="hidden sm:inline">Catálogo PNG ({selectedSavedIds.size} productos)</span>
+                <span className="sm:hidden">Crear PNG ({selectedSavedIds.size})</span>
               </Button>
             </div>
           </div>
