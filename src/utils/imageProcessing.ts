@@ -1,3 +1,4 @@
+
 // 🔧 ARCHIVO COMPLETO CORREGIDO - utils/imageProcessing.ts
 
 export const downloadImageFromUrl = async (url: string): Promise<Blob> => {
