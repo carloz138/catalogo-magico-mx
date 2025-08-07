@@ -223,37 +223,53 @@ const TemplateSelection = () => {
   };
 
   // ✅ FUNCIÓN: Guardar registro (simplificada)
-  const saveCatalogRecord = async (templateId: string) => {
-    try {
-      if (!user) return;
-      
-      const template = getTemplateById(templateId);
-      
-      const { error } = await supabase.from('catalogs').insert({
-        user_id: user.id,
-        name: `Catálogo ${template?.displayName || templateId} - ${new Date().toLocaleDateString('es-MX')}`,
-        product_ids: selectedProducts.map(p => p.id),
-        template_style: templateId,
-        brand_colors: {
-          primary: businessInfo?.primary_color || template?.colors.primary || '#3B82F6',
-          secondary: businessInfo?.secondary_color || template?.colors.secondary || '#1F2937'
-        },
-        logo_url: businessInfo?.logo_url || null,
-        show_retail_prices: true,
-        show_wholesale_prices: false,
-        total_products: selectedProducts.length,
-        credits_used: 0
-      });
-      
-      if (error) {
-        console.warn('⚠️ No se pudo guardar registro:', error);
-      } else {
-        console.log('✅ Registro guardado');
-      }
-    } catch (error) {
-      console.warn('⚠️ Error guardando registro:', error);
+    const saveCatalogRecord = async (templateId: string) => {
+  try {
+    if (!user) return;
+    
+    const template = getTemplateById(templateId);
+    
+    // ✅ MAPEAR TEMPLATE ID A VALORES VÁLIDOS EN BD
+    const validTemplateStyles: { [key: string]: string } = {
+      'minimalista-gris': 'modern',
+      'profesional-corporativo': 'professional', 
+      'lujo-negro-oro': 'luxury',
+      'naturaleza-organico': 'nature',
+      'rustico-campestre': 'rustic',
+      // Agregar más mappings según sea necesario
+    };
+    
+    const dbTemplateStyle = validTemplateStyles[templateId] || 'modern'; // fallback a 'modern'
+    
+    console.log(`💾 Guardando catálogo: ${templateId} -> ${dbTemplateStyle}`);
+    
+    const catalogData = {
+      user_id: user.id,
+      name: `Catálogo ${template?.displayName || templateId} - ${new Date().toLocaleDateString('es-MX')}`,
+      product_ids: selectedProducts.map(p => p.id),
+      template_style: dbTemplateStyle, // ✅ USAR VALOR VÁLIDO
+      brand_colors: {
+        primary: businessInfo?.primary_color || template?.colors.primary || '#3B82F6',
+        secondary: businessInfo?.secondary_color || template?.colors.secondary || '#1F2937'
+      },
+      logo_url: businessInfo?.logo_url || null,
+      show_retail_prices: true,
+      show_wholesale_prices: false,
+      total_products: selectedProducts.length,
+      credits_used: 0
+    };
+    
+    const { error } = await supabase.from('catalogs').insert(catalogData);
+    
+    if (error) {
+      console.warn('⚠️ No se pudo guardar registro (esto no afecta la descarga):', error.message);
+    } else {
+      console.log('✅ Registro de catálogo guardado exitosamente');
     }
-  };
+  } catch (error) {
+    console.warn('⚠️ Error guardando registro (esto no afecta la descarga):', error);
+  }
+};
 
   // ✅ FUNCIÓN: Calcular stats cuando cambie template
   const updateStatsForTemplate = (templateId: string) => {
