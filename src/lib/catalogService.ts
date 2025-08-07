@@ -214,10 +214,10 @@ export const createCatalog = async (
       console.log('Plan type not available, using basic as default');
     }
 
-    // ✅ DEBUGGING COMPLETO ANTES DE INSERTAR
+    // ✅ DEBUGGING COMPLETO ANTES DE INSERTAR (SIN STATUS)
     console.log('💾 Preparando inserción en tabla catalogs...');
     
-    // ✅ Verificar datos antes de insertar (sin campos que no existen)
+    // ✅ Verificar datos antes de insertar - SIN CAMPOS PROBLEMÁTICOS
     const catalogData = {
       user_id: user.id,
       name: `Catálogo ${template.displayName} - ${new Date().toLocaleDateString()}`,
@@ -232,7 +232,7 @@ export const createCatalog = async (
       show_wholesale_prices: false,
       total_products: selectedProducts.length,
       credits_used: 0
-      // ✅ Removido: status y processing_started_at (no existen en schema)
+      // ✅ NO INCLUIR: status, processing_started_at (no existen en schema)
     };
     
     console.log('🔍 Datos a insertar:', catalogData);
@@ -355,26 +355,16 @@ export const createCatalog = async (
     }
 
     if (!webhookResponse || !webhookResponse.ok) {
-      // ✅ Actualizar estado del catálogo a error
-      await supabase
-        .from('catalogs')
-        .update({ status: 'error' })
-        .eq('id', catalog.id);
-        
+      // ✅ Error en webhook - simplemente logear (sin updates de status)
+      console.error(`❌ Webhook failed after ${maxAttempts} attempts: ${webhookResponse?.status}`);
       throw new Error(`Webhook failed after ${maxAttempts} attempts: ${webhookResponse?.status}`);
     }
 
     const result = await webhookResponse.json();
     console.log('✅ n8n webhook response:', result);
 
-    // ✅ Actualizar estado del catálogo a processing
-    await supabase
-      .from('catalogs')
-      .update({ 
-        status: 'processing',
-        processing_started_at: new Date().toISOString()
-      })
-      .eq('id', catalog.id);
+    // ✅ Webhook exitoso
+    console.log('✅ Catálogo enviado a n8n para procesamiento (modo legacy)');
 
     return {
       success: true,
