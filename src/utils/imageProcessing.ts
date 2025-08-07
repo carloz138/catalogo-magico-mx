@@ -1,5 +1,5 @@
 
-// 🔧 ARCHIVO COMPLETO CORREGIDO - utils/imageProcessing.ts
+// 🔧 ARCHIVO COMPLETO CORREGIDO - utils/imageProcessing.ts 07082025
 
 export const downloadImageFromUrl = async (url: string): Promise<Blob> => {
   try {
