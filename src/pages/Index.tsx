@@ -37,7 +37,7 @@ const Index = () => {
     }
   };
 
-  // ✅ FUNCIÓN PARA CENTRO DE IMÁGENES
+  // ✅ FUNCIÓN PARA CENTRO DE IMÁGENES 07082025
   const handleImageCenter = () => {
     if (user) {
       navigate('/image-review');
