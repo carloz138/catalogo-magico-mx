@@ -214,32 +214,68 @@ export const createCatalog = async (
       console.log('Plan type not available, using basic as default');
     }
 
-    // ✅ CREAR REGISTRO EN BD PRIMERO
-    console.log('💾 Creando registro en base de datos...');
+    // ✅ DEBUGGING COMPLETO ANTES DE INSERTAR
+    console.log('💾 Preparando inserción en tabla catalogs...');
+    
+    // ✅ Verificar datos antes de insertar
+    const catalogData = {
+      user_id: user.id,
+      name: `Catálogo ${template.displayName} - ${new Date().toLocaleDateString()}`,
+      product_ids: selectedProducts.map(p => p.id),
+      template_style: templateStyle,
+      brand_colors: {
+        primary: businessInfo?.primary_color || template.colors.primary,
+        secondary: businessInfo?.secondary_color || template.colors.secondary
+      },
+      logo_url: businessInfo?.logo_url || null,
+      show_retail_prices: true,
+      show_wholesale_prices: false,
+      total_products: selectedProducts.length,
+      credits_used: 0,
+      status: 'processing'
+    };
+    
+    console.log('🔍 Datos a insertar:', catalogData);
+    console.log('🔍 user.id:', user.id);
+    console.log('🔍 selectedProducts.length:', selectedProducts.length);
+    console.log('🔍 template encontrado:', template ? 'Sí' : 'No');
+    console.log('🔍 businessInfo:', businessInfo ? 'Sí' : 'No');
+
+    // ✅ INTENTAR INSERCIÓN CON MANEJO DE ERRORES DETALLADO
     const { data: catalog, error: catalogError } = await supabase
       .from('catalogs')
-      .insert({
-        user_id: user.id,
-        name: `Catálogo ${template.displayName} - ${new Date().toLocaleDateString()}`,
-        product_ids: selectedProducts.map(p => p.id),
-        template_style: templateStyle,
-        brand_colors: {
-          primary: businessInfo?.primary_color || template.colors.primary,
-          secondary: businessInfo?.secondary_color || template.colors.secondary
-        },
-        logo_url: businessInfo?.logo_url,
-        show_retail_prices: true,
-        show_wholesale_prices: false,
-        total_products: selectedProducts.length,
-        credits_used: 0,
-        status: 'processing' // ✅ Estado inicial
-      })
+      .insert(catalogData)
       .select()
       .single();
 
     if (catalogError) {
-      console.error('❌ Error creating catalog record:', catalogError);
-      throw new Error('No se pudo crear el registro del catálogo');
+      console.error('❌ DETALLES COMPLETOS DEL ERROR:', {
+        error: catalogError,
+        message: catalogError.message,
+        details: catalogError.details,
+        hint: catalogError.hint,
+        code: catalogError.code
+      });
+      
+      // ✅ Verificar si la tabla existe
+      console.log('🔍 Verificando si la tabla catalogs existe...');
+      try {
+        const { data: tableCheck, error: tableError } = await supabase
+          .from('catalogs')
+          .select('id')
+          .limit(1);
+          
+        if (tableError) {
+          console.error('❌ Tabla catalogs no accesible:', tableError);
+          throw new Error(`Tabla catalogs no disponible: ${tableError.message}`);
+        } else {
+          console.log('✅ Tabla catalogs accesible');
+        }
+      } catch (tableCheckError) {
+        console.error('❌ Error verificando tabla:', tableCheckError);
+      }
+      
+      throw new Error(`Error en base de datos: ${catalogError.message}${catalogError.details ? ` - ${catalogError.details}` : ''}`);
     }
 
     console.log('✅ Catálogo creado en BD:', catalog.id);
