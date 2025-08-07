@@ -1,10 +1,10 @@
-// 🔧 CÓDIGO COMPLETO - REEMPLAZAR TODO EL ARCHIVO DE UTILS
+// 🔧 CÓDIGO COMPLETO CON DEBUGGING Y FIX DEFINITIVO
 
 export const downloadImageFromUrl = async (url: string): Promise<Blob> => {
   try {
     console.log(`📥 Downloading image from: ${url}`);
     
-    // ✅ MEJORADO - Intentar fetch directo primero (más confiable)
+    // ✅ MEJORADO - Intentar fetch directo primero
     try {
       const directResponse = await fetch(url, {
         mode: 'cors',
@@ -13,14 +13,32 @@ export const downloadImageFromUrl = async (url: string): Promise<Blob> => {
       
       if (directResponse.ok) {
         const blob = await directResponse.blob();
-        console.log(`✅ Direct download successful: ${blob.type}, ${blob.size} bytes`);
+        
+        // 🔍 DEBUGGING CRÍTICO - Ver qué MIME type regresa Pixelcut
+        console.log(`📊 Downloaded blob details:`, {
+          type: blob.type,
+          size: blob.size,
+          url: url.substring(url.lastIndexOf('/') + 1),
+          isPng: url.toLowerCase().includes('.png'),
+          isFromPixelcut: url.includes('pixelcut') || url.includes('cdn2')
+        });
+        
+        // 🎯 FIX CRÍTICO: Si es de Pixelcut y termina en .png, forzar tipo PNG
+        if ((url.includes('pixelcut') || url.includes('cdn2')) && url.toLowerCase().includes('.png')) {
+          console.log(`🔧 FIXING: Pixelcut PNG detected, forcing image/png type`);
+          // Crear nuevo blob con tipo correcto
+          const fixedBlob = new Blob([blob], { type: 'image/png' });
+          console.log(`✅ Fixed blob type: ${fixedBlob.type}`);
+          return fixedBlob;
+        }
+        
         return blob;
       }
     } catch (directError) {
-      console.log('Direct fetch failed, trying proxy...');
+      console.log('Direct fetch failed, trying proxy...', directError);
     }
     
-    // Fallback: usar proxy solo si el directo falla
+    // Fallback: usar proxy
     const proxyUrl = `https://cors-anywhere.herokuapp.com/${url}`;
     const response = await fetch(proxyUrl, {
       headers: {
@@ -34,6 +52,15 @@ export const downloadImageFromUrl = async (url: string): Promise<Blob> => {
     
     const blob = await response.blob();
     console.log(`✅ Proxy download successful: ${blob.type}, ${blob.size} bytes`);
+    
+    // 🎯 MISMO FIX PARA PROXY
+    if ((url.includes('pixelcut') || url.includes('cdn2')) && url.toLowerCase().includes('.png')) {
+      console.log(`🔧 FIXING: Pixelcut PNG detected via proxy, forcing image/png type`);
+      const fixedBlob = new Blob([blob], { type: 'image/png' });
+      console.log(`✅ Fixed proxy blob type: ${fixedBlob.type}`);
+      return fixedBlob;
+    }
+    
     return blob;
     
   } catch (error) {
@@ -76,18 +103,40 @@ export const resizeImage = (blob: Blob, maxWidth: number, maxHeight: number, qua
       ctx.clearRect(0, 0, width, height);
       ctx.drawImage(img, 0, 0, width, height);
       
-      // ✅ DETECCIÓN INTELIGENTE DE TRANSPARENCIA
+      // ✅ DETECCIÓN MEJORADA DE TRANSPARENCIA
       const hasTransparency = blob.type.includes('png') || 
                              blob.type.includes('webp') || 
                              blob.type.includes('gif') ||
                              blob.type === 'image/png';
       
+      // 🔍 DEBUGGING CRÍTICO
+      console.log(`🖼️ Resizing image:`, {
+        originalType: blob.type,
+        hasTransparency: hasTransparency,
+        outputFormat: hasTransparency ? 'PNG' : 'JPEG',
+        dimensions: `${width}x${height}`
+      });
+      
       if (hasTransparency) {
-        console.log(`🖼️ Preserving transparency - resizing as PNG (${width}x${height})`);
-        canvas.toBlob(resolve, 'image/png'); // ✅ PNG PARA TRANSPARENCIA
+        console.log(`✅ Preserving transparency - resizing as PNG`);
+        canvas.toBlob((result) => {
+          if (result) {
+            console.log(`✅ PNG resize successful: ${result.type}, ${result.size} bytes`);
+            resolve(result);
+          } else {
+            reject(new Error('PNG conversion failed'));
+          }
+        }, 'image/png'); // ✅ PNG PARA TRANSPARENCIA
       } else {
-        console.log(`📷 No transparency detected - resizing as JPEG (${width}x${height})`);
-        canvas.toBlob(resolve, 'image/jpeg', quality); // JPG para fotos normales
+        console.log(`📷 No transparency detected - resizing as JPEG`);
+        canvas.toBlob((result) => {
+          if (result) {
+            console.log(`✅ JPEG resize successful: ${result.type}, ${result.size} bytes`);
+            resolve(result);
+          } else {
+            reject(new Error('JPEG conversion failed'));
+          }
+        }, 'image/jpeg', quality); // JPG para fotos normales
       }
     };
 
@@ -105,7 +154,7 @@ export const uploadImageToSupabase = async (
   const timestamp = Date.now();
   const baseFilename = `${timestamp}_${productId}`;
   
-  // 🎯 DETECCIÓN INTELIGENTE DE FORMATO
+  // 🎯 DETECCIÓN MEJORADA DE FORMATO
   const hasTransparency = originalBlob.type.includes('png') || 
                          originalBlob.type.includes('webp') || 
                          originalBlob.type.includes('gif') ||
@@ -114,18 +163,24 @@ export const uploadImageToSupabase = async (
   const fileExtension = hasTransparency ? 'png' : 'jpg';
   const contentType = hasTransparency ? 'image/png' : 'image/jpeg';
   
+  // 🔍 DEBUGGING COMPLETO
   console.log(`📁 Processing ${filename}:`);
-  console.log(`   📊 Original type: ${originalBlob.type}`);
+  console.log(`   📊 Original blob type: ${originalBlob.type}`);
+  console.log(`   📊 Original blob size: ${originalBlob.size} bytes`);
   console.log(`   🎨 Has transparency: ${hasTransparency}`);
   console.log(`   💾 Will save as: ${fileExtension} (${contentType})`);
+  console.log(`   🔗 Expected filename pattern: ${baseFilename}_*.${fileExtension}`);
   
   // Generate different sizes with transparency preservation
+  console.log(`🔄 Starting resize operations...`);
   const [thumbnailBlob, catalogBlob, luxuryBlob, printBlob] = await Promise.all([
     resizeImage(originalBlob, 300, 300, 0.8),   // Thumbnail: 300x300
     resizeImage(originalBlob, 800, 800, 0.85),  // Catalog: 800x800
     resizeImage(originalBlob, 1200, 1200, 0.9), // Luxury: 1200x1200
     resizeImage(originalBlob, 2400, 2400, 0.95) // Print: 2400x2400
   ]);
+  
+  console.log(`✅ All resize operations completed`);
 
   const sizes = [
     { blob: thumbnailBlob, suffix: 'thumb', size: 'thumbnail' },
@@ -140,7 +195,10 @@ export const uploadImageToSupabase = async (
     // ✅ USAR EXTENSIÓN CORRECTA SEGÚN TRANSPARENCIA
     const fileName = `${baseFilename}_${suffix}.${fileExtension}`;
     
-    console.log(`⬆️ Uploading ${fileName} (${blob?.type || contentType})`);
+    console.log(`⬆️ Uploading ${fileName}:`);
+    console.log(`   📦 Blob type: ${blob?.type}`);
+    console.log(`   📦 Blob size: ${blob?.size} bytes`);
+    console.log(`   📦 Content-Type: ${contentType}`);
     
     const { data, error } = await supabase.storage
       .from('processed-images')
@@ -153,7 +211,8 @@ export const uploadImageToSupabase = async (
           originalType: originalBlob.type,
           processedAt: new Date().toISOString(),
           size: size,
-          productId: productId
+          productId: productId,
+          expectedExtension: fileExtension
         }
       });
 
@@ -168,16 +227,22 @@ export const uploadImageToSupabase = async (
 
     uploadedUrls[size] = urlData.publicUrl;
     
-    // ✅ VERIFICAR QUE LA URL TENGA LA EXTENSIÓN CORRECTA
+    // ✅ VERIFICACIÓN DETALLADA DE LA URL
     const urlExtension = urlData.publicUrl.split('.').pop()?.toLowerCase();
+    console.log(`🔍 Upload verification for ${size}:`);
+    console.log(`   🌐 Public URL: ${urlData.publicUrl}`);
+    console.log(`   🔤 URL extension: ${urlExtension}`);
+    console.log(`   ✅ Expected extension: ${fileExtension}`);
+    console.log(`   ${urlExtension === fileExtension ? '✅ MATCH' : '❌ MISMATCH'}`);
+    
     if (urlExtension !== fileExtension) {
-      console.warn(`⚠️ Extension mismatch for ${size}! Expected: ${fileExtension}, Got: ${urlExtension}`);
-    } else {
-      console.log(`✅ ${size} uploaded successfully: ${urlData.publicUrl}`);
+      console.warn(`⚠️ CRITICAL: Extension mismatch for ${size}! Expected: ${fileExtension}, Got: ${urlExtension}`);
+      console.warn(`⚠️ This indicates Supabase is converting the format automatically`);
     }
   }
 
-  console.log(`🎉 All sizes uploaded for ${productId}`);
+  console.log(`🎉 All uploads completed for ${productId}`);
+  console.log(`📋 Final URLs summary:`);
   console.log(`   📐 Thumbnail: ${uploadedUrls.thumbnail}`);
   console.log(`   📘 Catalog: ${uploadedUrls.catalog}`);
   console.log(`   💎 Luxury: ${uploadedUrls.luxury}`);
