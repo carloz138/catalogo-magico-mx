@@ -4,7 +4,7 @@ import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Crown, Check, Loader2, Download, Zap } from 'lucide-react';
+import { ArrowLeft, Crown, Check, Loader2, Download, Zap, FileText } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useBusinessInfo } from '@/hooks/useBusinessInfo';
 import { supabase } from '@/integrations/supabase/client';
@@ -30,6 +30,7 @@ const TemplateSelection = () => {
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [pdfStats, setPdfStats] = useState<any>(null);
 
   const state = location.state as LocationState;
 
