@@ -1,5 +1,5 @@
-
-// 🔧 ARCHIVO COMPLETO CORREGIDO - utils/imageProcessing.ts 07082025
+// 🔧 ARCHIVO COMPLETO CORREGIDO - utils/imageProcessing.ts 
+// 🎯 TRANSPARENCIA PRESERVADA - NO MÁS FONDOS NEGROS
 
 export const downloadImageFromUrl = async (url: string): Promise<Blob> => {
   try {
@@ -70,6 +70,7 @@ export const downloadImageFromUrl = async (url: string): Promise<Blob> => {
   }
 };
 
+// 🎯 FUNCIÓN CRÍTICA CORREGIDA - resizeImage CON TRANSPARENCIA
 export const resizeImage = (blob: Blob, maxWidth: number, maxHeight: number, quality = 0.85): Promise<Blob> => {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -92,7 +93,7 @@ export const resizeImage = (blob: Blob, maxWidth: number, maxHeight: number, qua
         }
       } else {
         if (height > maxHeight) {
-          width = (width * maxWidth) / height;
+          width = (width * maxHeight) / height;
           height = maxHeight;
         }
       }
@@ -105,19 +106,21 @@ export const resizeImage = (blob: Blob, maxWidth: number, maxHeight: number, qua
       ctx.drawImage(img, 0, 0, width, height);
       
       // ✅ DETECCIÓN MEJORADA DE TRANSPARENCIA
-      const hasTransparency = blob.type.includes('png') || 
+      const hasTransparency = blob.type === 'image/png' || 
+                             blob.type.includes('png') || 
                              blob.type.includes('webp') || 
-                             blob.type.includes('gif') ||
-                             blob.type === 'image/png';
+                             blob.type.includes('gif');
       
       // 🔍 DEBUGGING CRÍTICO
       console.log(`🖼️ Resizing image:`, {
         originalType: blob.type,
         hasTransparency: hasTransparency,
         outputFormat: hasTransparency ? 'PNG' : 'JPEG',
-        dimensions: `${width}x${height}`
+        dimensions: `${width}x${height}`,
+        quality: hasTransparency ? 'lossless' : quality
       });
       
+      // 🎯 FIX CRÍTICO: USAR PNG PARA TRANSPARENCIA, JPG PARA FOTOS
       if (hasTransparency) {
         console.log(`✅ Preserving transparency - resizing as PNG`);
         canvas.toBlob((result) => {
@@ -146,6 +149,7 @@ export const resizeImage = (blob: Blob, maxWidth: number, maxHeight: number, qua
   });
 };
 
+// 🎯 FUNCIÓN CRÍTICA CORREGIDA - uploadImageToSupabase CON EXTENSIÓN DINÁMICA
 export const uploadImageToSupabase = async (
   supabase: any,
   productId: string, 
@@ -156,10 +160,10 @@ export const uploadImageToSupabase = async (
   const baseFilename = `${timestamp}_${productId}`;
   
   // 🎯 DETECCIÓN MEJORADA DE FORMATO
-  const hasTransparency = originalBlob.type.includes('png') || 
+  const hasTransparency = originalBlob.type === 'image/png' || 
+                         originalBlob.type.includes('png') || 
                          originalBlob.type.includes('webp') || 
-                         originalBlob.type.includes('gif') ||
-                         originalBlob.type === 'image/png';
+                         originalBlob.type.includes('gif');
   
   const fileExtension = hasTransparency ? 'png' : 'jpg';
   const contentType = hasTransparency ? 'image/png' : 'image/jpeg';
@@ -172,7 +176,7 @@ export const uploadImageToSupabase = async (
   console.log(`   💾 Will save as: ${fileExtension} (${contentType})`);
   console.log(`   🔗 Expected filename pattern: ${baseFilename}_*.${fileExtension}`);
   
-  // Generate different sizes with transparency preservation
+  // ✅ Generate different sizes with transparency preservation
   console.log(`🔄 Starting resize operations...`);
   const [thumbnailBlob, catalogBlob, luxuryBlob, printBlob] = await Promise.all([
     resizeImage(originalBlob, 300, 300, 0.8),   // Thumbnail: 300x300
