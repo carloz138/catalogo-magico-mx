@@ -4,13 +4,13 @@ import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Crown, Check, Loader2 } from 'lucide-react';
+import { ArrowLeft, Crown, Check, Loader2, Download, Zap } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useBusinessInfo } from '@/hooks/useBusinessInfo';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/components/ui/use-toast';
-import { createCatalog } from '@/lib/catalogService';
+import { toast } from '@/hooks/use-toast';
 import { getFreeTemplates, getPremiumTemplates, getTemplateById, TemplateConfig } from '@/lib/templates';
+import { downloadCatalogPDF, previewCatalogPDF, getPDFEstimates } from '@/lib/frontendPDFGenerator';
 import '@/styles/template-styles.css';
 
 interface LocationState {
@@ -28,108 +28,80 @@ const TemplateSelection = () => {
   const [selectedProducts, setSelectedProducts] = useState<any[]>([]);
   const [userPlan, setUserPlan] = useState<string>('basic');
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
-  const [creating, setCreating] = useState(false);
+  const [generating, setGenerating] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const state = location.state as LocationState;
 
-  // ✅ FIX: Properly handle cleanup function
   useEffect(() => {
-    // Crear estilos CSS para cada template en contenedores aislados
     const styleElement = document.createElement('style');
     styleElement.textContent = `
-      /* Estilos para previews de templates aislados */
-      .template-body-minimalista-gris { background: #f8f9fa; color: #495057; }
-      .template-body-minimalista-gris .catalog { font-family: 'Inter', sans-serif; }
-      .template-body-minimalista-gris .header h1 { color: #6c757d; font-weight: 200; letter-spacing: 4px; text-transform: uppercase; }
-      .template-body-minimalista-gris .product { background: #fff; border: 1px solid #e9ecef; }
-      .template-body-minimalista-gris .product-title { color: #343a40; font-weight: 300; }
-      .template-body-minimalista-gris .product-price { color: #495057; font-weight: 600; }
-
-      .template-body-profesional-corporativo { background: #e9ecef; }
-      .template-body-profesional-corporativo .catalog { font-family: 'Roboto', sans-serif; }
-      .template-body-profesional-corporativo .header h1 { color: #2c3e50; font-weight: 300; border-bottom: 2px solid #3498db; }
-      .template-body-profesional-corporativo .product { background: #fff; border-left: 5px solid #3498db; }
-      .template-body-profesional-corporativo .product-title { color: #2c3e50; font-weight: 500; }
-      .template-body-profesional-corporativo .product-price { color: #e74c3c; font-weight: 700; }
-
-      .template-body-naturaleza-organico { background: #f1f8e9; }
-      .template-body-naturaleza-organico .product { background: #e8f5e9; border-radius: 0 20px; }
-      .template-body-naturaleza-organico .header h1 { color: #1b5e20; border-bottom: 2px solid #a5d6a7; }
-      .template-body-naturaleza-organico .product-title { color: #2e7d32; font-family: 'Merriweather', serif; }
-      .template-body-naturaleza-organico .product-price { color: #43a047; }
-
+      /* Estilos para previews de templates */
+      .template-preview-container { 
+        border-radius: 8px; 
+        overflow: hidden; 
+        background: #f8f9fa;
+      }
+      
+      .template-body-minimalista-gris { 
+        background: #f8f9fa; 
+        color: #495057; 
+        font-family: 'Inter', sans-serif;
+      }
+      
+      .template-body-profesional-corporativo { 
+        background: #e9ecef; 
+        font-family: 'Roboto', sans-serif;
+      }
+      
+      .template-body-lujo-negro-oro { 
+        background: #1a1a1a; 
+        color: #f5f5f5; 
+        font-family: 'Playfair Display', serif;
+      }
+      
+      .template-body-naturaleza-organico { 
+        background: #f1f8e9; 
+      }
+      
       .template-body-rustico-campestre { 
         background: #f4f1e8;
         background-image: url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23d4b996' fill-opacity='0.1'%3E%3Cpath d='M20 20c0 11.046-8.954 20-20 20s-20-8.954-20-20 8.954-20 20-20 20 8.954 20 20zm-30 0c0 5.523 4.477 10 10 10s10-4.477 10-10-4.477-10-10-10-10 4.477-10 10z'/%3E%3C/g%3E%3C/svg%3E");
       }
-      .template-body-rustico-campestre .catalog { font-family: 'Cabin', sans-serif; }
-      .template-body-rustico-campestre .header h1 { color: #6b4423; font-weight: 700; border-bottom: 4px solid #8b4513; }
-      .template-body-rustico-campestre .product { background: #fff; border: 2px solid #d2b48c; box-shadow: 5px 5px 0 #deb887; }
-      .template-body-rustico-campestre .product-title { color: #8b4513; font-weight: 600; text-transform: uppercase; }
-      .template-body-rustico-campestre .product-price { background: #8b4513; color: #fff; padding: 8px 16px; font-weight: 700; }
-
-      .template-body-verano-tropical { background: #e1f5fe; }
-      .template-body-verano-tropical .product { background: #fff; border-radius: 20px 0; }
-      .template-body-verano-tropical .product::before { 
-        content: ""; height: 5px; 
-        background: linear-gradient(90deg, #ff5252, #ffab40, #ffd740); 
-        display: block; margin-bottom: 20px; 
+      
+      .preview-product { 
+        background: #fff; 
+        padding: 15px; 
+        margin: 10px; 
+        border-radius: 8px; 
+        text-align: center;
       }
-      .template-body-verano-tropical .product-title { color: #0097a7; }
-      .template-body-verano-tropical .product-price { color: #ff5252; }
-
-      .template-body-fiesta-mexicana { background: #f8f0e0; }
-      .template-body-fiesta-mexicana .product { background: rgba(255,255,255,0.9); border: 3px solid #e30613; }
-      .template-body-fiesta-mexicana .header h1 { color: #e30613; text-shadow: 2px 2px 0 #f9e300; font-family: 'Cinzel', serif; }
-      .template-body-fiesta-mexicana .product-title { color: #006847; }
-      .template-body-fiesta-mexicana .product-price { color: #ce1126; }
-
-      .template-body-halloween { background: #2c1b47; color: #e0c3ff; }
-      .template-body-halloween .product { background: #4a235a; border: 2px dashed #ff6b00; }
-      .template-body-halloween .header h1 { color: #ff6b00; text-transform: uppercase; font-family: 'Creepster', cursive; }
-      .template-body-halloween .product-title { color: #ff9e44; }
-      .template-body-halloween .product-price { color: #ff3c38; }
-
-      .template-body-elegante-oro { background: #faf5e9; }
-      .template-body-elegante-oro .product { background: #fffdf6; border: 1px solid #e8d8b6; }
-      .template-body-elegante-oro .product-title { color: #8e6c3a; font-weight: 300; }
-      .template-body-elegante-oro .product-price { color: #d4af37; font-size: 28px; }
-
-      .template-body-lujo-negro-oro { background: #1a1a1a; color: #f5f5f5; }
-      .template-body-lujo-negro-oro .catalog { font-family: 'Playfair Display', serif; }
-      .template-body-lujo-negro-oro .header h1 { color: #ffd700; font-weight: 300; letter-spacing: 4px; text-transform: uppercase; }
-      .template-body-lujo-negro-oro .product { background: #2a2a2a; border: 2px solid #ffd700; }
-      .template-body-lujo-negro-oro .product-title { color: #f5f5f5; font-weight: 400; }
-      .template-body-lujo-negro-oro .product-price { background: linear-gradient(45deg, #ffd700, #ffed4e); color: #1a1a1a; padding: 10px 20px; font-weight: 700; }
     `;
     
     document.head.appendChild(styleElement);
     
-    // Return cleanup function that returns void
     return () => {
-      document.head.removeChild(styleElement);
+      if (document.head.contains(styleElement)) {
+        document.head.removeChild(styleElement);
+      }
     };
   }, []);
 
   useEffect(() => {
     console.log('🔍 TemplateSelection montado');
-    console.log('🔍 location.state recibido:', state);
-    console.log('🔍 state?.products:', state?.products);
-    console.log('🔍 state?.businessInfo:', state?.businessInfo);
+    console.log('🔍 state?.products:', state?.products?.length || 0);
 
-    if (state?.products) {
-      console.log('✅ Productos encontrados:', state.products.length, 'productos');
+    if (state?.products && state.products.length > 0) {
+      console.log('✅ Productos encontrados:', state.products.length);
       setSelectedProducts(state.products);
     } else {
-      console.log('❌ No hay productos en state, redirigiendo a /products');
-      console.log('❌ Estructura completa del state:', JSON.stringify(state, null, 2));
-      navigate('/products');
+      console.log('❌ No hay productos, redirigiendo...');
+      navigate('/image-review');
       return;
     }
 
     fetchUserPlan();
-  }, []);
+  }, [state, navigate]);
 
   const fetchUserPlan = async () => {
     if (!user) return;
@@ -152,58 +124,153 @@ const TemplateSelection = () => {
     }
   };
 
-  const handleTemplateSelect = async (templateId: string) => {
+  // ✅ FUNCIÓN PRINCIPAL: Generar PDF instantáneo (reemplaza createCatalog)
+  const handleGeneratePDF = async (templateId: string) => {
     if (!selectedProducts.length) {
       toast({
-        title: "Error",
-        description: "No hay productos seleccionados",
+        title: "No hay productos",
+        description: "No se encontraron productos para el catálogo",
         variant: "destructive",
       });
       return;
     }
 
-    setCreating(true);
+    if (!businessInfo) {
+      toast({
+        title: "Configura tu negocio",
+        description: "Ve a configuración para completar la información",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setGenerating(true);
     setSelectedTemplate(templateId);
 
     try {
-      console.log('🎨 Creando catálogo con template:', templateId);
-      console.log('🎨 Productos:', selectedProducts.length);
+      console.log('🚀 GENERANDO PDF FRONTEND:', templateId);
       
-      const result = await createCatalog(selectedProducts, businessInfo, templateId);
+      const template = getTemplateById(templateId);
+      if (!template) {
+        throw new Error('Template no encontrado');
+      }
+
+      // ✅ VALIDAR PLAN PREMIUM
+      if (template.isPremium && userPlan === 'basic') {
+        toast({
+          title: "Template Premium",
+          description: "Actualiza tu plan para acceder a este template",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // ✅ PREPARAR DATOS
+      const pdfProducts = selectedProducts.map(product => ({
+        id: product.id,
+        name: product.name,
+        description: product.description || product.custom_description || `Descripción de ${product.name}`,
+        category: product.category || 'General',
+        price_retail: product.price_retail || 0,
+        image_url: product.image_url || product.original_image_url
+      }));
+
+      const pdfBusinessInfo = {
+        business_name: businessInfo.business_name || 'Mi Empresa',
+        logo_url: businessInfo.logo_url,
+        primary_color: businessInfo.primary_color || template.colors.primary,
+        secondary_color: businessInfo.secondary_color || template.colors.secondary,
+        phone: businessInfo.phone,
+        email: businessInfo.email,
+        address: businessInfo.address
+      };
+
+      // ✅ GENERAR Y DESCARGAR PDF INSTANTÁNEO
+      const result = await downloadCatalogPDF(
+        pdfProducts, 
+        pdfBusinessInfo, 
+        templateId,
+        `catalogo-${template.displayName.replace(/\s+/g, '-').toLowerCase()}.pdf`
+      );
       
       if (result.success) {
         toast({
-          title: "¡Éxito!",
-          description: "Tu catálogo está siendo creado. Te notificaremos cuando esté listo.",
+          title: "🎉 ¡Catálogo generado!",
+          description: "Tu PDF se está descargando automáticamente",
+          variant: "default",
         });
+
+        // ✅ OPCIONAL: Guardar registro en BD
+        await saveCatalogRecord(templateId);
         
-        console.log('✅ Catálogo creado, navegando a /catalogs');
-        navigate('/catalogs');
+        console.log('✅ PDF generado y descargado exitosamente');
       } else {
-        throw new Error(result.error || 'Error al crear el catálogo');
+        throw new Error(result.error || 'Error generando PDF');
       }
+
     } catch (error) {
-      console.error('Error creating catalog:', error);
+      console.error('❌ Error generando PDF:', error);
       toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "No se pudo crear el catálogo",
+        title: "Error generando PDF",
+        description: error instanceof Error ? error.message : "No se pudo generar el catálogo",
         variant: "destructive",
       });
     } finally {
-      setCreating(false);
+      setGenerating(false);
       setSelectedTemplate(null);
+    }
+  };
+
+  // ✅ FUNCIÓN: Guardar registro (simplificada)
+  const saveCatalogRecord = async (templateId: string) => {
+    try {
+      if (!user) return;
+      
+      const template = getTemplateById(templateId);
+      
+      const { error } = await supabase.from('catalogs').insert({
+        user_id: user.id,
+        name: `Catálogo ${template?.displayName || templateId} - ${new Date().toLocaleDateString('es-MX')}`,
+        product_ids: selectedProducts.map(p => p.id),
+        template_style: templateId,
+        brand_colors: {
+          primary: businessInfo?.primary_color || template?.colors.primary || '#3B82F6',
+          secondary: businessInfo?.secondary_color || template?.colors.secondary || '#1F2937'
+        },
+        logo_url: businessInfo?.logo_url || null,
+        show_retail_prices: true,
+        show_wholesale_prices: false,
+        total_products: selectedProducts.length,
+        credits_used: 0
+      });
+      
+      if (error) {
+        console.warn('⚠️ No se pudo guardar registro:', error);
+      } else {
+        console.log('✅ Registro guardado');
+      }
+    } catch (error) {
+      console.warn('⚠️ Error guardando registro:', error);
+    }
+  };
+
+  // ✅ FUNCIÓN: Calcular stats cuando cambie template
+  const updateStatsForTemplate = (templateId: string) => {
+    const template = getTemplateById(templateId);
+    if (template && selectedProducts.length > 0) {
+      const stats = getPDFEstimates(selectedProducts, template);
+      setPdfStats(stats);
     }
   };
 
   const TemplatePreview = ({ template }: { template: TemplateConfig }) => {
     const isLocked = template.isPremium && userPlan === 'basic';
-    const isCreating = creating && selectedTemplate === template.id;
+    const isGenerating = generating && selectedTemplate === template.id;
 
     return (
-      <Card className={`overflow-hidden transition-all duration-200 hover:shadow-lg ${isLocked ? 'opacity-70' : ''}`}>
-        {/* ✅ PREVIEW REAL CON CSS DEL TEMPLATE */}
+      <Card className={`overflow-hidden transition-all duration-200 hover:shadow-xl ${isLocked ? 'opacity-70' : ''}`}>
+        {/* ✅ PREVIEW VISUAL */}
         <div className={`template-preview-container ${template.id} relative h-48 overflow-hidden`}>
-          {/* ✅ APLICAMOS LA CLASE BODY DEL TEMPLATE AL CONTENEDOR */}
           <div 
             className={`template-body-${template.id}`}
             style={{ 
@@ -213,25 +280,32 @@ const TemplateSelection = () => {
               width: '250%'
             }}
           >
-            {/* ✅ MINI CATÁLOGO CON ESTILOS REALES */}
-            <div className="catalog">
-              <div className="header">
-                <h1>Mi Catálogo</h1>
+            <div className="catalog" style={{ padding: '20px' }}>
+              <div className="header" style={{ marginBottom: '20px', textAlign: 'center' }}>
+                <h1 style={{ fontSize: '24px', margin: '0 0 10px 0' }}>Mi Catálogo</h1>
               </div>
-              <div className="product">
-                <div className="product-img bg-gray-100 flex items-center justify-center text-gray-400">
-                  <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
+              <div className="preview-product">
+                <div style={{ 
+                  width: '80px', 
+                  height: '80px', 
+                  background: '#f0f0f0', 
+                  margin: '0 auto 10px',
+                  borderRadius: '4px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <svg width="24" height="24" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
                   </svg>
                 </div>
-                <h2 className="product-title">Producto Ejemplo</h2>
-                <div className="product-price">$99.99</div>
-                <p className="product-desc">Descripción del producto aquí. Texto de ejemplo para mostrar cómo se ve el template.</p>
+                <h2 style={{ fontSize: '14px', margin: '0 0 5px 0' }}>Producto</h2>
+                <div style={{ fontSize: '16px', fontWeight: 'bold' }}>$99.99</div>
               </div>
             </div>
           </div>
           
-          {/* Template name badge */}
+          {/* Template badges */}
           <div className="absolute top-2 left-2">
             <Badge variant="secondary" className="text-xs bg-white/90 text-gray-700">
               {template.category}
@@ -246,6 +320,14 @@ const TemplateSelection = () => {
               </div>
             </div>
           )}
+
+          {/* ✅ INSTANT GENERATION BADGE */}
+          <div className="absolute top-2 right-2">
+            <Badge className="bg-green-500 text-white text-xs flex items-center gap-1">
+              <Zap className="w-3 h-3" />
+              Instantáneo
+            </Badge>
+          </div>
         </div>
 
         <CardContent className="p-4">
@@ -262,23 +344,25 @@ const TemplateSelection = () => {
             )}
           </div>
 
+          {/* ✅ STATS DEL PDF */}
           <div className="text-xs text-gray-500 mb-4 grid grid-cols-2 gap-1">
             <div>• {template.productsPerPage} por página</div>
             <div>• Diseño {template.layout}</div>
             <div>• {template.colors.primary}</div>
-            <div>• {template.category}</div>
+            <div>• PDF instantáneo</div>
           </div>
 
+          {/* ✅ BOTÓN PRINCIPAL: GENERAR PDF INSTANTÁNEO */}
           <Button
-            onClick={() => handleTemplateSelect(template.id)}
-            disabled={isLocked || creating}
+            onClick={() => handleGeneratePDF(template.id)}
+            disabled={isLocked || generating}
             className="w-full"
             variant={isLocked ? "outline" : "default"}
           >
-            {isCreating ? (
+            {isGenerating ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Creando...
+                Generando PDF...
               </>
             ) : isLocked ? (
               <>
@@ -287,8 +371,8 @@ const TemplateSelection = () => {
               </>
             ) : (
               <>
-                <Check className="w-4 h-4 mr-2" />
-                Usar Template
+                <Download className="w-4 h-4 mr-2" />
+                Descargar PDF
               </>
             )}
           </Button>
@@ -303,7 +387,7 @@ const TemplateSelection = () => {
         <div className="min-h-screen bg-gray-50 flex items-center justify-center">
           <div className="text-center">
             <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <p className="text-neutral/60">Cargando templates...</p>
+            <p className="text-gray-600">Preparando generador PDF...</p>
           </div>
         </div>
       </ProtectedRoute>
@@ -317,9 +401,10 @@ const TemplateSelection = () => {
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-gray-50">
+        {/* ✅ HEADER MEJORADO */}
         <header className="bg-white border-b">
           <div className="max-w-7xl mx-auto px-4 py-6">
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
               <div className="flex items-center space-x-4">
                 <Button 
                   variant="ghost" 
@@ -330,12 +415,32 @@ const TemplateSelection = () => {
                   <span>Volver a Biblioteca</span>
                 </Button>
                 <div>
-                  <h1 className="text-2xl font-bold">Seleccionar Template</h1>
+                  <h1 className="text-2xl font-bold">Generar Catálogo PDF</h1>
                   <p className="text-gray-600">
-                    {totalTemplates} templates disponibles • {selectedProducts.length} productos seleccionados
+                    {totalTemplates} templates • {selectedProducts.length} productos • 
+                    <span className="text-green-600 font-semibold ml-1">
+                      <Zap className="w-4 h-4 inline mr-1" />
+                      Generación instantánea
+                    </span>
                   </p>
                 </div>
               </div>
+              
+              {/* ✅ STATS PANEL */}
+              {pdfStats && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-sm">
+                  <div className="flex items-center gap-2 text-green-800 font-semibold mb-2">
+                    <FileText className="w-4 h-4" />
+                    Estimado del PDF
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-green-700">
+                    <div>📄 {pdfStats.totalPages} páginas</div>
+                    <div>⚡ {pdfStats.estimatedTime}</div>
+                    <div>💾 {pdfStats.estimatedSize}</div>
+                    <div>🎯 {pdfStats.productsPerPage}/página</div>
+                  </div>
+                </div>
+              )}
               
               {userPlan === 'basic' && (
                 <Button 
@@ -350,15 +455,54 @@ const TemplateSelection = () => {
           </div>
         </header>
         
+        {/* ✅ LOADING BANNER SIMPLE */}
+        {generating && (
+          <div className="bg-blue-50 border-b border-blue-200">
+            <div className="max-w-7xl mx-auto px-4 py-4">
+              <div className="flex items-center gap-3">
+                <div className="animate-spin w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+                <div className="flex-1">
+                  <div className="text-sm text-blue-800 font-medium">
+                    Generando PDF con {selectedProducts.length} productos...
+                  </div>
+                  <p className="text-xs text-blue-600 mt-1">
+                    Procesando imágenes PNG • Descarga instantánea
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+        
         <main className="max-w-7xl mx-auto px-4 py-6">
+          {/* ✅ BENEFITS BANNER */}
+          <div className="bg-gradient-to-r from-green-500 to-blue-500 text-white rounded-lg p-6 mb-8">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold mb-2 flex items-center gap-2">
+                  <Zap className="w-5 h-5" />
+                  Generación PDF Instantánea
+                </h3>
+                <p className="text-green-100">
+                  PDFs profesionales generados al instante en tu navegador. Sin esperas, sin servidores.
+                </p>
+              </div>
+              <div className="text-right">
+                <div className="text-2xl font-bold">0 créditos</div>
+                <div className="text-green-100 text-sm">¡Completamente gratis!</div>
+              </div>
+            </div>
+          </div>
+
           {/* Free Templates Section */}
           <section className="mb-12">
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h2 className="text-xl font-semibold text-gray-900">Templates Gratuitos</h2>
-                <p className="text-gray-600">Disponibles en todos los planes</p>
+                <p className="text-gray-600">PDF instantáneo • Disponibles en todos los planes</p>
               </div>
               <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                <Zap className="w-3 h-3 mr-1" />
                 {freeTemplates.length} templates
               </Badge>
             </div>
@@ -377,8 +521,8 @@ const TemplateSelection = () => {
                 <h2 className="text-xl font-semibold text-gray-900">Templates Premium</h2>
                 <p className="text-gray-600">
                   {userPlan === 'basic' 
-                    ? 'Requiere plan Premium para acceder' 
-                    : 'Incluidos en tu plan Premium'
+                    ? 'PDF instantáneo • Requiere plan Premium' 
+                    : 'PDF instantáneo • Incluidos en tu plan Premium'
                   }
                 </p>
               </div>
@@ -395,6 +539,25 @@ const TemplateSelection = () => {
             </div>
           </section>
         </main>
+
+        {/* ✅ FLOATING ACTION BAR SIMPLIFICADO */}
+        {selectedProducts.length > 0 && (
+          <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-t border-gray-200 shadow-xl">
+            <div className="max-w-7xl mx-auto px-4 py-4">
+              <div className="flex flex-col sm:flex-row justify-between items-center gap-3">
+                <div className="text-sm text-gray-700">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                    <span className="font-medium">{selectedProducts.length} productos PNG listos</span>
+                  </div>
+                </div>
+                <div className="text-sm text-green-600 font-semibold">
+                  🎯 PDF instantáneo • Sin costos adicionales
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </ProtectedRoute>
   );
