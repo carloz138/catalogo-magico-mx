@@ -217,7 +217,7 @@ export const createCatalog = async (
     // ✅ DEBUGGING COMPLETO ANTES DE INSERTAR
     console.log('💾 Preparando inserción en tabla catalogs...');
     
-    // ✅ Verificar datos antes de insertar
+    // ✅ Verificar datos antes de insertar (sin campos que no existen)
     const catalogData = {
       user_id: user.id,
       name: `Catálogo ${template.displayName} - ${new Date().toLocaleDateString()}`,
@@ -231,8 +231,8 @@ export const createCatalog = async (
       show_retail_prices: true,
       show_wholesale_prices: false,
       total_products: selectedProducts.length,
-      credits_used: 0,
-      status: 'processing'
+      credits_used: 0
+      // ✅ Removido: status y processing_started_at (no existen en schema)
     };
     
     console.log('🔍 Datos a insertar:', catalogData);
