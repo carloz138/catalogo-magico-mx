@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { ArrowLeft, CreditCard, CheckCircle, AlertCircle, AlertTriangle, BookOpen } from 'lucide-react';
+import { ArrowLeft, CreditCard, CheckCircle, AlertCircle, AlertTriangle, Image as ImageIcon, Users } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -294,53 +294,76 @@ const Upload = () => {
       <div className="min-h-screen bg-gray-50">
         {/* Header */}
         <header className="bg-white border-b border-gray-100">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-            <div className="flex items-center space-x-4">
-              <Button 
-                variant="ghost" 
-                onClick={() => navigate('/')}
-                className="flex items-center space-x-2"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                <span>Inicio</span>
-              </Button>
-              <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                  <span className="text-white font-bold">C</span>
-                </div>
-                <span className="text-xl font-bold text-primary">Subir Productos</span>
-              </div>
-            </div>
-            
-            <div className="flex items-center space-x-4">
-              <div className="text-sm">
-                <span className="text-neutral/60">Créditos disponibles: </span>
-                <span className="font-bold text-primary text-lg">{userCredits}</span>
-              </div>
-              {userCredits < 50 && (
-                <Button variant="outline" size="sm" onClick={handleBuyCredits}>
-                  <CreditCard className="w-4 h-4 mr-2" />
-                  Comprar más
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div className="flex items-center space-x-4">
+                <Button 
+                  variant="ghost" 
+                  onClick={() => navigate('/')}
+                  className="flex items-center space-x-2"
+                  size="sm"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  <span className="hidden sm:inline">Inicio</span>
+                  <span className="sm:hidden">Volver</span>
                 </Button>
-              )}
-              <Button variant="outline" size="sm" onClick={() => navigate('/products')}>
-                <BookOpen className="w-4 h-4 mr-2" />
-                Mi Biblioteca
-              </Button>
-              <div className="text-sm text-neutral/60">
-                ¡Hola {user?.email}!
+                <div className="flex items-center space-x-2">
+                  <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+                    <span className="text-white font-bold">C</span>
+                  </div>
+                  <span className="text-lg sm:text-xl font-bold text-primary">Subir Productos</span>
+                </div>
+              </div>
+              
+              <div className="flex flex-wrap items-center gap-2 sm:gap-4 w-full sm:w-auto">
+                <div className="text-sm">
+                  <span className="text-neutral/60">Créditos: </span>
+                  <span className="font-bold text-primary text-lg">{userCredits}</span>
+                </div>
+                {userCredits < 50 && (
+                  <Button variant="outline" size="sm" onClick={handleBuyCredits} className="flex-shrink-0">
+                    <CreditCard className="w-4 h-4 mr-2" />
+                    <span className="hidden sm:inline">Comprar más</span>
+                    <span className="sm:hidden">Comprar</span>
+                  </Button>
+                )}
+                {/* ✅ BOTÓN CENTRO DE IMÁGENES */}
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => navigate('/image-review')}
+                  className="border-secondary text-secondary hover:bg-secondary/10 flex-shrink-0"
+                >
+                  <ImageIcon className="w-4 h-4 mr-2" />
+                  <span className="hidden sm:inline">Centro de Imágenes</span>
+                  <span className="sm:hidden">Centro</span>
+                </Button>
+                {/* ✅ BOTÓN PRODUCTOS */}
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => navigate('/products')}
+                  className="border-gray-300 text-gray-600 hover:bg-gray-50 flex-shrink-0"
+                >
+                  <Users className="w-4 h-4 mr-2" />
+                  <span className="hidden sm:inline">Productos</span>
+                  <span className="sm:hidden">Productos</span>
+                </Button>
+                <div className="text-sm text-neutral/60 hidden lg:block">
+                  ¡Hola {user?.email?.split('@')[0]}!
+                </div>
               </div>
             </div>
           </div>
         </header>
 
         {/* Main Content */}
-        <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-neutral mb-4">
+            <h1 className="text-2xl sm:text-3xl font-bold text-neutral mb-4">
               Agrega productos a tu biblioteca
             </h1>
-            <p className="text-xl text-neutral/70">
+            <p className="text-lg sm:text-xl text-neutral/70">
               Sube las fotos de tus productos y guárdalos gratis. Después podrás crear catálogos con tus productos guardados.
             </p>
           </div>
@@ -443,7 +466,7 @@ const Upload = () => {
               {/* Resumen por tipo de procesamiento */}
               {uploadedFiles.length > 1 && (
                 <div className="mt-4 pt-3 border-t border-blue-200">
-                  <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                     <div className="bg-white rounded p-2">
                       <div className="font-medium text-green-700">💰 Procesamiento Estándar</div>
                       <div className="text-gray-600">
@@ -470,7 +493,7 @@ const Upload = () => {
           {/* Validation Summary */}
           {products.length > 0 && (
             <div className="bg-gray-50 p-4 rounded-lg mb-6">
-              <h4 className="font-semibold flex items-center gap-2">
+              <h4 className="font-semibold flex items-center gap-2 mb-2">
                 Estado de los Productos
                 {canSaveToLibrary() ? (
                   <CheckCircle className="w-5 h-5 text-green-500" />
@@ -478,14 +501,14 @@ const Upload = () => {
                   <AlertTriangle className="w-5 h-5 text-orange-500" />
                 )}
               </h4>
-              <div className="mt-2 space-y-1">
+              <div className="space-y-1 text-sm sm:text-base">
                 <p className="flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4 text-green-500" />
+                  <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
                   {completeCount} productos completos
                 </p>
                 {incompleteCount > 0 && (
                   <p className="flex items-center gap-2 text-red-600">
-                    <AlertCircle className="w-4 h-4" />
+                    <AlertCircle className="w-4 h-4 flex-shrink-0" />
                     {incompleteCount} productos necesitan: {getMissingFields()}
                   </p>
                 )}
@@ -499,7 +522,7 @@ const Upload = () => {
           {/* Product Forms */}
           {uploadedFiles.length > 0 && (
             <div className="space-y-6 mb-8">
-              <h2 className="text-2xl font-bold text-center">
+              <h2 className="text-xl sm:text-2xl font-bold text-center">
                 Completa los datos de tus productos
               </h2>
               <div className="grid gap-6">
@@ -530,7 +553,7 @@ const Upload = () => {
             <div className="mb-8 space-y-4">
               <Button 
                 size="lg" 
-                className={`w-full py-4 text-xl ${
+                className={`w-full py-4 text-lg sm:text-xl ${
                   canSaveToLibrary() 
                     ? 'bg-primary text-white hover:bg-primary/90' 
                     : 'bg-gray-400 text-gray-200 cursor-not-allowed'
@@ -548,9 +571,18 @@ const Upload = () => {
               </Button>
               
               {canSaveToLibrary() && (
-                <div className="flex gap-4 justify-center">
+                <div className="flex flex-col sm:flex-row gap-4 justify-center">
                   <Button variant="outline" onClick={() => navigate('/products')}>
-                    Ver mi biblioteca
+                    <Users className="w-4 h-4 mr-2" />
+                    Ver mis productos
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => navigate('/image-review')}
+                    className="border-secondary text-secondary hover:bg-secondary/10"
+                  >
+                    <ImageIcon className="w-4 h-4 mr-2" />
+                    Centro de Imágenes
                   </Button>
                   <Button variant="outline" onClick={() => window.location.reload()}>
                     Subir más productos
@@ -561,7 +593,7 @@ const Upload = () => {
           )}
 
           {/* 3-Step Process Info */}
-          <div className="mt-8 grid md:grid-cols-3 gap-6">
+          <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="text-center p-6">
               <div className="w-12 h-12 bg-secondary/10 rounded-full flex items-center justify-center mx-auto mb-4">
                 <span className="text-xl font-bold text-secondary">1</span>
