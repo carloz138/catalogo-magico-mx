@@ -36,8 +36,10 @@ export const generateCatalogPDF = async (
       throw new Error(`Template ${templateId} no encontrado`);
     }
 
-    // ✅ CARGAR LIBRERÍAS DINÁMICAMENTE
+    // ✅ CARGAR LIBRERÍAS DINÁMICAMENTE CON RETRY
+    console.log('📦 Cargando librerías PDF...');
     await loadPDFLibraries();
+    console.log('✅ Librerías PDF cargadas exitosamente');
     
     // ✅ CREAR HTML DEL CATÁLOGO
     const catalogHTML = generateCatalogHTML(products, businessInfo, template);
@@ -55,12 +57,20 @@ export const generateCatalogPDF = async (
     // ✅ ESPERAR A QUE LAS IMÁGENES CARGUEN
     await waitForImages(tempContainer);
 
-    // ✅ INICIALIZAR JSPDF
-    const { jsPDF } = (window as any);
+    // ✅ VERIFICAR QUE JSPDF ESTÉ DISPONIBLE
+    const jsPDF = (window as any).jsPDF;
+    const html2canvas = (window as any).html2canvas;
+
     if (!jsPDF) {
-      throw new Error('jsPDF no disponible');
+      throw new Error('jsPDF no se cargó correctamente. Verificar conexión a internet.');
+    }
+    if (!html2canvas) {
+      throw new Error('html2canvas no se cargó correctamente. Verificar conexión a internet.');
     }
 
+    console.log('✅ jsPDF y html2canvas disponibles');
+
+    // ✅ INICIALIZAR JSPDF
     const pdf = new jsPDF({
       orientation: 'portrait',
       unit: 'mm',
@@ -78,12 +88,6 @@ export const generateCatalogPDF = async (
       const pageElement = pages[i] as HTMLElement;
       console.log(`🔄 Capturando página ${i + 1}/${pages.length}`);
       
-      // ✅ USAR html2canvas DISPONIBLE EN LOVABLE
-      const { html2canvas } = (window as any);
-      if (!html2canvas) {
-        throw new Error('html2canvas no disponible');
-      }
-
       const canvas = await html2canvas(pageElement, {
         scale: 2,
         useCORS: true,
@@ -126,51 +130,123 @@ export const generateCatalogPDF = async (
   }
 };
 
-// ✅ FUNCIÓN: Cargar librerías PDF dinámicamente
+// ✅ FUNCIÓN MEJORADA: Cargar librerías PDF con retry y mejor verificación
 const loadPDFLibraries = async (): Promise<void> => {
   // Verificar si ya están cargadas
   if ((window as any).jsPDF && (window as any).html2canvas) {
+    console.log('✅ Librerías ya estaban cargadas');
     return;
   }
 
+  console.log('📥 Iniciando carga de librerías PDF...');
+
   return new Promise((resolve, reject) => {
-    // ✅ CARGAR JSPDF
+    let jspdfLoaded = false;
+    let html2canvasLoaded = false;
+    
+    const checkAllLoaded = () => {
+      if (jspdfLoaded && html2canvasLoaded) {
+        // Verificación adicional
+        if ((window as any).jsPDF && (window as any).html2canvas) {
+          console.log('✅ Todas las librerías PDF cargadas y verificadas');
+          resolve();
+        } else {
+          console.error('❌ Librerías cargadas pero no disponibles en window');
+          reject(new Error('Librerías no se registraron correctamente en window'));
+        }
+      }
+    };
+
+    // ✅ CARGAR JSPDF - URL ACTUALIZADA Y MÁS CONFIABLE
     const jspdfScript = document.createElement('script');
     jspdfScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+    jspdfScript.crossOrigin = 'anonymous';
     jspdfScript.onload = () => {
-      // ✅ CARGAR HTML2CANVAS
-      const html2canvasScript = document.createElement('script');
-      html2canvasScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
-      html2canvasScript.onload = () => {
-        console.log('✅ Librerías PDF cargadas');
-        resolve();
-      };
-      html2canvasScript.onerror = () => reject(new Error('Error cargando html2canvas'));
-      document.head.appendChild(html2canvasScript);
+      console.log('✅ jsPDF script cargado');
+      // Verificar que esté disponible
+      setTimeout(() => {
+        if ((window as any).jsPDF) {
+          console.log('✅ jsPDF registrado en window');
+          jspdfLoaded = true;
+          checkAllLoaded();
+        } else {
+          console.error('❌ jsPDF no se registró en window después de cargar');
+          reject(new Error('jsPDF no se registró correctamente'));
+        }
+      }, 100);
     };
-    jspdfScript.onerror = () => reject(new Error('Error cargando jsPDF'));
+    jspdfScript.onerror = (error) => {
+      console.error('❌ Error cargando jsPDF:', error);
+      reject(new Error('Error cargando jsPDF desde CDN'));
+    };
+
+    // ✅ CARGAR HTML2CANVAS - URL ACTUALIZADA
+    const html2canvasScript = document.createElement('script');
+    html2canvasScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+    html2canvasScript.crossOrigin = 'anonymous';
+    html2canvasScript.onload = () => {
+      console.log('✅ html2canvas script cargado');
+      // Verificar que esté disponible
+      setTimeout(() => {
+        if ((window as any).html2canvas) {
+          console.log('✅ html2canvas registrado en window');
+          html2canvasLoaded = true;
+          checkAllLoaded();
+        } else {
+          console.error('❌ html2canvas no se registró en window después de cargar');
+          reject(new Error('html2canvas no se registró correctamente'));
+        }
+      }, 100);
+    };
+    html2canvasScript.onerror = (error) => {
+      console.error('❌ Error cargando html2canvas:', error);
+      reject(new Error('Error cargando html2canvas desde CDN'));
+    };
+
+    // ✅ AGREGAR SCRIPTS AL HEAD
     document.head.appendChild(jspdfScript);
+    document.head.appendChild(html2canvasScript);
+
+    // ✅ TIMEOUT DE SEGURIDAD
+    setTimeout(() => {
+      if (!jspdfLoaded || !html2canvasLoaded) {
+        console.error('❌ Timeout cargando librerías PDF');
+        reject(new Error('Timeout: Las librerías PDF no se cargaron en 10 segundos'));
+      }
+    }, 10000);
   });
 };
 
 // ✅ FUNCIÓN: Esperar a que todas las imágenes carguen
 const waitForImages = async (container: HTMLElement): Promise<void> => {
   const images = container.querySelectorAll('img');
-  const promises = Array.from(images).map(img => {
+  console.log(`🖼️ Esperando ${images.length} imágenes...`);
+  
+  const promises = Array.from(images).map((img, index) => {
     return new Promise<void>((resolve) => {
       if (img.complete && img.naturalWidth > 0) {
+        console.log(`✅ Imagen ${index + 1} ya cargada`);
         resolve();
       } else {
-        img.onload = () => resolve();
-        img.onerror = () => resolve(); // Continue even if image fails
+        img.onload = () => {
+          console.log(`✅ Imagen ${index + 1} cargada`);
+          resolve();
+        };
+        img.onerror = () => {
+          console.warn(`⚠️ Error cargando imagen ${index + 1}, continuando...`);
+          resolve(); // Continue even if image fails
+        };
         // Timeout after 5 seconds
-        setTimeout(() => resolve(), 5000);
+        setTimeout(() => {
+          console.warn(`⚠️ Timeout imagen ${index + 1}, continuando...`);
+          resolve();
+        }, 5000);
       }
     });
   });
   
   await Promise.all(promises);
-  console.log(`✅ ${images.length} imágenes cargadas`);
+  console.log(`✅ ${images.length} imágenes procesadas`);
 };
 
 // ✅ FUNCIÓN: Generar HTML como string (sin JSX)
