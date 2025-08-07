@@ -85,25 +85,66 @@ export const FileUploader = ({ onFilesUploaded, maxFiles = MAX_FILES }: FileUplo
 
     setUploadedFiles(prev => [...prev, ...newFiles]);
 
-    // Upload files to Supabase Storage
+    // 🔧 UPLOAD FILES WITH PNG PRESERVATION
     const uploadPromises = newFiles.map(async (uploadFile) => {
       try {
-        const fileExt = uploadFile.file.name.split('.').pop();
+        const fileExt = uploadFile.file.name.split('.').pop()?.toLowerCase();
         const fileName = `${uploadFile.id}.${fileExt}`;
         const filePath = `${Date.now()}_${fileName}`;
+
+        // 🎯 DETERMINAR CONTENT-TYPE CORRECTO
+        let contentType = 'image/jpeg'; // Default
+        if (fileExt === 'png') {
+          contentType = 'image/png';
+        } else if (fileExt === 'webp') {
+          contentType = 'image/webp';
+        } else if (fileExt === 'gif') {
+          contentType = 'image/gif';
+        }
+
+        console.log(`📁 Uploading: ${fileName} (${uploadFile.file.type}) as ${contentType}`);
+        console.log(`📊 Original file info:`, {
+          name: uploadFile.file.name,
+          type: uploadFile.file.type,
+          size: uploadFile.file.size,
+          extension: fileExt
+        });
 
         const { data, error } = await supabase.storage
           .from('product-images')
           .upload(filePath, uploadFile.file, {
             cacheControl: '3600',
             upsert: false,
+            // ✅ FORZAR CONTENT-TYPE ORIGINAL
+            contentType: contentType,
+            // ✅ PRESERVAR METADATA ORIGINAL
+            metadata: {
+              originalType: uploadFile.file.type,
+              originalName: uploadFile.file.name,
+              preserveFormat: 'true'
+            }
           });
 
         if (error) throw error;
 
+        // ✅ VERIFICAR URL GENERADA
         const { data: urlData } = supabase.storage
           .from('product-images')
           .getPublicUrl(filePath);
+
+        console.log(`✅ Upload successful:`, {
+          originalFile: uploadFile.file.name,
+          storedPath: filePath,
+          publicUrl: urlData.publicUrl,
+          expectedFormat: fileExt,
+          contentType: contentType
+        });
+
+        // ✅ VERIFICAR QUE LA URL MANTIENE LA EXTENSIÓN
+        const urlExtension = urlData.publicUrl.split('.').pop()?.toLowerCase();
+        if (urlExtension !== fileExt) {
+          console.warn(`⚠️ Extension mismatch! Expected: ${fileExt}, Got: ${urlExtension}`);
+        }
 
         setUploadedFiles(prev => prev.map(f => 
           f.id === uploadFile.id 
@@ -113,6 +154,7 @@ export const FileUploader = ({ onFilesUploaded, maxFiles = MAX_FILES }: FileUplo
 
         return { ...uploadFile, url: urlData.publicUrl, uploading: false, progress: 100 };
       } catch (error) {
+        console.error(`💥 Upload error for ${uploadFile.file.name}:`, error);
         setUploadedFiles(prev => prev.map(f => 
           f.id === uploadFile.id 
             ? { ...f, uploading: false, error: 'Error al subir archivo' }
@@ -139,7 +181,7 @@ export const FileUploader = ({ onFilesUploaded, maxFiles = MAX_FILES }: FileUplo
   const { getRootProps, getInputProps, isDragActive, fileRejections } = useDropzone({
     onDrop,
     accept: {
-      'image/*': ['.jpeg', '.jpg', '.png', '.webp']
+      'image/*': ['.jpeg', '.jpg', '.png', '.webp', '.gif']
     },
     maxSize: MAX_FILE_SIZE,
     maxFiles: maxFiles - uploadedFiles.length,
@@ -177,10 +219,13 @@ export const FileUploader = ({ onFilesUploaded, maxFiles = MAX_FILES }: FileUplo
                   <div className="space-y-2">
                     <p className="text-lg mb-2">Arrastra tus fotos aquí o haz clic para seleccionar</p>
                     <p className="text-neutral/70 mb-2">
-                      Formatos aceptados: JPG, PNG, WEBP
+                      Formatos aceptados: JPG, PNG, WEBP, GIF
                     </p>
                     <p className="text-sm text-neutral/60">
                       Máximo {MAX_FILES} archivos • 10MB por imagen • 100MB total
+                    </p>
+                    <p className="text-xs text-blue-600 font-medium">
+                      ✅ PNG se mantiene para transparencia
                     </p>
                   </div>
                 )}
@@ -236,44 +281,81 @@ export const FileUploader = ({ onFilesUploaded, maxFiles = MAX_FILES }: FileUplo
 
       {uploadedFiles.length > 0 && (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {uploadedFiles.map((file) => (
-            <div key={file.id} className="relative border rounded-lg overflow-hidden">
-              <img
-                src={file.preview}
-                alt="Preview"
-                className="w-full h-32 object-cover"
-              />
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute top-2 right-2 bg-white/80 hover:bg-white"
-                onClick={() => removeFile(file.id)}
-              >
-                <X className="w-4 h-4" />
-              </Button>
-              
-              {file.uploading && (
-                <div className="absolute bottom-0 left-0 right-0 bg-white/90 p-2">
-                  <Progress value={file.progress} className="w-full" />
+          {uploadedFiles.map((file) => {
+            // ✅ MOSTRAR INFORMACIÓN DEL FORMATO
+            const fileExt = file.file.name.split('.').pop()?.toLowerCase();
+            const isPng = fileExt === 'png';
+            
+            return (
+              <div key={file.id} className="relative border rounded-lg overflow-hidden">
+                <img
+                  src={file.preview}
+                  alt="Preview"
+                  className="w-full h-32 object-cover"
+                />
+                
+                {/* ✅ INDICADOR DE FORMATO */}
+                <div className="absolute top-2 left-2">
+                  <span className={`text-xs px-2 py-1 rounded font-medium ${
+                    isPng 
+                      ? 'bg-blue-500 text-white' 
+                      : 'bg-gray-500 text-white'
+                  }`}>
+                    {fileExt?.toUpperCase()}
+                  </span>
                 </div>
-              )}
-              
-              {file.error && (
-                <div className="absolute bottom-0 left-0 right-0 bg-destructive/90 text-white p-2 text-xs">
-                  {file.error}
-                </div>
-              )}
-            </div>
-          ))}
+                
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute top-2 right-2 bg-white/80 hover:bg-white"
+                  onClick={() => removeFile(file.id)}
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+                
+                {file.uploading && (
+                  <div className="absolute bottom-0 left-0 right-0 bg-white/90 p-2">
+                    <Progress value={file.progress} className="w-full" />
+                  </div>
+                )}
+                
+                {file.error && (
+                  <div className="absolute bottom-0 left-0 right-0 bg-destructive/90 text-white p-2 text-xs">
+                    {file.error}
+                  </div>
+                )}
+
+                {file.url && (
+                  <div className="absolute bottom-2 left-2 right-2">
+                    <div className="bg-green-500 text-white text-xs px-2 py-1 rounded text-center">
+                      ✅ Subido
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
 
       <div className="mt-6 bg-blue-50 p-4 rounded-lg border border-blue-200">
-        <h4 className="font-semibold text-blue-800 mb-2">¿Tienes muchos productos?</h4>
-        <div className="text-blue-700 space-y-2">
+        <h4 className="font-semibold text-blue-800 mb-2">📸 Formatos de imagen:</h4>
+        <div className="text-blue-700 space-y-2 text-sm">
+          <p>• <strong>PNG:</strong> ✅ Mantiene transparencia - Ideal para productos con fondos complejos</p>
+          <p>• <strong>JPG:</strong> Para fotos normales - Menor tamaño de archivo</p>
+          <p>• <strong>WEBP:</strong> Formato moderno con buena compresión</p>
           <p>• Procesa en lotes de máximo {MAX_FILES} productos para mejor rendimiento</p>
-          <p>• Guarda cada lote en tu biblioteca</p>
-          <p>• Después puedes combinar productos de diferentes lotes en un solo catálogo</p>
+        </div>
+      </div>
+
+      <div className="mt-4 bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+        <h4 className="font-semibold text-yellow-800 mb-2">🎯 Tips para mejores resultados:</h4>
+        <div className="text-yellow-700 space-y-2 text-sm">
+          <p>• Usa <strong>PNG</strong> si tu producto tiene bordes complejos o transparencias</p>
+          <p>• Asegúrate de que el fondo contraste bien con tu producto</p>
+          <p>• Evita fondos muy texturizados o con patrones complicados</p>
+          <p>• Guarda cada lote en tu biblioteca y después combínalos en catálogos</p>
         </div>
       </div>
     </div>
