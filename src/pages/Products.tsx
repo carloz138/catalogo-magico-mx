@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { Button } from '@/components/ui/button';
@@ -6,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { 
   ArrowLeft, Plus, Eye, Edit, Trash2, CheckCircle, AlertCircle, 
-  Clock, CreditCard, Search, X, Sparkles, Crown, Upload
+  Clock, CreditCard, Search, X, Sparkles, Crown, Upload, Image as ImageIcon
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -584,10 +583,24 @@ const Products = () => {
                 </div>
               </div>
               
-              <Button onClick={() => navigate('/upload')} className="bg-primary">
-                <Plus className="w-4 h-4 mr-2" />
-                Agregar productos
-              </Button>
+              <div className="flex flex-wrap items-center gap-2 sm:gap-4">
+                {/* ✅ BOTÓN CENTRO DE IMÁGENES AGREGADO */}
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => navigate('/image-review')}
+                  className="border-secondary text-secondary hover:bg-secondary/10 flex-shrink-0"
+                >
+                  <ImageIcon className="w-4 h-4 mr-2" />
+                  <span className="hidden sm:inline">Centro de Imágenes</span>
+                  <span className="sm:hidden">Centro</span>
+                </Button>
+                <Button onClick={() => navigate('/upload')} className="bg-primary">
+                  <Plus className="w-4 h-4 mr-2" />
+                  <span className="hidden sm:inline">Agregar productos</span>
+                  <span className="sm:hidden">Agregar</span>
+                </Button>
+              </div>
             </div>
 
             <div className="flex flex-col lg:flex-row lg:items-center gap-4 mb-4">
