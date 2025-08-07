@@ -1,4 +1,3 @@
-
 import { getTemplateById, TemplateConfig } from '@/lib/templates';
 
 // ✅ INTERFACES LIMPIAS
