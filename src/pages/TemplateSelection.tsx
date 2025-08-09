@@ -320,8 +320,7 @@ const TemplateSelection = () => {
         show_retail_prices: true,
         show_wholesale_prices: false,
         total_products: selectedProducts.length,
-        credits_used: 0, // PDF optimizado es gratis
-        generation_method: 'optimized_frontend' // Nuevo campo para identificar método
+        credits_used: 0 // PDF optimizado es gratis
       };
       
       const { error } = await supabase.from('catalogs').insert(catalogData);
@@ -411,7 +410,7 @@ const TemplateSelection = () => {
             </Badge>
             <Badge className="bg-purple-500 text-white text-xs flex items-center gap-1">
               <Zap className="w-3 h-3" />
-              Ultra Optimizado
+              HD 300 DPI
             </Badge>
           </div>
         </div>
@@ -430,12 +429,12 @@ const TemplateSelection = () => {
             )}
           </div>
 
-          {/* ✅ STATS OPTIMIZADOS */}
+          {/* ✅ STATS HD DEL PDF */}
           <div className="text-xs text-gray-500 mb-4 grid grid-cols-2 gap-1">
             <div>• {template.productsPerPage} por página</div>
             <div>• Diseño {template.layout}</div>
-            <div>• Imágenes HD reales</div>
-            <div>• Cache inteligente</div>
+            <div>• PNG sin fondo negro</div>
+            <div>• Calidad 300 DPI</div>
           </div>
 
           {/* ✅ BOTÓN PRINCIPAL: GENERAR PDF OPTIMIZADO */}
@@ -448,7 +447,7 @@ const TemplateSelection = () => {
             {isGenerating ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Generando PDF Optimizado...
+                Generando PDF HD...
               </>
             ) : isLocked ? (
               <>
@@ -458,7 +457,7 @@ const TemplateSelection = () => {
             ) : (
               <>
                 <Download className="w-4 h-4 mr-2" />
-                Generar PDF Optimizado
+                Generar PDF HD
               </>
             )}
           </Button>
@@ -501,29 +500,29 @@ const TemplateSelection = () => {
                   <span>Volver a Biblioteca</span>
                 </Button>
                 <div>
-                  <h1 className="text-2xl font-bold">Generar Catálogo PDF Optimizado</h1>
+                  <h1 className="text-2xl font-bold">Generar Catálogo PDF HD (300 DPI)</h1>
                   <p className="text-gray-600">
                     {totalTemplates} templates • {selectedProducts.length} productos • 
                     <span className="text-green-600 font-semibold ml-1">
                       <Image className="w-4 h-4 inline mr-1" />
-                      Con imágenes reales HD
+                      PNG sin fondo negro
                     </span>
                   </p>
                 </div>
               </div>
               
-              {/* ✅ STATS PANEL OPTIMIZADO */}
+              {/* ✅ STATS PANEL HD */}
               {pdfStats && (
                 <div className="bg-gradient-to-r from-green-50 to-blue-50 border border-green-200 rounded-lg p-4 text-sm">
                   <div className="flex items-center gap-2 text-green-800 font-semibold mb-2">
                     <FileText className="w-4 h-4" />
-                    Estimado Optimizado
+                    Estimado HD Profesional
                   </div>
                   <div className="grid grid-cols-2 gap-2 text-green-700">
                     <div>📄 {pdfStats.totalPages} páginas</div>
                     <div>⚡ {pdfStats.estimatedTime}</div>
                     <div>💾 {pdfStats.estimatedSize}</div>
-                    <div>🖼️ Imágenes reales HD</div>
+                    <div>🎯 300 DPI profesional</div>
                   </div>
                 </div>
               )}
@@ -541,7 +540,7 @@ const TemplateSelection = () => {
           </div>
         </header>
         
-        {/* ✅ BARRA DE PROGRESO OPTIMIZADA */}
+        {/* ✅ BARRA DE PROGRESO HD */}
         {generating && generationProgress && showProgressDetails && (
           <div className="bg-gradient-to-r from-blue-50 to-green-50 border-b border-blue-200">
             <div className="max-w-7xl mx-auto px-4 py-4">
@@ -561,12 +560,12 @@ const TemplateSelection = () => {
                   </div>
                   <div className="flex justify-between text-xs text-blue-600">
                     <span>
-                      {generationProgress.phase === 'processing' ? 'Optimizando imágenes...' :
-                       generationProgress.phase === 'generating' ? 'Generando PDF...' :
-                       generationProgress.phase === 'complete' ? '¡Completado!' : 'Iniciando...'}
+                      {generationProgress.phase === 'processing' ? 'Optimizando imágenes HD...' :
+                       generationProgress.phase === 'generating' ? 'Generando PDF 300 DPI...' :
+                       generationProgress.phase === 'complete' ? '¡PDF HD completado!' : 'Iniciando generación HD...'}
                     </span>
                     <span>
-                      {generationProgress.currentProduct}/{generationProgress.totalProducts} productos •
+                      {generationProgress.currentProduct}/{generationProgress.totalProducts} productos HD •
                       Página {generationProgress.currentPage}/{generationProgress.totalPages}
                     </span>
                   </div>
@@ -577,22 +576,22 @@ const TemplateSelection = () => {
         )}
         
         <main className="max-w-7xl mx-auto px-4 py-6">
-          {/* ✅ BENEFITS BANNER OPTIMIZADO */}
+          {/* ✅ BENEFITS BANNER ULTRA OPTIMIZADO */}
           <div className="bg-gradient-to-r from-green-500 via-blue-500 to-purple-500 text-white rounded-lg p-6 mb-8">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-lg font-semibold mb-2 flex items-center gap-2">
                   <Image className="w-5 h-5" />
-                  PDF Optimizado con Imágenes Reales
+                  PDF HD con Imágenes PNG sin Fondo Negro
                 </h3>
                 <p className="text-green-100 mb-2">
-                  Catálogos profesionales con imágenes HD reales. Cache inteligente, compresión automática.
+                  Calidad profesional 300 DPI. Fondo blanco para transparencias PNG. Sin fondo negro.
                 </p>
                 <div className="flex flex-wrap gap-3 text-sm">
-                  <span className="bg-white/20 px-2 py-1 rounded">🚀 Carga en lotes</span>
-                  <span className="bg-white/20 px-2 py-1 rounded">🗜️ Compresión automática</span>
-                  <span className="bg-white/20 px-2 py-1 rounded">💾 Cache inteligente</span>
-                  <span className="bg-white/20 px-2 py-1 rounded">📱 Móvil optimizado</span>
+                  <span className="bg-white/20 px-2 py-1 rounded">🎯 300 DPI profesional</span>
+                  <span className="bg-white/20 px-2 py-1 rounded">🖼️ PNG sin fondo negro</span>
+                  <span className="bg-white/20 px-2 py-1 rounded">✨ Renderizado HD</span>
+                  <span className="bg-white/20 px-2 py-1 rounded">📄 Calidad impresión</span>
                 </div>
               </div>
               <div className="text-right">
@@ -600,7 +599,7 @@ const TemplateSelection = () => {
                 <div className="text-green-100 text-sm">¡Completamente gratis!</div>
                 <div className="text-xs text-green-200 mt-1">
                   <Timer className="w-3 h-3 inline mr-1" />
-                  Progreso en tiempo real
+                  Progreso HD en tiempo real
                 </div>
               </div>
             </div>
@@ -610,8 +609,8 @@ const TemplateSelection = () => {
           <section className="mb-12">
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h2 className="text-xl font-semibold text-gray-900">Templates Gratuitos Optimizados</h2>
-                <p className="text-gray-600">PDF con imágenes reales • Cache inteligente • Disponibles en todos los planes</p>
+                <h2 className="text-xl font-semibold text-gray-900">Templates Gratuitos HD</h2>
+                <p className="text-gray-600">PDF 300 DPI • PNG sin fondo negro • Disponibles en todos los planes</p>
               </div>
               <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
                 <Image className="w-3 h-3 mr-1" />
@@ -630,11 +629,11 @@ const TemplateSelection = () => {
           <section>
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h2 className="text-xl font-semibold text-gray-900">Templates Premium Optimizados</h2>
+                <h2 className="text-xl font-semibold text-gray-900">Templates Premium HD</h2>
                 <p className="text-gray-600">
                   {userPlan === 'basic' 
-                    ? 'PDF con imágenes reales HD • Cache inteligente • Requiere plan Premium' 
-                    : 'PDF con imágenes reales HD • Cache inteligente • Incluidos en tu plan Premium'
+                    ? 'PDF 300 DPI • PNG sin fondo negro • Requiere plan Premium' 
+                    : 'PDF 300 DPI • PNG sin fondo negro • Incluidos en tu plan Premium'
                   }
                 </p>
               </div>
@@ -652,7 +651,7 @@ const TemplateSelection = () => {
           </section>
         </main>
 
-        {/* ✅ FLOATING ACTION BAR OPTIMIZADO */}
+        {/* ✅ FLOATING ACTION BAR HD */}
         {selectedProducts.length > 0 && (
           <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-t border-gray-200 shadow-xl">
             <div className="max-w-7xl mx-auto px-4 py-4">
@@ -660,11 +659,11 @@ const TemplateSelection = () => {
                 <div className="text-sm text-gray-700">
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                    <span className="font-medium">{selectedProducts.length} productos con imágenes HD listos</span>
+                    <span className="font-medium">{selectedProducts.length} productos PNG sin fondo negro listos</span>
                   </div>
                 </div>
                 <div className="text-sm font-semibold bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent">
-                  🎯 PDF optimizado • Imágenes reales • Cache inteligente • Sin costos
+                  🎯 PDF HD 300 DPI • PNG sin fondo negro • Calidad profesional • Sin costos
                 </div>
               </div>
             </div>
