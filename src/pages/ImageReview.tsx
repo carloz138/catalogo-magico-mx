@@ -65,100 +65,150 @@ const downloadImageFromUrl = async (url: string): Promise<Blob> => {
 };
 
 // ✅ FUNCIÓN ACTUALIZADA: resizeImage ahora usa PNG para preservar transparencia
-const resizeImage = (blob: Blob, maxWidth: number, maxHeight: number): Promise<Blob> => {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-
-    if (!ctx) {
-      reject(new Error('Canvas context not available'));
-      return;
-    }
-
-    img.onload = () => {
-      let { width, height } = img;
+      const resizeImage = (blob: Blob, maxWidth: number, maxHeight: number): Promise<Blob> => {
+        return new Promise((resolve, reject) => {
+          const img = new Image();
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
       
-      // ✅ Mantener aspect ratio
-      if (width > height) {
-        if (width > maxWidth) {
-          height = (height * maxWidth) / width;
-          width = maxWidth;
-        }
-      } else {
-        if (height > maxHeight) {
-          width = (width * maxHeight) / height;
-          height = maxHeight;
-        }
-      }
-
-      canvas.width = width;
-      canvas.height = height;
+          if (!ctx) {
+            reject(new Error('Canvas context not available'));
+            return;
+          }
       
-      // ✅ IMPORTANTE: No llenar fondo para preservar transparencia
-      // ctx.fillStyle = 'white'; // ❌ NO hacer esto
-      // ctx.fillRect(0, 0, width, height); // ❌ NO hacer esto
+          img.onload = () => {
+            try {
+              let { width, height } = img;
+              
+              // Mantener aspect ratio
+              if (width > height) {
+                if (width > maxWidth) {
+                  height = (height * maxWidth) / width;
+                  width = maxWidth;
+                }
+              } else {
+                if (height > maxHeight) {
+                  width = (width * maxHeight) / height;
+                  height = maxHeight;
+                }
+              }
       
-      ctx.drawImage(img, 0, 0, width, height);
+              canvas.width = width;
+              canvas.height = height;
+              
+              // Dibujar imagen preservando transparencia
+              ctx.clearRect(0, 0, width, height);
+              ctx.drawImage(img, 0, 0, width, height);
+              
+              // Convertir a Blob con metadatos PNG explícitos
+              canvas.toBlob(
+                (resultBlob) => {
+                  if (!resultBlob) {
+                    reject(new Error("Canvas produced null blob"));
+                    return;
+                  }
+                  
+                  // Crear nuevo Blob con tipo MIME explícito
+                  const pngBlob = new Blob([resultBlob], {
+                    type: 'image/png'
+                  });
+                  
+                  // Verificar metadatos
+                  console.log('Blob generado:', {
+                    type: pngBlob.type,
+                    size: pngBlob.size
+                  });
+                  
+                  resolve(pngBlob);
+                },
+                'image/png',  // Forzar formato de salida
+                1.0           // Máxima calidad (no afecta PNG)
+              );
+            } catch (error) {
+              reject(error);
+            }
+          };
       
-      // ✅ CAMBIO CRÍTICO: PNG en lugar de JPEG para preservar transparencia
-      canvas.toBlob(resolve, 'image/png'); // ✅ PNG preserva transparencia
-    };
-
-    img.onerror = () => reject(new Error('Failed to load image for resizing'));
-    img.src = URL.createObjectURL(blob);
-  });
-};
+          img.onerror = () => reject(new Error('Failed to load image for resizing'));
+          img.src = URL.createObjectURL(blob);
+        });
+      };
 
 // ✅ FUNCIÓN ACTUALIZADA: uploadImageToSupabase ahora usa PNG
-const uploadImageToSupabase = async (
-  supabaseClient: any,
-  productId: string, 
-  originalBlob: Blob, 
-  filename: string
-): Promise<{ thumbnail: string; catalog: string; luxury: string; print: string }> => {
-  const timestamp = Date.now();
-  const baseFilename = `${timestamp}_${productId}`;
-  
-  // ✅ CREAR MÚLTIPLES TAMAÑOS EN PNG
-  const [thumbnailBlob, catalogBlob, luxuryBlob, printBlob] = await Promise.all([
-    resizeImage(originalBlob, 300, 300),    // Thumbnail: 300x300
-    resizeImage(originalBlob, 800, 800),    // Catalog: 800x800  
-    resizeImage(originalBlob, 1200, 1200),  // Luxury: 1200x1200
-    resizeImage(originalBlob, 2400, 2400)   // Print: 2400x2400 (alta resolución)
-  ]);
-
-  const sizes = [
-    { blob: thumbnailBlob, suffix: 'thumb', size: 'thumbnail' },
-    { blob: catalogBlob, suffix: 'catalog', size: 'catalog' },
-    { blob: luxuryBlob, suffix: 'luxury', size: 'luxury' },
-    { blob: printBlob, suffix: 'print', size: 'print' }
-  ];
-
-  const uploadedUrls: any = {};
-
-  for (const { blob, suffix, size } of sizes) {
-    // ✅ CAMBIO CRÍTICO: Usar extensión .png
-    const fileName = `${baseFilename}_${suffix}.png`;
-    
-    const { data, error } = await supabaseClient.storage
-      .from('processed-images')
-      .upload(fileName, blob, {
-        contentType: 'image/png', // ✅ PNG content type
-        upsert: false
-      });
-
-    if (error) throw error;
-
-    const { data: urlData } = supabaseClient.storage
-      .from('processed-images')
-      .getPublicUrl(fileName);
-
-    uploadedUrls[size] = urlData.publicUrl;
-  }
-
-  return uploadedUrls;
-};
+      const uploadImageToSupabase = async (
+        supabaseClient: any,
+        productId: string, 
+        originalBlob: Blob, 
+        filename: string
+      ): Promise<{ thumbnail: string; catalog: string; luxury: string; print: string }> => {
+        const timestamp = Date.now();
+        const baseFilename = `${timestamp}_${productId}`;
+        
+        // Crear múltiples tamaños en PNG
+        const [thumbnailBlob, catalogBlob, luxuryBlob, printBlob] = await Promise.all([
+          resizeImage(originalBlob, 300, 300),    // Thumbnail
+          resizeImage(originalBlob, 800, 800),    // Catalog
+          resizeImage(originalBlob, 1200, 1200),  // Luxury
+          resizeImage(originalBlob, 2400, 2400)   // Print (alta resolución)
+        ]);
+      
+        const sizes = [
+          { blob: thumbnailBlob, suffix: 'thumb', size: 'thumbnail' },
+          { blob: catalogBlob, suffix: 'catalog', size: 'catalog' },
+          { blob: luxuryBlob, suffix: 'luxury', size: 'luxury' },
+          { blob: printBlob, suffix: 'print', size: 'print' }
+        ];
+      
+        const uploadedUrls: any = {};
+      
+        for (const { blob, suffix, size } of sizes) {
+          try {
+            // 1. Preparar Blob con metadatos explícitos
+            const pngBlob = new Blob([blob], {
+              type: 'image/png'
+            });
+      
+            // 2. Nombre de archivo con extensión .png
+            const fileName = `${baseFilename}_${suffix}.png`;
+      
+            console.log(`Subiendo ${size} (${pngBlob.size} bytes, ${pngBlob.type})`);
+      
+            // 3. Subir con opciones específicas
+            const { error } = await supabaseClient.storage
+              .from('processed-images')
+              .upload(fileName, pngBlob, {
+                contentType: 'image/png',
+                cacheControl: '3600',
+                upsert: false,
+                duplex: 'half',  // Importante para Node.js
+                // Opción experimental (si usas Supabase v2+)
+                transform: null  // Desactivar transformaciones automáticas
+              });
+      
+            if (error) throw error;
+      
+            // 4. Obtener URL pública con parámetro para evitar transformaciones
+            const { data: urlData } = supabaseClient.storage
+              .from('processed-images')
+              .getPublicUrl(fileName, {
+                download: true // Evita transformación en la URL
+              });
+      
+            // Verificar que la URL termina en .png
+            if (!urlData.publicUrl.includes('.png')) {
+              console.warn('⚠️ URL no contiene extensión .png:', urlData.publicUrl);
+            }
+      
+            uploadedUrls[size] = urlData.publicUrl;
+            
+          } catch (error) {
+            console.error(`Error subiendo ${size}:`, error);
+            throw new Error(`Failed to upload ${size} image: ${error.message}`);
+          }
+        }
+      
+        return uploadedUrls;
+      };
 
 const ImageReview = () => {
   const { user } = useAuth();
