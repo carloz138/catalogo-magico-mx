@@ -15,7 +15,8 @@ import { getFreeTemplates, getPremiumTemplates, getTemplateById, TemplateConfig 
 import { 
   downloadOptimizedCatalogPDF, 
   previewOptimizedCatalogPDF, 
-  getOptimizedPDFEstimates 
+  getOptimizedPDFEstimates,
+  GenerationProgress  // ← Ahora disponible
 } from '@/lib/optimizedPDFGenerator';
 
 import type { GenerationProgress } from '@/lib/optimizedPDFGenerator';
