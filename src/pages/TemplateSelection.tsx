@@ -16,10 +16,8 @@ import {
   downloadOptimizedCatalogPDF, 
   previewOptimizedCatalogPDF, 
   getOptimizedPDFEstimates,
-  GenerationProgress  // ← Ahora disponible
+  GenerationProgress
 } from '@/lib/optimizedPDFGenerator';
-
-import type { GenerationProgress } from '@/lib/optimizedPDFGenerator';
 import '@/styles/template-styles.css';
 
 interface LocationState {
