@@ -473,15 +473,26 @@ const drawOptimizedProductCard = async (
     if (product.image_url && product.image_url.startsWith('http')) {
       const img = await imageCache.loadImage(product.image_url);
       
-      // Dibujar imagen real
-      ctx.save();
+      // ✅ CREAR DEGRADADO RADIAL: GRIS CLARO EXTERIOR → BLANCO INTERIOR
+      const centerX = imgX + imgSize / 2;
+      const centerY = imgY + imgSize / 2;
+      const radius = imgSize / 2;
       
-      // Crear clipping para imagen redondeada
+      const gradient = ctx.createRadialGradient(
+        centerX, centerY, 0,           // Centro (radio 0)
+        centerX, centerY, radius       // Exterior (radio completo)
+      );
+      gradient.addColorStop(0, '#FFFFFF');    // Blanco en el centro
+      gradient.addColorStop(1, '#F3F4F6');   // Gris muy claro en el exterior
+      
+      ctx.fillStyle = gradient;
       if (config.spacing.borderRadius > 0) {
-        clipRoundedRect(ctx, imgX, imgY, imgSize, imgSize, config.spacing.borderRadius / 2);
+        drawRoundedRect(ctx, imgX, imgY, imgSize, imgSize, config.spacing.borderRadius / 2);
+      } else {
+        ctx.fillRect(imgX, imgY, imgSize, imgSize);
       }
       
-      // Calcular dimensiones manteniendo aspecto
+      // Calcular dimensiones manteniendo aspecto para imagen y sombra
       const aspectRatio = img.width / img.height;
       let drawWidth = imgSize;
       let drawHeight = imgSize;
@@ -496,12 +507,46 @@ const drawOptimizedProductCard = async (
         drawX = imgX + (imgSize - drawWidth) / 2;
       }
       
+      // ✅ DIBUJAR SOMBRA SUTIL HACIA LA DERECHA
+      ctx.save();
+      
+      // Configurar sombra
+      const shadowOffset = 4; // Desplazamiento hacia derecha y abajo
+      const shadowBlur = 8;   // Difuminado de la sombra
+      
+      // Aplicar clipping para sombra
+      if (config.spacing.borderRadius > 0) {
+        clipRoundedRect(ctx, imgX, imgY, imgSize, imgSize, config.spacing.borderRadius / 2);
+      }
+      
+      // Configurar sombra en el contexto
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.15)'; // Negro con 15% opacidad
+      ctx.shadowOffsetX = shadowOffset;
+      ctx.shadowOffsetY = shadowOffset;
+      ctx.shadowBlur = shadowBlur;
+      
+      // Dibujar imagen real con sombra
       ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
+      
       ctx.restore();
       
-      // Borde de imagen
+      // ✅ DIBUJAR IMAGEN PRINCIPAL SIN SOMBRA (ENCIMA)
+      ctx.save();
+      
+      // Aplicar clipping para imagen principal
+      if (config.spacing.borderRadius > 0) {
+        clipRoundedRect(ctx, imgX, imgY, imgSize, imgSize, config.spacing.borderRadius / 2);
+      }
+      
+      // Dibujar imagen principal sin sombra
+      ctx.shadowColor = 'transparent'; // Sin sombra para la imagen principal
+      ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
+      
+      ctx.restore();
+      
+      // ✅ BORDE ELEGANTE CON DEGRADADO
       ctx.strokeStyle = config.colors.secondary;
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 1.5;
       if (config.spacing.borderRadius > 0) {
         strokeRoundedRect(ctx, imgX, imgY, imgSize, imgSize, config.spacing.borderRadius / 2);
       } else {
