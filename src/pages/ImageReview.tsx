@@ -46,23 +46,38 @@ interface ImageDownloadProgress {
 }
 
 // ✅ FUNCIONES DE UTILIDAD OPTIMIZADAS PARA PNG
-const downloadImageFromUrl = async (url: string): Promise<Blob> => {
-  try {
-    const response = await fetch(url, {
-      mode: 'cors',
-      credentials: 'omit'
-    });
-    
-    if (!response.ok) {
-      throw new Error(`Failed to download image: ${response.status}`);
-    }
-    
-    return await response.blob();
-  } catch (error) {
-    console.error('Error downloading image:', error);
-    throw new Error('Failed to download processed image');
-  }
-};
+      const downloadImageFromUrl = async (url: string): Promise<Blob> => {
+        try {
+          const response = await fetch(url, {
+            headers: {
+              'Accept': 'image/png' // Pedir explícitamente PNG
+            }
+          });
+          
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status} - ${response.statusText}`);
+          }
+      
+          const contentType = response.headers.get('content-type');
+          if (!contentType?.includes('png')) {
+            console.warn('⚠️ Respuesta no es PNG:', contentType);
+          }
+      
+          const blob = await response.blob();
+          
+          // Verificar tipo MIME del Blob
+          if (!blob.type.includes('png')) {
+            console.warn('Blob recibido no es PNG:', blob.type);
+            // Forzar tipo PNG si es necesario
+            return new Blob([blob], { type: 'image/png' });
+          }
+          
+          return blob;
+        } catch (error) {
+          console.error('Error en downloadImageFromUrl:', error);
+          throw error;
+        }
+      };
 
 // ✅ FUNCIÓN ACTUALIZADA: resizeImage ahora usa PNG para preservar transparencia
       const resizeImage = (blob: Blob, maxWidth: number, maxHeight: number): Promise<Blob> => {
