@@ -1,8 +1,8 @@
 import { getTemplateById, TemplateConfig } from '@/lib/templates';
 import jsPDF from 'jspdf';
 
-// ✅ INTERFACES OPTIMIZADAS
-interface PDFProduct {
+// ✅ INTERFACES OPTIMIZADAS Y EXPORTADAS
+export interface PDFProduct {
   id: string;
   name: string;
   description?: string;
@@ -17,7 +17,7 @@ interface PDFProduct {
   brand?: string;
 }
 
-interface BusinessInfo {
+export interface BusinessInfo {
   business_name: string;
   logo_url?: string;
   primary_color: string;
@@ -28,7 +28,8 @@ interface BusinessInfo {
   website?: string;
 }
 
-interface GenerationProgress {
+// ✅ EXPORTAR INTERFAZ DE PROGRESO
+export interface GenerationProgress {
   currentPage: number;
   totalPages: number;
   currentProduct: number;
