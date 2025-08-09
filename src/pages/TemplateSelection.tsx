@@ -195,16 +195,39 @@ const TemplateSelection = () => {
       }
 
       // ✅ PREPARAR DATOS OPTIMIZADOS
-      const pdfProducts = selectedProducts.map(product => ({
-        id: product.id,
-        name: product.name,
-        description: product.description || product.custom_description || `Descripción de ${product.name}`,
-        category: product.category || 'General',
-        price_retail: product.price_retail || 0,
-        image_url: product.image_url || product.original_image_url, // ✅ IMAGEN REAL
-        sku: product.sku || `SKU-${product.id.slice(-6)}`,
-        brand: product.brand
-      }));
+      const pdfProducts = selectedProducts.map((product, index) => {
+        // 🔍 DEBUG: Verificar qué imagen se está usando
+        console.log(`🖼️ Producto ${index + 1}: ${product.name}`);
+        console.log(`   - image_url: ${product.image_url}`);
+        console.log(`   - original_image_url: ${product.original_image_url}`);
+        console.log(`   - processed_url: ${product.processed_url}`);
+        
+        // ✅ USAR SOLO CAMPOS REALES SIN MODIFICAR NOMBRES
+        let finalImageUrl = product.image_url || product.original_image_url;
+        
+        // 🔍 Si hay processed_url disponible, priorizarlo
+        if (product.processed_url) {
+          finalImageUrl = product.processed_url;
+          console.log(`   🔄 Usando processed_url: ${finalImageUrl}`);
+        }
+        const isPNG = finalImageUrl?.includes('.png') || finalImageUrl?.includes('image/png');
+        const isJPG = finalImageUrl?.includes('.jpg') || finalImageUrl?.includes('.jpeg') || finalImageUrl?.includes('image/jpeg');
+        
+        console.log(`   ✅ URL final: ${finalImageUrl}`);
+        console.log(`   📸 Tipo detectado: ${isPNG ? 'PNG (sin fondo)' : isJPG ? 'JPG (con fondo)' : 'Desconocido'}`);
+        console.log('---');
+
+        return {
+          id: product.id,
+          name: product.name,
+          description: product.description || product.custom_description || `Descripción de ${product.name}`,
+          category: product.category || 'General',
+          price_retail: product.price_retail || 0,
+          image_url: finalImageUrl, // ✅ IMAGEN REAL
+          sku: product.sku || `SKU-${product.id.slice(-6)}`,
+          brand: product.brand
+        };
+      });
 
       const pdfBusinessInfo = {
         business_name: businessInfo.business_name || 'Mi Empresa',
