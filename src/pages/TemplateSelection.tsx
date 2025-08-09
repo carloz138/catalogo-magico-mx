@@ -4,13 +4,21 @@ import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Crown, Check, Loader2, Download, Zap, FileText } from 'lucide-react';
+import { ArrowLeft, Crown, Check, Loader2, Download, Zap, FileText, Image, Timer } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useBusinessInfo } from '@/hooks/useBusinessInfo';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { getFreeTemplates, getPremiumTemplates, getTemplateById, TemplateConfig } from '@/lib/templates';
-import { downloadCatalogPDF, previewCatalogPDF, getPDFEstimates } from '@/lib/frontendPDFGenerator';
+
+// ✅ IMPORTAR LA VERSIÓN OPTIMIZADA
+import { 
+  downloadOptimizedCatalogPDF, 
+  previewOptimizedCatalogPDF, 
+  getOptimizedPDFEstimates 
+} from '@/lib/optimizedPDFGenerator';
+
+import type { GenerationProgress } from '@/lib/optimizedPDFGenerator';
 import '@/styles/template-styles.css';
 
 interface LocationState {
@@ -31,6 +39,10 @@ const TemplateSelection = () => {
   const [generating, setGenerating] = useState(false);
   const [loading, setLoading] = useState(true);
   const [pdfStats, setPdfStats] = useState<any>(null);
+  
+  // ✅ ESTADOS PARA PROGRESO OPTIMIZADO
+  const [generationProgress, setGenerationProgress] = useState<GenerationProgress | null>(null);
+  const [showProgressDetails, setShowProgressDetails] = useState(false);
 
   const state = location.state as LocationState;
 
@@ -76,6 +88,21 @@ const TemplateSelection = () => {
         margin: 10px; 
         border-radius: 8px; 
         text-align: center;
+      }
+      
+      /* Estilos para progreso */
+      .progress-bar {
+        background: linear-gradient(90deg, #10b981 0%, #3b82f6 100%);
+        height: 4px;
+        border-radius: 2px;
+        transition: width 0.3s ease;
+      }
+      
+      .progress-container {
+        background: #e5e7eb;
+        height: 4px;
+        border-radius: 2px;
+        overflow: hidden;
       }
     `;
     
@@ -125,7 +152,7 @@ const TemplateSelection = () => {
     }
   };
 
-  // ✅ FUNCIÓN PRINCIPAL: Generar PDF instantáneo (reemplaza createCatalog)
+  // ✅ FUNCIÓN PRINCIPAL OPTIMIZADA: Generar PDF con progreso
   const handleGeneratePDF = async (templateId: string) => {
     if (!selectedProducts.length) {
       toast({
@@ -147,9 +174,11 @@ const TemplateSelection = () => {
 
     setGenerating(true);
     setSelectedTemplate(templateId);
+    setGenerationProgress(null);
+    setShowProgressDetails(false);
 
     try {
-      console.log('🚀 GENERANDO PDF FRONTEND:', templateId);
+      console.log('🚀 GENERANDO PDF OPTIMIZADO:', templateId);
       
       const template = getTemplateById(templateId);
       if (!template) {
@@ -166,14 +195,16 @@ const TemplateSelection = () => {
         return;
       }
 
-      // ✅ PREPARAR DATOS
+      // ✅ PREPARAR DATOS OPTIMIZADOS
       const pdfProducts = selectedProducts.map(product => ({
         id: product.id,
         name: product.name,
         description: product.description || product.custom_description || `Descripción de ${product.name}`,
         category: product.category || 'General',
         price_retail: product.price_retail || 0,
-        image_url: product.image_url || product.original_image_url
+        image_url: product.image_url || product.original_image_url, // ✅ IMAGEN REAL
+        sku: product.sku || `SKU-${product.id.slice(-6)}`,
+        brand: product.brand
       }));
 
       const pdfBusinessInfo = {
@@ -186,96 +217,108 @@ const TemplateSelection = () => {
         address: businessInfo.address
       };
 
-      // ✅ GENERAR Y DESCARGAR PDF INSTANTÁNEO
-      const result = await downloadCatalogPDF(
+      // ✅ MOSTRAR PROGRESO DESPUÉS DE 1 SEGUNDO
+      setTimeout(() => {
+        setShowProgressDetails(true);
+      }, 1000);
+
+      // ✅ GENERAR Y DESCARGAR PDF OPTIMIZADO CON PROGRESO
+      const result = await downloadOptimizedCatalogPDF(
         pdfProducts, 
         pdfBusinessInfo, 
         templateId,
-        `catalogo-${template.displayName.replace(/\s+/g, '-').toLowerCase()}.pdf`
+        `catalogo-optimizado-${template.displayName.replace(/\s+/g, '-').toLowerCase()}.pdf`,
+        (progress) => {
+          console.log(`📊 Progreso: ${progress.phase} - ${progress.message}`);
+          setGenerationProgress(progress);
+        }
       );
       
       if (result.success) {
         toast({
-          title: "🎉 ¡Catálogo generado!",
-          description: "Tu PDF se está descargando automáticamente",
+          title: "🎉 ¡Catálogo optimizado generado!",
+          description: `PDF con imágenes reales descargado exitosamente (${pdfProducts.length} productos)`,
           variant: "default",
         });
 
         // ✅ OPCIONAL: Guardar registro en BD
         await saveCatalogRecord(templateId);
         
-        console.log('✅ PDF generado y descargado exitosamente');
+        console.log('✅ PDF optimizado generado y descargado exitosamente');
       } else {
-        throw new Error(result.error || 'Error generando PDF');
+        throw new Error(result.error || 'Error generando PDF optimizado');
       }
 
     } catch (error) {
-      console.error('❌ Error generando PDF:', error);
+      console.error('❌ Error generando PDF optimizado:', error);
       toast({
         title: "Error generando PDF",
-        description: error instanceof Error ? error.message : "No se pudo generar el catálogo",
+        description: error instanceof Error ? error.message : "No se pudo generar el catálogo optimizado",
         variant: "destructive",
       });
     } finally {
       setGenerating(false);
       setSelectedTemplate(null);
+      setGenerationProgress(null);
+      setShowProgressDetails(false);
     }
   };
 
   // ✅ FUNCIÓN: Guardar registro (simplificada)
-    const saveCatalogRecord = async (templateId: string) => {
-  try {
-    if (!user) return;
-    
-    const template = getTemplateById(templateId);
-    
-    // ✅ MAPEAR TEMPLATE ID A VALORES VÁLIDOS EN BD
-    const validTemplateStyles: { [key: string]: string } = {
-      'minimalista-gris': 'modern',
-      'profesional-corporativo': 'professional', 
-      'lujo-negro-oro': 'luxury',
-      'naturaleza-organico': 'nature',
-      'rustico-campestre': 'rustic',
-      // Agregar más mappings según sea necesario
-    };
-    
-    const dbTemplateStyle = validTemplateStyles[templateId] || 'modern'; // fallback a 'modern'
-    
-    console.log(`💾 Guardando catálogo: ${templateId} -> ${dbTemplateStyle}`);
-    
-    const catalogData = {
-      user_id: user.id,
-      name: `Catálogo ${template?.displayName || templateId} - ${new Date().toLocaleDateString('es-MX')}`,
-      product_ids: selectedProducts.map(p => p.id),
-      template_style: dbTemplateStyle, // ✅ USAR VALOR VÁLIDO
-      brand_colors: {
-        primary: businessInfo?.primary_color || template?.colors.primary || '#3B82F6',
-        secondary: businessInfo?.secondary_color || template?.colors.secondary || '#1F2937'
-      },
-      logo_url: businessInfo?.logo_url || null,
-      show_retail_prices: true,
-      show_wholesale_prices: false,
-      total_products: selectedProducts.length,
-      credits_used: 0
-    };
-    
-    const { error } = await supabase.from('catalogs').insert(catalogData);
-    
-    if (error) {
-      console.warn('⚠️ No se pudo guardar registro (esto no afecta la descarga):', error.message);
-    } else {
-      console.log('✅ Registro de catálogo guardado exitosamente');
+  const saveCatalogRecord = async (templateId: string) => {
+    try {
+      if (!user) return;
+      
+      const template = getTemplateById(templateId);
+      
+      // ✅ MAPEAR TEMPLATE ID A VALORES VÁLIDOS EN BD
+      const validTemplateStyles: { [key: string]: string } = {
+        'minimalista-gris': 'modern',
+        'profesional-corporativo': 'professional', 
+        'lujo-negro-oro': 'luxury',
+        'naturaleza-organico': 'nature',
+        'rustico-campestre': 'rustic',
+        // Agregar más mappings según sea necesario
+      };
+      
+      const dbTemplateStyle = validTemplateStyles[templateId] || 'modern';
+      
+      console.log(`💾 Guardando catálogo optimizado: ${templateId} -> ${dbTemplateStyle}`);
+      
+      const catalogData = {
+        user_id: user.id,
+        name: `Catálogo Optimizado ${template?.displayName || templateId} - ${new Date().toLocaleDateString('es-MX')}`,
+        product_ids: selectedProducts.map(p => p.id),
+        template_style: dbTemplateStyle,
+        brand_colors: {
+          primary: businessInfo?.primary_color || template?.colors.primary || '#3B82F6',
+          secondary: businessInfo?.secondary_color || template?.colors.secondary || '#1F2937'
+        },
+        logo_url: businessInfo?.logo_url || null,
+        show_retail_prices: true,
+        show_wholesale_prices: false,
+        total_products: selectedProducts.length,
+        credits_used: 0, // PDF optimizado es gratis
+        generation_method: 'optimized_frontend' // Nuevo campo para identificar método
+      };
+      
+      const { error } = await supabase.from('catalogs').insert(catalogData);
+      
+      if (error) {
+        console.warn('⚠️ No se pudo guardar registro (esto no afecta la descarga):', error.message);
+      } else {
+        console.log('✅ Registro de catálogo optimizado guardado exitosamente');
+      }
+    } catch (error) {
+      console.warn('⚠️ Error guardando registro (esto no afecta la descarga):', error);
     }
-  } catch (error) {
-    console.warn('⚠️ Error guardando registro (esto no afecta la descarga):', error);
-  }
-};
+  };
 
-  // ✅ FUNCIÓN: Calcular stats cuando cambie template
+  // ✅ FUNCIÓN: Calcular stats optimizados cuando cambie template
   const updateStatsForTemplate = (templateId: string) => {
     const template = getTemplateById(templateId);
     if (template && selectedProducts.length > 0) {
-      const stats = getPDFEstimates(selectedProducts, template);
+      const stats = getOptimizedPDFEstimates(selectedProducts, template);
       setPdfStats(stats);
     }
   };
@@ -338,11 +381,15 @@ const TemplateSelection = () => {
             </div>
           )}
 
-          {/* ✅ INSTANT GENERATION BADGE */}
-          <div className="absolute top-2 right-2">
-            <Badge className="bg-green-500 text-white text-xs flex items-center gap-1">
+          {/* ✅ OPTIMIZED BADGES */}
+          <div className="absolute top-2 right-2 space-y-1">
+            <Badge className="bg-gradient-to-r from-green-500 to-blue-500 text-white text-xs flex items-center gap-1">
+              <Image className="w-3 h-3" />
+              Imágenes Reales
+            </Badge>
+            <Badge className="bg-purple-500 text-white text-xs flex items-center gap-1">
               <Zap className="w-3 h-3" />
-              Instantáneo
+              Ultra Optimizado
             </Badge>
           </div>
         </div>
@@ -361,15 +408,15 @@ const TemplateSelection = () => {
             )}
           </div>
 
-          {/* ✅ STATS DEL PDF */}
+          {/* ✅ STATS OPTIMIZADOS */}
           <div className="text-xs text-gray-500 mb-4 grid grid-cols-2 gap-1">
             <div>• {template.productsPerPage} por página</div>
             <div>• Diseño {template.layout}</div>
-            <div>• {template.colors.primary}</div>
-            <div>• PDF instantáneo</div>
+            <div>• Imágenes HD reales</div>
+            <div>• Cache inteligente</div>
           </div>
 
-          {/* ✅ BOTÓN PRINCIPAL: GENERAR PDF INSTANTÁNEO */}
+          {/* ✅ BOTÓN PRINCIPAL: GENERAR PDF OPTIMIZADO */}
           <Button
             onClick={() => handleGeneratePDF(template.id)}
             disabled={isLocked || generating}
@@ -379,7 +426,7 @@ const TemplateSelection = () => {
             {isGenerating ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Generando PDF...
+                Generando PDF Optimizado...
               </>
             ) : isLocked ? (
               <>
@@ -389,7 +436,7 @@ const TemplateSelection = () => {
             ) : (
               <>
                 <Download className="w-4 h-4 mr-2" />
-                Descargar PDF
+                Generar PDF Optimizado
               </>
             )}
           </Button>
@@ -404,7 +451,7 @@ const TemplateSelection = () => {
         <div className="min-h-screen bg-gray-50 flex items-center justify-center">
           <div className="text-center">
             <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <p className="text-gray-600">Preparando generador PDF...</p>
+            <p className="text-gray-600">Preparando generador PDF optimizado...</p>
           </div>
         </div>
       </ProtectedRoute>
@@ -432,29 +479,29 @@ const TemplateSelection = () => {
                   <span>Volver a Biblioteca</span>
                 </Button>
                 <div>
-                  <h1 className="text-2xl font-bold">Generar Catálogo PDF</h1>
+                  <h1 className="text-2xl font-bold">Generar Catálogo PDF Optimizado</h1>
                   <p className="text-gray-600">
                     {totalTemplates} templates • {selectedProducts.length} productos • 
                     <span className="text-green-600 font-semibold ml-1">
-                      <Zap className="w-4 h-4 inline mr-1" />
-                      Generación instantánea
+                      <Image className="w-4 h-4 inline mr-1" />
+                      Con imágenes reales HD
                     </span>
                   </p>
                 </div>
               </div>
               
-              {/* ✅ STATS PANEL */}
+              {/* ✅ STATS PANEL OPTIMIZADO */}
               {pdfStats && (
-                <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-sm">
+                <div className="bg-gradient-to-r from-green-50 to-blue-50 border border-green-200 rounded-lg p-4 text-sm">
                   <div className="flex items-center gap-2 text-green-800 font-semibold mb-2">
                     <FileText className="w-4 h-4" />
-                    Estimado del PDF
+                    Estimado Optimizado
                   </div>
                   <div className="grid grid-cols-2 gap-2 text-green-700">
                     <div>📄 {pdfStats.totalPages} páginas</div>
                     <div>⚡ {pdfStats.estimatedTime}</div>
                     <div>💾 {pdfStats.estimatedSize}</div>
-                    <div>🎯 {pdfStats.productsPerPage}/página</div>
+                    <div>🖼️ Imágenes reales HD</div>
                   </div>
                 </div>
               )}
@@ -472,19 +519,35 @@ const TemplateSelection = () => {
           </div>
         </header>
         
-        {/* ✅ LOADING BANNER SIMPLE */}
-        {generating && (
-          <div className="bg-blue-50 border-b border-blue-200">
+        {/* ✅ BARRA DE PROGRESO OPTIMIZADA */}
+        {generating && generationProgress && showProgressDetails && (
+          <div className="bg-gradient-to-r from-blue-50 to-green-50 border-b border-blue-200">
             <div className="max-w-7xl mx-auto px-4 py-4">
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-4">
                 <div className="animate-spin w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full"></div>
                 <div className="flex-1">
-                  <div className="text-sm text-blue-800 font-medium">
-                    Generando PDF con {selectedProducts.length} productos...
+                  <div className="text-sm text-blue-800 font-medium mb-1">
+                    {generationProgress.message}
                   </div>
-                  <p className="text-xs text-blue-600 mt-1">
-                    Procesando imágenes PNG • Descarga instantánea
-                  </p>
+                  <div className="progress-container mb-2">
+                    <div 
+                      className="progress-bar" 
+                      style={{ 
+                        width: `${(generationProgress.currentProduct / generationProgress.totalProducts) * 100}%` 
+                      }}
+                    />
+                  </div>
+                  <div className="flex justify-between text-xs text-blue-600">
+                    <span>
+                      {generationProgress.phase === 'processing' ? 'Optimizando imágenes...' :
+                       generationProgress.phase === 'generating' ? 'Generando PDF...' :
+                       generationProgress.phase === 'complete' ? '¡Completado!' : 'Iniciando...'}
+                    </span>
+                    <span>
+                      {generationProgress.currentProduct}/{generationProgress.totalProducts} productos •
+                      Página {generationProgress.currentPage}/{generationProgress.totalPages}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -492,21 +555,31 @@ const TemplateSelection = () => {
         )}
         
         <main className="max-w-7xl mx-auto px-4 py-6">
-          {/* ✅ BENEFITS BANNER */}
-          <div className="bg-gradient-to-r from-green-500 to-blue-500 text-white rounded-lg p-6 mb-8">
+          {/* ✅ BENEFITS BANNER OPTIMIZADO */}
+          <div className="bg-gradient-to-r from-green-500 via-blue-500 to-purple-500 text-white rounded-lg p-6 mb-8">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-lg font-semibold mb-2 flex items-center gap-2">
-                  <Zap className="w-5 h-5" />
-                  Generación PDF Instantánea
+                  <Image className="w-5 h-5" />
+                  PDF Optimizado con Imágenes Reales
                 </h3>
-                <p className="text-green-100">
-                  PDFs profesionales generados al instante en tu navegador. Sin esperas, sin servidores.
+                <p className="text-green-100 mb-2">
+                  Catálogos profesionales con imágenes HD reales. Cache inteligente, compresión automática.
                 </p>
+                <div className="flex flex-wrap gap-3 text-sm">
+                  <span className="bg-white/20 px-2 py-1 rounded">🚀 Carga en lotes</span>
+                  <span className="bg-white/20 px-2 py-1 rounded">🗜️ Compresión automática</span>
+                  <span className="bg-white/20 px-2 py-1 rounded">💾 Cache inteligente</span>
+                  <span className="bg-white/20 px-2 py-1 rounded">📱 Móvil optimizado</span>
+                </div>
               </div>
               <div className="text-right">
                 <div className="text-2xl font-bold">0 créditos</div>
                 <div className="text-green-100 text-sm">¡Completamente gratis!</div>
+                <div className="text-xs text-green-200 mt-1">
+                  <Timer className="w-3 h-3 inline mr-1" />
+                  Progreso en tiempo real
+                </div>
               </div>
             </div>
           </div>
@@ -515,12 +588,12 @@ const TemplateSelection = () => {
           <section className="mb-12">
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h2 className="text-xl font-semibold text-gray-900">Templates Gratuitos</h2>
-                <p className="text-gray-600">PDF instantáneo • Disponibles en todos los planes</p>
+                <h2 className="text-xl font-semibold text-gray-900">Templates Gratuitos Optimizados</h2>
+                <p className="text-gray-600">PDF con imágenes reales • Cache inteligente • Disponibles en todos los planes</p>
               </div>
               <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                <Zap className="w-3 h-3 mr-1" />
-                {freeTemplates.length} templates
+                <Image className="w-3 h-3 mr-1" />
+                {freeTemplates.length} templates HD
               </Badge>
             </div>
             
@@ -535,17 +608,17 @@ const TemplateSelection = () => {
           <section>
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h2 className="text-xl font-semibold text-gray-900">Templates Premium</h2>
+                <h2 className="text-xl font-semibold text-gray-900">Templates Premium Optimizados</h2>
                 <p className="text-gray-600">
                   {userPlan === 'basic' 
-                    ? 'PDF instantáneo • Requiere plan Premium' 
-                    : 'PDF instantáneo • Incluidos en tu plan Premium'
+                    ? 'PDF con imágenes reales HD • Cache inteligente • Requiere plan Premium' 
+                    : 'PDF con imágenes reales HD • Cache inteligente • Incluidos en tu plan Premium'
                   }
                 </p>
               </div>
               <Badge variant="outline" className="bg-gradient-to-r from-purple-500 to-pink-500 text-white border-none">
                 <Crown className="w-3 h-3 mr-1" />
-                {premiumTemplates.length} templates
+                {premiumTemplates.length} templates HD
               </Badge>
             </div>
             
@@ -557,7 +630,7 @@ const TemplateSelection = () => {
           </section>
         </main>
 
-        {/* ✅ FLOATING ACTION BAR SIMPLIFICADO */}
+        {/* ✅ FLOATING ACTION BAR OPTIMIZADO */}
         {selectedProducts.length > 0 && (
           <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-t border-gray-200 shadow-xl">
             <div className="max-w-7xl mx-auto px-4 py-4">
@@ -565,11 +638,11 @@ const TemplateSelection = () => {
                 <div className="text-sm text-gray-700">
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                    <span className="font-medium">{selectedProducts.length} productos PNG listos</span>
+                    <span className="font-medium">{selectedProducts.length} productos con imágenes HD listos</span>
                   </div>
                 </div>
-                <div className="text-sm text-green-600 font-semibold">
-                  🎯 PDF instantáneo • Sin costos adicionales
+                <div className="text-sm font-semibold bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent">
+                  🎯 PDF optimizado • Imágenes reales • Cache inteligente • Sin costos
                 </div>
               </div>
             </div>
