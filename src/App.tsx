@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -11,7 +10,8 @@ import Upload from "./pages/Upload";
 import Products from "./pages/Products";
 import Catalogs from "./pages/Catalogs";
 import ImageReview from "./pages/ImageReview";
-import TemplateSelection from "./pages/TemplateSelection";
+// ✅ CAMBIO: Importar el nuevo componente mejorado
+import TemplateSelectionEnhanced from "@/components/enhanced/TemplateSelectionEnhanced";
 import Checkout from "./pages/Checkout";
 import PaymentInstructions from "./pages/PaymentInstructions";
 import NotFound from "./pages/NotFound";
@@ -44,9 +44,10 @@ const App = () => (
                 <ImageReview />
               </ProtectedRoute>
             } />
+            {/* ✅ CAMBIO: Usar el nuevo componente mejorado */}
             <Route path="/template-selection" element={
               <ProtectedRoute>
-                <TemplateSelection />
+                <TemplateSelectionEnhanced />
               </ProtectedRoute>
             } />
             <Route path="/catalogs" element={
