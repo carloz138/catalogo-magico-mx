@@ -1,4 +1,3 @@
-
 // src/lib/templates/enhanced-config.ts
 // 🎨 CONFIGURACIONES DE TEMPLATES PROFESIONALES
 
@@ -63,6 +62,9 @@ export interface EnhancedTemplateConfig {
   tags: string[];
   industry?: string[];
 }
+
+// ✅ ADD REFERENCE TEMPLATES (empty for now, will be imported from reference-inspired.ts)
+export const REFERENCE_TEMPLATES: Record<string, EnhancedTemplateConfig> = {};
 
 export const ENHANCED_TEMPLATES: Record<string, EnhancedTemplateConfig> = {
   

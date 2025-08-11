@@ -1,3 +1,4 @@
+
 // src/components/enhanced/TemplateSelectionEnhanced.tsx
 // 🔧 VERSIÓN CORREGIDA - Errores de TypeScript solucionados
 
@@ -60,6 +61,25 @@ interface LocationState {
 }
 
 type TemplateCategory = 'all' | 'free' | 'premium' | 'professional' | 'reference';
+
+// ✅ TYPE GUARD FUNCTIONS
+const isEnhancedTemplate = (template: TemplateConfig | EnhancedTemplateConfig): template is EnhancedTemplateConfig => {
+  return 'elements' in template && 'layout' in template && typeof template.layout === 'object';
+};
+
+const getTemplateProductsPerPage = (template: TemplateConfig | EnhancedTemplateConfig): number => {
+  if (isEnhancedTemplate(template)) {
+    return template.layout.productsPerPage;
+  }
+  return template.productsPerPage;
+};
+
+const getTemplateLayoutType = (template: TemplateConfig | EnhancedTemplateConfig): string => {
+  if (isEnhancedTemplate(template)) {
+    return template.layout.type;
+  }
+  return template.layout;
+};
 
 const TemplateSelectionEnhanced = () => {
   const { user } = useAuth();
@@ -193,7 +213,8 @@ const TemplateSelectionEnhanced = () => {
   const getRecommendedTemplates = (): EnhancedTemplateConfig[] => {
     if (!selectedProducts.length) return [];
     
-    const businessType = businessInfo?.industry || 'general';
+    // ✅ Fix: Use a default industry value instead of trying to access non-existent property
+    const businessType = 'general'; // businessInfo?.industry is not available
     return getTemplateRecommendations(selectedProducts, businessType).slice(0, 3);
   };
 
@@ -419,7 +440,7 @@ const TemplateSelectionEnhanced = () => {
 
           {/* ✅ STATS ESPECÍFICOS POR TIPO */}
           <div className="text-xs text-gray-500 mb-4 grid grid-cols-2 gap-1">
-            {'layout' in template && typeof template.layout === 'object' ? (
+            {isEnhancedTemplate(template) ? (
               <>
                 <div>• {template.layout.productsPerPage} por página</div>
                 <div>• {template.layout.type} layout</div>
@@ -429,7 +450,7 @@ const TemplateSelectionEnhanced = () => {
             ) : (
               <>
                 <div>• {template.productsPerPage} por página</div>
-                <div>• {typeof template.layout === 'string' ? template.layout : 'grid'} diseño</div>
+                <div>• {template.layout} diseño</div>
                 <div>• Calidad estándar</div>
                 <div>• Estilo clásico</div>
               </>

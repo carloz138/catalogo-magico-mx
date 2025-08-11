@@ -9,7 +9,7 @@ import {
   GenerationProgress
 } from './enhancedPDFGenerator';
 
-import { ENHANCED_TEMPLATES, REFERENCE_TEMPLATES } from './templates/enhanced-config';
+import { ENHANCED_TEMPLATES } from './templates/enhanced-config';
 
 // ✅ RE-EXPORTAR TIPOS E INTERFACES NECESARIAS
 export type { GenerationProgress };
@@ -26,7 +26,7 @@ export const downloadOptimizedCatalogPDF = async (
     console.log(`🎨 downloadOptimizedCatalogPDF: ${templateId}`);
     
     // ✅ DETECTAR SI ES TEMPLATE PROFESIONAL
-    const isEnhanced = ENHANCED_TEMPLATES[templateId] || REFERENCE_TEMPLATES[templateId];
+    const isEnhanced = ENHANCED_TEMPLATES[templateId];
     
     if (isEnhanced) {
       // 🎨 USAR NUEVO SISTEMA PROFESIONAL
@@ -55,7 +55,7 @@ export const previewOptimizedCatalogPDF = async (
   try {
     console.log(`👁️ previewOptimizedCatalogPDF: ${templateId}`);
     
-    const isEnhanced = ENHANCED_TEMPLATES[templateId] || REFERENCE_TEMPLATES[templateId];
+    const isEnhanced = ENHANCED_TEMPLATES[templateId];
     
     if (isEnhanced) {
       // Para templates profesionales, generar preview
@@ -83,7 +83,7 @@ export const previewOptimizedCatalogPDF = async (
 // ✅ FUNCIÓN DE ESTIMADOS (nueva exportación)
 export const getOptimizedPDFEstimates = (products: any[], templateId: string) => {
   try {
-    const template = ENHANCED_TEMPLATES[templateId] || REFERENCE_TEMPLATES[templateId];
+    const template = ENHANCED_TEMPLATES[templateId];
     
     if (template) {
       // Usar estimados profesionales
@@ -264,8 +264,7 @@ async function simulateDownload(html: string, filename: string) {
 // ✅ EXPORTACIONES ADICIONALES PARA COMPATIBILIDAD
 export {
   generateCatalogWithProgress,
-  ENHANCED_TEMPLATES,
-  REFERENCE_TEMPLATES
+  ENHANCED_TEMPLATES
 };
 
 // ✅ FUNCIÓN DE MIGRACIÓN PARA TU CÓDIGO EXISTENTE
@@ -278,7 +277,6 @@ export const migrateToEnhancedSystem = () => {
 3. ✅ getOptimizedPDFEstimates - Nueva función agregada  
 4. ✅ GenerationProgress - Tipo exportado
 5. ✅ ENHANCED_TEMPLATES - Templates profesionales disponibles
-6. ✅ REFERENCE_TEMPLATES - Templates inspirados en referencias
 
 🔄 COMPATIBILIDAD:
 - Tu código existente seguirá funcionando igual
