@@ -360,6 +360,7 @@ const TemplateSelection = () => {
               transformOrigin: 'top left',
               width: '250%'
             }}
+            onMouseEnter={() => updateStatsForTemplate(template.id)}
           >
             <div className="catalog" style={{ padding: '20px' }}>
               <div className="header" style={{ marginBottom: '20px', textAlign: 'center' }}>
