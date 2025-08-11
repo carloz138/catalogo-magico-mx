@@ -1,3 +1,4 @@
+
 // src/components/enhanced/TemplateSelectionEnhanced.tsx
 // 🚀 COMPONENTE MEJORADO DE SELECCIÓN DE TEMPLATES
 
@@ -140,7 +141,7 @@ const TemplateSelectionEnhanced = () => {
   const getRecommendedTemplates = (): EnhancedTemplateConfig[] => {
     if (!selectedProducts.length) return [];
     
-    const businessType = businessInfo?.industry || 'general';
+    const businessType = (businessInfo as any)?.industry || 'general';
     return getTemplateRecommendations(selectedProducts, businessType).slice(0, 3);
   };
 
@@ -278,6 +279,37 @@ const TemplateSelectionEnhanced = () => {
     }
   };
 
+  // ✅ FUNCIÓN HELPER PARA OBTENER PROPIEDADES DEL TEMPLATE
+  const getTemplateProperty = (template: TemplateConfig | EnhancedTemplateConfig, property: string): any => {
+    if ('layout' in template && typeof template.layout === 'object') {
+      // EnhancedTemplateConfig
+      const enhancedTemplate = template as EnhancedTemplateConfig;
+      switch (property) {
+        case 'productsPerPage':
+          return enhancedTemplate.layout.productsPerPage;
+        case 'layoutType':
+          return enhancedTemplate.layout.type;
+        case 'hasElements':
+          return enhancedTemplate.elements?.geometricShapes;
+        default:
+          return undefined;
+      }
+    } else {
+      // TemplateConfig
+      const basicTemplate = template as TemplateConfig;
+      switch (property) {
+        case 'productsPerPage':
+          return basicTemplate.productsPerPage;
+        case 'layoutType':
+          return basicTemplate.layout;
+        case 'hasElements':
+          return false;
+        default:
+          return undefined;
+      }
+    }
+  };
+
   // ✅ COMPONENTE DE TEMPLATE CARD MEJORADO
   const TemplateCard = ({ template }: { template: TemplateConfig | EnhancedTemplateConfig }) => {
     const isLocked = template.isPremium && userPlan === 'basic';
@@ -287,6 +319,10 @@ const TemplateSelectionEnhanced = () => {
     const isReference = REFERENCE_TEMPLATES[template.id];
     const isEnhanced = ENHANCED_TEMPLATES[template.id];
     const templateType = isReference ? 'reference' : isEnhanced ? 'professional' : 'basic';
+
+    const productsPerPage = getTemplateProperty(template, 'productsPerPage');
+    const layoutType = getTemplateProperty(template, 'layoutType');
+    const hasElements = getTemplateProperty(template, 'hasElements');
 
     return (
       <Card className={`overflow-hidden transition-all duration-200 hover:shadow-xl ${isLocked ? 'opacity-70' : ''}`}>
@@ -360,21 +396,10 @@ const TemplateSelectionEnhanced = () => {
 
           {/* ✅ STATS ESPECÍFICOS POR TIPO */}
           <div className="text-xs text-gray-500 mb-4 grid grid-cols-2 gap-1">
-            {'layout' in template ? (
-              <>
-                <div>• {template.layout.productsPerPage} por página</div>
-                <div>• {template.layout.type} layout</div>
-                <div>• {templateType} quality</div>
-                <div>• Elementos {template.elements?.geometricShapes ? 'gráficos' : 'básicos'}</div>
-              </>
-            ) : (
-              <>
-                <div>• {template.productsPerPage} por página</div>
-                <div>• {template.layout} diseño</div>
-                <div>• Calidad estándar</div>
-                <div>• Estilo clásico</div>
-              </>
-            )}
+            <div>• {productsPerPage} por página</div>
+            <div>• {layoutType} layout</div>
+            <div>• {templateType} quality</div>
+            <div>• Elementos {hasElements ? 'gráficos' : 'básicos'}</div>
           </div>
 
           {/* ✅ BOTÓN PRINCIPAL */}

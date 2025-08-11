@@ -1,3 +1,4 @@
+
 // src/lib/templates/enhanced-config.ts
 // 🎨 CONFIGURACIONES DE TEMPLATES PROFESIONALES
 
@@ -358,6 +359,12 @@ export const getTemplatesByIndustry = (industry: string): EnhancedTemplateConfig
 export const getTemplatesByDesignFeature = (feature: keyof EnhancedTemplateConfig['elements']): EnhancedTemplateConfig[] => {
   return Object.values(ENHANCED_TEMPLATES).filter(template => 
     template.elements[feature] === true
+  );
+};
+
+export const getTemplatesByCategory = (category: EnhancedTemplateConfig['category']): EnhancedTemplateConfig[] => {
+  return Object.values(ENHANCED_TEMPLATES).filter(template => 
+    template.category === category
   );
 };
 
