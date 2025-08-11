@@ -462,6 +462,20 @@ async function convertHTMLToPDF(html: string, options: any) {
     }, 2000);
   });
 }
+    export const downloadOptimizedCatalogPDF = async (products, businessInfo, templateId, filename, progressCallback) => {
+      // ✅ Detectar si es template profesional
+      const isEnhanced = ENHANCED_TEMPLATES[templateId] || REFERENCE_TEMPLATES[templateId];
+      
+      if (isEnhanced) {
+        // 🎨 Usar nuevo sistema
+        console.log('🎨 Usando template profesional:', templateId);
+        return await downloadEnhancedCatalogPDF(products, businessInfo, templateId, filename, progressCallback);
+      } else {
+        // 📄 Tu código actual para templates básicos
+        console.log('📄 Usando template básico:', templateId);
+        // [TU CÓDIGO ACTUAL AQUÍ - NO CAMBIAR]
+      }
+    };
 
 /**
  * 🚀 FUNCIÓN PRINCIPAL PARA TU COMPONENTE TEMPLATESELECTION

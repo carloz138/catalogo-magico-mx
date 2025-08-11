@@ -1,3 +1,6 @@
+ // 🔸 AGREGAR imports al inicio
+    import { downloadEnhancedCatalogPDF } from './enhancedPDFGenerator';
+    import { ENHANCED_TEMPLATES, REFERENCE_TEMPLATES } from './templates/enhanced-config';
 import { getTemplateById, TemplateConfig } from '@/lib/templates';
 import jsPDF from 'jspdf';
 
@@ -106,6 +109,8 @@ class ImageCache {
       img.src = url;
     });
   }
+
+    
 
   private compressImage(img: HTMLImageElement): HTMLImageElement {
     const canvas = document.createElement('canvas');
