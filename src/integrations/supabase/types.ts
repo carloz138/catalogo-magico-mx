@@ -68,20 +68,6 @@ export type Database = {
             foreignKeyName: "business_info_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: true
-            referencedRelation: "user_profile_status"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "business_info_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: true
-            referencedRelation: "user_stats"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "business_info_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: true
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
@@ -149,20 +135,6 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "catalogs_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "user_profile_status"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "catalogs_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "user_stats"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "catalogs_user_id_fkey"
             columns: ["user_id"]
@@ -274,20 +246,6 @@ export type Database = {
             foreignKeyName: "credit_usage_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: "user_profile_status"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "credit_usage_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "user_stats"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "credit_usage_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
@@ -300,6 +258,8 @@ export type Database = {
           ai_tags: string[] | null
           brand: string | null
           category: string | null
+          cleanup_grace_period: number | null
+          cleanup_scheduled_at: string | null
           color: string | null
           created_at: string
           credits_used: number | null
@@ -311,12 +271,17 @@ export type Database = {
           features: string[] | null
           hd_image_url: string | null
           id: string
+          image_url: string | null
+          is_processed: boolean | null
           model: string | null
           name: string
           original_image_url: string
           price_retail: number | null
           price_wholesale: number | null
+          processed_at: string | null
           processed_image_url: string | null
+          processed_images: Json | null
+          processing_metadata: Json | null
           processing_progress: number | null
           processing_status: string | null
           service_type: string | null
@@ -334,6 +299,8 @@ export type Database = {
           ai_tags?: string[] | null
           brand?: string | null
           category?: string | null
+          cleanup_grace_period?: number | null
+          cleanup_scheduled_at?: string | null
           color?: string | null
           created_at?: string
           credits_used?: number | null
@@ -345,12 +312,17 @@ export type Database = {
           features?: string[] | null
           hd_image_url?: string | null
           id?: string
+          image_url?: string | null
+          is_processed?: boolean | null
           model?: string | null
           name: string
           original_image_url: string
           price_retail?: number | null
           price_wholesale?: number | null
+          processed_at?: string | null
           processed_image_url?: string | null
+          processed_images?: Json | null
+          processing_metadata?: Json | null
           processing_progress?: number | null
           processing_status?: string | null
           service_type?: string | null
@@ -368,6 +340,8 @@ export type Database = {
           ai_tags?: string[] | null
           brand?: string | null
           category?: string | null
+          cleanup_grace_period?: number | null
+          cleanup_scheduled_at?: string | null
           color?: string | null
           created_at?: string
           credits_used?: number | null
@@ -379,12 +353,17 @@ export type Database = {
           features?: string[] | null
           hd_image_url?: string | null
           id?: string
+          image_url?: string | null
+          is_processed?: boolean | null
           model?: string | null
           name?: string
           original_image_url?: string
           price_retail?: number | null
           price_wholesale?: number | null
+          processed_at?: string | null
           processed_image_url?: string | null
+          processed_images?: Json | null
+          processing_metadata?: Json | null
           processing_progress?: number | null
           processing_status?: string | null
           service_type?: string | null
@@ -397,20 +376,6 @@ export type Database = {
           wholesale_min_qty?: number | null
         }
         Relationships: [
-          {
-            foreignKeyName: "products_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "user_profile_status"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "products_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "user_stats"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "products_user_id_fkey"
             columns: ["user_id"]
@@ -505,20 +470,6 @@ export type Database = {
             foreignKeyName: "transactions_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: "user_profile_status"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "transactions_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "user_stats"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "transactions_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
@@ -581,20 +532,6 @@ export type Database = {
             foreignKeyName: "user_preferences_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: true
-            referencedRelation: "user_profile_status"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "user_preferences_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: true
-            referencedRelation: "user_stats"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "user_preferences_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: true
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
@@ -649,64 +586,36 @@ export type Database = {
           total_credits_purchased?: number | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "users_id_fkey"
+            columns: ["id"]
+            isOneToOne: true
+            referencedRelation: "user_statistics"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
-      user_profile_status: {
+      user_statistics: {
         Row: {
-          business_name: string | null
-          business_type: string | null
           created_at: string | null
-          credits: number | null
           email: string | null
-          full_name: string | null
           id: string | null
-          missing_fields: string[] | null
-          phone: string | null
-          profile_status: string | null
           updated_at: string | null
         }
         Insert: {
-          business_name?: string | null
-          business_type?: string | null
           created_at?: string | null
-          credits?: number | null
           email?: string | null
-          full_name?: string | null
           id?: string | null
-          missing_fields?: never
-          phone?: string | null
-          profile_status?: never
           updated_at?: string | null
         }
         Update: {
-          business_name?: string | null
-          business_type?: string | null
           created_at?: string | null
-          credits?: number | null
           email?: string | null
-          full_name?: string | null
           id?: string | null
-          missing_fields?: never
-          phone?: string | null
-          profile_status?: never
           updated_at?: string | null
-        }
-        Relationships: []
-      }
-      user_stats: {
-        Row: {
-          business_name: string | null
-          credits: number | null
-          email: string | null
-          full_name: string | null
-          id: string | null
-          total_catalogs_created: number | null
-          total_credits_purchased: number | null
-          total_credits_used: number | null
-          total_products_processed: number | null
-          user_since: string | null
         }
         Relationships: []
       }
