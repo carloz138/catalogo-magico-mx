@@ -138,49 +138,36 @@ const TemplateSelectionEnhanced = () => {
     }
   };
 
-  // ✅ FUNCIÓN CORREGIDA: Obtener templates básicos
-  const getBasicTemplates = (): TemplateConfig[] => {
-    // ⚠️ TEMPORAL: Templates básicos hardcodeados
-    // TODO: Reemplazar con tu función real cuando esté disponible
-    return [
-      {
-        id: 'minimalista-gris',
-        name: 'minimalista-gris',
-        displayName: 'Minimalista Gris',
-        description: 'Diseño limpio y profesional con tonos grises elegantes',
-        isPremium: false,
-        productsPerPage: 4,
-        imageSize: { width: 400, height: 400 },
-        colors: {
-          primary: '#6B7280',
-          secondary: '#F3F4F6',
-          background: '#FFFFFF',
-          text: '#111827'
-        },
-        layout: 'grid',
-        features: ['Diseño limpio', 'Tipografía moderna', 'Espacios amplios'],
-        category: 'business'
-      },
-      {
-        id: 'profesional-corporativo',
-        name: 'profesional-corporativo',
-        displayName: 'Profesional Corporativo',
-        description: 'Estilo corporativo con colores azules y estructura formal',
-        isPremium: false,
-        productsPerPage: 3,
-        imageSize: { width: 450, height: 450 },
-        colors: {
-          primary: '#1E40AF',
-          secondary: '#3B82F6',
-          background: '#F8FAFC',
-          text: '#1F2937'
-        },
-        layout: 'list',
-        features: ['Estructura formal', 'Colores corporativos', 'Información detallada'],
-        category: 'business'
-      }
-    ];
-  };
+    // ✅ FUNCIÓN CORREGIDA: Obtener templates básicos usando tu sistema real
+      const getBasicTemplates = (): TemplateConfig[] => {
+        // ✅ Usar tu sistema de templates real
+        try {
+          const { getFreeTemplates } = require('@/lib/templates');
+          return getFreeTemplates();
+        } catch (error) {
+          console.warn('⚠️ No se pudieron cargar templates básicos, usando fallback');
+          return [
+            {
+              id: 'minimalista-gris',
+              name: 'minimalista-gris',
+              displayName: 'Minimalista Gris',
+              description: 'Diseño limpio y profesional con tonos grises elegantes',
+              isPremium: false,
+              productsPerPage: 4,
+              imageSize: { width: 400, height: 400 },
+              colors: {
+                primary: '#6B7280',
+                secondary: '#F3F4F6',
+                background: '#FFFFFF',
+                text: '#111827'
+              },
+              layout: 'grid',
+              features: ['Diseño limpio', 'Tipografía moderna', 'Espacios amplios'],
+              category: 'business'
+            }
+          ];
+        }
+      };
 
   // ✅ FUNCIÓN CORREGIDA: Combinar todos los templates
   const getAllTemplates = (): (TemplateConfig | EnhancedTemplateConfig)[] => {
