@@ -998,7 +998,8 @@ const ImageReview = () => {
                             <div className="flex items-center justify-between text-xs">
                               <span className="text-gray-500">Precio:</span>
                               <span className="text-gray-800 font-semibold">
-                                ${(product.price_retail / 100).toFixed(2)} MXN
+                                {/* ✅ CORRECCIÓN: NO dividir por 100 - los precios ya están en formato correcto */}
+                                ${product.price_retail.toFixed(2)} MXN
                               </span>
                             </div>
                             
