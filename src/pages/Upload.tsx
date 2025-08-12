@@ -217,8 +217,9 @@ const Upload = () => {
         user_id: user!.id,
         name: product.name,
         sku: product.sku || null,
-        price_retail: (priceDisplayMode !== 'none' && product.price_retail) ? Math.round(product.price_retail * 100) : null,
-        price_wholesale: (priceDisplayMode === 'both' && product.price_wholesale) ? Math.round(product.price_wholesale * 100) : null,
+        // ✅ CORRECCIÓN: NO multiplicar por 100 - guardar precios directamente
+        price_retail: (priceDisplayMode !== 'none' && product.price_retail) ? product.price_retail : null,
+        price_wholesale: (priceDisplayMode === 'both' && product.price_wholesale) ? product.price_wholesale : null,
         wholesale_min_qty: product.wholesale_min_qty || null,
         category: product.category,
         custom_description: product.custom_description || null,
@@ -232,7 +233,7 @@ const Upload = () => {
         estimated_cost_mxn: product.smart_analysis?.estimatedCost || 0.20
       }));
 
-      console.log('Inserting products:', productInserts);
+      console.log('Inserting products with corrected prices:', productInserts);
 
       const { data: insertedProducts, error: insertError } = await supabase
         .from('products')
@@ -251,7 +252,7 @@ const Upload = () => {
 
       toast({
         title: "¡Éxito!",
-        description: `✅ ${products.length} productos guardados en tu biblioteca`,
+        description: `✅ ${products.length} productos guardados con precios corregidos`,
       });
 
       // Clear the form
@@ -562,9 +563,9 @@ const Upload = () => {
                 onClick={saveToLibrary}
               >
                 {saving ? (
-                  'Guardando...'
+                  'Guardando precios corregidos...'
                 ) : canSaveToLibrary() ? (
-                  `Guardar ${uploadedFiles.length} productos en mi biblioteca (Gratis)`
+                  `Guardar ${uploadedFiles.length} productos (Precios corregidos)`
                 ) : (
                   'Completa productos marcados en rojo'
                 )}
