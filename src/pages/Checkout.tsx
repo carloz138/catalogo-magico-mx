@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { CreditCard, Building2, CheckCircle, ArrowLeft } from 'lucide-react';
+import { CreditCard, Building2, CheckCircle, ArrowLeft, Zap, Crown, Users, TrendingUp } from 'lucide-react';
 
 interface CreditPackage {
   id: string;
@@ -15,6 +15,7 @@ interface CreditPackage {
   description: string;
   is_popular: boolean;
   discount_percentage: number;
+  is_active: boolean;
 }
 
 const Checkout = () => {
@@ -31,7 +32,7 @@ const Checkout = () => {
   const [processingPayment, setProcessingPayment] = useState(false);
 
   // Check for pre-selected package from navigation state
-  const preSelectedPackageId = location.state?.selectedPackage;
+  const preSelectedPackageName = location.state?.selectedPackageName;
 
   useEffect(() => {
     console.log('Checkout useEffect running, user:', user);
@@ -40,17 +41,17 @@ const Checkout = () => {
 
   useEffect(() => {
     // Pre-select package if one was passed from navigation
-    if (preSelectedPackageId && packages.length > 0) {
-      const preSelected = packages.find(pkg => pkg.id === preSelectedPackageId);
+    if (preSelectedPackageName && packages.length > 0) {
+      const preSelected = packages.find(pkg => pkg.name === preSelectedPackageName);
       if (preSelected) {
         setSelectedPackage(preSelected);
         console.log('Pre-selected package:', preSelected);
       }
     }
-  }, [packages, preSelectedPackageId]);
+  }, [packages, preSelectedPackageName]);
 
   const fetchCreditPackages = async () => {
-    console.log('Fetching credit packages...');
+    console.log('Fetching credit packages from Supabase...');
     try {
       const { data, error } = await supabase
         .from('credit_packages')
@@ -63,7 +64,7 @@ const Checkout = () => {
       setPackages(data || []);
       
       // Auto-select popular package only if no pre-selection
-      if (!preSelectedPackageId) {
+      if (!preSelectedPackageName) {
         const popularPackage = data?.find(pkg => pkg.is_popular);
         if (popularPackage) setSelectedPackage(popularPackage);
       }
@@ -93,6 +94,55 @@ const Checkout = () => {
     return 0;
   };
 
+  const getPackageIcon = (packageName: string) => {
+    if (packageName.includes('Starter')) return <Zap className="w-5 h-5" />;
+    if (packageName.includes('Popular')) return <TrendingUp className="w-5 h-5" />;
+    if (packageName.includes('Business')) return <Users className="w-5 h-5" />;
+    if (packageName.includes('Enterprise')) return <Crown className="w-5 h-5" />;
+    return <Zap className="w-5 h-5" />;
+  };
+
+  const getPackageColor = (packageName: string) => {
+    if (packageName.includes('Starter')) return 'from-blue-400 to-blue-600';
+    if (packageName.includes('Popular')) return 'from-green-400 to-green-600';
+    if (packageName.includes('Business')) return 'from-purple-400 to-purple-600';
+    if (packageName.includes('Enterprise')) return 'from-yellow-400 to-yellow-600';
+    return 'from-gray-400 to-gray-600';
+  };
+
+  const getPackageFeatures = (packageName: string, credits: number) => {
+    const isPremium = packageName.includes('Premium');
+    const isBasic = packageName.includes('Básico');
+    
+    const features = [
+      `${credits.toLocaleString()} créditos incluidos`,
+      'Catálogos PDF profesionales',
+      'Imágenes HD sin marca de agua',
+      'Soporte por WhatsApp'
+    ];
+
+    if (isPremium) {
+      features.push('Remove.bg Premium incluido');
+      features.push('Análisis híbrido inteligente');
+      features.push('Calidad garantizada premium');
+    } else if (isBasic) {
+      features.push('Procesamiento Pixelcut optimizado');
+      features.push('Smart Analysis incluido');
+    }
+
+    if (packageName.includes('Business') || packageName.includes('Enterprise')) {
+      features.push('Procesamiento masivo');
+      features.push('Soporte prioritario');
+    }
+
+    if (packageName.includes('Enterprise')) {
+      features.push('API access');
+      features.push('Account manager dedicado');
+    }
+
+    return features;
+  };
+
   const handleStripePayment = async () => {
     if (!selectedPackage || !user) return;
     
@@ -116,7 +166,7 @@ const Checkout = () => {
 
       console.log('Stripe payment for transaction:', transaction.id);
 
-      // 2. Call create-payment-intent Edge Function (now creates checkout session)
+      // 2. Call create-payment-intent Edge Function
       const { data, error } = await supabase.functions.invoke('create-payment-intent', {
         body: { transactionId: transaction.id }
       });
@@ -230,51 +280,84 @@ const Checkout = () => {
         {/* Credit Packages */}
         <div className="mb-8">
           <h2 className="text-xl font-semibold mb-6">Elige tu paquete</h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {packages.map(pkg => (
-              <div 
-                key={pkg.id}
-                className={`relative border-2 rounded-lg p-6 cursor-pointer transition-all ${
-                  pkg.is_popular ? 'border-primary bg-primary/5' : 'border-gray-200'
-                } ${selectedPackage?.id === pkg.id ? 'ring-2 ring-primary' : ''} hover:shadow-md`}
-                onClick={() => setSelectedPackage(pkg)}
-              >
-                {pkg.is_popular && (
-                  <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                    <span className="bg-primary text-white px-3 py-1 rounded-full text-sm font-semibold">
-                      MÁS POPULAR
-                    </span>
+          
+          {packages.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-gray-500">No hay paquetes disponibles en este momento.</p>
+            </div>
+          ) : (
+            <div className="grid md:grid-cols-2 lg:grid-cols-2 gap-6">
+              {packages.map(pkg => (
+                <div 
+                  key={pkg.id}
+                  className={`relative border-2 rounded-xl p-6 cursor-pointer transition-all transform hover:scale-105 ${
+                    pkg.is_popular 
+                      ? 'border-primary bg-gradient-to-br from-primary/5 to-primary/10 shadow-lg' 
+                      : 'border-gray-200 bg-white'
+                  } ${selectedPackage?.id === pkg.id ? 'ring-2 ring-primary shadow-xl' : ''} hover:shadow-lg`}
+                  onClick={() => setSelectedPackage(pkg)}
+                >
+                  {pkg.is_popular && (
+                    <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                      <span className="bg-gradient-to-r from-primary to-blue-600 text-white px-4 py-1 rounded-full text-sm font-semibold flex items-center gap-1">
+                        <TrendingUp className="w-3 h-3" />
+                        MÁS POPULAR
+                      </span>
+                    </div>
+                  )}
+                  
+                  {/* Header with icon */}
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className={`w-10 h-10 rounded-lg bg-gradient-to-r ${getPackageColor(pkg.name)} flex items-center justify-center text-white`}>
+                      {getPackageIcon(pkg.name)}
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-lg">{pkg.name}</h3>
+                      <p className="text-sm text-gray-600">{pkg.description}</p>
+                    </div>
                   </div>
-                )}
-                
-                <h3 className="font-bold text-lg mb-2">{pkg.name}</h3>
-                <div className="mb-4">
-                  <span className="text-3xl font-bold">${(pkg.price_mxn / 100).toLocaleString()}</span>
-                  <span className="text-gray-500 ml-1">MXN</span>
-                </div>
-                
-                <div className="space-y-2 mb-4">
-                  <p className="text-lg font-medium">{pkg.credits.toLocaleString()} créditos</p>
-                  <p className="text-sm text-gray-600">
-                    ${((pkg.price_mxn / 100) / pkg.credits).toFixed(2)} por crédito
-                  </p>
-                  {pkg.discount_percentage > 0 && (
-                    <p className="text-green-600 font-semibold">
-                      ¡Ahorra {pkg.discount_percentage}%!
-                    </p>
+                  
+                  {/* Pricing */}
+                  <div className="mb-6">
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-3xl font-bold">${(pkg.price_mxn / 100).toLocaleString()}</span>
+                      <span className="text-gray-500">MXN</span>
+                      {pkg.discount_percentage > 0 && (
+                        <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-semibold">
+                          -{pkg.discount_percentage}%
+                        </span>
+                      )}
+                    </div>
+                    
+                    <div className="mt-2">
+                      <p className="text-lg font-medium text-primary">{pkg.credits.toLocaleString()} créditos</p>
+                      <p className="text-sm text-gray-600">
+                        ${((pkg.price_mxn / 100) / pkg.credits).toFixed(2)} por crédito
+                      </p>
+                    </div>
+                  </div>
+                  
+                  {/* Features */}
+                  <div className="space-y-2 mb-4">
+                    {getPackageFeatures(pkg.name, pkg.credits).map((feature, index) => (
+                      <div key={index} className="flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
+                        <span className="text-sm text-gray-700">{feature}</span>
+                      </div>
+                    ))}
+                  </div>
+                  
+                  {selectedPackage?.id === pkg.id && (
+                    <div className="absolute top-4 right-4">
+                      <div className="w-6 h-6 bg-primary rounded-full flex items-center justify-center">
+                        <CheckCircle className="w-4 h-4 text-white" />
+                      </div>
+                    </div>
                   )}
                 </div>
-                
-                <p className="text-sm text-gray-500">{pkg.description}</p>
-                
-                {selectedPackage?.id === pkg.id && (
-                  <div className="absolute top-4 right-4">
-                    <CheckCircle className="w-6 h-6 text-primary" />
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {selectedPackage && (
@@ -360,6 +443,12 @@ const Checkout = () => {
                   <span>Subtotal:</span>
                   <span>${(selectedPackage.price_mxn / 100).toLocaleString()} MXN</span>
                 </div>
+                {selectedPackage.discount_percentage > 0 && (
+                  <div className="flex justify-between text-green-600">
+                    <span>Descuento ({selectedPackage.discount_percentage}%):</span>
+                    <span>-${(((selectedPackage.price_mxn / 100) * selectedPackage.discount_percentage) / (100 - selectedPackage.discount_percentage)).toFixed(2)} MXN</span>
+                  </div>
+                )}
                 {paymentMethod === 'spei' && (
                   <div className="flex justify-between text-sm">
                     <span>Comisión SPEI:</span>
@@ -389,6 +478,10 @@ const Checkout = () => {
                   `Pagar con ${paymentMethod === 'stripe' ? 'Tarjeta' : 'SPEI'}`
                 )}
               </Button>
+              
+              <p className="text-center text-xs text-gray-500 mt-4">
+                🔒 Pago 100% seguro • SSL encriptado • Sin guardar datos de tarjeta
+              </p>
             </div>
           </>
         )}
