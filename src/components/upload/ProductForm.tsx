@@ -48,6 +48,8 @@ const categories = [
 
 export const ProductForm = ({ product, imageUrl, onUpdate, priceDisplayMode }: ProductFormProps) => {
   const handleInputChange = (field: keyof ProductData, value: string | number) => {
+    console.log(`💰 ProductForm - Actualizando ${field}:`, value);
+    
     onUpdate({
       ...product,
       [field]: value
@@ -122,7 +124,7 @@ export const ProductForm = ({ product, imageUrl, onUpdate, priceDisplayMode }: P
             {shouldShowRetailPrice && (
               <div className="space-y-2">
                 <Label htmlFor={`price-retail-${product.id}`} className="text-sm font-medium">
-                  Precio de venta *
+                  Precio de venta * (en pesos)
                 </Label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
@@ -130,13 +132,20 @@ export const ProductForm = ({ product, imageUrl, onUpdate, priceDisplayMode }: P
                     id={`price-retail-${product.id}`}
                     type="number"
                     value={product.price_retail || ''}
-                    onChange={(e) => handleInputChange('price_retail', parseFloat(e.target.value) || 0)}
+                    onChange={(e) => {
+                      const value = parseFloat(e.target.value) || 0;
+                      console.log(`💰 ProductForm - Precio retail ingresado: ${value} (SIN multiplicar por 100)`);
+                      handleInputChange('price_retail', value);
+                    }}
                     placeholder="0.00"
                     className="pl-8"
                     step="0.01"
                     min="0"
                   />
                 </div>
+                <p className="text-xs text-gray-500">
+                  💡 Ingresa el precio tal como quieres que aparezca (ej: 500.00 para $500 pesos)
+                </p>
               </div>
             )}
 
@@ -144,7 +153,7 @@ export const ProductForm = ({ product, imageUrl, onUpdate, priceDisplayMode }: P
               <>
                 <div className="space-y-2">
                   <Label htmlFor={`price-wholesale-${product.id}`} className="text-sm font-medium">
-                    Precio mayoreo
+                    Precio mayoreo (en pesos)
                   </Label>
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
@@ -152,13 +161,20 @@ export const ProductForm = ({ product, imageUrl, onUpdate, priceDisplayMode }: P
                       id={`price-wholesale-${product.id}`}
                       type="number"
                       value={product.price_wholesale || ''}
-                      onChange={(e) => handleInputChange('price_wholesale', parseFloat(e.target.value) || 0)}
+                      onChange={(e) => {
+                        const value = parseFloat(e.target.value) || 0;
+                        console.log(`💰 ProductForm - Precio mayoreo ingresado: ${value} (SIN multiplicar por 100)`);
+                        handleInputChange('price_wholesale', value);
+                      }}
                       placeholder="0.00"
                       className="pl-8"
                       step="0.01"
                       min="0"
                     />
                   </div>
+                  <p className="text-xs text-gray-500">
+                    💡 Precio para ventas al mayoreo (opcional)
+                  </p>
                 </div>
 
                 <div className="space-y-2">
@@ -190,6 +206,18 @@ export const ProductForm = ({ product, imageUrl, onUpdate, priceDisplayMode }: P
                 className="resize-none"
               />
             </div>
+
+            {/* ✅ DEBUG INFO - Solo en desarrollo */}
+            {process.env.NODE_ENV === 'development' && (
+              <div className="bg-blue-50 p-3 rounded-lg text-xs">
+                <div className="font-medium text-blue-800 mb-2">🔍 Debug - Precios corregidos:</div>
+                <div className="space-y-1 text-blue-700">
+                  <div>• Retail: ${product.price_retail || 0} (directo, SIN × 100)</div>
+                  <div>• Mayoreo: ${product.price_wholesale || 0} (directo, SIN × 100)</div>
+                  <div>• Al guardar: Se mantienen estos valores exactos</div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </CardContent>
