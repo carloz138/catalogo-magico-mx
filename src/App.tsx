@@ -18,6 +18,7 @@ import NotFound from "./pages/NotFound";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import BusinessInfoPage from "./pages/BusinessInfoPage";
 
+
 const queryClient = new QueryClient();
 
 const App = () => (
