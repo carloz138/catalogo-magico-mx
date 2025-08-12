@@ -104,7 +104,8 @@ const ProductCard = ({
       <div className="p-3">
         <h3 className="font-medium text-sm truncate">{product.name || 'Sin nombre'}</h3>
         <p className="text-xs text-gray-500 truncate mb-2">
-          {product.price_retail ? `$${(product.price_retail / 100).toLocaleString()} MXN` : 'Sin precio'}
+          {/* ✅ CORRECCIÓN: NO dividir por 100 - los precios ya están en formato correcto */}
+          {product.price_retail ? `$${product.price_retail.toLocaleString()} MXN` : 'Sin precio'}
         </p>
         
         {/* Credits info solo si no está procesado */}
