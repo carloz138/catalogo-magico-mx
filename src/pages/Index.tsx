@@ -1,17 +1,56 @@
-import { useState } from "react";
-import { ChevronDown, Star, Check, Play, ArrowRight, Zap, Clock, DollarSign, Shield, Users, TrendingUp, Image as ImageIcon } from "lucide-react";
+import { useState, useEffect } from "react";
+import { ChevronDown, Star, Check, Play, ArrowRight, Zap, Clock, DollarSign, Shield, Users, TrendingUp, Image as ImageIcon, Crown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { LoginModal } from "@/components/auth/LoginModal";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+
+interface CreditPackage {
+  id: string;
+  name: string;
+  credits: number;
+  price_mxn: number;
+  price_usd: number;
+  description: string;
+  is_popular: boolean;
+  discount_percentage: number;
+  is_active: boolean;
+}
 
 const Index = () => {
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
   const [loginModalOpen, setLoginModalOpen] = useState(false);
+  const [pricingPlans, setPricingPlans] = useState<CreditPackage[]>([]);
+  const [loadingPlans, setLoadingPlans] = useState(true);
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+
+  // ✅ CARGAR PLANES DINÁMICAMENTE
+  useEffect(() => {
+    fetchPricingPlans();
+  }, []);
+
+  const fetchPricingPlans = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('credit_packages')
+        .select('*')
+        .eq('is_active', true)
+        .order('credits');
+
+      if (error) throw error;
+      setPricingPlans(data || []);
+    } catch (error) {
+      console.error('Error fetching pricing plans:', error);
+      // Fallback a planes estáticos si falla la carga
+      setPricingPlans([]);
+    } finally {
+      setLoadingPlans(false);
+    }
+  };
 
   const handleMainCTA = () => {
     if (user) {
@@ -37,13 +76,63 @@ const Index = () => {
     }
   };
 
-  // ✅ FUNCIÓN PARA CENTRO DE IMÁGENES 07082025
+  // ✅ FUNCIÓN PARA CENTRO DE IMÁGENES
   const handleImageCenter = () => {
     if (user) {
       navigate('/image-review');
     } else {
       setLoginModalOpen(true);
     }
+  };
+
+  // ✅ FUNCIONES PARA STYLING DE PAQUETES
+  const getPackageIcon = (packageName: string) => {
+    if (packageName.includes('Starter')) return <Zap className="w-6 h-6" />;
+    if (packageName.includes('Popular')) return <TrendingUp className="w-6 h-6" />;
+    if (packageName.includes('Business')) return <Users className="w-6 h-6" />;
+    if (packageName.includes('Enterprise')) return <Crown className="w-6 h-6" />;
+    return <Zap className="w-6 h-6" />;
+  };
+
+  const getPackageColor = (packageName: string, isPopular: boolean) => {
+    if (isPopular) return 'border-secondary bg-secondary/5';
+    if (packageName.includes('Starter')) return 'border-blue-200 bg-blue-50';
+    if (packageName.includes('Business')) return 'border-purple-200 bg-purple-50';
+    if (packageName.includes('Enterprise')) return 'border-yellow-200 bg-yellow-50';
+    return 'border-gray-200 bg-gray-50';
+  };
+
+  const getPackageFeatures = (packageName: string, credits: number) => {
+    const isPremium = packageName.includes('Premium');
+    const isBasic = packageName.includes('Básico');
+    
+    const features = [
+      `${credits.toLocaleString()} créditos incluidos`,
+      'Catálogos PDF profesionales',
+      'Imágenes HD sin marca de agua',
+      'Soporte por WhatsApp'
+    ];
+
+    if (isPremium) {
+      features.push('Remove.bg Premium incluido');
+      features.push('Análisis híbrido inteligente');
+      features.push('Máxima calidad garantizada');
+    } else if (isBasic) {
+      features.push('Procesamiento Pixelcut optimizado');
+      features.push('Smart Analysis incluido');
+    }
+
+    if (packageName.includes('Business') || packageName.includes('Enterprise')) {
+      features.push('Procesamiento masivo');
+      features.push('Soporte prioritario');
+    }
+
+    if (packageName.includes('Enterprise')) {
+      features.push('API access');
+      features.push('Account manager dedicado');
+    }
+
+    return features;
   };
 
   const testimonials = [
@@ -67,46 +156,6 @@ const Index = () => {
       image: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=80&h=80&fit=crop&crop=face",
       quote: "Subí mis productos a Mercado Libre con las fotos de CatalogoIA y quedé en primera página. Parece que tengo equipo de marketing.",
       results: "Top seller ML"
-    }
-  ];
-
-  const pricingPlans = [
-    {
-      name: "Starter",
-      credits: 100,
-      price: 180,
-      pricePerCredit: 1.80,
-      discount: 10,
-      description: "Perfecto para empezar",
-      features: ["100 créditos incluidos", "Catálogos básicos", "Imágenes HD", "Soporte por WhatsApp"]
-    },
-    {
-      name: "Popular",
-      credits: 500,
-      price: 800,
-      pricePerCredit: 1.60,
-      discount: 20,
-      popular: true,
-      description: "Lo que más eligen nuestros clientes",
-      features: ["500 créditos incluidos", "Videos promocionales", "Pack redes sociales", "Catálogos premium", "Soporte prioritario"]
-    },
-    {
-      name: "Business", 
-      credits: 1000,
-      price: 1400,
-      pricePerCredit: 1.40,
-      discount: 30,
-      description: "Para empresas en crecimiento",
-      features: ["1,000 créditos incluidos", "Plantillas personalizadas", "Marca de agua removida", "Integración API", "Account manager dedicado"]
-    },
-    {
-      name: "Enterprise",
-      credits: 5000, 
-      price: 6000,
-      pricePerCredit: 1.20,
-      discount: 40,
-      description: "Para empresas establecidas",
-      features: ["5,000 créditos incluidos", "Procesamiento prioritario", "Integraciones avanzadas", "Capacitación personalizada", "SLA garantizado"]
     }
   ];
 
@@ -218,7 +267,7 @@ const Index = () => {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
                 <div className="flex items-center space-x-2 p-3 bg-white rounded-lg shadow-sm">
                   <DollarSign className="w-5 h-5 text-secondary" />
-                  <span className="text-sm font-medium">Desde $22.50 MXN</span>
+                  <span className="text-sm font-medium">Desde $75 MXN</span>
                 </div>
                 <div className="flex items-center space-x-2 p-3 bg-white rounded-lg shadow-sm">
                   <Clock className="w-5 h-5 text-accent" />
@@ -320,11 +369,11 @@ const Index = () => {
               <h3 className="text-xl font-bold text-neutral mb-4">95% más barato</h3>
               <p className="text-neutral/70 mb-4">
                 Fotógrafos tradicionales: $1,500-4,000 MXN por producto.
-                CatalogoIA: $22.50 MXN por producto.
+                CatalogoIA: desde $75 MXN por producto.
               </p>
               <div className="bg-secondary/10 p-4 rounded-lg">
                 <p className="text-sm font-semibold text-secondary">
-                  Ahorra hasta $3,977 MXN por producto
+                  Ahorra hasta $3,925 MXN por producto
                 </p>
               </div>
             </Card>
@@ -458,7 +507,7 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Pricing */}
+      {/* ✅ PRICING DINÁMICO DESDE SUPABASE */}
       <section id="precios" className="py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
@@ -469,58 +518,109 @@ const Index = () => {
               Elige el paquete perfecto para tu negocio
             </p>
             
-            <div className="flex items-center justify-center space-x-4 mb-8">
-              <div className="text-center">
-                <p className="text-sm text-neutral/60">Producto básico</p>
-                <p className="text-lg font-bold text-neutral">15 créditos = $22.50 MXN</p>
-              </div>
-              <div className="w-px h-12 bg-gray-200"></div>
-              <div className="text-center">
-                <p className="text-sm text-neutral/60">Con videos</p>
-                <p className="text-lg font-bold text-neutral">120 créditos = $180.00 MXN</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {pricingPlans.map((plan, index) => (
-              <Card key={index} className={`p-6 relative ${plan.popular ? 'border-2 border-secondary shadow-2xl scale-105' : 'border-none shadow-mexican'}`}>
-                {plan.popular && (
-                  <Badge className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-secondary text-white">
-                    ⭐ MÁS POPULAR
-                  </Badge>
-                )}
-                
-                <div className="text-center mb-6">
-                  <h3 className="text-xl font-bold text-neutral mb-2">{plan.name}</h3>
-                  <p className="text-sm text-neutral/60 mb-4">{plan.description}</p>
-                  
-                  <div className="mb-4">
-                    <p className="text-3xl font-bold text-neutral">${plan.price.toLocaleString()}<span className="text-lg font-normal">.00 MXN</span></p>
-                    <p className="text-sm text-neutral/60">{plan.credits.toLocaleString()} créditos incluidos</p>
-                    <p className="text-sm text-secondary font-semibold">${plan.pricePerCredit} por crédito ({plan.discount}% descuento)</p>
-                  </div>
+            {!loadingPlans && pricingPlans.length > 0 && (
+              <div className="flex items-center justify-center space-x-4 mb-8">
+                <div className="text-center">
+                  <p className="text-sm text-neutral/60">Plan básico desde</p>
+                  <p className="text-lg font-bold text-neutral">
+                    ${Math.min(...pricingPlans.map(p => p.price_mxn / 100)).toLocaleString()} MXN
+                  </p>
                 </div>
-
-                <ul className="space-y-3 mb-6">
-                  {plan.features.map((feature, featureIndex) => (
-                    <li key={featureIndex} className="flex items-start space-x-2">
-                      <Check className="w-5 h-5 text-secondary flex-shrink-0 mt-0.5" />
-                      <span className="text-sm text-neutral/80">{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-
-                <Button 
-                  className={`w-full ${plan.popular ? 'bg-secondary hover:bg-secondary/90' : 'bg-primary hover:bg-primary/90'}`}
-                  size="lg"
-                  onClick={() => handlePurchasePackage(plan.name)}
-                >
-                  Comprar ahora
-                </Button>
-              </Card>
-            ))}
+                <div className="w-px h-12 bg-gray-200"></div>
+                <div className="text-center">
+                  <p className="text-sm text-neutral/60">Plan premium desde</p>
+                  <p className="text-lg font-bold text-neutral">
+                    ${Math.min(...pricingPlans.filter(p => p.name.includes('Premium')).map(p => p.price_mxn / 100)).toLocaleString()} MXN
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
+
+          {loadingPlans ? (
+            <div className="text-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+              <p className="text-neutral/60">Cargando planes...</p>
+            </div>
+          ) : pricingPlans.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-neutral/60">No hay planes disponibles en este momento.</p>
+            </div>
+          ) : (
+            <div className="grid md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-6">
+              {pricingPlans.map((plan, index) => (
+                <Card 
+                  key={plan.id} 
+                  className={`p-6 relative transition-all hover:scale-105 ${
+                    plan.is_popular 
+                      ? 'border-2 border-secondary shadow-2xl scale-105' 
+                      : `border ${getPackageColor(plan.name, plan.is_popular)} shadow-lg`
+                  }`}
+                >
+                  {plan.is_popular && (
+                    <Badge className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-secondary text-white">
+                      ⭐ MÁS POPULAR
+                    </Badge>
+                  )}
+                  
+                  <div className="text-center mb-6">
+                    <div className="flex items-center justify-center mb-3">
+                      <div className={`w-12 h-12 rounded-lg ${
+                        plan.is_popular ? 'bg-secondary' : 
+                        plan.name.includes('Starter') ? 'bg-blue-500' :
+                        plan.name.includes('Business') ? 'bg-purple-500' :
+                        plan.name.includes('Enterprise') ? 'bg-yellow-500' : 'bg-gray-500'
+                      } flex items-center justify-center text-white`}>
+                        {getPackageIcon(plan.name)}
+                      </div>
+                    </div>
+                    
+                    <h3 className="text-xl font-bold text-neutral mb-2">{plan.name}</h3>
+                    <p className="text-sm text-neutral/60 mb-4">{plan.description}</p>
+                    
+                    <div className="mb-4">
+                      <div className="flex items-baseline justify-center gap-1">
+                        <span className="text-3xl font-bold text-neutral">
+                          ${(plan.price_mxn / 100).toLocaleString()}
+                        </span>
+                        <span className="text-lg font-normal">.00 MXN</span>
+                        {plan.discount_percentage > 0 && (
+                          <Badge className="ml-2 bg-green-100 text-green-800">
+                            -{plan.discount_percentage}%
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-sm text-neutral/60">{plan.credits.toLocaleString()} créditos incluidos</p>
+                      <p className="text-sm text-secondary font-semibold">
+                        ${((plan.price_mxn / 100) / plan.credits).toFixed(2)} por crédito
+                      </p>
+                    </div>
+                  </div>
+
+                  <ul className="space-y-3 mb-6">
+                    {getPackageFeatures(plan.name, plan.credits).map((feature, featureIndex) => (
+                      <li key={featureIndex} className="flex items-start space-x-2">
+                        <Check className="w-5 h-5 text-secondary flex-shrink-0 mt-0.5" />
+                        <span className="text-sm text-neutral/80">{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
+
+                  <Button 
+                    className={`w-full ${
+                      plan.is_popular 
+                        ? 'bg-secondary hover:bg-secondary/90' 
+                        : 'bg-primary hover:bg-primary/90'
+                    }`}
+                    size="lg"
+                    onClick={() => handlePurchasePackage(plan.name)}
+                  >
+                    Comprar ahora
+                  </Button>
+                </Card>
+              ))}
+            </div>
+          )}
 
           <div className="text-center mt-12">
             <p className="text-neutral/60 mb-4">💳 Aceptamos tarjeta, OXXO y transferencia bancaria</p>
