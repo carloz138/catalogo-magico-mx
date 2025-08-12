@@ -438,9 +438,9 @@ const TemplateSelection = () => {
             <div>• Calidad 300 DPI</div>
           </div>
 
-          {/* ✅ BOTÓN PRINCIPAL: GENERAR PDF OPTIMIZADO */}
+          {/* ✅ FIX: ASEGURAR QUE SE PASE SOLO EL ID */}
           <Button
-            onClick={() => handleGeneratePDF(template.id)}
+            onClick={() => handleGeneratePDF(String(template.id))}
             disabled={isLocked || generating}
             className="w-full"
             variant={isLocked ? "outline" : "default"}
