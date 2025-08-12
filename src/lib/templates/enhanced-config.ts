@@ -1,5 +1,5 @@
 // src/lib/templates/enhanced-config.ts
-// 🎨 CONFIGURACIONES DE TEMPLATES PROFESIONALES
+// 🎨 CONFIGURACIONES DE TEMPLATES PROFESIONALES CON SOMBRAS
 
 export interface EnhancedTemplateConfig {
   id: string;
@@ -73,7 +73,7 @@ export const ENHANCED_TEMPLATES: Record<string, EnhancedTemplateConfig> = {
     id: 'tech-modern-pro',
     name: 'tech-modern-pro',
     displayName: 'Tech Modern Pro',
-    description: 'Diseño futurista con elementos geométricos y gradientes dinámicos',
+    description: 'Diseño futurista con elementos geométricos, gradientes dinámicos y sombras profesionales',
     isPremium: true,
     
     layout: {
@@ -86,7 +86,7 @@ export const ENHANCED_TEMPLATES: Record<string, EnhancedTemplateConfig> = {
     design: {
       imageSize: { width: 400, height: 400 },
       borderRadius: 20,
-      shadows: true,
+      shadows: true, // ✅ SOMBRAS ACTIVADAS
       animations: true,
       decorativeElements: true
     },
@@ -121,7 +121,7 @@ export const ENHANCED_TEMPLATES: Record<string, EnhancedTemplateConfig> = {
     },
     
     category: 'tech',
-    tags: ['moderno', 'tecnología', 'gradientes', 'geométrico'],
+    tags: ['moderno', 'tecnología', 'gradientes', 'geométrico', 'sombras'],
     industry: ['tecnología', 'software', 'electrónicos']
   },
 
@@ -130,7 +130,7 @@ export const ENHANCED_TEMPLATES: Record<string, EnhancedTemplateConfig> = {
     id: 'luxury-fashion-elite',
     name: 'luxury-fashion-elite',
     displayName: 'Luxury Fashion Elite',
-    description: 'Elegancia suprema con tipografía serif y elementos dorados',
+    description: 'Elegancia suprema con tipografía serif, elementos dorados y sombras sutiles',
     isPremium: true,
     
     layout: {
@@ -143,7 +143,7 @@ export const ENHANCED_TEMPLATES: Record<string, EnhancedTemplateConfig> = {
     design: {
       imageSize: { width: 500, height: 500 },
       borderRadius: 0,
-      shadows: false,
+      shadows: true, // ✅ SOMBRAS SUTILES PARA LUJO
       animations: false,
       decorativeElements: true
     },
@@ -177,7 +177,7 @@ export const ENHANCED_TEMPLATES: Record<string, EnhancedTemplateConfig> = {
     },
     
     category: 'luxury',
-    tags: ['elegante', 'premium', 'moda', 'sofisticado'],
+    tags: ['elegante', 'premium', 'moda', 'sofisticado', 'sombras sutiles'],
     industry: ['moda', 'joyería', 'cosméticos', 'lujo']
   },
 
@@ -186,7 +186,7 @@ export const ENHANCED_TEMPLATES: Record<string, EnhancedTemplateConfig> = {
     id: 'minimalist-furniture-pro',
     name: 'minimalist-furniture-pro',
     displayName: 'Minimalist Furniture Pro',
-    description: 'Diseño limpio y espacioso perfecto para muebles y decoración',
+    description: 'Diseño limpio y espacioso con sombras minimalistas para muebles y decoración',
     isPremium: true,
     
     layout: {
@@ -199,7 +199,7 @@ export const ENHANCED_TEMPLATES: Record<string, EnhancedTemplateConfig> = {
     design: {
       imageSize: { width: 450, height: 450 },
       borderRadius: 0,
-      shadows: true,
+      shadows: true, // ✅ SOMBRAS MINIMALISTAS
       animations: false,
       decorativeElements: false
     },
@@ -209,7 +209,7 @@ export const ENHANCED_TEMPLATES: Record<string, EnhancedTemplateConfig> = {
       secondary: '#636e72',
       accent: '#00b894',
       background: '#fdcb6e',
-      surface: '#ddddd',
+      surface: '#dddddd',
       textPrimary: '#2d3436',
       textSecondary: '#636e72'
     },
@@ -233,16 +233,16 @@ export const ENHANCED_TEMPLATES: Record<string, EnhancedTemplateConfig> = {
     },
     
     category: 'lifestyle',
-    tags: ['minimalista', 'limpio', 'espacioso', 'moderno'],
+    tags: ['minimalista', 'limpio', 'espacioso', 'moderno', 'sombras sutiles'],
     industry: ['muebles', 'decoración', 'hogar', 'diseño']
   },
 
-  // ✨ TEMPLATE: VIBRANT ECOMMERCE (GRATIS)
+  // ✨ TEMPLATE: VIBRANT ECOMMERCE (GRATIS CON SOMBRAS)
   'vibrant-ecommerce': {
     id: 'vibrant-ecommerce',
     name: 'vibrant-ecommerce',
     displayName: 'Vibrant E-commerce',
-    description: 'Diseño colorido y dinámico perfecto para tiendas online',
+    description: 'Diseño colorido y dinámico con sombras vibrantes para tiendas online',
     isPremium: false,
     
     layout: {
@@ -255,7 +255,7 @@ export const ENHANCED_TEMPLATES: Record<string, EnhancedTemplateConfig> = {
     design: {
       imageSize: { width: 350, height: 350 },
       borderRadius: 15,
-      shadows: true,
+      shadows: true, // ✅ SOMBRAS VIBRANTES GRATUITAS
       animations: true,
       decorativeElements: true
     },
@@ -290,16 +290,16 @@ export const ENHANCED_TEMPLATES: Record<string, EnhancedTemplateConfig> = {
     },
     
     category: 'business',
-    tags: ['colorido', 'ecommerce', 'vibrante', 'moderno'],
+    tags: ['colorido', 'ecommerce', 'vibrante', 'moderno', 'sombras dinámicas'],
     industry: ['retail', 'tienda online', 'productos variados']
   },
 
-  // ✨ TEMPLATE: CLEAN BUSINESS (GRATIS)
+  // ✨ TEMPLATE: CLEAN BUSINESS (GRATIS CON SOMBRAS)
   'clean-business': {
     id: 'clean-business',
     name: 'clean-business',
     displayName: 'Clean Business',
-    description: 'Diseño corporativo limpio y profesional',
+    description: 'Diseño corporativo limpio y profesional con sombras elegantes',
     isPremium: false,
     
     layout: {
@@ -312,7 +312,7 @@ export const ENHANCED_TEMPLATES: Record<string, EnhancedTemplateConfig> = {
     design: {
       imageSize: { width: 400, height: 400 },
       borderRadius: 8,
-      shadows: true,
+      shadows: true, // ✅ SOMBRAS CORPORATIVAS GRATUITAS
       animations: false,
       decorativeElements: false
     },
@@ -346,7 +346,7 @@ export const ENHANCED_TEMPLATES: Record<string, EnhancedTemplateConfig> = {
     },
     
     category: 'business',
-    tags: ['limpio', 'corporativo', 'profesional', 'simple'],
+    tags: ['limpio', 'corporativo', 'profesional', 'simple', 'sombras elegantes'],
     industry: ['servicios', 'consultoría', 'tecnología']
   }
 };
@@ -429,11 +429,27 @@ export const generateTemplateCSS = (template: EnhancedTemplateConfig): string =>
     .template-${template.id} .product-card {
       background: var(--surface);
       border-radius: var(--border-radius);
-      ${template.design.shadows ? 'box-shadow: 0 10px 30px rgba(0,0,0,0.1);' : ''}
-      ${template.design.animations ? 'transition: transform 0.3s ease;' : ''}
+      
+      /* ✅ SOMBRAS CONDICIONALES MEJORADAS */
+      ${template.design.shadows ? `
+        box-shadow: 
+          0 4px 6px -1px rgba(0, 0, 0, 0.1),
+          0 2px 4px -1px rgba(0, 0, 0, 0.06),
+          0 0 0 1px rgba(0, 0, 0, 0.05);
+      ` : 'border: 1px solid rgba(0, 0, 0, 0.1);'}
+      
+      ${template.design.animations ? 'transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);' : ''}
     }
     
-    ${template.design.animations ? `
+    ${template.design.animations && template.design.shadows ? `
+    .template-${template.id} .product-card:hover {
+      box-shadow: 
+        0 10px 15px -3px rgba(0, 0, 0, 0.1),
+        0 4px 6px -2px rgba(0, 0, 0, 0.05),
+        0 0 0 1px rgba(0, 0, 0, 0.05);
+      transform: translateY(-5px);
+    }
+    ` : template.design.animations ? `
     .template-${template.id} .product-card:hover {
       transform: translateY(-5px);
     }
@@ -443,18 +459,27 @@ export const generateTemplateCSS = (template: EnhancedTemplateConfig): string =>
       width: var(--image-width);
       height: var(--image-height);
       object-fit: contain;
+      
+      /* ✅ SOMBRA PROFESIONAL PARA IMÁGENES */
+      ${template.design.shadows ? 'filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1));' : ''}
     }
     
     .template-${template.id} .product-title {
       font-family: var(--header-font);
       font-weight: var(--title-weight);
       color: var(--text-primary);
+      
+      /* ✅ SOMBRA SUTIL PARA TÍTULOS */
+      ${template.design.shadows ? 'text-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);' : ''}
     }
     
     .template-${template.id} .product-price {
       color: var(--primary-color);
       font-weight: 700;
       font-size: 1.5em;
+      
+      /* ✅ SOMBRA PARA PRECIOS */
+      ${template.design.shadows ? 'text-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);' : ''}
     }
   `;
 };
