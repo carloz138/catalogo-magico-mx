@@ -3,6 +3,83 @@
 
 import { EnhancedTemplateConfig, generateTemplateCSS } from './enhanced-config';
 
+    /* ✅ SOMBRAS PARA PRODUCTOS EN EL PDF GENERADO */
+    /* Agregar este CSS en professional-generator.ts o enhanced-config.ts */
+    
+    .product-card {
+      background: var(--surface);
+      border-radius: var(--border-radius);
+      overflow: hidden;
+      position: relative;
+      
+      /* ✅ SOMBRAS PRINCIPALES */
+      box-shadow: 
+        0 4px 6px -1px rgba(0, 0, 0, 0.1),
+        0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      
+      /* ✅ SOMBRA AL HOVER (si se soporta en PDF) */
+      transition: all 0.3s ease;
+    }
+    
+    .product-card:hover {
+      box-shadow: 
+        0 10px 15px -3px rgba(0, 0, 0, 0.1),
+        0 4px 6px -2px rgba(0, 0, 0, 0.05);
+      transform: translateY(-2px);
+    }
+    
+    .product-image-container {
+      position: relative;
+      height: 250px;
+      background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      
+      /* ✅ SOMBRA INTERNA PARA IMÁGENES */
+      box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06);
+    }
+    
+    .product-image {
+      max-width: 90%;
+      max-height: 90%;
+      object-fit: contain;
+      
+      /* ✅ SOMBRA PARA LAS IMÁGENES DE PRODUCTOS */
+      filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1));
+      transition: transform 0.3s ease;
+    }
+    
+    .product-info {
+      padding: 25px;
+      
+      /* ✅ SOMBRA SUTIL PARA SEPARAR CONTENIDO */
+      border-top: 1px solid rgba(0, 0, 0, 0.05);
+    }
+    
+    .product-title {
+      font-family: var(--header-font);
+      font-size: calc(var(--body-size) + 4px);
+      font-weight: var(--title-weight);
+      color: var(--text-primary);
+      margin-bottom: 10px;
+      line-height: 1.3;
+      
+      /* ✅ SOMBRA SUTIL PARA TÍTULOS */
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    }
+    
+    .product-price {
+      font-size: calc(var(--body-size) + 8px);
+      font-weight: 700;
+      color: var(--primary-color);
+      
+      /* ✅ SOMBRA PARA DESTACAR PRECIOS */
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
+    }
+
 interface Product {
   id: string;
   name: string;
