@@ -586,15 +586,7 @@ export type Database = {
           total_credits_purchased?: number | null
           updated_at?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "users_id_fkey"
-            columns: ["id"]
-            isOneToOne: true
-            referencedRelation: "user_statistics"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
     }
     Views: {
@@ -604,18 +596,6 @@ export type Database = {
           email: string | null
           id: string | null
           updated_at: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          email?: string | null
-          id?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          email?: string | null
-          id?: string | null
-          updated_at?: string | null
         }
         Relationships: []
       }
@@ -630,6 +610,15 @@ export type Database = {
           p_business_type?: string
         }
         Returns: boolean
+      }
+      get_current_user_stats: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          id: string
+          email: string
+          created_at: string
+          updated_at: string
+        }[]
       }
     }
     Enums: {
