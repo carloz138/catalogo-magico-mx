@@ -34,7 +34,7 @@ interface Product {
   estimated_cost_mxn: number;
 }
 
-type FilterType = 'all' | 'draft' | 'processing' | 'completed';
+type FilterType = 'all' | 'draft' | 'processing' | 'completed' | 'processed' | 'unprocessed';
 
 const StatusBadge = ({ status }: { status: string }) => {
   const getStatusConfig = (status: string) => {
@@ -79,14 +79,6 @@ const ProductCard = ({
     <div className={`relative border rounded-lg overflow-hidden bg-white transition-all ${
       selected ? 'ring-2 ring-primary shadow-lg' : 'hover:shadow-md'
     }`}>
-      {/* Processing Status Indicator */}
-      <div className="absolute top-2 left-2 z-10">
-        {isProcessed ? (
-          <Badge className="bg-green-500 text-white text-xs">✅ Listo</Badge>
-        ) : (
-          <Badge className="bg-orange-500 text-white text-xs">🔄 Pendiente</Badge>
-        )}
-      </div>
       
       <div className="aspect-square">
         <img 
@@ -94,37 +86,13 @@ const ProductCard = ({
           alt={product.name || 'Producto sin nombre'}
           className="w-full h-full object-cover"
         />
-        {!isProcessed && (
-          <div className="absolute inset-0 bg-orange-500/10 flex items-center justify-center">
-            <span className="text-orange-700 font-medium text-sm">Necesita procesamiento</span>
-          </div>
-        )}
       </div>
       
       <div className="p-3">
         <h3 className="font-medium text-sm truncate">{product.name || 'Sin nombre'}</h3>
         <p className="text-xs text-gray-500 truncate mb-2">
-          {/* ✅ CORRECCIÓN: NO dividir por 100 - los precios ya están en formato correcto */}
           {product.price_retail ? `$${product.price_retail.toLocaleString()} MXN` : 'Sin precio'}
         </p>
-        
-        {/* Credits info solo si no está procesado */}
-        {!isProcessed && product.smart_analysis && (
-          <div className="text-xs text-orange-600 bg-orange-50 rounded p-1 mb-1">
-            <div className="flex justify-between">
-              <span>Créditos:</span>
-              <span className="font-medium">{product.estimated_credits || 1}</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Tipo:</span>
-              <span>{
-                typeof product.smart_analysis === 'string' 
-                  ? (JSON.parse(product.smart_analysis).recommendedApi === 'removebg' ? '🎯 Premium' : '💰 Estándar')
-                  : (product.smart_analysis?.recommendedApi === 'removebg' ? '🎯 Premium' : '💰 Estándar')
-              }</span>
-            </div>
-          </div>
-        )}
         
         <div className="flex items-center justify-between mb-2">
           <StatusBadge status={product.processing_status} />
@@ -246,8 +214,19 @@ const Products = () => {
   const filteredProducts = useMemo(() => {
     let filtered = products;
     
+    // Filtro mejorado con procesados/no procesados
     if (filter !== 'all') {
-      filtered = filtered.filter(product => product.processing_status === filter);
+      if (filter === 'processed') {
+        filtered = filtered.filter(product => 
+          product.processing_status === 'completed' && product.image_url
+        );
+      } else if (filter === 'unprocessed') {
+        filtered = filtered.filter(product => 
+          product.processing_status !== 'completed' || !product.image_url
+        );
+      } else {
+        filtered = filtered.filter(product => product.processing_status === filter);
+      }
     }
     
     if (searchQuery.trim()) {
@@ -283,58 +262,56 @@ const Products = () => {
   };
 
   // Procesar solo imágenes
-
-    const processSelectedImages = async () => {
-      const analysis = analyzeSelection();
-      
-      if (analysis.unprocessedProducts.length === 0) {
-        toast({
-          title: "Error",
-          description: "Todos los productos seleccionados ya están procesados",
-          variant: "destructive",
-        });
-        return;
-      }
+  const processSelectedImages = async () => {
+    const analysis = analyzeSelection();
     
-      if (!hasBusinessInfo) {
-        sonnerToast.info('Primero configura la información de tu negocio');
-        navigate('/business-info');
-        return;
+    if (analysis.unprocessedProducts.length === 0) {
+      toast({
+        title: "Error",
+        description: "Todos los productos seleccionados ya están procesados",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!hasBusinessInfo) {
+      sonnerToast.info('Primero configura la información de tu negocio');
+      navigate('/business-info');
+      return;
+    }
+    
+    try {
+      sonnerToast.loading('Procesando imágenes...', { id: 'processing-images' });
+      
+      const result = await processImagesOnly(analysis.unprocessedProducts, businessInfo);
+      
+      if (result.success) {
+        sonnerToast.success('Imágenes procesadas', { 
+          id: 'processing-images',
+          description: 'Revisa los resultados y selecciona cuáles guardar.'
+        });
+        
+        navigate('/image-review', { 
+          state: { 
+            processedImages: result.processed_images,
+            selectedProducts: analysis.unprocessedProducts,
+            alreadyProcessedProducts: analysis.processedProducts,
+            businessInfo: businessInfo
+          }
+        });
+        
+      } else {
+        throw new Error(result.error || 'Error desconocido');
       }
       
-      try {
-        sonnerToast.loading('Procesando imágenes...', { id: 'processing-images' });
-        
-        const result = await processImagesOnly(analysis.unprocessedProducts, businessInfo);
-        
-        if (result.success) {
-          sonnerToast.success('¡Imágenes procesadas!', { 
-            id: 'processing-images',
-            description: 'Revisa los resultados y selecciona cuáles guardar.'
-          });
-          
-          // ✅ FIX: Navegar con nombres correctos
-          navigate('/image-review', { 
-            state: { 
-              processedImages: result.processed_images,
-              selectedProducts: analysis.unprocessedProducts, // ✅ CAMBIO: originalProducts → selectedProducts
-              alreadyProcessedProducts: analysis.processedProducts,
-              businessInfo: businessInfo
-            }
-          });
-          
-        } else {
-          throw new Error(result.error || 'Error desconocido');
-        }
-        
-      } catch (error) {
-        console.error('Error processing images:', error);
-        sonnerToast.error('No se pudieron procesar las imágenes', { 
-          id: 'processing-images',
-          description: 'Inténtalo de nuevo más tarde.'
-        });
-      }
-    };
+    } catch (error) {
+      console.error('Error processing images:', error);
+      sonnerToast.error('No se pudieron procesar las imágenes', { 
+        id: 'processing-images',
+        description: 'Inténtalo de nuevo más tarde.'
+      });
+    }
+  };
 
   // Para productos ya procesados
   const createCatalogFromSelection = async () => {
@@ -408,7 +385,7 @@ const Products = () => {
     await processSelectedImages();
   };
 
-  // Smart Action Button
+  // Smart Action Button mejorado
   const SmartActionButton = () => {
     const analysis = analyzeSelection();
     
@@ -427,12 +404,12 @@ const Products = () => {
             className="bg-green-600 text-white px-8 py-3 w-full"
           >
             <span className="flex items-center gap-2">
-              ✨ Crear catálogo con selección
+              Crear catálogo con selección
               <Badge className="bg-green-500 text-white">GRATIS</Badge>
             </span>
           </Button>
           <p className="text-center text-sm text-gray-600">
-            🟢 {analysis.processed} productos ya procesados - Sin costo adicional
+            {analysis.processed} productos ya procesados - Sin costo adicional
           </p>
         </div>
       );
@@ -447,12 +424,12 @@ const Products = () => {
             className="bg-orange-500 text-white px-8 py-3 w-full"
           >
             <span className="flex items-center gap-2">
-              🔄 Procesar imágenes seleccionadas
+              Procesar imágenes seleccionadas
               <Badge className="bg-blue-500 text-white">{estimatedCredits} créditos</Badge>
             </span>
           </Button>
           <p className="text-center text-sm text-gray-600">
-            🔴 {analysis.unprocessed} productos necesitan procesamiento
+            {analysis.unprocessed} productos necesitan procesamiento
           </p>
         </div>
       );
@@ -466,18 +443,18 @@ const Products = () => {
           className="bg-gradient-to-r from-orange-500 to-green-600 text-white px-8 py-3 w-full"
         >
           <span className="flex items-center gap-2">
-            🎯 Procesar faltantes y crear catálogo
+            Procesar faltantes y crear catálogo
             <Badge className="bg-blue-500 text-white">{estimatedCredits} créditos</Badge>
           </span>
         </Button>
         <div className="grid grid-cols-2 gap-4 text-sm">
           <div className="bg-green-50 rounded p-2 text-center">
-            <span className="text-green-700 font-medium">✅ {analysis.processed} listos</span>
+            <span className="text-green-700 font-medium">{analysis.processed} listos</span>
             <br />
             <span className="text-gray-600">Sin costo</span>
           </div>
           <div className="bg-orange-50 rounded p-2 text-center">
-            <span className="text-orange-700 font-medium">🔄 {analysis.unprocessed} procesar</span>
+            <span className="text-orange-700 font-medium">{analysis.unprocessed} procesar</span>
             <br />
             <span className="text-gray-600">{estimatedCredits} créditos</span>
           </div>
@@ -550,6 +527,19 @@ const Products = () => {
     }
   };
 
+  // Función para obtener el conteo de productos por filtro
+  const getFilterCounts = () => {
+    const processed = products.filter(p => p.processing_status === 'completed' && p.image_url).length;
+    const unprocessed = products.filter(p => p.processing_status !== 'completed' || !p.image_url).length;
+    const draft = products.filter(p => p.processing_status === 'draft').length;
+    const processing = products.filter(p => p.processing_status === 'processing').length;
+    const completed = products.filter(p => p.processing_status === 'completed').length;
+    
+    return { processed, unprocessed, draft, processing, completed };
+  };
+
+  const filterCounts = getFilterCounts();
+
   if (loading) {
     return (
       <ProtectedRoute>
@@ -585,7 +575,6 @@ const Products = () => {
               </div>
               
               <div className="flex flex-wrap items-center gap-2 sm:gap-4">
-                {/* ✅ BOTÓN CENTRO DE IMÁGENES AGREGADO */}
                 <Button 
                   variant="outline" 
                   size="sm" 
@@ -627,12 +616,14 @@ const Products = () => {
               <select 
                 value={filter} 
                 onChange={(e) => setFilter(e.target.value as FilterType)}
-                className="border rounded-md px-3 py-2"
+                className="border rounded-md px-3 py-2 text-sm"
               >
-                <option value="all">Todos los productos</option>
-                <option value="draft">Borradores</option>
-                <option value="processing">Procesando</option>
-                <option value="completed">Completados</option>
+                <option value="all">Todos los productos ({products.length})</option>
+                <option value="processed">Procesados ({filterCounts.processed})</option>
+                <option value="unprocessed">Sin procesar ({filterCounts.unprocessed})</option>
+                <option value="draft">Borradores ({filterCounts.draft})</option>
+                <option value="processing">Procesando ({filterCounts.processing})</option>
+                <option value="completed">Completados ({filterCounts.completed})</option>
               </select>
             </div>
             
@@ -671,7 +662,7 @@ const Products = () => {
               <h3 className="text-lg font-medium text-gray-900 mb-2">
                 {searchQuery ? 
                   'No se encontraron productos' : 
-                  (filter === 'all' ? 'No tienes productos guardados' : `No tienes productos en estado "${filter}"`)
+                  (filter === 'all' ? 'No tienes productos guardados' : `No tienes productos en esta categoría`)
                 }
               </h3>
               <p className="text-gray-600 mb-4">
