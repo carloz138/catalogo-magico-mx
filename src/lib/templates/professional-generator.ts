@@ -1,9 +1,7 @@
 // src/lib/templates/professional-generator.ts
-// 🎨 GENERADOR DE TEMPLATES PROFESIONALES
+// 🎨 GENERADOR DE TEMPLATES PROFESIONALES CON SOMBRAS
 
 import { EnhancedTemplateConfig, generateTemplateCSS } from './enhanced-config';
-
-
 
 interface Product {
   id: string;
@@ -67,7 +65,7 @@ export class ProfessionalTemplateGenerator {
   }
 
   /**
-   * 🎨 GENERADOR DE CSS AVANZADO
+   * 🎨 GENERADOR DE CSS AVANZADO CON SOMBRAS PROFESIONALES
    */
   private static generateAdvancedCSS(template: EnhancedTemplateConfig): string {
     const baseCSS = generateTemplateCSS(template);
@@ -88,15 +86,20 @@ export class ProfessionalTemplateGenerator {
         margin: 0 auto;
         background: white;
         min-height: 100vh;
+        /* ✅ SOMBRA SUTIL PARA EL CONTENEDOR PRINCIPAL */
+        box-shadow: 0 0 50px rgba(0, 0, 0, 0.08);
       }
       
-      /* ===== HEADER SECTION ===== */
+      /* ===== HEADER SECTION CON SOMBRAS ===== */
       .catalog-header {
         padding: 60px 40px;
         position: relative;
         overflow: hidden;
         background: var(--surface);
         text-align: center;
+        /* ✅ SOMBRA PARA EL HEADER */
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        border-bottom: 1px solid rgba(0, 0, 0, 0.03);
       }
       
       .company-logo {
@@ -112,6 +115,8 @@ export class ProfessionalTemplateGenerator {
         color: white;
         font-weight: bold;
         font-size: 32px;
+        /* ✅ SOMBRA PARA EL LOGO */
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
       }
       
       .company-logo img {
@@ -127,6 +132,8 @@ export class ProfessionalTemplateGenerator {
         color: var(--text-primary);
         margin-bottom: 15px;
         letter-spacing: ${template.typography.spacing === 'loose' ? '3px' : template.typography.spacing === 'tight' ? '0.5px' : '1px'};
+        /* ✅ SOMBRA SUTIL PARA TÍTULOS */
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
       }
       
       .header-subtitle {
@@ -134,6 +141,7 @@ export class ProfessionalTemplateGenerator {
         font-size: calc(var(--body-size) + 2px);
         font-weight: 400;
         margin-bottom: 10px;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
       }
       
       .header-contact {
@@ -142,13 +150,15 @@ export class ProfessionalTemplateGenerator {
         margin-top: 20px;
       }
       
-      /* ===== DECORATIVE ELEMENTS ===== */
+      /* ===== DECORATIVE ELEMENTS CON SOMBRAS ===== */
       ${template.elements.geometricShapes ? `
       .geometric-shape {
         position: absolute;
         border-radius: 50%;
         background: linear-gradient(135deg, var(--accent-color), var(--secondary-color));
         opacity: 0.1;
+        /* ✅ SOMBRA PARA ELEMENTOS DECORATIVOS */
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
       }
       
       .shape-1 { width: 200px; height: 200px; top: -100px; right: -100px; }
@@ -164,6 +174,8 @@ export class ProfessionalTemplateGenerator {
         background: linear-gradient(45deg, var(--primary-color), var(--accent-color));
         clip-path: polygon(70% 0%, 100% 0%, 100% 100%, 40% 100%);
         opacity: 0.8;
+        /* ✅ SOMBRA PARA ACENTOS DIAGONALES */
+        box-shadow: -5px 0 15px rgba(0, 0, 0, 0.1);
       }
       ` : ''}
       
@@ -192,6 +204,8 @@ export class ProfessionalTemplateGenerator {
         color: var(--text-primary);
         margin-bottom: 40px;
         text-align: center;
+        /* ✅ SOMBRA PARA TÍTULOS DE SECCIÓN */
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
       }
       
       .products-grid {
@@ -200,20 +214,34 @@ export class ProfessionalTemplateGenerator {
         ${this.getGridLayout(template)}
       }
       
-      /* ===== PRODUCT CARDS ===== */
+      /* ===== PRODUCT CARDS CON SOMBRAS PROFESIONALES ===== */
       .product-card {
         background: var(--surface);
         border-radius: var(--border-radius);
         overflow: hidden;
         position: relative;
-        ${template.design.shadows ? 'box-shadow: 0 10px 30px rgba(0,0,0,0.1);' : 'border: 1px solid #e0e0e0;'}
-        ${template.design.animations ? 'transition: all 0.3s ease;' : ''}
+        
+        /* ✅ SOMBRA PRINCIPAL PARA CARDS */
+        box-shadow: 
+          0 4px 6px -1px rgba(0, 0, 0, 0.1),
+          0 2px 4px -1px rgba(0, 0, 0, 0.06),
+          0 0 0 1px rgba(0, 0, 0, 0.05);
+        
+        /* ✅ TRANSICIÓN SUAVE */
+        ${template.design.animations ? 'transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);' : ''}
+        
+        /* ✅ BORDES SUTILES */
+        border: 1px solid rgba(0, 0, 0, 0.04);
       }
       
       ${template.design.animations ? `
       .product-card:hover {
-        transform: translateY(-8px);
-        box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+        /* ✅ SOMBRA ELEVADA AL HOVER */
+        box-shadow: 
+          0 10px 15px -3px rgba(0, 0, 0, 0.1),
+          0 4px 6px -2px rgba(0, 0, 0, 0.05),
+          0 0 0 1px rgba(0, 0, 0, 0.05);
+        transform: translateY(-8px) scale(1.02);
       }
       ` : ''}
       
@@ -225,18 +253,27 @@ export class ProfessionalTemplateGenerator {
         align-items: center;
         justify-content: center;
         overflow: hidden;
+        
+        /* ✅ SOMBRA INTERNA PARA EL CONTENEDOR DE IMAGEN */
+        box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06);
+        border-bottom: 1px solid rgba(0, 0, 0, 0.05);
       }
       
       .product-image {
         max-width: 90%;
         max-height: 90%;
         object-fit: contain;
-        ${template.design.animations ? 'transition: transform 0.3s ease;' : ''}
+        
+        /* ✅ SOMBRA PROFESIONAL PARA IMÁGENES DE PRODUCTOS */
+        filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.12));
+        
+        ${template.design.animations ? 'transition: all 0.3s ease;' : ''}
       }
       
       ${template.design.animations ? `
       .product-card:hover .product-image {
         transform: scale(1.05);
+        filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.15));
       }
       ` : ''}
       
@@ -253,15 +290,32 @@ export class ProfessionalTemplateGenerator {
         font-weight: 600;
         text-transform: uppercase;
         letter-spacing: 0.5px;
+        
+        /* ✅ SOMBRA PARA BADGES */
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
       }
       
-      .badge-new { background: #28a745; }
-      .badge-sale { background: #dc3545; }
-      .badge-featured { background: var(--primary-color); }
+      .badge-new { 
+        background: #28a745; 
+        box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
+      }
+      .badge-sale { 
+        background: #dc3545; 
+        box-shadow: 0 2px 8px rgba(220, 53, 69, 0.3);
+      }
+      .badge-featured { 
+        background: var(--primary-color); 
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+      }
       ` : ''}
       
       .product-info {
         padding: 25px;
+        
+        /* ✅ SEPARACIÓN SUTIL CON SOMBRA */
+        border-top: 1px solid rgba(0, 0, 0, 0.03);
+        background: linear-gradient(to bottom, var(--surface), #fafafa);
       }
       
       .product-category {
@@ -279,6 +333,9 @@ export class ProfessionalTemplateGenerator {
         color: var(--text-primary);
         margin-bottom: 10px;
         line-height: 1.3;
+        
+        /* ✅ SOMBRA SUTIL PARA TÍTULOS DE PRODUCTOS */
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
       }
       
       .product-description {
@@ -293,17 +350,24 @@ export class ProfessionalTemplateGenerator {
         align-items: center;
         justify-content: space-between;
         margin-top: 15px;
+        padding-top: 15px;
+        border-top: 1px solid rgba(0, 0, 0, 0.05);
       }
       
       .product-price {
         font-size: calc(var(--body-size) + 8px);
         font-weight: 700;
         color: var(--primary-color);
+        
+        /* ✅ SOMBRA Y EFECTO PARA PRECIOS */
+        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        
         ${template.elements.priceHighlight ? `
           background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
           background-clip: text;
+          filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
         ` : ''}
       }
       
@@ -311,29 +375,43 @@ export class ProfessionalTemplateGenerator {
         color: var(--text-secondary);
         font-size: calc(var(--body-size) - 2px);
         font-weight: 500;
+        background: rgba(0, 0, 0, 0.02);
+        padding: 4px 8px;
+        border-radius: 4px;
+        box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
       }
       
-      /* ===== FEATURED PRODUCT ===== */
+      /* ===== FEATURED PRODUCT CON SOMBRA ESPECIAL ===== */
       ${template.layout.featuredProduct ? `
       .product-featured {
         grid-column: span 2;
         grid-row: span 2;
+        
+        /* ✅ SOMBRA ESPECIAL PARA PRODUCTO DESTACADO */
+        box-shadow: 
+          0 8px 25px -5px rgba(0, 0, 0, 0.1),
+          0 8px 10px -6px rgba(0, 0, 0, 0.1),
+          0 0 0 1px rgba(0, 0, 0, 0.05);
+        border: 2px solid var(--accent-color);
       }
       
       .product-featured .product-image-container {
         height: 350px;
+        box-shadow: inset 0 4px 8px 0 rgba(0, 0, 0, 0.08);
       }
       
       .product-featured .product-title {
         font-size: calc(var(--body-size) + 8px);
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
       }
       
       .product-featured .product-price {
         font-size: calc(var(--body-size) + 12px);
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
       }
       ` : ''}
       
-      /* ===== FOOTER ===== */
+      /* ===== FOOTER CON SOMBRA ===== */
       .catalog-footer {
         padding: 40px;
         text-align: center;
@@ -341,6 +419,9 @@ export class ProfessionalTemplateGenerator {
         background: var(--surface);
         color: var(--text-secondary);
         font-size: var(--body-size);
+        
+        /* ✅ SOMBRA SUTIL PARA EL FOOTER */
+        box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.05);
       }
       
       .footer-contact {
@@ -349,6 +430,10 @@ export class ProfessionalTemplateGenerator {
       
       .footer-contact span {
         margin: 0 15px;
+        padding: 5px 10px;
+        background: rgba(0, 0, 0, 0.02);
+        border-radius: 6px;
+        box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
       }
       
       /* ===== RESPONSIVE ===== */
@@ -367,7 +452,10 @@ export class ProfessionalTemplateGenerator {
       @media print {
         body { background: white !important; }
         .catalog-container { box-shadow: none !important; }
-        .product-card { break-inside: avoid; }
+        .product-card { 
+          break-inside: avoid; 
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+        }
         .catalog-header { break-after: avoid; }
       }
     `;
