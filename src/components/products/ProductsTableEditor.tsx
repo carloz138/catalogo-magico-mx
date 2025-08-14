@@ -186,7 +186,7 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
 
       if (error) throw error;
 
-      // CORRECCIÓN: Manejar data null y tipado correcto
+      // CORRECCIÓN: Sin columnas has_variants y variant_count por ahora
       const productsData: ProductWithVariants[] = data ? data.map(product => ({
         id: product.id,
         name: product.name,
@@ -202,8 +202,8 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
         color: product.color,
         features: product.features,
         processing_status: product.processing_status,
-        has_variants: product.has_variants,
-        variant_count: product.variant_count,
+        has_variants: product.has_variants || false,
+        variant_count: product.variant_count || 0,
         created_at: product.created_at
       })) : [];
 
