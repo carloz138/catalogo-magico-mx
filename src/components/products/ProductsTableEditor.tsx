@@ -81,8 +81,7 @@ const PRODUCT_CATEGORIES = [
 // ==========================================
 
 const centsToPrice = (cents: number | null): string => {
-  if (!cents) return '';
-  return (cents / 100).toFixed(2);
+  return cents ? (cents / 100).toFixed(2) : "0.00";
 };
 
 const priceToCents = (price: string | number): number => {
@@ -91,14 +90,18 @@ const priceToCents = (price: string | number): number => {
   return Math.round(priceNum * 100);
 };
 
+// CORRECCIÓN: Manejo de features con JSON
 const formatFeatures = (features: string[] | null): string => {
   if (!features || !Array.isArray(features)) return '';
-  return features.join(', ');
+  return JSON.stringify(features);
 };
 
 const parseFeatures = (featuresStr: string): string[] => {
-  if (!featuresStr) return [];
-  return featuresStr.split(',').map(f => f.trim()).filter(f => f);
+  try {
+    return JSON.parse(featuresStr);
+  } catch {
+    return [];
+  }
 };
 
 // ==========================================
@@ -155,7 +158,7 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
   // FUNCIONES DE DATOS
   // ==========================================
 
-  const fetchProducts = async () => {
+  const fetchProducts = useCallback(async () => {
     if (!user) return;
 
     setLoading(true);
@@ -186,7 +189,6 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
 
       if (error) throw error;
 
-      // CORRECCIÓN: Sin columnas has_variants y variant_count por ahora
       const productsData: ProductWithVariants[] = data ? data.map(product => ({
         id: product.id,
         name: product.name,
@@ -218,20 +220,22 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
 
   // ==========================================
-  // FUNCIONES DE EDICIÓN INLINE
+  // FUNCIONES DE EDICIÓN INLINE - CORREGIDAS
   // ==========================================
 
   const startEdit = (rowId: string, column: EditableProductField, currentValue: any) => {
     setEditingCell({ rowId, column });
     
-    // CORRECCIÓN: Manejo correcto de features
+    // CORRECCIÓN: Manejo mejorado de valores
     if (column === 'price_retail' || column === 'price_wholesale') {
       setEditingValue(currentValue ? centsToPrice(currentValue) : '');
     } else if (column === 'features') {
       setEditingValue(formatFeatures(currentValue));
+    } else if (column === 'wholesale_min_qty') {
+      setEditingValue(currentValue ? currentValue.toString() : '');
     } else {
       setEditingValue(currentValue || '');
     }
@@ -243,18 +247,36 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
   };
 
   const saveEdit = async () => {
-    if (!editingCell) return;
+    if (!editingCell || saving) return; // Prevenir doble ejecución
 
     const { rowId, column } = editingCell;
     let processedValue: any = editingValue;
 
-    // CORRECCIÓN: Manejo correcto de features
+    // Validación para campos numéricos
     if (column === 'price_retail' || column === 'price_wholesale') {
-      processedValue = priceToCents(editingValue);
+      const numericValue = parseFloat(editingValue);
+      if (isNaN(numericValue)) {
+        toast({
+          title: "Error",
+          description: "Por favor ingrese un valor numérico válido",
+          variant: "destructive",
+        });
+        return;
+      }
+      processedValue = priceToCents(numericValue);
     } else if (column === 'features') {
       processedValue = parseFeatures(editingValue);
     } else if (column === 'wholesale_min_qty') {
-      processedValue = parseInt(editingValue) || 0;
+      const intValue = parseInt(editingValue);
+      if (isNaN(intValue)) {
+        toast({
+          title: "Error",
+          description: "Por favor ingrese un número entero válido",
+          variant: "destructive",
+        });
+        return;
+      }
+      processedValue = intValue;
     }
 
     setSaving(rowId);
@@ -266,14 +288,19 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
         .eq('id', rowId)
         .eq('user_id', user?.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error details:', error);
+        throw error;
+      }
 
-      // Actualizar estado local
-      setProducts(products.map(product => 
-        product.id === rowId 
-          ? { ...product, [column]: processedValue }
-          : product
-      ));
+      // Actualizar estado local optimizado
+      setProducts(prevProducts => 
+        prevProducts.map(product => 
+          product.id === rowId 
+            ? { ...product, [column]: processedValue }
+            : product
+        )
+      );
 
       toast({
         title: "Producto actualizado",
@@ -317,7 +344,8 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
 
       if (error) throw error;
 
-      setProducts(products.filter(p => !productIds.includes(p.id)));
+      // Corrección: Actualización optimizada del estado
+      setProducts(prev => prev.filter(p => !productIds.includes(p.id)));
       setSelectedProducts([]);
       
       toast({
@@ -346,11 +374,14 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
 
       if (error) throw error;
 
-      setProducts(products.map(product => 
-        selectedProducts.includes(product.id) 
-          ? { ...product, category }
-          : product
-      ));
+      // Corrección: Actualización optimizada
+      setProducts(prevProducts => 
+        prevProducts.map(product => 
+          selectedProducts.includes(product.id) 
+            ? { ...product, category }
+            : product
+        )
+      );
 
       toast({
         title: "Categoría actualizada",
@@ -390,15 +421,15 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
   };
 
   // ==========================================
-  // PRODUCTOS FILTRADOS
+  // PRODUCTOS FILTRADOS - OPTIMIZADO
   // ==========================================
 
   const filteredProducts = useMemo(() => {
     return products.filter(product => {
       const matchesSearch = !filters.search || 
-        product.name?.toLowerCase().includes(filters.search.toLowerCase()) ||
-        product.sku?.toLowerCase().includes(filters.search.toLowerCase()) ||
-        product.brand?.toLowerCase().includes(filters.search.toLowerCase());
+        (product.name?.toLowerCase().includes(filters.search.toLowerCase()) ||
+        (product.sku?.toLowerCase()?.includes(filters.search.toLowerCase())) ||
+        (product.brand?.toLowerCase()?.includes(filters.search.toLowerCase()));
       
       const matchesCategory = !filters.category || product.category === filters.category;
       
@@ -406,7 +437,7 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
 
       return matchesSearch && matchesCategory && matchesStatus;
     });
-  }, [products, filters]);
+  }, [products, filters.search, filters.category, filters.status]);
 
   // ==========================================
   // COMPONENTES DE RENDERIZADO
@@ -449,15 +480,18 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
       );
     }
 
-    let displayValue = value;
-    
-    // CORRECCIÓN: Manejo correcto de features
+    let displayValue: React.ReactNode = value ?? '';
+
+    // Formateo de valores para visualización
     if (column === 'price_retail' || column === 'price_wholesale') {
       displayValue = value ? `$${centsToPrice(value)}` : '-';
     } else if (column === 'features') {
-      displayValue = formatFeatures(value) || '-';
-    } else if (!value) {
-      displayValue = '-';
+      const featuresArray = value && Array.isArray(value) ? value : [];
+      displayValue = featuresArray.length > 0 
+        ? featuresArray.join(', ') 
+        : '-';
+    } else if (column === 'wholesale_min_qty') {
+      displayValue = value ?? '-';
     }
 
     return (
@@ -466,7 +500,9 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
         className="cursor-pointer hover:bg-gray-50 p-1 rounded min-h-[24px] flex items-center"
         title="Click para editar"
       >
-        {isSaving && <RefreshCw className="w-3 h-3 animate-spin mr-1" />}
+        {isSaving ? (
+          <RefreshCw className="w-3 h-3 animate-spin mr-1" />
+        ) : null}
         <span className="truncate">{displayValue}</span>
       </div>
     );
@@ -674,28 +710,28 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
           <table className="w-full">
             <thead className="bg-gray-50">
               <tr>
-                <th className="p-3 text-left">
+                <th className="p-3 text-left w-12">
                   <input
                     type="checkbox"
                     checked={selectedProducts.length === filteredProducts.length && filteredProducts.length > 0}
                     onChange={selectedProducts.length === filteredProducts.length ? clearSelection : selectAllVisible}
                   />
                 </th>
-                <th className="p-3 text-left font-medium">Producto</th>
-                <th className="p-3 text-left font-medium">SKU</th>
-                <th className="p-3 text-left font-medium">Categoría</th>
-                <th className="p-3 text-left font-medium">Precio Retail</th>
-                <th className="p-3 text-left font-medium">Precio Mayoreo</th>
-                <th className="p-3 text-left font-medium">Min. Mayoreo</th>
-                <th className="p-3 text-left font-medium">Marca</th>
-                <th className="p-3 text-left font-medium">Estado</th>
-                <th className="p-3 text-left font-medium">Variantes</th>
-                <th className="p-3 text-left font-medium">Acciones</th>
+                <th className="p-3 text-left font-medium min-w-[200px]">Producto</th>
+                <th className="p-3 text-left font-medium min-w-[100px]">SKU</th>
+                <th className="p-3 text-left font-medium min-w-[150px]">Categoría</th>
+                <th className="p-3 text-left font-medium min-w-[120px]">Precio Retail</th>
+                <th className="p-3 text-left font-medium min-w-[140px]">Precio Mayoreo</th>
+                <th className="p-3 text-left font-medium min-w-[120px]">Min. Mayoreo</th>
+                <th className="p-3 text-left font-medium min-w-[120px]">Marca</th>
+                <th className="p-3 text-left font-medium min-w-[120px]">Estado</th>
+                <th className="p-3 text-left font-medium min-w-[150px]">Variantes</th>
+                <th className="p-3 text-left font-medium min-w-[120px]">Acciones</th>
               </tr>
             </thead>
             <tbody>
               {filteredProducts.map((product) => (
-                <tr key={product.id} className="border-t hover:bg-gray-50">
+                <tr key={`product-${product.id}`} className="border-t hover:bg-gray-50">
                   <td className="p-3">
                     <input
                       type="checkbox"
@@ -704,7 +740,7 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
                     />
                   </td>
                   <td className="p-3">
-                    <div className="space-y-1">
+                    <div className="space-y-1 min-w-[200px]">
                       {renderEditableCell(product, 'name', product.name)}
                       {product.description && (
                         <div className="text-xs text-gray-500 truncate max-w-[200px]">
