@@ -10,20 +10,96 @@ import {
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
-import { 
-  ProductWithVariants, 
-  ProductVariant,
-  EditableProductField, 
-  EditingCell, 
-  ProductFilters, 
-  ProductCategory,
-  PRODUCT_CATEGORIES,
-  centsToPrice,
-  priceToCents,
-  formatFeatures,
-  parseFeatures,
-  ProcessingStatus 
-} from '@/types/variants';
+
+// ==========================================
+// TIPOS LOCALES CORREGIDOS
+// ==========================================
+
+type EditableProductField = 
+  | 'name'
+  | 'sku' 
+  | 'description'
+  | 'custom_description'
+  | 'price_retail'
+  | 'price_wholesale'
+  | 'wholesale_min_qty'
+  | 'category'
+  | 'brand'
+  | 'model'
+  | 'color'
+  | 'features';
+
+type ProductCategory = 'ropa' | 'calzado' | 'electronica' | 'joyeria' | 'fiestas' | 'floreria' | 'general';
+
+interface EditingCell {
+  rowId: string;
+  column: EditableProductField;
+}
+
+interface ProductFilters {
+  search: string;
+  category: ProductCategory | '';
+  status: string;
+}
+
+interface ProductWithVariants {
+  id: string;
+  name: string;
+  sku: string | null;
+  description: string | null;
+  custom_description: string | null;
+  price_retail: number | null;
+  price_wholesale: number | null;
+  wholesale_min_qty: number | null;
+  category: ProductCategory | null;
+  brand: string | null;
+  model: string | null;
+  color: string | null;
+  features: string[] | null;
+  processing_status: string;
+  has_variants: boolean;
+  variant_count: number;
+  created_at: string;
+}
+
+// ==========================================
+// CONSTANTES
+// ==========================================
+
+const PRODUCT_CATEGORIES = [
+  { value: 'ropa' as ProductCategory, label: 'Ropa', icon: '👕' },
+  { value: 'calzado' as ProductCategory, label: 'Calzado', icon: '👟' },
+  { value: 'electronica' as ProductCategory, label: 'Electrónicos', icon: '📱' },
+  { value: 'joyeria' as ProductCategory, label: 'Joyería', icon: '💍' },
+  { value: 'fiestas' as ProductCategory, label: 'Fiestas', icon: '🎉' },
+  { value: 'floreria' as ProductCategory, label: 'Florería', icon: '🌺' },
+  { value: 'general' as ProductCategory, label: 'General', icon: '📦' }
+];
+
+// ==========================================
+// FUNCIONES AUXILIARES
+// ==========================================
+
+const centsToPrice = (cents: number | null): string => {
+  if (!cents) return '';
+  return (cents / 100).toFixed(2);
+};
+
+const priceToCents = (price: string | number): number => {
+  if (!price) return 0;
+  const priceNum = typeof price === 'string' ? parseFloat(price) : price;
+  return Math.round(priceNum * 100);
+};
+
+const formatFeatures = (features: string[] | null): string => {
+  if (!features || !Array.isArray(features)) return '';
+  return features.join(', ');
+};
+
+const parseFeatures = (featuresStr: string): string[] => {
+  if (!featuresStr) return [];
+  return featuresStr.split(',').map(f => f.trim()).filter(f => f);
+};
 
 // ==========================================
 // INTERFACES LOCALES
@@ -110,11 +186,26 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
 
       if (error) throw error;
 
-      // Convertir a ProductWithVariants (sin cargar variantes por ahora)
-      const productsData: ProductWithVariants[] = (data || []).map(product => ({
-        ...product,
-        variants: [] as ProductVariant[] // Las cargaremos bajo demanda
-      }));
+      // CORRECCIÓN: Manejar data null y tipado correcto
+      const productsData: ProductWithVariants[] = data ? data.map(product => ({
+        id: product.id,
+        name: product.name,
+        sku: product.sku,
+        description: product.description,
+        custom_description: product.custom_description,
+        price_retail: product.price_retail,
+        price_wholesale: product.price_wholesale,
+        wholesale_min_qty: product.wholesale_min_qty,
+        category: product.category,
+        brand: product.brand,
+        model: product.model,
+        color: product.color,
+        features: product.features,
+        processing_status: product.processing_status,
+        has_variants: product.has_variants,
+        variant_count: product.variant_count,
+        created_at: product.created_at
+      })) : [];
 
       setProducts(productsData);
     } catch (error) {
@@ -136,7 +227,7 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
   const startEdit = (rowId: string, column: EditableProductField, currentValue: any) => {
     setEditingCell({ rowId, column });
     
-    // Formatear valor para edición
+    // CORRECCIÓN: Manejo correcto de features
     if (column === 'price_retail' || column === 'price_wholesale') {
       setEditingValue(currentValue ? centsToPrice(currentValue) : '');
     } else if (column === 'features') {
@@ -157,7 +248,7 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
     const { rowId, column } = editingCell;
     let processedValue: any = editingValue;
 
-    // Procesar valor según el tipo de columna
+    // CORRECCIÓN: Manejo correcto de features
     if (column === 'price_retail' || column === 'price_wholesale') {
       processedValue = priceToCents(editingValue);
     } else if (column === 'features') {
@@ -360,7 +451,7 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
 
     let displayValue = value;
     
-    // Formatear valor para display
+    // CORRECCIÓN: Manejo correcto de features
     if (column === 'price_retail' || column === 'price_wholesale') {
       displayValue = value ? `$${centsToPrice(value)}` : '-';
     } else if (column === 'features') {
@@ -428,34 +519,34 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
 
   const getStatusBadge = (status: string) => {
     const configs = {
-      [ProcessingStatus.COMPLETED]: { 
+      completed: { 
         color: 'bg-green-100 text-green-800', 
         icon: <CheckCircle className="w-3 h-3" />, 
         text: 'Completado' 
       },
-      [ProcessingStatus.PROCESSING]: { 
+      processing: { 
         color: 'bg-yellow-100 text-yellow-800', 
         icon: <Clock className="w-3 h-3" />, 
         text: 'Procesando' 
       },
-      [ProcessingStatus.PENDING]: { 
+      pending: { 
         color: 'bg-gray-100 text-gray-800', 
         icon: <Upload className="w-3 h-3" />, 
         text: 'Pendiente' 
       },
-      [ProcessingStatus.ERROR]: { 
+      error: { 
         color: 'bg-red-100 text-red-800', 
         icon: <AlertCircle className="w-3 h-3" />, 
         text: 'Error' 
       },
-      [ProcessingStatus.DRAFT]: { 
+      draft: { 
         color: 'bg-blue-100 text-blue-800', 
         icon: <Edit className="w-3 h-3" />, 
         text: 'Borrador' 
       }
     };
 
-    const config = configs[status as ProcessingStatus] || configs[ProcessingStatus.PENDING];
+    const config = configs[status as keyof typeof configs] || configs.pending;
     
     return (
       <Badge className={`${config.color} flex items-center gap-1`} variant="outline">
