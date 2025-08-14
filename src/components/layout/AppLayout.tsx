@@ -1,139 +1,192 @@
-
-import React, { useState } from 'react';
-import { useLocation } from 'react-router-dom';
-import { Sidebar } from './Sidebar';
-import { useAuth } from '@/contexts/AuthContext';
-import { cn } from '@/lib/utils';
+// /src/components/layout/AppLayout.tsx
+import React from "react";
+import { useLocation } from "react-router-dom";
+import { AppSidebar } from "./AppSidebar";
 import {
-  Menu,
-  Search,
-  Bell,
-  User
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
+  SidebarProvider,
+  SidebarInset,
+  SidebarTrigger,
+} from "@/components/ui/sidebar";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import { 
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
+import { Search, Bell, User } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+
+// ==========================================
+// INTERFACES
+// ==========================================
 
 interface AppLayoutProps {
   children: React.ReactNode;
+  showSidebar?: boolean;
   title?: string;
   subtitle?: string;
   actions?: React.ReactNode;
-  showSidebar?: boolean;
 }
 
-const pageTitles: Record<string, { title: string; subtitle?: string }> = {
-  '/': { title: 'Dashboard', subtitle: 'Panel principal de control' },
-  '/upload': { title: 'Subir Productos', subtitle: 'Agrega nuevos productos a tu inventario' },
-  '/products': { title: 'Mi Biblioteca', subtitle: 'Gestiona tus productos guardados' },
-  '/products-management': { title: 'Gestión Avanzada', subtitle: 'Administra tu inventario con edición inline y variantes' },
-  '/image-review': { title: 'Centro de Imágenes', subtitle: 'Revisa y edita las imágenes procesadas' },
-  '/template-selection': { title: 'Crear Catálogo', subtitle: 'Selecciona el estilo perfecto para tu catálogo' },
-  '/catalogs': { title: 'Mis Catálogos', subtitle: 'Historial de catálogos generados' },
-  '/business-info': { title: 'Información del Negocio', subtitle: 'Configura los datos de tu empresa para personalizar tus catálogos' },
-  '/checkout': { title: 'Comprar Créditos', subtitle: 'Selecciona un paquete y método de pago' }
-};
+// ==========================================
+// PÁGINAS SIN SIDEBAR
+// ==========================================
 
-const pagesWithoutSidebar = [
-  '/login',
-  '/register', 
-  '/payment-success',
-  '/payment-instructions',
-  '/checkout'
+const NO_SIDEBAR_ROUTES = [
+  "/login",
+  "/register",
+  "/reset-password",
+  "/payment-success",
+  "/payment-instructions",
 ];
 
-export const AppLayout: React.FC<AppLayoutProps> = ({ 
-  children, 
-  title, 
-  subtitle, 
+// ==========================================
+// BREADCRUMB MAPPING
+// ==========================================
+
+const ROUTE_BREADCRUMBS: { [key: string]: { title: string; subtitle?: string; parent?: string } } = {
+  "/": { title: "Dashboard", subtitle: "Resumen de tu actividad" },
+  "/upload": { title: "Subir Productos", subtitle: "Agrega nuevos productos a tu biblioteca", parent: "Productos" },
+  "/products": { title: "Mi Biblioteca", subtitle: "Gestiona tus productos guardados", parent: "Productos" },
+  "/products-management": { title: "Gestión Avanzada", subtitle: "Edición inline y variantes", parent: "Productos" },
+  "/image-review": { title: "Centro de Imágenes", subtitle: "Revisa y confirma imágenes procesadas", parent: "Productos" },
+  "/template-selection": { title: "Crear Catálogo", subtitle: "Selecciona un template para tu catálogo", parent: "Catálogos" },
+  "/catalogs": { title: "Mis Catálogos", subtitle: "Historial de catálogos generados", parent: "Catálogos" },
+  "/business-info": { title: "Información del Negocio", subtitle: "Configura los datos de tu empresa", parent: "Configuración" },
+  "/checkout": { title: "Comprar Créditos", subtitle: "Selecciona un paquete de créditos" },
+};
+
+// ==========================================
+// COMPONENTE PRINCIPAL
+// ==========================================
+
+const AppLayout: React.FC<AppLayoutProps> = ({
+  children,
+  showSidebar = true,
+  title: customTitle,
+  subtitle: customSubtitle,
   actions,
-  showSidebar 
 }) => {
   const { user } = useAuth();
   const location = useLocation();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // Determine if sidebar should be shown
-  const shouldShowSidebar = showSidebar !== false && !pagesWithoutSidebar.includes(location.pathname);
+  // Determinar si mostrar sidebar
+  const shouldShowSidebar = showSidebar && !NO_SIDEBAR_ROUTES.includes(location.pathname);
 
-  // Get page title and subtitle
-  const pageInfo = pageTitles[location.pathname] || { title: 'CatalogPro' };
-  const displayTitle = title || pageInfo.title;
-  const displaySubtitle = subtitle || pageInfo.subtitle;
+  // Obtener información de la ruta actual
+  const routeInfo = ROUTE_BREADCRUMBS[location.pathname] || {
+    title: "Página",
+    subtitle: "",
+  };
 
-  const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
-  const closeSidebar = () => setSidebarOpen(false);
+  const pageTitle = customTitle || routeInfo.title;
+  const pageSubtitle = customSubtitle || routeInfo.subtitle;
+
+  // Si no hay sidebar, renderizar solo los children
+  if (!shouldShowSidebar) {
+    return <div className="min-h-screen bg-gray-50">{children}</div>;
+  }
+
+  // ==========================================
+  // RENDER CON SIDEBAR
+  // ==========================================
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {shouldShowSidebar && (
-        <Sidebar isOpen={sidebarOpen} onClose={closeSidebar} />
-      )}
-
-      {/* Main Content */}
-      <div className={cn(
-        "transition-all duration-300 ease-in-out",
-        shouldShowSidebar ? "lg:ml-64" : ""
-      )}>
-        {/* Top Bar */}
-        <header className="bg-white border-b border-gray-200 h-16 flex items-center justify-between px-4 lg:px-6">
-          <div className="flex items-center">
-            {shouldShowSidebar && (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={toggleSidebar}
-                className="lg:hidden mr-2"
-              >
-                <Menu className="w-5 h-5" />
-              </Button>
-            )}
+    <SidebarProvider>
+      <AppSidebar />
+      <SidebarInset>
+        {/* Header/TopBar */}
+        <header className="flex h-16 shrink-0 items-center gap-2 border-b bg-white px-4">
+          <div className="flex items-center gap-2 flex-1">
+            <SidebarTrigger className="-ml-1" />
+            <Separator orientation="vertical" className="mr-2 h-4" />
             
-            <div className="flex-1">
-              <h1 className="text-xl font-semibold text-gray-900">{displayTitle}</h1>
-              {displaySubtitle && (
-                <p className="text-sm text-gray-600 hidden sm:block">{displaySubtitle}</p>
-              )}
-            </div>
+            {/* Breadcrumb */}
+            <Breadcrumb>
+              <BreadcrumbList>
+                {routeInfo.parent && (
+                  <>
+                    <BreadcrumbItem className="hidden md:block">
+                      <BreadcrumbLink href="#" className="text-gray-600">
+                        {routeInfo.parent}
+                      </BreadcrumbLink>
+                    </BreadcrumbItem>
+                    <BreadcrumbSeparator className="hidden md:block" />
+                  </>
+                )}
+                <BreadcrumbItem>
+                  <BreadcrumbPage className="font-semibold text-gray-900">
+                    {pageTitle}
+                  </BreadcrumbPage>
+                </BreadcrumbItem>
+              </BreadcrumbList>
+            </Breadcrumb>
           </div>
 
-          <div className="flex items-center space-x-3">
-            {/* Search - Desktop only */}
-            <div className="hidden md:flex items-center">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Buscar..."
-                  className="pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent w-64"
-                />
-              </div>
+          {/* Right side actions */}
+          <div className="flex items-center gap-3">
+            {/* Search (desktop only) */}
+            <div className="hidden md:flex relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <input
+                type="text"
+                placeholder="Buscar..."
+                className="pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm w-64"
+              />
             </div>
 
-            {/* Actions */}
+            {/* Custom actions */}
             {actions && (
-              <div className="flex items-center space-x-2">
-                {actions}
-              </div>
+              <>
+                <Separator orientation="vertical" className="h-4" />
+                <div className="flex items-center gap-2">{actions}</div>
+              </>
             )}
 
-            {/* Notifications */}
-            <Button variant="ghost" size="icon" className="relative">
-              <Bell className="w-5 h-5" />
-              <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-            </Button>
-
-            {/* User Avatar */}
-            <div className="flex items-center justify-center w-8 h-8 bg-blue-100 rounded-full">
-              <User className="w-4 h-4 text-blue-600" />
+            {/* User section */}
+            <Separator orientation="vertical" className="h-4" />
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" size="sm" className="relative">
+                <Bell className="w-4 h-4" />
+                <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+              </Button>
+              
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                  <User className="w-4 h-4 text-blue-600" />
+                </div>
+                <div className="hidden sm:block">
+                  <p className="text-sm font-medium text-gray-900">
+                    {user?.email?.split("@")[0] || "Usuario"}
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         </header>
 
-        {/* Page Content */}
-        <main className="p-4 lg:p-6">
-          {children}
+        {/* Page Title Section */}
+        {pageSubtitle && (
+          <div className="bg-white border-b px-6 py-4">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">{pageTitle}</h1>
+              <p className="text-gray-600 mt-1">{pageSubtitle}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Main Content */}
+        <main className="flex-1 overflow-auto bg-gray-50">
+          <div className="p-6">
+            {children}
+          </div>
         </main>
-      </div>
-    </div>
+      </SidebarInset>
+    </SidebarProvider>
   );
 };
 
