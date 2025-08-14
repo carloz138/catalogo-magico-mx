@@ -1,10 +1,11 @@
 
 import React, { useState, useEffect } from 'react';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
+import AppLayout from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Download, Share2, Eye, FileText, Clock, CheckCircle, AlertCircle } from 'lucide-react';
+import { Download, Share2, Eye, FileText, Clock, CheckCircle, AlertCircle, Plus } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -165,69 +166,52 @@ const Catalogs = () => {
     }
   };
 
+  const actions = (
+    <Button onClick={() => navigate('/products')}>
+      <Plus className="w-4 h-4 mr-2" />
+      Crear nuevo catálogo
+    </Button>
+  );
+
   if (loading) {
     return (
       <ProtectedRoute>
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-          <div className="text-center">
-            <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <p className="text-neutral/60">Cargando catálogos...</p>
+        <AppLayout>
+          <div className="flex items-center justify-center py-12">
+            <div className="text-center">
+              <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+              <p className="text-neutral/60">Cargando catálogos...</p>
+            </div>
           </div>
-        </div>
+        </AppLayout>
       </ProtectedRoute>
     );
   }
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-gray-50">
-        <header className="bg-white border-b">
-          <div className="max-w-7xl mx-auto px-4 py-6">
-            <div className="flex justify-between items-center">
-              <div className="flex items-center space-x-4">
-                <Button 
-                  variant="ghost" 
-                  onClick={() => navigate('/')}
-                  className="flex items-center space-x-2"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                  <span>Inicio</span>
-                </Button>
-                <div>
-                  <h1 className="text-2xl font-bold">Mis Catálogos</h1>
-                  <p className="text-gray-600">Historial de catálogos generados</p>
-                </div>
-              </div>
-              <Button onClick={() => navigate('/products')}>
-                Crear nuevo catálogo
-              </Button>
-            </div>
+      <AppLayout actions={actions}>
+        {catalogs.length === 0 ? (
+          <div className="text-center py-12">
+            <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              No tienes catálogos creados
+            </h3>
+            <p className="text-gray-600 mb-4">
+              Ve a tu biblioteca de productos y selecciona algunos para crear tu primer catálogo
+            </p>
+            <Button onClick={() => navigate('/products')}>
+              Ver mi biblioteca
+            </Button>
           </div>
-        </header>
-        
-        <main className="max-w-7xl mx-auto px-4 py-6">
-          {catalogs.length === 0 ? (
-            <div className="text-center py-12">
-              <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
-                No tienes catálogos creados
-              </h3>
-              <p className="text-gray-600 mb-4">
-                Ve a tu biblioteca de productos y selecciona algunos para crear tu primer catálogo
-              </p>
-              <Button onClick={() => navigate('/products')}>
-                Ver mi biblioteca
-              </Button>
-            </div>
-          ) : (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {catalogs.map(catalog => (
-                <CatalogCard key={catalog.id} catalog={catalog} />
-              ))}
-            </div>
-          )}
-        </main>
-      </div>
+        ) : (
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {catalogs.map(catalog => (
+              <CatalogCard key={catalog.id} catalog={catalog} />
+            ))}
+          </div>
+        )}
+      </AppLayout>
     </ProtectedRoute>
   );
 };

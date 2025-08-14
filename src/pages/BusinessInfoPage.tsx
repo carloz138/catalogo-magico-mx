@@ -1,9 +1,11 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { BusinessInfo, BusinessInfoForm } from '@/types/business';
-import { Building2, Upload, Palette, Eye, Save, ArrowLeft } from 'lucide-react';
+import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
+import AppLayout from '@/components/layout/AppLayout';
+import { Button } from '@/components/ui/button';
+import { Building2, Upload, Palette, Eye, Save } from 'lucide-react';
 import { toast } from '@/components/ui/sonner';
 
 const BusinessInfoPage: React.FC = () => {
@@ -29,7 +31,6 @@ const BusinessInfoPage: React.FC = () => {
     secondary_color: '#1F2937'
   });
 
-  // Cargar info existente al montar
   useEffect(() => {
     loadExistingBusinessInfo();
   }, []);
@@ -86,13 +87,11 @@ const BusinessInfoPage: React.FC = () => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validar tamaño (5MB max)
     if (file.size > 5 * 1024 * 1024) {
       toast.error('El logo debe ser menor a 5MB');
       return;
     }
 
-    // Validar tipo
     if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
       toast.error('Solo se permiten archivos JPG, PNG o WebP');
       return;
@@ -100,7 +99,6 @@ const BusinessInfoPage: React.FC = () => {
 
     setLogoFile(file);
     
-    // Crear preview
     const reader = new FileReader();
     reader.onload = (e) => {
       setLogoPreview(e.target?.result as string);
@@ -112,7 +110,6 @@ const BusinessInfoPage: React.FC = () => {
     if (!logoFile) return existingInfo?.logo_url || null;
 
     try {
-      // Borrar logo anterior si existe
       if (existingInfo?.logo_url) {
         const oldPath = existingInfo.logo_url.split('/').pop();
         if (oldPath) {
@@ -122,7 +119,6 @@ const BusinessInfoPage: React.FC = () => {
         }
       }
 
-      // Subir nuevo logo
       const fileExt = logoFile.name.split('.').pop();
       const fileName = `logo.${fileExt}`;
       const filePath = `${userId}/${fileName}`;
@@ -133,7 +129,6 @@ const BusinessInfoPage: React.FC = () => {
 
       if (uploadError) throw uploadError;
 
-      // Obtener URL pública
       const { data } = supabase.storage
         .from('business-logos')
         .getPublicUrl(filePath);
@@ -156,10 +151,8 @@ const BusinessInfoPage: React.FC = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Usuario no autenticado');
 
-      // Subir logo si hay uno nuevo
       const logoUrl = await uploadLogo(user.id);
 
-      // Preparar datos para guardar
       const businessData = {
         user_id: user.id,
         business_name: formData.business_name.trim(),
@@ -178,14 +171,12 @@ const BusinessInfoPage: React.FC = () => {
         secondary_color: formData.secondary_color,
       };
 
-      // Limpiar campos vacíos del objeto social_media
       Object.keys(businessData.social_media).forEach(key => {
         if (!businessData.social_media[key as keyof typeof businessData.social_media]) {
           delete businessData.social_media[key as keyof typeof businessData.social_media];
         }
       });
 
-      // Guardar en base de datos (upsert)
       const { error } = await (supabase as any)
         .from('business_info')
         .upsert(businessData, { onConflict: 'user_id' });
@@ -194,7 +185,6 @@ const BusinessInfoPage: React.FC = () => {
 
       toast.success('Información del negocio guardada correctamente');
       
-      // Recargar datos
       await loadExistingBusinessInfo();
       
     } catch (error) {
@@ -205,64 +195,46 @@ const BusinessInfoPage: React.FC = () => {
     }
   };
 
+  const actions = (
+    <>
+      <Button
+        variant="outline"
+        onClick={() => setPreviewMode(!previewMode)}
+        className="flex items-center gap-2"
+      >
+        <Eye className="h-4 w-4" />
+        {previewMode ? 'Editar' : 'Preview'}
+      </Button>
+      
+      <Button
+        onClick={handleSave}
+        disabled={saving}
+        className="flex items-center gap-2"
+      >
+        <Save className="h-4 w-4" />
+        {saving ? 'Guardando...' : 'Guardar'}
+      </Button>
+    </>
+  );
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Cargando información...</p>
-        </div>
-      </div>
+      <ProtectedRoute>
+        <AppLayout>
+          <div className="flex items-center justify-center py-12">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+              <p className="mt-4 text-gray-600">Cargando información...</p>
+            </div>
+          </div>
+        </AppLayout>
+      </ProtectedRoute>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <button
-            onClick={() => navigate('/products')}
-            className="flex items-center text-gray-600 hover:text-gray-900 mb-4"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Volver a Productos
-          </button>
-          
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <Building2 className="h-8 w-8 text-blue-600 mr-3" />
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900">
-                  Información del Negocio
-                </h1>
-                <p className="text-gray-600">
-                  Configura los datos de tu empresa para personalizar tus catálogos
-                </p>
-              </div>
-            </div>
-            
-            <div className="flex space-x-3">
-              <button
-                onClick={() => setPreviewMode(!previewMode)}
-                className="flex items-center px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-              >
-                <Eye className="h-4 w-4 mr-2" />
-                {previewMode ? 'Editar' : 'Preview'}
-              </button>
-              
-              <button
-                onClick={handleSave}
-                disabled={saving}
-                className="flex items-center px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-              >
-                <Save className="h-4 w-4 mr-2" />
-                {saving ? 'Guardando...' : 'Guardar'}
-              </button>
-            </div>
-          </div>
-        </div>
-
+    <ProtectedRoute>
+      <AppLayout actions={actions}>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Formulario */}
           <div className="space-y-6">
@@ -575,8 +547,8 @@ const BusinessInfoPage: React.FC = () => {
             </div>
           </div>
         </div>
-      </div>
-    </div>
+      </AppLayout>
+    </ProtectedRoute>
   );
 };
 

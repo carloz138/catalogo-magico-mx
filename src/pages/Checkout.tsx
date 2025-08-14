@@ -1,9 +1,11 @@
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate, useLocation } from 'react-router-dom';
+import AppLayout from '@/components/layout/AppLayout';
 import { CreditCard, Building2, CheckCircle, ArrowLeft, Zap, Crown, Users, TrendingUp } from 'lucide-react';
 
 interface CreditPackage {
@@ -31,7 +33,6 @@ const Checkout = () => {
   const [loading, setLoading] = useState(true);
   const [processingPayment, setProcessingPayment] = useState(false);
 
-  // Check for pre-selected package from navigation state
   const preSelectedPackageName = location.state?.selectedPackageName;
 
   useEffect(() => {
@@ -40,7 +41,6 @@ const Checkout = () => {
   }, []);
 
   useEffect(() => {
-    // Pre-select package if one was passed from navigation
     if (preSelectedPackageName && packages.length > 0) {
       const preSelected = packages.find(pkg => pkg.name === preSelectedPackageName);
       if (preSelected) {
@@ -63,7 +63,6 @@ const Checkout = () => {
       console.log('Credit packages fetched:', data);
       setPackages(data || []);
       
-      // Auto-select popular package only if no pre-selection
       if (!preSelectedPackageName) {
         const popularPackage = data?.find(pkg => pkg.is_popular);
         if (popularPackage) setSelectedPackage(popularPackage);
@@ -82,11 +81,11 @@ const Checkout = () => {
   };
 
   const getRecommendation = (amount: number) => {
-    return amount < 50000 ? 'stripe' : 'spei'; // < $500 MXN recommend stripe
+    return amount < 50000 ? 'stripe' : 'spei';
   };
 
   const calculateSavings = (amount: number) => {
-    if (amount >= 200000) { // >= $2000 MXN
+    if (amount >= 200000) {
       const cardFee = Math.round(amount * 0.036 + 300);
       const speiFee = 500;
       return Math.max(0, cardFee - speiFee);
@@ -148,7 +147,6 @@ const Checkout = () => {
     
     setProcessingPayment(true);
     try {
-      // 1. Create transaction record
       const { data: transaction, error: transactionError } = await supabase
         .from('transactions')
         .insert({
@@ -166,7 +164,6 @@ const Checkout = () => {
 
       console.log('Stripe payment for transaction:', transaction.id);
 
-      // 2. Call create-payment-intent Edge Function
       const { data, error } = await supabase.functions.invoke('create-payment-intent', {
         body: { transactionId: transaction.id }
       });
@@ -183,7 +180,6 @@ const Checkout = () => {
       console.log('✅ Checkout Session created:', data.sessionId);
       console.log('🔗 Redirecting to:', data.checkoutUrl);
 
-      // 3. Redirect to Stripe Checkout
       window.location.href = data.checkoutUrl;
 
     } catch (error) {
@@ -204,19 +200,19 @@ const Checkout = () => {
     setProcessingPayment(true);
     try {
       const speiReference = `CAT${Date.now()}${Math.random().toString(36).substr(2, 4).toUpperCase()}`;
-      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
       
       const { data: transaction, error } = await supabase
         .from('transactions')
         .insert({
           user_id: user.id,
           package_id: selectedPackage.id,
-          amount_mxn: selectedPackage.price_mxn + 500, // Add $5 MXN SPEI fee
+          amount_mxn: selectedPackage.price_mxn + 500,
           credits_purchased: selectedPackage.credits,
           payment_method: 'spei',
           payment_status: 'pending',
           spei_reference: speiReference,
-          spei_clabe: '646180157000000004', // Company CLABE
+          spei_clabe: '646180157000000004',
           expires_at: expiresAt.toISOString()
         })
         .select()
@@ -224,7 +220,6 @@ const Checkout = () => {
 
       if (error) throw error;
 
-      // Navigate to payment instructions
       navigate(`/payment-instructions/${transaction.id}`);
       
     } catch (error) {
@@ -239,14 +234,28 @@ const Checkout = () => {
     }
   };
 
+  const actions = (
+    <Button 
+      variant="outline" 
+      size="sm"
+      onClick={() => navigate('/')}
+      className="flex items-center gap-2"
+    >
+      <ArrowLeft className="w-4 h-4" />
+      Regresar al inicio
+    </Button>
+  );
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p>Cargando paquetes...</p>
+      <AppLayout showSidebar={false} actions={actions}>
+        <div className="flex items-center justify-center py-12">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <p>Cargando paquetes...</p>
+          </div>
         </div>
-      </div>
+      </AppLayout>
     );
   }
 
@@ -254,29 +263,8 @@ const Checkout = () => {
   const savings = selectedPackage ? calculateSavings(selectedPackage.price_mxn) : 0;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b">
-        <div className="max-w-4xl mx-auto px-4 py-6">
-          <div className="flex items-center gap-4">
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => navigate('/')}
-              className="flex items-center gap-2"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Regresar al inicio
-            </Button>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Comprar Créditos</h1>
-              <p className="text-gray-600 mt-1">Selecciona un paquete y método de pago</p>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      <main className="max-w-4xl mx-auto px-4 py-8">
+    <AppLayout showSidebar={false} actions={actions}>
+      <div className="max-w-4xl mx-auto">
         {/* Credit Packages */}
         <div className="mb-8">
           <h2 className="text-xl font-semibold mb-6">Elige tu paquete</h2>
@@ -306,7 +294,6 @@ const Checkout = () => {
                     </div>
                   )}
                   
-                  {/* Header with icon */}
                   <div className="flex items-center gap-3 mb-4">
                     <div className={`w-10 h-10 rounded-lg bg-gradient-to-r ${getPackageColor(pkg.name)} flex items-center justify-center text-white`}>
                       {getPackageIcon(pkg.name)}
@@ -317,7 +304,6 @@ const Checkout = () => {
                     </div>
                   </div>
                   
-                  {/* Pricing */}
                   <div className="mb-6">
                     <div className="flex items-baseline gap-2">
                       <span className="text-3xl font-bold">${(pkg.price_mxn / 100).toLocaleString()}</span>
@@ -337,7 +323,6 @@ const Checkout = () => {
                     </div>
                   </div>
                   
-                  {/* Features */}
                   <div className="space-y-2 mb-4">
                     {getPackageFeatures(pkg.name, pkg.credits).map((feature, index) => (
                       <div key={index} className="flex items-center gap-2">
@@ -485,8 +470,8 @@ const Checkout = () => {
             </div>
           </>
         )}
-      </main>
-    </div>
+      </div>
+    </AppLayout>
   );
 };
 
