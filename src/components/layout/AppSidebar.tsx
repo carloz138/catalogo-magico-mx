@@ -1,6 +1,7 @@
-// /src/components/layout/AppSidebar.tsx
-import React, { useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+
+// /src/components/layout/AppSidebar.tsx - DISEÑO SÓLIDO Y PROFESIONAL
+import React from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   Sidebar,
@@ -16,7 +17,6 @@ import {
   SidebarMenuSub,
   SidebarMenuSubButton,
   SidebarMenuSubItem,
-  SidebarMenuBadge,
 } from "@/components/ui/sidebar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -54,7 +54,7 @@ interface MenuItem {
 }
 
 // ==========================================
-// CONFIGURACIÓN DEL MENÚ
+// CONFIGURACIÓN DEL MENÚ CON ICONOS CORREGIDOS
 // ==========================================
 
 const menuData: MenuItem[] = [
@@ -71,8 +71,6 @@ const menuData: MenuItem[] = [
         title: "Subir Productos",
         path: "/upload",
         icon: Upload,
-        badge: "Nuevo",
-        badgeColor: "bg-green-100 text-green-800",
       },
       {
         title: "Mi Biblioteca",
@@ -112,7 +110,7 @@ const menuData: MenuItem[] = [
     path: "/checkout",
     icon: CreditCard,
     badge: "Comprar",
-    badgeColor: "bg-purple-100 text-purple-800",
+    badgeColor: "bg-purple-100 text-purple-700 border-purple-200",
   },
   {
     title: "Configuración",
@@ -128,7 +126,7 @@ const menuData: MenuItem[] = [
 ];
 
 // ==========================================
-// COMPONENTE PRINCIPAL
+// COMPONENTE PRINCIPAL CON DISEÑO SÓLIDO
 // ==========================================
 
 export function AppSidebar() {
@@ -163,13 +161,8 @@ export function AppSidebar() {
     return location.pathname.startsWith(path);
   };
 
-  const hasActiveChild = (items?: MenuItem[]) => {
-    if (!items) return false;
-    return items.some((item) => item.path && isActiveRoute(item.path));
-  };
-
   // ==========================================
-  // RENDER FUNCTIONS
+  // RENDER FUNCTIONS CON ICONOS CONSISTENTES
   // ==========================================
 
   const renderMenuItem = (item: MenuItem) => {
@@ -179,10 +172,10 @@ export function AppSidebar() {
     if (hasChildren) {
       return (
         <SidebarMenuItem key={item.title}>
-          <SidebarMenuButton className="w-full">
-            <item.icon className="w-4 h-4" />
-            <span>{item.title}</span>
-            <ChevronRight className="ml-auto h-4 w-4" />
+          <SidebarMenuButton className="w-full group hover:bg-slate-100 transition-colors min-h-[44px]">
+            <item.icon className="w-5 h-5 text-slate-600 group-hover:text-slate-800 flex-shrink-0" />
+            <span className="text-slate-700 group-hover:text-slate-900 font-medium flex-1 text-left">{item.title}</span>
+            <ChevronRight className="ml-2 h-4 w-4 text-slate-400 group-hover:text-slate-600 flex-shrink-0" />
           </SidebarMenuButton>
           <SidebarMenuSub>
             {item.items?.map((subItem) => (
@@ -190,23 +183,18 @@ export function AppSidebar() {
                 <SidebarMenuSubButton
                   asChild
                   isActive={subItem.path ? isActiveRoute(subItem.path) : false}
+                  className="hover:bg-slate-50 min-h-[40px]"
                 >
                   <button
                     onClick={() => subItem.path && navigate(subItem.path)}
-                    className="flex items-center w-full gap-2"
+                    className={`flex items-center w-full gap-3 px-3 py-2 rounded-md transition-all text-sm ${
+                      subItem.path && isActiveRoute(subItem.path)
+                        ? "bg-blue-50 text-blue-700 border-l-3 border-blue-500"
+                        : "text-slate-600 hover:text-slate-800 hover:bg-slate-50"
+                    }`}
                   >
-                    <subItem.icon className="w-4 h-4" />
-                    <span>{subItem.title}</span>
-                    {subItem.badge && (
-                      <Badge
-                        className={`text-xs ml-auto ${
-                          subItem.badgeColor || "bg-gray-100 text-gray-800"
-                        }`}
-                        variant="outline"
-                      >
-                        {subItem.badge}
-                      </Badge>
-                    )}
+                    <subItem.icon className="w-4 h-4 flex-shrink-0" />
+                    <span className="font-medium flex-1 text-left">{subItem.title}</span>
                   </button>
                 </SidebarMenuSubButton>
               </SidebarMenuSubItem>
@@ -221,21 +209,23 @@ export function AppSidebar() {
         <SidebarMenuButton asChild isActive={isActive}>
           <button
             onClick={() => item.path && navigate(item.path)}
-            className="flex items-center w-full gap-2"
+            className={`flex items-center w-full gap-3 px-3 py-2 rounded-md transition-all min-h-[44px] ${
+              isActive
+                ? "bg-blue-50 text-blue-700 border-l-3 border-blue-500"
+                : "text-slate-600 hover:text-slate-800 hover:bg-slate-50"
+            }`}
           >
-            <item.icon className="w-4 h-4" />
-            <span>{item.title}</span>
+            <item.icon className="w-5 h-5 flex-shrink-0" />
+            <span className="font-medium flex-1 text-left">{item.title}</span>
             {item.badge && (
-              <SidebarMenuBadge>
-                <Badge
-                  className={`text-xs ${
-                    item.badgeColor || "bg-gray-100 text-gray-800"
-                  }`}
-                  variant="outline"
-                >
-                  {item.badge}
-                </Badge>
-              </SidebarMenuBadge>
+              <Badge
+                className={`text-xs flex-shrink-0 border ml-2 ${
+                  item.badgeColor || "bg-slate-100 text-slate-700 border-slate-200"
+                }`}
+                variant="outline"
+              >
+                {item.badge}
+              </Badge>
             )}
           </button>
         </SidebarMenuButton>
@@ -244,51 +234,51 @@ export function AppSidebar() {
   };
 
   // ==========================================
-  // RENDER PRINCIPAL
+  // ✅ RENDER PRINCIPAL CON DISEÑO SÓLIDO
   // ==========================================
 
   return (
-    <Sidebar variant="inset" className="border-r border-gray-200">
-      {/* Header */}
-      <SidebarHeader className="border-b border-gray-200 p-4">
+    <Sidebar className="border-r border-slate-200 bg-white w-72 min-w-72">
+      {/* ✅ HEADER CON DISEÑO PREMIUM */}
+      <SidebarHeader className="border-b border-slate-200 bg-slate-50 p-4">
         <div className="flex items-center space-x-3">
-          <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-            <Crown className="w-5 h-5 text-white" />
+          <div className="w-10 h-10 bg-gradient-to-br from-blue-600 via-blue-700 to-purple-700 rounded-xl flex items-center justify-center shadow-lg">
+            <Crown className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h2 className="font-bold text-gray-900">CatalogPro</h2>
-            <p className="text-xs text-gray-500">v2.0</p>
+            <h2 className="font-bold text-slate-900 text-lg">CatalogPro</h2>
+            <p className="text-xs text-slate-500 font-medium">v2.0 Professional</p>
           </div>
         </div>
       </SidebarHeader>
 
-      {/* User Info */}
-      <SidebarGroup className="border-b border-gray-200">
+      {/* ✅ USER INFO CON DISEÑO SÓLIDO */}
+      <SidebarGroup className="border-b border-slate-200 bg-slate-50">
         <SidebarGroupContent>
-          <div className="flex items-center space-x-3 p-2">
-            <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-              <User className="w-5 h-5 text-blue-600" />
+          <div className="flex items-center space-x-3 p-3 mx-2 rounded-lg bg-white border border-slate-200 shadow-sm">
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
+              <User className="w-5 h-5 text-white" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-900 truncate">
+              <p className="text-sm font-semibold text-slate-900 truncate">
                 {user?.email?.split("@")[0] || "Usuario"}
               </p>
-              <p className="text-xs text-gray-500 truncate">
-                {user?.email || "email@ejemplo.com"}
+              <p className="text-xs text-slate-500 truncate">
+                Plan Profesional
               </p>
             </div>
-            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-              <Bell className="w-4 h-4" />
+            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-slate-100">
+              <Bell className="w-4 h-4 text-slate-400" />
             </Button>
           </div>
         </SidebarGroupContent>
       </SidebarGroup>
 
-      {/* Navigation Content */}
-      <SidebarContent className="px-2">
+      {/* ✅ NAVIGATION CONTENT CON FONDO SÓLIDO */}
+      <SidebarContent className="px-3 py-4 bg-white">
         <SidebarGroup>
-          <SidebarGroupLabel className="text-xs text-gray-500 uppercase tracking-wider">
-            Navegación
+          <SidebarGroupLabel className="text-xs text-slate-500 uppercase tracking-wider font-semibold mb-3 px-3">
+            NAVEGACIÓN
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu className="space-y-1">
@@ -298,14 +288,14 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      {/* Footer */}
-      <SidebarFooter className="border-t border-gray-200 p-4">
+      {/* ✅ FOOTER CON DISEÑO SÓLIDO */}
+      <SidebarFooter className="border-t border-slate-200 bg-slate-50 p-4">
         <Button
           variant="ghost"
           onClick={handleLogout}
-          className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50"
+          className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50 border border-red-200 font-medium"
         >
-          <LogOut className="w-4 h-4 mr-3" />
+          <LogOut className="w-5 h-5 mr-3" />
           Cerrar Sesión
         </Button>
       </SidebarFooter>

@@ -51,7 +51,6 @@ const menuItems: MenuItem[] = [
         title: 'Subir Productos',
         path: '/upload',
         icon: Upload,
-        badge: 'Nuevo',
         badgeColor: 'bg-green-100 text-green-800'
       },
       {

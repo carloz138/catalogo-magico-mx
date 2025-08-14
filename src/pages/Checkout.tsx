@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -6,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate, useLocation } from 'react-router-dom';
 import AppLayout from '@/components/layout/AppLayout';
-import { CreditCard, Building2, CheckCircle, ArrowLeft, Zap, Crown, Users, TrendingUp } from 'lucide-react';
+import { CreditCard, Building2, CheckCircle, Zap, Crown, Users, TrendingUp } from 'lucide-react';
 
 interface CreditPackage {
   id: string;
@@ -234,21 +233,9 @@ const Checkout = () => {
     }
   };
 
-  const actions = (
-    <Button 
-      variant="outline" 
-      size="sm"
-      onClick={() => navigate('/')}
-      className="flex items-center gap-2"
-    >
-      <ArrowLeft className="w-4 h-4" />
-      Regresar al inicio
-    </Button>
-  );
-
   if (loading) {
     return (
-      <AppLayout showSidebar={false} actions={actions}>
+      <AppLayout>
         <div className="flex items-center justify-center py-12">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
@@ -263,7 +250,7 @@ const Checkout = () => {
   const savings = selectedPackage ? calculateSavings(selectedPackage.price_mxn) : 0;
 
   return (
-    <AppLayout showSidebar={false} actions={actions}>
+    <AppLayout>
       <div className="max-w-4xl mx-auto">
         {/* Credit Packages */}
         <div className="mb-8">
