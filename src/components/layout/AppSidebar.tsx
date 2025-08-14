@@ -1,3 +1,4 @@
+
 // /src/components/layout/AppSidebar.tsx - DISEÑO SÓLIDO Y PROFESIONAL
 import React from "react";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -70,8 +71,6 @@ const menuData: MenuItem[] = [
         title: "Subir Productos",
         path: "/upload",
         icon: Upload,
-        badge: "Nuevo",
-        badgeColor: "bg-emerald-100 text-emerald-700 border-emerald-200",
       },
       {
         title: "Mi Biblioteca",
@@ -173,9 +172,9 @@ export function AppSidebar() {
     if (hasChildren) {
       return (
         <SidebarMenuItem key={item.title}>
-          <SidebarMenuButton className="w-full group hover:bg-slate-100 transition-colors min-h-[40px]">
+          <SidebarMenuButton className="w-full group hover:bg-slate-100 transition-colors min-h-[44px]">
             <item.icon className="w-5 h-5 text-slate-600 group-hover:text-slate-800 flex-shrink-0" />
-            <span className="text-slate-700 group-hover:text-slate-900 font-medium flex-1 text-left truncate">{item.title}</span>
+            <span className="text-slate-700 group-hover:text-slate-900 font-medium flex-1 text-left">{item.title}</span>
             <ChevronRight className="ml-2 h-4 w-4 text-slate-400 group-hover:text-slate-600 flex-shrink-0" />
           </SidebarMenuButton>
           <SidebarMenuSub>
@@ -184,28 +183,18 @@ export function AppSidebar() {
                 <SidebarMenuSubButton
                   asChild
                   isActive={subItem.path ? isActiveRoute(subItem.path) : false}
-                  className="hover:bg-slate-50 min-h-[36px]"
+                  className="hover:bg-slate-50 min-h-[40px]"
                 >
                   <button
                     onClick={() => subItem.path && navigate(subItem.path)}
-                    className={`flex items-center w-full gap-2 px-3 py-2 rounded-md transition-all text-sm ${
+                    className={`flex items-center w-full gap-3 px-3 py-2 rounded-md transition-all text-sm ${
                       subItem.path && isActiveRoute(subItem.path)
                         ? "bg-blue-50 text-blue-700 border-l-3 border-blue-500"
                         : "text-slate-600 hover:text-slate-800 hover:bg-slate-50"
                     }`}
                   >
                     <subItem.icon className="w-4 h-4 flex-shrink-0" />
-                    <span className="font-medium flex-1 text-left truncate pr-1">{subItem.title}</span>
-                    {subItem.badge && (
-                      <Badge
-                        className={`text-xs flex-shrink-0 border ${
-                          subItem.badgeColor || "bg-slate-100 text-slate-700 border-slate-200"
-                        }`}
-                        variant="outline"
-                      >
-                        {subItem.badge}
-                      </Badge>
-                    )}
+                    <span className="font-medium flex-1 text-left">{subItem.title}</span>
                   </button>
                 </SidebarMenuSubButton>
               </SidebarMenuSubItem>
@@ -220,17 +209,17 @@ export function AppSidebar() {
         <SidebarMenuButton asChild isActive={isActive}>
           <button
             onClick={() => item.path && navigate(item.path)}
-            className={`flex items-center w-full gap-3 px-3 py-2 rounded-md transition-all min-h-[40px] ${
+            className={`flex items-center w-full gap-3 px-3 py-2 rounded-md transition-all min-h-[44px] ${
               isActive
                 ? "bg-blue-50 text-blue-700 border-l-3 border-blue-500"
                 : "text-slate-600 hover:text-slate-800 hover:bg-slate-50"
             }`}
           >
             <item.icon className="w-5 h-5 flex-shrink-0" />
-            <span className="font-medium flex-1 text-left truncate pr-1">{item.title}</span>
+            <span className="font-medium flex-1 text-left">{item.title}</span>
             {item.badge && (
               <Badge
-                className={`text-xs flex-shrink-0 border ${
+                className={`text-xs flex-shrink-0 border ml-2 ${
                   item.badgeColor || "bg-slate-100 text-slate-700 border-slate-200"
                 }`}
                 variant="outline"
@@ -249,7 +238,7 @@ export function AppSidebar() {
   // ==========================================
 
   return (
-    <Sidebar className="border-r border-slate-200 bg-white w-64 min-w-64">
+    <Sidebar className="border-r border-slate-200 bg-white w-72 min-w-72">
       {/* ✅ HEADER CON DISEÑO PREMIUM */}
       <SidebarHeader className="border-b border-slate-200 bg-slate-50 p-4">
         <div className="flex items-center space-x-3">
