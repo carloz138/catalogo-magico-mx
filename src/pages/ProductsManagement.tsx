@@ -1,4 +1,4 @@
-
+// /src/pages/ProductsManagement.tsx - VERSIÓN OPTIMIZADA
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
@@ -8,10 +8,18 @@ import { Button } from '@/components/ui/button';
 import { Plus, Settings, BarChart3, Package } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
+// ==========================================
+// PÁGINA PRINCIPAL DE GESTIÓN DE PRODUCTOS
+// ==========================================
+
 const ProductsManagement: React.FC = () => {
   const navigate = useNavigate();
   const [showVariantsModal, setShowVariantsModal] = useState(false);
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
+
+  // ==========================================
+  // HANDLERS
+  // ==========================================
 
   const handleEditVariants = (productId: string) => {
     setSelectedProductId(productId);
@@ -41,10 +49,15 @@ const ProductsManagement: React.FC = () => {
     });
   };
 
+  // ==========================================
+  // ACCIONES DEL HEADER
+  // ==========================================
+
   const actions = (
-    <>
+    <div className="flex items-center gap-2">
       <Button 
         variant="outline" 
+        size="sm"
         onClick={handleGoToAnalytics}
         className="flex items-center gap-2"
       >
@@ -54,6 +67,7 @@ const ProductsManagement: React.FC = () => {
       
       <Button 
         variant="outline" 
+        size="sm"
         onClick={handleGoToCatalog}
         className="flex items-center gap-2"
       >
@@ -62,22 +76,32 @@ const ProductsManagement: React.FC = () => {
       </Button>
       
       <Button 
+        size="sm"
         onClick={handleGoToUpload}
         className="flex items-center gap-2"
       >
         <Plus className="w-4 h-4" />
-        <span className="hidden sm:inline">Agregar Productos</span>
-        <span className="sm:hidden">Agregar</span>
+        <span className="hidden sm:inline">Agregar</span>
       </Button>
-    </>
+    </div>
   );
+
+  // ==========================================
+  // RENDER - OPTIMIZADO PARA NUEVO LAYOUT
+  // ==========================================
 
   return (
     <ProtectedRoute>
-      <AppLayout actions={actions}>
+      <AppLayout 
+        title="Gestión Avanzada"
+        subtitle="Edición inline, variantes y gestión masiva de productos"
+        actions={actions}
+      >
+        {/* ✅ CONTENIDO LIMPIO - Sin padding extra */}
+        
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <div className="bg-white rounded-lg border p-4">
+          <div className="bg-white rounded-lg border p-4 shadow-sm">
             <div className="flex items-center">
               <div className="p-2 bg-blue-100 rounded-lg">
                 <Package className="w-6 h-6 text-blue-600" />
@@ -89,7 +113,7 @@ const ProductsManagement: React.FC = () => {
             </div>
           </div>
           
-          <div className="bg-white rounded-lg border p-4">
+          <div className="bg-white rounded-lg border p-4 shadow-sm">
             <div className="flex items-center">
               <div className="p-2 bg-green-100 rounded-lg">
                 <Settings className="w-6 h-6 text-green-600" />
@@ -101,7 +125,7 @@ const ProductsManagement: React.FC = () => {
             </div>
           </div>
           
-          <div className="bg-white rounded-lg border p-4">
+          <div className="bg-white rounded-lg border p-4 shadow-sm">
             <div className="flex items-center">
               <div className="p-2 bg-yellow-100 rounded-lg">
                 <BarChart3 className="w-6 h-6 text-yellow-600" />
@@ -113,7 +137,7 @@ const ProductsManagement: React.FC = () => {
             </div>
           </div>
           
-          <div className="bg-white rounded-lg border p-4">
+          <div className="bg-white rounded-lg border p-4 shadow-sm">
             <div className="flex items-center">
               <div className="p-2 bg-purple-100 rounded-lg">
                 <Plus className="w-6 h-6 text-purple-600" />
@@ -126,11 +150,12 @@ const ProductsManagement: React.FC = () => {
           </div>
         </div>
 
-        {/* Products Table */}
-        <div className="bg-white rounded-lg border">
+        {/* Products Table - Optimizada */}
+        <div className="bg-white rounded-lg border shadow-sm overflow-hidden">
           <ProductsTableEditor
             onEditVariants={handleEditVariants}
             onViewProduct={handleViewProduct}
+            className="!p-0" // ✅ Eliminar padding interno para evitar conflictos
           />
         </div>
 
@@ -143,6 +168,7 @@ const ProductsManagement: React.FC = () => {
                 <Button 
                   variant="ghost" 
                   onClick={() => setShowVariantsModal(false)}
+                  className="h-8 w-8 p-0"
                 >
                   ✕
                 </Button>
