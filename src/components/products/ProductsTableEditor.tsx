@@ -42,7 +42,8 @@ interface ProductFilters {
   status: string;
 }
 
-interface ProductWithVariants {
+// CORRECCIÓN: Eliminadas las columnas inexistentes
+interface Product {
   id: string;
   name: string;
   sku: string | null;
@@ -57,8 +58,6 @@ interface ProductWithVariants {
   color: string | null;
   features: string[] | null;
   processing_status: string;
-  has_variants: boolean;
-  variant_count: number;
   created_at: string;
 }
 
@@ -90,7 +89,6 @@ const priceToCents = (price: string | number): number => {
   return Math.round(priceNum * 100);
 };
 
-// CORRECCIÓN: Manejo de features con JSON
 const formatFeatures = (features: string[] | null): string => {
   if (!features || !Array.isArray(features)) return '';
   return JSON.stringify(features);
@@ -126,7 +124,7 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
   const { user } = useAuth();
   
   // Estados principales
-  const [products, setProducts] = useState<ProductWithVariants[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
   
@@ -163,6 +161,7 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
 
     setLoading(true);
     try {
+      // CORRECCIÓN: Eliminadas las columnas inexistentes
       const { data, error } = await supabase
         .from('products')
         .select(`
@@ -180,8 +179,6 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
           color,
           features,
           processing_status,
-          has_variants,
-          variant_count,
           created_at
         `)
         .eq('user_id', user.id)
@@ -189,7 +186,7 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
 
       if (error) throw error;
 
-      const productsData: ProductWithVariants[] = data ? data.map(product => ({
+      const productsData: Product[] = data ? data.map(product => ({
         id: product.id,
         name: product.name,
         sku: product.sku,
@@ -204,8 +201,6 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
         color: product.color,
         features: product.features,
         processing_status: product.processing_status,
-        has_variants: product.has_variants || false,
-        variant_count: product.variant_count || 0,
         created_at: product.created_at
       })) : [];
 
@@ -223,13 +218,12 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
   }, [user]);
 
   // ==========================================
-  // FUNCIONES DE EDICIÓN INLINE - CORREGIDAS
+  // FUNCIONES DE EDICIÓN INLINE
   // ==========================================
 
   const startEdit = (rowId: string, column: EditableProductField, currentValue: any) => {
     setEditingCell({ rowId, column });
     
-    // CORRECCIÓN: Manejo mejorado de valores
     if (column === 'price_retail' || column === 'price_wholesale') {
       setEditingValue(currentValue ? centsToPrice(currentValue) : '');
     } else if (column === 'features') {
@@ -247,12 +241,11 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
   };
 
   const saveEdit = async () => {
-    if (!editingCell || saving) return; // Prevenir doble ejecución
+    if (!editingCell || saving) return;
 
     const { rowId, column } = editingCell;
     let processedValue: any = editingValue;
 
-    // Validación para campos numéricos
     if (column === 'price_retail' || column === 'price_wholesale') {
       const numericValue = parseFloat(editingValue);
       if (isNaN(numericValue)) {
@@ -293,7 +286,6 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
         throw error;
       }
 
-      // Actualizar estado local optimizado
       setProducts(prevProducts => 
         prevProducts.map(product => 
           product.id === rowId 
@@ -344,7 +336,6 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
 
       if (error) throw error;
 
-      // Corrección: Actualización optimizada del estado
       setProducts(prev => prev.filter(p => !productIds.includes(p.id)));
       setSelectedProducts([]);
       
@@ -374,7 +365,6 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
 
       if (error) throw error;
 
-      // Corrección: Actualización optimizada
       setProducts(prevProducts => 
         prevProducts.map(product => 
           selectedProducts.includes(product.id) 
@@ -421,7 +411,7 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
   };
 
   // ==========================================
-  // PRODUCTOS FILTRADOS - CORREGIDO
+  // PRODUCTOS FILTRADOS
   // ==========================================
 
   const filteredProducts = useMemo(() => {
@@ -443,7 +433,7 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
   // COMPONENTES DE RENDERIZADO
   // ==========================================
 
-  const renderEditableCell = (product: ProductWithVariants, column: EditableProductField, value: any, type: string = 'text') => {
+  const renderEditableCell = (product: Product, column: EditableProductField, value: any, type: string = 'text') => {
     const isEditing = editingCell?.rowId === product.id && editingCell?.column === column;
     const isSaving = saving === product.id;
 
@@ -482,7 +472,6 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
 
     let displayValue: React.ReactNode = value ?? '';
 
-    // Formateo de valores para visualización
     if (column === 'price_retail' || column === 'price_wholesale') {
       displayValue = value ? `$${centsToPrice(value)}` : '-';
     } else if (column === 'features') {
@@ -508,7 +497,7 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
     );
   };
 
-  const renderSelectCell = (product: ProductWithVariants, column: EditableProductField, value: any, options: typeof PRODUCT_CATEGORIES) => {
+  const renderSelectCell = (product: Product, column: EditableProductField, value: any, options: typeof PRODUCT_CATEGORIES) => {
     const isEditing = editingCell?.rowId === product.id && editingCell?.column === column;
     
     if (isEditing) {
@@ -725,7 +714,6 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
                 <th className="p-3 text-left font-medium min-w-[120px]">Min. Mayoreo</th>
                 <th className="p-3 text-left font-medium min-w-[120px]">Marca</th>
                 <th className="p-3 text-left font-medium min-w-[120px]">Estado</th>
-                <th className="p-3 text-left font-medium min-w-[150px]">Variantes</th>
                 <th className="p-3 text-left font-medium min-w-[120px]">Acciones</th>
               </tr>
             </thead>
@@ -771,26 +759,6 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
                     {getStatusBadge(product.processing_status)}
                   </td>
                   <td className="p-3">
-                    <div className="flex items-center gap-2">
-                      {product.has_variants ? (
-                        <Badge variant="outline">
-                          <Package className="w-3 h-3 mr-1" />
-                          {product.variant_count}
-                        </Badge>
-                      ) : (
-                        <span className="text-gray-400 text-sm">Sin variantes</span>
-                      )}
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => onEditVariants?.(product.id)}
-                        title="Gestionar variantes"
-                      >
-                        <Settings className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </td>
-                  <td className="p-3">
                     <div className="flex items-center gap-1">
                       <Button
                         size="sm"
@@ -799,6 +767,14 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
                         title="Ver producto"
                       >
                         <Eye className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => onEditVariants?.(product.id)}
+                        title="Editar variantes"
+                      >
+                        <Settings className="w-4 h-4" />
                       </Button>
                       <Button
                         size="sm"
