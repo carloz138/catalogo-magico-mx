@@ -1,263 +1,677 @@
-
+// @ts-nocheck
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
-import AppLayout from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { toast } from '@/components/ui/use-toast';
-import { 
-  Palette, 
-  Zap, 
-  Crown, 
-  Sparkles,
-  ArrowRight,
-  Eye
-} from 'lucide-react';
+import { ArrowLeft, Crown, Check, Loader2, Download, Zap, FileText, Image, Timer } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { useBusinessInfo } from '@/hooks/useBusinessInfo';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
+import { getFreeTemplates, getPremiumTemplates, getTemplateById, TemplateConfig } from '@/lib/templates';
 
-interface Template {
-  id: string;
-  name: string;
-  description: string;
-  preview: string;
-  category: 'basic' | 'professional' | 'premium';
-  features: string[];
-  price: number;
+// ✅ IMPORTAR LA VERSIÓN OPTIMIZADA
+import { 
+  downloadOptimizedCatalogPDF, 
+  previewOptimizedCatalogPDF, 
+  getOptimizedPDFEstimates,
+  GenerationProgress
+} from '@/lib/optimizedPDFGenerator';
+import '@/styles/template-styles.css';
+
+interface LocationState {
+  products?: any[];
+  businessInfo?: any;
+  skipProcessing?: boolean;
 }
 
-const templates: Template[] = [
-  {
-    id: 'modern-clean',
-    name: 'Moderno Limpio',
-    description: 'Diseño minimalista y elegante, perfecto para productos de alta gama',
-    preview: '/placeholder.svg',
-    category: 'basic',
-    features: ['Diseño limpio', 'Responsive', 'Colores personalizables'],
-    price: 0
-  },
-  {
-    id: 'professional-grid',
-    name: 'Rejilla Profesional',
-    description: 'Layout en rejilla profesional ideal para catálogos extensos',
-    preview: '/placeholder.svg',
-    category: 'professional',
-    features: ['Layout en rejilla', 'Filtros avanzados', 'Búsqueda integrada', 'Branding personalizado'],
-    price: 50
-  },
-  {
-    id: 'luxury-magazine',
-    name: 'Revista de Lujo',
-    description: 'Estilo revista premium con efectos visuales avanzados',
-    preview: '/placeholder.svg',
-    category: 'premium',
-    features: ['Efectos visuales', 'Animaciones', 'Múltiples layouts', 'Integración social', 'Analytics'],
-    price: 100
-  }
-];
-
 const TemplateSelection = () => {
+  const { user } = useAuth();
+  const { businessInfo } = useBusinessInfo();
   const navigate = useNavigate();
+  const location = useLocation();
+  
+  const [selectedProducts, setSelectedProducts] = useState<any[]>([]);
+  const [userPlan, setUserPlan] = useState<string>('basic');
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
-  const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
+  const [generating, setGenerating] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [pdfStats, setPdfStats] = useState<any>(null);
+  
+  // ✅ ESTADOS PARA PROGRESO OPTIMIZADO
+  const [generationProgress, setGenerationProgress] = useState<GenerationProgress | null>(null);
+  const [showProgressDetails, setShowProgressDetails] = useState(false);
+
+  const state = location.state as LocationState;
 
   useEffect(() => {
-    // Load selected products from localStorage
-    const products = localStorage.getItem('selectedProducts');
-    if (products) {
-      setSelectedProducts(JSON.parse(products));
-    } else {
-      toast({
-        title: "No hay productos seleccionados",
-        description: "Selecciona productos primero desde tu biblioteca",
-        variant: "destructive",
-      });
-      navigate('/products');
-    }
-  }, [navigate]);
-
-  const getCategoryBadge = (category: string) => {
-    const configs = {
-      basic: { color: 'bg-blue-100 text-blue-800', icon: Zap, text: 'Básico' },
-      professional: { color: 'bg-purple-100 text-purple-800', icon: Sparkles, text: 'Profesional' },
-      premium: { color: 'bg-yellow-100 text-yellow-800', icon: Crown, text: 'Premium' },
+    const styleElement = document.createElement('style');
+    styleElement.textContent = `
+      /* Estilos para previews de templates */
+      .template-preview-container { 
+        border-radius: 8px; 
+        overflow: hidden; 
+        background: #f8f9fa;
+      }
+      
+      .template-body-minimalista-gris { 
+        background: #f8f9fa; 
+        color: #495057; 
+        font-family: 'Inter', sans-serif;
+      }
+      
+      .template-body-profesional-corporativo { 
+        background: #e9ecef; 
+        font-family: 'Roboto', sans-serif;
+      }
+      
+      .template-body-lujo-negro-oro { 
+        background: #1a1a1a; 
+        color: #f5f5f5; 
+        font-family: 'Playfair Display', serif;
+      }
+      
+      .template-body-naturaleza-organico { 
+        background: #f1f8e9; 
+      }
+      
+      .template-body-rustico-campestre { 
+        background: #f4f1e8;
+        background-image: url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23d4b996' fill-opacity='0.1'%3E%3Cpath d='M20 20c0 11.046-8.954 20-20 20s-20-8.954-20-20 8.954-20 20-20 20 8.954 20 20zm-30 0c0 5.523 4.477 10 10 10s10-4.477 10-10-4.477-10-10-10-10 4.477-10 10z'/%3E%3C/g%3E%3C/svg%3E");
+      }
+      
+      .preview-product { 
+        background: #fff; 
+        padding: 15px; 
+        margin: 10px; 
+        border-radius: 8px; 
+        text-align: center;
+      }
+      
+      /* Estilos para progreso */
+      .progress-bar {
+        background: linear-gradient(90deg, #10b981 0%, #3b82f6 100%);
+        height: 4px;
+        border-radius: 2px;
+        transition: width 0.3s ease;
+      }
+      
+      .progress-container {
+        background: #e5e7eb;
+        height: 4px;
+        border-radius: 2px;
+        overflow: hidden;
+      }
+    `;
+    
+    document.head.appendChild(styleElement);
+    
+    return () => {
+      if (document.head.contains(styleElement)) {
+        document.head.removeChild(styleElement);
+      }
     };
-    
-    const config = configs[category as keyof typeof configs] || configs.basic;
-    const Icon = config.icon;
-    
-    return (
-      <Badge className={`${config.color} flex items-center gap-1`} variant="outline">
-        <Icon className="w-3 h-3" />
-        {config.text}
-      </Badge>
-    );
+  }, []);
+
+  useEffect(() => {
+    console.log('🔍 TemplateSelection montado');
+    console.log('🔍 state?.products:', state?.products?.length || 0);
+
+    if (state?.products && state.products.length > 0) {
+      console.log('✅ Productos encontrados:', state.products.length);
+      setSelectedProducts(state.products);
+    } else {
+      console.log('❌ No hay productos, redirigiendo...');
+      navigate('/image-review');
+      return;
+    }
+
+    fetchUserPlan();
+  }, [state, navigate]);
+
+  const fetchUserPlan = async () => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('plan_type')
+        .eq('id', user.id)
+        .single();
+
+      if (!error && data?.plan_type) {
+        setUserPlan(data.plan_type);
+        console.log('✅ Plan de usuario:', data.plan_type);
+      }
+    } catch (error) {
+      console.error('Error fetching user plan:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleTemplateSelect = (templateId: string) => {
-    setSelectedTemplate(templateId);
-  };
-
-  const handleGenerateCatalog = () => {
-    if (!selectedTemplate) {
+  // ✅ FUNCIÓN PRINCIPAL OPTIMIZADA: Generar PDF con progreso
+  const handleGeneratePDF = async (templateId: string) => {
+    if (!selectedProducts.length) {
       toast({
-        title: "Selecciona un template",
-        description: "Debes seleccionar un template para continuar",
+        title: "No hay productos",
+        description: "No se encontraron productos para el catálogo",
         variant: "destructive",
       });
       return;
     }
 
-    // Store template selection and navigate to generation
-    localStorage.setItem('selectedTemplate', selectedTemplate);
-    
-    toast({
-      title: "Generando catálogo...",
-      description: "Tu catálogo se está generando. Te notificaremos cuando esté listo.",
-    });
+    if (!businessInfo) {
+      toast({
+        title: "Configura tu negocio",
+        description: "Ve a configuración para completar la información",
+        variant: "destructive",
+      });
+      return;
+    }
 
-    // Navigate to catalogs page
-    navigate('/catalogs');
+    setGenerating(true);
+    setSelectedTemplate(templateId);
+    setGenerationProgress(null);
+    setShowProgressDetails(false);
+
+    try {
+      console.log('🚀 GENERANDO PDF OPTIMIZADO:', templateId);
+      
+      const template = getTemplateById(templateId);
+      if (!template) {
+        throw new Error('Template no encontrado');
+      }
+
+      // ✅ VALIDAR PLAN PREMIUM
+      if (template.isPremium && userPlan === 'basic') {
+        toast({
+          title: "Template Premium",
+          description: "Actualiza tu plan para acceder a este template",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // ✅ PREPARAR DATOS OPTIMIZADOS
+      const pdfProducts = selectedProducts.map((product, index) => {
+        // 🔍 DEBUG: Verificar qué imagen se está usando
+        console.log(`🖼️ Producto ${index + 1}: ${product.name}`);
+        console.log(`   - image_url: ${product.image_url}`);
+        console.log(`   - original_image_url: ${product.original_image_url}`);
+        console.log(`   - processed_url: ${product.processed_url}`);
+        
+        // ✅ USAR SOLO CAMPOS REALES SIN MODIFICAR NOMBRES
+        let finalImageUrl = product.image_url || product.original_image_url;
+        
+        // 🔍 Si hay processed_url disponible, priorizarlo
+        if (product.processed_url) {
+          finalImageUrl = product.processed_url;
+          console.log(`   🔄 Usando processed_url: ${finalImageUrl}`);
+        }
+        const isPNG = finalImageUrl?.includes('.png') || finalImageUrl?.includes('image/png');
+        const isJPG = finalImageUrl?.includes('.jpg') || finalImageUrl?.includes('.jpeg') || finalImageUrl?.includes('image/jpeg');
+        
+        console.log(`   ✅ URL final: ${finalImageUrl}`);
+        console.log(`   📸 Tipo detectado: ${isPNG ? 'PNG (sin fondo)' : isJPG ? 'JPG (con fondo)' : 'Desconocido'}`);
+        console.log('---');
+
+        return {
+          id: product.id,
+          name: product.name,
+          description: product.description || product.custom_description || `Descripción de ${product.name}`,
+          category: product.category || 'General',
+          price_retail: product.price_retail || 0,
+          image_url: finalImageUrl, // ✅ IMAGEN REAL
+          sku: product.sku || `SKU-${product.id.slice(-6)}`,
+          brand: product.brand
+        };
+      });
+
+      const pdfBusinessInfo = {
+        business_name: businessInfo.business_name || 'Mi Empresa',
+        logo_url: businessInfo.logo_url,
+        primary_color: businessInfo.primary_color || template.colors.primary,
+        secondary_color: businessInfo.secondary_color || template.colors.secondary,
+        phone: businessInfo.phone,
+        email: businessInfo.email,
+        address: businessInfo.address
+      };
+
+      // ✅ MOSTRAR PROGRESO DESPUÉS DE 1 SEGUNDO
+      setTimeout(() => {
+        setShowProgressDetails(true);
+      }, 1000);
+
+      // ✅ GENERAR Y DESCARGAR PDF OPTIMIZADO CON PROGRESO
+      const result = await downloadOptimizedCatalogPDF(
+        pdfProducts, 
+        pdfBusinessInfo, 
+        templateId,
+        `catalogo-optimizado-${template.displayName.replace(/\s+/g, '-').toLowerCase()}.pdf`,
+        (progress) => {
+          console.log(`📊 Progreso: ${progress.phase} - ${progress.message}`);
+          setGenerationProgress(progress);
+        }
+      );
+      
+      if (result.success) {
+        toast({
+          title: "🎉 ¡Catálogo optimizado generado!",
+          description: `PDF con imágenes reales descargado exitosamente (${pdfProducts.length} productos)`,
+          variant: "default",
+        });
+
+        // ✅ OPCIONAL: Guardar registro en BD
+        await saveCatalogRecord(templateId);
+        
+        console.log('✅ PDF optimizado generado y descargado exitosamente');
+      } else {
+        throw new Error(result.error || 'Error generando PDF optimizado');
+      }
+
+    } catch (error) {
+      console.error('❌ Error generando PDF optimizado:', error);
+      toast({
+        title: "Error generando PDF",
+        description: error instanceof Error ? error.message : "No se pudo generar el catálogo optimizado",
+        variant: "destructive",
+      });
+    } finally {
+      setGenerating(false);
+      setSelectedTemplate(null);
+      setGenerationProgress(null);
+      setShowProgressDetails(false);
+    }
   };
 
-  const actions = (
-    <div className="flex items-center gap-3">
-      <span className="text-sm text-gray-600">
-        {selectedProducts.length} productos seleccionados
-      </span>
+  // ✅ FUNCIÓN: Guardar registro (simplificada)
+  const saveCatalogRecord = async (templateId: string) => {
+    try {
+      if (!user) return;
       
-      <Button 
-        onClick={handleGenerateCatalog}
-        disabled={!selectedTemplate}
-        className="flex items-center gap-2"
-      >
-        <Palette className="h-4 w-4" />
-        Generar Catálogo
-        <ArrowRight className="h-4 w-4" />
-      </Button>
-    </div>
-  );
+      const template = getTemplateById(templateId);
+      
+      // ✅ MAPEAR TEMPLATE ID A VALORES VÁLIDOS EN BD
+      const validTemplateStyles: { [key: string]: string } = {
+        'minimalista-gris': 'modern',
+        'profesional-corporativo': 'professional', 
+        'lujo-negro-oro': 'luxury',
+        'naturaleza-organico': 'nature',
+        'rustico-campestre': 'rustic',
+        // Agregar más mappings según sea necesario
+      };
+      
+      const dbTemplateStyle = validTemplateStyles[templateId] || 'modern';
+      
+      console.log(`💾 Guardando catálogo optimizado: ${templateId} -> ${dbTemplateStyle}`);
+      
+      const catalogData = {
+        user_id: user.id,
+        name: `Catálogo Optimizado ${template?.displayName || templateId} - ${new Date().toLocaleDateString('es-MX')}`,
+        product_ids: selectedProducts.map(p => p.id),
+        template_style: dbTemplateStyle,
+        brand_colors: {
+          primary: businessInfo?.primary_color || template?.colors.primary || '#3B82F6',
+          secondary: businessInfo?.secondary_color || template?.colors.secondary || '#1F2937'
+        },
+        logo_url: businessInfo?.logo_url || null,
+        show_retail_prices: true,
+        show_wholesale_prices: false,
+        total_products: selectedProducts.length,
+        credits_used: 0 // PDF optimizado es gratis
+      };
+      
+      const { error } = await supabase.from('catalogs').insert(catalogData);
+      
+      if (error) {
+        console.warn('⚠️ No se pudo guardar registro (esto no afecta la descarga):', error.message);
+      } else {
+        console.log('✅ Registro de catálogo optimizado guardado exitosamente');
+      }
+    } catch (error) {
+      console.warn('⚠️ Error guardando registro (esto no afecta la descarga):', error);
+    }
+  };
+
+  // ✅ FUNCIÓN: Calcular stats optimizados cuando cambie template
+  const updateStatsForTemplate = (templateId: string) => {
+    const template = getTemplateById(templateId);
+    if (template && selectedProducts.length > 0) {
+      const stats = getOptimizedPDFEstimates(selectedProducts, template);
+      setPdfStats(stats);
+    }
+  };
+
+  const TemplatePreview = ({ template }: { template: TemplateConfig }) => {
+    const isLocked = template.isPremium && userPlan === 'basic';
+    const isGenerating = generating && selectedTemplate === template.id;
+
+    return (
+      <Card className={`overflow-hidden transition-all duration-200 hover:shadow-xl ${isLocked ? 'opacity-70' : ''}`}>
+        {/* ✅ PREVIEW VISUAL */}
+        <div className={`template-preview-container ${template.id} relative h-48 overflow-hidden`}>
+          <div 
+            className={`template-body-${template.id}`}
+            style={{ 
+              height: '100%', 
+              transform: 'scale(0.4)', 
+              transformOrigin: 'top left',
+              width: '250%'
+            }}
+            onMouseEnter={() => updateStatsForTemplate(template.id)}
+          >
+            <div className="catalog" style={{ padding: '20px' }}>
+              <div className="header" style={{ marginBottom: '20px', textAlign: 'center' }}>
+                <h1 style={{ fontSize: '24px', margin: '0 0 10px 0' }}>Mi Catálogo</h1>
+              </div>
+              <div className="preview-product">
+                <div style={{ 
+                  width: '80px', 
+                  height: '80px', 
+                  background: '#f0f0f0', 
+                  margin: '0 auto 10px',
+                  borderRadius: '4px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <svg width="24" height="24" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <h2 style={{ fontSize: '14px', margin: '0 0 5px 0' }}>Producto</h2>
+                <div style={{ fontSize: '16px', fontWeight: 'bold' }}>$99.99</div>
+              </div>
+            </div>
+          </div>
+          
+          {/* Template badges */}
+          <div className="absolute top-2 left-2">
+            <Badge variant="secondary" className="text-xs bg-white/90 text-gray-700">
+              {template.category}
+            </Badge>
+          </div>
+          
+          {/* Lock overlay */}
+          {isLocked && (
+            <div className="absolute inset-0 bg-black/30 backdrop-blur-[1px] flex items-center justify-center">
+              <div className="bg-white rounded-full p-3 shadow-lg">
+                <Crown className="w-6 h-6 text-yellow-500" />
+              </div>
+            </div>
+          )}
+
+          {/* ✅ OPTIMIZED BADGES */}
+          <div className="absolute top-2 right-2 space-y-1">
+            <Badge className="bg-gradient-to-r from-green-500 to-blue-500 text-white text-xs flex items-center gap-1">
+              <Image className="w-3 h-3" />
+              Imágenes Reales
+            </Badge>
+            <Badge className="bg-purple-500 text-white text-xs flex items-center gap-1">
+              <Zap className="w-3 h-3" />
+              HD 300 DPI
+            </Badge>
+          </div>
+        </div>
+
+        <CardContent className="p-4">
+          <div className="flex justify-between items-start mb-3">
+            <div className="flex-1 min-w-0 pr-2">
+              <h3 className="font-semibold text-lg truncate">{template.displayName}</h3>
+              <p className="text-sm text-gray-600 mb-2 line-clamp-2">{template.description}</p>
+            </div>
+            {template.isPremium && (
+              <Badge variant="outline" className="bg-gradient-to-r from-purple-500 to-pink-500 text-white border-none shrink-0">
+                <Crown className="w-3 h-3 mr-1" />
+                Premium
+              </Badge>
+            )}
+          </div>
+
+          {/* ✅ STATS HD DEL PDF */}
+          <div className="text-xs text-gray-500 mb-4 grid grid-cols-2 gap-1">
+            <div>• {template.productsPerPage} por página</div>
+            <div>• Diseño {template.layout}</div>
+            <div>• PNG sin fondo negro</div>
+            <div>• Calidad 300 DPI</div>
+          </div>
+
+          {/* ✅ FIX: ASEGURAR QUE SE PASE SOLO EL ID */}
+          <Button
+            onClick={() => handleGeneratePDF(String(template.id))}
+            disabled={isLocked || generating}
+            className="w-full"
+            variant={isLocked ? "outline" : "default"}
+          >
+            {isGenerating ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Generando PDF HD...
+              </>
+            ) : isLocked ? (
+              <>
+                <Crown className="w-4 h-4 mr-2" />
+                Requiere Premium
+              </>
+            ) : (
+              <>
+                <Download className="w-4 h-4 mr-2" />
+                Generar PDF HD
+              </>
+            )}
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  };
+
+  if (loading) {
+    return (
+      <ProtectedRoute>
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="text-center">
+            <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-gray-600">Preparando generador PDF optimizado...</p>
+          </div>
+        </div>
+      </ProtectedRoute>
+    );
+  }
+
+  const freeTemplates = getFreeTemplates();
+  const premiumTemplates = getPremiumTemplates();
+  const totalTemplates = userPlan === 'basic' ? freeTemplates.length : freeTemplates.length + premiumTemplates.length;
 
   return (
     <ProtectedRoute>
-      <AppLayout actions={actions}>
-        <div className="space-y-6">
-          {/* Template categories */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {templates.map((template) => (
-              <Card 
-                key={template.id} 
-                className={`cursor-pointer transition-all hover:shadow-lg ${
-                  selectedTemplate === template.id 
-                    ? 'ring-2 ring-blue-500 bg-blue-50' 
-                    : 'hover:shadow-md'
-                }`}
-                onClick={() => handleTemplateSelect(template.id)}
-              >
-                <div className="aspect-video bg-gray-100 relative overflow-hidden">
-                  <img
-                    src={template.preview}
-                    alt={template.name}
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute top-2 left-2">
-                    {getCategoryBadge(template.category)}
+      <div className="min-h-screen bg-gray-50">
+        {/* ✅ HEADER MEJORADO */}
+        <header className="bg-white border-b">
+          <div className="max-w-7xl mx-auto px-4 py-6">
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+              <div className="flex items-center space-x-4">
+                <Button 
+                  variant="ghost" 
+                  onClick={() => navigate('/image-review')}
+                  className="flex items-center space-x-2"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  <span>Volver a Biblioteca</span>
+                </Button>
+                <div>
+                  <h1 className="text-2xl font-bold">Generar Catálogo PDF HD (300 DPI)</h1>
+                  <p className="text-gray-600">
+                    {totalTemplates} templates • {selectedProducts.length} productos • 
+                    <span className="text-green-600 font-semibold ml-1">
+                      <Image className="w-4 h-4 inline mr-1" />
+                      PNG sin fondo negro
+                    </span>
+                  </p>
+                </div>
+              </div>
+              
+              {/* ✅ STATS PANEL HD */}
+              {pdfStats && (
+                <div className="bg-gradient-to-r from-green-50 to-blue-50 border border-green-200 rounded-lg p-4 text-sm">
+                  <div className="flex items-center gap-2 text-green-800 font-semibold mb-2">
+                    <FileText className="w-4 h-4" />
+                    Estimado HD Profesional
                   </div>
-                  <div className="absolute top-2 right-2">
-                    <Button size="sm" variant="outline" className="bg-white/80">
-                      <Eye className="h-3 w-3" />
-                    </Button>
+                  <div className="grid grid-cols-2 gap-2 text-green-700">
+                    <div>📄 {pdfStats.totalPages} páginas</div>
+                    <div>⚡ {pdfStats.estimatedTime}</div>
+                    <div>💾 {pdfStats.estimatedSize}</div>
+                    <div>🎯 300 DPI profesional</div>
                   </div>
                 </div>
-                
-                <CardContent className="p-4">
-                  <div className="flex justify-between items-start mb-2">
-                    <h3 className="font-semibold text-lg">{template.name}</h3>
-                    <span className="font-bold text-primary">
-                      {template.price === 0 ? 'Gratis' : `$${template.price}`}
+              )}
+              
+              {userPlan === 'basic' && (
+                <Button 
+                  onClick={() => navigate('/checkout')}
+                  className="bg-gradient-to-r from-purple-500 to-pink-500 text-white"
+                >
+                  <Crown className="w-4 h-4 mr-2" />
+                  Actualizar a Premium
+                </Button>
+              )}
+            </div>
+          </div>
+        </header>
+        
+        {/* ✅ BARRA DE PROGRESO HD */}
+        {generating && generationProgress && showProgressDetails && (
+          <div className="bg-gradient-to-r from-blue-50 to-green-50 border-b border-blue-200">
+            <div className="max-w-7xl mx-auto px-4 py-4">
+              <div className="flex items-center gap-4">
+                <div className="animate-spin w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+                <div className="flex-1">
+                  <div className="text-sm text-blue-800 font-medium mb-1">
+                    {generationProgress.message}
+                  </div>
+                  <div className="progress-container mb-2">
+                    <div 
+                      className="progress-bar" 
+                      style={{ 
+                        width: `${(generationProgress.currentProduct / generationProgress.totalProducts) * 100}%` 
+                      }}
+                    />
+                  </div>
+                  <div className="flex justify-between text-xs text-blue-600">
+                    <span>
+                      {generationProgress.phase === 'processing' ? 'Optimizando imágenes HD...' :
+                       generationProgress.phase === 'generating' ? 'Generando PDF 300 DPI...' :
+                       generationProgress.phase === 'complete' ? '¡PDF HD completado!' : 'Iniciando generación HD...'}
+                    </span>
+                    <span>
+                      {generationProgress.currentProduct}/{generationProgress.totalProducts} productos HD •
+                      Página {generationProgress.currentPage}/{generationProgress.totalPages}
                     </span>
                   </div>
-                  
-                  <p className="text-gray-600 text-sm mb-3">
-                    {template.description}
-                  </p>
-                  
-                  <div className="space-y-2">
-                    <p className="text-xs font-medium text-gray-700">Características:</p>
-                    <ul className="space-y-1">
-                      {template.features.map((feature, index) => (
-                        <li key={index} className="text-xs text-gray-600 flex items-center">
-                          <div className="w-1 h-1 bg-blue-500 rounded-full mr-2" />
-                          {feature}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                  
-                  {selectedTemplate === template.id && (
-                    <div className="mt-3 pt-3 border-t">
-                      <Badge className="bg-blue-100 text-blue-800 w-full justify-center">
-                        Seleccionado
-                      </Badge>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        <main className="max-w-7xl mx-auto px-4 py-6">
+          {/* ✅ BENEFITS BANNER ULTRA OPTIMIZADO */}
+          <div className="bg-gradient-to-r from-green-500 via-blue-500 to-purple-500 text-white rounded-lg p-6 mb-8">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold mb-2 flex items-center gap-2">
+                  <Image className="w-5 h-5" />
+                  PDF HD con Imágenes PNG sin Fondo Negro
+                </h3>
+                <p className="text-green-100 mb-2">
+                  Calidad profesional 300 DPI. Fondo blanco para transparencias PNG. Sin fondo negro.
+                </p>
+                <div className="flex flex-wrap gap-3 text-sm">
+                  <span className="bg-white/20 px-2 py-1 rounded">🎯 300 DPI profesional</span>
+                  <span className="bg-white/20 px-2 py-1 rounded">🖼️ PNG sin fondo negro</span>
+                  <span className="bg-white/20 px-2 py-1 rounded">✨ Renderizado HD</span>
+                  <span className="bg-white/20 px-2 py-1 rounded">📄 Calidad impresión</span>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-2xl font-bold">0 créditos</div>
+                <div className="text-green-100 text-sm">¡Completamente gratis!</div>
+                <div className="text-xs text-green-200 mt-1">
+                  <Timer className="w-3 h-3 inline mr-1" />
+                  Progreso HD en tiempo real
+                </div>
+              </div>
+            </div>
           </div>
 
-          {/* Template comparison */}
-          <Card>
-            <CardContent className="p-6">
-              <h3 className="text-lg font-semibold mb-4">Comparación de Templates</h3>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="text-left py-2">Característica</th>
-                      <th className="text-center py-2">Básico</th>
-                      <th className="text-center py-2">Profesional</th>
-                      <th className="text-center py-2">Premium</th>
-                    </tr>
-                  </thead>
-                  <tbody className="text-gray-600">
-                    <tr className="border-b">
-                      <td className="py-2">Productos ilimitados</td>
-                      <td className="text-center">✓</td>
-                      <td className="text-center">✓</td>
-                      <td className="text-center">✓</td>
-                    </tr>
-                    <tr className="border-b">
-                      <td className="py-2">Personalización de colores</td>
-                      <td className="text-center">✓</td>
-                      <td className="text-center">✓</td>
-                      <td className="text-center">✓</td>
-                    </tr>
-                    <tr className="border-b">
-                      <td className="py-2">Branding personalizado</td>
-                      <td className="text-center">-</td>
-                      <td className="text-center">✓</td>
-                      <td className="text-center">✓</td>
-                    </tr>
-                    <tr className="border-b">
-                      <td className="py-2">Efectos visuales avanzados</td>
-                      <td className="text-center">-</td>
-                      <td className="text-center">-</td>
-                      <td className="text-center">✓</td>
-                    </tr>
-                    <tr>
-                      <td className="py-2">Soporte prioritario</td>
-                      <td className="text-center">-</td>
-                      <td className="text-center">-</td>
-                      <td className="text-center">✓</td>
-                    </tr>
-                  </tbody>
-                </table>
+          {/* Free Templates Section */}
+          <section className="mb-12">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900">Templates Gratuitos HD</h2>
+                <p className="text-gray-600">PDF 300 DPI • PNG sin fondo negro • Disponibles en todos los planes</p>
               </div>
-            </CardContent>
-          </Card>
-        </div>
-      </AppLayout>
+              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                <Image className="w-3 h-3 mr-1" />
+                {freeTemplates.length} templates HD
+              </Badge>
+            </div>
+            
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {freeTemplates.map(template => (
+                <TemplatePreview key={template.id} template={template} />
+              ))}
+            </div>
+          </section>
+
+          {/* Premium Templates Section */}
+          <section>
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900">Templates Premium HD</h2>
+                <p className="text-gray-600">
+                  {userPlan === 'basic' 
+                    ? 'PDF 300 DPI • PNG sin fondo negro • Requiere plan Premium' 
+                    : 'PDF 300 DPI • PNG sin fondo negro • Incluidos en tu plan Premium'
+                  }
+                </p>
+              </div>
+              <Badge variant="outline" className="bg-gradient-to-r from-purple-500 to-pink-500 text-white border-none">
+                <Crown className="w-3 h-3 mr-1" />
+                {premiumTemplates.length} templates HD
+              </Badge>
+            </div>
+            
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {premiumTemplates.map(template => (
+                <TemplatePreview key={template.id} template={template} />
+              ))}
+            </div>
+          </section>
+        </main>
+
+        {/* ✅ FLOATING ACTION BAR HD */}
+        {selectedProducts.length > 0 && (
+          <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-t border-gray-200 shadow-xl">
+            <div className="max-w-7xl mx-auto px-4 py-4">
+              <div className="flex flex-col sm:flex-row justify-between items-center gap-3">
+                <div className="text-sm text-gray-700">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                    <span className="font-medium">{selectedProducts.length} productos PNG sin fondo negro listos</span>
+                  </div>
+                </div>
+                <div className="text-sm font-semibold bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent">
+                  🎯 PDF HD 300 DPI • PNG sin fondo negro • Calidad profesional • Sin costos
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </ProtectedRoute>
   );
 };

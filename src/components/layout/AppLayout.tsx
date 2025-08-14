@@ -1,4 +1,4 @@
-// /src/components/layout/AppLayout.tsx - VERSIÓN CORREGIDA
+// /src/components/layout/AppLayout.tsx
 import React from "react";
 import { useLocation } from "react-router-dom";
 import { AppSidebar } from "./AppSidebar";
@@ -38,21 +38,21 @@ interface AppLayoutProps {
 
 const NO_SIDEBAR_ROUTES = [
   "/login",
-  "/register", 
+  "/register",
   "/reset-password",
   "/payment-success",
   "/payment-instructions",
 ];
 
 // ==========================================
-// BREADCRUMB MAPPING ACTUALIZADO
+// BREADCRUMB MAPPING
 // ==========================================
 
 const ROUTE_BREADCRUMBS: { [key: string]: { title: string; subtitle?: string; parent?: string } } = {
   "/": { title: "Dashboard", subtitle: "Resumen de tu actividad" },
   "/upload": { title: "Subir Productos", subtitle: "Agrega nuevos productos a tu biblioteca", parent: "Productos" },
   "/products": { title: "Mi Biblioteca", subtitle: "Gestiona tus productos guardados", parent: "Productos" },
-  "/products-management": { title: "Gestión Avanzada", subtitle: "Edición inline, variantes y gestión masiva", parent: "Productos" },
+  "/products-management": { title: "Gestión Avanzada", subtitle: "Edición inline y variantes", parent: "Productos" },
   "/image-review": { title: "Centro de Imágenes", subtitle: "Revisa y confirma imágenes procesadas", parent: "Productos" },
   "/template-selection": { title: "Crear Catálogo", subtitle: "Selecciona un template para tu catálogo", parent: "Catálogos" },
   "/catalogs": { title: "Mis Catálogos", subtitle: "Historial de catálogos generados", parent: "Catálogos" },
@@ -61,7 +61,7 @@ const ROUTE_BREADCRUMBS: { [key: string]: { title: string; subtitle?: string; pa
 };
 
 // ==========================================
-// COMPONENTE PRINCIPAL CORREGIDO
+// COMPONENTE PRINCIPAL
 // ==========================================
 
 const AppLayout: React.FC<AppLayoutProps> = ({
@@ -86,115 +86,106 @@ const AppLayout: React.FC<AppLayoutProps> = ({
   const pageTitle = customTitle || routeInfo.title;
   const pageSubtitle = customSubtitle || routeInfo.subtitle;
 
-  // ✅ CORRECCIÓN: Si no hay sidebar, usar layout simple
+  // Si no hay sidebar, renderizar solo los children
   if (!shouldShowSidebar) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        {children}
-      </div>
-    );
+    return <div className="min-h-screen bg-gray-50">{children}</div>;
   }
 
   // ==========================================
-  // ✅ LAYOUT CORREGIDO CON SIDEBAR
+  // RENDER CON SIDEBAR
   // ==========================================
 
   return (
-    <SidebarProvider defaultOpen={true}>
-      <div className="min-h-screen flex w-full">
-        {/* ✅ SIDEBAR FIJO */}
-        <AppSidebar />
-        
-        {/* ✅ CONTENIDO PRINCIPAL CORREGIDO */}
-        <SidebarInset className="flex-1 min-h-screen">
-          {/* ✅ HEADER CORREGIDO */}
-          <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-2 border-b bg-white px-4 shadow-sm">
-            <div className="flex items-center gap-2 flex-1">
-              <SidebarTrigger className="-ml-1" />
-              <Separator orientation="vertical" className="mr-2 h-4" />
-              
-              {/* ✅ BREADCRUMB MEJORADO */}
-              <Breadcrumb>
-                <BreadcrumbList>
-                  {routeInfo.parent && (
-                    <>
-                      <BreadcrumbItem className="hidden md:block">
-                        <BreadcrumbLink className="text-gray-600 hover:text-gray-900">
-                          {routeInfo.parent}
-                        </BreadcrumbLink>
-                      </BreadcrumbItem>
-                      <BreadcrumbSeparator className="hidden md:block" />
-                    </>
-                  )}
-                  <BreadcrumbItem>
-                    <BreadcrumbPage className="font-semibold text-gray-900">
-                      {pageTitle}
-                    </BreadcrumbPage>
-                  </BreadcrumbItem>
-                </BreadcrumbList>
-              </Breadcrumb>
+    <SidebarProvider>
+      <AppSidebar />
+      <SidebarInset>
+        {/* Header/TopBar */}
+        <header className="flex h-16 shrink-0 items-center gap-2 border-b bg-white px-4">
+          <div className="flex items-center gap-2 flex-1">
+            <SidebarTrigger className="-ml-1" />
+            <Separator orientation="vertical" className="mr-2 h-4" />
+            
+            {/* Breadcrumb */}
+            <Breadcrumb>
+              <BreadcrumbList>
+                {routeInfo.parent && (
+                  <>
+                    <BreadcrumbItem className="hidden md:block">
+                      <BreadcrumbLink href="#" className="text-gray-600">
+                        {routeInfo.parent}
+                      </BreadcrumbLink>
+                    </BreadcrumbItem>
+                    <BreadcrumbSeparator className="hidden md:block" />
+                  </>
+                )}
+                <BreadcrumbItem>
+                  <BreadcrumbPage className="font-semibold text-gray-900">
+                    {pageTitle}
+                  </BreadcrumbPage>
+                </BreadcrumbItem>
+              </BreadcrumbList>
+            </Breadcrumb>
+          </div>
+
+          {/* Right side actions */}
+          <div className="flex items-center gap-3">
+            {/* Search (desktop only) */}
+            <div className="hidden md:flex relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <input
+                type="text"
+                placeholder="Buscar..."
+                className="pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm w-64"
+              />
             </div>
 
-            {/* ✅ RIGHT SIDE ACTIONS OPTIMIZADO */}
-            <div className="flex items-center gap-3">
-              {/* Search - solo desktop */}
-              <div className="hidden lg:flex relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                <input
-                  type="text"
-                  placeholder="Buscar..."
-                  className="pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm w-64"
-                />
-              </div>
+            {/* Custom actions */}
+            {actions && (
+              <>
+                <Separator orientation="vertical" className="h-4" />
+                <div className="flex items-center gap-2">{actions}</div>
+              </>
+            )}
 
-              {/* Custom actions */}
-              {actions && (
-                <>
-                  <Separator orientation="vertical" className="h-4" />
-                  <div className="flex items-center gap-2">{actions}</div>
-                </>
-              )}
-
-              {/* User section */}
-              <Separator orientation="vertical" className="h-4" />
+            {/* User section */}
+            <Separator orientation="vertical" className="h-4" />
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" size="sm" className="relative">
+                <Bell className="w-4 h-4" />
+                <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+              </Button>
+              
               <div className="flex items-center gap-2">
-                <Button variant="ghost" size="sm" className="relative h-8 w-8 p-0">
-                  <Bell className="w-4 h-4" />
-                  <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-                </Button>
-                
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                    <User className="w-4 h-4 text-blue-600" />
-                  </div>
-                  <div className="hidden md:block">
-                    <p className="text-sm font-medium text-gray-900">
-                      {user?.email?.split("@")[0] || "Usuario"}
-                    </p>
-                  </div>
+                <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                  <User className="w-4 h-4 text-blue-600" />
+                </div>
+                <div className="hidden sm:block">
+                  <p className="text-sm font-medium text-gray-900">
+                    {user?.email?.split("@")[0] || "Usuario"}
+                  </p>
                 </div>
               </div>
             </div>
-          </header>
+          </div>
+        </header>
 
-          {/* ✅ PAGE TITLE SECTION MEJORADO */}
-          {pageSubtitle && (
-            <div className="bg-white border-b px-6 py-4">
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">{pageTitle}</h1>
-                <p className="text-gray-600 mt-1">{pageSubtitle}</p>
-              </div>
+        {/* Page Title Section */}
+        {pageSubtitle && (
+          <div className="bg-white border-b px-6 py-4">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">{pageTitle}</h1>
+              <p className="text-gray-600 mt-1">{pageSubtitle}</p>
             </div>
-          )}
+          </div>
+        )}
 
-          {/* ✅ MAIN CONTENT AREA CORREGIDO */}
-          <main className="flex-1 bg-gray-50 min-h-[calc(100vh-4rem)]">
-            <div className="p-6 w-full max-w-none">
-              {children}
-            </div>
-          </main>
-        </SidebarInset>
-      </div>
+        {/* Main Content */}
+        <main className="flex-1 overflow-auto bg-gray-50">
+          <div className="p-6">
+            {children}
+          </div>
+        </main>
+      </SidebarInset>
     </SidebarProvider>
   );
 };

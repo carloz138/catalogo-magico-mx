@@ -7,34 +7,13 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
+  // Allows to automatically instanciate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.12 (cd3cf9e)"
   }
   public: {
     Tables: {
-      backup_view_definitions: {
-        Row: {
-          backup_date: string | null
-          notes: string | null
-          original_definition: string | null
-          view_name: string | null
-        }
-        Insert: {
-          backup_date?: string | null
-          notes?: string | null
-          original_definition?: string | null
-          view_name?: string | null
-        }
-        Update: {
-          backup_date?: string | null
-          notes?: string | null
-          original_definition?: string | null
-          view_name?: string | null
-        }
-        Relationships: []
-      }
       business_info: {
         Row: {
           address: string | null
@@ -257,24 +236,10 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "credit_usage_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
-            referencedRelation: "products_with_variants"
-            referencedColumns: ["product_id"]
-          },
-          {
             foreignKeyName: "credit_usage_transaction_id_fkey"
             columns: ["transaction_id"]
             isOneToOne: false
             referencedRelation: "transactions"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "credit_usage_transaction_id_fkey"
-            columns: ["transaction_id"]
-            isOneToOne: false
-            referencedRelation: "user_transactions"
             referencedColumns: ["id"]
           },
           {
@@ -283,69 +248,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
-          },
-        ]
-      }
-      product_variants: {
-        Row: {
-          created_at: string | null
-          id: string
-          is_active: boolean | null
-          is_default: boolean | null
-          price_retail: number | null
-          price_wholesale: number | null
-          product_id: string
-          sku: string | null
-          stock_quantity: number | null
-          updated_at: string | null
-          user_id: string
-          variant_combination: Json
-          variant_images: Json | null
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string
-          is_active?: boolean | null
-          is_default?: boolean | null
-          price_retail?: number | null
-          price_wholesale?: number | null
-          product_id: string
-          sku?: string | null
-          stock_quantity?: number | null
-          updated_at?: string | null
-          user_id: string
-          variant_combination: Json
-          variant_images?: Json | null
-        }
-        Update: {
-          created_at?: string | null
-          id?: string
-          is_active?: boolean | null
-          is_default?: boolean | null
-          price_retail?: number | null
-          price_wholesale?: number | null
-          product_id?: string
-          sku?: string | null
-          stock_quantity?: number | null
-          updated_at?: string | null
-          user_id?: string
-          variant_combination?: Json
-          variant_images?: Json | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "product_variants_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
-            referencedRelation: "products"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "product_variants_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
-            referencedRelation: "products_with_variants"
-            referencedColumns: ["product_id"]
           },
         ]
       }
@@ -367,7 +269,6 @@ export type Database = {
           estimated_cost_mxn: number | null
           estimated_credits: number | null
           features: string[] | null
-          has_variants: boolean | null
           hd_image_url: string | null
           id: string
           image_url: string | null
@@ -389,7 +290,6 @@ export type Database = {
           social_media_urls: Json | null
           updated_at: string
           user_id: string
-          variant_count: number | null
           video_url: string | null
           wholesale_min_qty: number | null
         }
@@ -410,7 +310,6 @@ export type Database = {
           estimated_cost_mxn?: number | null
           estimated_credits?: number | null
           features?: string[] | null
-          has_variants?: boolean | null
           hd_image_url?: string | null
           id?: string
           image_url?: string | null
@@ -432,7 +331,6 @@ export type Database = {
           social_media_urls?: Json | null
           updated_at?: string
           user_id: string
-          variant_count?: number | null
           video_url?: string | null
           wholesale_min_qty?: number | null
         }
@@ -453,7 +351,6 @@ export type Database = {
           estimated_cost_mxn?: number | null
           estimated_credits?: number | null
           features?: string[] | null
-          has_variants?: boolean | null
           hd_image_url?: string | null
           id?: string
           image_url?: string | null
@@ -475,7 +372,6 @@ export type Database = {
           social_media_urls?: Json | null
           updated_at?: string
           user_id?: string
-          variant_count?: number | null
           video_url?: string | null
           wholesale_min_qty?: number | null
         }
@@ -692,114 +588,8 @@ export type Database = {
         }
         Relationships: []
       }
-      variant_types: {
-        Row: {
-          category: string | null
-          created_at: string | null
-          display_name: string
-          id: string
-          input_type: string | null
-          is_required: boolean | null
-          name: string
-          sort_order: number | null
-          updated_at: string | null
-        }
-        Insert: {
-          category?: string | null
-          created_at?: string | null
-          display_name: string
-          id?: string
-          input_type?: string | null
-          is_required?: boolean | null
-          name: string
-          sort_order?: number | null
-          updated_at?: string | null
-        }
-        Update: {
-          category?: string | null
-          created_at?: string | null
-          display_name?: string
-          id?: string
-          input_type?: string | null
-          is_required?: boolean | null
-          name?: string
-          sort_order?: number | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      variant_values: {
-        Row: {
-          created_at: string | null
-          display_value: string | null
-          hex_color: string | null
-          id: string
-          is_active: boolean | null
-          sort_order: number | null
-          value: string
-          variant_type_id: string
-        }
-        Insert: {
-          created_at?: string | null
-          display_value?: string | null
-          hex_color?: string | null
-          id?: string
-          is_active?: boolean | null
-          sort_order?: number | null
-          value: string
-          variant_type_id: string
-        }
-        Update: {
-          created_at?: string | null
-          display_value?: string | null
-          hex_color?: string | null
-          id?: string
-          is_active?: boolean | null
-          sort_order?: number | null
-          value?: string
-          variant_type_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "variant_values_variant_type_id_fkey"
-            columns: ["variant_type_id"]
-            isOneToOne: false
-            referencedRelation: "variant_types"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
     }
     Views: {
-      products_with_variants: {
-        Row: {
-          category: string | null
-          has_variants: boolean | null
-          is_default: boolean | null
-          product_created_at: string | null
-          product_id: string | null
-          product_name: string | null
-          stock_quantity: number | null
-          user_id: string | null
-          variant_active: boolean | null
-          variant_combination: Json | null
-          variant_count: number | null
-          variant_created_at: string | null
-          variant_id: string | null
-          variant_price_retail: number | null
-          variant_price_wholesale: number | null
-          variant_sku: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "products_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       user_statistics: {
         Row: {
           created_at: string | null
@@ -809,182 +599,26 @@ export type Database = {
         }
         Relationships: []
       }
-      user_transactions: {
-        Row: {
-          amount_mxn: number | null
-          amount_usd: number | null
-          completed_at: string | null
-          created_at: string | null
-          credits_purchased: number | null
-          expires_at: string | null
-          id: string | null
-          package_id: string | null
-          payment_method: string | null
-          payment_status: string | null
-          user_id: string | null
-        }
-        Insert: {
-          amount_mxn?: number | null
-          amount_usd?: number | null
-          completed_at?: string | null
-          created_at?: string | null
-          credits_purchased?: number | null
-          expires_at?: string | null
-          id?: string | null
-          package_id?: string | null
-          payment_method?: string | null
-          payment_status?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          amount_mxn?: number | null
-          amount_usd?: number | null
-          completed_at?: string | null
-          created_at?: string | null
-          credits_purchased?: number | null
-          expires_at?: string | null
-          id?: string | null
-          package_id?: string | null
-          payment_method?: string | null
-          payment_status?: string | null
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "transactions_package_id_fkey"
-            columns: ["package_id"]
-            isOneToOne: false
-            referencedRelation: "credit_packages"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "transactions_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      user_variant_statistics: {
-        Row: {
-          category: string | null
-          products_in_category: number | null
-          products_with_variants: number | null
-          total_products: number | null
-          total_variants: number | null
-          user_id: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "products_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
     }
     Functions: {
-      can_access_transaction: {
-        Args: { transaction_user_id: string }
-        Returns: boolean
-      }
       complete_user_profile: {
         Args: {
-          p_business_name?: string
-          p_business_type?: string
+          user_id: string
           p_full_name?: string
           p_phone?: string
-          user_id: string
+          p_business_name?: string
+          p_business_type?: string
         }
         Returns: boolean
-      }
-      create_default_variant_for_product: {
-        Args: { product_uuid: string }
-        Returns: string
-      }
-      create_product_variant: {
-        Args: {
-          p_is_default?: boolean
-          p_price_retail?: number
-          p_price_wholesale?: number
-          p_product_id: string
-          p_sku?: string
-          p_stock_quantity?: number
-          p_user_id: string
-          p_variant_combination: Json
-        }
-        Returns: string
-      }
-      detect_product_category: {
-        Args: { product_description?: string; product_name: string }
-        Returns: string
       }
       get_current_user_stats: {
         Args: Record<PropertyKey, never>
         Returns: {
-          created_at: string
-          email: string
           id: string
+          email: string
+          created_at: string
           updated_at: string
         }[]
-      }
-      get_product_variants: {
-        Args: { product_uuid: string }
-        Returns: {
-          combination: Json
-          is_default: boolean
-          price_retail: number
-          price_wholesale: number
-          sku: string
-          stock_quantity: number
-          variant_id: string
-          variant_images: Json
-        }[]
-      }
-      get_products_with_variants_for_table: {
-        Args: Record<PropertyKey, never>
-        Returns: {
-          brand: string
-          category: string
-          color: string
-          created_at: string
-          custom_description: string
-          description: string
-          features: string[]
-          has_variants: boolean
-          id: string
-          model: string
-          name: string
-          price_retail: number
-          price_wholesale: number
-          processing_status: string
-          sku: string
-          variant_count: number
-          variants: Json
-          wholesale_min_qty: number
-        }[]
-      }
-      get_variant_types_by_category: {
-        Args: { category_name: string }
-        Returns: {
-          display_name: string
-          id: string
-          input_type: string
-          is_required: boolean
-          name: string
-          variant_values: Json
-        }[]
-      }
-      update_product_field: {
-        Args: { field_name: string; field_value: string; product_id: string }
-        Returns: boolean
-      }
-      update_variant_stock: {
-        Args: { new_stock: number; variant_uuid: string }
-        Returns: boolean
       }
     }
     Enums: {
