@@ -12,6 +12,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { 
   ProductWithVariants, 
+  ProductVariant,
   EditableProductField, 
   EditingCell, 
   ProductFilters, 
@@ -112,7 +113,7 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
       // Convertir a ProductWithVariants (sin cargar variantes por ahora)
       const productsData: ProductWithVariants[] = (data || []).map(product => ({
         ...product,
-        variants: [] // Las cargaremos bajo demanda
+        variants: [] as ProductVariant[] // Las cargaremos bajo demanda
       }));
 
       setProducts(productsData);
