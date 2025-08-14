@@ -236,9 +236,7 @@ const BusinessInfoPage: React.FC = () => {
     <ProtectedRoute>
       <AppLayout actions={actions}>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Formulario */}
           <div className="space-y-6">
-            {/* Información Básica */}
             <div className="bg-white rounded-xl shadow-sm p-6">
               <h2 className="text-xl font-semibold text-gray-900 mb-4">
                 Información Básica
@@ -289,7 +287,6 @@ const BusinessInfoPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Contacto */}
             <div className="bg-white rounded-xl shadow-sm p-6">
               <h2 className="text-xl font-semibold text-gray-900 mb-4">
                 Información de Contacto
@@ -340,7 +337,6 @@ const BusinessInfoPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Redes Sociales */}
             <div className="bg-white rounded-xl shadow-sm p-6">
               <h2 className="text-xl font-semibold text-gray-900 mb-4">
                 Redes Sociales
@@ -391,7 +387,6 @@ const BusinessInfoPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Personalización */}
             <div className="bg-white rounded-xl shadow-sm p-6">
               <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
                 <Palette className="h-5 w-5 mr-2" />
@@ -485,14 +480,12 @@ const BusinessInfoPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Preview */}
           <div className="lg:sticky lg:top-8">
             <div className="bg-white rounded-xl shadow-sm p-6">
               <h2 className="text-xl font-semibold text-gray-900 mb-4">
                 Vista Previa del Catálogo
               </h2>
               
-              {/* Mock catalog header */}
               <div 
                 className="p-6 rounded-lg text-white mb-4"
                 style={{ backgroundColor: formData.primary_color }}
@@ -518,7 +511,6 @@ const BusinessInfoPage: React.FC = () => {
                 </div>
               </div>
               
-              {/* Mock product */}
               <div className="border rounded-lg p-4 mb-4">
                 <div className="bg-gray-100 h-32 rounded-lg mb-3 flex items-center justify-center">
                   <span className="text-gray-500">Imagen del Producto</span>
@@ -532,7 +524,6 @@ const BusinessInfoPage: React.FC = () => {
                 </p>
               </div>
               
-              {/* Mock footer */}
               <div 
                 className="p-4 rounded-lg text-white text-sm"
                 style={{ backgroundColor: formData.secondary_color }}
