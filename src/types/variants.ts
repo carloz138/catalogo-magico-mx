@@ -293,8 +293,6 @@ export interface VariantsActions {
 // ==========================================
 
 export default {
-  VariantInputType,
-  ProductCategory,
   ProcessingStatus,
   CATEGORY_VARIANT_MAPPING,
   PRODUCT_CATEGORIES,
