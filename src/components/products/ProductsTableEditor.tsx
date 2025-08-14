@@ -102,6 +102,17 @@ const parseFeatures = (featuresStr: string): string[] => {
   }
 };
 
+// ✅ CORRECCIÓN: Función helper para validar y castear la categoría
+const validateProductCategory = (category: string | null): ProductCategory | null => {
+  if (!category) return null;
+  
+  const validCategories: ProductCategory[] = ['ropa', 'calzado', 'electronica', 'joyeria', 'fiestas', 'floreria', 'general'];
+  
+  return validCategories.includes(category as ProductCategory) 
+    ? (category as ProductCategory) 
+    : null;
+};
+
 // ==========================================
 // INTERFACES LOCALES
 // ==========================================
@@ -186,6 +197,7 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
 
       if (error) throw error;
 
+      // ✅ CORRECCIÓN: Mapeo con validación de categoría
       const productsData: Product[] = data ? data.map(product => ({
         id: product.id,
         name: product.name,
@@ -195,7 +207,7 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
         price_retail: product.price_retail,
         price_wholesale: product.price_wholesale,
         wholesale_min_qty: product.wholesale_min_qty,
-        category: product.category,
+        category: validateProductCategory(product.category), // ✅ CORRECCIÓN AQUÍ
         brand: product.brand,
         model: product.model,
         color: product.color,
