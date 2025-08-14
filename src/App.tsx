@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -8,6 +9,7 @@ import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import Index from "./pages/Index";
 import Upload from "./pages/Upload";
 import Products from "./pages/Products";
+import ProductsManagement from "./pages/ProductsManagement";
 import Catalogs from "./pages/Catalogs";
 import ImageReview from "./pages/ImageReview";
 // ✅ CAMBIO: Importar el nuevo componente mejorado
@@ -38,6 +40,11 @@ const App = () => (
             <Route path="/products" element={
               <ProtectedRoute>
                 <Products />
+              </ProtectedRoute>
+            } />
+            <Route path="/products-management" element={
+              <ProtectedRoute>
+                <ProductsManagement />
               </ProtectedRoute>
             } />
             <Route path="/image-review" element={
