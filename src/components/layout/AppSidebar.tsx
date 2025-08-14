@@ -1,6 +1,6 @@
-// /src/components/layout/AppSidebar.tsx
-import React, { useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+// /src/components/layout/AppSidebar.tsx - VERSIÓN CORREGIDA
+import React from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   Sidebar,
@@ -16,7 +16,6 @@ import {
   SidebarMenuSub,
   SidebarMenuSubButton,
   SidebarMenuSubItem,
-  SidebarMenuBadge,
 } from "@/components/ui/sidebar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -54,7 +53,7 @@ interface MenuItem {
 }
 
 // ==========================================
-// CONFIGURACIÓN DEL MENÚ
+// CONFIGURACIÓN DEL MENÚ SIMPLIFICADA
 // ==========================================
 
 const menuData: MenuItem[] = [
@@ -128,7 +127,7 @@ const menuData: MenuItem[] = [
 ];
 
 // ==========================================
-// COMPONENTE PRINCIPAL
+// COMPONENTE PRINCIPAL CORREGIDO
 // ==========================================
 
 export function AppSidebar() {
@@ -163,13 +162,8 @@ export function AppSidebar() {
     return location.pathname.startsWith(path);
   };
 
-  const hasActiveChild = (items?: MenuItem[]) => {
-    if (!items) return false;
-    return items.some((item) => item.path && isActiveRoute(item.path));
-  };
-
   // ==========================================
-  // RENDER FUNCTIONS
+  // RENDER FUNCTIONS SIMPLIFICADAS
   // ==========================================
 
   const renderMenuItem = (item: MenuItem) => {
@@ -226,16 +220,14 @@ export function AppSidebar() {
             <item.icon className="w-4 h-4" />
             <span>{item.title}</span>
             {item.badge && (
-              <SidebarMenuBadge>
-                <Badge
-                  className={`text-xs ${
-                    item.badgeColor || "bg-gray-100 text-gray-800"
-                  }`}
-                  variant="outline"
-                >
-                  {item.badge}
-                </Badge>
-              </SidebarMenuBadge>
+              <Badge
+                className={`text-xs ml-auto ${
+                  item.badgeColor || "bg-gray-100 text-gray-800"
+                }`}
+                variant="outline"
+              >
+                {item.badge}
+              </Badge>
             )}
           </button>
         </SidebarMenuButton>
@@ -244,12 +236,12 @@ export function AppSidebar() {
   };
 
   // ==========================================
-  // RENDER PRINCIPAL
+  // ✅ RENDER PRINCIPAL SIMPLIFICADO
   // ==========================================
 
   return (
-    <Sidebar variant="inset" className="border-r border-gray-200">
-      {/* Header */}
+    <Sidebar>
+      {/* ✅ HEADER SIMPLIFICADO */}
       <SidebarHeader className="border-b border-gray-200 p-4">
         <div className="flex items-center space-x-3">
           <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
@@ -262,7 +254,7 @@ export function AppSidebar() {
         </div>
       </SidebarHeader>
 
-      {/* User Info */}
+      {/* ✅ USER INFO SIMPLIFICADO */}
       <SidebarGroup className="border-b border-gray-200">
         <SidebarGroupContent>
           <div className="flex items-center space-x-3 p-2">
@@ -284,11 +276,11 @@ export function AppSidebar() {
         </SidebarGroupContent>
       </SidebarGroup>
 
-      {/* Navigation Content */}
+      {/* ✅ NAVIGATION CONTENT SIMPLIFICADO */}
       <SidebarContent className="px-2">
         <SidebarGroup>
           <SidebarGroupLabel className="text-xs text-gray-500 uppercase tracking-wider">
-            Navegación
+            NAVEGACIÓN
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu className="space-y-1">
@@ -298,7 +290,7 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      {/* Footer */}
+      {/* ✅ FOOTER SIMPLIFICADO */}
       <SidebarFooter className="border-t border-gray-200 p-4">
         <Button
           variant="ghost"
@@ -311,4 +303,5 @@ export function AppSidebar() {
       </SidebarFooter>
     </Sidebar>
   );
+}
 }
