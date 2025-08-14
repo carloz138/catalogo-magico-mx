@@ -3,17 +3,19 @@ import React, { useState } from 'react';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import AppLayout from '@/components/layout/AppLayout';
 import { FileUploader } from '@/components/upload/FileUploader';
-import { ProductForm } from '@/components/upload/ProductForm';
-import { ImageAnalysis } from '@/components/upload/ImageAnalysis';
-import { CostCalculator } from '@/components/upload/CostCalculator';
+import { ProductFormWrapper } from '@/components/upload/ProductFormWrapper';
+import { ImageAnalysisComponent } from '@/components/upload/ImageAnalysisComponent';
+import { CostCalculatorWrapper } from '@/components/upload/CostCalculatorWrapper';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Upload as UploadIcon, Image, FileText, Calculator } from 'lucide-react';
 
 export type UploadedFile = {
+  id: string;
   file: File;
   preview: string;
+  url?: string;
   analysis?: any;
   productData?: any;
 };
@@ -22,7 +24,7 @@ const Upload = () => {
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [currentStep, setCurrentStep] = useState<'upload' | 'analyze' | 'form' | 'cost'>('upload');
 
-  const handleFilesSelected = (newFiles: UploadedFile[]) => {
+  const handleFilesUploaded = (newFiles: UploadedFile[]) => {
     setFiles(newFiles);
     if (newFiles.length > 0) {
       setCurrentStep('analyze');
@@ -120,7 +122,7 @@ const Upload = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <FileUploader onFilesSelected={handleFilesSelected} />
+                <FileUploader onFilesUploaded={handleFilesUploaded} />
               </CardContent>
             </Card>
           )}
@@ -134,7 +136,7 @@ const Upload = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <ImageAnalysis 
+                <ImageAnalysisComponent 
                   files={files} 
                   onAnalysisComplete={handleAnalysisComplete} 
                 />
@@ -151,7 +153,7 @@ const Upload = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <ProductForm 
+                <ProductFormWrapper 
                   files={files} 
                   onComplete={handleProductDataComplete} 
                 />
@@ -168,7 +170,7 @@ const Upload = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <CostCalculator files={files} />
+                <CostCalculatorWrapper files={files} />
               </CardContent>
             </Card>
           )}

@@ -27,7 +27,8 @@ interface Product {
   id: string;
   name: string;
   description: string | null;
-  price: number | null;
+  price_retail: number | null;
+  price_wholesale: number | null;
   image_url: string;
   category: string | null;
   created_at: string;
@@ -52,7 +53,7 @@ const Products = () => {
     try {
       const { data, error } = await supabase
         .from('products')
-        .select('*')
+        .select('id, name, description, price_retail, price_wholesale, image_url, category, created_at')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
@@ -139,7 +140,7 @@ const Products = () => {
   if (loading) {
     return (
       <ProtectedRoute>
-        <AppLayout>
+        <AppLayout actions={actions}>
           <div className="flex items-center justify-center py-12">
             <div className="text-center">
               <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
@@ -233,9 +234,9 @@ const Products = () => {
                         {product.description}
                       </p>
                     )}
-                    {product.price && (
+                    {product.price_retail && (
                       <p className="font-bold text-primary mb-2">
-                        ${product.price.toFixed(2)} MXN
+                        ${product.price_retail.toFixed(2)} MXN
                       </p>
                     )}
                     {product.category && (
