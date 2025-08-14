@@ -421,15 +421,15 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
   };
 
   // ==========================================
-  // PRODUCTOS FILTRADOS - OPTIMIZADO
+  // PRODUCTOS FILTRADOS - CORREGIDO
   // ==========================================
 
   const filteredProducts = useMemo(() => {
     return products.filter(product => {
       const matchesSearch = !filters.search || 
-        (product.name?.toLowerCase().includes(filters.search.toLowerCase()) ||
-        (product.sku?.toLowerCase()?.includes(filters.search.toLowerCase())) ||
-        (product.brand?.toLowerCase()?.includes(filters.search.toLowerCase()));
+        product.name?.toLowerCase().includes(filters.search.toLowerCase()) ||
+        product.sku?.toLowerCase()?.includes(filters.search.toLowerCase()) ||
+        product.brand?.toLowerCase()?.includes(filters.search.toLowerCase());
       
       const matchesCategory = !filters.category || product.category === filters.category;
       
