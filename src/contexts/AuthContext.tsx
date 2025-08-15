@@ -9,7 +9,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signUp: (email: string, password: string, userData: any) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
-  refreshSession: () => Promise<void>; // ✅ NUEVO: Función para refresh manual
+  refreshSession: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({} as AuthContextType);
@@ -42,7 +42,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  // ✅ FUNCIÓN: Manejar eventos de auth
+  // ✅ FUNCIÓN: Manejar eventos de auth (CORREGIDO)
   const handleAuthEvent = (event: AuthChangeEvent, session: Session | null) => {
     console.log(`🔐 Auth event: ${event}`, session ? 'Sesión válida' : 'Sin sesión');
     
@@ -71,19 +71,40 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           setUser(session.user);
         }
         break;
-        
-      default:
-        // ✅ MANEJAR OTROS EVENTOS (incluye fallos de refresh)
+
+      // ✅ CORREGIDO: Manejar eventos adicionales específicos
+      case 'INITIAL_SESSION':
+        console.log('🔍 Sesión inicial detectada');
         if (session) {
           setSession(session);
           setUser(session.user);
         } else {
-          console.warn(`⚠️ Evento de auth sin sesión: ${event}`);
-          // Si no hay sesión y no es SIGNED_OUT, puede ser un error
-          if (event !== 'SIGNED_OUT') {
-            console.log('🔥 Posible token expirado, limpiando estado...');
-            clearAuthState();
-          }
+          clearAuthState();
+        }
+        break;
+
+      case 'PASSWORD_RECOVERY':
+        console.log('🔐 Recuperación de contraseña');
+        // No cambiar estado en recuperación
+        break;
+
+      case 'MFA_CHALLENGE_VERIFIED':
+        console.log('🔐 MFA verificado');
+        if (session) {
+          setSession(session);
+          setUser(session.user);
+        }
+        break;
+        
+      default:
+        // ✅ MANEJAR CASOS NO CUBIERTOS
+        console.warn(`⚠️ Evento de auth no manejado: ${event}`);
+        if (session) {
+          setSession(session);
+          setUser(session.user);
+        } else if (event !== 'SIGNED_OUT' && event !== 'PASSWORD_RECOVERY') {
+          console.log('🔥 Posible token expirado, limpiando estado...');
+          clearAuthState();
         }
         break;
     }
@@ -92,7 +113,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     console.log('🚀 Inicializando AuthProvider...');
     
-    // ✅ MEJORADO: Auth state listener con manejo de errores
+    // ✅ Auth state listener con manejo de errores
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         try {
@@ -106,7 +127,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     );
 
-    // ✅ MEJORADO: Verificar sesión inicial con manejo de errores
+    // ✅ Verificar sesión inicial con manejo de errores
     const initializeAuth = async () => {
       try {
         console.log('🔍 Verificando sesión inicial...');
@@ -115,8 +136,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (error) {
           console.error('❌ Error obteniendo sesión inicial:', error);
           
-          // ✅ CRÍTICO: Si es error 400 (Bad Request), limpiar todo
-          if (error.message?.includes('400') || error.message?.includes('refresh')) {
+          // ✅ CRÍTICO: Si es error de refresh token, limpiar todo
+          if (error.message?.includes('refresh') || error.status === 400) {
             console.log('🔥 Token de refresh inválido, limpiando autenticación...');
             clearAuthState();
           }
@@ -145,7 +166,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
   }, []);
 
-  // ✅ MEJORADO: Sign in con mejor manejo de errores
   const signIn = async (email: string, password: string) => {
     try {
       console.log('🔐 Intentando iniciar sesión...', email);
@@ -171,7 +191,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  // ✅ MEJORADO: Sign up con mejor manejo de errores
   const signUp = async (email: string, password: string, userData: any) => {
     try {
       console.log('📝 Intentando registrar usuario...', email);
@@ -226,7 +245,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  // ✅ MEJORADO: Sign out con limpieza completa
   const signOut = async () => {
     try {
       console.log('👋 Cerrando sesión...');
@@ -245,7 +263,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  // ✅ NUEVO: Función para refresh manual de sesión
   const refreshSession = async () => {
     try {
       console.log('🔄 Renovando sesión manualmente...');
@@ -286,7 +303,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     signIn,
     signUp,
     signOut,
-    refreshSession, // ✅ NUEVO
+    refreshSession,
   };
 
   return (
