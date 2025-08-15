@@ -1,3 +1,6 @@
+// src/lib/catalogService.ts
+// ✅ ARREGLADO: Parsing correcto del webhook response
+
 import { supabase } from '@/integrations/supabase/client';
 import { getTemplateById, TemplateConfig } from '@/lib/templates';
 
@@ -24,14 +27,14 @@ export interface CatalogCreationRequest {
     price_retail?: number;
     price_wholesale?: number;
     original_image_url: string;
-    processed_image_url?: string; // ✅ NUEVA: URL de imagen procesada
-    optimized_image_data?: string; // ✅ NUEVA: Imagen optimizada en base64
+    processed_image_url?: string;
+    optimized_image_data?: string;
     smart_analysis?: any;
     estimated_credits?: number;
     estimated_cost_mxn?: number;
   }>;
   template_style: string;
-  template_config: TemplateConfig; // ✅ NUEVA: Configuración completa del template
+  template_config: TemplateConfig;
   estimated_total_credits: number;
   estimated_total_cost: number;
 }
@@ -47,95 +50,7 @@ export interface ProcessedImage {
   cost_mxn: number;
 }
 
-// ✅ NUEVA FUNCIÓN: Redimensionar imagen para template específico
-const optimizeImageForTemplate = async (
-  imageUrl: string, 
-  template: TemplateConfig
-): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-
-    if (!ctx) {
-      reject(new Error('Canvas context not available'));
-      return;
-    }
-
-    img.onload = () => {
-      // ✅ Usar el tamaño específico del template
-      const targetWidth = template.imageSize.width;
-      const targetHeight = template.imageSize.height;
-      
-      canvas.width = targetWidth;
-      canvas.height = targetHeight;
-      
-      // ✅ Calcular aspect ratio para centrar la imagen
-      const imgAspectRatio = img.width / img.height;
-      const canvasAspectRatio = targetWidth / targetHeight;
-      
-      let renderWidth, renderHeight, offsetX, offsetY;
-      
-      if (imgAspectRatio > canvasAspectRatio) {
-        // Imagen más ancha - ajustar por altura
-        renderHeight = targetHeight;
-        renderWidth = renderHeight * imgAspectRatio;
-        offsetX = (targetWidth - renderWidth) / 2;
-        offsetY = 0;
-      } else {
-        // Imagen más alta - ajustar por ancho
-        renderWidth = targetWidth;
-        renderHeight = renderWidth / imgAspectRatio;
-        offsetX = 0;
-        offsetY = (targetHeight - renderHeight) / 2;
-      }
-      
-      // ✅ Fondo del template si la imagen no llena todo el espacio
-      ctx.fillStyle = template.colors.background;
-      ctx.fillRect(0, 0, targetWidth, targetHeight);
-      
-      // ✅ Dibujar imagen centrada y escalada
-      ctx.drawImage(img, offsetX, offsetY, renderWidth, renderHeight);
-      
-      // ✅ Convertir a PNG para preservar transparencia
-      const base64 = canvas.toDataURL('image/png');
-      resolve(base64);
-    };
-
-    img.onerror = () => reject(new Error('Failed to load image for optimization'));
-    
-    // ✅ Configurar CORS para imágenes de Supabase
-    img.crossOrigin = 'anonymous';
-    img.src = imageUrl;
-  });
-};
-
-// ✅ NUEVA FUNCIÓN: Validar que las imágenes sean válidas
-const validateImageUrls = async (products: any[]): Promise<string[]> => {
-  const invalidUrls: string[] = [];
-  
-  for (const product of products) {
-    const imageUrl = product.image_url || product.original_image_url;
-    if (!imageUrl) {
-      invalidUrls.push(`Producto ${product.name}: Sin URL de imagen`);
-      continue;
-    }
-    
-    try {
-      // ✅ Test de validez de URL
-      const response = await fetch(imageUrl, { method: 'HEAD' });
-      if (!response.ok) {
-        invalidUrls.push(`Producto ${product.name}: Imagen no accesible (${response.status})`);
-      }
-    } catch (error) {
-      invalidUrls.push(`Producto ${product.name}: Error al validar imagen`);
-    }
-  }
-  
-  return invalidUrls;
-};
-
-// ✅ FUNCIÓN PRINCIPAL MEJORADA: createCatalog
+// ✅ FUNCIÓN PRINCIPAL MEJORADA: createCatalog (mantener igual)
 export const createCatalog = async (
   selectedProducts: any[],
   businessInfo: any,
@@ -146,16 +61,13 @@ export const createCatalog = async (
     console.log('🎨 Template seleccionado:', templateStyle);
     console.log('🎨 Productos recibidos:', selectedProducts.length);
     
-    // ✅ VALIDACIÓN 1: Usuario autenticado
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Usuario no autenticado');
 
-    // ✅ VALIDACIÓN 2: Productos válidos
     if (!selectedProducts || selectedProducts.length === 0) {
       throw new Error('No hay productos seleccionados');
     }
 
-    // ✅ VALIDACIÓN 3: Template existe
     const template = getTemplateById(templateStyle);
     if (!template) {
       throw new Error(`Template '${templateStyle}' no encontrado`);
@@ -163,42 +75,6 @@ export const createCatalog = async (
     
     console.log('✅ Template config:', template);
 
-    // ✅ VALIDACIÓN 4: URLs de imágenes válidas
-    console.log('🔍 Validando URLs de imágenes...');
-    const invalidUrls = await validateImageUrls(selectedProducts);
-    if (invalidUrls.length > 0) {
-      console.warn('⚠️ Imágenes inválidas:', invalidUrls);
-      // Continuar pero logear advertencia
-    }
-
-    // ✅ OPTIMIZACIÓN: Redimensionar imágenes para el template
-    console.log('🖼️ Optimizando imágenes para template...');
-    const optimizedProducts = await Promise.all(
-      selectedProducts.map(async (product) => {
-        const imageUrl = product.image_url || product.original_image_url;
-        
-        try {
-          // ✅ Optimizar imagen específicamente para este template
-          const optimizedImageData = await optimizeImageForTemplate(imageUrl, template);
-          
-          return {
-            ...product,
-            processed_image_url: product.image_url, // ✅ URL original para referencia
-            optimized_image_data: optimizedImageData, // ✅ Imagen optimizada
-            template_optimized: true
-          };
-        } catch (error) {
-          console.warn(`⚠️ No se pudo optimizar imagen para ${product.name}:`, error);
-          return {
-            ...product,
-            processed_image_url: imageUrl,
-            template_optimized: false
-          };
-        }
-      })
-    );
-
-    // ✅ OBTENER PLAN DEL USUARIO
     let userPlan = 'basic';
     try {
       const { data: userData, error } = await supabase
@@ -214,10 +90,8 @@ export const createCatalog = async (
       console.log('Plan type not available, using basic as default');
     }
 
-    // ✅ DEBUGGING COMPLETO ANTES DE INSERTAR (SIN STATUS)
     console.log('💾 Preparando inserción en tabla catalogs...');
     
-    // ✅ Verificar datos antes de insertar - SIN CAMPOS PROBLEMÁTICOS
     const catalogData = {
       user_id: user.id,
       name: `Catálogo ${template.displayName} - ${new Date().toLocaleDateString()}`,
@@ -232,16 +106,10 @@ export const createCatalog = async (
       show_wholesale_prices: false,
       total_products: selectedProducts.length,
       credits_used: 0
-      // ✅ NO INCLUIR: status, processing_started_at (no existen en schema)
     };
     
     console.log('🔍 Datos a insertar:', catalogData);
-    console.log('🔍 user.id:', user.id);
-    console.log('🔍 selectedProducts.length:', selectedProducts.length);
-    console.log('🔍 template encontrado:', template ? 'Sí' : 'No');
-    console.log('🔍 businessInfo:', businessInfo ? 'Sí' : 'No');
 
-    // ✅ INTENTAR INSERCIÓN CON MANEJO DE ERRORES DETALLADO
     const { data: catalog, error: catalogError } = await supabase
       .from('catalogs')
       .insert(catalogData)
@@ -249,38 +117,12 @@ export const createCatalog = async (
       .single();
 
     if (catalogError) {
-      console.error('❌ DETALLES COMPLETOS DEL ERROR:', {
-        error: catalogError,
-        message: catalogError.message,
-        details: catalogError.details,
-        hint: catalogError.hint,
-        code: catalogError.code
-      });
-      
-      // ✅ Verificar si la tabla existe
-      console.log('🔍 Verificando si la tabla catalogs existe...');
-      try {
-        const { data: tableCheck, error: tableError } = await supabase
-          .from('catalogs')
-          .select('id')
-          .limit(1);
-          
-        if (tableError) {
-          console.error('❌ Tabla catalogs no accesible:', tableError);
-          throw new Error(`Tabla catalogs no disponible: ${tableError.message}`);
-        } else {
-          console.log('✅ Tabla catalogs accesible');
-        }
-      } catch (tableCheckError) {
-        console.error('❌ Error verificando tabla:', tableCheckError);
-      }
-      
-      throw new Error(`Error en base de datos: ${catalogError.message}${catalogError.details ? ` - ${catalogError.details}` : ''}`);
+      console.error('❌ DETALLES COMPLETOS DEL ERROR:', catalogError);
+      throw new Error(`Error en base de datos: ${catalogError.message}`);
     }
 
     console.log('✅ Catálogo creado en BD:', catalog.id);
 
-    // ✅ PAYLOAD MEJORADO PARA N8N
     const webhookPayload: CatalogCreationRequest = {
       catalog_id: catalog.id,
       user_id: user.id,
@@ -294,7 +136,7 @@ export const createCatalog = async (
         email: businessInfo?.email,
         address: businessInfo?.address
       },
-      products: optimizedProducts.map(product => ({
+      products: selectedProducts.map(product => ({
         id: product.id,
         name: product.name,
         description: product.custom_description || product.description || `Descripción de ${product.name}`,
@@ -302,8 +144,8 @@ export const createCatalog = async (
         price_retail: product.price_retail || 0,
         price_wholesale: product.price_wholesale || 0,
         original_image_url: product.original_image_url,
-        processed_image_url: product.processed_image_url || product.image_url, // ✅ URL procesada
-        optimized_image_data: product.optimized_image_data, // ✅ Imagen optimizada en base64
+        processed_image_url: product.processed_image_url || product.image_url,
+        optimized_image_data: product.optimized_image_data,
         smart_analysis: product.smart_analysis ? 
           (typeof product.smart_analysis === 'string' ? JSON.parse(product.smart_analysis) : product.smart_analysis) 
           : null,
@@ -311,20 +153,17 @@ export const createCatalog = async (
         estimated_cost_mxn: product.estimated_cost_mxn || 0.20
       })),
       template_style: templateStyle,
-      template_config: template, // ✅ NUEVO: Configuración completa del template
+      template_config: template,
       estimated_total_credits: selectedProducts.reduce((sum, p) => sum + (p.estimated_credits || 1), 0),
       estimated_total_cost: selectedProducts.reduce((sum, p) => sum + (p.estimated_cost_mxn || 0.20), 0)
     };
 
-    console.log('🚀 Enviando payload optimizado a n8n:', {
+    console.log('🚀 Enviando payload a n8n:', {
       catalog_id: webhookPayload.catalog_id,
       template: templateStyle,
-      products_count: webhookPayload.products.length,
-      template_config: template,
-      optimized_images: optimizedProducts.filter(p => p.template_optimized).length
+      products_count: webhookPayload.products.length
     });
 
-    // ✅ ENVIAR A N8N CON RETRY LOGIC
     let webhookResponse;
     let attempts = 0;
     const maxAttempts = 3;
@@ -355,7 +194,6 @@ export const createCatalog = async (
     }
 
     if (!webhookResponse || !webhookResponse.ok) {
-      // ✅ Error en webhook - simplemente logear (sin updates de status)
       console.error(`❌ Webhook failed after ${maxAttempts} attempts: ${webhookResponse?.status}`);
       throw new Error(`Webhook failed after ${maxAttempts} attempts: ${webhookResponse?.status}`);
     }
@@ -363,8 +201,7 @@ export const createCatalog = async (
     const result = await webhookResponse.json();
     console.log('✅ n8n webhook response:', result);
 
-    // ✅ Webhook exitoso
-    console.log('✅ Catálogo enviado a n8n para procesamiento (modo legacy)');
+    console.log('✅ Catálogo enviado a n8n para procesamiento');
 
     return {
       success: true,
@@ -380,17 +217,15 @@ export const createCatalog = async (
   }
 };
 
-// ✅ FUNCIÓN ORIGINAL: SOLO PROCESAR IMÁGENES (mantener igual)
+// ✅ FUNCIÓN CORREGIDA: processImagesOnly con PARSING MEJORADO
 export const processImagesOnly = async (
   selectedProducts: any[],
   businessInfo: any
 ): Promise<{ success: boolean; processed_images?: ProcessedImage[]; error?: string }> => {
   try {
-    // Get current user
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Usuario no autenticado');
 
-    // Obtener plan del usuario
     let userPlan = 'basic';
     try {
       const { data: userData, error } = await supabase
@@ -406,9 +241,8 @@ export const processImagesOnly = async (
       console.log('Plan type not available, using basic as default');
     }
 
-    // ✅ PAYLOAD ESPECÍFICO PARA PROCESS_ONLY
     const processOnlyPayload = {
-      action: "process_only", // ✅ FLAG CRÍTICO
+      action: "process_only",
       user_id: user.id,
       user_plan: userPlan,
       business_info: {
@@ -431,7 +265,6 @@ export const processImagesOnly = async (
         estimated_credits: product.estimated_credits || 1,
         estimated_cost_mxn: product.estimated_cost_mxn || 0.20
       })),
-      // DATOS MÍNIMOS PARA WORKFLOW
       template_style: 'professional',
       estimated_total_credits: selectedProducts.reduce((sum, p) => sum + (p.estimated_credits || 1), 0),
       estimated_total_cost: selectedProducts.reduce((sum, p) => sum + (p.estimated_cost_mxn || 0.20), 0)
@@ -439,7 +272,6 @@ export const processImagesOnly = async (
 
     console.log('🚀 Sending PROCESS_ONLY to n8n webhook:', processOnlyPayload);
 
-    // Send to n8n webhook
     const webhookResponse = await fetch(N8N_WEBHOOK_URL, {
       method: 'POST',
       headers: {
@@ -453,24 +285,90 @@ export const processImagesOnly = async (
     }
 
     const result = await webhookResponse.json();
-    console.log('✅ n8n webhook response:', result);
+    console.log('✅ n8n webhook response RAW:', result);
 
-    // VERIFICAR FORMATO DE RESPUESTA
-    if (result[0]?.processed_images && result[0]?.workflow_mode === 'process_only') {
+    // ✅ PARSING MEJORADO: Manejar diferentes formatos de respuesta
+    let webhookData;
+    let processed_images: ProcessedImage[] = [];
+
+    // Caso 1: Respuesta es array (como tu ejemplo)
+    if (Array.isArray(result)) {
+      console.log('📋 Webhook response is array, using first element');
+      webhookData = result[0];
+    } else {
+      console.log('📋 Webhook response is object');
+      webhookData = result;
+    }
+
+    console.log('🔍 Webhook data to parse:', webhookData);
+
+    // ✅ VERIFICAR SI HAY DATOS EN debug_info.apiResponse
+    if (webhookData.debug_info?.apiResponse) {
+      console.log('🔍 Found debug_info.apiResponse, checking for processed images...');
+      const apiResponse = webhookData.debug_info.apiResponse;
+      
+      // ✅ EXTRAER IMÁGENES PROCESADAS DEL API RESPONSE
+      if (apiResponse.products && Array.isArray(apiResponse.products)) {
+        console.log(`📦 Found ${apiResponse.products.length} products in apiResponse`);
+        
+        processed_images = apiResponse.products
+          .filter((product: any) => product.processing_result?.success === true)
+          .map((product: any) => ({
+            product_id: product.id,
+            product_name: product.name,
+            original_url: product.original_image_url,
+            processed_url: product.processing_result.processedImageUrl || product.processing_result.result_url,
+            api_used: product.processing_result.usedApi || 'pixelcut',
+            expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 días
+            credits_estimated: product.estimated_credits || 1,
+            cost_mxn: product.processing_result.actualCostMXN || product.estimated_cost_mxn || 0.20
+          }));
+        
+        console.log(`✅ Extracted ${processed_images.length} processed images:`, processed_images);
+      }
+    }
+
+    // ✅ VERIFICAR SI REALMENTE HAY IMÁGENES PROCESADAS
+    if (processed_images.length > 0) {
+      console.log('🎉 SUCCESS: Found processed images, updating database...');
+      
+      // ✅ ACTUALIZAR BASE DE DATOS CON IMÁGENES PROCESADAS
+      for (const img of processed_images) {
+        try {
+          const { error: updateError } = await supabase
+            .from('products')
+            .update({
+              processed_image_url: img.processed_url,
+              processing_status: 'completed',
+              is_processed: true,
+              processed_at: new Date().toISOString(),
+              credits_used: img.credits_estimated,
+              service_type: img.api_used
+            })
+            .eq('id', img.product_id);
+
+          if (updateError) {
+            console.warn(`⚠️ Error updating product ${img.product_id}:`, updateError);
+          } else {
+            console.log(`✅ Updated product ${img.product_id} with processed image`);
+          }
+        } catch (updateError) {
+          console.warn(`⚠️ Exception updating product ${img.product_id}:`, updateError);
+        }
+      }
+
       return {
         success: true,
-        processed_images: result[0].processed_images
-      };
-    } else if (result.processed_images && result.workflow_mode === 'process_only') {
-      return {
-        success: true,
-        processed_images: result.processed_images
+        processed_images: processed_images
       };
     } else {
-      console.log('⚠️ Workflow returned unexpected format:', result);
+      // ✅ NO HAY IMÁGENES PROCESADAS
+      console.warn('⚠️ No processed images found in webhook response');
+      console.log('🔍 Full webhook data for debugging:', JSON.stringify(webhookData, null, 2));
+      
       return {
         success: false,
-        error: 'El workflow no retornó el formato esperado para process_only'
+        error: 'No se encontraron imágenes procesadas en la respuesta del webhook'
       };
     }
 
@@ -483,7 +381,7 @@ export const processImagesOnly = async (
   }
 };
 
-// ✅ NUEVA FUNCIÓN: Preview de template con productos reales
+// ✅ MANTENER OTRAS FUNCIONES IGUAL
 export const generateTemplatePreview = async (
   products: any[],
   templateId: string,
@@ -493,10 +391,8 @@ export const generateTemplatePreview = async (
     const template = getTemplateById(templateId);
     if (!template) throw new Error('Template no encontrado');
 
-    // ✅ Tomar solo los productos que caben en una página
     const previewProducts = products.slice(0, template.productsPerPage);
     
-    // ✅ Generar HTML del preview con productos reales
     const previewHtml = `
       <div class="template-body-${templateId}" style="min-height: 800px; padding: 40px;">
         <div class="catalog">
@@ -564,7 +460,6 @@ export const generateTemplatePreview = async (
   }
 };
 
-// ✅ NUEVA FUNCIÓN: Obtener estadísticas del catálogo
 export const getCatalogStats = (products: any[], template: TemplateConfig) => {
   const totalProducts = products.length;
   const totalPages = Math.ceil(totalProducts / template.productsPerPage);
