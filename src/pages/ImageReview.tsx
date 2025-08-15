@@ -9,7 +9,6 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-// ✅ IMPORTAR TIPOS CORRECTOS
 import { Product, ProcessedImageForUI, productToProcessedImage, getDisplayImageUrl, getProcessingStatus, hasBeforeAfterComparison } from '@/types/products';
 import { 
   FileImage, 
@@ -26,7 +25,8 @@ import {
   Package,
   AlertCircle,
   Clock,
-  Zap
+  Zap,
+  Bug // ✅ NUEVO: Para debugging
 } from 'lucide-react';
 
 const ImageReview = () => {
@@ -39,11 +39,17 @@ const ImageReview = () => {
   const [saving, setSaving] = useState(false);
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [showComparison, setShowComparison] = useState<boolean>(true);
+  // ✅ NUEVO: Estados de debugging
+  const [debugMode, setDebugMode] = useState(false);
+  const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
 
   useEffect(() => {
     loadProcessedImages();
-    // ✅ Auto-refresh cada 15 segundos
-    const interval = setInterval(loadProcessedImages, 15000);
+    // ✅ Auto-refresh cada 10 segundos (más frecuente para testing)
+    const interval = setInterval(() => {
+      console.log('🔄 Auto-refresh triggered');
+      loadProcessedImages();
+    }, 10000);
     return () => clearInterval(interval);
   }, [user]);
 
@@ -52,8 +58,8 @@ const ImageReview = () => {
 
     try {
       console.log('🔍 Cargando productos para review...');
+      setLastRefresh(new Date());
       
-      // ✅ QUERY CORRECTO: Usar campos que SÍ existen (incluir user_id)
       const { data: productsData, error } = await supabase
         .from('products')
         .select(`
@@ -74,13 +80,56 @@ const ImageReview = () => {
       }
 
       console.log(`📦 Cargados ${productsData?.length || 0} productos`);
+      
+      // ✅ DEBUGGING DETALLADO
+      if (debugMode && productsData) {
+        console.log('🐛 DEBUGGING - Productos cargados:', productsData.map(p => ({
+          id: p.id.slice(-6),
+          name: p.name,
+          original_image_url: p.original_image_url ? 'Sí' : 'No',
+          processed_image_url: p.processed_image_url ? 'Sí' : 'No',
+          processing_status: p.processing_status,
+          is_processed: p.is_processed,
+          processed_at: p.processed_at ? 'Sí' : 'No',
+          created_at: new Date(p.created_at).toLocaleTimeString()
+        })));
+      }
+      
       setProducts(productsData || []);
 
-      // ✅ CONVERTIR a formato para UI
-      const convertedImages = (productsData || []).map(productToProcessedImage);
+      // ✅ CONVERTIR a formato para UI con debugging
+      const convertedImages = (productsData || []).map((product, index) => {
+        const converted = productToProcessedImage(product);
+        
+        if (debugMode) {
+          console.log(`🐛 DEBUGGING - Producto ${index + 1}:`, {
+            id: product.id.slice(-6),
+            name: product.name,
+            status_determinado: converted.status,
+            original_url: converted.original_url ? 'Sí' : 'No',
+            processed_url: converted.processed_url ? 'Sí' : 'No',
+            processing_status_bd: product.processing_status,
+            is_processed_bd: product.is_processed,
+            processed_at_bd: product.processed_at ? 'Sí' : 'No'
+          });
+        }
+        
+        return converted;
+      });
+      
       setImages(convertedImages);
       
       console.log(`✅ Convertidos ${convertedImages.length} productos para review`);
+      
+      // ✅ LOGGING DE ESTADOS
+      const statusCounts = {
+        pending: convertedImages.filter(img => img.status === 'pending').length,
+        processing: convertedImages.filter(img => img.status === 'processing').length,
+        completed: convertedImages.filter(img => img.status === 'completed').length,
+        failed: convertedImages.filter(img => img.status === 'failed').length
+      };
+      
+      console.log('📊 Estados de productos:', statusCounts);
       
     } catch (error) {
       console.error('❌ Error cargando imágenes procesadas:', error);
@@ -91,6 +140,45 @@ const ImageReview = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  // ✅ FUNCIÓN NUEVA: Forzar refresh manual
+  const handleForceRefresh = async () => {
+    console.log('🔄 FORCE REFRESH manual triggered');
+    setLoading(true);
+    await loadProcessedImages();
+  };
+
+  // ✅ FUNCIÓN NUEVA: Debug mode toggle
+  const toggleDebugMode = () => {
+    setDebugMode(!debugMode);
+    console.log('🐛 Debug mode:', !debugMode ? 'ENABLED' : 'DISABLED');
+  };
+
+  // ✅ FUNCIÓN NUEVA: Verificar producto específico
+  const debugSpecificProduct = async (productId: string) => {
+    console.log(`🔍 DEBUGGING producto específico: ${productId}`);
+    
+    const { data, error } = await supabase
+      .from('products')
+      .select('*')
+      .eq('id', productId)
+      .single();
+    
+    if (error) {
+      console.error('❌ Error:', error);
+    } else {
+      console.log('🐛 PRODUCTO COMPLETO:', data);
+      console.log('🐛 CAMPOS CLAVE:', {
+        processing_status: data.processing_status,
+        processing_progress: data.processing_progress,
+        is_processed: data.is_processed,
+        processed_at: data.processed_at,
+        processed_image_url: data.processed_image_url,
+        image_url: data.image_url,
+        original_image_url: data.original_image_url
+      });
     }
   };
 
@@ -117,7 +205,6 @@ const ImageReview = () => {
     }
   };
 
-  // ✅ FUNCIÓN: Guardar Y Crear Catálogo
   const handleSaveAndCreateCatalog = async () => {
     if (selectedImages.length === 0) {
       toast({
@@ -133,7 +220,6 @@ const ImageReview = () => {
     try {
       console.log('💾 Preparando catálogo con imágenes seleccionadas...');
       
-      // ✅ Obtener productos seleccionados con imágenes procesadas
       const selectedProductsData = images
         .filter(img => selectedImages.includes(img.id) && img.status === 'completed')
         .map(img => {
@@ -144,7 +230,6 @@ const ImageReview = () => {
             description: img.product_description,
             category: img.category,
             price_retail: img.price_retail || 0,
-            // ✅ USAR IMAGEN PROCESADA CORRECTA
             image_url: img.processed_url || img.hd_url || getDisplayImageUrl(product!),
             original_image_url: img.original_url,
             processed_image_url: img.processed_url,
@@ -159,7 +244,6 @@ const ImageReview = () => {
 
       console.log(`📋 Productos preparados para catálogo:`, selectedProductsData.length);
 
-      // ✅ Marcar como procesados en BD
       for (const img of images.filter(i => selectedImages.includes(i.id))) {
         const { error } = await supabase
           .from('products')
@@ -182,7 +266,6 @@ const ImageReview = () => {
 
       console.log('✅ Navegando a template selection con productos:', selectedProductsData);
 
-      // ✅ NAVEGACIÓN CORRECTA
       navigate('/template-selection', {
         state: {
           products: selectedProductsData,
@@ -205,7 +288,6 @@ const ImageReview = () => {
     }
   };
 
-  // ✅ FUNCIÓN: Solo marcar como guardadas
   const handleSaveToStorage = async () => {
     if (selectedImages.length === 0) {
       toast({
@@ -241,7 +323,6 @@ const ImageReview = () => {
         variant: "default",
       });
 
-      // ✅ Recargar datos
       await loadProcessedImages();
       setSelectedImages([]);
 
@@ -346,6 +427,17 @@ const ImageReview = () => {
         <ArrowLeftRight className="h-4 w-4 mr-2" />
         {showComparison ? 'Ocultar' : 'Mostrar'} Comparación
       </Button>
+
+      {/* ✅ NUEVO: Botón de debug */}
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={toggleDebugMode}
+        className={debugMode ? 'bg-red-50 border-red-300 text-red-700' : ''}
+      >
+        <Bug className="h-4 w-4 mr-2" />
+        Debug {debugMode ? 'ON' : 'OFF'}
+      </Button>
       
       {selectedImages.length > 0 && (
         <div className="flex items-center gap-2">
@@ -379,7 +471,7 @@ const ImageReview = () => {
         </div>
       )}
       
-      <Button onClick={loadProcessedImages} variant="outline" size="sm">
+      <Button onClick={handleForceRefresh} variant="outline" size="sm">
         <RefreshCw className="h-4 w-4 mr-2" />
         Actualizar
       </Button>
@@ -404,6 +496,37 @@ const ImageReview = () => {
   return (
     <ProtectedRoute>
       <AppLayout actions={actions}>
+        {/* ✅ NUEVO: Panel de debugging */}
+        {debugMode && (
+          <Card className="mb-6 border-red-200 bg-red-50">
+            <CardContent className="p-4">
+              <h4 className="font-semibold text-red-900 mb-3 flex items-center gap-2">
+                <Bug className="h-4 w-4" />
+                Panel de Debugging
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                <div>
+                  <strong>Última actualización:</strong><br />
+                  {lastRefresh.toLocaleTimeString()}
+                </div>
+                <div>
+                  <strong>Total productos:</strong><br />
+                  {products.length} en BD, {images.length} en UI
+                </div>
+                <div>
+                  <strong>Estados:</strong><br />
+                  P: {images.filter(i => i.status === 'processing').length}, 
+                  C: {images.filter(i => i.status === 'completed').length}, 
+                  F: {images.filter(i => i.status === 'failed').length}
+                </div>
+              </div>
+              <div className="mt-3 text-xs text-red-700">
+                Auto-refresh cada 10 segundos. Revisa Console para logs detallados.
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {images.length === 0 ? (
           <Card>
             <CardContent className="text-center py-12">
@@ -422,10 +545,8 @@ const ImageReview = () => {
           </Card>
         ) : (
           <div className="space-y-6">
-            {/* ✅ ESTADÍSTICAS */}
             {getStatsCards()}
 
-            {/* ✅ BANNER DE PROGRESO */}
             {images.filter(img => img.status === 'processing').length > 0 && (
               <Card className="border-blue-200 bg-blue-50">
                 <CardContent className="p-4">
@@ -436,7 +557,8 @@ const ImageReview = () => {
                         Procesando {images.filter(img => img.status === 'processing').length} imágenes...
                       </h4>
                       <p className="text-sm text-blue-700">
-                        El sistema está quitando fondos y optimizando las imágenes. Actualización automática cada 15 segundos.
+                        El sistema está quitando fondos y optimizando las imágenes. Actualización automática cada 10 segundos.
+                        {debugMode && ` (Última: ${lastRefresh.toLocaleTimeString()})`}
                       </p>
                     </div>
                   </div>
@@ -444,7 +566,6 @@ const ImageReview = () => {
               </Card>
             )}
 
-            {/* Selection controls */}
             <Card>
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
@@ -466,7 +587,6 @@ const ImageReview = () => {
               </CardContent>
             </Card>
 
-            {/* Images grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredImages.map((image) => {
                 const product = products.find(p => p.id === image.product_id);
@@ -474,7 +594,6 @@ const ImageReview = () => {
                 
                 return (
                   <Card key={image.id} className="overflow-hidden hover:shadow-md transition-shadow">
-                    {/* ✅ COMPARACIÓN ANTES/DESPUÉS */}
                     {showComparison && hasComparison && image.status === 'completed' ? (
                       <div className="grid grid-cols-2 gap-1">
                         <div className="relative aspect-square bg-gray-100">
@@ -506,7 +625,6 @@ const ImageReview = () => {
                           className="w-full h-full object-cover"
                         />
                         
-                        {/* ✅ PROGRESO DE PROCESAMIENTO */}
                         {image.status === 'processing' && (
                           <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
                             <div className="text-center text-white">
@@ -518,7 +636,6 @@ const ImageReview = () => {
                       </div>
                     )}
                     
-                    {/* ✅ CONTROLES */}
                     <div className="absolute top-2 left-2">
                       <Checkbox
                         checked={selectedImages.includes(image.id)}
@@ -552,15 +669,31 @@ const ImageReview = () => {
                         )}
                       </div>
 
-                      {/* ✅ INFO DE PROCESAMIENTO */}
                       <div className="text-xs text-gray-500 mb-3">
                         <div>Estado: {image.status}</div>
                         <div>Servicio: {image.service_type || 'básico'}</div>
                         <div>Créditos: {image.credits_used || 'N/A'}</div>
                         <div>{new Date(image.created_at).toLocaleDateString('es-ES')}</div>
+                        
+                        {/* ✅ NUEVO: Debug info por producto */}
+                        {debugMode && (
+                          <div className="mt-2 p-2 bg-red-50 rounded text-xs">
+                            <div>ID: {image.id.slice(-6)}</div>
+                            <div>Original: {image.original_url ? '✅' : '❌'}</div>
+                            <div>Processed: {image.processed_url ? '✅' : '❌'}</div>
+                            <div>HD: {image.hd_url ? '✅' : '❌'}</div>
+                            <div>
+                              <button 
+                                onClick={() => debugSpecificProduct(image.product_id)}
+                                className="text-red-600 hover:underline"
+                              >
+                                Debug en Console
+                              </button>
+                            </div>
+                          </div>
+                        )}
                       </div>
 
-                      {/* ✅ ERROR MESSAGE */}
                       {image.status === 'failed' && image.error_message && (
                         <div className="bg-red-50 border border-red-200 rounded p-2 mb-3">
                           <p className="text-xs text-red-700">{image.error_message}</p>
@@ -584,7 +717,6 @@ const ImageReview = () => {
               })}
             </div>
 
-            {/* ✅ INFO PARA CREAR CATÁLOGO */}
             {selectedImages.length > 0 && (
               <Card className="border-green-200 bg-green-50">
                 <CardContent className="p-4">
