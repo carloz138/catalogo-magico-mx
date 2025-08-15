@@ -53,11 +53,11 @@ const ImageReview = () => {
     try {
       console.log('🔍 Cargando productos para review...');
       
-      // ✅ QUERY CORRECTO: Usar campos que SÍ existen
+      // ✅ QUERY CORRECTO: Usar campos que SÍ existen (incluir user_id)
       const { data: productsData, error } = await supabase
         .from('products')
         .select(`
-          id, name, description, custom_description,
+          id, user_id, name, description, custom_description,
           price_retail, category, brand,
           original_image_url, processed_image_url, hd_image_url, image_url,
           processing_status, processing_progress, is_processed, processed_at,
