@@ -9,6 +9,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+// ✅ IMPORTAR TIPOS CORRECTOS
+import { Product, ProcessedImageForUI, productToProcessedImage, getDisplayImageUrl, getProcessingStatus, hasBeforeAfterComparison } from '@/types/products';
 import { 
   FileImage, 
   CheckCircle, 
@@ -21,29 +23,17 @@ import {
   Save,
   ArrowLeftRight,
   Loader2,
-  Package
+  Package,
+  AlertCircle,
+  Clock,
+  Zap
 } from 'lucide-react';
-
-interface ProcessedImage {
-  id: string;
-  product_id: string;
-  original_url: string;
-  processed_url: string | null;
-  status: 'pending' | 'processing' | 'completed' | 'failed';
-  product_name: string;
-  product_description?: string;
-  price_retail?: number;
-  category?: string;
-  api_used?: string;
-  credits_used?: number;
-  created_at: string;
-  updated_at: string;
-}
 
 const ImageReview = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [images, setImages] = useState<ProcessedImage[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [images, setImages] = useState<ProcessedImageForUI[]>([]);
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -52,8 +42,8 @@ const ImageReview = () => {
 
   useEffect(() => {
     loadProcessedImages();
-    // ✅ Auto-refresh cada 10 segundos para actualizar estado de procesamiento
-    const interval = setInterval(loadProcessedImages, 10000);
+    // ✅ Auto-refresh cada 15 segundos
+    const interval = setInterval(loadProcessedImages, 15000);
     return () => clearInterval(interval);
   }, [user]);
 
@@ -61,56 +51,36 @@ const ImageReview = () => {
     if (!user) return;
 
     try {
-      // ✅ CARGAR DATOS REALES - Buscar en tabla processed_images o similar
-      console.log('🔍 Cargando imágenes procesadas...');
+      console.log('🔍 Cargando productos para review...');
       
-      // Opción 1: Si tienes tabla processed_images
-      let { data: processedData, error: processedError } = await supabase
-        .from('processed_images')
-        .select('*')
+      // ✅ QUERY CORRECTO: Usar campos que SÍ existen
+      const { data: productsData, error } = await supabase
+        .from('products')
+        .select(`
+          id, name, description, custom_description,
+          price_retail, category, brand,
+          original_image_url, processed_image_url, hd_image_url, image_url,
+          processing_status, processing_progress, is_processed, processed_at,
+          credits_used, service_type, error_message,
+          created_at, updated_at
+        `)
         .eq('user_id', user.id)
+        .not('original_image_url', 'is', null)
         .order('created_at', { ascending: false });
 
-      if (processedError && processedError.code !== 'PGRST116') {
-        throw processedError;
+      if (error) {
+        console.error('❌ Error cargando productos:', error);
+        throw error;
       }
 
-      // Opción 2: Si no existe tabla, usar products con estado de procesamiento
-      if (!processedData || processedData.length === 0) {
-        console.log('📦 No hay tabla processed_images, usando products...');
-        
-        const { data: productsData, error: productsError } = await supabase
-          .from('products')
-          .select('*')
-          .eq('user_id', user.id)
-          .not('image_url', 'is', null)
-          .order('created_at', { ascending: false });
+      console.log(`📦 Cargados ${productsData?.length || 0} productos`);
+      setProducts(productsData || []);
 
-        if (productsError) throw productsError;
-
-        // ✅ Convertir products a formato ProcessedImage
-        const convertedData: ProcessedImage[] = (productsData || []).map(product => ({
-          id: product.id,
-          product_id: product.id,
-          original_url: product.original_image_url || product.image_url,
-          processed_url: product.processed_url || product.image_url,
-          status: determineProcessingStatus(product),
-          product_name: product.name,
-          product_description: product.description,
-          price_retail: product.price_retail,
-          category: product.category,
-          api_used: product.api_used || 'pixelcut',
-          credits_used: product.credits_used || 1,
-          created_at: product.created_at,
-          updated_at: product.updated_at || product.created_at
-        }));
-
-        setImages(convertedData);
-      } else {
-        setImages(processedData);
-      }
-
-      console.log(`✅ Cargadas ${processedData?.length || 0} imágenes procesadas`);
+      // ✅ CONVERTIR a formato para UI
+      const convertedImages = (productsData || []).map(productToProcessedImage);
+      setImages(convertedImages);
+      
+      console.log(`✅ Convertidos ${convertedImages.length} productos para review`);
       
     } catch (error) {
       console.error('❌ Error cargando imágenes procesadas:', error);
@@ -122,29 +92,6 @@ const ImageReview = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  // ✅ FUNCIÓN: Determinar estado de procesamiento basado en datos del producto
-  const determineProcessingStatus = (product: any): 'pending' | 'processing' | 'completed' | 'failed' => {
-    if (product.processing_status) {
-      return product.processing_status;
-    }
-    
-    // Si tiene processed_url diferente a image_url = completado
-    if (product.processed_url && product.processed_url !== product.image_url) {
-      return 'completed';
-    }
-    
-    // Si fue creado hace menos de 10 minutos = procesando
-    const createdAt = new Date(product.created_at);
-    const now = new Date();
-    const diffMinutes = (now.getTime() - createdAt.getTime()) / (1000 * 60);
-    
-    if (diffMinutes < 10) {
-      return 'processing';
-    }
-    
-    return 'pending';
   };
 
   const filteredImages = images.filter(image => {
@@ -163,14 +110,14 @@ const ImageReview = () => {
 
   const selectAllCompleted = () => {
     const completedIds = completedImages.map(img => img.id);
-    if (selectedImages.length === completedIds.length) {
+    if (selectedImages.length === completedIds.length && completedIds.length > 0) {
       setSelectedImages([]);
     } else {
       setSelectedImages(completedIds);
     }
   };
 
-  // ✅ FUNCIÓN NUEVA: Guardar Y Crear Catálogo
+  // ✅ FUNCIÓN: Guardar Y Crear Catálogo
   const handleSaveAndCreateCatalog = async () => {
     if (selectedImages.length === 0) {
       toast({
@@ -184,71 +131,73 @@ const ImageReview = () => {
     setSaving(true);
 
     try {
-      console.log('💾 Guardando imágenes y preparando catálogo...');
+      console.log('💾 Preparando catálogo con imágenes seleccionadas...');
       
       // ✅ Obtener productos seleccionados con imágenes procesadas
       const selectedProductsData = images
         .filter(img => selectedImages.includes(img.id) && img.status === 'completed')
-        .map(img => ({
-          id: img.product_id,
-          name: img.product_name,
-          description: img.product_description,
-          category: img.category,
-          price_retail: img.price_retail || 0,
-          image_url: img.processed_url, // ✅ USAR IMAGEN PROCESADA
-          original_image_url: img.original_url,
-          processed_url: img.processed_url,
-          api_used: img.api_used,
-          credits_used: img.credits_used
-        }));
+        .map(img => {
+          const product = products.find(p => p.id === img.product_id);
+          return {
+            id: img.product_id,
+            name: img.product_name,
+            description: img.product_description,
+            category: img.category,
+            price_retail: img.price_retail || 0,
+            // ✅ USAR IMAGEN PROCESADA CORRECTA
+            image_url: img.processed_url || img.hd_url || getDisplayImageUrl(product!),
+            original_image_url: img.original_url,
+            processed_image_url: img.processed_url,
+            hd_image_url: img.hd_url,
+            created_at: img.created_at
+          };
+        });
 
       if (selectedProductsData.length === 0) {
         throw new Error('No hay imágenes completadas seleccionadas');
       }
 
-      // ✅ Opcional: Guardar en storage (actualizar URLs en BD)
-      console.log('💾 Actualizando productos con URLs procesadas...');
-      for (const product of selectedProductsData) {
-        if (product.processed_url) {
-          const { error } = await supabase
-            .from('products')
-            .update({ 
-              image_url: product.processed_url,
-              processing_status: 'completed',
-              processed_at: new Date().toISOString()
-            })
-            .eq('id', product.id);
-          
-          if (error) {
-            console.warn(`⚠️ Error actualizando producto ${product.id}:`, error);
-          }
+      console.log(`📋 Productos preparados para catálogo:`, selectedProductsData.length);
+
+      // ✅ Marcar como procesados en BD
+      for (const img of images.filter(i => selectedImages.includes(i.id))) {
+        const { error } = await supabase
+          .from('products')
+          .update({ 
+            is_processed: true,
+            processed_at: new Date().toISOString()
+          })
+          .eq('id', img.product_id);
+        
+        if (error) {
+          console.warn(`⚠️ Error marcando producto ${img.product_id} como procesado:`, error);
         }
       }
 
       toast({
-        title: "¡Imágenes guardadas!",
+        title: "¡Imágenes preparadas!",
         description: `${selectedProductsData.length} productos listos para crear catálogo`,
         variant: "default",
       });
 
-      console.log('✅ Productos preparados para template selection:', selectedProductsData);
+      console.log('✅ Navegando a template selection con productos:', selectedProductsData);
 
-      // ✅ NAVEGACIÓN CORRECTA: Ir a template-selection con productos procesados
+      // ✅ NAVEGACIÓN CORRECTA
       navigate('/template-selection', {
         state: {
           products: selectedProductsData,
           businessInfo: {
-            business_name: 'Mi Empresa' // Datos básicos
+            business_name: 'Mi Empresa'
           },
-          skipProcessing: true // Flag para indicar que ya están procesadas
+          skipProcessing: true
         }
       });
 
     } catch (error) {
-      console.error('❌ Error guardando y preparando catálogo:', error);
+      console.error('❌ Error preparando catálogo:', error);
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "No se pudieron guardar las imágenes",
+        description: error instanceof Error ? error.message : "No se pudieron preparar las imágenes",
         variant: "destructive",
       });
     } finally {
@@ -256,7 +205,7 @@ const ImageReview = () => {
     }
   };
 
-  // ✅ FUNCIÓN NUEVA: Solo guardar en storage
+  // ✅ FUNCIÓN: Solo marcar como guardadas
   const handleSaveToStorage = async () => {
     if (selectedImages.length === 0) {
       toast({
@@ -270,30 +219,25 @@ const ImageReview = () => {
     setSaving(true);
 
     try {
-      console.log('💾 Guardando imágenes en storage...');
+      console.log('💾 Marcando imágenes como guardadas...');
       
-      const selectedProductsData = images.filter(img => selectedImages.includes(img.id));
-      
-      for (const img of selectedProductsData) {
-        if (img.processed_url) {
-          const { error } = await supabase
-            .from('products')
-            .update({ 
-              image_url: img.processed_url,
-              processing_status: 'completed',
-              processed_at: new Date().toISOString()
-            })
-            .eq('id', img.product_id);
-          
-          if (error) {
-            console.warn(`⚠️ Error guardando producto ${img.product_id}:`, error);
-          }
+      for (const imageId of selectedImages) {
+        const { error } = await supabase
+          .from('products')
+          .update({ 
+            is_processed: true,
+            processed_at: new Date().toISOString()
+          })
+          .eq('id', imageId);
+        
+        if (error) {
+          console.warn(`⚠️ Error guardando producto ${imageId}:`, error);
         }
       }
 
       toast({
         title: "¡Imágenes guardadas!",
-        description: `${selectedProductsData.length} imágenes guardadas en tu biblioteca`,
+        description: `${selectedImages.length} imágenes marcadas como procesadas`,
         variant: "default",
       });
 
@@ -315,7 +259,7 @@ const ImageReview = () => {
 
   const getStatusBadge = (status: string) => {
     const configs = {
-      pending: { color: 'bg-yellow-100 text-yellow-800', icon: RefreshCw, text: 'Pendiente' },
+      pending: { color: 'bg-yellow-100 text-yellow-800', icon: Clock, text: 'Pendiente' },
       processing: { color: 'bg-blue-100 text-blue-800', icon: Loader2, text: 'Procesando' },
       completed: { color: 'bg-green-100 text-green-800', icon: CheckCircle, text: 'Completado' },
       failed: { color: 'bg-red-100 text-red-800', icon: XCircle, text: 'Error' },
@@ -337,11 +281,12 @@ const ImageReview = () => {
       total: images.length,
       completed: images.filter(img => img.status === 'completed').length,
       processing: images.filter(img => img.status === 'processing').length,
-      failed: images.filter(img => img.status === 'failed').length
+      failed: images.filter(img => img.status === 'failed').length,
+      pending: images.filter(img => img.status === 'pending').length
     };
 
     return (
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
         <Card>
           <CardContent className="p-4 text-center">
             <h3 className="text-2xl font-bold text-gray-900">{stats.total}</h3>
@@ -350,14 +295,20 @@ const ImageReview = () => {
         </Card>
         <Card>
           <CardContent className="p-4 text-center">
-            <h3 className="text-2xl font-bold text-green-600">{stats.completed}</h3>
-            <p className="text-sm text-gray-600">Completadas</p>
+            <h3 className="text-2xl font-bold text-gray-600">{stats.pending}</h3>
+            <p className="text-sm text-gray-600">Pendientes</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4 text-center">
             <h3 className="text-2xl font-bold text-blue-600">{stats.processing}</h3>
             <p className="text-sm text-gray-600">Procesando</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 text-center">
+            <h3 className="text-2xl font-bold text-green-600">{stats.completed}</h3>
+            <p className="text-sm text-gray-600">Completados</p>
           </CardContent>
         </Card>
         <Card>
@@ -370,7 +321,6 @@ const ImageReview = () => {
     );
   };
 
-  // ✅ ACCIONES ACTUALIZADAS
   const actions = (
     <div className="flex items-center gap-3">
       <div className="flex items-center gap-2">
@@ -397,7 +347,6 @@ const ImageReview = () => {
         {showComparison ? 'Ocultar' : 'Mostrar'} Comparación
       </Button>
       
-      {/* ✅ BOTONES PRINCIPALES */}
       {selectedImages.length > 0 && (
         <div className="flex items-center gap-2">
           <Button 
@@ -410,7 +359,7 @@ const ImageReview = () => {
             ) : (
               <Save className="h-4 w-4 mr-2" />
             )}
-            Guardar en Storage ({selectedImages.length})
+            Marcar como Guardadas ({selectedImages.length})
           </Button>
           
           <Button 
@@ -425,7 +374,7 @@ const ImageReview = () => {
             ) : (
               <Palette className="h-4 w-4 mr-2" />
             )}
-            Guardar Y Crear Catálogo
+            Crear Catálogo
           </Button>
         </div>
       )}
@@ -460,7 +409,7 @@ const ImageReview = () => {
             <CardContent className="text-center py-12">
               <FileImage className="h-16 w-16 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">
-                No hay imágenes procesadas
+                No hay imágenes para revisar
               </h3>
               <p className="text-gray-600 mb-4">
                 Ve a tu biblioteca de productos y selecciona algunos para procesar sus imágenes
@@ -487,7 +436,7 @@ const ImageReview = () => {
                         Procesando {images.filter(img => img.status === 'processing').length} imágenes...
                       </h4>
                       <p className="text-sm text-blue-700">
-                        El sistema está quitando fondos y optimizando las imágenes. Actualización automática cada 10 segundos.
+                        El sistema está quitando fondos y optimizando las imágenes. Actualización automática cada 15 segundos.
                       </p>
                     </div>
                   </div>
@@ -519,96 +468,120 @@ const ImageReview = () => {
 
             {/* Images grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredImages.map((image) => (
-                <Card key={image.id} className="overflow-hidden hover:shadow-md transition-shadow">
-                  {/* ✅ COMPARACIÓN ANTES/DESPUÉS */}
-                  {showComparison && image.status === 'completed' && image.processed_url !== image.original_url ? (
-                    <div className="grid grid-cols-2 gap-1">
-                      <div className="relative aspect-square bg-gray-100">
-                        <img
-                          src={image.original_url}
-                          alt={`${image.product_name} - Original`}
-                          className="w-full h-full object-cover"
-                        />
-                        <div className="absolute bottom-1 left-1">
-                          <Badge className="bg-red-100 text-red-800 text-xs">Original</Badge>
+              {filteredImages.map((image) => {
+                const product = products.find(p => p.id === image.product_id);
+                const hasComparison = product && hasBeforeAfterComparison(product);
+                
+                return (
+                  <Card key={image.id} className="overflow-hidden hover:shadow-md transition-shadow">
+                    {/* ✅ COMPARACIÓN ANTES/DESPUÉS */}
+                    {showComparison && hasComparison && image.status === 'completed' ? (
+                      <div className="grid grid-cols-2 gap-1">
+                        <div className="relative aspect-square bg-gray-100">
+                          <img
+                            src={image.original_url}
+                            alt={`${image.product_name} - Original`}
+                            className="w-full h-full object-cover"
+                          />
+                          <div className="absolute bottom-1 left-1">
+                            <Badge className="bg-red-100 text-red-800 text-xs">Original</Badge>
+                          </div>
+                        </div>
+                        <div className="relative aspect-square bg-gray-100">
+                          <img
+                            src={image.processed_url || image.hd_url || image.original_url}
+                            alt={`${image.product_name} - Procesada`}
+                            className="w-full h-full object-cover"
+                          />
+                          <div className="absolute bottom-1 left-1">
+                            <Badge className="bg-green-100 text-green-800 text-xs">Sin fondo</Badge>
+                          </div>
                         </div>
                       </div>
+                    ) : (
                       <div className="relative aspect-square bg-gray-100">
                         <img
-                          src={image.processed_url}
-                          alt={`${image.product_name} - Procesada`}
+                          src={image.processed_url || image.hd_url || image.original_url}
+                          alt={image.product_name}
                           className="w-full h-full object-cover"
                         />
-                        <div className="absolute bottom-1 left-1">
-                          <Badge className="bg-green-100 text-green-800 text-xs">Sin fondo</Badge>
-                        </div>
+                        
+                        {/* ✅ PROGRESO DE PROCESAMIENTO */}
+                        {image.status === 'processing' && (
+                          <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                            <div className="text-center text-white">
+                              <Loader2 className="w-8 h-8 animate-spin mx-auto mb-2" />
+                              <div className="text-sm">{image.progress}%</div>
+                            </div>
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  ) : (
-                    <div className="relative aspect-square bg-gray-100">
-                      <img
-                        src={image.processed_url || image.original_url}
-                        alt={image.product_name}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                  )}
-                  
-                  {/* ✅ CONTROLES */}
-                  <div className="absolute top-2 left-2">
-                    <Checkbox
-                      checked={selectedImages.includes(image.id)}
-                      onCheckedChange={() => toggleImageSelection(image.id)}
-                      className="bg-white"
-                      disabled={image.status !== 'completed'}
-                    />
-                  </div>
-                  <div className="absolute top-2 right-2">
-                    {getStatusBadge(image.status)}
-                  </div>
-                  
-                  <CardContent className="p-4">
-                    <h3 className="font-semibold mb-1 truncate">{image.product_name}</h3>
-                    {image.product_description && (
-                      <p className="text-sm text-gray-600 mb-2 line-clamp-2">
-                        {image.product_description}
-                      </p>
                     )}
                     
-                    <div className="flex items-center justify-between mb-3">
-                      {image.price_retail && (
-                        <span className="font-bold text-primary">
-                          ${image.price_retail.toFixed(2)} MXN
-                        </span>
-                      )}
-                      {image.category && (
-                        <Badge variant="outline" className="text-xs">
-                          {image.category}
-                        </Badge>
-                      )}
+                    {/* ✅ CONTROLES */}
+                    <div className="absolute top-2 left-2">
+                      <Checkbox
+                        checked={selectedImages.includes(image.id)}
+                        onCheckedChange={() => toggleImageSelection(image.id)}
+                        className="bg-white"
+                        disabled={image.status !== 'completed'}
+                      />
                     </div>
-
-                    <div className="text-xs text-gray-500 mb-3">
-                      <div>API: {image.api_used || 'Pixelcut'}</div>
-                      <div>Créditos: {image.credits_used || 1}</div>
-                      <div>{new Date(image.created_at).toLocaleDateString('es-ES')}</div>
+                    <div className="absolute top-2 right-2">
+                      {getStatusBadge(image.status)}
                     </div>
                     
-                    <div className="flex gap-2">
-                      <Button size="sm" variant="outline" className="flex-1">
-                        <Eye className="h-3 w-3 mr-1" />
-                        Ver
-                      </Button>
-                      {image.status === 'completed' && (
-                        <Button size="sm" variant="outline">
-                          <Download className="h-3 w-3" />
-                        </Button>
+                    <CardContent className="p-4">
+                      <h3 className="font-semibold mb-1 truncate">{image.product_name}</h3>
+                      {image.product_description && (
+                        <p className="text-sm text-gray-600 mb-2 line-clamp-2">
+                          {image.product_description}
+                        </p>
                       )}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                      
+                      <div className="flex items-center justify-between mb-3">
+                        {image.price_retail && (
+                          <span className="font-bold text-primary">
+                            ${(image.price_retail / 100).toFixed(2)} MXN
+                          </span>
+                        )}
+                        {image.category && (
+                          <Badge variant="outline" className="text-xs">
+                            {image.category}
+                          </Badge>
+                        )}
+                      </div>
+
+                      {/* ✅ INFO DE PROCESAMIENTO */}
+                      <div className="text-xs text-gray-500 mb-3">
+                        <div>Estado: {image.status}</div>
+                        <div>Servicio: {image.service_type || 'básico'}</div>
+                        <div>Créditos: {image.credits_used || 'N/A'}</div>
+                        <div>{new Date(image.created_at).toLocaleDateString('es-ES')}</div>
+                      </div>
+
+                      {/* ✅ ERROR MESSAGE */}
+                      {image.status === 'failed' && image.error_message && (
+                        <div className="bg-red-50 border border-red-200 rounded p-2 mb-3">
+                          <p className="text-xs text-red-700">{image.error_message}</p>
+                        </div>
+                      )}
+                      
+                      <div className="flex gap-2">
+                        <Button size="sm" variant="outline" className="flex-1">
+                          <Eye className="h-3 w-3 mr-1" />
+                          Ver
+                        </Button>
+                        {image.status === 'completed' && (
+                          <Button size="sm" variant="outline">
+                            <Download className="h-3 w-3" />
+                          </Button>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
 
             {/* ✅ INFO PARA CREAR CATÁLOGO */}
@@ -622,7 +595,7 @@ const ImageReview = () => {
                         {selectedImages.length} imágenes seleccionadas para catálogo
                       </h4>
                       <p className="text-sm text-green-700">
-                        Las imágenes procesadas están listas para crear un catálogo profesional con fondos transparentes.
+                        Las imágenes están listas para crear un catálogo profesional con fondos transparentes.
                       </p>
                     </div>
                   </div>
