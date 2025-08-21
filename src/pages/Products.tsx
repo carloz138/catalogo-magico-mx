@@ -237,6 +237,59 @@ const Products = () => {
 
   const stats = getStats();
 
+  const handleViewProduct = (product: Product) => {
+    // Abrir modal o navegar a vista de producto
+    console.log('Ver producto:', product.name);
+    toast({
+      title: "Vista de producto",
+      description: `Abriendo ${product.name}`,
+    });
+    // TODO: Implementar modal de vista de producto
+  };
+
+  const handleEditProduct = (product: Product) => {
+    console.log('Editar producto:', product.name);
+    toast({
+      title: "Editar producto",
+      description: `Editando ${product.name}`,
+    });
+    // TODO: Implementar modal de edición de producto
+  };
+
+  const handleDeleteProduct = async (product: Product) => {
+    if (!confirm(`¿Estás seguro de que quieres eliminar "${product.name}"?`)) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('products')
+        .delete()
+        .eq('id', product.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Producto eliminado",
+        description: `${product.name} ha sido eliminado correctamente`,
+      });
+
+      // Recargar productos
+      await loadProducts();
+
+      // Remover de selección si estaba seleccionado
+      setSelectedProducts(prev => prev.filter(id => id !== product.id));
+
+    } catch (error) {
+      console.error('Error eliminando producto:', error);
+      toast({
+        title: "Error",
+        description: "No se pudo eliminar el producto",
+        variant: "destructive",
+      });
+    }
+  };
+
   const actions = (
     <div className="flex items-center gap-3">
       <div className="flex items-center gap-2">
@@ -413,7 +466,7 @@ const Products = () => {
               </CardContent>
             </Card>
 
-            {/* ✅ GRID DE PRODUCTOS */}
+            {/* ✅ GRID DE PRODUCTOS CON BOTONES FUNCIONALES */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {filteredProducts.map((product) => {
                 const status = getProcessingStatus(product);
@@ -495,16 +548,34 @@ const Products = () => {
                         </div>
                       )}
                       
+                      {/* ✅ BOTONES CON FUNCIONALIDAD */}
                       <div className="flex gap-2">
-                        <Button size="sm" variant="outline" className="flex-1" disabled={processing}>
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="flex-1" 
+                          disabled={processing}
+                          onClick={() => handleViewProduct(product)}
+                        >
                           <Eye className="h-3 w-3 mr-1" />
                           Ver
                         </Button>
-                        <Button size="sm" variant="outline" className="flex-1" disabled={processing}>
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="flex-1" 
+                          disabled={processing}
+                          onClick={() => handleEditProduct(product)}
+                        >
                           <Edit className="h-3 w-3 mr-1" />
                           Editar
                         </Button>
-                        <Button size="sm" variant="outline" disabled={processing}>
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          disabled={processing}
+                          onClick={() => handleDeleteProduct(product)}
+                        >
                           <Trash2 className="h-3 w-3" />
                         </Button>
                       </div>
