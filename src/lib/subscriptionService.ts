@@ -38,10 +38,7 @@ class SubscriptionService {
     try {
       const { data: creditUsage } = await supabase
         .from('credit_usage')
-        .select(`
-          *,
-          package:credit_packages(name, package_type)
-        `)
+        .select('*')
         .eq('user_id', userId)
         .gt('credits_remaining', 0)
         .order('created_at', { ascending: true });
@@ -50,18 +47,13 @@ class SubscriptionService {
         return { total: 0, fromPlan: 0, fromPurchases: 0, breakdown: [] };
       }
 
-      const fromPlan = creditUsage
-        .filter(c => c.package?.package_type === 'monthly_plan')
-        .reduce((sum, c) => sum + c.credits_remaining, 0);
-
-      const fromPurchases = creditUsage
-        .filter(c => c.package?.package_type === 'addon')
-        .reduce((sum, c) => sum + c.credits_remaining, 0);
+      // For now, treat all credits the same since we don't have package relationship
+      const total = creditUsage.reduce((sum, c) => sum + c.credits_remaining, 0);
 
       return {
-        total: fromPlan + fromPurchases,
-        fromPlan,
-        fromPurchases,
+        total,
+        fromPlan: 0, // Will be implemented when package relationship is available
+        fromPurchases: total,
         breakdown: creditUsage
       };
     } catch (error) {
@@ -78,25 +70,20 @@ class SubscriptionService {
     isActive: boolean;
   }> {
     try {
-      const { data: planUsage } = await supabase
-        .from('credit_usage')
-        .select(`
-          *,
-          package:credit_packages(*)
-        `)
-        .eq('user_id', userId)
-        .is('expired_at', null)
-        .order('created_at', { ascending: false });
+      // Get user info from users table
+      const { data: user } = await supabase
+        .from('users')
+        .select('current_plan, monthly_plan_credits')
+        .eq('id', userId)
+        .single();
 
-      const monthlyPlan = planUsage?.find(u => u.package?.package_type === 'monthly_plan');
-
-      if (monthlyPlan && monthlyPlan.package) {
+      if (user) {
         return {
-          planName: monthlyPlan.package.name,
-          maxUploads: monthlyPlan.package.max_uploads || 10,
-          maxCatalogs: monthlyPlan.package.max_catalogs || 1,
-          planCredits: monthlyPlan.credits_remaining,
-          isActive: true
+          planName: user.current_plan || 'Plan Gratuito',
+          maxUploads: 10, // Default values
+          maxCatalogs: 1,
+          planCredits: user.monthly_plan_credits || 0,
+          isActive: user.current_plan !== 'free'
         };
       }
 
@@ -164,7 +151,6 @@ class SubscriptionService {
         .select('*')
         .eq('user_id', userId)
         .gt('credits_remaining', 0)
-        .is('expired_at', null)
         .order('created_at', { ascending: true });
 
       if (!availableCredits || availableCredits.length === 0) {
@@ -182,7 +168,8 @@ class SubscriptionService {
         const { error } = await supabase
           .from('credit_usage')
           .update({ 
-            credits_used: creditEntry.credits_used + canConsume 
+            credits_used: creditEntry.credits_used + canConsume,
+            credits_remaining: creditEntry.credits_remaining - canConsume
           })
           .eq('id', creditEntry.id);
 
@@ -201,15 +188,15 @@ class SubscriptionService {
 
   async simulateCreditPurchase(userId: string, packageId: string): Promise<boolean> {
     try {
-      const { data: package } = await supabase
+      const { data: creditPackage } = await supabase
         .from('credit_packages')
         .select('*')
         .eq('id', packageId)
         .single();
 
-      if (!package) return false;
+      if (!creditPackage) return false;
 
-      const expiresAt = package.package_type === 'monthly_plan' 
+      const expiresAt = creditPackage.package_type === 'monthly_plan' 
         ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
         : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
 
@@ -217,12 +204,10 @@ class SubscriptionService {
         .from('credit_usage')
         .insert({
           user_id: userId,
-          package_id: packageId,
-          credits_purchased: package.credits,
           credits_used: 0,
-          credits_remaining: package.credits,
-          amount_paid: package.price_mxn * 100,
-          expires_at: expiresAt.toISOString()
+          credits_remaining: creditPackage.credits,
+          usage_type: 'credit_purchase',
+          description: `Compra de ${creditPackage.credits} créditos - ${creditPackage.name}`
         });
 
       return !error;
@@ -241,7 +226,18 @@ class SubscriptionService {
       .lte('price_mxn', 500)
       .order('price_mxn', { ascending: true });
 
-    return data || [];
+    return (data || []).map(pkg => ({
+      id: pkg.id,
+      name: pkg.name,
+      credits: pkg.credits,
+      price_mxn: pkg.price_mxn,
+      price_usd: pkg.price_usd || 0,
+      is_active: pkg.is_active,
+      package_type: 'addon' as const,
+      max_uploads: pkg.max_uploads,
+      max_catalogs: pkg.max_catalogs,
+      duration_months: pkg.duration_months
+    }));
   }
 }
 
