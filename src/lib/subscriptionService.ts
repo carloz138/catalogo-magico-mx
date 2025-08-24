@@ -1,4 +1,4 @@
-// src/lib/subscriptionService.ts - VERSIÓN COMPATIBLE
+// src/lib/subscriptionService.ts
 import { supabase } from '@/integrations/supabase/client';
 
 export interface UsageValidation {
@@ -15,7 +15,6 @@ export interface UsageValidation {
 
 class SubscriptionService {
   
-  // 1. OBTENER CRÉDITOS DISPONIBLES DEL USUARIO
   async getAvailableCredits(userId: string): Promise<{
     total: number;
     fromPlan: number;
@@ -24,7 +23,6 @@ class SubscriptionService {
     try {
       console.log('🔍 Getting credits for user:', userId);
       
-      // Obtener todas las entradas de credit_usage para el usuario
       const { data: creditUsage, error } = await supabase
         .from('credit_usage')
         .select(`
@@ -47,7 +45,6 @@ class SubscriptionService {
         return { total: 0, fromPlan: 0, fromPurchases: 0 };
       }
 
-      // Separar créditos de plan vs comprados
       let fromPlan = 0;
       let fromPurchases = 0;
 
@@ -72,7 +69,6 @@ class SubscriptionService {
     }
   }
 
-  // 2. OBTENER PLAN ACTUAL DEL USUARIO
   async getCurrentUserPlan(userId: string): Promise<{
     planName: string;
     maxUploads: number;
@@ -80,7 +76,6 @@ class SubscriptionService {
     isActive: boolean;
   }> {
     try {
-      // Buscar si tiene un plan mensual activo
       const { data: planUsage, error } = await supabase
         .from('credit_usage')
         .select(`
@@ -95,7 +90,6 @@ class SubscriptionService {
         return { planName: 'Error', maxUploads: 0, maxCatalogs: 0, isActive: false };
       }
 
-      // Buscar el plan mensual más reciente
       const monthlyPlan = planUsage?.find(entry => 
         entry.package?.package_type === 'monthly_plan'
       );
@@ -110,7 +104,6 @@ class SubscriptionService {
         };
       }
 
-      // Default: Plan gratuito
       console.log('🆓 Using free plan');
       return {
         planName: 'Plan Gratuito',
@@ -124,7 +117,6 @@ class SubscriptionService {
     }
   }
 
-  // 3. VALIDACIÓN PRINCIPAL
   async validateUsage(userId: string): Promise<UsageValidation> {
     try {
       console.log('🔎 Validating usage for user:', userId);
@@ -132,7 +124,6 @@ class SubscriptionService {
       const credits = await this.getAvailableCredits(userId);
       const plan = await this.getCurrentUserPlan(userId);
 
-      // Por simplicidad, asumimos 0 uso actual (puedes implementar tracking después)
       const currentUploads = 0;
       const currentCatalogs = 0;
 
@@ -166,17 +157,16 @@ class SubscriptionService {
     }
   }
 
-  // 4. CONSUMIR CRÉDITOS
   async consumeBackgroundRemovalCredit(userId: string, creditsNeeded: number = 1): Promise<boolean> {
     try {
-      console.log(`🔥 Attempting to consume ${creditsNeeded} credits for user ${userId}`);
+      console.log(`🔥 Consuming ${creditsNeeded} credits for user ${userId}`);
 
       const { data: availableCredits, error } = await supabase
         .from('credit_usage')
         .select('*')
         .eq('user_id', userId)
         .gt('credits_remaining', 0)
-        .order('created_at', { ascending: true }); // FIFO
+        .order('created_at', { ascending: true });
 
       if (error || !availableCredits || availableCredits.length === 0) {
         console.log('❌ No credits available');
@@ -213,12 +203,10 @@ class SubscriptionService {
     }
   }
 
-  // 5. SIMULAR COMPRA DE CRÉDITOS (para testing)
   async simulateCreditPurchase(userId: string, packageId: string): Promise<boolean> {
     try {
-      console.log(`💳 Simulating purchase of package ${packageId} for user ${userId}`);
+      console.log(`💳 Simulating purchase for user ${userId}`);
 
-      // Obtener info del paquete
       const { data: packageInfo, error: packageError } = await supabase
         .from('credit_packages')
         .select('*')
@@ -226,16 +214,14 @@ class SubscriptionService {
         .single();
 
       if (packageError || !packageInfo) {
-        console.error('❌ Package not found:', packageError);
+        console.error('❌ Package not found');
         return false;
       }
 
-      // Fecha de expiración
       const expiresAt = packageInfo.package_type === 'monthly_plan' 
-        ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 días
-        : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000); // 1 año
+        ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+        : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
 
-      // Insertar en credit_usage
       const { error: insertError } = await supabase
         .from('credit_usage')
         .insert({
@@ -244,7 +230,7 @@ class SubscriptionService {
           credits_purchased: packageInfo.credits,
           credits_used: 0,
           credits_remaining: packageInfo.credits,
-          amount_paid: packageInfo.price_mxn * 100, // centavos
+          amount_paid: packageInfo.price_mxn * 100,
           expires_at: expiresAt.toISOString()
         });
 
@@ -253,56 +239,28 @@ class SubscriptionService {
         return false;
       }
 
-      console.log(`✅ Successfully simulated purchase of ${packageInfo.name}`);
+      console.log(`✅ Successfully simulated purchase`);
       return true;
     } catch (error) {
       console.error('❌ Error simulating purchase:', error);
       return false;
     }
   }
-
-  // 6. OBTENER PACKS DISPONIBLES
-  async getAvailableCreditPacks(): Promise<any[]> {
-    try {
-      const { data, error } = await supabase
-        .from('credit_packages')
-        .select('*')
-        .eq('is_active', true)
-        .eq('package_type', 'addon')
-        .lte('price_mxn', 500) // Solo packs razonables
-        .order('price_mxn', { ascending: true });
-
-      if (error) {
-        console.error('❌ Error getting credit packs:', error);
-        return [];
-      }
-
-      return data || [];
-    } catch (error) {
-      console.error('❌ Error getting credit packs:', error);
-      return [];
-    }
-  }
 }
 
 export const subscriptionService = new SubscriptionService();
 
-// 🧪 FUNCIÓN DE TESTING
 export const testSubscriptionService = async (userId: string) => {
-  console.log('🧪 =================================');
   console.log('🧪 TESTING SUBSCRIPTION SERVICE');
-  console.log('🧪 =================================');
   
   const credits = await subscriptionService.getAvailableCredits(userId);
-  console.log('💳 Available Credits:', credits);
+  console.log('💳 Credits:', credits);
   
   const plan = await subscriptionService.getCurrentUserPlan(userId);
-  console.log('📋 Current Plan:', plan);
+  console.log('📋 Plan:', plan);
   
   const validation = await subscriptionService.validateUsage(userId);
-  console.log('✅ Usage Validation:', validation);
+  console.log('✅ Validation:', validation);
   
-  console.log('🧪 =================================');
   return { credits, plan, validation };
 };
-
