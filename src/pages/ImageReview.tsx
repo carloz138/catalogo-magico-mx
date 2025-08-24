@@ -9,24 +9,18 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { Product, ProcessedImageForUI, productToProcessedImage, getDisplayImageUrl, getProcessingStatus, hasBeforeAfterComparison } from '@/types/products';
+import { Product, ProcessedImageForUI, productToProcessedImage, getDisplayImageUrl } from '@/types/products';
 import { 
   FileImage, 
   CheckCircle, 
-  XCircle, 
   Eye, 
   Download,
-  Filter,
   RefreshCw,
   Palette,
   Save,
-  ArrowLeftRight,
   Loader2,
   Package,
-  AlertCircle,
-  Clock,
-  Zap,
-  Bug // ✅ NUEVO: Para debugging
+  Bug
 } from 'lucide-react';
 
 const ImageReview = () => {
@@ -37,15 +31,11 @@ const ImageReview = () => {
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [filterStatus, setFilterStatus] = useState<string>('all');
-  const [showComparison, setShowComparison] = useState<boolean>(true);
-  // ✅ NUEVO: Estados de debugging
   const [debugMode, setDebugMode] = useState(false);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
 
   useEffect(() => {
     loadProcessedImages();
-    // ✅ Auto-refresh cada 10 segundos (más frecuente para testing)
     const interval = setInterval(() => {
       console.log('🔄 Auto-refresh triggered');
       loadProcessedImages();
@@ -57,7 +47,7 @@ const ImageReview = () => {
     if (!user) return;
 
     try {
-      console.log('🔍 Cargando productos para review...');
+      console.log('🔍 Cargando productos procesados...');
       setLastRefresh(new Date());
       
       const { data: productsData, error } = await supabase
@@ -81,55 +71,19 @@ const ImageReview = () => {
 
       console.log(`📦 Cargados ${productsData?.length || 0} productos`);
       
-      // ✅ DEBUGGING DETALLADO
-      if (debugMode && productsData) {
-        console.log('🐛 DEBUGGING - Productos cargados:', productsData.map(p => ({
-          id: p.id.slice(-6),
-          name: p.name,
-          original_image_url: p.original_image_url ? 'Sí' : 'No',
-          processed_image_url: p.processed_image_url ? 'Sí' : 'No',
-          processing_status: p.processing_status,
-          is_processed: p.is_processed,
-          processed_at: p.processed_at ? 'Sí' : 'No',
-          created_at: new Date(p.created_at).toLocaleTimeString()
-        })));
-      }
-      
       setProducts(productsData || []);
 
-      // ✅ CONVERTIR a formato para UI con debugging
-      const convertedImages = (productsData || []).map((product, index) => {
-        const converted = productToProcessedImage(product);
-        
-        if (debugMode) {
-          console.log(`🐛 DEBUGGING - Producto ${index + 1}:`, {
-            id: product.id.slice(-6),
-            name: product.name,
-            status_determinado: converted.status,
-            original_url: converted.original_url ? 'Sí' : 'No',
-            processed_url: converted.processed_url ? 'Sí' : 'No',
-            processing_status_bd: product.processing_status,
-            is_processed_bd: product.is_processed,
-            processed_at_bd: product.processed_at ? 'Sí' : 'No'
-          });
-        }
-        
-        return converted;
-      });
+      // Convertir a formato para UI - SOLO imágenes completadas con imagen procesada
+      const convertedImages = (productsData || [])
+        .map(product => productToProcessedImage(product))
+        .filter(img => 
+          img.status === 'completed' && 
+          (img.processed_url || img.hd_url)
+        );
       
       setImages(convertedImages);
       
-      console.log(`✅ Convertidos ${convertedImages.length} productos para review`);
-      
-      // ✅ LOGGING DE ESTADOS
-      const statusCounts = {
-        pending: convertedImages.filter(img => img.status === 'pending').length,
-        processing: convertedImages.filter(img => img.status === 'processing').length,
-        completed: convertedImages.filter(img => img.status === 'completed').length,
-        failed: convertedImages.filter(img => img.status === 'failed').length
-      };
-      
-      console.log('📊 Estados de productos:', statusCounts);
+      console.log(`✅ ${convertedImages.length} imágenes procesadas listas para review`);
       
     } catch (error) {
       console.error('❌ Error cargando imágenes procesadas:', error);
@@ -143,20 +97,17 @@ const ImageReview = () => {
     }
   };
 
-  // ✅ FUNCIÓN NUEVA: Forzar refresh manual
   const handleForceRefresh = async () => {
     console.log('🔄 FORCE REFRESH manual triggered');
     setLoading(true);
     await loadProcessedImages();
   };
 
-  // ✅ FUNCIÓN NUEVA: Debug mode toggle
   const toggleDebugMode = () => {
     setDebugMode(!debugMode);
     console.log('🐛 Debug mode:', !debugMode ? 'ENABLED' : 'DISABLED');
   };
 
-  // ✅ FUNCIÓN NUEVA: Verificar producto específico
   const debugSpecificProduct = async (productId: string) => {
     console.log(`🔍 DEBUGGING producto específico: ${productId}`);
     
@@ -170,23 +121,8 @@ const ImageReview = () => {
       console.error('❌ Error:', error);
     } else {
       console.log('🐛 PRODUCTO COMPLETO:', data);
-      console.log('🐛 CAMPOS CLAVE:', {
-        processing_status: data.processing_status,
-        processing_progress: data.processing_progress,
-        is_processed: data.is_processed,
-        processed_at: data.processed_at,
-        processed_image_url: data.processed_image_url,
-        image_url: data.image_url,
-        original_image_url: data.original_image_url
-      });
     }
   };
-
-  const filteredImages = images.filter(image => {
-    return filterStatus === 'all' || image.status === filterStatus;
-  });
-
-  const completedImages = filteredImages.filter(img => img.status === 'completed');
 
   const toggleImageSelection = (imageId: string) => {
     setSelectedImages(prev => 
@@ -196,12 +132,11 @@ const ImageReview = () => {
     );
   };
 
-  const selectAllCompleted = () => {
-    const completedIds = completedImages.map(img => img.id);
-    if (selectedImages.length === completedIds.length && completedIds.length > 0) {
+  const selectAllImages = () => {
+    if (selectedImages.length === images.length && images.length > 0) {
       setSelectedImages([]);
     } else {
-      setSelectedImages(completedIds);
+      setSelectedImages(images.map(img => img.id));
     }
   };
 
@@ -221,7 +156,7 @@ const ImageReview = () => {
       console.log('💾 Preparando catálogo con imágenes seleccionadas...');
       
       const selectedProductsData = images
-        .filter(img => selectedImages.includes(img.id) && img.status === 'completed')
+        .filter(img => selectedImages.includes(img.id))
         .map(img => {
           const product = products.find(p => p.id === img.product_id);
           return {
@@ -338,106 +273,19 @@ const ImageReview = () => {
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    const configs = {
-      pending: { color: 'bg-yellow-100 text-yellow-800', icon: Clock, text: 'Pendiente' },
-      processing: { color: 'bg-blue-100 text-blue-800', icon: Loader2, text: 'Procesando' },
-      completed: { color: 'bg-green-100 text-green-800', icon: CheckCircle, text: 'Completado' },
-      failed: { color: 'bg-red-100 text-red-800', icon: XCircle, text: 'Error' },
-    };
-    
-    const config = configs[status as keyof typeof configs] || configs.pending;
-    const Icon = config.icon;
-    
-    return (
-      <Badge className={`${config.color} flex items-center gap-1`} variant="outline">
-        <Icon className={`w-3 h-3 ${status === 'processing' ? 'animate-spin' : ''}`} />
-        {config.text}
-      </Badge>
-    );
-  };
-
-  const getStatsCards = () => {
-    const stats = {
-      total: images.length,
-      completed: images.filter(img => img.status === 'completed').length,
-      processing: images.filter(img => img.status === 'processing').length,
-      failed: images.filter(img => img.status === 'failed').length,
-      pending: images.filter(img => img.status === 'pending').length
-    };
-
-    return (
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-        <Card>
-          <CardContent className="p-4 text-center">
-            <h3 className="text-2xl font-bold text-gray-900">{stats.total}</h3>
-            <p className="text-sm text-gray-600">Total</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 text-center">
-            <h3 className="text-2xl font-bold text-gray-600">{stats.pending}</h3>
-            <p className="text-sm text-gray-600">Pendientes</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 text-center">
-            <h3 className="text-2xl font-bold text-blue-600">{stats.processing}</h3>
-            <p className="text-sm text-gray-600">Procesando</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 text-center">
-            <h3 className="text-2xl font-bold text-green-600">{stats.completed}</h3>
-            <p className="text-sm text-gray-600">Completados</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 text-center">
-            <h3 className="text-2xl font-bold text-red-600">{stats.failed}</h3>
-            <p className="text-sm text-gray-600">Errores</p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  };
-
   const actions = (
     <div className="flex items-center gap-3">
-      <div className="flex items-center gap-2">
-        <Filter className="h-4 w-4 text-gray-400" />
-        <select
-          value={filterStatus}
-          onChange={(e) => setFilterStatus(e.target.value)}
-          className="border border-gray-300 rounded-md px-3 py-1 text-sm"
+      {debugMode && (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={toggleDebugMode}
+          className="bg-red-50 border-red-300 text-red-700"
         >
-          <option value="all">Todos los estados</option>
-          <option value="completed">Completadas</option>
-          <option value="processing">Procesando</option>
-          <option value="pending">Pendientes</option>
-          <option value="failed">Con error</option>
-        </select>
-      </div>
-
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => setShowComparison(!showComparison)}
-      >
-        <ArrowLeftRight className="h-4 w-4 mr-2" />
-        {showComparison ? 'Ocultar' : 'Mostrar'} Comparación
-      </Button>
-
-      {/* ✅ NUEVO: Botón de debug */}
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={toggleDebugMode}
-        className={debugMode ? 'bg-red-50 border-red-300 text-red-700' : ''}
-      >
-        <Bug className="h-4 w-4 mr-2" />
-        Debug {debugMode ? 'ON' : 'OFF'}
-      </Button>
+          <Bug className="h-4 w-4 mr-2" />
+          Debug ON
+        </Button>
+      )}
       
       {selectedImages.length > 0 && (
         <div className="flex items-center gap-2">
@@ -445,21 +293,20 @@ const ImageReview = () => {
             variant="outline"
             onClick={handleSaveToStorage}
             disabled={saving}
+            size="sm"
           >
             {saving ? (
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
             ) : (
               <Save className="h-4 w-4 mr-2" />
             )}
-            Marcar como Guardadas ({selectedImages.length})
+            Guardar ({selectedImages.length})
           </Button>
           
           <Button 
             onClick={handleSaveAndCreateCatalog}
-            disabled={saving || selectedImages.filter(id => {
-              const img = images.find(i => i.id === id);
-              return img?.status === 'completed';
-            }).length === 0}
+            disabled={saving}
+            size="sm"
           >
             {saving ? (
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -475,6 +322,16 @@ const ImageReview = () => {
         <RefreshCw className="h-4 w-4 mr-2" />
         Actualizar
       </Button>
+
+      {!debugMode && (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={toggleDebugMode}
+        >
+          <Bug className="h-4 w-4" />
+        </Button>
+      )}
     </div>
   );
 
@@ -496,7 +353,6 @@ const ImageReview = () => {
   return (
     <ProtectedRoute>
       <AppLayout actions={actions}>
-        {/* ✅ NUEVO: Panel de debugging */}
         {debugMode && (
           <Card className="mb-6 border-red-200 bg-red-50">
             <CardContent className="p-4">
@@ -511,17 +367,12 @@ const ImageReview = () => {
                 </div>
                 <div>
                   <strong>Total productos:</strong><br />
-                  {products.length} en BD, {images.length} en UI
+                  {products.length} en BD, {images.length} procesadas
                 </div>
                 <div>
-                  <strong>Estados:</strong><br />
-                  P: {images.filter(i => i.status === 'processing').length}, 
-                  C: {images.filter(i => i.status === 'completed').length}, 
-                  F: {images.filter(i => i.status === 'failed').length}
+                  <strong>Seleccionadas:</strong><br />
+                  {selectedImages.length} de {images.length}
                 </div>
-              </div>
-              <div className="mt-3 text-xs text-red-700">
-                Auto-refresh cada 10 segundos. Revisa Console para logs detallados.
               </div>
             </CardContent>
           </Card>
@@ -532,10 +383,10 @@ const ImageReview = () => {
             <CardContent className="text-center py-12">
               <FileImage className="h-16 w-16 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">
-                No hay imágenes para revisar
+                No hay imágenes procesadas
               </h3>
               <p className="text-gray-600 mb-4">
-                Ve a tu biblioteca de productos y selecciona algunos para procesar sus imágenes
+                Ve a tu biblioteca de productos y procesa algunas imágenes para remover el fondo
               </p>
               <Button onClick={() => navigate('/products')}>
                 <Package className="h-4 w-4 mr-2" />
@@ -545,37 +396,17 @@ const ImageReview = () => {
           </Card>
         ) : (
           <div className="space-y-6">
-            {getStatsCards()}
-
-            {images.filter(img => img.status === 'processing').length > 0 && (
-              <Card className="border-blue-200 bg-blue-50">
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-3">
-                    <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
-                    <div>
-                      <h4 className="font-semibold text-blue-900">
-                        Procesando {images.filter(img => img.status === 'processing').length} imágenes...
-                      </h4>
-                      <p className="text-sm text-blue-700">
-                        El sistema está quitando fondos y optimizando las imágenes. Actualización automática cada 10 segundos.
-                        {debugMode && ` (Última: ${lastRefresh.toLocaleTimeString()})`}
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
+            {/* Stats Card */}
             <Card>
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
                     <Checkbox
-                      checked={selectedImages.length === completedImages.length && completedImages.length > 0}
-                      onCheckedChange={selectAllCompleted}
+                      checked={selectedImages.length === images.length && images.length > 0}
+                      onCheckedChange={selectAllImages}
                     />
                     <span className="text-sm text-gray-600">
-                      {selectedImages.length} de {completedImages.length} imágenes completadas seleccionadas
+                      {selectedImages.length} de {images.length} imágenes seleccionadas
                     </span>
                     {selectedImages.length > 0 && (
                       <Badge variant="outline" className="bg-green-50 text-green-700">
@@ -583,140 +414,92 @@ const ImageReview = () => {
                       </Badge>
                     )}
                   </div>
+                  
+                  <div className="flex items-center gap-4 text-sm text-gray-500">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4 text-green-600" />
+                      <span>{images.length} procesadas</span>
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredImages.map((image) => {
-                const product = products.find(p => p.id === image.product_id);
-                const hasComparison = product && hasBeforeAfterComparison(product);
-                
-                return (
-                  <Card key={image.id} className="overflow-hidden hover:shadow-md transition-shadow">
-                    {showComparison && hasComparison && image.status === 'completed' ? (
-                      <div className="grid grid-cols-2 gap-1">
-                        <div className="relative aspect-square bg-gray-100">
-                          <img
-                            src={image.original_url}
-                            alt={`${image.product_name} - Original`}
-                            className="w-full h-full object-cover"
-                          />
-                          <div className="absolute bottom-1 left-1">
-                            <Badge className="bg-red-100 text-red-800 text-xs">Original</Badge>
-                          </div>
-                        </div>
-                        <div className="relative aspect-square bg-gray-100">
-                          <img
-                            src={image.processed_url || image.hd_url || image.original_url}
-                            alt={`${image.product_name} - Procesada`}
-                            className="w-full h-full object-cover"
-                          />
-                          <div className="absolute bottom-1 left-1">
-                            <Badge className="bg-green-100 text-green-800 text-xs">Sin fondo</Badge>
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="relative aspect-square bg-gray-100">
-                        <img
-                          src={image.processed_url || image.hd_url || image.original_url}
-                          alt={image.product_name}
-                          className="w-full h-full object-cover"
-                        />
-                        
-                        {image.status === 'processing' && (
-                          <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                            <div className="text-center text-white">
-                              <Loader2 className="w-8 h-8 animate-spin mx-auto mb-2" />
-                              <div className="text-sm">{image.progress}%</div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
+            {/* Grid de imágenes procesadas - MÁS PEQUEÑAS */}
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
+              {images.map((image) => (
+                <Card key={image.id} className="overflow-hidden hover:shadow-md transition-shadow group">
+                  {/* Imagen procesada sin fondo */}
+                  <div className="relative aspect-square bg-gray-50">
+                    <img
+                      src={image.processed_url || image.hd_url || image.original_url}
+                      alt={image.product_name}
+                      className="w-full h-full object-cover"
+                    />
                     
+                    {/* Checkbox de selección */}
                     <div className="absolute top-2 left-2">
                       <Checkbox
                         checked={selectedImages.includes(image.id)}
                         onCheckedChange={() => toggleImageSelection(image.id)}
-                        className="bg-white"
-                        disabled={image.status !== 'completed'}
+                        className="bg-white shadow-sm"
                       />
                     </div>
-                    <div className="absolute top-2 right-2">
-                      {getStatusBadge(image.status)}
-                    </div>
                     
-                    <CardContent className="p-4">
-                      <h3 className="font-semibold mb-1 truncate">{image.product_name}</h3>
-                      {image.product_description && (
-                        <p className="text-sm text-gray-600 mb-2 line-clamp-2">
-                          {image.product_description}
-                        </p>
-                      )}
-                      
-                      <div className="flex items-center justify-between mb-3">
-                        {image.price_retail && (
-                          <span className="font-bold text-primary">
-                            ${(image.price_retail / 100).toFixed(2)} MXN
-                          </span>
-                        )}
-                        {image.category && (
-                          <Badge variant="outline" className="text-xs">
-                            {image.category}
-                          </Badge>
-                        )}
-                      </div>
+                    {/* Badge de completado */}
+                    <div className="absolute top-2 right-2">
+                      <Badge className="bg-green-100 text-green-800 text-xs">
+                        <CheckCircle className="w-3 h-3 mr-1" />
+                        Sin fondo
+                      </Badge>
+                    </div>
 
-                      <div className="text-xs text-gray-500 mb-3">
-                        <div>Estado: {image.status}</div>
-                        <div>Servicio: {image.service_type || 'básico'}</div>
-                        <div>Créditos: {image.credits_used || 'N/A'}</div>
-                        <div>{new Date(image.created_at).toLocaleDateString('es-ES')}</div>
-                        
-                        {/* ✅ NUEVO: Debug info por producto */}
-                        {debugMode && (
-                          <div className="mt-2 p-2 bg-red-50 rounded text-xs">
-                            <div>ID: {image.id.slice(-6)}</div>
-                            <div>Original: {image.original_url ? '✅' : '❌'}</div>
-                            <div>Processed: {image.processed_url ? '✅' : '❌'}</div>
-                            <div>HD: {image.hd_url ? '✅' : '❌'}</div>
-                            <div>
-                              <button 
-                                onClick={() => debugSpecificProduct(image.product_id)}
-                                className="text-red-600 hover:underline"
-                              >
-                                Debug en Console
-                              </button>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-
-                      {image.status === 'failed' && image.error_message && (
-                        <div className="bg-red-50 border border-red-200 rounded p-2 mb-3">
-                          <p className="text-xs text-red-700">{image.error_message}</p>
-                        </div>
+                    {/* Overlay con botones - visible en hover */}
+                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                      <Button size="sm" variant="secondary" className="h-8 w-8 p-0">
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button size="sm" variant="secondary" className="h-8 w-8 p-0">
+                        <Download className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  {/* Información compacta del producto */}
+                  <CardContent className="p-3">
+                    <h3 className="font-medium text-sm truncate mb-1">{image.product_name}</h3>
+                    
+                    <div className="flex items-center justify-between text-xs text-gray-600">
+                      {image.price_retail && (
+                        <span className="font-semibold text-primary">
+                          ${(image.price_retail / 100).toFixed(0)}
+                        </span>
                       )}
-                      
-                      <div className="flex gap-2">
-                        <Button size="sm" variant="outline" className="flex-1">
-                          <Eye className="h-3 w-3 mr-1" />
-                          Ver
-                        </Button>
-                        {image.status === 'completed' && (
-                          <Button size="sm" variant="outline">
-                            <Download className="h-3 w-3" />
-                          </Button>
-                        )}
+                      {image.category && (
+                        <Badge variant="outline" className="text-xs py-0">
+                          {image.category}
+                        </Badge>
+                      )}
+                    </div>
+
+                    {/* Debug info */}
+                    {debugMode && (
+                      <div className="mt-2 p-1 bg-red-50 rounded text-xs">
+                        <div>ID: {image.id.slice(-6)}</div>
+                        <button 
+                          onClick={() => debugSpecificProduct(image.product_id)}
+                          className="text-red-600 hover:underline"
+                        >
+                          Debug
+                        </button>
                       </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
             </div>
 
+            {/* Info final sobre selección */}
             {selectedImages.length > 0 && (
               <Card className="border-green-200 bg-green-50">
                 <CardContent className="p-4">
@@ -724,10 +507,10 @@ const ImageReview = () => {
                     <Palette className="h-5 w-5 text-green-600" />
                     <div>
                       <h4 className="font-semibold text-green-900">
-                        {selectedImages.length} imágenes seleccionadas para catálogo
+                        {selectedImages.length} imágenes seleccionadas
                       </h4>
                       <p className="text-sm text-green-700">
-                        Las imágenes están listas para crear un catálogo profesional con fondos transparentes.
+                        Imágenes procesadas sin fondo, listas para crear un catálogo profesional.
                       </p>
                     </div>
                   </div>
