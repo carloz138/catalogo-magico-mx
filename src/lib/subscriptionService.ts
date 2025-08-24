@@ -1,5 +1,19 @@
+
 // src/lib/subscriptionService.ts
 import { supabase } from '@/integrations/supabase/client';
+
+export interface CreditPackage {
+  id: string;
+  name: string;
+  credits: number;
+  price_mxn: number;
+  price_usd: number;
+  is_active: boolean;
+  package_type?: 'monthly_plan' | 'addon';
+  max_uploads?: number;
+  max_catalogs?: number;
+  duration_months?: number;
+}
 
 export interface UsageValidation {
   canUpload: boolean;
@@ -19,53 +33,42 @@ class SubscriptionService {
     total: number;
     fromPlan: number;
     fromPurchases: number;
+    breakdown: any[];
   }> {
     try {
       console.log('🔍 Getting credits for user:', userId);
       
       const { data: creditUsage, error } = await supabase
         .from('credit_usage')
-        .select(`
-          credits_remaining,
-          credits_used,
-          credits_purchased,
-          package_id,
-          package:credit_packages(name, package_type)
-        `)
+        .select('*')
         .eq('user_id', userId)
-        .gt('credits_remaining', 0);
+        .gt('credits_remaining', 0)
+        .order('created_at', { ascending: true });
 
       if (error) {
         console.error('❌ Error fetching credits:', error);
-        return { total: 0, fromPlan: 0, fromPurchases: 0 };
+        return { total: 0, fromPlan: 0, fromPurchases: 0, breakdown: [] };
       }
 
       if (!creditUsage || creditUsage.length === 0) {
         console.log('📭 No credits found for user');
-        return { total: 0, fromPlan: 0, fromPurchases: 0 };
+        return { total: 0, fromPlan: 0, fromPurchases: 0, breakdown: [] };
       }
 
-      let fromPlan = 0;
-      let fromPurchases = 0;
-
-      creditUsage.forEach(entry => {
-        const remaining = entry.credits_remaining || 0;
-        
-        if (entry.package?.package_type === 'monthly_plan') {
-          fromPlan += remaining;
-        } else {
-          fromPurchases += remaining;
-        }
-      });
-
-      const total = fromPlan + fromPurchases;
+      // For now, treat all credits as purchases since we don't have package relation
+      const total = creditUsage.reduce((sum, c) => sum + c.credits_remaining, 0);
       
-      console.log(`💳 Credits found - Total: ${total}, Plan: ${fromPlan}, Purchased: ${fromPurchases}`);
+      console.log(`💳 Total credits found: ${total}`);
       
-      return { total, fromPlan, fromPurchases };
+      return {
+        total,
+        fromPlan: 0, // TODO: Implement when package relation is available
+        fromPurchases: total,
+        breakdown: creditUsage
+      };
     } catch (error) {
       console.error('❌ Error getting credits:', error);
-      return { total: 0, fromPlan: 0, fromPurchases: 0 };
+      return { total: 0, fromPlan: 0, fromPurchases: 0, breakdown: [] };
     }
   }
 
@@ -73,47 +76,35 @@ class SubscriptionService {
     planName: string;
     maxUploads: number;
     maxCatalogs: number;
+    planCredits: number;
     isActive: boolean;
   }> {
     try {
-      const { data: planUsage, error } = await supabase
-        .from('credit_usage')
-        .select(`
-          *,
-          package:credit_packages(name, max_uploads, max_catalogs, package_type)
-        `)
+      // Since we don't have package relations yet, check user preferences or use defaults
+      const { data: userPrefs } = await supabase
+        .from('user_preferences')
+        .select('*')
         .eq('user_id', userId)
-        .order('created_at', { ascending: false });
+        .single();
 
-      if (error) {
-        console.error('❌ Error fetching plan:', error);
-        return { planName: 'Error', maxUploads: 0, maxCatalogs: 0, isActive: false };
-      }
-
-      const monthlyPlan = planUsage?.find(entry => 
-        entry.package?.package_type === 'monthly_plan'
-      );
-
-      if (monthlyPlan && monthlyPlan.package) {
-        console.log('📋 Found monthly plan:', monthlyPlan.package.name);
-        return {
-          planName: monthlyPlan.package.name,
-          maxUploads: monthlyPlan.package.max_uploads || 50,
-          maxCatalogs: monthlyPlan.package.max_catalogs || 3,
-          isActive: true
-        };
-      }
-
-      console.log('🆓 Using free plan');
+      // For now, return free plan defaults
+      console.log('🆓 Using free plan (no package system implemented yet)');
       return {
         planName: 'Plan Gratuito',
         maxUploads: 10,
         maxCatalogs: 1,
+        planCredits: 0,
         isActive: false
       };
     } catch (error) {
-      console.error('❌ Error getting plan:', error);
-      return { planName: 'Error', maxUploads: 0, maxCatalogs: 0, isActive: false };
+      console.error('❌ Error getting user plan:', error);
+      return {
+        planName: 'Error',
+        maxUploads: 0,
+        maxCatalogs: 0,
+        planCredits: 0,
+        isActive: false
+      };
     }
   }
 
@@ -124,8 +115,19 @@ class SubscriptionService {
       const credits = await this.getAvailableCredits(userId);
       const plan = await this.getCurrentUserPlan(userId);
 
-      const currentUploads = 0;
-      const currentCatalogs = 0;
+      // Get current usage counts
+      const { data: products } = await supabase
+        .from('products')
+        .select('id')
+        .eq('user_id', userId);
+
+      const { data: catalogs } = await supabase
+        .from('catalogs')
+        .select('id')
+        .eq('user_id', userId);
+
+      const currentUploads = products?.length || 0;
+      const currentCatalogs = catalogs?.length || 0;
 
       const validation: UsageValidation = {
         canUpload: currentUploads < plan.maxUploads,
@@ -183,7 +185,8 @@ class SubscriptionService {
         const { error: updateError } = await supabase
           .from('credit_usage')
           .update({ 
-            credits_used: (creditEntry.credits_used || 0) + canConsume 
+            credits_used: (creditEntry.credits_used || 0) + canConsume,
+            credits_remaining: creditEntry.credits_remaining - canConsume
           })
           .eq('id', creditEntry.id);
 
@@ -205,7 +208,7 @@ class SubscriptionService {
 
   async simulateCreditPurchase(userId: string, packageId: string): Promise<boolean> {
     try {
-      console.log(`💳 Simulating purchase for user ${userId}`);
+      console.log(`💳 Simulating purchase for user ${userId}, package ${packageId}`);
 
       const { data: packageInfo, error: packageError } = await supabase
         .from('credit_packages')
@@ -218,20 +221,15 @@ class SubscriptionService {
         return false;
       }
 
-      const expiresAt = packageInfo.package_type === 'monthly_plan' 
-        ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
-        : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
-
+      // Create credit usage record
       const { error: insertError } = await supabase
         .from('credit_usage')
         .insert({
           user_id: userId,
-          package_id: packageId,
-          credits_purchased: packageInfo.credits,
           credits_used: 0,
           credits_remaining: packageInfo.credits,
-          amount_paid: packageInfo.price_mxn * 100,
-          expires_at: expiresAt.toISOString()
+          usage_type: 'credit_purchase',
+          description: `Compra de ${packageInfo.credits} créditos - ${packageInfo.name}`
         });
 
       if (insertError) {
@@ -239,11 +237,31 @@ class SubscriptionService {
         return false;
       }
 
-      console.log(`✅ Successfully simulated purchase`);
+      console.log(`✅ Successfully simulated purchase of ${packageInfo.credits} credits`);
       return true;
     } catch (error) {
       console.error('❌ Error simulating purchase:', error);
       return false;
+    }
+  }
+
+  async getAvailableCreditPacks(): Promise<CreditPackage[]> {
+    try {
+      const { data, error } = await supabase
+        .from('credit_packages')
+        .select('*')
+        .eq('is_active', true)
+        .order('price_mxn', { ascending: true });
+
+      if (error) {
+        console.error('❌ Error fetching credit packages:', error);
+        return [];
+      }
+
+      return data || [];
+    } catch (error) {
+      console.error('❌ Error getting credit packs:', error);
+      return [];
     }
   }
 }
