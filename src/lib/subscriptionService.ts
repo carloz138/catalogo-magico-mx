@@ -305,4 +305,4 @@ export const testSubscriptionService = async (userId: string) => {
   console.log('🧪 =================================');
   return { credits, plan, validation };
 };
-};
+
