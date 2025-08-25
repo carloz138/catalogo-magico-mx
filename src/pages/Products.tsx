@@ -8,10 +8,11 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { toast } from '@/components/ui/use-toast';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { processImagesOnly } from '@/lib/catalogService';
-// ✅ IMPORTAR TIPOS CORRECTOS
+import { subscriptionService, UsageValidation } from '@/lib/subscriptionService';
 import { Product, getDisplayImageUrl, getProcessingStatus } from '@/types/products';
 import { 
   Package, 
@@ -26,7 +27,9 @@ import {
   Loader2,
   CheckCircle,
   Clock,
-  AlertCircle
+  AlertCircle,
+  Save,
+  ShoppingCart
 } from 'lucide-react';
 
 const Products = () => {
@@ -39,19 +42,52 @@ const Products = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
+  
+  // ✅ NUEVOS ESTADOS PARA SUSCRIPCIONES
+  const [usageValidation, setUsageValidation] = useState<UsageValidation | null>(null);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [showCreditModal, setShowCreditModal] = useState(false);
 
   useEffect(() => {
-    loadProducts();
-    // ✅ Auto-refresh para ver estado de procesamiento
-    const interval = setInterval(loadProducts, 10000);
-    return () => clearInterval(interval);
+    if (user) {
+      loadProducts();
+      loadUsageValidation(); // ✅ NUEVA FUNCIÓN
+      
+      // Auto-refresh para ver estado de procesamiento
+      const interval = setInterval(loadProducts, 10000);
+      return () => clearInterval(interval);
+    }
   }, [user]);
+
+  // ✅ TESTING TEMPORAL - useEffect adicional
+  useEffect(() => {
+    if (user) {
+      setTimeout(() => {
+        import('@/lib/subscriptionService').then(({ testSubscriptionService }) => {
+          testSubscriptionService(user.id);
+        });
+      }, 3000);
+    }
+  }, [user]);
+
+  // ✅ NUEVA FUNCIÓN: Cargar validación de uso
+  const loadUsageValidation = async () => {
+    if (!user) return;
+    
+    try {
+      console.log('🔍 Loading usage validation...');
+      const validation = await subscriptionService.validateUsage(user.id);
+      setUsageValidation(validation);
+      console.log('✅ Usage validation loaded:', validation);
+    } catch (error) {
+      console.error('❌ Error loading usage validation:', error);
+    }
+  };
 
   const loadProducts = async () => {
     if (!user) return;
 
     try {
-      // ✅ QUERY CORREGIDO: Usar campos que SÍ existen (incluir user_id)
       const { data, error } = await supabase
         .from('products')
         .select(`
@@ -108,7 +144,7 @@ const Products = () => {
     }
   };
 
-  // ✅ FUNCIÓN CORREGIDA: Procesar imágenes
+  // ✅ FUNCIÓN MODIFICADA: Procesar imágenes con validaciones
   const handleProcessImages = async () => {
     if (selectedProducts.length === 0) {
       toast({
@@ -119,29 +155,69 @@ const Products = () => {
       return;
     }
 
+    // ✅ NUEVA VALIDACIÓN DE CRÉDITOS
+    console.log('🔍 Validating credits before processing...');
+    if (!usageValidation?.canProcessBackground) {
+      if (usageValidation?.suggestCreditPurchase) {
+        toast({
+          title: "Sin créditos disponibles",
+          description: "Necesitas comprar créditos para quitar fondos. Plan gratuito no incluye procesamiento.",
+          variant: "destructive",
+        });
+        setShowCreditModal(true);
+        return;
+      }
+      
+      toast({
+        title: "Upgrade requerido",
+        description: usageValidation?.upgradeRequired || "Necesitas un plan de pago",
+        variant: "destructive",
+      });
+      setShowUpgradeModal(true);
+      return;
+    }
+
+    if (usageValidation.remainingBgCredits < selectedProducts.length) {
+      toast({
+        title: "Créditos insuficientes",
+        description: `Necesitas ${selectedProducts.length} créditos, pero solo tienes ${usageValidation.remainingBgCredits}. Compra más créditos o selecciona menos productos.`,
+        variant: "destructive",
+      });
+      setShowCreditModal(true);
+      return;
+    }
+
+    console.log(`🚀 Starting processing with ${usageValidation.remainingBgCredits} credits available`);
     setProcessing(true);
 
     try {
-      console.log('🚀 Iniciando procesamiento de imágenes...');
-      
       const selectedProductsData = products.filter(p => selectedProducts.includes(p.id));
       
-      // ✅ PREPARAR DATOS USANDO CAMPOS CORRECTOS
       const productsForWebhook = selectedProductsData.map(product => ({
         id: product.id,
         name: product.name,
         description: product.description || product.custom_description,
         category: product.category,
         price_retail: product.price_retail || 0,
-        // ✅ USAR CAMPO CORRECTO
         original_image_url: product.original_image_url,
-        estimated_credits: product.estimated_credits || 1,
-        estimated_cost_mxn: product.estimated_cost_mxn || 0.20
+        estimated_credits: 1,
+        estimated_cost_mxn: 2.0 // Tu costo real
       }));
 
-      console.log(`📊 Enviando ${productsForWebhook.length} productos al webhook`);
+      // ✅ CONSUMIR CRÉDITOS ANTES DEL WEBHOOK
+      console.log(`💳 Consuming ${selectedProducts.length} credits...`);
+      const creditsConsumed = await subscriptionService.consumeBackgroundRemovalCredit(
+        user.id, 
+        selectedProducts.length
+      );
 
-      // ✅ MARCAR COMO PROCESANDO EN BD ANTES DEL WEBHOOK
+      if (!creditsConsumed) {
+        throw new Error('No se pudieron consumir los créditos');
+      }
+
+      console.log('✅ Credits consumed successfully');
+
+      // Marcar como procesando
       await Promise.all(selectedProductsData.map(product => 
         supabase
           .from('products')
@@ -152,8 +228,8 @@ const Products = () => {
           .eq('id', product.id)
       ));
 
-      // Recargar para mostrar estado actualizado
-      await loadProducts();
+      // Recargar validación después de consumir créditos
+      await loadUsageValidation();
 
       const result = await processImagesOnly(
         productsForWebhook,
@@ -167,25 +243,14 @@ const Products = () => {
       if (result.success) {
         toast({
           title: "¡Procesamiento iniciado!",
-          description: `${selectedProducts.length} productos enviados al webhook. Ve a Centro de Imágenes para revisar el progreso.`,
+          description: `${selectedProducts.length} productos enviados al webhook. ${selectedProducts.length} créditos consumidos.`,
           variant: "default",
         });
 
-        console.log('✅ Webhook exitoso:', result);
+        console.log('✅ Webhook successful, navigating to image-review');
         navigate('/image-review');
         
       } else {
-        // ✅ MARCAR ERRORES EN BD
-        await Promise.all(selectedProductsData.map(product => 
-          supabase
-            .from('products')
-            .update({ 
-              processing_status: 'failed',
-              error_message: result.error || 'Error en webhook'
-            })
-            .eq('id', product.id)
-        ));
-        
         throw new Error(result.error || 'Error en el procesamiento');
       }
 
@@ -198,11 +263,52 @@ const Products = () => {
       });
     } finally {
       setProcessing(false);
-      await loadProducts(); // Recargar estado
+      await loadProducts();
     }
   };
 
-  // ✅ FUNCIÓN: Obtener badge de estado
+  // ✅ NUEVA FUNCIÓN: Guardar sin procesar
+  const handleSaveWithoutProcessing = async () => {
+    if (selectedProducts.length === 0) {
+      toast({
+        title: "Selecciona productos",
+        description: "Debes seleccionar al menos un producto para guardar",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      await Promise.all(selectedProducts.map(productId => 
+        supabase
+          .from('products')
+          .update({ 
+            processing_status: 'saved_original',
+            is_processed: false,
+            processed_at: new Date().toISOString()
+          })
+          .eq('id', productId)
+      ));
+
+      toast({
+        title: "Productos guardados",
+        description: `${selectedProducts.length} productos guardados con imagen original`,
+        variant: "default",
+      });
+
+      setSelectedProducts([]);
+      await loadProducts();
+
+    } catch (error) {
+      console.error('Error guardando productos:', error);
+      toast({
+        title: "Error",
+        description: "No se pudieron guardar los productos",
+        variant: "destructive",
+      });
+    }
+  };
+
   const getStatusBadge = (product: Product) => {
     const status = getProcessingStatus(product);
     const configs = {
@@ -223,7 +329,6 @@ const Products = () => {
     );
   };
 
-  // ✅ ESTADÍSTICAS
   const getStats = () => {
     const stats = {
       total: products.length,
@@ -238,13 +343,11 @@ const Products = () => {
   const stats = getStats();
 
   const handleViewProduct = (product: Product) => {
-    // Abrir modal o navegar a vista de producto
     console.log('Ver producto:', product.name);
     toast({
       title: "Vista de producto",
       description: `Abriendo ${product.name}`,
     });
-    // TODO: Implementar modal de vista de producto
   };
 
   const handleEditProduct = (product: Product) => {
@@ -253,7 +356,6 @@ const Products = () => {
       title: "Editar producto",
       description: `Editando ${product.name}`,
     });
-    // TODO: Implementar modal de edición de producto
   };
 
   const handleDeleteProduct = async (product: Product) => {
@@ -274,10 +376,7 @@ const Products = () => {
         description: `${product.name} ha sido eliminado correctamente`,
       });
 
-      // Recargar productos
       await loadProducts();
-
-      // Remover de selección si estaba seleccionado
       setSelectedProducts(prev => prev.filter(id => id !== product.id));
 
     } catch (error) {
@@ -289,6 +388,100 @@ const Products = () => {
       });
     }
   };
+
+  // ✅ COMPONENTE: Banner de estado de plan
+  const PlanStatusBanner = () => {
+    if (!usageValidation) return null;
+
+    return (
+      <Card className="mb-6 border-blue-200 bg-blue-50">
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h4 className="font-semibold text-blue-900">
+                📋 {usageValidation.currentPlan}
+              </h4>
+              <div className="text-sm text-blue-700 space-y-1">
+                <p>📤 Subidas restantes: {usageValidation.remainingUploads}</p>
+                <p>✨ Créditos para fondos: {usageValidation.remainingBgCredits}</p>
+                <p>📋 Catálogos restantes: {usageValidation.remainingCatalogs}</p>
+              </div>
+            </div>
+            {usageValidation.suggestCreditPurchase && (
+              <Button onClick={() => setShowCreditModal(true)} size="sm">
+                💳 Comprar Créditos
+              </Button>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
+
+  // ✅ COMPONENTE: Modal de upgrade
+  const UpgradeModal = () => (
+    <Dialog open={showUpgradeModal} onOpenChange={setShowUpgradeModal}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>🚀 Upgrade Requerido</DialogTitle>
+        </DialogHeader>
+        <div className="py-4">
+          <p className="mb-4">{usageValidation?.upgradeRequired}</p>
+          <div className="space-y-2">
+            <p><strong>Planes disponibles:</strong></p>
+            <ul className="list-disc pl-6 space-y-1">
+              <li>Plan Básico: $299/mes - 5 créditos + 50 uploads</li>
+              <li>Plan Estándar: $599/mes - 30 créditos + 200 uploads</li>
+              <li>Plan Premium: $1,199/mes - 80 créditos + 500 uploads</li>
+            </ul>
+          </div>
+        </div>
+        <div className="flex gap-3">
+          <Button onClick={() => navigate('/pricing')}>
+            Ver Planes
+          </Button>
+          <Button variant="outline" onClick={() => setShowUpgradeModal(false)}>
+            Cerrar
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+
+  // ✅ COMPONENTE: Modal de compra de créditos
+  const CreditModal = () => (
+    <Dialog open={showCreditModal} onOpenChange={setShowCreditModal}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>💳 Comprar Créditos</DialogTitle>
+        </DialogHeader>
+        <div className="py-4">
+          <p className="mb-4">Compra créditos adicionales para procesar más imágenes:</p>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="border rounded p-3">
+              <h4 className="font-semibold">Pack 10 Créditos</h4>
+              <p className="text-2xl font-bold text-green-600">$35 MXN</p>
+              <p className="text-sm text-gray-600">$3.50 por crédito</p>
+            </div>
+            <div className="border rounded p-3">
+              <h4 className="font-semibold">Pack 25 Créditos</h4>
+              <p className="text-2xl font-bold text-blue-600">$80 MXN</p>
+              <p className="text-sm text-gray-600">$3.20 por crédito ⭐</p>
+            </div>
+          </div>
+          <p className="text-xs text-gray-500 mt-3">* Los créditos no expiran por 12 meses</p>
+        </div>
+        <div className="flex gap-3">
+          <Button onClick={() => setShowCreditModal(false)}>
+            Comprar Después
+          </Button>
+          <Button variant="outline" onClick={() => setShowCreditModal(false)}>
+            Cerrar
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
 
   const actions = (
     <div className="flex items-center gap-3">
@@ -303,23 +496,36 @@ const Products = () => {
       </div>
       
       {selectedProducts.length > 0 && (
-        <Button 
-          onClick={handleProcessImages} 
-          disabled={processing}
-          className="flex items-center gap-2"
-        >
-          {processing ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Procesando...
-            </>
-          ) : (
-            <>
-              <Zap className="h-4 w-4" />
-              Procesar Imágenes ({selectedProducts.length})
-            </>
-          )}
-        </Button>
+        <div className="flex items-center gap-2">
+          {/* ✅ NUEVO: Botón guardar sin procesar */}
+          <Button 
+            variant="outline"
+            onClick={handleSaveWithoutProcessing}
+            className="flex items-center gap-2"
+          >
+            <Save className="h-4 w-4" />
+            Guardar Sin Fondo ({selectedProducts.length})
+          </Button>
+
+          {/* Botón procesar modificado */}
+          <Button 
+            onClick={handleProcessImages} 
+            disabled={processing}
+            className="flex items-center gap-2"
+          >
+            {processing ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Procesando...
+              </>
+            ) : (
+              <>
+                <Zap className="h-4 w-4" />
+                Quitar Fondos ({selectedProducts.length})
+              </>
+            )}
+          </Button>
+        </div>
       )}
       
       <Button onClick={() => navigate('/upload')} variant="outline">
@@ -347,6 +553,9 @@ const Products = () => {
   return (
     <ProtectedRoute>
       <AppLayout actions={actions}>
+        {/* ✅ NUEVO: Banner de estado de plan */}
+        <PlanStatusBanner />
+        
         {products.length === 0 ? (
           <Card>
             <CardContent className="text-center py-12">
@@ -365,7 +574,7 @@ const Products = () => {
           </Card>
         ) : (
           <div className="space-y-6">
-            {/* ✅ ESTADÍSTICAS */}
+            {/* ESTADÍSTICAS */}
             <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
               <Card>
                 <CardContent className="p-4 text-center">
@@ -399,7 +608,7 @@ const Products = () => {
               </Card>
             </div>
 
-            {/* ✅ BANNER DE PROCESAMIENTO */}
+            {/* BANNER DE PROCESAMIENTO */}
             {processing && (
               <Card className="border-blue-200 bg-blue-50">
                 <CardContent className="p-4">
@@ -418,7 +627,7 @@ const Products = () => {
               </Card>
             )}
 
-            {/* ✅ CONTROLES DE FILTROS */}
+            {/* CONTROLES DE FILTROS */}
             <Card>
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
@@ -466,7 +675,7 @@ const Products = () => {
               </CardContent>
             </Card>
 
-            {/* ✅ GRID DE PRODUCTOS CON BOTONES FUNCIONALES */}
+            {/* GRID DE PRODUCTOS */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {filteredProducts.map((product) => {
                 const status = getProcessingStatus(product);
@@ -496,7 +705,6 @@ const Products = () => {
                         {getStatusBadge(product)}
                       </div>
                       
-                      {/* ✅ PROGRESO DE PROCESAMIENTO */}
                       {status === 'processing' && product.processing_progress !== undefined && (
                         <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white p-2">
                           <div className="flex items-center gap-2">
@@ -541,14 +749,12 @@ const Products = () => {
                         )}
                       </div>
 
-                      {/* ✅ INFO DE PROCESAMIENTO */}
                       {status === 'failed' && product.error_message && (
                         <div className="bg-red-50 border border-red-200 rounded p-2 mb-3">
                           <p className="text-xs text-red-700">{product.error_message}</p>
                         </div>
                       )}
                       
-                      {/* ✅ BOTONES CON FUNCIONALIDAD */}
                       <div className="flex gap-2">
                         <Button 
                           size="sm" 
@@ -585,7 +791,6 @@ const Products = () => {
               })}
             </div>
 
-            {/* ✅ INFO ADICIONAL */}
             {selectedProducts.length > 0 && !processing && (
               <Card className="border-green-200 bg-green-50">
                 <CardContent className="p-4">
@@ -605,6 +810,10 @@ const Products = () => {
             )}
           </div>
         )}
+        
+        {/* ✅ NUEVOS MODALES */}
+        <UpgradeModal />
+        <CreditModal />
       </AppLayout>
     </ProtectedRoute>
   );
