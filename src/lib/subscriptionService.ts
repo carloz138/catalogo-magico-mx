@@ -1,4 +1,4 @@
-// src/lib/subscriptionService.ts - VERSIÓN CORREGIDA PARA TU ESTRUCTURA
+// src/lib/subscriptionService.ts - VERSIÓN FINAL SIN ERRORES
 import { supabase } from '@/integrations/supabase/client';
 
 export interface UsageValidation {
@@ -15,119 +15,28 @@ export interface UsageValidation {
 
 class SubscriptionService {
   
-  async getAvailableCredits(userId: string): Promise<{
-    total: number;
-    fromPlan: number;
-    fromPurchases: number;
-  }> {
+  async getAvailableCredits(userId: string): Promise<number> {
     try {
       console.log('🔍 Getting credits for user:', userId);
       
-      const { data: creditUsage, error } = await supabase
+      const { data, error } = await supabase
         .from('credit_usage')
-        .select('credits_remaining, package_id, source_type')
+        .select('credits_remaining')
         .eq('user_id', userId)
         .gt('credits_remaining', 0);
 
       if (error) {
         console.error('❌ Error fetching credits:', error);
-        return { total: 0, fromPlan: 0, fromPurchases: 0 };
+        return 0;
       }
 
-      if (!creditUsage || creditUsage.length === 0) {
-        console.log('📭 No credits found');
-        return { total: 0, fromPlan: 0, fromPurchases: 0 };
-      }
-
-      let fromPlan = 0;
-      let fromPurchases = 0;
-
-      // Obtener info de packages para determinar tipo
-      const packageIds = creditUsage.map(c => c.package_id).filter(Boolean);
-      let packageTypes: any = {};
+      const total = data?.reduce((sum, item) => sum + (item.credits_remaining || 0), 0) || 0;
+      console.log('💳 Total credits found:', total);
       
-      if (packageIds.length > 0) {
-        const { data: packages } = await supabase
-          .from('credit_packages')
-          .select('id, package_type')
-          .in('id', packageIds);
-        
-        packages?.forEach(pkg => {
-          packageTypes[pkg.id] = pkg.package_type;
-        });
-      }
-
-      creditUsage.forEach(entry => {
-        const remaining = entry.credits_remaining || 0;
-        const packageType = packageTypes[entry.package_id] || 'addon';
-        
-        if (packageType === 'monthly_plan') {
-          fromPlan += remaining;
-        } else {
-          fromPurchases += remaining;
-        }
-      });
-
-      const total = fromPlan + fromPurchases;
-      console.log(`💳 Credits - Total: ${total}, Plan: ${fromPlan}, Purchased: ${fromPurchases}`);
-      
-      return { total, fromPlan, fromPurchases };
+      return total;
     } catch (error) {
       console.error('❌ Error getting credits:', error);
-      return { total: 0, fromPlan: 0, fromPurchases: 0 };
-    }
-  }
-
-  async getCurrentUserPlan(userId: string): Promise<{
-    planName: string;
-    maxUploads: number;
-    maxCatalogs: number;
-    isActive: boolean;
-  }> {
-    try {
-      // Buscar plan mensual activo más reciente
-      const { data: planUsage } = await supabase
-        .from('credit_usage')
-        .select('package_id, created_at')
-        .eq('user_id', userId)
-        .gt('credits_remaining', 0)
-        .order('created_at', { ascending: false });
-
-      if (planUsage && planUsage.length > 0) {
-        // Obtener info del package
-        const { data: packages } = await supabase
-          .from('credit_packages')
-          .select('name, package_type, max_uploads, max_catalogs')
-          .in('id', planUsage.map(p => p.package_id).filter(Boolean));
-
-        const monthlyPlan = packages?.find(pkg => pkg.package_type === 'monthly_plan');
-
-        if (monthlyPlan) {
-          console.log('📋 Found monthly plan:', monthlyPlan.name);
-          return {
-            planName: monthlyPlan.name,
-            maxUploads: monthlyPlan.max_uploads || 50,
-            maxCatalogs: monthlyPlan.max_catalogs || 3,
-            isActive: true
-          };
-        }
-      }
-
-      console.log('🆓 Using free plan');
-      return {
-        planName: 'Plan Gratuito',
-        maxUploads: 10,
-        maxCatalogs: 1,
-        isActive: false
-      };
-    } catch (error) {
-      console.error('❌ Error getting plan:', error);
-      return {
-        planName: 'Error',
-        maxUploads: 0,
-        maxCatalogs: 0,
-        isActive: false
-      };
+      return 0;
     }
   }
 
@@ -136,18 +45,17 @@ class SubscriptionService {
       console.log('🔎 Validating usage for user:', userId);
 
       const credits = await this.getAvailableCredits(userId);
-      const plan = await this.getCurrentUserPlan(userId);
 
       const validation: UsageValidation = {
-        canUpload: true, // Por simplicidad, siempre puede subir
-        canProcessBackground: credits.total > 0,
-        canCreateCatalog: true, // Por simplicidad
-        remainingUploads: plan.maxUploads,
-        remainingBgCredits: credits.total,
-        remainingCatalogs: plan.maxCatalogs === 0 ? 999 : plan.maxCatalogs,
-        currentPlan: plan.planName,
-        suggestCreditPurchase: !plan.isActive && credits.total < 5,
-        upgradeRequired: !plan.isActive && credits.total === 0 
+        canUpload: true, 
+        canProcessBackground: credits > 0,
+        canCreateCatalog: true,
+        remainingUploads: 10, // Por simplicidad, valor fijo por ahora
+        remainingBgCredits: credits,
+        remainingCatalogs: 999, // Por simplicidad
+        currentPlan: credits > 0 ? 'Plan con Créditos' : 'Plan Gratuito',
+        suggestCreditPurchase: credits < 5,
+        upgradeRequired: credits === 0 
           ? 'Necesitas comprar créditos para procesar imágenes'
           : undefined
       };
@@ -172,6 +80,7 @@ class SubscriptionService {
     try {
       console.log(`🔥 Consuming ${creditsNeeded} credits for user ${userId}`);
 
+      // Obtener créditos disponibles
       const { data: availableCredits, error } = await supabase
         .from('credit_usage')
         .select('id, credits_remaining, credits_used')
@@ -190,7 +99,6 @@ class SubscriptionService {
         if (creditsStillNeeded <= 0) break;
 
         const canConsume = Math.min(creditsStillNeeded, creditEntry.credits_remaining);
-        
         const newCreditsUsed = (creditEntry.credits_used || 0) + canConsume;
         const newCreditsRemaining = creditEntry.credits_remaining - canConsume;
 
@@ -220,21 +128,21 @@ class SubscriptionService {
 
   async simulateCreditPurchase(userId: string, packageId: string): Promise<boolean> {
     try {
-      const { data: packageInfo } = await supabase
+      console.log(`💳 Simulating purchase for user ${userId}, package ${packageId}`);
+
+      // Obtener info del paquete
+      const { data: packageInfo, error: packageError } = await supabase
         .from('credit_packages')
-        .select('credits, price_mxn, package_type')
+        .select('credits, price_mxn')
         .eq('id', packageId)
         .single();
 
-      if (!packageInfo) {
-        console.error('❌ Package not found');
+      if (packageError || !packageInfo) {
+        console.error('❌ Package not found:', packageError);
         return false;
       }
 
-      const expiresAt = packageInfo.package_type === 'monthly_plan' 
-        ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
-        : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
-
+      // Insertar en credit_usage
       const { error } = await supabase
         .from('credit_usage')
         .insert({
@@ -245,12 +153,12 @@ class SubscriptionService {
           credits_remaining: packageInfo.credits,
           amount_paid: packageInfo.price_mxn,
           usage_type: 'purchase',
-          source_type: packageInfo.package_type,
-          expires_at: expiresAt.toISOString()
+          source_type: 'addon',
+          expires_at: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString()
         });
 
       if (error) {
-        console.error('❌ Error simulating purchase:', error);
+        console.error('❌ Error inserting credit usage:', error);
         return false;
       }
 
@@ -259,6 +167,27 @@ class SubscriptionService {
     } catch (error) {
       console.error('❌ Error in simulate purchase:', error);
       return false;
+    }
+  }
+
+  async getAvailableCreditPacks(): Promise<any[]> {
+    try {
+      const { data, error } = await supabase
+        .from('credit_packages')
+        .select('id, name, credits, price_mxn')
+        .eq('is_active', true)
+        .lte('price_mxn', 500)
+        .order('price_mxn', { ascending: true });
+
+      if (error) {
+        console.error('❌ Error getting credit packs:', error);
+        return [];
+      }
+
+      return data || [];
+    } catch (error) {
+      console.error('❌ Error getting credit packs:', error);
+      return [];
     }
   }
 }
@@ -272,8 +201,8 @@ export const testSubscriptionService = async (userId: string) => {
   const validation = await subscriptionService.validateUsage(userId);
   console.log('✅ Validation:', validation);
   
-  const credits = await subscriptionService.getAvailableCredits(userId);
-  console.log('💳 Credits:', credits);
+  const creditPacks = await subscriptionService.getAvailableCreditPacks();
+  console.log('📦 Available Packs:', creditPacks);
   
-  return { validation, credits };
+  return { validation, creditPacks };
 };
