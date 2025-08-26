@@ -1,15 +1,14 @@
-
 import React, { useState } from 'react';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import AppLayout from '@/components/layout/AppLayout';
 import { FileUploader } from '@/components/upload/FileUploader';
 import { ProductFormWrapper } from '@/components/upload/ProductFormWrapper';
 import { ImageAnalysisComponent } from '@/components/upload/ImageAnalysisComponent';
-import { CostCalculatorWrapper } from '@/components/upload/CostCalculatorWrapper';
+import { FinalStepComponent } from '@/components/upload/FinalStepComponent';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Upload as UploadIcon, Image, FileText, Calculator } from 'lucide-react';
+import { Upload as UploadIcon, Image, FileText, Package } from 'lucide-react';
 
 export type UploadedFile = {
   id: string;
@@ -22,7 +21,7 @@ export type UploadedFile = {
 
 const Upload = () => {
   const [files, setFiles] = useState<UploadedFile[]>([]);
-  const [currentStep, setCurrentStep] = useState<'upload' | 'analyze' | 'form' | 'cost'>('upload');
+  const [currentStep, setCurrentStep] = useState<'upload' | 'analyze' | 'form' | 'final'>('upload');
 
   const handleFilesUploaded = (newFiles: UploadedFile[]) => {
     setFiles(newFiles);
@@ -46,7 +45,7 @@ const Upload = () => {
       productData: productData[index]
     }));
     setFiles(updatedFiles);
-    setCurrentStep('cost');
+    setCurrentStep('final');
   };
 
   const resetUpload = () => {
@@ -59,7 +58,7 @@ const Upload = () => {
       case 'upload': return UploadIcon;
       case 'analyze': return Image;
       case 'form': return FileText;
-      case 'cost': return Calculator;
+      case 'final': return Package;
       default: return UploadIcon;
     }
   };
@@ -68,10 +67,10 @@ const Upload = () => {
     <div className="flex items-center gap-3">
       {/* Progress Steps */}
       <div className="hidden md:flex items-center gap-2">
-        {['upload', 'analyze', 'form', 'cost'].map((step, index) => {
+        {['upload', 'analyze', 'form', 'final'].map((step, index) => {
           const StepIcon = getStepIcon(step);
           const isActive = currentStep === step;
-          const isCompleted = ['upload', 'analyze', 'form', 'cost'].indexOf(currentStep) > index;
+          const isCompleted = ['upload', 'analyze', 'form', 'final'].indexOf(currentStep) > index;
           
           return (
             <div key={step} className="flex items-center">
@@ -97,7 +96,7 @@ const Upload = () => {
       {/* Mobile step indicator */}
       <div className="md:hidden">
         <Badge variant="outline">
-          Paso {['upload', 'analyze', 'form', 'cost'].indexOf(currentStep) + 1} de 4
+          Paso {['upload', 'analyze', 'form', 'final'].indexOf(currentStep) + 1} de 4
         </Badge>
       </div>
 
@@ -161,16 +160,16 @@ const Upload = () => {
             </Card>
           )}
 
-          {currentStep === 'cost' && (
+          {currentStep === 'final' && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Calculator className="h-5 w-5" />
-                  Cálculo de Costos
+                  <Package className="h-5 w-5" />
+                  Opciones Finales
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <CostCalculatorWrapper files={files} />
+                <FinalStepComponent files={files} />
               </CardContent>
             </Card>
           )}
