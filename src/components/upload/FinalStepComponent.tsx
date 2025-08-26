@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -7,7 +6,7 @@ import { toast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { subscriptionService, UsageValidation } from '@/lib/subscriptionService';
-import { Save, Zap, Loader2, Package } from 'lucide-react';
+import { Save, Zap, Loader2, Package, CheckCircle, Palette } from 'lucide-react';
 
 export interface UploadedFile {
   id: string;
@@ -26,12 +25,16 @@ export const FinalStepComponent = ({ files }: FinalStepProps) => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [usageValidation, setUsageValidation] = useState<UsageValidation | null>(null);
-  const [saving, setSaving] = useState(false);
+  const [autoSaving, setAutoSaving] = useState(false);
+  const [autoSaved, setAutoSaved] = useState(false);
   const [processing, setProcessing] = useState(false);
+  const [savedProducts, setSavedProducts] = useState<any[]>([]);
 
   useEffect(() => {
     if (user) {
       loadUsageValidation();
+      // Auto-guardar al montar el componente
+      handleAutoSave();
     }
   }, [user]);
 
@@ -45,6 +48,154 @@ export const FinalStepComponent = ({ files }: FinalStepProps) => {
       console.error('Error loading usage validation:', error);
     }
   };
+
+  // NUEVA FUNCIÓN: Auto-guardado automático
+  const handleAutoSave = async () => {
+    if (!user || files.length === 0 || autoSaved) return;
+
+    setAutoSaving(true);
+    try {
+      console.log(`💾 Auto-guardando ${files.length} productos...`);
+
+      const savedProductsData = [];
+
+      for (const file of files) {
+        const productData = file.productData || {};
+        
+        const { data: insertedProduct, error } = await supabase
+          .from('products')
+          .insert({
+            user_id: user.id,
+            name: productData.name || `Producto ${file.id.slice(-6)}`,
+            description: productData.description || '',
+            custom_description: productData.custom_description || '',
+            price_retail: productData.price_retail ? Math.round(productData.price_retail * 100) : null,
+            price_wholesale: productData.price_wholesale ? Math.round(productData.price_wholesale * 100) : null,
+            category: productData.category || '',
+            brand: productData.brand || '',
+            original_image_url: file.url || file.preview,
+            processing_status: 'pending',
+            is_processed: false,
+            has_variants: productData.has_variants || false,
+            variant_count: productData.variant_count || 0,
+          })
+          .select()
+          .single();
+
+        if (error) {
+          console.error(`Error guardando producto ${file.id}:`, error);
+          throw error;
+        }
+
+        savedProductsData.push({
+          ...insertedProduct,
+          image_url: insertedProduct.original_image_url
+        });
+      }
+
+      setSavedProducts(savedProductsData);
+      setAutoSaved(true);
+
+      toast({
+        title: "¡Productos guardados!",
+        description: `${files.length} productos agregados a tu biblioteca automáticamente`,
+        variant: "default",
+      });
+
+    } catch (error) {
+      console.error('Error en auto-guardado:', error);
+      toast({
+        title: "Error guardando productos",
+        description: "Hubo un problema al guardar automáticamente. Intenta de nuevo.",
+        variant: "destructive",
+      });
+    } finally {
+      setAutoSaving(false);
+    }
+  };
+
+  const handleProcessImages = async () => {
+    if (!autoSaved || savedProducts.length === 0) {
+      toast({
+        title: "Productos no guardados",
+        description: "Espera a que se complete el guardado automático",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validar créditos
+    if (!usageValidation?.canProcessBackground) {
+      toast({
+        title: "Sin créditos disponibles",
+        description: "Necesitas comprar créditos para quitar fondos",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (usageValidation.remainingBgCredits < savedProducts.length) {
+      toast({
+        title: "Créditos insuficientes",
+        description: `Necesitas ${savedProducts.length} créditos, pero solo tienes ${usageValidation.remainingBgCredits}`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setProcessing(true);
+    try {
+      toast({
+        title: "Productos guardados",
+        description: `Ve a tu biblioteca para procesar las ${savedProducts.length} imágenes cuando quieras`,
+        variant: "default",
+      });
+
+      // Navegar a productos con tab de "Por Procesar"
+      navigate('/products?tab=pending');
+
+    } catch (error) {
+      console.error('Error:', error);
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleCreateCatalog = async () => {
+    if (!autoSaved || savedProducts.length === 0) {
+      toast({
+        title: "Productos no guardados",
+        description: "Espera a que se complete el guardado automático",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      console.log('📋 Creando catálogo con productos guardados:', savedProducts);
+
+      // Navegar directamente a template-selection
+      navigate('/template-selection', {
+        state: {
+          products: savedProducts,
+          businessInfo: {
+            business_name: 'Mi Empresa'
+          },
+          skipProcessing: true
+        }
+      });
+
+    } catch (error) {
+      console.error('Error preparando catálogo:', error);
+      toast({
+        title: "Error",
+        description: "No se pudo preparar el catálogo",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const canProcess = usageValidation?.canProcessBackground && usageValidation.remainingBgCredits >= files.length;
 
   // Banner de estado de plan
   const PlanStatusBanner = () => {
@@ -70,191 +221,147 @@ export const FinalStepComponent = ({ files }: FinalStepProps) => {
     );
   };
 
-  const handleSaveToLibrary = async () => {
-    if (!user || files.length === 0) return;
-
-    setSaving(true);
-    try {
-      console.log(`💾 Guardando ${files.length} productos en biblioteca...`);
-
-      // Guardar cada archivo como producto sin procesamiento
-      for (const file of files) {
-        const productData = file.productData || {};
-        
-        const { error } = await supabase
-          .from('products')
-          .insert({
-            user_id: user.id,
-            name: productData.name || `Producto ${file.id.slice(-6)}`,
-            description: productData.description || '',
-            custom_description: productData.custom_description || '',
-            price_retail: productData.price_retail ? Math.round(productData.price_retail * 100) : null,
-            price_wholesale: productData.price_wholesale ? Math.round(productData.price_wholesale * 100) : null,
-            category: productData.category || '',
-            brand: productData.brand || '',
-            original_image_url: file.url || file.preview,
-            processing_status: 'pending',
-            is_processed: false,
-            has_variants: productData.has_variants || false,
-            variant_count: productData.variant_count || 0,
-          });
-
-        if (error) {
-          console.error(`Error guardando producto ${file.id}:`, error);
-          throw error;
-        }
-      }
-
-      toast({
-        title: "¡Productos guardados!",
-        description: `${files.length} productos agregados a tu biblioteca`,
-        variant: "default",
-      });
-
-      // Navegar a la biblioteca
-      navigate('/products');
-
-    } catch (error) {
-      console.error('Error guardando productos:', error);
-      toast({
-        title: "Error",
-        description: "No se pudieron guardar los productos",
-        variant: "destructive",
-      });
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleSaveAndProcess = async () => {
-    if (!user || files.length === 0) return;
-
-    // Validar créditos antes de procesar
-    if (!usageValidation?.canProcessBackground) {
-      toast({
-        title: "Sin créditos disponibles",
-        description: "Necesitas créditos para quitar fondos. Guarda en biblioteca y compra créditos después.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (usageValidation.remainingBgCredits < files.length) {
-      toast({
-        title: "Créditos insuficientes",
-        description: `Necesitas ${files.length} créditos, pero solo tienes ${usageValidation.remainingBgCredits}.`,
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setProcessing(true);
-    try {
-      // Primero guardar en biblioteca
-      await handleSaveToLibrary();
-      
-      // Luego navegar a productos para que el usuario pueda procesar
-      toast({
-        title: "¡Productos guardados!",
-        description: `Ve a tu biblioteca para procesar las ${files.length} imágenes`,
-        variant: "default",
-      });
-
-    } catch (error) {
-      console.error('Error en guardar y procesar:', error);
-    } finally {
-      setProcessing(false);
-    }
-  };
-
-  const canProcess = usageValidation?.canProcessBackground && usageValidation.remainingBgCredits >= files.length;
-
   return (
     <div className="space-y-6">
       <PlanStatusBanner />
+      
+      {/* Banner de guardado automático */}
+      {autoSaving && (
+        <Card className="border-blue-200 bg-blue-50">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+              <div>
+                <h4 className="font-semibold text-blue-900">
+                  Guardando productos automáticamente...
+                </h4>
+                <p className="text-sm text-blue-700">
+                  Agregando {files.length} productos a tu biblioteca
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Banner de guardado exitoso */}
+      {autoSaved && (
+        <Card className="border-green-200 bg-green-50">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <CheckCircle className="h-5 w-5 text-green-600" />
+              <div>
+                <h4 className="font-semibold text-green-900">
+                  ¡{files.length} productos guardados en tu biblioteca!
+                </h4>
+                <p className="text-sm text-green-700">
+                  Ahora puedes procesarlos o crear catálogos directamente
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
       
       <Card>
         <CardContent className="p-6">
           <div className="text-center mb-6">
             <Package className="h-12 w-12 text-blue-600 mx-auto mb-4" />
             <h3 className="text-xl font-semibold mb-2">
-              ¡{files.length} productos listos!
+              ¿Qué quieres hacer ahora?
             </h3>
             <p className="text-gray-600">
-              Elige cómo quieres continuar con tus imágenes
+              Tus productos están guardados. Elige tu siguiente paso
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Opción 1: Guardar sin procesar */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Opción 1: Ver biblioteca */}
             <Card className="border-2 border-gray-200 hover:border-gray-300 transition-colors">
               <CardContent className="p-4 text-center">
                 <Save className="h-8 w-8 text-gray-600 mx-auto mb-3" />
-                <h4 className="font-semibold mb-2">Guardar en Biblioteca</h4>
+                <h4 className="font-semibold mb-2">Ver Biblioteca</h4>
                 <p className="text-sm text-gray-600 mb-4">
-                  Guarda tus productos con imágenes originales. Podrás crear catálogos inmediatamente o procesar después.
+                  Administra tus productos, agregar más información o procesar después
                 </p>
                 <Button 
-                  onClick={handleSaveToLibrary} 
-                  disabled={saving || processing}
+                  onClick={() => navigate('/products?tab=pending')} 
+                  disabled={!autoSaved}
                   variant="outline"
                   className="w-full"
                 >
-                  {saving ? (
+                  <Save className="h-4 w-4 mr-2" />
+                  Ver Productos
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Opción 2: Procesar ahora */}
+            <Card className={`border-2 transition-colors ${
+              canProcess && autoSaved
+                ? 'border-blue-200 hover:border-blue-300 bg-blue-50' 
+                : 'border-gray-100 bg-gray-50'
+            }`}>
+              <CardContent className="p-4 text-center">
+                <Zap className={`h-8 w-8 mx-auto mb-3 ${
+                  canProcess && autoSaved ? 'text-blue-600' : 'text-gray-400'
+                }`} />
+                <h4 className="font-semibold mb-2">Procesar Ahora</h4>
+                <p className="text-sm text-gray-600 mb-4">
+                  {canProcess 
+                    ? `Quitar fondos inmediatamente (${files.length} créditos)`
+                    : 'Requiere créditos para quitar fondos'
+                  }
+                </p>
+                <Button 
+                  onClick={handleProcessImages}
+                  disabled={!canProcess || !autoSaved || processing}
+                  className="w-full"
+                >
+                  {processing ? (
                     <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Guardando...
+                      Redirigiendo...
                     </>
                   ) : (
                     <>
-                      <Save className="h-4 w-4 mr-2" />
-                      Guardar {files.length} Productos
+                      <Zap className="h-4 w-4 mr-2" />
+                      {canProcess && autoSaved ? 'Ir a Procesar' : 'Sin Créditos'}
                     </>
                   )}
                 </Button>
               </CardContent>
             </Card>
 
-            {/* Opción 2: Guardar y procesar */}
+            {/* Opción 3: Crear catálogo directo */}
             <Card className={`border-2 transition-colors ${
-              canProcess 
-                ? 'border-blue-200 hover:border-blue-300 bg-blue-50' 
+              autoSaved
+                ? 'border-purple-200 hover:border-purple-300 bg-purple-50'
                 : 'border-gray-100 bg-gray-50'
             }`}>
               <CardContent className="p-4 text-center">
-                <Zap className={`h-8 w-8 mx-auto mb-3 ${
-                  canProcess ? 'text-blue-600' : 'text-gray-400'
+                <Palette className={`h-8 w-8 mx-auto mb-3 ${
+                  autoSaved ? 'text-purple-600' : 'text-gray-400'
                 }`} />
-                <h4 className="font-semibold mb-2">Guardar y Procesar</h4>
+                <h4 className="font-semibold mb-2">Crear Catálogo</h4>
                 <p className="text-sm text-gray-600 mb-4">
-                  {canProcess 
-                    ? `Guarda y remueve fondos automáticamente (${files.length} créditos)`
-                    : 'Requiere créditos para quitar fondos'
-                  }
+                  Usa las imágenes originales para crear un catálogo profesional ahora mismo
                 </p>
                 <Button 
-                  onClick={handleSaveAndProcess}
-                  disabled={!canProcess || processing || saving}
-                  className="w-full"
+                  onClick={handleCreateCatalog}
+                  disabled={!autoSaved}
+                  variant="default"
+                  className="w-full bg-purple-600 hover:bg-purple-700"
                 >
-                  {processing ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Guardando...
-                    </>
-                  ) : (
-                    <>
-                      <Zap className="h-4 w-4 mr-2" />
-                      {canProcess ? `Procesar ${files.length} Imágenes` : 'Sin Créditos'}
-                    </>
-                  )}
+                  <Palette className="h-4 w-4 mr-2" />
+                  Crear Catálogo
                 </Button>
               </CardContent>
             </Card>
           </div>
 
           <div className="mt-6 text-center text-sm text-gray-500">
-            💡 <strong>Tip:</strong> Puedes crear catálogos profesionales con imágenes originales o procesadas
+            💡 <strong>Tip:</strong> Los catálogos se ven profesionales tanto con imágenes originales como procesadas
           </div>
         </CardContent>
       </Card>
