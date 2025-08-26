@@ -15,30 +15,34 @@ export interface UsageValidation {
 
 class SubscriptionService {
   
-  async getAvailableCredits(userId: string): Promise<number> {
-    try {
-      console.log('🔍 Getting credits for user:', userId);
-      
-      const { data, error } = await supabase
-        .from('credit_usage')
-        .select('credits_remaining')
-        .eq('user_id', userId)
-        .gt('credits_remaining', 0);
-
-      if (error) {
-        console.error('❌ Error fetching credits:', error);
+      async getAvailableCredits(userId: string): Promise<number> {
+      try {
+        console.log('🔍 Getting credits for user:', userId);
+        
+        // CAMBIO: Obtener la entrada más reciente por fecha (último saldo conocido)
+        const { data, error } = await supabase
+          .from('credit_usage')
+          .select('credits_remaining')
+          .eq('user_id', userId)
+          .gt('credits_remaining', 0)
+          .order('created_at', { ascending: false }) // Más reciente primero
+          .limit(1); // Solo la entrada más reciente
+    
+        if (error) {
+          console.error('❌ Error fetching credits:', error);
+          return 0;
+        }
+    
+        // CAMBIO: Tomar solo el saldo más reciente, no sumar todas las entradas
+        const total = data?.[0]?.credits_remaining || 0;
+        console.log('💳 Latest credit balance found:', total);
+        
+        return total;
+      } catch (error) {
+        console.error('❌ Error getting credits:', error);
         return 0;
       }
-
-      const total = data?.reduce((sum, item) => sum + (item.credits_remaining || 0), 0) || 0;
-      console.log('💳 Total credits found:', total);
-      
-      return total;
-    } catch (error) {
-      console.error('❌ Error getting credits:', error);
-      return 0;
     }
-  }
 
   async validateUsage(userId: string): Promise<UsageValidation> {
     try {
