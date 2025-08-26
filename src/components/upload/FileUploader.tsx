@@ -22,9 +22,10 @@ interface FileUploaderProps {
   maxFiles?: number;
 }
 
-const MAX_FILES = 10;
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB per file
-const MAX_TOTAL_SIZE = 100 * 1024 * 1024; // 100MB total
+// LÍMITES AUMENTADOS - Opción 1
+const MAX_FILES = 50; // Aumentado de 10 a 50
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB per file (sin cambio)
+const MAX_TOTAL_SIZE = 500 * 1024 * 1024; // 500MB total (aumentado de 100MB)
 
 const validateFiles = (files: File[]) => {
   if (files.length > MAX_FILES) {
@@ -46,7 +47,7 @@ const validateFiles = (files: File[]) => {
   if (totalSize > MAX_TOTAL_SIZE) {
     return {
       valid: false,
-      error: `El tamaño total excede 100MB. Selecciona menos archivos.`
+      error: `El tamaño total excede ${Math.round(MAX_TOTAL_SIZE / (1024 * 1024))}MB. Selecciona menos archivos o reduce su tamaño.`
     };
   }
   
@@ -85,14 +86,14 @@ export const FileUploader = ({ onFilesUploaded, maxFiles = MAX_FILES }: FileUplo
 
     setUploadedFiles(prev => [...prev, ...newFiles]);
 
-    // 🔧 UPLOAD FILES WITH PNG PRESERVATION
+    // UPLOAD FILES WITH PNG PRESERVATION
     const uploadPromises = newFiles.map(async (uploadFile) => {
       try {
         const fileExt = uploadFile.file.name.split('.').pop()?.toLowerCase();
         const fileName = `${uploadFile.id}.${fileExt}`;
         const filePath = `${Date.now()}_${fileName}`;
 
-        // 🎯 DETERMINAR CONTENT-TYPE CORRECTO
+        // DETERMINAR CONTENT-TYPE CORRECTO
         let contentType = 'image/jpeg'; // Default
         if (fileExt === 'png') {
           contentType = 'image/png';
@@ -115,9 +116,9 @@ export const FileUploader = ({ onFilesUploaded, maxFiles = MAX_FILES }: FileUplo
           .upload(filePath, uploadFile.file, {
             cacheControl: '3600',
             upsert: false,
-            // ✅ FORZAR CONTENT-TYPE ORIGINAL
+            // FORZAR CONTENT-TYPE ORIGINAL
             contentType: contentType,
-            // ✅ PRESERVAR METADATA ORIGINAL
+            // PRESERVAR METADATA ORIGINAL
             metadata: {
               originalType: uploadFile.file.type,
               originalName: uploadFile.file.name,
@@ -127,7 +128,7 @@ export const FileUploader = ({ onFilesUploaded, maxFiles = MAX_FILES }: FileUplo
 
         if (error) throw error;
 
-        // ✅ VERIFICAR URL GENERADA
+        // VERIFICAR URL GENERADA
         const { data: urlData } = supabase.storage
           .from('product-images')
           .getPublicUrl(filePath);
@@ -140,7 +141,7 @@ export const FileUploader = ({ onFilesUploaded, maxFiles = MAX_FILES }: FileUplo
           contentType: contentType
         });
 
-        // ✅ VERIFICAR QUE LA URL MANTIENE LA EXTENSIÓN
+        // VERIFICAR QUE LA URL MANTIENE LA EXTENSIÓN
         const urlExtension = urlData.publicUrl.split('.').pop()?.toLowerCase();
         if (urlExtension !== fileExt) {
           console.warn(`⚠️ Extension mismatch! Expected: ${fileExt}, Got: ${urlExtension}`);
@@ -222,7 +223,7 @@ export const FileUploader = ({ onFilesUploaded, maxFiles = MAX_FILES }: FileUplo
                       Formatos aceptados: JPG, PNG, WEBP, GIF
                     </p>
                     <p className="text-sm text-neutral/60">
-                      Máximo {MAX_FILES} archivos • 10MB por imagen • 100MB total
+                      Máximo {MAX_FILES} archivos • 10MB por imagen • {Math.round(MAX_TOTAL_SIZE / (1024 * 1024))}MB total
                     </p>
                     <p className="text-xs text-blue-600 font-medium">
                       ✅ PNG se mantiene para transparencia
@@ -282,7 +283,7 @@ export const FileUploader = ({ onFilesUploaded, maxFiles = MAX_FILES }: FileUplo
       {uploadedFiles.length > 0 && (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {uploadedFiles.map((file) => {
-            // ✅ MOSTRAR INFORMACIÓN DEL FORMATO
+            // MOSTRAR INFORMACIÓN DEL FORMATO
             const fileExt = file.file.name.split('.').pop()?.toLowerCase();
             const isPng = fileExt === 'png';
             
@@ -294,7 +295,7 @@ export const FileUploader = ({ onFilesUploaded, maxFiles = MAX_FILES }: FileUplo
                   className="w-full h-32 object-cover"
                 />
                 
-                {/* ✅ INDICADOR DE FORMATO */}
+                {/* INDICADOR DE FORMATO */}
                 <div className="absolute top-2 left-2">
                   <span className={`text-xs px-2 py-1 rounded font-medium ${
                     isPng 
