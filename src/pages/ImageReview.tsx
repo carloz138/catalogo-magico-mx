@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
@@ -22,7 +23,6 @@ import {
   Save,
   Loader2,
   Package,
-  Bug,
   Zap,
   CreditCard,
   TrendingUp,
@@ -37,10 +37,9 @@ const ImageReview = () => {
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [debugMode, setDebugMode] = useState(false);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
   
-  // NUEVO: Estados para suscripciones
+  // Estados para suscripciones
   const [usageValidation, setUsageValidation] = useState<UsageValidation | null>(null);
   const [showCreditModal, setShowCreditModal] = useState(false);
   const [totalCreditsConsumed, setTotalCreditsConsumed] = useState(0);
@@ -48,8 +47,8 @@ const ImageReview = () => {
   useEffect(() => {
     if (user) {
       loadProcessedImages();
-      loadUsageValidation(); // NUEVO
-      calculateCreditsConsumed(); // NUEVO
+      loadUsageValidation();
+      calculateCreditsConsumed();
       
       const interval = setInterval(() => {
         loadProcessedImages();
@@ -58,7 +57,7 @@ const ImageReview = () => {
     }
   }, [user]);
 
-  // NUEVA FUNCIÓN: Cargar validación de suscripción
+  // Cargar validación de suscripción
   const loadUsageValidation = async () => {
     if (!user) return;
     
@@ -70,7 +69,7 @@ const ImageReview = () => {
     }
   };
 
-  // NUEVA FUNCIÓN: Calcular créditos consumidos por procesamiento
+  // Calcular créditos consumidos por procesamiento
   const calculateCreditsConsumed = async () => {
     if (!user) return;
 
@@ -241,7 +240,7 @@ const ImageReview = () => {
     }
   };
 
-  // NUEVO COMPONENTE: Banner de estado compacto
+  // Banner de estado compacto
   const PlanStatusBanner = () => {
     if (!usageValidation) return null;
 
@@ -304,7 +303,7 @@ const ImageReview = () => {
     );
   };
 
-  // NUEVO COMPONENTE: Modal de compra de créditos 
+  // Modal de compra de créditos 
   const CreditModal = () => (
     <Dialog open={showCreditModal} onOpenChange={setShowCreditModal}>
       <DialogContent className="sm:max-w-md">
@@ -361,27 +360,15 @@ const ImageReview = () => {
     </Dialog>
   );
 
-  // ACTIONS RESPONSIVAS mejoradas
+  // Actions responsivas
   const actions = (
     <div className="flex items-center gap-2">
-      {/* Botón volver - más prominente en mobile */}
+      {/* Botón volver */}
       <Button onClick={() => navigate('/products?tab=completed')} variant="outline" size="sm">
         <ArrowLeft className="h-4 w-4 md:mr-2" />
         <span className="hidden md:inline">Volver</span>
       </Button>
 
-      {debugMode && (
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setDebugMode(false)}
-          className="bg-red-50 border-red-300 text-red-700"
-        >
-          <Bug className="h-4 w-4 md:mr-1" />
-          <span className="hidden md:inline">Debug</span>
-        </Button>
-      )}
-      
       {selectedImages.length > 0 && (
         <div className="flex items-center gap-1 md:gap-2">
           <Button 
@@ -406,16 +393,6 @@ const ImageReview = () => {
         <RefreshCw className="h-4 w-4 md:mr-2" />
         <span className="hidden md:inline">Actualizar</span>
       </Button>
-
-      {!debugMode && (
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setDebugMode(true)}
-        >
-          <Bug className="h-4 w-4" />
-        </Button>
-      )}
     </div>
   );
 
@@ -437,37 +414,8 @@ const ImageReview = () => {
   return (
     <ProtectedRoute>
       <AppLayout actions={actions}>
-        {/* NUEVO: Banner de suscripción con información de créditos */}
+        {/* Banner de suscripción con información de créditos */}
         <PlanStatusBanner />
-
-        {debugMode && (
-          <Card className="mb-6 border-red-200 bg-red-50">
-            <CardContent className="p-4">
-              <h4 className="font-semibold text-red-900 mb-3 flex items-center gap-2">
-                <Bug className="h-4 w-4" />
-                Panel de Debugging
-              </h4>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
-                <div>
-                  <strong>Última actualización:</strong><br />
-                  {lastRefresh.toLocaleTimeString()}
-                </div>
-                <div>
-                  <strong>Productos totales:</strong><br />
-                  {products.length} en BD
-                </div>
-                <div>
-                  <strong>Imágenes procesadas:</strong><br />
-                  {images.length} completadas
-                </div>
-                <div>
-                  <strong>Seleccionadas:</strong><br />
-                  {selectedImages.length} de {images.length}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
 
         {images.length === 0 ? (
           <Card>
@@ -493,7 +441,7 @@ const ImageReview = () => {
           </Card>
         ) : (
           <div className="space-y-4 md:space-y-6">
-            {/* NUEVA: Card de estadísticas mejorada */}
+            {/* Card de estadísticas */}
             <Card>
               <CardContent className="p-3 md:p-4">
                 <div className="flex items-center justify-between">
@@ -532,7 +480,7 @@ const ImageReview = () => {
               </CardContent>
             </Card>
 
-            {/* MEJORADO: Grid más compacto y responsivo */}
+            {/* Grid de imágenes más compacto y responsivo */}
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 gap-2 md:gap-4">
               {images.map((image) => (
                 <Card key={image.id} className="overflow-hidden hover:shadow-md transition-shadow group">
@@ -544,7 +492,7 @@ const ImageReview = () => {
                       loading="lazy"
                     />
                     
-                    {/* Checkbox más grande en mobile */}
+                    {/* Checkbox */}
                     <div className="absolute top-1 md:top-2 left-1 md:left-2">
                       <Checkbox
                         checked={selectedImages.includes(image.id)}
@@ -553,7 +501,7 @@ const ImageReview = () => {
                       />
                     </div>
                     
-                    {/* Badge más legible */}
+                    {/* Badge */}
                     <div className="absolute top-1 md:top-2 right-1 md:right-2">
                       <Badge className="bg-green-500 text-white text-xs px-1 py-0.5">
                         <CheckCircle className="w-2 h-2 md:w-3 md:h-3 mr-0.5" />
@@ -561,7 +509,7 @@ const ImageReview = () => {
                       </Badge>
                     </div>
 
-                    {/* Overlay mejorado para mobile */}
+                    {/* Overlay */}
                     <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1 md:gap-2">
                       <Button size="sm" variant="secondary" className="h-6 w-6 md:h-8 md:w-8 p-0">
                         <Eye className="h-3 w-3 md:h-4 md:w-4" />
@@ -590,28 +538,12 @@ const ImageReview = () => {
                         </Badge>
                       )}
                     </div>
-
-                    {/* Debug info compacto */}
-                    {debugMode && (
-                      <div className="mt-1 p-1 bg-red-50 rounded text-xs">
-                        <div>ID: {image.id.slice(-6)}</div>
-                        <button 
-                          onClick={() => {
-                            const product = products.find(p => p.id === image.product_id);
-                            console.log('PRODUCTO COMPLETO:', product);
-                          }}
-                          className="text-red-600 hover:underline"
-                        >
-                          Debug
-                        </button>
-                      </div>
-                    )}
                   </CardContent>
                 </Card>
               ))}
             </div>
 
-            {/* MEJORADA: Info final sobre selección */}
+            {/* Info final sobre selección */}
             {selectedImages.length > 0 && (
               <Card className="border-green-200 bg-green-50">
                 <CardContent className="p-3 md:p-4">
@@ -626,7 +558,7 @@ const ImageReview = () => {
                       </p>
                     </div>
                     
-                    {/* NUEVO: Botón secundario de comprar créditos */}
+                    {/* Botón secundario de comprar créditos */}
                     <Button 
                       onClick={() => setShowCreditModal(true)} 
                       variant="outline" 
@@ -643,7 +575,7 @@ const ImageReview = () => {
           </div>
         )}
         
-        {/* NUEVO: Modal de compra de créditos */}
+        {/* Modal de compra de créditos */}
         <CreditModal />
       </AppLayout>
     </ProtectedRoute>
