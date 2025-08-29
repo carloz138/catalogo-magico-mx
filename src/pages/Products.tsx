@@ -30,7 +30,9 @@ import {
   Clock,
   AlertCircle,
   Save,
-  Palette
+  Palette,
+  ChevronDown,
+  Settings
 } from 'lucide-react';
 
 const Products = () => {
@@ -43,8 +45,9 @@ const Products = () => {
   const [processing, setProcessing] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState<string>('all');
+  const [showFilters, setShowFilters] = useState(false);
   
-  // NUEVO: Estado activo de pestaña (lee desde URL)
+  // Estado activo de pestaña (lee desde URL)
   const [activeTab, setActiveTab] = useState(() => {
     return searchParams.get('tab') || 'pending';
   });
@@ -65,7 +68,7 @@ const Products = () => {
     }
   }, [user]);
 
-  // NUEVO: Sincronizar pestaña activa con URL
+  // Sincronizar pestaña activa con URL
   useEffect(() => {
     const tabFromUrl = searchParams.get('tab');
     if (tabFromUrl && ['pending', 'processing', 'completed'].includes(tabFromUrl)) {
@@ -104,9 +107,8 @@ const Products = () => {
 
       if (error) throw error;
       setProducts(data || []);
-      console.log(`✅ Cargados ${data?.length || 0} productos`);
     } catch (error) {
-      console.error('❌ Error loading products:', error);
+      console.error('Error loading products:', error);
       toast({
         title: "Error",
         description: "No se pudieron cargar los productos",
@@ -117,7 +119,7 @@ const Products = () => {
     }
   };
 
-  // NUEVA FUNCIÓN: Filtrar productos por pestaña activa
+  // Filtrar productos por pestaña activa
   const getProductsForTab = (tab: string) => {
     let statusFilter: string[];
     
@@ -149,12 +151,11 @@ const Products = () => {
   const filteredProducts = getProductsForTab(activeTab);
   const categories = Array.from(new Set(products.map(p => p.category).filter(Boolean)));
 
-  // NUEVA FUNCIÓN: Cambiar pestaña y actualizar URL
+  // Cambiar pestaña y actualizar URL
   const handleTabChange = (newTab: string) => {
     setActiveTab(newTab);
-    setSelectedProducts([]); // Limpiar selección al cambiar pestaña
+    setSelectedProducts([]);
     
-    // Actualizar URL sin recargar página
     const newSearchParams = new URLSearchParams(searchParams);
     newSearchParams.set('tab', newTab);
     setSearchParams(newSearchParams);
@@ -176,7 +177,6 @@ const Products = () => {
     }
   };
 
-  // Función modificada: Procesar imágenes con validaciones
   const handleProcessImages = async () => {
     if (selectedProducts.length === 0) {
       toast({
@@ -234,7 +234,6 @@ const Products = () => {
         estimated_cost_mxn: 2.0
       }));
 
-      // Consumir créditos antes del webhook
       const creditsConsumed = await subscriptionService.consumeBackgroundRemovalCredit(
         user.id, 
         selectedProducts.length
@@ -244,7 +243,6 @@ const Products = () => {
         throw new Error('No se pudieron consumir los créditos');
       }
 
-      // Marcar como procesando
       await Promise.all(selectedProductsData.map(product => 
         supabase
           .from('products')
@@ -255,7 +253,6 @@ const Products = () => {
           .eq('id', product.id)
       ));
 
-      // Recargar validación después de consumir créditos
       await loadUsageValidation();
 
       const result = await processImagesOnly(
@@ -269,12 +266,11 @@ const Products = () => {
 
       if (result.success) {
         toast({
-          title: "¡Procesamiento iniciado!",
+          title: "Procesamiento iniciado",
           description: `${selectedProducts.length} productos enviados al procesamiento`,
           variant: "default",
         });
 
-        // Cambiar a pestaña "Procesando"
         handleTabChange('processing');
         
       } else {
@@ -282,7 +278,7 @@ const Products = () => {
       }
 
     } catch (error) {
-      console.error('❌ Error procesando imágenes:', error);
+      console.error('Error procesando imágenes:', error);
       toast({
         title: "Error en procesamiento",
         description: error instanceof Error ? error.message : "No se pudieron procesar las imágenes",
@@ -294,7 +290,6 @@ const Products = () => {
     }
   };
 
-  // NUEVA FUNCIÓN: Crear catálogo con productos seleccionados
   const handleCreateCatalog = async () => {
     if (selectedProducts.length === 0) {
       toast({
@@ -372,26 +367,6 @@ const Products = () => {
     }
   };
 
-  const getStatusBadge = (product: Product) => {
-    const status = getProcessingStatus(product);
-    const configs = {
-      pending: { color: 'bg-gray-100 text-gray-800', icon: Clock, text: 'Pendiente' },
-      processing: { color: 'bg-blue-100 text-blue-800', icon: Loader2, text: 'Procesando' },
-      completed: { color: 'bg-green-100 text-green-800', icon: CheckCircle, text: 'Listo' },
-      failed: { color: 'bg-red-100 text-red-800', icon: AlertCircle, text: 'Error' },
-    };
-    
-    const config = configs[status];
-    const Icon = config.icon;
-    
-    return (
-      <Badge className={`${config.color} flex items-center gap-1 text-xs`} variant="outline">
-        <Icon className={`w-3 h-3 ${status === 'processing' ? 'animate-spin' : ''}`} />
-        {config.text}
-      </Badge>
-    );
-  };
-
   const getStats = () => {
     return {
       total: products.length,
@@ -404,27 +379,56 @@ const Products = () => {
 
   const stats = getStats();
 
-  // Banner de estado de plan
+  // BANNER COMPACTO para mobile
   const PlanStatusBanner = () => {
     if (!usageValidation) return null;
 
     return (
-      <Card className="mb-6 border-blue-200 bg-blue-50">
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between">
+      <Card className="mb-4 border-blue-200 bg-blue-50">
+        <CardContent className="p-3">
+          {/* Mobile: Diseño vertical compacto */}
+          <div className="md:hidden space-y-2">
+            <div className="flex items-center justify-between">
+              <h4 className="font-semibold text-blue-900 text-sm">
+                {usageValidation.currentPlan}
+              </h4>
+              {usageValidation.suggestCreditPurchase && (
+                <Button onClick={() => setShowCreditModal(true)} size="sm" className="h-7 text-xs">
+                  Créditos
+                </Button>
+              )}
+            </div>
+            <div className="grid grid-cols-3 gap-2 text-xs text-blue-700">
+              <div className="text-center">
+                <div className="font-medium">{usageValidation.remainingUploads}</div>
+                <div className="text-blue-600">Subidas</div>
+              </div>
+              <div className="text-center">
+                <div className="font-medium">{usageValidation.remainingBgCredits}</div>
+                <div className="text-blue-600">Créditos</div>
+              </div>
+              <div className="text-center">
+                <div className="font-medium">{usageValidation.remainingCatalogs}</div>
+                <div className="text-blue-600">Catálogos</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Desktop: Diseño original */}
+          <div className="hidden md:flex items-center justify-between">
             <div>
               <h4 className="font-semibold text-blue-900">
-                📋 {usageValidation.currentPlan}
+                {usageValidation.currentPlan}
               </h4>
               <div className="text-sm text-blue-700 space-y-1">
-                <p>📤 Subidas restantes: {usageValidation.remainingUploads}</p>
-                <p>✨ Créditos para fondos: {usageValidation.remainingBgCredits}</p>
-                <p>📋 Catálogos restantes: {usageValidation.remainingCatalogs}</p>
+                <p>Subidas restantes: {usageValidation.remainingUploads}</p>
+                <p>Créditos para fondos: {usageValidation.remainingBgCredits}</p>
+                <p>Catálogos restantes: {usageValidation.remainingCatalogs}</p>
               </div>
             </div>
             {usageValidation.suggestCreditPurchase && (
               <Button onClick={() => setShowCreditModal(true)} size="sm">
-                💳 Comprar Créditos
+                Comprar Créditos
               </Button>
             )}
           </div>
@@ -433,103 +437,118 @@ const Products = () => {
     );
   };
 
-  // Modal de upgrade
+  // MODALES optimizados para mobile
   const UpgradeModal = () => (
     <Dialog open={showUpgradeModal} onOpenChange={setShowUpgradeModal}>
-      <DialogContent>
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>🚀 Upgrade Requerido</DialogTitle>
+          <DialogTitle className="text-lg">Upgrade Requerido</DialogTitle>
         </DialogHeader>
         <div className="py-4">
-          <p className="mb-4">{usageValidation?.upgradeRequired}</p>
-          <div className="space-y-2">
-            <p><strong>Planes disponibles:</strong></p>
-            <ul className="list-disc pl-6 space-y-1">
-              <li>Plan Básico: $299/mes - 5 créditos + 50 uploads</li>
-              <li>Plan Estándar: $599/mes - 30 créditos + 200 uploads</li>
-              <li>Plan Premium: $1,199/mes - 80 créditos + 500 uploads</li>
-            </ul>
+          <p className="mb-4 text-sm">{usageValidation?.upgradeRequired}</p>
+          <div className="space-y-3">
+            <p className="font-medium text-sm">Planes disponibles:</p>
+            <div className="space-y-2 text-sm">
+              <div className="p-2 border rounded">
+                <div className="font-medium">Básico - $299/mes</div>
+                <div className="text-gray-600">5 créditos + 50 uploads</div>
+              </div>
+              <div className="p-2 border rounded">
+                <div className="font-medium">Estándar - $599/mes</div>
+                <div className="text-gray-600">30 créditos + 200 uploads</div>
+              </div>
+              <div className="p-2 border rounded">
+                <div className="font-medium">Premium - $1,199/mes</div>
+                <div className="text-gray-600">80 créditos + 500 uploads</div>
+              </div>
+            </div>
           </div>
         </div>
         <div className="flex gap-3">
-          <Button onClick={() => navigate('/pricing')}>Ver Planes</Button>
-          <Button variant="outline" onClick={() => setShowUpgradeModal(false)}>Cerrar</Button>
+          <Button onClick={() => navigate('/pricing')} className="flex-1">Ver Planes</Button>
+          <Button variant="outline" onClick={() => setShowUpgradeModal(false)} className="flex-1">Cerrar</Button>
         </div>
       </DialogContent>
     </Dialog>
   );
 
-  // Modal de compra de créditos
   const CreditModal = () => (
     <Dialog open={showCreditModal} onOpenChange={setShowCreditModal}>
-      <DialogContent>
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>💳 Comprar Créditos</DialogTitle>
+          <DialogTitle className="text-lg">Comprar Créditos</DialogTitle>
         </DialogHeader>
         <div className="py-4">
-          <p className="mb-4">Compra créditos adicionales para procesar más imágenes:</p>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="border rounded p-3">
-              <h4 className="font-semibold">Pack 10 Créditos</h4>
-              <p className="text-2xl font-bold text-green-600">$35 MXN</p>
-              <p className="text-sm text-gray-600">$3.50 por crédito</p>
+          <p className="mb-4 text-sm">Compra créditos adicionales para procesar más imágenes:</p>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between p-3 border rounded">
+              <div>
+                <div className="font-semibold">Pack 10 Créditos</div>
+                <div className="text-sm text-gray-600">$3.50 por crédito</div>
+              </div>
+              <div className="text-lg font-bold text-green-600">$35</div>
             </div>
-            <div className="border rounded p-3">
-              <h4 className="font-semibold">Pack 25 Créditos</h4>
-              <p className="text-2xl font-bold text-blue-600">$80 MXN</p>
-              <p className="text-sm text-gray-600">$3.20 por crédito ⭐</p>
+            <div className="flex items-center justify-between p-3 border rounded">
+              <div>
+                <div className="font-semibold">Pack 25 Créditos ⭐</div>
+                <div className="text-sm text-gray-600">$3.20 por crédito</div>
+              </div>
+              <div className="text-lg font-bold text-blue-600">$80</div>
             </div>
           </div>
           <p className="text-xs text-gray-500 mt-3">* Los créditos no expiran por 12 meses</p>
         </div>
         <div className="flex gap-3">
-          <Button onClick={() => setShowCreditModal(false)}>Comprar Después</Button>
-          <Button variant="outline" onClick={() => setShowCreditModal(false)}>Cerrar</Button>
+          <Button onClick={() => setShowCreditModal(false)} className="flex-1">Comprar Después</Button>
+          <Button variant="outline" onClick={() => setShowCreditModal(false)} className="flex-1">Cerrar</Button>
         </div>
       </DialogContent>
     </Dialog>
   );
 
+  // ACTIONS RESPONSIVAS
   const actions = (
-    <div className="flex items-center gap-3">
-      <div className="flex items-center gap-2">
+    <div className="flex items-center gap-2">
+      {/* Búsqueda - oculta en mobile cuando hay selección */}
+      <div className={`items-center gap-2 ${selectedProducts.length > 0 ? 'hidden md:flex' : 'flex'}`}>
         <Search className="h-4 w-4 text-gray-400" />
         <Input
-          placeholder="Buscar productos..."
+          placeholder="Buscar..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-64"
+          className="w-32 md:w-64"
         />
       </div>
       
+      {/* Botones de acción - compactos en mobile */}
       {selectedProducts.length > 0 && (
-        <div className="flex items-center gap-2">
-          {/* Botón crear catálogo */}
+        <div className="flex items-center gap-1 md:gap-2">
+          {/* Botón crear catálogo - compacto en mobile */}
           <Button 
             variant="outline"
             onClick={handleCreateCatalog}
-            className="flex items-center gap-2 bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100"
+            size="sm"
+            className="bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100"
           >
-            <Palette className="h-4 w-4" />
-            Crear Catálogo ({selectedProducts.length})
+            <Palette className="h-4 w-4 md:mr-2" />
+            <span className="hidden md:inline">Catálogo ({selectedProducts.length})</span>
+            <span className="md:hidden">({selectedProducts.length})</span>
           </Button>
 
-          {/* Botón procesar - solo en pestaña "pending" */}
+          {/* Botón procesar - solo en pending */}
           {activeTab === 'pending' && (
             <Button 
               onClick={handleProcessImages} 
               disabled={processing}
-              className="flex items-center gap-2"
+              size="sm"
             >
               {processing ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Procesando...
-                </>
+                <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
                 <>
-                  <Zap className="h-4 w-4" />
-                  Quitar Fondos ({selectedProducts.length})
+                  <Zap className="h-4 w-4 md:mr-2" />
+                  <span className="hidden md:inline">Quitar Fondos ({selectedProducts.length})</span>
+                  <span className="md:hidden">({selectedProducts.length})</span>
                 </>
               )}
             </Button>
@@ -537,9 +556,20 @@ const Products = () => {
         </div>
       )}
       
-      <Button onClick={() => navigate('/upload')} variant="outline">
-        <Plus className="h-4 w-4 mr-2" />
-        Agregar Productos
+      {/* Botón agregar - siempre visible */}
+      <Button onClick={() => navigate('/upload')} variant="outline" size="sm">
+        <Plus className="h-4 w-4 md:mr-2" />
+        <span className="hidden md:inline">Agregar</span>
+      </Button>
+
+      {/* Filtros - botón hamburguesa en mobile */}
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => setShowFilters(!showFilters)}
+        className="md:hidden"
+      >
+        <Filter className="h-4 w-4" />
       </Button>
     </div>
   );
@@ -566,12 +596,12 @@ const Products = () => {
         
         {products.length === 0 ? (
           <Card>
-            <CardContent className="text-center py-12">
-              <Package className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
+            <CardContent className="text-center py-8 md:py-12">
+              <Package className="h-12 w-12 md:h-16 md:w-16 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-base md:text-lg font-medium text-gray-900 mb-2">
                 No tienes productos guardados
               </h3>
-              <p className="text-gray-600 mb-4">
+              <p className="text-sm md:text-base text-gray-600 mb-4">
                 Sube tus primeras imágenes de productos para comenzar
               </p>
               <Button onClick={() => navigate('/upload')}>
@@ -581,57 +611,89 @@ const Products = () => {
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-6">
-            {/* PESTAÑAS PRINCIPALES */}
+          <div className="space-y-4 md:space-y-6">
+            {/* PESTAÑAS COMPACTAS */}
             <Tabs value={activeTab} onValueChange={handleTabChange}>
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="pending" className="relative">
-                  <Clock className="h-4 w-4 mr-2" />
-                  Por Procesar
-                  {stats.pending > 0 && (
-                    <Badge className="ml-2 h-5 w-5 p-0 text-xs flex items-center justify-center">
-                      {stats.pending}
-                    </Badge>
-                  )}
+              <TabsList className="grid w-full grid-cols-3 h-auto">
+                <TabsTrigger value="pending" className="relative px-2 py-2 text-xs md:text-sm">
+                  <div className="flex flex-col md:flex-row items-center gap-1 md:gap-2">
+                    <Clock className="h-3 w-3 md:h-4 md:w-4" />
+                    <span className="hidden sm:inline">Por Procesar</span>
+                    <span className="sm:hidden">Pendientes</span>
+                    {stats.pending > 0 && (
+                      <Badge className="h-4 w-4 p-0 text-xs flex items-center justify-center">
+                        {stats.pending}
+                      </Badge>
+                    )}
+                  </div>
                 </TabsTrigger>
-                <TabsTrigger value="processing" className="relative">
-                  <Loader2 className="h-4 w-4 mr-2" />
-                  Procesando
-                  {stats.processing > 0 && (
-                    <Badge className="ml-2 h-5 w-5 p-0 text-xs flex items-center justify-center bg-blue-500">
-                      {stats.processing}
-                    </Badge>
-                  )}
+                <TabsTrigger value="processing" className="relative px-2 py-2 text-xs md:text-sm">
+                  <div className="flex flex-col md:flex-row items-center gap-1 md:gap-2">
+                    <Loader2 className="h-3 w-3 md:h-4 md:w-4" />
+                    <span>Procesando</span>
+                    {stats.processing > 0 && (
+                      <Badge className="h-4 w-4 p-0 text-xs flex items-center justify-center bg-blue-500">
+                        {stats.processing}
+                      </Badge>
+                    )}
+                  </div>
                 </TabsTrigger>
-                <TabsTrigger value="completed" className="relative">
-                  <CheckCircle className="h-4 w-4 mr-2" />
-                  Completadas
-                  {stats.completed > 0 && (
-                    <Badge className="ml-2 h-5 w-5 p-0 text-xs flex items-center justify-center bg-green-500">
-                      {stats.completed}
-                    </Badge>
-                  )}
+                <TabsTrigger value="completed" className="relative px-2 py-2 text-xs md:text-sm">
+                  <div className="flex flex-col md:flex-row items-center gap-1 md:gap-2">
+                    <CheckCircle className="h-3 w-3 md:h-4 md:w-4" />
+                    <span>Completadas</span>
+                    {stats.completed > 0 && (
+                      <Badge className="h-4 w-4 p-0 text-xs flex items-center justify-center bg-green-500">
+                        {stats.completed}
+                      </Badge>
+                    )}
+                  </div>
                 </TabsTrigger>
               </TabsList>
 
+              {/* FILTROS MÓVILES COLAPSABLES */}
+              {showFilters && (
+                <Card className="md:hidden">
+                  <CardContent className="p-4">
+                    <div className="space-y-3">
+                      <div>
+                        <label className="text-sm font-medium mb-1 block">Categoría</label>
+                        <select
+                          value={filterCategory}
+                          onChange={(e) => setFilterCategory(e.target.value)}
+                          className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm bg-white"
+                        >
+                          <option value="all">Todas las categorías</option>
+                          {categories.map(category => (
+                            <option key={category} value={category}>
+                              {category}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
               {/* CONTENIDO DE PESTAÑAS */}
-              <TabsContent value="pending" className="space-y-6">
+              <TabsContent value="pending" className="space-y-4">
                 {stats.pending === 0 ? (
                   <Card>
-                    <CardContent className="text-center py-12">
-                      <Clock className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                      <h3 className="text-lg font-medium text-gray-900 mb-2">
+                    <CardContent className="text-center py-8">
+                      <Clock className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                      <h3 className="text-base font-medium text-gray-900 mb-2">
                         No hay productos pendientes
                       </h3>
-                      <p className="text-gray-600 mb-4">
+                      <p className="text-sm text-gray-600 mb-4">
                         Todos tus productos han sido procesados o están en proceso
                       </p>
                     </CardContent>
                   </Card>
                 ) : (
                   <>
-                    {/* Controles de filtros */}
-                    <Card>
+                    {/* Controles desktop */}
+                    <Card className="hidden md:block">
                       <CardContent className="p-4">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-4">
@@ -651,7 +713,6 @@ const Products = () => {
                               value={filterCategory}
                               onChange={(e) => setFilterCategory(e.target.value)}
                               className="border border-gray-300 rounded-md px-3 py-1 text-sm"
-                              disabled={processing}
                             >
                               <option value="all">Todas las categorías</option>
                               {categories.map(category => (
@@ -665,8 +726,22 @@ const Products = () => {
                       </CardContent>
                     </Card>
 
-                    {/* Grid de productos pendientes */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    {/* Controles móviles compactos */}
+                    <div className="md:hidden flex items-center justify-between px-2">
+                      <div className="flex items-center gap-2">
+                        <Checkbox
+                          checked={selectedProducts.length === filteredProducts.length && filteredProducts.length > 0}
+                          onCheckedChange={selectAllProducts}
+                          disabled={processing}
+                        />
+                        <span className="text-sm text-gray-600">
+                          {selectedProducts.length} de {filteredProducts.length}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Grid responsivo mejorado */}
+                    <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-6">
                       {filteredProducts.map((product) => (
                         <ProductCard 
                           key={product.id} 
@@ -675,6 +750,7 @@ const Products = () => {
                           toggleProductSelection={toggleProductSelection}
                           handleDeleteProduct={handleDeleteProduct}
                           processing={processing}
+                          isMobile={true}
                         />
                       ))}
                     </div>
@@ -682,15 +758,15 @@ const Products = () => {
                 )}
               </TabsContent>
 
-              <TabsContent value="processing" className="space-y-6">
+              <TabsContent value="processing" className="space-y-4">
                 {stats.processing === 0 ? (
                   <Card>
-                    <CardContent className="text-center py-12">
-                      <Loader2 className="h-16 w-16 text-blue-400 mx-auto mb-4" />
-                      <h3 className="text-lg font-medium text-gray-900 mb-2">
+                    <CardContent className="text-center py-8">
+                      <Loader2 className="h-12 w-12 text-blue-400 mx-auto mb-4" />
+                      <h3 className="text-base font-medium text-gray-900 mb-2">
                         No hay productos procesándose
                       </h3>
-                      <p className="text-gray-600 mb-4">
+                      <p className="text-sm text-gray-600 mb-4">
                         Selecciona productos en "Por Procesar" para quitar fondos
                       </p>
                     </CardContent>
@@ -698,22 +774,22 @@ const Products = () => {
                 ) : (
                   <>
                     <Card className="border-blue-200 bg-blue-50">
-                      <CardContent className="p-4">
+                      <CardContent className="p-3 md:p-4">
                         <div className="flex items-center gap-3">
-                          <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+                          <Loader2 className="h-4 w-4 md:h-5 md:w-5 animate-spin text-blue-600" />
                           <div>
-                            <h4 className="font-semibold text-blue-900">
+                            <h4 className="font-semibold text-blue-900 text-sm md:text-base">
                               {stats.processing} productos procesándose
                             </h4>
-                            <p className="text-sm text-blue-700">
-                              El sistema está quitando fondos de las imágenes automáticamente
+                            <p className="text-xs md:text-sm text-blue-700">
+                              El sistema está quitando fondos automáticamente
                             </p>
                           </div>
                         </div>
                       </CardContent>
                     </Card>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-6">
                       {filteredProducts.map((product) => (
                         <ProductCard 
                           key={product.id} 
@@ -723,6 +799,7 @@ const Products = () => {
                           handleDeleteProduct={handleDeleteProduct}
                           processing={true}
                           showProgress={true}
+                          isMobile={true}
                         />
                       ))}
                     </div>
@@ -730,15 +807,15 @@ const Products = () => {
                 )}
               </TabsContent>
 
-              <TabsContent value="completed" className="space-y-6">
+              <TabsContent value="completed" className="space-y-4">
                 {stats.completed === 0 ? (
                   <Card>
-                    <CardContent className="text-center py-12">
-                      <CheckCircle className="h-16 w-16 text-green-400 mx-auto mb-4" />
-                      <h3 className="text-lg font-medium text-gray-900 mb-2">
+                    <CardContent className="text-center py-8">
+                      <CheckCircle className="h-12 w-12 text-green-400 mx-auto mb-4" />
+                      <h3 className="text-base font-medium text-gray-900 mb-2">
                         No hay productos completados
                       </h3>
-                      <p className="text-gray-600 mb-4">
+                      <p className="text-sm text-gray-600 mb-4">
                         Procesa algunos productos para verlos aquí sin fondo
                       </p>
                     </CardContent>
@@ -746,14 +823,14 @@ const Products = () => {
                 ) : (
                   <>
                     <Card className="border-green-200 bg-green-50">
-                      <CardContent className="p-4">
+                      <CardContent className="p-3 md:p-4">
                         <div className="flex items-center gap-3">
-                          <CheckCircle className="h-5 w-5 text-green-600" />
+                          <CheckCircle className="h-4 w-4 md:h-5 md:w-5 text-green-600" />
                           <div>
-                            <h4 className="font-semibold text-green-900">
+                            <h4 className="font-semibold text-green-900 text-sm md:text-base">
                               {stats.completed} productos con fondo removido
                             </h4>
-                            <p className="text-sm text-green-700">
+                            <p className="text-xs md:text-sm text-green-700">
                               Listos para crear catálogos profesionales
                             </p>
                           </div>
@@ -761,7 +838,7 @@ const Products = () => {
                       </CardContent>
                     </Card>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-6">
                       {filteredProducts.map((product) => (
                         <ProductCard 
                           key={product.id} 
@@ -771,6 +848,7 @@ const Products = () => {
                           handleDeleteProduct={handleDeleteProduct}
                           processing={false}
                           showCompleted={true}
+                          isMobile={true}
                         />
                       ))}
                     </div>
@@ -788,8 +866,8 @@ const Products = () => {
   );
 };
 
-// Componente ProductCard extraído para reutilización
-const ProductCard = ({ product, selectedProducts, toggleProductSelection, handleDeleteProduct, processing, showProgress = false, showCompleted = false }: any) => {
+// COMPONENT CARD OPTIMIZADO PARA MOBILE
+const ProductCard = ({ product, selectedProducts, toggleProductSelection, handleDeleteProduct, processing, showProgress = false, showCompleted = false, isMobile = false }: any) => {
   const status = getProcessingStatus(product);
   const displayImageUrl = getDisplayImageUrl(product);
 
@@ -798,39 +876,50 @@ const ProductCard = ({ product, selectedProducts, toggleProductSelection, handle
       processing ? 'opacity-50' : ''
     }`}>
       <div className="relative">
+        {/* Imagen con aspect ratio mejorado para mobile */}
         <div className="aspect-square bg-gray-100">
           <img
             src={displayImageUrl}
             alt={product.name}
             className="w-full h-full object-cover"
+            loading="lazy"
           />
         </div>
-        <div className="absolute top-2 left-2">
+        
+        {/* Checkbox más grande en mobile */}
+        <div className="absolute top-1 md:top-2 left-1 md:left-2">
           <Checkbox
             checked={selectedProducts.includes(product.id)}
             onCheckedChange={() => toggleProductSelection(product.id)}
-            className="bg-white"
+            className={`bg-white shadow-sm ${isMobile ? 'h-5 w-5' : ''}`}
             disabled={processing}
           />
         </div>
-        <div className="absolute top-2 right-2">
+        
+        {/* Badge de estado más legible en mobile */}
+        <div className="absolute top-1 md:top-2 right-1 md:right-2">
           {showCompleted ? (
-            <Badge className="bg-green-100 text-green-800 flex items-center gap-1 text-xs">
-              <CheckCircle className="w-3 h-3" />
-              Sin fondo
+            <Badge className="bg-green-100 text-green-800 text-xs px-1 py-0.5 md:px-2 md:py-1">
+              <CheckCircle className="w-2 h-2 md:w-3 md:h-3 mr-1" />
+              <span className="hidden sm:inline">Sin fondo</span>
+              <span className="sm:hidden">✓</span>
             </Badge>
           ) : (
-            <Badge className={`${status === 'pending' ? 'bg-gray-100 text-gray-800' : 'bg-blue-100 text-blue-800'} flex items-center gap-1 text-xs`}>
-              {status === 'processing' ? <Loader2 className="w-3 h-3 animate-spin" /> : <Clock className="w-3 h-3" />}
-              {status === 'pending' ? 'Pendiente' : 'Procesando'}
+            <Badge className={`text-xs px-1 py-0.5 md:px-2 md:py-1 ${
+              status === 'pending' ? 'bg-gray-100 text-gray-800' : 'bg-blue-100 text-blue-800'
+            }`}>
+              {status === 'processing' ? <Loader2 className="w-2 h-2 md:w-3 md:h-3 animate-spin mr-1" /> : <Clock className="w-2 h-2 md:w-3 md:h-3 mr-1" />}
+              <span className="hidden sm:inline">{status === 'pending' ? 'Pendiente' : 'Procesando'}</span>
+              <span className="sm:hidden">{status === 'pending' ? 'P' : 'Proc'}</span>
             </Badge>
           )}
         </div>
         
+        {/* Progress bar más visible en mobile */}
         {showProgress && status === 'processing' && product.processing_progress !== undefined && (
-          <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white p-2">
-            <div className="flex items-center gap-2">
-              <Loader2 className="w-3 h-3 animate-spin" />
+          <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white p-1 md:p-2">
+            <div className="flex items-center gap-1 md:gap-2">
+              <Loader2 className="w-2 h-2 md:w-3 md:h-3 animate-spin" />
               <div className="flex-1">
                 <div className="w-full bg-gray-200 rounded-full h-1">
                   <div 
@@ -845,43 +934,42 @@ const ProductCard = ({ product, selectedProducts, toggleProductSelection, handle
         )}
       </div>
       
-      <CardContent className="p-4">
-        <h3 className="font-semibold text-lg mb-1 truncate">{product.name}</h3>
-        {product.description && (
-          <p className="text-gray-600 text-sm mb-2 line-clamp-2">
-            {product.description}
-          </p>
-        )}
+      {/* Card content compacto para mobile */}
+      <CardContent className="p-2 md:p-4">
+        <h3 className="font-semibold text-sm md:text-lg mb-1 truncate">{product.name}</h3>
+        
+        {/* Precio más prominente en mobile */}
         {product.price_retail && (
-          <p className="font-bold text-primary mb-2">
-            ${(product.price_retail / 100).toFixed(2)} MXN
+          <p className="font-bold text-primary mb-2 text-sm md:text-base">
+            ${(product.price_retail / 100).toFixed(2)}
           </p>
         )}
         
-        <div className="flex items-center justify-between mb-3">
-          {product.category && (
-            <Badge variant="outline" className="text-xs">
-              {product.category}
-            </Badge>
-          )}
-        </div>
+        {/* Categoría solo en desktop por espacio */}
+        {product.category && (
+          <Badge variant="outline" className="text-xs mb-2 hidden md:inline-flex">
+            {product.category}
+          </Badge>
+        )}
         
-        <div className="flex gap-2">
-          <Button size="sm" variant="outline" className="flex-1" disabled={processing}>
-            <Eye className="h-3 w-3 mr-1" />
-            Ver
+        {/* Botones compactos en mobile */}
+        <div className="flex gap-1 md:gap-2">
+          <Button size="sm" variant="outline" className="flex-1 text-xs md:text-sm h-7 md:h-8" disabled={processing}>
+            <Eye className="h-2 w-2 md:h-3 md:w-3 md:mr-1" />
+            <span className="hidden md:inline">Ver</span>
           </Button>
-          <Button size="sm" variant="outline" className="flex-1" disabled={processing}>
-            <Edit className="h-3 w-3 mr-1" />
-            Editar
+          <Button size="sm" variant="outline" className="flex-1 text-xs md:text-sm h-7 md:h-8" disabled={processing}>
+            <Edit className="h-2 w-2 md:h-3 md:w-3 md:mr-1" />
+            <span className="hidden md:inline">Editar</span>
           </Button>
           <Button 
             size="sm" 
             variant="outline" 
+            className="text-xs md:text-sm h-7 md:h-8 px-1 md:px-2"
             disabled={processing}
             onClick={() => handleDeleteProduct(product)}
           >
-            <Trash2 className="h-3 w-3" />
+            <Trash2 className="h-2 w-2 md:h-3 md:w-3" />
           </Button>
         </div>
       </CardContent>
