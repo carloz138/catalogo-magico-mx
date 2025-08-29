@@ -40,7 +40,9 @@ const Products = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [products, setProducts] = useState<Product[]>([]);
+  // Estado global de selección (mantiene selecciones entre pestañas)
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
+  const [showCatalogPreview, setShowCatalogPreview] = useState(false);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -151,10 +153,10 @@ const Products = () => {
   const filteredProducts = getProductsForTab(activeTab);
   const categories = Array.from(new Set(products.map(p => p.category).filter(Boolean)));
 
-  // Cambiar pestaña y actualizar URL
+  // Cambiar pestaña SIN resetear selecciones
   const handleTabChange = (newTab: string) => {
     setActiveTab(newTab);
-    setSelectedProducts([]);
+    // Ya NO limpiamos las selecciones para mantenerlas entre pestañas
     
     const newSearchParams = new URLSearchParams(searchParams);
     newSearchParams.set('tab', newTab);
@@ -170,10 +172,15 @@ const Products = () => {
   };
 
   const selectAllProducts = () => {
-    if (selectedProducts.length === filteredProducts.length) {
-      setSelectedProducts([]);
+    const currentTabProductIds = filteredProducts.map(p => p.id);
+    const currentTabSelectedCount = selectedProducts.filter(id => currentTabProductIds.includes(id)).length;
+    
+    if (currentTabSelectedCount === currentTabProductIds.length) {
+      // Deseleccionar todos los de esta pestaña
+      setSelectedProducts(prev => prev.filter(id => !currentTabProductIds.includes(id)));
     } else {
-      setSelectedProducts(filteredProducts.map(p => p.id));
+      // Seleccionar todos los de esta pestaña (sin duplicar)
+      setSelectedProducts(prev => [...new Set([...prev, ...currentTabProductIds])]);
     }
   };
 
@@ -290,7 +297,7 @@ const Products = () => {
     }
   };
 
-  const handleCreateCatalog = async () => {
+  const handleCreateCatalog = () => {
     if (selectedProducts.length === 0) {
       toast({
         title: "Selecciona productos",
@@ -299,7 +306,12 @@ const Products = () => {
       });
       return;
     }
+    
+    // Mostrar modal de preview antes de crear catálogo
+    setShowCatalogPreview(true);
+  };
 
+  const confirmCreateCatalog = async () => {
     try {
       const selectedProductsData = products
         .filter(p => selectedProducts.includes(p.id))
@@ -378,6 +390,17 @@ const Products = () => {
   };
 
   const stats = getStats();
+
+  // Obtener productos seleccionados por estado para el modal
+  const getSelectedProductsByStatus = () => {
+    const selectedProductsData = products.filter(p => selectedProducts.includes(p.id));
+    return {
+      pending: selectedProductsData.filter(p => getProcessingStatus(p) === 'pending'),
+      processing: selectedProductsData.filter(p => getProcessingStatus(p) === 'processing'),
+      completed: selectedProductsData.filter(p => getProcessingStatus(p) === 'completed'),
+      total: selectedProductsData.length
+    };
+  };
 
   // BANNER COMPACTO para mobile
   const PlanStatusBanner = () => {
@@ -505,6 +528,142 @@ const Products = () => {
       </DialogContent>
     </Dialog>
   );
+
+  // MODAL DE PREVIEW DEL CATÁLOGO
+  const CatalogPreviewModal = () => {
+    const selectedByStatus = getSelectedProductsByStatus();
+    
+    return (
+      <Dialog open={showCatalogPreview} onOpenChange={setShowCatalogPreview}>
+        <DialogContent className="sm:max-w-4xl max-h-[80vh] overflow-hidden">
+          <DialogHeader>
+            <DialogTitle className="text-xl">Preview del Catálogo</DialogTitle>
+            <p className="text-sm text-gray-600">
+              {selectedByStatus.total} productos seleccionados de diferentes estados
+            </p>
+          </DialogHeader>
+          
+          <div className="space-y-6 overflow-y-auto">
+            {/* Resumen por estados */}
+            <div className="grid grid-cols-3 gap-4">
+              {selectedByStatus.pending.length > 0 && (
+                <Card className="border-orange-200 bg-orange-50">
+                  <CardContent className="p-3 text-center">
+                    <Clock className="h-6 w-6 text-orange-600 mx-auto mb-2" />
+                    <div className="font-semibold text-orange-900">{selectedByStatus.pending.length}</div>
+                    <div className="text-xs text-orange-700">Por Procesar</div>
+                  </CardContent>
+                </Card>
+              )}
+              
+              {selectedByStatus.processing.length > 0 && (
+                <Card className="border-blue-200 bg-blue-50">
+                  <CardContent className="p-3 text-center">
+                    <Loader2 className="h-6 w-6 text-blue-600 mx-auto mb-2" />
+                    <div className="font-semibold text-blue-900">{selectedByStatus.processing.length}</div>
+                    <div className="text-xs text-blue-700">Procesando</div>
+                  </CardContent>
+                </Card>
+              )}
+              
+              {selectedByStatus.completed.length > 0 && (
+                <Card className="border-green-200 bg-green-50">
+                  <CardContent className="p-3 text-center">
+                    <CheckCircle className="h-6 w-6 text-green-600 mx-auto mb-2" />
+                    <div className="font-semibold text-green-900">{selectedByStatus.completed.length}</div>
+                    <div className="text-xs text-green-700">Completadas</div>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+
+            {/* Grid de productos */}
+            <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-3">
+              {products
+                .filter(p => selectedProducts.includes(p.id))
+                .map(product => {
+                  const status = getProcessingStatus(product);
+                  return (
+                    <div key={product.id} className="relative group">
+                      <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden">
+                        <img
+                          src={getDisplayImageUrl(product)}
+                          alt={product.name}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      
+                      {/* Badge de estado */}
+                      <div className="absolute -top-1 -right-1">
+                        {status === 'pending' && (
+                          <Badge className="bg-orange-100 text-orange-800 h-5 w-5 p-0 text-xs flex items-center justify-center">
+                            <Clock className="h-3 w-3" />
+                          </Badge>
+                        )}
+                        {status === 'processing' && (
+                          <Badge className="bg-blue-100 text-blue-800 h-5 w-5 p-0 text-xs flex items-center justify-center">
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          </Badge>
+                        )}
+                        {status === 'completed' && (
+                          <Badge className="bg-green-100 text-green-800 h-5 w-5 p-0 text-xs flex items-center justify-center">
+                            <CheckCircle className="h-3 w-3" />
+                          </Badge>
+                        )}
+                      </div>
+
+                      {/* Tooltip con nombre en hover */}
+                      <div className="absolute bottom-0 left-0 right-0 bg-black/75 text-white text-xs p-1 rounded-b-lg opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="truncate">{product.name}</div>
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
+
+            {/* Información adicional */}
+            <Card className="bg-blue-50 border-blue-200">
+              <CardContent className="p-4">
+                <div className="flex items-start gap-3">
+                  <Package className="h-5 w-5 text-blue-600 mt-0.5" />
+                  <div className="space-y-1">
+                    <h4 className="font-semibold text-blue-900">¿Qué incluirá tu catálogo?</h4>
+                    <ul className="text-sm text-blue-800 space-y-1">
+                      <li>• Productos con imágenes originales (pendientes y en proceso)</li>
+                      <li>• Productos con fondos removidos (completadas)</li>
+                      <li>• Precios y descripciones de todos los productos</li>
+                      <li>• Diseño profesional personalizable</li>
+                    </ul>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Botones de acción */}
+          <div className="flex gap-3 pt-4 border-t">
+            <Button
+              variant="outline"
+              onClick={() => setShowCatalogPreview(false)}
+              className="flex-1"
+            >
+              Seguir Editando
+            </Button>
+            <Button
+              onClick={() => {
+                setShowCatalogPreview(false);
+                confirmCreateCatalog();
+              }}
+              className="flex-1 bg-purple-600 hover:bg-purple-700"
+            >
+              <Palette className="h-4 w-4 mr-2" />
+              Crear Catálogo ({selectedByStatus.total})
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  };
 
   // ACTIONS RESPONSIVAS
   const actions = (
@@ -695,17 +854,20 @@ const Products = () => {
                     {/* Controles desktop */}
                     <Card className="hidden md:block">
                       <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-4">
-                            <Checkbox
-                              checked={selectedProducts.length === filteredProducts.length && filteredProducts.length > 0}
-                              onCheckedChange={selectAllProducts}
-                              disabled={processing}
-                            />
-                            <span className="text-sm text-gray-600">
-                              {selectedProducts.length} de {filteredProducts.length} productos seleccionados
-                            </span>
-                          </div>
+                         <div className="flex items-center justify-between">
+                           <div className="flex items-center gap-4">
+                             <Checkbox
+                               checked={filteredProducts.length > 0 && selectedProducts.filter(id => filteredProducts.map(p => p.id).includes(id)).length === filteredProducts.length}
+                               onCheckedChange={selectAllProducts}
+                               disabled={processing}
+                             />
+                             <span className="text-sm text-gray-600">
+                               <span className="font-semibold text-blue-600">
+                                 {selectedProducts.length} total seleccionados
+                               </span>
+                               {' '} | {selectedProducts.filter(id => filteredProducts.map(p => p.id).includes(id)).length} de {filteredProducts.length} en esta pestaña
+                             </span>
+                           </div>
                           
                           <div className="flex items-center gap-2">
                             <Filter className="h-4 w-4 text-gray-400" />
@@ -728,16 +890,17 @@ const Products = () => {
 
                     {/* Controles móviles compactos */}
                     <div className="md:hidden flex items-center justify-between px-2">
-                      <div className="flex items-center gap-2">
-                        <Checkbox
-                          checked={selectedProducts.length === filteredProducts.length && filteredProducts.length > 0}
-                          onCheckedChange={selectAllProducts}
-                          disabled={processing}
-                        />
-                        <span className="text-sm text-gray-600">
-                          {selectedProducts.length} de {filteredProducts.length}
-                        </span>
-                      </div>
+                       <div className="flex items-center gap-2">
+                         <Checkbox
+                           checked={filteredProducts.length > 0 && selectedProducts.filter(id => filteredProducts.map(p => p.id).includes(id)).length === filteredProducts.length}
+                           onCheckedChange={selectAllProducts}
+                           disabled={processing}
+                         />
+                         <span className="text-xs text-gray-600">
+                           <span className="font-semibold text-blue-600">{selectedProducts.length}</span>
+                           {' '}total | {selectedProducts.filter(id => filteredProducts.map(p => p.id).includes(id)).length}/{filteredProducts.length}
+                         </span>
+                       </div>
                     </div>
 
                     {/* Grid responsivo mejorado */}
@@ -861,6 +1024,7 @@ const Products = () => {
         
         <UpgradeModal />
         <CreditModal />
+        <CatalogPreviewModal />
       </AppLayout>
     </ProtectedRoute>
   );
