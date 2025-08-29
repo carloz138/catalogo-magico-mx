@@ -668,15 +668,27 @@ const Products = () => {
   // ACTIONS RESPONSIVAS
   const actions = (
     <div className="flex items-center gap-2">
-      {/* Búsqueda - oculta en mobile cuando hay selección */}
+      {/* Búsqueda con filtro de categoría integrado */}
       <div className={`items-center gap-2 ${selectedProducts.length > 0 ? 'hidden md:flex' : 'flex'}`}>
         <Search className="h-4 w-4 text-gray-400" />
         <Input
-          placeholder="Buscar..."
+          placeholder="Buscar productos..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-32 md:w-64"
+          className="w-32 md:w-48"
         />
+        <select
+          value={filterCategory}
+          onChange={(e) => setFilterCategory(e.target.value)}
+          className="hidden md:block border border-gray-300 rounded-md px-2 py-1.5 text-sm bg-white min-w-[120px]"
+        >
+          <option value="all">Todas</option>
+          {categories.map(category => (
+            <option key={category} value={category}>
+              {category}
+            </option>
+          ))}
+        </select>
       </div>
       
       {/* Botones de acción - compactos en mobile */}
@@ -851,42 +863,26 @@ const Products = () => {
                   </Card>
                 ) : (
                   <>
-                    {/* Controles desktop */}
-                    <Card className="hidden md:block">
-                      <CardContent className="p-4">
-                         <div className="flex items-center justify-between">
-                           <div className="flex items-center gap-4">
-                             <Checkbox
-                               checked={filteredProducts.length > 0 && selectedProducts.filter(id => filteredProducts.map(p => p.id).includes(id)).length === filteredProducts.length}
-                               onCheckedChange={selectAllProducts}
-                               disabled={processing}
-                             />
-                             <span className="text-sm text-gray-600">
-                               <span className="font-semibold text-blue-600">
-                                 {selectedProducts.length} total seleccionados
-                               </span>
-                               {' '} | {selectedProducts.filter(id => filteredProducts.map(p => p.id).includes(id)).length} de {filteredProducts.length} en esta pestaña
-                             </span>
-                           </div>
-                          
-                          <div className="flex items-center gap-2">
-                            <Filter className="h-4 w-4 text-gray-400" />
-                            <select
-                              value={filterCategory}
-                              onChange={(e) => setFilterCategory(e.target.value)}
-                              className="border border-gray-300 rounded-md px-3 py-1 text-sm"
-                            >
-                              <option value="all">Todas las categorías</option>
-                              {categories.map(category => (
-                                <option key={category} value={category}>
-                                  {category}
-                                </option>
-                              ))}
-                            </select>
+                     {/* Controles desktop - Solo contador y selección */}
+                     <Card className="hidden md:block">
+                       <CardContent className="p-4">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-4">
+                              <Checkbox
+                                checked={filteredProducts.length > 0 && selectedProducts.filter(id => filteredProducts.map(p => p.id).includes(id)).length === filteredProducts.length}
+                                onCheckedChange={selectAllProducts}
+                                disabled={processing}
+                              />
+                              <span className="text-sm text-gray-600">
+                                <span className="font-semibold text-blue-600">
+                                  {selectedProducts.length} total seleccionados
+                                </span>
+                                {' '} | {selectedProducts.filter(id => filteredProducts.map(p => p.id).includes(id)).length} de {filteredProducts.length} en esta pestaña
+                              </span>
+                            </div>
                           </div>
-                        </div>
-                      </CardContent>
-                    </Card>
+                       </CardContent>
+                     </Card>
 
                     {/* Controles móviles compactos */}
                     <div className="md:hidden flex items-center justify-between px-2">
