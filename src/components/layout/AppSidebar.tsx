@@ -59,9 +59,9 @@ interface MenuItem {
 
 const menuData: MenuItem[] = [
   {
-    title: "Dashboard",
-    path: "/",
-    icon: Home,
+    title: "Analytics",
+    path: "/analytics",
+    icon: BarChart3,
   },
   {
     title: "Productos",

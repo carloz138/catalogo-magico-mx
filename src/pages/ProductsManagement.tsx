@@ -43,10 +43,7 @@ const ProductsManagement: React.FC = () => {
   };
 
   const handleGoToAnalytics = () => {
-    toast({
-      title: "Analytics",
-      description: "Función de analytics en desarrollo",
-    });
+    navigate('/analytics');
   };
 
   // ==========================================

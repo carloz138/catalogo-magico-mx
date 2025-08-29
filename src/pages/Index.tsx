@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ChevronDown, Star, Check, Play, ArrowRight, Zap, Clock, DollarSign, Shield, Users, TrendingUp, Image as ImageIcon, Crown } from "lucide-react";
+import { ChevronDown, Star, Check, Play, ArrowRight, Zap, Clock, DollarSign, Shield, Users, TrendingUp, Image as ImageIcon, Crown, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -216,6 +216,14 @@ const Index = () => {
                 Centro de Imágenes
               </Button>
             )}
+            <Button 
+              variant="outline" 
+              className="hidden lg:inline-flex border-gray-300 text-gray-600 hover:bg-gray-50"
+              onClick={() => navigate('/analytics')}
+            >
+              <BarChart3 className="w-4 h-4 mr-2" />
+              Analytics
+            </Button>
             {/* ✅ BOTÓN MI BIBLIOTECA - Desktop (para productos) */}
             {user && (
               <Button 

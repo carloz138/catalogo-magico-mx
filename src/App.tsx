@@ -10,6 +10,7 @@ import Index from "./pages/Index";
 import Upload from "./pages/Upload";
 import Products from "./pages/Products";
 import ProductsManagement from "./pages/ProductsManagement";
+import Analytics from "./pages/Analytics";
 import Catalogs from "./pages/Catalogs";
 import ImageReview from "./pages/ImageReview";
 // ✅ CAMBIO: Importar el nuevo componente mejorado
@@ -32,6 +33,11 @@ const App = () => (
         <AuthProvider>
           <Routes>
             <Route path="/" element={<Index />} />
+            <Route path="/analytics" element={
+              <ProtectedRoute>
+                <Analytics />
+              </ProtectedRoute>
+            } />
             <Route path="/upload" element={
               <ProtectedRoute>
                 <Upload />

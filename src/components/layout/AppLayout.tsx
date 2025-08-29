@@ -50,6 +50,7 @@ const NO_SIDEBAR_ROUTES = [
 
 const ROUTE_BREADCRUMBS: { [key: string]: { title: string; subtitle?: string; parent?: string } } = {
   "/": { title: "Dashboard", subtitle: "Resumen de tu actividad" },
+  "/analytics": { title: "Analytics", subtitle: "Métricas y análisis de rendimiento", parent: "Análisis" },
   "/upload": { title: "Subir Productos", subtitle: "Agrega nuevos productos a tu biblioteca", parent: "Productos" },
   "/products": { title: "Mi Biblioteca", subtitle: "Gestiona tus productos guardados", parent: "Productos" },
   "/products-management": { title: "Editar Productos", subtitle: "Edición inline, variantes y gestión masiva", parent: "Productos" },
