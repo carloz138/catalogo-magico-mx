@@ -111,7 +111,7 @@ const ImageReview = () => {
         `)
         .eq('user_id', user.id)
         .not('original_image_url', 'is', null)
-        .order('processed_at', { ascending: false, nullsLast: true });
+        .order('processed_at', { ascending: false, nullsFirst: false });
 
       if (error) throw error;
       
