@@ -93,7 +93,7 @@ const ProductsManagement: React.FC = () => {
   return (
     <ProtectedRoute>
       <AppLayout 
-        title="Gestión Avanzada"
+        title="Editar Productos"
         subtitle="Edición inline, variantes y gestión masiva de productos"
         actions={actions}
       >

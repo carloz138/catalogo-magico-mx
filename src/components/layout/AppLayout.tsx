@@ -52,7 +52,7 @@ const ROUTE_BREADCRUMBS: { [key: string]: { title: string; subtitle?: string; pa
   "/": { title: "Dashboard", subtitle: "Resumen de tu actividad" },
   "/upload": { title: "Subir Productos", subtitle: "Agrega nuevos productos a tu biblioteca", parent: "Productos" },
   "/products": { title: "Mi Biblioteca", subtitle: "Gestiona tus productos guardados", parent: "Productos" },
-  "/products-management": { title: "Gestión Avanzada", subtitle: "Edición inline, variantes y gestión masiva", parent: "Productos" },
+  "/products-management": { title: "Editar Productos", subtitle: "Edición inline, variantes y gestión masiva", parent: "Productos" },
   "/image-review": { title: "Centro de Imágenes", subtitle: "Revisa y confirma imágenes procesadas", parent: "Productos" },
   "/template-selection": { title: "Crear Catálogo", subtitle: "Selecciona un template para tu catálogo", parent: "Catálogos" },
   "/catalogs": { title: "Mis Catálogos", subtitle: "Historial de catálogos generados", parent: "Catálogos" },

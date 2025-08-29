@@ -78,7 +78,7 @@ const menuData: MenuItem[] = [
         icon: Layers,
       },
       {
-        title: "Gestión Avanzada",
+        title: "Editar Productos",
         path: "/products-management",
         icon: Settings,
       },
