@@ -21,20 +21,22 @@ import {
   Coins
 } from 'lucide-react';
 
+// Interface que coincide exactamente con tu base de datos
 interface CreditPackage {
   id: string;
   name: string;
   credits: number;
   price_mxn: number;
   price_usd: number;
-  description: string;
-  is_popular: boolean;
-  discount_percentage: number;
-  is_active: boolean;
-  package_type: 'monthly_plan' | 'addon';
-  max_uploads?: number;
-  max_catalogs?: number;
-  duration_months?: number;
+  discount_percentage: number | null;
+  is_popular: boolean | null;
+  is_active: boolean | null;
+  description: string | null;
+  created_at: string;
+  package_type: string | null; // text en BD, puede ser null
+  max_uploads: number | null;
+  max_catalogs: number | null;
+  duration_months: number | null;
 }
 
 // Configuración de procesadores de pago
@@ -107,15 +109,27 @@ const Checkout = () => {
         .from('credit_packages')
         .select('*')
         .eq('is_active', true)
-        .eq('package_type', purchaseType === 'subscription' ? 'monthly_plan' : 'addon')
         .order('price_mxn');
 
       if (error) throw error;
       
-      setPackages(data || []);
+      if (!data) {
+        setPackages([]);
+        return;
+      }
+
+      // Filtrar según tipo de compra seleccionado
+      const filteredPackages = data.filter(pkg => {
+        const packageType = pkg.package_type || 'addon';
+        return purchaseType === 'subscription' 
+          ? packageType === 'monthly_plan'
+          : packageType === 'addon';
+      });
       
-      if (!preSelectedPackageName && data && data.length > 0) {
-        const popularPackage = data.find(pkg => pkg.is_popular) || data[0];
+      setPackages(filteredPackages);
+      
+      if (!preSelectedPackageName && filteredPackages.length > 0) {
+        const popularPackage = filteredPackages.find(pkg => pkg.is_popular) || filteredPackages[0];
         setSelectedPackage(popularPackage);
       }
       
@@ -158,8 +172,10 @@ const Checkout = () => {
     };
   };
 
-  const getPackageIcon = (packageName: string, packageType: string) => {
-    if (packageType === 'monthly_plan') {
+  const getPackageIcon = (packageName: string, packageType: string | null) => {
+    const type = packageType || 'addon';
+    
+    if (type === 'monthly_plan') {
       if (packageName.includes('Básico')) return <Package className="w-5 h-5" />;
       if (packageName.includes('Estándar')) return <Star className="w-5 h-5" />;
       if (packageName.includes('Premium')) return <Crown className="w-5 h-5" />;
@@ -174,8 +190,10 @@ const Checkout = () => {
     return <Coins className="w-5 h-5" />;
   };
 
-  const getPackageColor = (packageName: string, packageType: string) => {
-    if (packageType === 'monthly_plan') {
+  const getPackageColor = (packageName: string, packageType: string | null) => {
+    const type = packageType || 'addon';
+    
+    if (type === 'monthly_plan') {
       if (packageName.includes('Básico')) return 'from-gray-400 to-gray-600';
       if (packageName.includes('Estándar')) return 'from-blue-400 to-blue-600';
       if (packageName.includes('Premium')) return 'from-purple-400 to-purple-600';
