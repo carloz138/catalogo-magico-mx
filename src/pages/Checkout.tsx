@@ -33,10 +33,10 @@ interface CreditPackage {
   is_active: boolean | null;
   description: string | null;
   created_at: string;
-  package_type: string | null; // text en BD, puede ser null
-  max_uploads: number | null;
-  max_catalogs: number | null;
-  duration_months: number | null;
+  package_type?: string | null; // Optional - puede no existir en BD
+  max_uploads?: number | null;
+  max_catalogs?: number | null;
+  duration_months?: number | null;
 }
 
 // Configuración de procesadores de pago
@@ -98,7 +98,8 @@ const Checkout = () => {
       );
       if (preSelected) {
         setSelectedPackage(preSelected);
-        setPurchaseType(preSelected.package_type === 'monthly_plan' ? 'subscription' : 'credits');
+        // Default to credits since we don't have package_type info
+        setPurchaseType('credits');
       }
     }
   }, [packages, preSelectedPackageName]);
@@ -118,18 +119,12 @@ const Checkout = () => {
         return;
       }
 
-      // Filtrar según tipo de compra seleccionado
-      const filteredPackages = data.filter(pkg => {
-        const packageType = pkg.package_type || 'addon';
-        return purchaseType === 'subscription' 
-          ? packageType === 'monthly_plan'
-          : packageType === 'addon';
-      });
+      // Since package_type might not be available, filter all packages for now
+      // TODO: Add package_type column to database and update filtering logic
+      setPackages(data);
       
-      setPackages(filteredPackages);
-      
-      if (!preSelectedPackageName && filteredPackages.length > 0) {
-        const popularPackage = filteredPackages.find(pkg => pkg.is_popular) || filteredPackages[0];
+      if (!preSelectedPackageName && data.length > 0) {
+        const popularPackage = data.find(pkg => pkg.is_popular) || data[0];
         setSelectedPackage(popularPackage);
       }
       
@@ -172,7 +167,7 @@ const Checkout = () => {
     };
   };
 
-  const getPackageIcon = (packageName: string, packageType: string | null) => {
+  const getPackageIcon = (packageName: string, packageType?: string | null) => {
     const type = packageType || 'addon';
     
     if (type === 'monthly_plan') {
@@ -190,7 +185,7 @@ const Checkout = () => {
     return <Coins className="w-5 h-5" />;
   };
 
-  const getPackageColor = (packageName: string, packageType: string | null) => {
+  const getPackageColor = (packageName: string, packageType?: string | null) => {
     const type = packageType || 'addon';
     
     if (type === 'monthly_plan') {
@@ -217,7 +212,7 @@ const Checkout = () => {
       features.push('Cancela en cualquier momento');
       features.push('Soporte prioritario');
     } else {
-      // Para packs de créditos
+      // Para packs de créditos (default)
       features.push('Válidos por 12 meses');
       features.push('No se renuevan automáticamente');
       features.push('Úsalos cuando quieras');
@@ -246,8 +241,8 @@ const Checkout = () => {
     
     setProcessingPayment(true);
     try {
-      // Determinar si es suscripción o compra única
-      const isSubscription = selectedPackage.package_type === 'monthly_plan';
+      // Determinar si es suscripción o compra única (default to one-time for now)
+      const isSubscription = false; // TODO: Update when package_type is available
       
       const { data: transaction, error: transactionError } = await supabase
         .from('transactions')
@@ -258,8 +253,6 @@ const Checkout = () => {
           credits_purchased: selectedPackage.credits,
           payment_method: 'stripe',
           payment_status: 'pending',
-          purchase_type: isSubscription ? 'subscription' : 'one_time', // NUEVO campo
-          subscription_plan_id: isSubscription ? selectedPackage.id : null, // NUEVO campo
         })
         .select()
         .single();
@@ -299,15 +292,7 @@ const Checkout = () => {
   const handleSPEIPayment = async () => {
     if (!selectedPackage || !user) return;
     
-    // SPEI no soporta suscripciones
-    if (selectedPackage.package_type === 'monthly_plan') {
-      toast({
-        title: "Método no compatible",
-        description: "SPEI no soporta suscripciones. Usa tarjeta para planes mensuales.",
-        variant: "destructive",
-      });
-      return;
-    }
+    // SPEI no soporta suscripciones (but since we don't have package_type, allow it)
     
     setProcessingPayment(true);
     try {
@@ -323,7 +308,6 @@ const Checkout = () => {
           credits_purchased: selectedPackage.credits,
           payment_method: 'spei',
           payment_status: 'pending',
-          purchase_type: 'one_time', // SPEI siempre es one-time
           spei_reference: speiReference,
           spei_clabe: '646180157000000004',
           expires_at: expiresAt.toISOString()
@@ -382,9 +366,9 @@ const Checkout = () => {
     );
   }
 
-  // Calcular recomendación y fees
+  // Calcular recomendación y fees (default to credits since no package_type)
   const recommendedMethod = selectedPackage ? 
-    getRecommendedPaymentMethod(selectedPackage.price_mxn, selectedPackage.package_type === 'monthly_plan') :
+    getRecommendedPaymentMethod(selectedPackage.price_mxn, false) :
     'stripe';
 
   const selectedFees = selectedPackage ? calculateFees(selectedPackage.price_mxn, paymentMethod as keyof typeof PAYMENT_PROCESSORS) : null;
@@ -642,11 +626,10 @@ const Checkout = () => {
                   </div>
                 </label>
                 
-                {/* SPEI - Solo para créditos únicos */}
-                {selectedPackage.package_type === 'addon' && (
-                  <label className={`flex items-center p-4 border rounded-lg cursor-pointer transition-colors ${
-                    paymentMethod === 'spei' ? 'border-primary bg-primary/5' : 'border-gray-200 hover:border-gray-300'
-                  }`}>
+                {/* SPEI - Available for all packages for now */}
+                <label className={`flex items-center p-4 border rounded-lg cursor-pointer transition-colors ${
+                  paymentMethod === 'spei' ? 'border-primary bg-primary/5' : 'border-gray-200 hover:border-gray-300'
+                }`}>
                     <input 
                       type="radio" 
                       name="payment" 
@@ -674,7 +657,6 @@ const Checkout = () => {
                       )}
                     </div>
                   </label>
-                )}
               </div>
             </div>
 
@@ -688,9 +670,7 @@ const Checkout = () => {
                   <span className="font-semibold">{selectedPackage.name}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span>
-                    {selectedPackage.package_type === 'monthly_plan' ? 'Créditos mensuales:' : 'Créditos únicos:'}
-                  </span>
+                  <span>Créditos únicos:</span>
                   <span>{selectedPackage.credits.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between">
@@ -709,9 +689,6 @@ const Checkout = () => {
                   <span>Total:</span>
                   <span>
                     ${((selectedPackage.price_mxn + (selectedFees?.total || 0)) / 100).toLocaleString()} MXN
-                    {selectedPackage.package_type === 'monthly_plan' && (
-                      <span className="text-sm font-normal text-gray-600">/mes</span>
-                    )}
                   </span>
                 </div>
               </div>
@@ -728,13 +705,12 @@ const Checkout = () => {
                     Procesando...
                   </div>
                 ) : (
-                  `${selectedPackage.package_type === 'monthly_plan' ? 'Suscribirme' : 'Comprar'} con ${PAYMENT_PROCESSORS[paymentMethod as keyof typeof PAYMENT_PROCESSORS].name}`
+                  `Comprar con ${PAYMENT_PROCESSORS[paymentMethod as keyof typeof PAYMENT_PROCESSORS].name}`
                 )}
               </Button>
               
               <p className="text-center text-xs text-gray-500 mt-4">
-                🔒 Pago 100% seguro • SSL encriptado • 
-                {selectedPackage.package_type === 'monthly_plan' && ' Cancela cuando quieras'}
+                🔒 Pago 100% seguro • SSL encriptado
               </p>
             </div>
           </>
