@@ -246,7 +246,7 @@ const Index = () => {
               className="bg-primary hover:bg-primary/90"
               onClick={handleMainCTA}
             >
-              {user ? 'Ir a Dashboard' : 'Prueba gratis'}
+              {user ? 'Crear Catálogo' : 'Prueba gratis'}
             </Button>
           </div>
         </div>
