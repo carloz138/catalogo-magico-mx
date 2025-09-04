@@ -21,7 +21,6 @@ import {
   Coins
 } from 'lucide-react';
 
-// Interface que coincide exactamente con tu base de datos
 interface CreditPackage {
   id: string;
   name: string;
@@ -33,7 +32,7 @@ interface CreditPackage {
   is_active: boolean | null;
   description: string | null;
   created_at: string;
-  package_type?: string | null; // Optional - puede no existir en BD
+  package_type: string | null;
   max_uploads?: number | null;
   max_catalogs?: number | null;
   duration_months?: number | null;
@@ -44,21 +43,21 @@ const PAYMENT_PROCESSORS = {
   stripe: {
     name: 'Stripe',
     fee_percentage: 3.6,
-    fee_fixed: 300, // centavos
+    fee_fixed: 300,
     supports_subscriptions: true,
     active: true
   },
   conekta: {
     name: 'Conekta', 
     fee_percentage: 2.9,
-    fee_fixed: 300, // centavos
+    fee_fixed: 300,
     supports_subscriptions: true,
-    active: false // TODO: Activar cuando tengas cuenta
+    active: false
   },
   spei: {
     name: 'SPEI',
     fee_percentage: 0,
-    fee_fixed: 500, // centavos
+    fee_fixed: 500,
     supports_subscriptions: false,
     active: true
   }
@@ -71,40 +70,44 @@ const Checkout = () => {
   const location = useLocation();
   const [searchParams] = useSearchParams();
   
-  const [packages, setPackages] = useState<CreditPackage[]>([]);
+  const [monthlyPlans, setMonthlyPlans] = useState<CreditPackage[]>([]);
+  const [creditPacks, setCreditPacks] = useState<CreditPackage[]>([]);
   const [selectedPackage, setSelectedPackage] = useState<CreditPackage | null>(null);
-  const [paymentMethod, setPaymentMethod] = useState('stripe'); // Default a Stripe por ahora
+  const [paymentMethod, setPaymentMethod] = useState('stripe');
   const [loading, setLoading] = useState(true);
   const [processingPayment, setProcessingPayment] = useState(false);
   
-  // NUEVO: Tipo de compra - separar suscripciones de créditos únicos
-  const [purchaseType, setPurchaseType] = useState<'subscription' | 'credits'>(() => {
-    // Auto-detectar desde URL query params
-    const plan = searchParams.get('plan');
-    return plan ? 'subscription' : 'credits';
+  // Determinar tipo inicial basado en la URL
+  const [activeTab, setActiveTab] = useState<'monthly' | 'credits'>(() => {
+    const planParam = searchParams.get('plan');
+    // Si viene de pricing con plan específico, probablemente es suscripción
+    return planParam ? 'monthly' : 'credits';
   });
 
-  const preSelectedPackageName = location.state?.selectedPackageName || searchParams.get('plan');
+  const preSelectedPlanName = searchParams.get('plan') || location.state?.selectedPackageName;
 
   useEffect(() => {
-    fetchCreditPackages();
-  }, [purchaseType]);
+    fetchAllPackages();
+  }, []);
 
   useEffect(() => {
-    if (preSelectedPackageName && packages.length > 0) {
-      const preSelected = packages.find(pkg => 
-        pkg.name.toLowerCase().includes(preSelectedPackageName.toLowerCase()) ||
-        pkg.id === preSelectedPackageName
+    // Pre-seleccionar paquete si viene de pricing
+    if (preSelectedPlanName && (monthlyPlans.length > 0 || creditPacks.length > 0)) {
+      const allPackages = [...monthlyPlans, ...creditPacks];
+      const preSelected = allPackages.find(pkg => 
+        pkg.name.toLowerCase().includes(preSelectedPlanName.toLowerCase()) ||
+        pkg.name.toLowerCase().replace(/\s+/g, '-').includes(preSelectedPlanName.toLowerCase())
       );
+      
       if (preSelected) {
         setSelectedPackage(preSelected);
-        // Default to credits since we don't have package_type info
-        setPurchaseType('credits');
+        // Auto-detectar tab correcto
+        setActiveTab(preSelected.package_type === 'monthly_plan' ? 'monthly' : 'credits');
       }
     }
-  }, [packages, preSelectedPackageName]);
+  }, [preSelectedPlanName, monthlyPlans, creditPacks]);
 
-  const fetchCreditPackages = async () => {
+  const fetchAllPackages = async () => {
     try {
       const { data, error } = await supabase
         .from('credit_packages')
@@ -115,17 +118,23 @@ const Checkout = () => {
       if (error) throw error;
       
       if (!data) {
-        setPackages([]);
+        setMonthlyPlans([]);
+        setCreditPacks([]);
         return;
       }
 
-      // Since package_type might not be available, filter all packages for now
-      // TODO: Add package_type column to database and update filtering logic
-      setPackages(data);
+      // Separar correctamente por tipo
+      const monthly = data.filter(pkg => pkg.package_type === 'monthly_plan');
+      const credits = data.filter(pkg => pkg.package_type === 'addon');
       
-      if (!preSelectedPackageName && data.length > 0) {
+      setMonthlyPlans(monthly);
+      setCreditPacks(credits);
+      
+      // Si no hay pre-selección, elegir el más popular
+      if (!preSelectedPlanName && data.length > 0) {
         const popularPackage = data.find(pkg => pkg.is_popular) || data[0];
         setSelectedPackage(popularPackage);
+        setActiveTab(popularPackage.package_type === 'monthly_plan' ? 'monthly' : 'credits');
       }
       
     } catch (error) {
@@ -140,22 +149,18 @@ const Checkout = () => {
     }
   };
 
-  // NUEVA FUNCIÓN: Recomendar método de pago según monto y tipo
   const getRecommendedPaymentMethod = (amount: number, isSubscription: boolean) => {
-    // Para suscripciones, preferir procesadores con soporte nativo
     if (isSubscription) {
       return PAYMENT_PROCESSORS.conekta.active ? 'conekta' : 'stripe';
     }
     
-    // Para compras únicas, optimizar por costo
-    if (amount >= 50000) { // $500 MXN o más
-      return 'spei'; // Más barato para montos altos
+    if (amount >= 50000) {
+      return 'spei';
     }
     
     return PAYMENT_PROCESSORS.conekta.active ? 'conekta' : 'stripe';
   };
 
-  // NUEVA FUNCIÓN: Calcular fees de diferentes métodos
   const calculateFees = (amount: number, method: keyof typeof PAYMENT_PROCESSORS) => {
     const processor = PAYMENT_PROCESSORS[method];
     const percentageFee = Math.round((amount * processor.fee_percentage) / 100);
@@ -167,54 +172,67 @@ const Checkout = () => {
     };
   };
 
-  const getPackageIcon = (packageName: string, packageType?: string | null) => {
-    const type = packageType || 'addon';
-    
-    if (type === 'monthly_plan') {
-      if (packageName.includes('Básico')) return <Package className="w-5 h-5" />;
-      if (packageName.includes('Estándar')) return <Star className="w-5 h-5" />;
-      if (packageName.includes('Premium')) return <Crown className="w-5 h-5" />;
+  const getPackageIcon = (packageName: string, packageType: string | null) => {
+    if (packageType === 'monthly_plan') {
+      if (packageName.includes('Starter')) return <Package className="w-5 h-5" />;
+      if (packageName.includes('Básico')) return <Zap className="w-5 h-5" />;
+      if (packageName.includes('Profesional')) return <Star className="w-5 h-5" />;
+      if (packageName.includes('Empresarial')) return <Crown className="w-5 h-5" />;
       return <RefreshCw className="w-5 h-5" />;
     }
     
-    // Para packs de créditos
+    // Packs únicos
     if (packageName.includes('Starter')) return <Zap className="w-5 h-5" />;
     if (packageName.includes('Popular')) return <TrendingUp className="w-5 h-5" />;
     if (packageName.includes('Business')) return <Users className="w-5 h-5" />;
-    if (packageName.includes('Enterprise')) return <Crown className="w-5 h-5" />;
     return <Coins className="w-5 h-5" />;
   };
 
-  const getPackageColor = (packageName: string, packageType?: string | null) => {
-    const type = packageType || 'addon';
-    
-    if (type === 'monthly_plan') {
-      if (packageName.includes('Básico')) return 'from-gray-400 to-gray-600';
-      if (packageName.includes('Estándar')) return 'from-blue-400 to-blue-600';
-      if (packageName.includes('Premium')) return 'from-purple-400 to-purple-600';
+  const getPackageColor = (packageName: string, packageType: string | null) => {
+    if (packageType === 'monthly_plan') {
+      if (packageName.includes('Starter')) return 'from-gray-500 to-gray-700';
+      if (packageName.includes('Básico')) return 'from-blue-500 to-blue-700';
+      if (packageName.includes('Profesional')) return 'from-purple-500 to-purple-700';
+      if (packageName.includes('Empresarial')) return 'from-yellow-500 to-yellow-700';
     }
     
-    if (packageName.includes('Starter')) return 'from-blue-400 to-blue-600';
-    if (packageName.includes('Popular')) return 'from-green-400 to-green-600';
-    if (packageName.includes('Business')) return 'from-purple-400 to-purple-600';
-    if (packageName.includes('Enterprise')) return 'from-yellow-400 to-yellow-600';
-    return 'from-gray-400 to-gray-600';
+    if (packageName.includes('Starter')) return 'from-blue-500 to-blue-700';
+    if (packageName.includes('Popular')) return 'from-green-500 to-green-700';
+    if (packageName.includes('Business')) return 'from-purple-500 to-purple-700';
+    return 'from-gray-500 to-gray-700';
   };
 
   const getPackageFeatures = (pkg: CreditPackage) => {
-    const features = [`${pkg.credits.toLocaleString()} créditos`];
+    const features = [];
     
     if (pkg.package_type === 'monthly_plan') {
-      // Para suscripciones
-      features.push('Se renuevan automáticamente');
-      if (pkg.max_uploads) features.push(`${pkg.max_uploads} uploads mensuales`);
-      if (pkg.max_catalogs) features.push(`${pkg.max_catalogs === 0 ? 'Ilimitados' : pkg.max_catalogs} catálogos`);
-      features.push('Cancela en cualquier momento');
+      // Suscripciones mensuales
+      if (pkg.credits > 0) {
+        features.push(`${pkg.credits} créditos mensuales`);
+      } else {
+        features.push('Sin procesamiento IA');
+      }
+      
+      if (pkg.max_catalogs !== undefined) {
+        if (pkg.max_catalogs === 0) {
+          features.push('Catálogos ilimitados');
+        } else {
+          features.push(`${pkg.max_catalogs} catálogos/mes`);
+        }
+      }
+      
+      if (pkg.max_uploads) {
+        features.push(`${pkg.max_uploads} uploads/mes`);
+      }
+      
+      features.push('Se renueva automáticamente');
+      features.push('Cancela cuando quieras');
       features.push('Soporte prioritario');
     } else {
-      // Para packs de créditos (default)
+      // Packs únicos
+      features.push(`${pkg.credits} créditos únicos`);
       features.push('Válidos por 12 meses');
-      features.push('No se renuevan automáticamente');
+      features.push('Sin renovación automática');
       features.push('Úsalos cuando quieras');
     }
     
@@ -225,7 +243,6 @@ const Checkout = () => {
     return features;
   };
 
-  // TODO: Implementar cuando tengas cuenta de Conekta
   const handleConektaPayment = async () => {
     if (!selectedPackage || !user) return;
     
@@ -241,8 +258,7 @@ const Checkout = () => {
     
     setProcessingPayment(true);
     try {
-      // Determinar si es suscripción o compra única (default to one-time for now)
-      const isSubscription = false; // TODO: Update when package_type is available
+      const isSubscription = selectedPackage.package_type === 'monthly_plan';
       
       const { data: transaction, error: transactionError } = await supabase
         .from('transactions')
@@ -253,6 +269,8 @@ const Checkout = () => {
           credits_purchased: selectedPackage.credits,
           payment_method: 'stripe',
           payment_status: 'pending',
+          purchase_type: isSubscription ? 'subscription' : 'one_time',
+          subscription_plan_id: isSubscription ? selectedPackage.id : null,
         })
         .select()
         .single();
@@ -262,7 +280,7 @@ const Checkout = () => {
       const { data, error } = await supabase.functions.invoke('create-payment-intent', {
         body: { 
           transactionId: transaction.id,
-          isSubscription: isSubscription, // Informar al backend si es suscripción
+          isSubscription: isSubscription,
         }
       });
 
@@ -292,7 +310,15 @@ const Checkout = () => {
   const handleSPEIPayment = async () => {
     if (!selectedPackage || !user) return;
     
-    // SPEI no soporta suscripciones (but since we don't have package_type, allow it)
+    // SPEI no soporta suscripciones
+    if (selectedPackage.package_type === 'monthly_plan') {
+      toast({
+        title: "Método no compatible",
+        description: "SPEI no soporta suscripciones. Usa tarjeta para planes mensuales.",
+        variant: "destructive",
+      });
+      return;
+    }
     
     setProcessingPayment(true);
     try {
@@ -308,6 +334,7 @@ const Checkout = () => {
           credits_purchased: selectedPackage.credits,
           payment_method: 'spei',
           payment_status: 'pending',
+          purchase_type: 'one_time',
           spei_reference: speiReference,
           spei_clabe: '646180157000000004',
           expires_at: expiresAt.toISOString()
@@ -366,12 +393,12 @@ const Checkout = () => {
     );
   }
 
-  // Calcular recomendación y fees (default to credits since no package_type)
+  const isSubscription = selectedPackage?.package_type === 'monthly_plan';
   const recommendedMethod = selectedPackage ? 
-    getRecommendedPaymentMethod(selectedPackage.price_mxn, false) :
+    getRecommendedPaymentMethod(selectedPackage.price_mxn, isSubscription) :
     'stripe';
-
-  const selectedFees = selectedPackage ? calculateFees(selectedPackage.price_mxn, paymentMethod as keyof typeof PAYMENT_PROCESSORS) : null;
+  const selectedFees = selectedPackage ? 
+    calculateFees(selectedPackage.price_mxn, paymentMethod as keyof typeof PAYMENT_PROCESSORS) : null;
 
   return (
     <AppLayout actions={actions}>
@@ -382,48 +409,45 @@ const Checkout = () => {
             Completa tu compra
           </h1>
           <p className="text-gray-600">
-            {purchaseType === 'subscription' ? 
-              'Suscríbete y empieza a crear catálogos profesionales' :
-              'Compra créditos y úsalos cuando quieras'
-            }
+            Elige entre planes mensuales con renovación automática o packs únicos
           </p>
         </div>
 
-        {/* Tabs para tipo de compra */}
-        <Tabs value={purchaseType} onValueChange={(value) => {
-          setPurchaseType(value as 'subscription' | 'credits');
+        {/* Tabs mejorados */}
+        <Tabs value={activeTab} onValueChange={(value) => {
+          setActiveTab(value as 'monthly' | 'credits');
           setSelectedPackage(null);
         }} className="mb-8">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="subscription" className="flex items-center gap-2">
+          <TabsList className="grid w-full max-w-md mx-auto grid-cols-2">
+            <TabsTrigger value="monthly" className="flex items-center gap-2">
               <RefreshCw className="w-4 h-4" />
-              Suscripciones
+              Planes Mensuales
             </TabsTrigger>
             <TabsTrigger value="credits" className="flex items-center gap-2">
               <Coins className="w-4 h-4" />
-              Créditos Únicos
+              Packs Únicos
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="subscription" className="space-y-6">
+          {/* Planes Mensuales */}
+          <TabsContent value="monthly" className="space-y-6">
             <div className="text-center p-4 bg-blue-50 rounded-lg">
-              <h3 className="font-semibold text-blue-900 mb-2">Planes Mensuales</h3>
+              <h3 className="font-semibold text-blue-900 mb-2">Suscripciones Mensuales</h3>
               <p className="text-sm text-blue-700">
-                Créditos que se renuevan cada mes + uploads ilimitados + soporte prioritario
+                Créditos que se renuevan automáticamente • Cancela cuando quieras
               </p>
             </div>
             
-            {/* Grid de suscripciones */}
-            {packages.length === 0 ? (
+            {monthlyPlans.length === 0 ? (
               <div className="text-center py-8">
                 <p className="text-gray-500">No hay planes de suscripción disponibles.</p>
               </div>
             ) : (
-              <div className="grid md:grid-cols-3 gap-6">
-                {packages.map(pkg => (
+              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {monthlyPlans.map(pkg => (
                   <div 
                     key={pkg.id}
-                    className={`relative border-2 rounded-xl p-6 cursor-pointer transition-all ${
+                    className={`relative border-2 rounded-xl p-4 cursor-pointer transition-all ${
                       pkg.is_popular 
                         ? 'border-blue-500 bg-gradient-to-br from-blue-50 to-blue-100 shadow-lg' 
                         : 'border-gray-200 bg-white'
@@ -431,118 +455,108 @@ const Checkout = () => {
                     onClick={() => setSelectedPackage(pkg)}
                   >
                     {pkg.is_popular && (
-                      <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                        <span className="bg-gradient-to-r from-blue-500 to-blue-700 text-white px-4 py-1 rounded-full text-sm font-semibold flex items-center gap-1">
-                          <Star className="w-3 h-3" />
-                          RECOMENDADO
+                      <div className="absolute -top-2 left-1/2 transform -translate-x-1/2">
+                        <span className="bg-blue-600 text-white px-3 py-1 rounded-full text-xs font-semibold">
+                          POPULAR
                         </span>
                       </div>
                     )}
                     
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className={`w-10 h-10 rounded-lg bg-gradient-to-r ${getPackageColor(pkg.name, pkg.package_type)} flex items-center justify-center text-white`}>
+                    <div className="text-center">
+                      <div className={`w-12 h-12 rounded-xl bg-gradient-to-r ${getPackageColor(pkg.name, pkg.package_type)} flex items-center justify-center text-white mx-auto mb-3`}>
                         {getPackageIcon(pkg.name, pkg.package_type)}
                       </div>
-                      <div>
-                        <h3 className="font-bold text-lg">{pkg.name}</h3>
-                        <p className="text-sm text-gray-600">{pkg.description}</p>
-                      </div>
-                    </div>
-                    
-                    <div className="mb-6">
-                      <div className="flex items-baseline gap-2">
-                        <span className="text-3xl font-bold">${(pkg.price_mxn / 100).toLocaleString()}</span>
-                        <span className="text-gray-500">/mes</span>
+                      
+                      <h3 className="font-bold text-lg mb-1">{pkg.name.replace('Plan ', '')}</h3>
+                      <p className="text-xs text-gray-600 mb-4">{pkg.description}</p>
+                      
+                      <div className="mb-4">
+                        <div className="text-2xl font-bold text-gray-900">
+                          ${(pkg.price_mxn / 100).toLocaleString()}
+                        </div>
+                        <div className="text-sm text-gray-600">/mes</div>
                       </div>
                       
-                      <div className="mt-2 space-y-1">
-                        <p className="text-lg font-medium text-blue-600">{pkg.credits} créditos mensuales</p>
-                        {pkg.max_uploads && <p className="text-sm text-gray-600">{pkg.max_uploads} uploads</p>}
-                        {pkg.max_catalogs !== undefined && (
-                          <p className="text-sm text-gray-600">
-                            {pkg.max_catalogs === 0 ? 'Catálogos ilimitados' : `${pkg.max_catalogs} catálogos`}
-                          </p>
-                        )}
+                      <div className="space-y-2 mb-4 text-left">
+                        {getPackageFeatures(pkg).map((feature, index) => (
+                          <div key={index} className="flex items-start gap-2">
+                            <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
+                            <span className="text-xs text-gray-700">{feature}</span>
+                          </div>
+                        ))}
                       </div>
-                    </div>
-                    
-                    <div className="space-y-2 mb-4">
-                      {getPackageFeatures(pkg).map((feature, index) => (
-                        <div key={index} className="flex items-center gap-2">
-                          <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
-                          <span className="text-sm text-gray-700">{feature}</span>
+                      
+                      {selectedPackage?.id === pkg.id && (
+                        <div className="absolute top-2 right-2">
+                          <div className="w-5 h-5 bg-primary rounded-full flex items-center justify-center">
+                            <CheckCircle className="w-3 h-3 text-white" />
+                          </div>
                         </div>
-                      ))}
+                      )}
                     </div>
-                    
-                    {selectedPackage?.id === pkg.id && (
-                      <div className="absolute top-4 right-4">
-                        <div className="w-6 h-6 bg-primary rounded-full flex items-center justify-center">
-                          <CheckCircle className="w-4 h-4 text-white" />
-                        </div>
-                      </div>
-                    )}
                   </div>
                 ))}
               </div>
             )}
           </TabsContent>
 
+          {/* Packs Únicos */}
           <TabsContent value="credits" className="space-y-6">
             <div className="text-center p-4 bg-green-50 rounded-lg">
               <h3 className="font-semibold text-green-900 mb-2">Packs de Créditos</h3>
               <p className="text-sm text-green-700">
-                Compra una vez y úsalos durante 12 meses • Sin renovación automática
+                Compra una vez • Válidos por 12 meses • Sin renovación automática
               </p>
             </div>
             
-            {/* Grid de créditos */}
-            {packages.length === 0 ? (
+            {creditPacks.length === 0 ? (
               <div className="text-center py-8">
                 <p className="text-gray-500">No hay packs de créditos disponibles.</p>
               </div>
             ) : (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {packages.map(pkg => (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {creditPacks.map(pkg => (
                   <div 
                     key={pkg.id}
-                    className={`relative border-2 rounded-xl p-4 cursor-pointer transition-all ${
+                    className={`relative border-2 rounded-xl p-6 cursor-pointer transition-all ${
                       pkg.is_popular 
-                        ? 'border-green-400 bg-gradient-to-br from-green-50 to-green-100' 
+                        ? 'border-green-400 bg-gradient-to-br from-green-50 to-green-100 shadow-lg' 
                         : 'border-gray-200 bg-white'
-                    } ${selectedPackage?.id === pkg.id ? 'ring-2 ring-primary shadow-xl' : ''} hover:shadow-md`}
+                    } ${selectedPackage?.id === pkg.id ? 'ring-2 ring-primary shadow-xl' : ''} hover:shadow-lg`}
                     onClick={() => setSelectedPackage(pkg)}
                   >
                     {pkg.is_popular && (
                       <div className="absolute -top-2 left-1/2 transform -translate-x-1/2">
-                        <span className="bg-green-500 text-white px-2 py-1 rounded-full text-xs font-semibold">
-                          Más Elegido
+                        <span className="bg-green-600 text-white px-3 py-1 rounded-full text-xs font-semibold">
+                          MÁS ELEGIDO
                         </span>
                       </div>
                     )}
                     
                     <div className="text-center">
-                      <div className={`w-10 h-10 rounded-lg bg-gradient-to-r ${getPackageColor(pkg.name, pkg.package_type)} flex items-center justify-center text-white mx-auto mb-3`}>
+                      <div className={`w-12 h-12 rounded-xl bg-gradient-to-r ${getPackageColor(pkg.name, pkg.package_type)} flex items-center justify-center text-white mx-auto mb-4`}>
                         {getPackageIcon(pkg.name, pkg.package_type)}
                       </div>
                       
-                      <h3 className="font-bold text-sm md:text-base mb-1">{pkg.name}</h3>
-                      <p className="text-xs text-gray-600 mb-3">{pkg.description}</p>
+                      <h3 className="font-bold text-xl mb-2">{pkg.name.replace('Pack ', '')}</h3>
+                      <p className="text-sm text-gray-600 mb-4">{pkg.description}</p>
                       
-                      <div className="mb-3">
-                        <div className="text-2xl font-bold text-gray-900">{pkg.credits}</div>
-                        <div className="text-xs text-gray-600">créditos</div>
+                      <div className="mb-4">
+                        <div className="text-3xl font-bold text-gray-900 mb-1">
+                          {pkg.credits}
+                        </div>
+                        <div className="text-sm text-gray-600">créditos</div>
                       </div>
                       
-                      <div className="mb-3">
-                        <div className="text-xl font-bold text-primary">
+                      <div className="mb-6">
+                        <div className="text-2xl font-bold text-primary">
                           ${(pkg.price_mxn / 100).toLocaleString()}
                         </div>
-                        <div className="text-xs text-gray-600">
-                          ${((pkg.price_mxn / 100) / pkg.credits).toFixed(2)} c/u
+                        <div className="text-sm text-gray-600">
+                          ${((pkg.price_mxn / 100) / pkg.credits).toFixed(2)} por crédito
                         </div>
-                        {pkg.discount_percentage > 0 && (
-                          <div className="text-xs text-green-600 font-medium mt-1">
+                        {pkg.discount_percentage && pkg.discount_percentage > 0 && (
+                          <div className="text-sm text-green-600 font-medium mt-2">
                             {pkg.discount_percentage}% descuento
                           </div>
                         )}
@@ -569,36 +583,7 @@ const Checkout = () => {
             <div className="bg-white rounded-lg border p-6 mb-6">
               <h3 className="font-bold text-lg mb-4">Método de Pago</h3>
               
-              <div className="space-y-4">
-                {/* Conekta (futuro) */}
-                {PAYMENT_PROCESSORS.conekta.active && (
-                  <label className={`flex items-center p-4 border rounded-lg cursor-pointer transition-colors ${
-                    paymentMethod === 'conekta' ? 'border-primary bg-primary/5' : 'border-gray-200 hover:border-gray-300'
-                  }`}>
-                    <input 
-                      type="radio" 
-                      name="payment" 
-                      value="conekta"
-                      checked={paymentMethod === 'conekta'}
-                      onChange={(e) => setPaymentMethod(e.target.value)}
-                      className="mr-3"
-                    />
-                    <CreditCard className="w-5 h-5 mr-3 text-gray-600" />
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between">
-                        <span className="font-semibold">Tarjeta (Conekta)</span>
-                        {recommendedMethod === 'conekta' && (
-                          <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-sm">
-                            Recomendado
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-sm text-gray-600">Instantáneo • Procesador mexicano</p>
-                      <p className="text-xs text-gray-500">Comisión: 2.9% + $3 MXN</p>
-                    </div>
-                  </label>
-                )}
-                
+              <div className="space-y-3">
                 {/* Stripe */}
                 <label className={`flex items-center p-4 border rounded-lg cursor-pointer transition-colors ${
                   paymentMethod === 'stripe' ? 'border-primary bg-primary/5' : 'border-gray-200 hover:border-gray-300'
@@ -614,22 +599,23 @@ const Checkout = () => {
                   <CreditCard className="w-5 h-5 mr-3 text-gray-600" />
                   <div className="flex-1">
                     <div className="flex items-center justify-between">
-                      <span className="font-semibold">Tarjeta (Stripe)</span>
-                      {recommendedMethod === 'stripe' && !PAYMENT_PROCESSORS.conekta.active && (
+                      <span className="font-semibold">Tarjeta de Crédito/Débito</span>
+                      {recommendedMethod === 'stripe' && (
                         <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-sm">
                           Recomendado
                         </span>
                       )}
                     </div>
-                    <p className="text-sm text-gray-600">Instantáneo • Visa, Mastercard, AMEX</p>
+                    <p className="text-sm text-gray-600">Visa, Mastercard, AMEX • Instantáneo</p>
                     <p className="text-xs text-gray-500">Comisión: 3.6% + $3 MXN</p>
                   </div>
                 </label>
                 
-                {/* SPEI - Available for all packages for now */}
-                <label className={`flex items-center p-4 border rounded-lg cursor-pointer transition-colors ${
-                  paymentMethod === 'spei' ? 'border-primary bg-primary/5' : 'border-gray-200 hover:border-gray-300'
-                }`}>
+                {/* SPEI - Solo para créditos únicos */}
+                {!isSubscription && (
+                  <label className={`flex items-center p-4 border rounded-lg cursor-pointer transition-colors ${
+                    paymentMethod === 'spei' ? 'border-primary bg-primary/5' : 'border-gray-200 hover:border-gray-300'
+                  }`}>
                     <input 
                       type="radio" 
                       name="payment" 
@@ -641,14 +627,14 @@ const Checkout = () => {
                     <Building2 className="w-5 h-5 mr-3 text-gray-600" />
                     <div className="flex-1">
                       <div className="flex items-center justify-between">
-                        <span className="font-semibold">Transferencia (SPEI)</span>
+                        <span className="font-semibold">Transferencia Bancaria (SPEI)</span>
                         {recommendedMethod === 'spei' && (
                           <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-sm">
-                            Recomendado
+                            Más Barato
                           </span>
                         )}
                       </div>
-                      <p className="text-sm text-gray-600">Instantáneo • Todos los bancos</p>
+                      <p className="text-sm text-gray-600">Todos los bancos • Instantáneo</p>
                       <p className="text-xs text-gray-500">Comisión: $5 MXN fijo</p>
                       {selectedFees && paymentMethod !== 'spei' && (
                         <p className="text-xs text-green-600 font-medium">
@@ -657,6 +643,7 @@ const Checkout = () => {
                       )}
                     </div>
                   </label>
+                )}
               </div>
             </div>
 
@@ -665,30 +652,37 @@ const Checkout = () => {
               <h3 className="font-bold text-lg mb-4">Resumen de Compra</h3>
               
               <div className="space-y-3 mb-6">
-                <div className="flex justify-between">
+                <div className="flex justify-between items-center">
                   <span>Paquete:</span>
                   <span className="font-semibold">{selectedPackage.name}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span>Créditos únicos:</span>
-                  <span>{selectedPackage.credits.toLocaleString()}</span>
+                
+                <div className="flex justify-between items-center">
+                  <span>
+                    {isSubscription ? 'Tipo:' : 'Créditos:'}
+                  </span>
+                  <span>
+                    {isSubscription ? 'Suscripción mensual' : `${selectedPackage.credits.toLocaleString()} créditos`}
+                  </span>
                 </div>
-                <div className="flex justify-between">
+                
+                <div className="flex justify-between items-center">
                   <span>Subtotal:</span>
                   <span>${(selectedPackage.price_mxn / 100).toLocaleString()} MXN</span>
                 </div>
                 
                 {selectedFees && (
-                  <div className="flex justify-between text-sm text-gray-600">
-                    <span>Comisión ({PAYMENT_PROCESSORS[paymentMethod as keyof typeof PAYMENT_PROCESSORS].name}):</span>
+                  <div className="flex justify-between items-center text-sm text-gray-600">
+                    <span>Comisión de procesamiento:</span>
                     <span>${(selectedFees.total / 100).toFixed(2)} MXN</span>
                   </div>
                 )}
                 
-                <div className="flex justify-between font-bold text-lg border-t pt-3">
+                <div className="flex justify-between items-center font-bold text-lg border-t pt-3">
                   <span>Total:</span>
                   <span>
                     ${((selectedPackage.price_mxn + (selectedFees?.total || 0)) / 100).toLocaleString()} MXN
+                    {isSubscription && <span className="text-sm font-normal text-gray-600">/mes</span>}
                   </span>
                 </div>
               </div>
@@ -705,12 +699,13 @@ const Checkout = () => {
                     Procesando...
                   </div>
                 ) : (
-                  `Comprar con ${PAYMENT_PROCESSORS[paymentMethod as keyof typeof PAYMENT_PROCESSORS].name}`
+                  isSubscription ? 'Suscribirme Ahora' : 'Comprar Créditos'
                 )}
               </Button>
               
               <p className="text-center text-xs text-gray-500 mt-4">
                 🔒 Pago 100% seguro • SSL encriptado
+                {isSubscription && ' • Cancela cuando quieras'}
               </p>
             </div>
           </>
