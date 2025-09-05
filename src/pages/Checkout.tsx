@@ -27,12 +27,12 @@ interface CreditPackage {
   credits: number;
   price_mxn: number;
   price_usd: number;
-  discount_percentage: number | null;
-  is_popular: boolean | null;
-  is_active: boolean | null;
-  description: string | null;
+  discount_percentage?: number | null;
+  is_popular?: boolean | null;
+  is_active?: boolean | null;
+  description?: string | null;
   created_at: string;
-  package_type: string | null;
+  package_type?: string | null;
   max_uploads?: number | null;
   max_catalogs?: number | null;
   duration_months?: number | null;
@@ -90,6 +90,12 @@ const Checkout = () => {
     fetchAllPackages();
   }, []);
 
+  const isMonthlyPlan = (pkg: CreditPackage) => {
+    return pkg.name.toLowerCase().includes('plan') || 
+           pkg.name.toLowerCase().includes('suscr') ||
+           pkg.name.toLowerCase().includes('mensual');
+  };
+
   useEffect(() => {
     // Pre-seleccionar paquete si viene de pricing
     if (preSelectedPlanName && (monthlyPlans.length > 0 || creditPacks.length > 0)) {
@@ -102,7 +108,7 @@ const Checkout = () => {
       if (preSelected) {
         setSelectedPackage(preSelected);
         // Auto-detectar tab correcto
-        setActiveTab(preSelected.package_type === 'monthly_plan' ? 'monthly' : 'credits');
+        setActiveTab(isMonthlyPlan(preSelected) ? 'monthly' : 'credits');
       }
     }
   }, [preSelectedPlanName, monthlyPlans, creditPacks]);
@@ -111,7 +117,18 @@ const Checkout = () => {
     try {
       const { data, error } = await supabase
         .from('credit_packages')
-        .select('*')
+        .select(`
+          id,
+          name,
+          credits,
+          price_mxn,
+          price_usd,
+          discount_percentage,
+          is_popular,
+          is_active,
+          description,
+          created_at
+        `)
         .eq('is_active', true)
         .order('price_mxn');
 
@@ -123,14 +140,16 @@ const Checkout = () => {
         return;
       }
 
-      // Separar por tipo, usando lógica de fallback si package_type no existe
+      // Separar por tipo usando el nombre del paquete
       const monthly = data.filter(pkg => 
-        pkg.package_type === 'monthly_plan' || 
-        (pkg.package_type === null && pkg.name.toLowerCase().includes('plan'))
+        pkg.name.toLowerCase().includes('plan') || 
+        pkg.name.toLowerCase().includes('suscr') ||
+        pkg.name.toLowerCase().includes('mensual')
       );
       const credits = data.filter(pkg => 
-        pkg.package_type === 'addon' || 
-        (pkg.package_type === null && pkg.name.toLowerCase().includes('pack'))
+        pkg.name.toLowerCase().includes('pack') || 
+        pkg.name.toLowerCase().includes('crédito') ||
+        (!pkg.name.toLowerCase().includes('plan') && !pkg.name.toLowerCase().includes('mensual'))
       );
       
       setMonthlyPlans(monthly);
@@ -140,7 +159,7 @@ const Checkout = () => {
       if (!preSelectedPlanName && data.length > 0) {
         const popularPackage = data.find(pkg => pkg.is_popular) || data[0];
         setSelectedPackage(popularPackage);
-        setActiveTab(popularPackage.package_type === 'monthly_plan' ? 'monthly' : 'credits');
+        setActiveTab(isMonthlyPlan(popularPackage) ? 'monthly' : 'credits');
       }
       
     } catch (error) {
@@ -178,8 +197,8 @@ const Checkout = () => {
     };
   };
 
-  const getPackageIcon = (packageName: string, packageType: string | null) => {
-    if (packageType === 'monthly_plan') {
+  const getPackageIcon = (packageName: string, pkg: CreditPackage) => {
+    if (isMonthlyPlan(pkg)) {
       if (packageName.includes('Starter')) return <Package className="w-5 h-5" />;
       if (packageName.includes('Básico')) return <Zap className="w-5 h-5" />;
       if (packageName.includes('Profesional')) return <Star className="w-5 h-5" />;
@@ -194,8 +213,8 @@ const Checkout = () => {
     return <Coins className="w-5 h-5" />;
   };
 
-  const getPackageColor = (packageName: string, packageType: string | null) => {
-    if (packageType === 'monthly_plan') {
+  const getPackageColor = (packageName: string, pkg: CreditPackage) => {
+    if (isMonthlyPlan(pkg)) {
       if (packageName.includes('Starter')) return 'from-gray-500 to-gray-700';
       if (packageName.includes('Básico')) return 'from-blue-500 to-blue-700';
       if (packageName.includes('Profesional')) return 'from-purple-500 to-purple-700';
@@ -211,7 +230,7 @@ const Checkout = () => {
   const getPackageFeatures = (pkg: CreditPackage) => {
     const features = [];
     
-    if (pkg.package_type === 'monthly_plan') {
+    if (isMonthlyPlan(pkg)) {
       // Suscripciones mensuales
       if (pkg.credits > 0) {
         features.push(`${pkg.credits} créditos mensuales`);
@@ -264,7 +283,7 @@ const Checkout = () => {
     
     setProcessingPayment(true);
     try {
-      const isSubscription = selectedPackage.package_type === 'monthly_plan';
+      const isSubscription = isMonthlyPlan(selectedPackage);
       
       const { data: transaction, error: transactionError } = await supabase
         .from('transactions')
@@ -317,7 +336,7 @@ const Checkout = () => {
     if (!selectedPackage || !user) return;
     
     // SPEI no soporta suscripciones
-    if (selectedPackage.package_type === 'monthly_plan') {
+    if (isMonthlyPlan(selectedPackage)) {
       toast({
         title: "Método no compatible",
         description: "SPEI no soporta suscripciones. Usa tarjeta para planes mensuales.",
@@ -399,7 +418,7 @@ const Checkout = () => {
     );
   }
 
-  const isSubscription = selectedPackage?.package_type === 'monthly_plan';
+  const isSubscription = selectedPackage ? isMonthlyPlan(selectedPackage) : false;
   const recommendedMethod = selectedPackage ? 
     getRecommendedPaymentMethod(selectedPackage.price_mxn, isSubscription) :
     'stripe';
@@ -469,8 +488,8 @@ const Checkout = () => {
                     )}
                     
                     <div className="text-center">
-                      <div className={`w-12 h-12 rounded-xl bg-gradient-to-r ${getPackageColor(pkg.name, pkg.package_type)} flex items-center justify-center text-white mx-auto mb-3`}>
-                        {getPackageIcon(pkg.name, pkg.package_type)}
+                       <div className={`w-12 h-12 rounded-xl bg-gradient-to-r ${getPackageColor(pkg.name, pkg)} flex items-center justify-center text-white mx-auto mb-3`}>
+                         {getPackageIcon(pkg.name, pkg)}
                       </div>
                       
                       <h3 className="font-bold text-lg mb-1">{pkg.name.replace('Plan ', '')}</h3>
@@ -540,8 +559,8 @@ const Checkout = () => {
                     )}
                     
                     <div className="text-center">
-                      <div className={`w-12 h-12 rounded-xl bg-gradient-to-r ${getPackageColor(pkg.name, pkg.package_type)} flex items-center justify-center text-white mx-auto mb-4`}>
-                        {getPackageIcon(pkg.name, pkg.package_type)}
+                       <div className={`w-12 h-12 rounded-xl bg-gradient-to-r ${getPackageColor(pkg.name, pkg)} flex items-center justify-center text-white mx-auto mb-4`}>
+                         {getPackageIcon(pkg.name, pkg)}
                       </div>
                       
                       <h3 className="font-bold text-xl mb-2">{pkg.name.replace('Pack ', '')}</h3>
