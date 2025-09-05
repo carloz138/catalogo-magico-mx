@@ -399,7 +399,8 @@ const Checkout = () => {
     );
   }
 
-  const isSubscription = selectedPackage?.package_type === 'monthly_plan';
+  const isSubscription = selectedPackage?.package_type === 'monthly_plan' || 
+                     (selectedPackage && selectedPackage.name.toLowerCase().includes('plan'));
   const recommendedMethod = selectedPackage ? 
     getRecommendedPaymentMethod(selectedPackage.price_mxn, isSubscription) :
     'stripe';
