@@ -123,9 +123,15 @@ const Checkout = () => {
         return;
       }
 
-      // Separar correctamente por tipo
-      const monthly = data.filter(pkg => pkg.package_type === 'monthly_plan');
-      const credits = data.filter(pkg => pkg.package_type === 'addon');
+      // Separar por tipo, usando lógica de fallback si package_type no existe
+      const monthly = data.filter(pkg => 
+        pkg.package_type === 'monthly_plan' || 
+        (pkg.package_type === null && pkg.name.toLowerCase().includes('plan'))
+      );
+      const credits = data.filter(pkg => 
+        pkg.package_type === 'addon' || 
+        (pkg.package_type === null && pkg.name.toLowerCase().includes('pack'))
+      );
       
       setMonthlyPlans(monthly);
       setCreditPacks(credits);
