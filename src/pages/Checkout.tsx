@@ -21,21 +21,22 @@ import {
   Coins
 } from 'lucide-react';
 
+// Interface correcto que coincide con la BD
 interface CreditPackage {
   id: string;
   name: string;
   credits: number;
   price_mxn: number;
   price_usd: number;
-  discount_percentage?: number | null;
-  is_popular?: boolean | null;
-  is_active?: boolean | null;
-  description?: string | null;
+  discount_percentage: number | null;
+  is_popular: boolean | null;
+  is_active: boolean | null;
+  description: string | null;
   created_at: string;
-  package_type?: string | null;
-  max_uploads?: number | null;
-  max_catalogs?: number | null;
-  duration_months?: number | null;
+  package_type: string;
+  max_uploads: number | null;
+  max_catalogs: number | null;
+  duration_months: number | null;
 }
 
 // Configuración de procesadores de pago
@@ -80,7 +81,6 @@ const Checkout = () => {
   // Determinar tipo inicial basado en la URL
   const [activeTab, setActiveTab] = useState<'monthly' | 'credits'>(() => {
     const planParam = searchParams.get('plan');
-    // Si viene de pricing con plan específico, probablemente es suscripción
     return planParam ? 'monthly' : 'credits';
   });
 
@@ -89,12 +89,6 @@ const Checkout = () => {
   useEffect(() => {
     fetchAllPackages();
   }, []);
-
-  const isMonthlyPlan = (pkg: CreditPackage) => {
-    return pkg.name.toLowerCase().includes('plan') || 
-           pkg.name.toLowerCase().includes('suscr') ||
-           pkg.name.toLowerCase().includes('mensual');
-  };
 
   useEffect(() => {
     // Pre-seleccionar paquete si viene de pricing
@@ -107,28 +101,17 @@ const Checkout = () => {
       
       if (preSelected) {
         setSelectedPackage(preSelected);
-        // Auto-detectar tab correcto
-        setActiveTab(isMonthlyPlan(preSelected) ? 'monthly' : 'credits');
+        setActiveTab(preSelected.package_type === 'monthly_plan' ? 'monthly' : 'credits');
       }
     }
   }, [preSelectedPlanName, monthlyPlans, creditPacks]);
 
   const fetchAllPackages = async () => {
     try {
+      // Query completa con todos los campos - solución para problema de tipos de Lovable
       const { data, error } = await supabase
         .from('credit_packages')
-        .select(`
-          id,
-          name,
-          credits,
-          price_mxn,
-          price_usd,
-          discount_percentage,
-          is_popular,
-          is_active,
-          description,
-          created_at
-        `)
+        .select('*')
         .eq('is_active', true)
         .order('price_mxn');
 
@@ -140,26 +123,36 @@ const Checkout = () => {
         return;
       }
 
-      // Separar por tipo usando el nombre del paquete
-      const monthly = data.filter(pkg => 
-        pkg.name.toLowerCase().includes('plan') || 
-        pkg.name.toLowerCase().includes('suscr') ||
-        pkg.name.toLowerCase().includes('mensual')
-      );
-      const credits = data.filter(pkg => 
-        pkg.name.toLowerCase().includes('pack') || 
-        pkg.name.toLowerCase().includes('crédito') ||
-        (!pkg.name.toLowerCase().includes('plan') && !pkg.name.toLowerCase().includes('mensual'))
-      );
+      // Mapeo manual para garantizar compatibilidad de tipos
+      const mappedPackages: CreditPackage[] = (data as any[]).map((pkg: any) => ({
+        id: pkg.id,
+        name: pkg.name,
+        credits: pkg.credits,
+        price_mxn: pkg.price_mxn,
+        price_usd: pkg.price_usd,
+        discount_percentage: pkg.discount_percentage,
+        is_popular: pkg.is_popular,
+        is_active: pkg.is_active,
+        description: pkg.description,
+        created_at: pkg.created_at,
+        package_type: pkg.package_type || (pkg.name.toLowerCase().includes('plan') ? 'monthly_plan' : 'addon'),
+        max_uploads: pkg.max_uploads,
+        max_catalogs: pkg.max_catalogs,
+        duration_months: pkg.duration_months
+      }));
+
+      // Separar por tipo usando el campo real package_type
+      const monthly = mappedPackages.filter(pkg => pkg.package_type === 'monthly_plan');
+      const credits = mappedPackages.filter(pkg => pkg.package_type === 'addon');
       
       setMonthlyPlans(monthly);
       setCreditPacks(credits);
       
       // Si no hay pre-selección, elegir el más popular
-      if (!preSelectedPlanName && data.length > 0) {
-        const popularPackage = data.find(pkg => pkg.is_popular) || data[0];
+      if (!preSelectedPlanName && mappedPackages.length > 0) {
+        const popularPackage = mappedPackages.find(pkg => pkg.is_popular) || mappedPackages[0];
         setSelectedPackage(popularPackage);
-        setActiveTab(isMonthlyPlan(popularPackage) ? 'monthly' : 'credits');
+        setActiveTab(popularPackage.package_type === 'monthly_plan' ? 'monthly' : 'credits');
       }
       
     } catch (error) {
@@ -197,8 +190,8 @@ const Checkout = () => {
     };
   };
 
-  const getPackageIcon = (packageName: string, pkg: CreditPackage) => {
-    if (isMonthlyPlan(pkg)) {
+  const getPackageIcon = (packageName: string, packageType: string) => {
+    if (packageType === 'monthly_plan') {
       if (packageName.includes('Starter')) return <Package className="w-5 h-5" />;
       if (packageName.includes('Básico')) return <Zap className="w-5 h-5" />;
       if (packageName.includes('Profesional')) return <Star className="w-5 h-5" />;
@@ -213,8 +206,8 @@ const Checkout = () => {
     return <Coins className="w-5 h-5" />;
   };
 
-  const getPackageColor = (packageName: string, pkg: CreditPackage) => {
-    if (isMonthlyPlan(pkg)) {
+  const getPackageColor = (packageName: string, packageType: string) => {
+    if (packageType === 'monthly_plan') {
       if (packageName.includes('Starter')) return 'from-gray-500 to-gray-700';
       if (packageName.includes('Básico')) return 'from-blue-500 to-blue-700';
       if (packageName.includes('Profesional')) return 'from-purple-500 to-purple-700';
@@ -230,15 +223,15 @@ const Checkout = () => {
   const getPackageFeatures = (pkg: CreditPackage) => {
     const features = [];
     
-    if (isMonthlyPlan(pkg)) {
-      // Suscripciones mensuales
+    if (pkg.package_type === 'monthly_plan') {
+      // Suscripciones mensuales - ahora funciona porque tenemos todos los campos
       if (pkg.credits > 0) {
         features.push(`${pkg.credits} créditos mensuales`);
       } else {
         features.push('Sin procesamiento IA');
       }
       
-      if (pkg.max_catalogs !== undefined) {
+      if (pkg.max_catalogs !== undefined && pkg.max_catalogs !== null) {
         if (pkg.max_catalogs === 0) {
           features.push('Catálogos ilimitados');
         } else {
@@ -283,7 +276,7 @@ const Checkout = () => {
     
     setProcessingPayment(true);
     try {
-      const isSubscription = isMonthlyPlan(selectedPackage);
+      const isSubscription = selectedPackage.package_type === 'monthly_plan';
       
       const { data: transaction, error: transactionError } = await supabase
         .from('transactions')
@@ -336,7 +329,7 @@ const Checkout = () => {
     if (!selectedPackage || !user) return;
     
     // SPEI no soporta suscripciones
-    if (isMonthlyPlan(selectedPackage)) {
+    if (selectedPackage.package_type === 'monthly_plan') {
       toast({
         title: "Método no compatible",
         description: "SPEI no soporta suscripciones. Usa tarjeta para planes mensuales.",
@@ -418,7 +411,7 @@ const Checkout = () => {
     );
   }
 
-  const isSubscription = selectedPackage ? isMonthlyPlan(selectedPackage) : false;
+  const isSubscription = selectedPackage?.package_type === 'monthly_plan';
   const recommendedMethod = selectedPackage ? 
     getRecommendedPaymentMethod(selectedPackage.price_mxn, isSubscription) :
     'stripe';
@@ -488,8 +481,8 @@ const Checkout = () => {
                     )}
                     
                     <div className="text-center">
-                       <div className={`w-12 h-12 rounded-xl bg-gradient-to-r ${getPackageColor(pkg.name, pkg)} flex items-center justify-center text-white mx-auto mb-3`}>
-                         {getPackageIcon(pkg.name, pkg)}
+                       <div className={`w-12 h-12 rounded-xl bg-gradient-to-r ${getPackageColor(pkg.name, pkg.package_type)} flex items-center justify-center text-white mx-auto mb-3`}>
+                         {getPackageIcon(pkg.name, pkg.package_type)}
                       </div>
                       
                       <h3 className="font-bold text-lg mb-1">{pkg.name.replace('Plan ', '')}</h3>
@@ -559,8 +552,8 @@ const Checkout = () => {
                     )}
                     
                     <div className="text-center">
-                       <div className={`w-12 h-12 rounded-xl bg-gradient-to-r ${getPackageColor(pkg.name, pkg)} flex items-center justify-center text-white mx-auto mb-4`}>
-                         {getPackageIcon(pkg.name, pkg)}
+                       <div className={`w-12 h-12 rounded-xl bg-gradient-to-r ${getPackageColor(pkg.name, pkg.package_type)} flex items-center justify-center text-white mx-auto mb-4`}>
+                         {getPackageIcon(pkg.name, pkg.package_type)}
                       </div>
                       
                       <h3 className="font-bold text-xl mb-2">{pkg.name.replace('Pack ', '')}</h3>
