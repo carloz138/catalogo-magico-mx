@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { BusinessInfo, BusinessInfoForm } from '@/types/business';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import AppLayout from '@/components/layout/AppLayout';
+import SubscriptionCard from '@/components/SubscriptionCard';
 import { Button } from '@/components/ui/button';
 import { Building2, Upload, Palette, Eye, Save } from 'lucide-react';
 import { toast } from '@/components/ui/sonner';
@@ -480,7 +481,10 @@ const BusinessInfoPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="lg:sticky lg:top-8">
+          <div className="lg:sticky lg:top-8 space-y-6">
+            {/* Componente de suscripción - solo aparece si hay suscripción */}
+            <SubscriptionCard compact={false} showTitle={true} />
+
             <div className="bg-white rounded-xl shadow-sm p-6">
               <h2 className="text-xl font-semibold text-gray-900 mb-4">
                 Vista Previa del Catálogo
