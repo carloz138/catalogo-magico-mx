@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
@@ -7,13 +6,17 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/components/ui/use-toast';
+import { createCatalog } from '@/lib/catalogService'; // NUEVO: Importar servicio modificado
+import { useCatalogLimits, CatalogUsageDisplay } from '@/hooks/useCatalogLimits'; // NUEVO: Hook de límites
 import { 
   Palette, 
   Zap, 
   Crown, 
   Sparkles,
   ArrowRight,
-  Eye
+  Eye,
+  AlertTriangle,
+  Info
 } from 'lucide-react';
 
 interface Template {
@@ -60,6 +63,16 @@ const TemplateSelection = () => {
   const navigate = useNavigate();
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
+  const [generating, setGenerating] = useState(false); // NUEVO: Estado de generación
+  
+  // NUEVO: Hook para validar límites de catálogos
+  const { 
+    validateBeforeGeneration, 
+    canGenerate, 
+    validation,
+    catalogsUsed,
+    catalogsLimit 
+  } = useCatalogLimits();
 
   useEffect(() => {
     // Load selected products from localStorage
@@ -98,7 +111,8 @@ const TemplateSelection = () => {
     setSelectedTemplate(templateId);
   };
 
-  const handleGenerateCatalog = () => {
+  // NUEVO: Función modificada para validar límites antes de generar
+  const handleGenerateCatalog = async () => {
     if (!selectedTemplate) {
       toast({
         title: "Selecciona un template",
@@ -108,32 +122,136 @@ const TemplateSelection = () => {
       return;
     }
 
-    // Store template selection and navigate to generation
-    localStorage.setItem('selectedTemplate', selectedTemplate);
-    
-    toast({
-      title: "Generando catálogo...",
-      description: "Tu catálogo se está generando. Te notificaremos cuando esté listo.",
-    });
+    // VALIDAR LÍMITES ANTES DE GENERAR
+    const canProceed = await validateBeforeGeneration();
+    if (!canProceed) {
+      return; // El error ya se mostró en validateBeforeGeneration
+    }
 
-    // Navigate to catalogs page
-    navigate('/catalogs');
+    setGenerating(true);
+    
+    try {
+      // Obtener productos completos del localStorage
+      const productsData = localStorage.getItem('selectedProductsData');
+      const businessData = localStorage.getItem('businessInfo');
+      
+      let products = [];
+      let businessInfo = {};
+      
+      if (productsData) {
+        products = JSON.parse(productsData);
+      }
+      
+      if (businessData) {
+        businessInfo = JSON.parse(businessData);
+      }
+
+      // Crear catálogo usando el servicio modificado (que incluye tracking)
+      const result = await createCatalog(products, businessInfo, selectedTemplate);
+      
+      if (result.success) {
+        toast({
+          title: "Catálogo generado exitosamente",
+          description: "Tu catálogo se está procesando. Te notificaremos cuando esté listo.",
+        });
+
+        // Limpiar localStorage
+        localStorage.removeItem('selectedTemplate');
+        localStorage.removeItem('selectedProducts');
+        localStorage.removeItem('selectedProductsData');
+        
+        // Navegar a catálogos
+        navigate('/catalogs');
+      } else {
+        throw new Error(result.error || 'Error desconocido');
+      }
+
+    } catch (error) {
+      console.error('Error generating catalog:', error);
+      toast({
+        title: "Error al generar catálogo",
+        description: error instanceof Error ? error.message : "Error desconocido al generar catálogo",
+        variant: "destructive",
+      });
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  // NUEVO: Componente para mostrar estado de límites
+  const CatalogLimitsAlert = () => {
+    if (!validation) return null;
+
+    const isUnlimited = validation.catalogs_limit === 'unlimited' || validation.catalogs_limit === 0;
+    const isNearLimit = !isUnlimited && validation.remaining !== undefined && validation.remaining <= 2;
+    const isAtLimit = !canGenerate;
+
+    if (isAtLimit) {
+      return (
+        <Card className="mb-6 border-red-200 bg-red-50">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0" />
+              <div className="flex-1">
+                <h3 className="font-semibold text-red-900">Límite alcanzado</h3>
+                <p className="text-sm text-red-700 mt-1">
+                  {validation.message}
+                </p>
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => navigate('/pricing')}
+                className="border-red-300 text-red-700 hover:bg-red-100"
+              >
+                Mejorar Plan
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      );
+    }
+
+    if (isNearLimit) {
+      return (
+        <Card className="mb-6 border-amber-200 bg-amber-50">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <Info className="w-5 h-5 text-amber-600 flex-shrink-0" />
+              <div className="flex-1">
+                <h3 className="font-semibold text-amber-900">Pocos catálogos restantes</h3>
+                <p className="text-sm text-amber-700 mt-1">
+                  Te quedan {validation.remaining} catálogos este mes
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      );
+    }
+
+    return null;
   };
 
   const actions = (
     <div className="flex items-center gap-3">
+      {/* NUEVO: Mostrar uso de catálogos */}
+      <div className="hidden md:block">
+        <CatalogUsageDisplay />
+      </div>
+      
       <span className="text-sm text-gray-600">
         {selectedProducts.length} productos seleccionados
       </span>
       
       <Button 
         onClick={handleGenerateCatalog}
-        disabled={!selectedTemplate}
+        disabled={!selectedTemplate || generating || !canGenerate}
         className="flex items-center gap-2"
       >
         <Palette className="h-4 w-4" />
-        Generar Catálogo
-        <ArrowRight className="h-4 w-4" />
+        {generating ? 'Generando...' : 'Generar Catálogo'}
+        {!generating && <ArrowRight className="h-4 w-4" />}
       </Button>
     </div>
   );
@@ -142,6 +260,18 @@ const TemplateSelection = () => {
     <ProtectedRoute>
       <AppLayout actions={actions}>
         <div className="space-y-6">
+          {/* NUEVO: Alerta de límites */}
+          <CatalogLimitsAlert />
+
+          {/* NUEVO: Uso de catálogos en mobile */}
+          <div className="md:hidden">
+            <Card>
+              <CardContent className="p-4">
+                <CatalogUsageDisplay />
+              </CardContent>
+            </Card>
+          </div>
+
           {/* Template categories */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {templates.map((template) => (
@@ -151,8 +281,8 @@ const TemplateSelection = () => {
                   selectedTemplate === template.id 
                     ? 'ring-2 ring-blue-500 bg-blue-50' 
                     : 'hover:shadow-md'
-                }`}
-                onClick={() => handleTemplateSelect(template.id)}
+                } ${!canGenerate ? 'opacity-50 cursor-not-allowed' : ''}`}
+                onClick={() => canGenerate && handleTemplateSelect(template.id)}
               >
                 <div className="aspect-video bg-gray-100 relative overflow-hidden">
                   <img
