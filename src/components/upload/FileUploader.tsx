@@ -1,11 +1,13 @@
 import React, { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { Upload, X, AlertCircle } from 'lucide-react';
+import { Upload, X, AlertCircle, Info, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
+import { useUploadTracking } from '@/hooks/useUploadTracking'; // ⬅️ NUEVO
 
 interface UploadedFile {
   id: string;
@@ -57,8 +59,23 @@ const validateFiles = (files: File[]) => {
 export const FileUploader = ({ onFilesUploaded, maxFiles = MAX_FILES }: FileUploaderProps) => {
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [error, setError] = useState<string>('');
+  
+  // ⬅️ NUEVO: Hook para tracking de uploads
+  const { validateBeforeUpload, incrementUploadUsage, checkUploadLimits } = useUploadTracking();
+  const [uploadLimits, setUploadLimits] = useState<any>(null);
+
+  // ⬅️ NUEVO: Verificar límites al cargar componente
+  React.useEffect(() => {
+    checkUploadLimits().then(setUploadLimits);
+  }, [uploadedFiles]);
 
   const onDrop = useCallback(async (acceptedFiles: File[], rejectedFiles: any[]) => {
+    // ⬅️ NUEVO: 1. VALIDAR LÍMITES DE PLAN ANTES DE PROCESAR
+    const canUpload = await validateBeforeUpload(acceptedFiles.length);
+    if (!canUpload) {
+      return; // El toast ya se mostró en validateBeforeUpload
+    }
+
     // Check if too many files were selected (including rejected ones)
     const totalFiles = acceptedFiles.length + rejectedFiles.length;
     if (totalFiles > MAX_FILES) {
@@ -174,10 +191,32 @@ export const FileUploader = ({ onFilesUploaded, maxFiles = MAX_FILES }: FileUplo
     const results = await Promise.all(uploadPromises);
     const successfulFiles = results.filter(file => file !== null && file.url);
     
+    // ⬅️ NUEVO: 2. INCREMENTAR CONTADOR SOLO SI UPLOADS FUERON EXITOSOS
+    if (successfulFiles.length > 0) {
+      const trackingResult = await incrementUploadUsage(successfulFiles.length);
+      
+      if (trackingResult.success) {
+        toast({
+          title: "Imágenes subidas",
+          description: `${successfulFiles.length} imagen(es) subida(s) exitosamente`,
+        });
+        
+        // Actualizar límites después del upload
+        checkUploadLimits().then(setUploadLimits);
+      } else {
+        // Si falla el tracking, mostrar advertencia pero no bloquear
+        toast({
+          title: "Advertencia",
+          description: "Imágenes subidas pero no se pudo actualizar el contador",
+          variant: "destructive",
+        });
+      }
+    }
+    
     // Call onFilesUploaded with all successful files (including previously uploaded ones)
     const allSuccessfulFiles = uploadedFiles.filter(f => f.url && !f.error).concat(successfulFiles);
     onFilesUploaded(allSuccessfulFiles);
-  }, [uploadedFiles, maxFiles, onFilesUploaded]);
+  }, [uploadedFiles, maxFiles, onFilesUploaded, validateBeforeUpload, incrementUploadUsage, checkUploadLimits]);
 
   const { getRootProps, getInputProps, isDragActive, fileRejections } = useDropzone({
     onDrop,
@@ -198,8 +237,48 @@ export const FileUploader = ({ onFilesUploaded, maxFiles = MAX_FILES }: FileUplo
     });
   };
 
+  // ⬅️ NUEVO: Componente para mostrar límites de upload
+  const UploadLimitsDisplay = () => {
+    if (!uploadLimits || uploadLimits.reason === 'unlimited') return null;
+
+    const isNearLimit = uploadLimits.uploadsRemaining <= 10;
+    const isAtLimit = uploadLimits.uploadsRemaining <= 0;
+
+    return (
+      <div className={`text-sm p-3 rounded-lg mb-4 ${
+        isAtLimit 
+          ? 'bg-red-50 text-red-700 border border-red-200' 
+          : isNearLimit 
+            ? 'bg-amber-50 text-amber-700 border border-amber-200'
+            : 'bg-blue-50 text-blue-700 border border-blue-200'
+      }`}>
+        <div className="flex items-center gap-2">
+          {isAtLimit ? (
+            <AlertTriangle className="w-4 h-4" />
+          ) : (
+            <Info className="w-4 h-4" />
+          )}
+          <span>
+            <strong>Uploads este mes:</strong> {uploadLimits.uploadsUsed}/{uploadLimits.uploadsLimit} 
+            ({uploadLimits.uploadsRemaining} restantes)
+          </span>
+        </div>
+        {isNearLimit && (
+          <div className="mt-2">
+            <Badge variant="outline" className="text-xs">
+              Plan: {uploadLimits.planName}
+            </Badge>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-4">
+      {/* ⬅️ NUEVO: Mostrar límites de upload */}
+      <UploadLimitsDisplay />
+
       {uploadedFiles.length < maxFiles && (
         <Card>
           <CardContent 
