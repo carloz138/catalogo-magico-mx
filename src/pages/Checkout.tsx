@@ -523,7 +523,7 @@ const Checkout = () => {
             <div className="text-center p-4 bg-green-50 rounded-lg">
               <h3 className="font-semibold text-green-900 mb-2">Packs de Créditos</h3>
               <p className="text-sm text-green-700">
-                Compra una vez • Válidos por 12 meses • Sin renovación automática
+                Compra una vez • Válidos por 12 meses • Precio todo incluido
               </p>
             </div>
             
@@ -625,9 +625,7 @@ const Checkout = () => {
                       )}
                     </div>
                     <p className="text-sm text-gray-600">Visa, Mastercard, AMEX • Instantáneo</p>
-                    {!isSubscription && (
-                      <p className="text-xs text-gray-500">Comisión: 3.6% + $3 MXN</p>
-                    )}
+                    <p className="text-xs text-gray-500">Precio todo incluido - sin comisiones adicionales</p>
                   </div>
                 </label>
                 
@@ -656,11 +654,6 @@ const Checkout = () => {
                       </div>
                       <p className="text-sm text-gray-600">Todos los bancos • Instantáneo</p>
                       <p className="text-xs text-gray-500">Comisión: $5 MXN fijo</p>
-                      {selectedFees && paymentMethod !== 'spei' && (
-                        <p className="text-xs text-green-600 font-medium">
-                          Ahorra ${((selectedFees.total - 500) / 100).toFixed(2)} MXN vs tarjeta
-                        </p>
-                      )}
                     </div>
                   </label>
                 )}
@@ -688,31 +681,35 @@ const Checkout = () => {
                 
                 <div className="flex justify-between items-center">
                   <span>
-                    {isSubscription ? 'Precio mensual:' : 'Subtotal:'}
+                    {isSubscription ? 'Precio mensual:' : 'Precio:'}
                   </span>
                   <span>${(selectedPackage.price_mxn / 100).toLocaleString()} MXN</span>
                 </div>
                 
-                {selectedFees && !isSubscription && (
+                {/* Solo mostrar comisión para SPEI */}
+                {paymentMethod === 'spei' && !isSubscription && (
                   <div className="flex justify-between items-center text-sm text-gray-600">
-                    <span>Comisión de procesamiento:</span>
-                    <span>${(selectedFees.total / 100).toFixed(2)} MXN</span>
+                    <span>Comisión SPEI:</span>
+                    <span>$5.00 MXN</span>
                   </div>
                 )}
                 
                 <div className="flex justify-between items-center font-bold text-lg border-t pt-3">
                   <span>Total:</span>
                   <span>
-                    ${((selectedPackage.price_mxn + (isSubscription ? 0 : selectedFees?.total || 0)) / 100).toLocaleString()} MXN
+                    ${(paymentMethod === 'spei' && !isSubscription 
+                      ? (selectedPackage.price_mxn + 500) / 100 
+                      : selectedPackage.price_mxn / 100
+                    ).toLocaleString()} MXN
                     {isSubscription && <span className="text-sm font-normal text-gray-600">/mes</span>}
                   </span>
                 </div>
                 
-                {isSubscription && (
-                  <div className="text-sm text-blue-600 bg-blue-50 p-3 rounded">
-                    ✨ Precio todo incluido - sin comisiones adicionales
-                  </div>
-                )}
+                <div className="text-sm text-blue-600 bg-blue-50 p-3 rounded">
+                  ✨ {paymentMethod === 'spei' && !isSubscription 
+                    ? 'Precio final con comisión SPEI incluida' 
+                    : 'Precio todo incluido - sin comisiones adicionales'}
+                </div>
               </div>
               
               <Button 
