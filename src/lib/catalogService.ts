@@ -1,5 +1,5 @@
 // src/lib/catalogService.ts
-// ✅ ARREGLADO: Parsing correcto del webhook response
+// MODIFICADO: Agregado tracking de catálogos
 
 import { supabase } from '@/integrations/supabase/client';
 import { getTemplateById, TemplateConfig } from '@/lib/templates';
@@ -50,16 +50,71 @@ export interface ProcessedImage {
   cost_mxn: number;
 }
 
-// ✅ FUNCIÓN PRINCIPAL MEJORADA: createCatalog (mantener igual)
+// NUEVO: Función para validar límites de catálogos antes de crear
+const validateCatalogLimits = async (userId: string): Promise<{ 
+  canGenerate: boolean; 
+  reason?: string; 
+  message?: string;
+  catalogsUsed?: number;
+  catalogsLimit?: number;
+}> => {
+  try {
+    const { data, error } = await supabase.rpc('can_generate_catalog', {
+      p_user_id: userId
+    });
+
+    if (error) {
+      console.error('Error checking catalog limits:', error);
+      return { canGenerate: false, reason: 'error', message: 'Error verificando límites' };
+    }
+
+    return {
+      canGenerate: data.can_generate,
+      reason: data.reason,
+      message: data.message,
+      catalogsUsed: data.catalogs_used,
+      catalogsLimit: data.catalogs_limit
+    };
+
+  } catch (error) {
+    console.error('Exception checking catalog limits:', error);
+    return { canGenerate: false, reason: 'error', message: 'Error verificando límites' };
+  }
+};
+
+// NUEVO: Función para incrementar contador de catálogos
+const incrementCatalogUsage = async (userId: string): Promise<{ success: boolean; message?: string }> => {
+  try {
+    const { data, error } = await supabase.rpc('increment_catalog_usage', {
+      p_user_id: userId
+    });
+
+    if (error) {
+      console.error('Error incrementing catalog usage:', error);
+      return { success: false, message: 'Error actualizando contador' };
+    }
+
+    return {
+      success: data.success,
+      message: data.message
+    };
+
+  } catch (error) {
+    console.error('Exception incrementing catalog usage:', error);
+    return { success: false, message: 'Error actualizando contador' };
+  }
+};
+
+// FUNCIÓN PRINCIPAL MODIFICADA: createCatalog con tracking
 export const createCatalog = async (
   selectedProducts: any[],
   businessInfo: any,
   templateStyle: string = 'minimalista-gris'
 ): Promise<{ success: boolean; catalog_id?: string; error?: string }> => {
   try {
-    console.log('🎨 Iniciando creación de catálogo');
-    console.log('🎨 Template seleccionado:', templateStyle);
-    console.log('🎨 Productos recibidos:', selectedProducts.length);
+    console.log('Iniciando creación de catálogo');
+    console.log('Template seleccionado:', templateStyle);
+    console.log('Productos recibidos:', selectedProducts.length);
     
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Usuario no autenticado');
@@ -68,12 +123,26 @@ export const createCatalog = async (
       throw new Error('No hay productos seleccionados');
     }
 
+    // NUEVO: 1. VALIDAR LÍMITES ANTES DE CREAR EL CATÁLOGO
+    console.log('Validando límites de catálogos...');
+    const limitValidation = await validateCatalogLimits(user.id);
+    
+    if (!limitValidation.canGenerate) {
+      console.log('Límite de catálogos alcanzado:', limitValidation.message);
+      return {
+        success: false,
+        error: limitValidation.message || 'Has alcanzado el límite de catálogos para este mes'
+      };
+    }
+
+    console.log('Límites OK, continuando con la creación...');
+
     const template = getTemplateById(templateStyle);
     if (!template) {
       throw new Error(`Template '${templateStyle}' no encontrado`);
     }
     
-    console.log('✅ Template config:', template);
+    console.log('Template config:', template);
 
     let userPlan = 'basic';
     try {
@@ -90,7 +159,7 @@ export const createCatalog = async (
       console.log('Plan type not available, using basic as default');
     }
 
-    console.log('💾 Preparando inserción en tabla catalogs...');
+    console.log('Preparando inserción en tabla catalogs...');
     
     const catalogData = {
       user_id: user.id,
@@ -108,7 +177,7 @@ export const createCatalog = async (
       credits_used: 0
     };
     
-    console.log('🔍 Datos a insertar:', catalogData);
+    console.log('Datos a insertar:', catalogData);
 
     const { data: catalog, error: catalogError } = await supabase
       .from('catalogs')
@@ -117,11 +186,11 @@ export const createCatalog = async (
       .single();
 
     if (catalogError) {
-      console.error('❌ DETALLES COMPLETOS DEL ERROR:', catalogError);
+      console.error('DETALLES COMPLETOS DEL ERROR:', catalogError);
       throw new Error(`Error en base de datos: ${catalogError.message}`);
     }
 
-    console.log('✅ Catálogo creado en BD:', catalog.id);
+    console.log('Catálogo creado en BD:', catalog.id);
 
     const webhookPayload: CatalogCreationRequest = {
       catalog_id: catalog.id,
@@ -158,7 +227,7 @@ export const createCatalog = async (
       estimated_total_cost: selectedProducts.reduce((sum, p) => sum + (p.estimated_cost_mxn || 0.20), 0)
     };
 
-    console.log('🚀 Enviando payload a n8n:', {
+    console.log('Enviando payload a n8n:', {
       catalog_id: webhookPayload.catalog_id,
       template: templateStyle,
       products_count: webhookPayload.products.length
@@ -182,26 +251,42 @@ export const createCatalog = async (
         
         attempts++;
         if (attempts < maxAttempts) {
-          console.log(`⚠️ Intento ${attempts} falló, reintentando...`);
+          console.log(`Intento ${attempts} falló, reintentando...`);
           await new Promise(resolve => setTimeout(resolve, 1000 * attempts));
         }
       } catch (error) {
         attempts++;
         if (attempts >= maxAttempts) throw error;
-        console.log(`⚠️ Error en intento ${attempts}, reintentando...`);
+        console.log(`Error en intento ${attempts}, reintentando...`);
         await new Promise(resolve => setTimeout(resolve, 1000 * attempts));
       }
     }
 
     if (!webhookResponse || !webhookResponse.ok) {
-      console.error(`❌ Webhook failed after ${maxAttempts} attempts: ${webhookResponse?.status}`);
-      throw new Error(`Webhook failed after ${maxAttempts} attempts: ${webhookResponse?.status}`);
+      console.error(`Webhook failed after ${maxAttempts} attempts: ${webhookResponse?.status}`);
+      
+      // NUEVO: Si el webhook falla, el catálogo ya se creó en BD, por lo que NO incrementamos contador
+      return {
+        success: false,
+        error: `Webhook failed after ${maxAttempts} attempts: ${webhookResponse?.status}`
+      };
     }
 
     const result = await webhookResponse.json();
-    console.log('✅ n8n webhook response:', result);
+    console.log('n8n webhook response:', result);
 
-    console.log('✅ Catálogo enviado a n8n para procesamiento');
+    // NUEVO: 2. INCREMENTAR CONTADOR SOLO SI EL WEBHOOK FUE EXITOSO
+    console.log('Incrementando contador de catálogos...');
+    const usageResult = await incrementCatalogUsage(user.id);
+    
+    if (!usageResult.success) {
+      console.warn('Error actualizando contador de catálogos:', usageResult.message);
+      // No fallar la operación completa por esto, solo advertir
+    } else {
+      console.log('Contador de catálogos actualizado exitosamente');
+    }
+
+    console.log('Catálogo enviado a n8n para procesamiento');
 
     return {
       success: true,
@@ -209,7 +294,7 @@ export const createCatalog = async (
     };
 
   } catch (error) {
-    console.error('❌ Error creating catalog:', error);
+    console.error('Error creating catalog:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Error desconocido al crear catálogo'
@@ -217,7 +302,7 @@ export const createCatalog = async (
   }
 };
 
-// ✅ FUNCIÓN CORREGIDA: processImagesOnly con PARSING MEJORADO
+// FUNCIÓN CORREGIDA: processImagesOnly con PARSING MEJORADO (sin cambios de tracking ya que no cuenta como catálogo)
 export const processImagesOnly = async (
   selectedProducts: any[],
   businessInfo: any
@@ -270,7 +355,7 @@ export const processImagesOnly = async (
       estimated_total_cost: selectedProducts.reduce((sum, p) => sum + (p.estimated_cost_mxn || 0.20), 0)
     };
 
-    console.log('🚀 Sending PROCESS_ONLY to n8n webhook:', processOnlyPayload);
+    console.log('Sending PROCESS_ONLY to n8n webhook:', processOnlyPayload);
 
     const webhookResponse = await fetch(N8N_WEBHOOK_URL, {
       method: 'POST',
@@ -285,31 +370,31 @@ export const processImagesOnly = async (
     }
 
     const result = await webhookResponse.json();
-    console.log('✅ n8n webhook response RAW:', result);
+    console.log('n8n webhook response RAW:', result);
 
-    // ✅ PARSING MEJORADO: Manejar diferentes formatos de respuesta
+    // PARSING MEJORADO: Manejar diferentes formatos de respuesta
     let webhookData;
     let processed_images: ProcessedImage[] = [];
 
     // Caso 1: Respuesta es array (como tu ejemplo)
     if (Array.isArray(result)) {
-      console.log('📋 Webhook response is array, using first element');
+      console.log('Webhook response is array, using first element');
       webhookData = result[0];
     } else {
-      console.log('📋 Webhook response is object');
+      console.log('Webhook response is object');
       webhookData = result;
     }
 
-    console.log('🔍 Webhook data to parse:', webhookData);
+    console.log('Webhook data to parse:', webhookData);
 
-    // ✅ VERIFICAR SI HAY DATOS EN debug_info.apiResponse
+    // VERIFICAR SI HAY DATOS EN debug_info.apiResponse
     if (webhookData.debug_info?.apiResponse) {
-      console.log('🔍 Found debug_info.apiResponse, checking for processed images...');
+      console.log('Found debug_info.apiResponse, checking for processed images...');
       const apiResponse = webhookData.debug_info.apiResponse;
       
-      // ✅ EXTRAER IMÁGENES PROCESADAS DEL API RESPONSE
+      // EXTRAER IMÁGENES PROCESADAS DEL API RESPONSE
       if (apiResponse.products && Array.isArray(apiResponse.products)) {
-        console.log(`📦 Found ${apiResponse.products.length} products in apiResponse`);
+        console.log(`Found ${apiResponse.products.length} products in apiResponse`);
         
         processed_images = apiResponse.products
           .filter((product: any) => product.processing_result?.success === true)
@@ -324,15 +409,15 @@ export const processImagesOnly = async (
             cost_mxn: product.processing_result.actualCostMXN || product.estimated_cost_mxn || 0.20
           }));
         
-        console.log(`✅ Extracted ${processed_images.length} processed images:`, processed_images);
+        console.log(`Extracted ${processed_images.length} processed images:`, processed_images);
       }
     }
 
-    // ✅ VERIFICAR SI REALMENTE HAY IMÁGENES PROCESADAS
+    // VERIFICAR SI REALMENTE HAY IMÁGENES PROCESADAS
     if (processed_images.length > 0) {
-      console.log('🎉 SUCCESS: Found processed images, updating database...');
+      console.log('SUCCESS: Found processed images, updating database...');
       
-      // ✅ ACTUALIZAR BASE DE DATOS CON IMÁGENES PROCESADAS
+      // ACTUALIZAR BASE DE DATOS CON IMÁGENES PROCESADAS
       for (const img of processed_images) {
         try {
           const { error: updateError } = await supabase
@@ -348,12 +433,12 @@ export const processImagesOnly = async (
             .eq('id', img.product_id);
 
           if (updateError) {
-            console.warn(`⚠️ Error updating product ${img.product_id}:`, updateError);
+            console.warn(`Error updating product ${img.product_id}:`, updateError);
           } else {
-            console.log(`✅ Updated product ${img.product_id} with processed image`);
+            console.log(`Updated product ${img.product_id} with processed image`);
           }
         } catch (updateError) {
-          console.warn(`⚠️ Exception updating product ${img.product_id}:`, updateError);
+          console.warn(`Exception updating product ${img.product_id}:`, updateError);
         }
       }
 
@@ -362,9 +447,9 @@ export const processImagesOnly = async (
         processed_images: processed_images
       };
     } else {
-      // ✅ NO HAY IMÁGENES PROCESADAS
-      console.warn('⚠️ No processed images found in webhook response');
-      console.log('🔍 Full webhook data for debugging:', JSON.stringify(webhookData, null, 2));
+      // NO HAY IMÁGENES PROCESADAS
+      console.warn('No processed images found in webhook response');
+      console.log('Full webhook data for debugging:', JSON.stringify(webhookData, null, 2));
       
       return {
         success: false,
@@ -373,7 +458,7 @@ export const processImagesOnly = async (
     }
 
   } catch (error) {
-    console.error('❌ Error processing images only:', error);
+    console.error('Error processing images only:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Error desconocido'
@@ -381,7 +466,7 @@ export const processImagesOnly = async (
   }
 };
 
-// ✅ MANTENER OTRAS FUNCIONES IGUAL
+// MANTENER OTRAS FUNCIONES IGUAL
 export const generateTemplatePreview = async (
   products: any[],
   templateId: string,
@@ -452,7 +537,7 @@ export const generateTemplatePreview = async (
     };
 
   } catch (error) {
-    console.error('❌ Error generating template preview:', error);
+    console.error('Error generating template preview:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Error generando preview'
