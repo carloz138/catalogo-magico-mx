@@ -59,7 +59,7 @@ const validateCatalogLimits = async (userId: string): Promise<{
   catalogsLimit?: number;
 }> => {
   try {
-    const { data, error } = await supabase.rpc('can_generate_catalog', {
+    const { data, error } = await (supabase as any).rpc('can_generate_catalog', {
       p_user_id: userId
     });
 
@@ -68,12 +68,15 @@ const validateCatalogLimits = async (userId: string): Promise<{
       return { canGenerate: false, reason: 'error', message: 'Error verificando límites' };
     }
 
+    // Parse the JSON response if it's a string
+    const result = typeof data === 'string' ? JSON.parse(data) : data;
+
     return {
-      canGenerate: data.can_generate,
-      reason: data.reason,
-      message: data.message,
-      catalogsUsed: data.catalogs_used,
-      catalogsLimit: data.catalogs_limit
+      canGenerate: result.can_generate || false,
+      reason: result.reason || 'unknown',
+      message: result.message || 'Sin información',
+      catalogsUsed: result.catalogs_used || 0,
+      catalogsLimit: result.catalogs_limit || 0
     };
 
   } catch (error) {
@@ -85,7 +88,7 @@ const validateCatalogLimits = async (userId: string): Promise<{
 // NUEVO: Función para incrementar contador de catálogos
 const incrementCatalogUsage = async (userId: string): Promise<{ success: boolean; message?: string }> => {
   try {
-    const { data, error } = await supabase.rpc('increment_catalog_usage', {
+    const { data, error } = await (supabase as any).rpc('increment_catalog_usage', {
       p_user_id: userId
     });
 
@@ -94,9 +97,12 @@ const incrementCatalogUsage = async (userId: string): Promise<{ success: boolean
       return { success: false, message: 'Error actualizando contador' };
     }
 
+    // Parse the JSON response if it's a string
+    const result = typeof data === 'string' ? JSON.parse(data) : data;
+
     return {
-      success: data.success,
-      message: data.message
+      success: result.success || false,
+      message: result.message || 'Actualizado'
     };
 
   } catch (error) {

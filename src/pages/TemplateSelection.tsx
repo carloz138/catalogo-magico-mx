@@ -7,7 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/components/ui/use-toast';
 import { createCatalog } from '@/lib/catalogService'; // NUEVO: Importar servicio modificado
-import { useCatalogLimits, CatalogUsageDisplay } from '@/hooks/useCatalogLimits'; // NUEVO: Hook de límites
+import { useCatalogLimits, getCatalogUsageDisplay } from '@/hooks/useCatalogLimits'; // NUEVO: Hook de límites
 import { 
   Palette, 
   Zap, 
@@ -237,7 +237,9 @@ const TemplateSelection = () => {
     <div className="flex items-center gap-3">
       {/* NUEVO: Mostrar uso de catálogos */}
       <div className="hidden md:block">
-        <CatalogUsageDisplay />
+        <span className="text-sm text-gray-600">
+          {validation ? getCatalogUsageDisplay(validation) : ''}
+        </span>
       </div>
       
       <span className="text-sm text-gray-600">
@@ -267,7 +269,9 @@ const TemplateSelection = () => {
           <div className="md:hidden">
             <Card>
               <CardContent className="p-4">
-                <CatalogUsageDisplay />
+                <span className="text-sm text-gray-600">
+                  {validation ? getCatalogUsageDisplay(validation) : ''}
+                </span>
               </CardContent>
             </Card>
           </div>
