@@ -452,7 +452,7 @@ const Checkout = () => {
             <div className="text-center p-4 bg-blue-50 rounded-lg">
               <h3 className="font-semibold text-blue-900 mb-2">Suscripciones Mensuales</h3>
               <p className="text-sm text-blue-700">
-                Créditos que se renuevan automáticamente • Cancela cuando quieras
+                Créditos que se renuevan automáticamente • Cancela cuando quieras • Precio todo incluido
               </p>
             </div>
             
@@ -625,7 +625,9 @@ const Checkout = () => {
                       )}
                     </div>
                     <p className="text-sm text-gray-600">Visa, Mastercard, AMEX • Instantáneo</p>
-                    <p className="text-xs text-gray-500">Comisión: 3.6% + $3 MXN</p>
+                    {!isSubscription && (
+                      <p className="text-xs text-gray-500">Comisión: 3.6% + $3 MXN</p>
+                    )}
                   </div>
                 </label>
                 
@@ -685,11 +687,13 @@ const Checkout = () => {
                 </div>
                 
                 <div className="flex justify-between items-center">
-                  <span>Subtotal:</span>
+                  <span>
+                    {isSubscription ? 'Precio mensual:' : 'Subtotal:'}
+                  </span>
                   <span>${(selectedPackage.price_mxn / 100).toLocaleString()} MXN</span>
                 </div>
                 
-                {selectedFees && (
+                {selectedFees && !isSubscription && (
                   <div className="flex justify-between items-center text-sm text-gray-600">
                     <span>Comisión de procesamiento:</span>
                     <span>${(selectedFees.total / 100).toFixed(2)} MXN</span>
@@ -699,10 +703,16 @@ const Checkout = () => {
                 <div className="flex justify-between items-center font-bold text-lg border-t pt-3">
                   <span>Total:</span>
                   <span>
-                    ${((selectedPackage.price_mxn + (selectedFees?.total || 0)) / 100).toLocaleString()} MXN
+                    ${((selectedPackage.price_mxn + (isSubscription ? 0 : selectedFees?.total || 0)) / 100).toLocaleString()} MXN
                     {isSubscription && <span className="text-sm font-normal text-gray-600">/mes</span>}
                   </span>
                 </div>
+                
+                {isSubscription && (
+                  <div className="text-sm text-blue-600 bg-blue-50 p-3 rounded">
+                    ✨ Precio todo incluido - sin comisiones adicionales
+                  </div>
+                )}
               </div>
               
               <Button 
