@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import AppLayout from '@/components/layout/AppLayout';
+import SubscriptionCard from '@/components/SubscriptionCard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -430,6 +431,17 @@ const Analytics = () => {
                 </div>
               </CardContent>
             </Card>
+          </div>
+
+          {/* Sección de Suscripción y otros widgets */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2">
+              {/* Aquí podrían ir gráficos o métricas adicionales */}
+            </div>
+            <div>
+              {/* Componente de suscripción - solo aparece si hay suscripción */}
+              <SubscriptionCard compact={false} showTitle={true} />
+            </div>
           </div>
 
           {/* Tabs para diferentes vistas */}
