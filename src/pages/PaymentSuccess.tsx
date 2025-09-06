@@ -49,7 +49,7 @@ const PaymentSuccess = () => {
           credits_purchased,
           payment_method,
           completed_at,
-          credit_packages:package_id (
+          credit_packages!package_id (
             name
           )
         `)

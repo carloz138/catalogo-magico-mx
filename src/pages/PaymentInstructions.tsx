@@ -81,7 +81,7 @@ const PaymentInstructions = () => {
           spei_clabe,
           spei_reference,
           expires_at,
-          credit_packages:package_id (
+          credit_packages!package_id (
             name
           )
         `)

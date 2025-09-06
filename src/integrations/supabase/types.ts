@@ -171,72 +171,102 @@ export type Database = {
           credits: number
           description: string | null
           discount_percentage: number | null
+          duration_months: number | null
           id: string
           is_active: boolean | null
           is_popular: boolean | null
+          max_catalogs: number | null
+          max_uploads: number | null
           name: string
+          package_type: string | null
           price_mxn: number
           price_usd: number
+          stripe_price_id: string | null
         }
         Insert: {
           created_at?: string
           credits: number
           description?: string | null
           discount_percentage?: number | null
+          duration_months?: number | null
           id?: string
           is_active?: boolean | null
           is_popular?: boolean | null
+          max_catalogs?: number | null
+          max_uploads?: number | null
           name: string
+          package_type?: string | null
           price_mxn: number
           price_usd: number
+          stripe_price_id?: string | null
         }
         Update: {
           created_at?: string
           credits?: number
           description?: string | null
           discount_percentage?: number | null
+          duration_months?: number | null
           id?: string
           is_active?: boolean | null
           is_popular?: boolean | null
+          max_catalogs?: number | null
+          max_uploads?: number | null
           name?: string
+          package_type?: string | null
           price_mxn?: number
           price_usd?: number
+          stripe_price_id?: string | null
         }
         Relationships: []
       }
       credit_usage: {
         Row: {
+          amount_paid: number | null
           catalog_id: string | null
           created_at: string
+          credits_purchased: number | null
           credits_remaining: number
           credits_used: number
           description: string | null
+          expires_at: string | null
           id: string
+          package_id: string | null
           product_id: string | null
+          source_type: string | null
           transaction_id: string | null
           usage_type: string
           user_id: string
         }
         Insert: {
+          amount_paid?: number | null
           catalog_id?: string | null
           created_at?: string
+          credits_purchased?: number | null
           credits_remaining: number
           credits_used: number
           description?: string | null
+          expires_at?: string | null
           id?: string
+          package_id?: string | null
           product_id?: string | null
+          source_type?: string | null
           transaction_id?: string | null
           usage_type: string
           user_id: string
         }
         Update: {
+          amount_paid?: number | null
           catalog_id?: string | null
           created_at?: string
+          credits_purchased?: number | null
           credits_remaining?: number
           credits_used?: number
           description?: string | null
+          expires_at?: string | null
           id?: string
+          package_id?: string | null
           product_id?: string | null
+          source_type?: string | null
           transaction_id?: string | null
           usage_type?: string
           user_id?: string
@@ -282,6 +312,13 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_credit_usage_package"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "credit_packages"
             referencedColumns: ["id"]
           },
         ]
@@ -489,6 +526,63 @@ export type Database = {
           },
         ]
       }
+      subscriptions: {
+        Row: {
+          cancel_at_period_end: boolean | null
+          created_at: string | null
+          current_period_end: string | null
+          current_period_start: string | null
+          id: string
+          package_id: string | null
+          status: string | null
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          cancel_at_period_end?: boolean | null
+          created_at?: string | null
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          package_id?: string | null
+          status?: string | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          cancel_at_period_end?: boolean | null
+          created_at?: string | null
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          package_id?: string | null
+          status?: string | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "credit_packages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscriptions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       transactions: {
         Row: {
           amount_mxn: number
@@ -507,10 +601,12 @@ export type Database = {
           payment_metadata: Json | null
           payment_method: string
           payment_status: string | null
+          purchase_type: string | null
           spei_clabe: string | null
           spei_reference: string | null
           stripe_charge_id: string | null
           stripe_payment_intent_id: string | null
+          subscription_plan_id: string | null
           updated_at: string | null
           user_id: string
         }
@@ -531,10 +627,12 @@ export type Database = {
           payment_metadata?: Json | null
           payment_method: string
           payment_status?: string | null
+          purchase_type?: string | null
           spei_clabe?: string | null
           spei_reference?: string | null
           stripe_charge_id?: string | null
           stripe_payment_intent_id?: string | null
+          subscription_plan_id?: string | null
           updated_at?: string | null
           user_id: string
         }
@@ -555,10 +653,12 @@ export type Database = {
           payment_metadata?: Json | null
           payment_method?: string
           payment_status?: string | null
+          purchase_type?: string | null
           spei_clabe?: string | null
           spei_reference?: string | null
           stripe_charge_id?: string | null
           stripe_payment_intent_id?: string | null
+          subscription_plan_id?: string | null
           updated_at?: string | null
           user_id?: string
         }
@@ -566,6 +666,13 @@ export type Database = {
           {
             foreignKeyName: "transactions_package_id_fkey"
             columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "credit_packages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_subscription_plan_id_fkey"
+            columns: ["subscription_plan_id"]
             isOneToOne: false
             referencedRelation: "credit_packages"
             referencedColumns: ["id"]
@@ -646,49 +753,67 @@ export type Database = {
           avatar_url: string | null
           business_name: string | null
           business_type: string | null
+          catalogs_used_this_month: number | null
           created_at: string
           credits: number | null
+          current_plan: string | null
           email: string
           full_name: string | null
           id: string
+          monthly_plan_credits: number | null
           monthly_removebg_limit: number | null
           monthly_removebg_used: number | null
           phone: string | null
+          plan_credits_used: number | null
+          plan_expires_at: string | null
           plan_type: string | null
           total_credits_purchased: number | null
           updated_at: string
+          uploads_used_this_month: number | null
         }
         Insert: {
           avatar_url?: string | null
           business_name?: string | null
           business_type?: string | null
+          catalogs_used_this_month?: number | null
           created_at?: string
           credits?: number | null
+          current_plan?: string | null
           email: string
           full_name?: string | null
           id: string
+          monthly_plan_credits?: number | null
           monthly_removebg_limit?: number | null
           monthly_removebg_used?: number | null
           phone?: string | null
+          plan_credits_used?: number | null
+          plan_expires_at?: string | null
           plan_type?: string | null
           total_credits_purchased?: number | null
           updated_at?: string
+          uploads_used_this_month?: number | null
         }
         Update: {
           avatar_url?: string | null
           business_name?: string | null
           business_type?: string | null
+          catalogs_used_this_month?: number | null
           created_at?: string
           credits?: number | null
+          current_plan?: string | null
           email?: string
           full_name?: string | null
           id?: string
+          monthly_plan_credits?: number | null
           monthly_removebg_limit?: number | null
           monthly_removebg_used?: number | null
           phone?: string | null
+          plan_credits_used?: number | null
+          plan_expires_at?: string | null
           plan_type?: string | null
           total_credits_purchased?: number | null
           updated_at?: string
+          uploads_used_this_month?: number | null
         }
         Relationships: []
       }
@@ -904,6 +1029,12 @@ export type Database = {
       create_default_variant_for_product: {
         Args: { product_uuid: string }
         Returns: string
+      }
+      create_payment_intent_handler: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          checkout_url: string
+        }[]
       }
       create_product_variant: {
         Args: {

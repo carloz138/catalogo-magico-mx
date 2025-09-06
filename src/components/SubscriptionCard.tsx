@@ -68,7 +68,7 @@ const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
 
   const fetchSubscription = async () => {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('subscriptions')
         .select(`
           *,
@@ -86,7 +86,7 @@ const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
         throw error;
       }
 
-      setSubscription(data);
+      setSubscription(data as Subscription);
     } catch (error) {
       console.error('Error fetching subscription:', error);
     } finally {
