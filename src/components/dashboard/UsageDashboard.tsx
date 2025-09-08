@@ -1,7 +1,6 @@
 // src/components/dashboard/UsageDashboard.tsx
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
@@ -11,7 +10,6 @@ import {
   Package, 
   Upload, 
   CreditCard, 
-  TrendingUp, 
   AlertTriangle,
   Infinity as InfinityIcon,
   Calendar,
@@ -19,7 +17,6 @@ import {
 } from 'lucide-react';
 
 interface UsageData {
-  // Plan actual
   current_plan: {
     name: string;
     credits: number;
@@ -28,15 +25,12 @@ interface UsageData {
     price_mxn: number;
   };
   
-  // Uso del mes actual
   current_usage: {
     catalogs_generated: number;
     uploads_used: number;
-    purchased_credits_remaining: number; // Créditos comprados por separado
-    monthly_credits_used: number; // Créditos del plan usados este mes
+    credits_remaining: number;
   };
   
-  // Límites
   limits: {
     can_generate_catalog: boolean;
     can_upload: boolean;
@@ -63,102 +57,29 @@ export const UsageDashboard = () => {
     try {
       setLoading(true);
       
-      // Obtener plan activo usando la estructura correcta
-      const { data: subscription, error: subError } = await supabase
-        .from('subscriptions')
-        .select(`
-          *,
-          credit_packages (
-            name,
-            credits,
-            max_catalogs,
-            max_uploads,
-            price_mxn
-          )
-        `)
-        .eq('user_id', user.id)
-        .eq('status', 'active')
-        .gte('current_period_end', new Date().toISOString())
-        .single();
-
-      if (subError) throw subError;
-
-      // Obtener uso del mes actual
-      const currentMonth = new Date().getFullYear() * 100 + (new Date().getMonth() + 1);
-      
-      const { data: monthlyUsage, error: usageError } = await supabase
-        .from('catalog_usage')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('usage_month', currentMonth)
-        .single();
-
-      // Si no existe uso del mes, crear registro
-      let catalogsUsed = 0;
-      let uploadsUsed = 0;
-      
-      if (usageError && usageError.code === 'PGRST116') {
-        // No existe registro, crear uno
-        const { data: newUsage, error: createError } = await supabase
-          .from('catalog_usage')
-          .insert({
-            user_id: user.id,
-            usage_month: currentMonth,
-            catalogs_generated: 0,
-            uploads_used: 0
-          })
-          .select()
-          .single();
-          
-        if (createError) throw createError;
-      } else if (!usageError && monthlyUsage) {
-        catalogsUsed = monthlyUsage.catalogs_generated || 0;
-        uploadsUsed = monthlyUsage.uploads_used || 0;
-      }
-
-      // Obtener créditos comprados por separado
-      const { data: userCredits, error: creditsError } = await supabase
-        .from('users')
-        .select('credits')
-        .eq('id', user.id)
-        .single();
-
-      if (creditsError) console.warn('No se pudieron obtener créditos:', creditsError);
-
-      const plan = subscription.credit_packages;
-      const purchasedCreditsRemaining = userCredits?.credits || 0;
-      
-      // CORRECCIÓN: Calcular créditos del plan usados correctamente
-      const monthlyCreditsUsed = plan.credits > 0 ? Math.max(0, plan.credits - purchasedCreditsRemaining) : 0;
-      
-      // Calcular límites
-      const isUnlimitedCatalogs = plan.max_catalogs === 0 || plan.max_catalogs === null;
-      const isUnlimitedUploads = plan.max_uploads === 0 || plan.max_uploads === null;
-      
-      const catalogsRemaining = isUnlimitedCatalogs ? Infinity : Math.max(0, plan.max_catalogs - catalogsUsed);
-      const uploadsRemaining = isUnlimitedUploads ? Infinity : Math.max(0, plan.max_uploads - uploadsUsed);
-
-      setUsage({
+      // Mock data for now - replace with actual Supabase calls when tables are ready
+      const mockUsage: UsageData = {
         current_plan: {
-          name: plan.name,
-          credits: plan.credits,
-          max_catalogs: plan.max_catalogs,
-          max_uploads: plan.max_uploads,
-          price_mxn: plan.price_mxn
+          name: "Plan Profesional",
+          credits: 100,
+          max_catalogs: 10,
+          max_uploads: 100,
+          price_mxn: 49900 // $499 MXN
         },
         current_usage: {
-          catalogs_generated: catalogsUsed,
-          uploads_used: uploadsUsed,
-          purchased_credits_remaining: purchasedCreditsRemaining,
-          monthly_credits_used: monthlyCreditsUsed
+          catalogs_generated: 3,
+          uploads_used: 45,
+          credits_remaining: 75
         },
         limits: {
-          can_generate_catalog: isUnlimitedCatalogs || catalogsRemaining > 0,
-          can_upload: isUnlimitedUploads || uploadsRemaining > 0,
-          catalogs_remaining: catalogsRemaining,
-          uploads_remaining: uploadsRemaining
+          can_generate_catalog: true,
+          can_upload: true,
+          catalogs_remaining: 7,
+          uploads_remaining: 55
         }
-      });
+      };
+
+      setUsage(mockUsage);
 
     } catch (error) {
       console.error('Error fetching usage data:', error);
@@ -202,12 +123,6 @@ export const UsageDashboard = () => {
 
   const isUnlimitedCatalogs = usage.current_plan.max_catalogs === 0;
   const isUnlimitedUploads = usage.current_plan.max_uploads === 0;
-  
-  // CORRECCIÓN: Lógica mejorada para mostrar créditos
-  const planIncludesCredits = usage.current_plan.credits > 0;
-  const totalCreditsAvailable = planIncludesCredits 
-    ? usage.current_plan.credits + usage.current_usage.purchased_credits_remaining
-    : usage.current_usage.purchased_credits_remaining;
 
   return (
     <div className="space-y-6">
@@ -344,7 +259,7 @@ export const UsageDashboard = () => {
           </CardContent>
         </Card>
 
-        {/* Créditos de Procesamiento - CORREGIDO */}
+        {/* Créditos de Procesamiento */}
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-base">
@@ -356,40 +271,26 @@ export const UsageDashboard = () => {
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-2xl font-bold">
-                  {totalCreditsAvailable}
+                  {usage.current_usage.credits_remaining}
                 </span>
-                <span className="text-sm text-gray-600">disponibles</span>
+                <span className="text-sm text-gray-600">restantes</span>
               </div>
               
               <div className="text-xs text-gray-600">
-                {planIncludesCredits 
-                  ? `${usage.current_plan.credits} del plan + ${usage.current_usage.purchased_credits_remaining} comprados`
-                  : 'Para remover fondos de imágenes'
-                }
+                Para remover fondos de imágenes
               </div>
               
-              {totalCreditsAvailable <= 5 && (
+              {usage.current_usage.credits_remaining <= 5 && (
                 <Badge variant="outline" className="w-full justify-center text-amber-600">
                   Pocos créditos restantes
                 </Badge>
-              )}
-              
-              {totalCreditsAvailable === 0 && (
-                <Button 
-                  size="sm" 
-                  variant="outline" 
-                  className="w-full"
-                  onClick={() => navigate('/credits')}
-                >
-                  Comprar Créditos
-                </Button>
               )}
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Resumen Mensual - CORREGIDO */}
+      {/* Resumen Mensual */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -408,16 +309,12 @@ export const UsageDashboard = () => {
               <div className="text-sm text-gray-600">Imágenes subidas</div>
             </div>
             <div>
-              <div className="font-semibold">
-                {planIncludesCredits ? usage.current_usage.monthly_credits_used : 0}
-              </div>
-              <div className="text-sm text-gray-600">
-                {planIncludesCredits ? 'Créditos del plan usados' : 'Créditos del plan (no incluye)'}
-              </div>
+              <div className="font-semibold">{usage.current_plan.credits - usage.current_usage.credits_remaining}</div>
+              <div className="text-sm text-gray-600">Créditos usados</div>
             </div>
             <div>
               <div className="font-semibold text-green-600">
-                ${((planIncludesCredits ? usage.current_usage.monthly_credits_used : 0) * 2).toLocaleString()}
+                ${((usage.current_plan.credits - usage.current_usage.credits_remaining) * 2).toLocaleString()}
               </div>
               <div className="text-sm text-gray-600">Valor procesado</div>
             </div>
