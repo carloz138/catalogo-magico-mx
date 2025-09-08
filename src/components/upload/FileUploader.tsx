@@ -121,21 +121,13 @@ export const FileUploader = ({ onFilesUploaded, maxFiles = MAX_FILES }: FileUplo
         }
 
         console.log(`📁 Uploading: ${fileName} (${uploadFile.file.type}) as ${contentType}`);
-        console.log(`📊 Original file info:`, {
-          name: uploadFile.file.name,
-          type: uploadFile.file.type,
-          size: uploadFile.file.size,
-          extension: fileExt
-        });
 
         const { data, error } = await supabase.storage
           .from('product-images')
           .upload(filePath, uploadFile.file, {
             cacheControl: '3600',
             upsert: false,
-            // FORZAR CONTENT-TYPE ORIGINAL
             contentType: contentType,
-            // PRESERVAR METADATA ORIGINAL
             metadata: {
               originalType: uploadFile.file.type,
               originalName: uploadFile.file.name,
@@ -145,24 +137,11 @@ export const FileUploader = ({ onFilesUploaded, maxFiles = MAX_FILES }: FileUplo
 
         if (error) throw error;
 
-        // VERIFICAR URL GENERADA
         const { data: urlData } = supabase.storage
           .from('product-images')
           .getPublicUrl(filePath);
 
-        console.log(`✅ Upload successful:`, {
-          originalFile: uploadFile.file.name,
-          storedPath: filePath,
-          publicUrl: urlData.publicUrl,
-          expectedFormat: fileExt,
-          contentType: contentType
-        });
-
-        // VERIFICAR QUE LA URL MANTIENE LA EXTENSIÓN
-        const urlExtension = urlData.publicUrl.split('.').pop()?.toLowerCase();
-        if (urlExtension !== fileExt) {
-          console.warn(`⚠️ Extension mismatch! Expected: ${fileExt}, Got: ${urlExtension}`);
-        }
+        console.log(`✅ Upload successful: ${uploadFile.file.name}`);
 
         setUploadedFiles(prev => prev.map(f => 
           f.id === uploadFile.id 
@@ -362,7 +341,6 @@ export const FileUploader = ({ onFilesUploaded, maxFiles = MAX_FILES }: FileUplo
       {uploadedFiles.length > 0 && (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {uploadedFiles.map((file) => {
-            // MOSTRAR INFORMACIÓN DEL FORMATO
             const fileExt = file.file.name.split('.').pop()?.toLowerCase();
             const isPng = fileExt === 'png';
             
@@ -374,7 +352,6 @@ export const FileUploader = ({ onFilesUploaded, maxFiles = MAX_FILES }: FileUplo
                   className="w-full h-32 object-cover"
                 />
                 
-                {/* INDICADOR DE FORMATO */}
                 <div className="absolute top-2 left-2">
                   <span className={`text-xs px-2 py-1 rounded font-medium ${
                     isPng 
