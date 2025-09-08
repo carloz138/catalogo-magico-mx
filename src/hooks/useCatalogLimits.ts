@@ -30,7 +30,11 @@ export const useCatalogLimits = () => {
   }, [user]);
 
   const checkLimits = async () => {
+    console.log('🔍 DEBUG: checkLimits iniciado');
+    console.log('🔍 DEBUG: user objeto:', user);
+    
     if (!user) {
+      console.log('🔍 DEBUG: No hay usuario autenticado');
       setLimits({
         canGenerate: false,
         reason: 'not_authenticated',
@@ -44,16 +48,25 @@ export const useCatalogLimits = () => {
       return;
     }
 
+    console.log('🔍 DEBUG: user.id:', user.id);
+
     try {
+      console.log('🔍 DEBUG: Llamando a can_generate_catalog con user_id:', user.id);
+      
       // Use any to bypass TypeScript issues with missing function
       const { data, error } = await (supabase as any).rpc('can_generate_catalog', {
         p_user_id: user.id
       });
 
+      console.log('🔍 DEBUG: Respuesta de supabase - data:', data);
+      console.log('🔍 DEBUG: Respuesta de supabase - error:', error);
+
       if (error) throw error;
 
       // Parse the JSON response
       const result = typeof data === 'string' ? JSON.parse(data) : data;
+      
+      console.log('🔍 DEBUG: Resultado parseado:', result);
       
       setLimits({
         canGenerate: result.can_generate || false,
@@ -65,8 +78,11 @@ export const useCatalogLimits = () => {
         remaining: result.remaining,
         planName: result.plan_name
       });
+
+      console.log('🔍 DEBUG: Limits establecidos correctamente');
+      
     } catch (error) {
-      console.error('Error checking catalog limits:', error);
+      console.error('🔍 DEBUG: Error en checkLimits:', error);
       setLimits({
         canGenerate: false,
         reason: 'error',
@@ -121,7 +137,6 @@ export const useCatalogLimits = () => {
 // Simple component helper function
 export const getCatalogUsageDisplay = (limits: CatalogLimits | null): string => {
   if (!limits) return '';
-
   if (limits.catalogsLimit === 'unlimited') {
     return `${limits.catalogsUsed} catálogos generados`;
   } else {
