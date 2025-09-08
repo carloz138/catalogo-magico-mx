@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import AppLayout from '@/components/layout/AppLayout';
-import { UsageDashboard } from '@/components/dashboard/UsageDashboard';
 import { useCatalogLimits } from '@/hooks/useCatalogLimits';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,7 +18,6 @@ import { Product, getDisplayImageUrl, getProcessingStatus } from '@/types/produc
 import { 
   Package, 
   Search, 
-  Filter, 
   Zap,
   Upload,
   Eye,
@@ -29,11 +27,10 @@ import {
   Loader2,
   CheckCircle,
   Clock,
-  AlertCircle,
   Palette,
-  TrendingUp,
   Info,
-  AlertTriangle
+  AlertTriangle,
+  BarChart3
 } from 'lucide-react';
 
 const Products = () => {
@@ -50,7 +47,6 @@ const Products = () => {
   // Estados de UI
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState<string>('all');
-  const [showFilters, setShowFilters] = useState(false);
   const [showCatalogPreview, setShowCatalogPreview] = useState(false);
   
   // Estado activo de pestaña
@@ -352,50 +348,42 @@ const Products = () => {
 
   const stats = getStats();
 
-  // Banner de límites
+  // Banner compacto de límites SOLO cuando sea crítico
   const LimitsAlert = () => {
     if (!validation) return null;
 
-    const isNearCatalogLimit = validation.remaining !== undefined && validation.remaining <= 2 && validation.remaining > 0;
     const isAtCatalogLimit = !canGenerate;
 
+    // Solo mostrar cuando haya un problema crítico
     if (isAtCatalogLimit) {
       return (
-        <Card className="mb-6 border-red-200 bg-red-50">
-          <CardContent className="p-4">
+        <Card className="mb-4 border-red-200 bg-red-50">
+          <CardContent className="p-3">
             <div className="flex items-center gap-3">
-              <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0" />
-              <div className="flex-1">
-                <h3 className="font-semibold text-red-900">Límite de catálogos alcanzado</h3>
-                <p className="text-sm text-red-700 mt-1">
-                  {validation.message}
+              <AlertTriangle className="w-4 h-4 text-red-600 flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-red-900">
+                  Límite de catálogos alcanzado ({catalogsUsed}/{catalogsLimit})
                 </p>
               </div>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => navigate('/pricing')}
-                className="border-red-300 text-red-700 hover:bg-red-100"
-              >
-                Mejorar Plan
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      );
-    }
-
-    if (isNearCatalogLimit) {
-      return (
-        <Card className="mb-6 border-amber-200 bg-amber-50">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <Info className="w-5 h-5 text-amber-600 flex-shrink-0" />
-              <div className="flex-1">
-                <h3 className="font-semibold text-amber-900">Pocos catálogos restantes</h3>
-                <p className="text-sm text-amber-700 mt-1">
-                  Te quedan {validation.remaining} catálogos este mes
-                </p>
+              <div className="flex items-center gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => navigate('/pricing')}
+                  className="border-red-300 text-red-700 hover:bg-red-100 text-xs"
+                >
+                  Upgrade
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => navigate('/analytics')}
+                  className="text-red-600 text-xs"
+                >
+                  <BarChart3 className="w-3 h-3 mr-1" />
+                  Ver uso
+                </Button>
               </div>
             </div>
           </CardContent>
@@ -501,22 +489,25 @@ const Products = () => {
     );
   };
 
-  // Actions responsivas
+  // Actions responsivas mejoradas
   const actions = (
     <div className="flex items-center gap-2">
-      {/* Búsqueda */}
-      <div className={`items-center gap-2 ${selectedProducts.length > 0 ? 'hidden md:flex' : 'flex'}`}>
-        <Search className="h-4 w-4 text-gray-400" />
-        <Input
-          placeholder="Buscar productos..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-32 md:w-48"
-        />
+      {/* Búsqueda - solo visible cuando no hay selecciones en móvil */}
+      <div className={`items-center gap-2 ${selectedProducts.length > 0 ? 'hidden lg:flex' : 'flex'}`}>
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Input
+            placeholder="Buscar..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-9 w-32 sm:w-40 lg:w-48"
+          />
+        </div>
+        
         <select
           value={filterCategory}
           onChange={(e) => setFilterCategory(e.target.value)}
-          className="hidden md:block border border-gray-300 rounded-md px-2 py-1.5 text-sm bg-white min-w-[120px]"
+          className="hidden md:block border border-gray-300 rounded-md px-2 py-1.5 text-sm bg-white min-w-[100px]"
         >
           <option value="all">Todas</option>
           {categories.map(category => (
@@ -527,9 +518,9 @@ const Products = () => {
         </select>
       </div>
       
-      {/* Botones de acción */}
+      {/* Botones de acción cuando hay selecciones */}
       {selectedProducts.length > 0 && (
-        <div className="flex items-center gap-1 md:gap-2">
+        <div className="flex items-center gap-1 sm:gap-2">
           <Button 
             variant="outline"
             onClick={handleCreateCatalog}
@@ -537,9 +528,9 @@ const Products = () => {
             className="bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100"
             disabled={!canGenerate}
           >
-            <Palette className="h-4 w-4 md:mr-2" />
-            <span className="hidden md:inline">Catálogo ({selectedProducts.length})</span>
-            <span className="md:hidden">({selectedProducts.length})</span>
+            <Palette className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Catálogo</span>
+            <span className="ml-1">({selectedProducts.length})</span>
           </Button>
 
           {activeTab === 'pending' && (
@@ -552,9 +543,9 @@ const Products = () => {
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
                 <>
-                  <Zap className="h-4 w-4 md:mr-2" />
-                  <span className="hidden md:inline">Procesar ({selectedProducts.length})</span>
-                  <span className="md:hidden">({selectedProducts.length})</span>
+                  <Zap className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Procesar</span>
+                  <span className="ml-1">({selectedProducts.length})</span>
                 </>
               )}
             </Button>
@@ -562,10 +553,24 @@ const Products = () => {
         </div>
       )}
       
+      {/* Botón agregar siempre visible */}
       <Button onClick={() => navigate('/upload')} variant="outline" size="sm">
-        <Plus className="h-4 w-4 md:mr-2" />
-        <span className="hidden md:inline">Agregar</span>
+        <Plus className="h-4 w-4 sm:mr-2" />
+        <span className="hidden sm:inline">Agregar</span>
       </Button>
+
+      {/* Botón analytics cuando no hay selecciones */}
+      {selectedProducts.length === 0 && (
+        <Button 
+          onClick={() => navigate('/analytics')} 
+          variant="ghost" 
+          size="sm"
+          className="hidden lg:flex"
+        >
+          <BarChart3 className="h-4 w-4 mr-2" />
+          Analytics
+        </Button>
+      )}
     </div>
   );
 
@@ -587,12 +592,7 @@ const Products = () => {
   return (
     <ProtectedRoute>
       <AppLayout actions={actions}>
-        {/* Dashboard de uso integrado */}
-        <div className="mb-6">
-          <UsageDashboard />
-        </div>
-        
-        {/* Alertas de límites */}
+        {/* Banner de límites críticos */}
         <LimitsAlert />
         
         {products.length === 0 ? (
@@ -605,20 +605,29 @@ const Products = () => {
               <p className="text-sm md:text-base text-gray-600 mb-4">
                 Sube tus primeras imágenes de productos para comenzar
               </p>
-              <Button onClick={() => navigate('/upload')}>
-                <Upload className="h-4 w-4 mr-2" />
-                Subir Productos
-              </Button>
+              <div className="flex items-center justify-center gap-3">
+                <Button onClick={() => navigate('/upload')}>
+                  <Upload className="h-4 w-4 mr-2" />
+                  Subir Productos
+                </Button>
+                <Button 
+                  onClick={() => navigate('/analytics')} 
+                  variant="outline"
+                >
+                  <BarChart3 className="h-4 w-4 mr-2" />
+                  Ver Analytics
+                </Button>
+              </div>
             </CardContent>
           </Card>
         ) : (
           <div className="space-y-4 md:space-y-6">
-            {/* Pestañas */}
+            {/* Pestañas mejoradas para móvil */}
             <Tabs value={activeTab} onValueChange={handleTabChange}>
               <TabsList className="grid w-full grid-cols-3 h-auto">
-                <TabsTrigger value="pending" className="relative px-2 py-2 text-xs md:text-sm">
-                  <div className="flex flex-col md:flex-row items-center gap-1 md:gap-2">
-                    <Clock className="h-3 w-3 md:h-4 md:w-4" />
+                <TabsTrigger value="pending" className="relative px-2 py-2 text-xs sm:text-sm">
+                  <div className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2">
+                    <Clock className="h-3 w-3 sm:h-4 sm:w-4" />
                     <span className="hidden sm:inline">Por Procesar</span>
                     <span className="sm:hidden">Pendientes</span>
                     {stats.pending > 0 && (
@@ -628,9 +637,9 @@ const Products = () => {
                     )}
                   </div>
                 </TabsTrigger>
-                <TabsTrigger value="processing" className="relative px-2 py-2 text-xs md:text-sm">
-                  <div className="flex flex-col md:flex-row items-center gap-1 md:gap-2">
-                    <Loader2 className="h-3 w-3 md:h-4 md:w-4" />
+                <TabsTrigger value="processing" className="relative px-2 py-2 text-xs sm:text-sm">
+                  <div className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2">
+                    <Loader2 className="h-3 w-3 sm:h-4 sm:w-4" />
                     <span>Procesando</span>
                     {stats.processing > 0 && (
                       <Badge className="h-4 w-4 p-0 text-xs flex items-center justify-center bg-blue-500">
@@ -639,9 +648,9 @@ const Products = () => {
                     )}
                   </div>
                 </TabsTrigger>
-                <TabsTrigger value="completed" className="relative px-2 py-2 text-xs md:text-sm">
-                  <div className="flex flex-col md:flex-row items-center gap-1 md:gap-2">
-                    <CheckCircle className="h-3 w-3 md:h-4 md:w-4" />
+                <TabsTrigger value="completed" className="relative px-2 py-2 text-xs sm:text-sm">
+                  <div className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2">
+                    <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4" />
                     <span>Completadas</span>
                     {stats.completed > 0 && (
                       <Badge className="h-4 w-4 p-0 text-xs flex items-center justify-center bg-green-500">
@@ -668,7 +677,7 @@ const Products = () => {
                   </Card>
                 ) : (
                   <>
-                    {/* Controles de selección */}
+                    {/* Controles de selección - desktop */}
                     <Card className="hidden md:block">
                       <CardContent className="p-4">
                         <div className="flex items-center justify-between">
@@ -689,8 +698,8 @@ const Products = () => {
                       </CardContent>
                     </Card>
 
-                    {/* Grid de productos */}
-                    <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-6">
+                    {/* Grid responsivo de productos */}
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 sm:gap-4 lg:gap-6">
                       {filteredProducts.map((product) => (
                         <ProductCard 
                           key={product.id} 
@@ -737,7 +746,7 @@ const Products = () => {
                       </CardContent>
                     </Card>
 
-                    <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-6">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 sm:gap-4 lg:gap-6">
                       {filteredProducts.map((product) => (
                         <ProductCard 
                           key={product.id} 
@@ -785,7 +794,7 @@ const Products = () => {
                       </CardContent>
                     </Card>
 
-                    <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-6">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 sm:gap-4 lg:gap-6">
                       {filteredProducts.map((product) => (
                         <ProductCard 
                           key={product.id} 
@@ -811,7 +820,7 @@ const Products = () => {
   );
 };
 
-// Componente de tarjeta de producto
+// Componente de tarjeta de producto mejorado
 const ProductCard = ({ 
   product, 
   selectedProducts, 
@@ -881,11 +890,11 @@ const ProductCard = ({
         )}
       </div>
       
-      <CardContent className="p-4">
-        <h3 className="font-semibold text-lg mb-1 truncate">{product.name}</h3>
+      <CardContent className="p-3 sm:p-4">
+        <h3 className="font-semibold text-sm sm:text-base mb-1 truncate">{product.name}</h3>
         
         {product.price_retail && (
-          <p className="font-bold text-primary mb-2">
+          <p className="font-bold text-primary mb-2 text-sm">
             ${(product.price_retail / 100).toFixed(2)}
           </p>
         )}
@@ -896,20 +905,21 @@ const ProductCard = ({
           </Badge>
         )}
         
-        <div className="flex gap-2">
-          <Button size="sm" variant="outline" className="flex-1" disabled={processing}>
-            <Eye className="h-3 w-3 mr-1" />
-            Ver
+        <div className="flex gap-1 sm:gap-2">
+          <Button size="sm" variant="outline" className="flex-1 text-xs" disabled={processing}>
+            <Eye className="h-3 w-3 sm:mr-1" />
+            <span className="hidden sm:inline">Ver</span>
           </Button>
-          <Button size="sm" variant="outline" className="flex-1" disabled={processing}>
-            <Edit className="h-3 w-3 mr-1" />
-            Editar
+          <Button size="sm" variant="outline" className="flex-1 text-xs" disabled={processing}>
+            <Edit className="h-3 w-3 sm:mr-1" />
+            <span className="hidden sm:inline">Editar</span>
           </Button>
           <Button 
             size="sm" 
             variant="outline"
             disabled={processing}
             onClick={() => handleDeleteProduct(product)}
+            className="text-xs"
           >
             <Trash2 className="h-3 w-3" />
           </Button>
