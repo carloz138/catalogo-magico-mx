@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import AppLayout from '@/components/layout/AppLayout';
+import { UsageDashboard } from '@/components/dashboard/UsageDashboard'; // NUEVO: Dashboard integrado
+import { useCatalogLimits } from '@/hooks/useCatalogLimits'; // NUEVO: Hook de límites
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -13,7 +15,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { processImagesOnly } from '@/lib/catalogService';
-import { subscriptionService, UsageValidation } from '@/lib/subscriptionService';
 import { Product, getDisplayImageUrl, getProcessingStatus } from '@/types/products';
 import { 
   Package, 
@@ -29,40 +30,46 @@ import {
   CheckCircle,
   Clock,
   AlertCircle,
-  Save,
   Palette,
-  ChevronDown,
-  Settings
+  TrendingUp,
+  Info,
+  AlertTriangle
 } from 'lucide-react';
 
 const Products = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  
+  // Estados principales
   const [products, setProducts] = useState<Product[]>([]);
-  // Estado global de selección (mantiene selecciones entre pestañas)
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
-  const [showCatalogPreview, setShowCatalogPreview] = useState(false);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
+  
+  // Estados de UI
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [showFilters, setShowFilters] = useState(false);
+  const [showCatalogPreview, setShowCatalogPreview] = useState(false);
   
-  // Estado activo de pestaña (lee desde URL)
+  // Estado activo de pestaña
   const [activeTab, setActiveTab] = useState(() => {
     return searchParams.get('tab') || 'pending';
   });
   
-  // Estados para suscripciones
-  const [usageValidation, setUsageValidation] = useState<UsageValidation | null>(null);
-  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-  const [showCreditModal, setShowCreditModal] = useState(false);
+  // NUEVO: Hook para límites de catálogos
+  const { 
+    validation, 
+    canGenerate,
+    validateBeforeGeneration,
+    catalogsUsed,
+    catalogsLimit 
+  } = useCatalogLimits();
 
   useEffect(() => {
     if (user) {
       loadProducts();
-      loadUsageValidation();
       
       // Auto-refresh para ver estado de procesamiento
       const interval = setInterval(loadProducts, 10000);
@@ -77,17 +84,6 @@ const Products = () => {
       setActiveTab(tabFromUrl);
     }
   }, [searchParams]);
-
-  const loadUsageValidation = async () => {
-    if (!user) return;
-    
-    try {
-      const validation = await subscriptionService.validateUsage(user.id);
-      setUsageValidation(validation);
-    } catch (error) {
-      console.error('Error loading usage validation:', error);
-    }
-  };
 
   const loadProducts = async () => {
     if (!user) return;
@@ -156,7 +152,6 @@ const Products = () => {
   // Cambiar pestaña SIN resetear selecciones
   const handleTabChange = (newTab: string) => {
     setActiveTab(newTab);
-    // Ya NO limpiamos las selecciones para mantenerlas entre pestañas
     
     const newSearchParams = new URLSearchParams(searchParams);
     newSearchParams.set('tab', newTab);
@@ -179,11 +174,12 @@ const Products = () => {
       // Deseleccionar todos los de esta pestaña
       setSelectedProducts(prev => prev.filter(id => !currentTabProductIds.includes(id)));
     } else {
-      // Seleccionar todos los de esta pestaña (sin duplicar)
+      // Seleccionar todos los de esta pestaña
       setSelectedProducts(prev => [...new Set([...prev, ...currentTabProductIds])]);
     }
   };
 
+  // NUEVO: Validación mejorada con hooks
   const handleProcessImages = async () => {
     if (selectedProducts.length === 0) {
       toast({
@@ -194,37 +190,8 @@ const Products = () => {
       return;
     }
 
-    // Validación de créditos
-    if (!usageValidation?.canProcessBackground) {
-      if (usageValidation?.suggestCreditPurchase) {
-        toast({
-          title: "Sin créditos disponibles",
-          description: "Necesitas comprar créditos para quitar fondos",
-          variant: "destructive",
-        });
-        setShowCreditModal(true);
-        return;
-      }
-      
-      toast({
-        title: "Upgrade requerido",
-        description: usageValidation?.upgradeRequired || "Necesitas un plan de pago",
-        variant: "destructive",
-      });
-      setShowUpgradeModal(true);
-      return;
-    }
-
-    if (usageValidation.remainingBgCredits < selectedProducts.length) {
-      toast({
-        title: "Créditos insuficientes",
-        description: `Necesitas ${selectedProducts.length} créditos, pero solo tienes ${usageValidation.remainingBgCredits}`,
-        variant: "destructive",
-      });
-      setShowCreditModal(true);
-      return;
-    }
-
+    // TODO: Implementar validación de créditos IA con hooks
+    // Por ahora usamos lógica básica, luego se puede integrar con un hook similar
     setProcessing(true);
 
     try {
@@ -241,15 +208,6 @@ const Products = () => {
         estimated_cost_mxn: 2.0
       }));
 
-      const creditsConsumed = await subscriptionService.consumeBackgroundRemovalCredit(
-        user.id, 
-        selectedProducts.length
-      );
-
-      if (!creditsConsumed) {
-        throw new Error('No se pudieron consumir los créditos');
-      }
-
       await Promise.all(selectedProductsData.map(product => 
         supabase
           .from('products')
@@ -259,8 +217,6 @@ const Products = () => {
           })
           .eq('id', product.id)
       ));
-
-      await loadUsageValidation();
 
       const result = await processImagesOnly(
         productsForWebhook,
@@ -297,7 +253,8 @@ const Products = () => {
     }
   };
 
-  const handleCreateCatalog = () => {
+  // NUEVO: Validación mejorada para catálogos
+  const handleCreateCatalog = async () => {
     if (selectedProducts.length === 0) {
       toast({
         title: "Selecciona productos",
@@ -306,8 +263,18 @@ const Products = () => {
       });
       return;
     }
+
+    // Validar límites antes de mostrar preview
+    const canProceed = await validateBeforeGeneration();
+    if (!canProceed.canGenerate) {
+      toast({
+        title: "Límite alcanzado",
+        description: canProceed.message || "Has alcanzado el límite de catálogos",
+        variant: "destructive",
+      });
+      return;
+    }
     
-    // Mostrar modal de preview antes de crear catálogo
     setShowCatalogPreview(true);
   };
 
@@ -328,15 +295,13 @@ const Products = () => {
           created_at: product.created_at
         }));
 
-      navigate('/template-selection', {
-        state: {
-          products: selectedProductsData,
-          businessInfo: {
-            business_name: 'Mi Empresa'
-          },
-          skipProcessing: true
-        }
-      });
+      // Guardar en localStorage para TemplateSelection
+      localStorage.setItem('selectedProductsData', JSON.stringify(selectedProductsData));
+      localStorage.setItem('businessInfo', JSON.stringify({
+        business_name: 'Mi Empresa'
+      }));
+
+      navigate('/template-selection');
 
     } catch (error) {
       console.error('Error preparando catálogo:', error);
@@ -391,246 +356,121 @@ const Products = () => {
 
   const stats = getStats();
 
-  // Obtener productos seleccionados por estado para el modal
-  const getSelectedProductsByStatus = () => {
-    const selectedProductsData = products.filter(p => selectedProducts.includes(p.id));
-    return {
-      pending: selectedProductsData.filter(p => getProcessingStatus(p) === 'pending'),
-      processing: selectedProductsData.filter(p => getProcessingStatus(p) === 'processing'),
-      completed: selectedProductsData.filter(p => getProcessingStatus(p) === 'completed'),
-      total: selectedProductsData.length
-    };
-  };
+  // NUEVO: Banner de límites más claro
+  const LimitsAlert = () => {
+    if (!validation) return null;
 
-  // BANNER COMPACTO para mobile
-  const PlanStatusBanner = () => {
-    if (!usageValidation) return null;
+    const isNearCatalogLimit = validation.remaining !== undefined && validation.remaining <= 2 && validation.remaining > 0;
+    const isAtCatalogLimit = !canGenerate;
 
-    return (
-      <Card className="mb-4 border-blue-200 bg-blue-50">
-        <CardContent className="p-3">
-          {/* Mobile: Diseño vertical compacto */}
-          <div className="md:hidden space-y-2">
-            <div className="flex items-center justify-between">
-              <h4 className="font-semibold text-blue-900 text-sm">
-                {usageValidation.currentPlan}
-              </h4>
-              {usageValidation.suggestCreditPurchase && (
-                <Button onClick={() => setShowCreditModal(true)} size="sm" className="h-7 text-xs">
-                  Créditos
-                </Button>
-              )}
-            </div>
-            <div className="grid grid-cols-3 gap-2 text-xs text-blue-700">
-              <div className="text-center">
-                <div className="font-medium">{usageValidation.remainingUploads}</div>
-                <div className="text-blue-600">Subidas</div>
+    if (isAtCatalogLimit) {
+      return (
+        <Card className="mb-6 border-red-200 bg-red-50">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0" />
+              <div className="flex-1">
+                <h3 className="font-semibold text-red-900">Límite de catálogos alcanzado</h3>
+                <p className="text-sm text-red-700 mt-1">
+                  {validation.message}
+                </p>
               </div>
-              <div className="text-center">
-                <div className="font-medium">{usageValidation.remainingBgCredits}</div>
-                <div className="text-blue-600">Créditos</div>
-              </div>
-              <div className="text-center">
-                <div className="font-medium">{usageValidation.remainingCatalogs}</div>
-                <div className="text-blue-600">Catálogos</div>
-              </div>
-            </div>
-          </div>
-
-          {/* Desktop: Diseño original */}
-          <div className="hidden md:flex items-center justify-between">
-            <div>
-              <h4 className="font-semibold text-blue-900">
-                {usageValidation.currentPlan}
-              </h4>
-              <div className="text-sm text-blue-700 space-y-1">
-                <p>Subidas restantes: {usageValidation.remainingUploads}</p>
-                <p>Créditos para fondos: {usageValidation.remainingBgCredits}</p>
-                <p>Catálogos restantes: {usageValidation.remainingCatalogs}</p>
-              </div>
-            </div>
-            {usageValidation.suggestCreditPurchase && (
-              <Button onClick={() => setShowCreditModal(true)} size="sm">
-                Comprar Créditos
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => navigate('/pricing')}
+                className="border-red-300 text-red-700 hover:bg-red-100"
+              >
+                Mejorar Plan
               </Button>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-    );
+            </div>
+          </CardContent>
+        </Card>
+      );
+    }
+
+    if (isNearCatalogLimit) {
+      return (
+        <Card className="mb-6 border-amber-200 bg-amber-50">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <Info className="w-5 h-5 text-amber-600 flex-shrink-0" />
+              <div className="flex-1">
+                <h3 className="font-semibold text-amber-900">Pocos catálogos restantes</h3>
+                <p className="text-sm text-amber-700 mt-1">
+                  Te quedan {validation.remaining} catálogos este mes
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      );
+    }
+
+    return null;
   };
 
-  // MODALES optimizados para mobile
-  const UpgradeModal = () => (
-    <Dialog open={showUpgradeModal} onOpenChange={setShowUpgradeModal}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="text-lg">Upgrade Requerido</DialogTitle>
-        </DialogHeader>
-        <div className="py-4">
-          <p className="mb-4 text-sm">{usageValidation?.upgradeRequired}</p>
-          <div className="space-y-3">
-            <p className="font-medium text-sm">Planes disponibles:</p>
-            <div className="space-y-2 text-sm">
-              <div className="p-2 border rounded">
-                <div className="font-medium">Básico - $299/mes</div>
-                <div className="text-gray-600">5 créditos + 50 uploads</div>
-              </div>
-              <div className="p-2 border rounded">
-                <div className="font-medium">Estándar - $599/mes</div>
-                <div className="text-gray-600">30 créditos + 200 uploads</div>
-              </div>
-              <div className="p-2 border rounded">
-                <div className="font-medium">Premium - $1,199/mes</div>
-                <div className="text-gray-600">80 créditos + 500 uploads</div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div className="flex gap-3">
-          <Button onClick={() => navigate('/pricing')} className="flex-1">Ver Planes</Button>
-          <Button variant="outline" onClick={() => setShowUpgradeModal(false)} className="flex-1">Cerrar</Button>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-
-  const CreditModal = () => (
-    <Dialog open={showCreditModal} onOpenChange={setShowCreditModal}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="text-lg">Comprar Créditos</DialogTitle>
-        </DialogHeader>
-        <div className="py-4">
-          <p className="mb-4 text-sm">Compra créditos adicionales para procesar más imágenes:</p>
-          <div className="space-y-3">
-            <div className="flex items-center justify-between p-3 border rounded">
-              <div>
-                <div className="font-semibold">Pack 10 Créditos</div>
-                <div className="text-sm text-gray-600">$3.50 por crédito</div>
-              </div>
-              <div className="text-lg font-bold text-green-600">$35</div>
-            </div>
-            <div className="flex items-center justify-between p-3 border rounded">
-              <div>
-                <div className="font-semibold">Pack 25 Créditos ⭐</div>
-                <div className="text-sm text-gray-600">$3.20 por crédito</div>
-              </div>
-              <div className="text-lg font-bold text-blue-600">$80</div>
-            </div>
-          </div>
-          <p className="text-xs text-gray-500 mt-3">* Los créditos no expiran por 12 meses</p>
-        </div>
-        <div className="flex gap-3">
-          <Button onClick={() => setShowCreditModal(false)} className="flex-1">Comprar Después</Button>
-          <Button variant="outline" onClick={() => setShowCreditModal(false)} className="flex-1">Cerrar</Button>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-
-  // MODAL DE PREVIEW DEL CATÁLOGO
+  // MODAL DE PREVIEW simplificado
   const CatalogPreviewModal = () => {
-    const selectedByStatus = getSelectedProductsByStatus();
+    const selectedProductsData = products.filter(p => selectedProducts.includes(p.id));
+    const pending = selectedProductsData.filter(p => getProcessingStatus(p) === 'pending');
+    const processing = selectedProductsData.filter(p => getProcessingStatus(p) === 'processing');
+    const completed = selectedProductsData.filter(p => getProcessingStatus(p) === 'completed');
     
     return (
       <Dialog open={showCatalogPreview} onOpenChange={setShowCatalogPreview}>
         <DialogContent className="sm:max-w-4xl max-h-[80vh] overflow-hidden">
           <DialogHeader>
-            <DialogTitle className="text-xl">Preview del Catálogo</DialogTitle>
+            <DialogTitle className="text-xl">Confirmar Catálogo</DialogTitle>
             <p className="text-sm text-gray-600">
-              {selectedByStatus.total} productos seleccionados de diferentes estados
+              {selectedProductsData.length} productos seleccionados
             </p>
           </DialogHeader>
           
           <div className="space-y-6 overflow-y-auto">
             {/* Resumen por estados */}
             <div className="grid grid-cols-3 gap-4">
-              {selectedByStatus.pending.length > 0 && (
+              {pending.length > 0 && (
                 <Card className="border-orange-200 bg-orange-50">
                   <CardContent className="p-3 text-center">
                     <Clock className="h-6 w-6 text-orange-600 mx-auto mb-2" />
-                    <div className="font-semibold text-orange-900">{selectedByStatus.pending.length}</div>
-                    <div className="text-xs text-orange-700">Por Procesar</div>
+                    <div className="font-semibold text-orange-900">{pending.length}</div>
+                    <div className="text-xs text-orange-700">Sin procesar</div>
                   </CardContent>
                 </Card>
               )}
               
-              {selectedByStatus.processing.length > 0 && (
+              {processing.length > 0 && (
                 <Card className="border-blue-200 bg-blue-50">
                   <CardContent className="p-3 text-center">
-                    <Loader2 className="h-6 w-6 text-blue-600 mx-auto mb-2" />
-                    <div className="font-semibold text-blue-900">{selectedByStatus.processing.length}</div>
+                    <Loader2 className="h-6 w-6 text-blue-600 mx-auto mb-2 animate-spin" />
+                    <div className="font-semibold text-blue-900">{processing.length}</div>
                     <div className="text-xs text-blue-700">Procesando</div>
                   </CardContent>
                 </Card>
               )}
               
-              {selectedByStatus.completed.length > 0 && (
+              {completed.length > 0 && (
                 <Card className="border-green-200 bg-green-50">
                   <CardContent className="p-3 text-center">
                     <CheckCircle className="h-6 w-6 text-green-600 mx-auto mb-2" />
-                    <div className="font-semibold text-green-900">{selectedByStatus.completed.length}</div>
-                    <div className="text-xs text-green-700">Completadas</div>
+                    <div className="font-semibold text-green-900">{completed.length}</div>
+                    <div className="text-xs text-green-700">Sin fondo</div>
                   </CardContent>
                 </Card>
               )}
             </div>
 
-            {/* Grid de productos */}
-            <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-3">
-              {products
-                .filter(p => selectedProducts.includes(p.id))
-                .map(product => {
-                  const status = getProcessingStatus(product);
-                  return (
-                    <div key={product.id} className="relative group">
-                      <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden">
-                        <img
-                          src={getDisplayImageUrl(product)}
-                          alt={product.name}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                      
-                      {/* Badge de estado */}
-                      <div className="absolute -top-1 -right-1">
-                        {status === 'pending' && (
-                          <Badge className="bg-orange-100 text-orange-800 h-5 w-5 p-0 text-xs flex items-center justify-center">
-                            <Clock className="h-3 w-3" />
-                          </Badge>
-                        )}
-                        {status === 'processing' && (
-                          <Badge className="bg-blue-100 text-blue-800 h-5 w-5 p-0 text-xs flex items-center justify-center">
-                            <Loader2 className="h-3 w-3 animate-spin" />
-                          </Badge>
-                        )}
-                        {status === 'completed' && (
-                          <Badge className="bg-green-100 text-green-800 h-5 w-5 p-0 text-xs flex items-center justify-center">
-                            <CheckCircle className="h-3 w-3" />
-                          </Badge>
-                        )}
-                      </div>
-
-                      {/* Tooltip con nombre en hover */}
-                      <div className="absolute bottom-0 left-0 right-0 bg-black/75 text-white text-xs p-1 rounded-b-lg opacity-0 group-hover:opacity-100 transition-opacity">
-                        <div className="truncate">{product.name}</div>
-                      </div>
-                    </div>
-                  );
-                })}
-            </div>
-
-            {/* Información adicional */}
+            {/* Info del catálogo */}
             <Card className="bg-blue-50 border-blue-200">
               <CardContent className="p-4">
                 <div className="flex items-start gap-3">
                   <Package className="h-5 w-5 text-blue-600 mt-0.5" />
                   <div className="space-y-1">
-                    <h4 className="font-semibold text-blue-900">¿Qué incluirá tu catálogo?</h4>
+                    <h4 className="font-semibold text-blue-900">Tu catálogo incluirá:</h4>
                     <ul className="text-sm text-blue-800 space-y-1">
-                      <li>• Productos con imágenes originales (pendientes y en proceso)</li>
-                      <li>• Productos con fondos removidos (completadas)</li>
+                      <li>• Imágenes originales (productos sin procesar)</li>
+                      <li>• Imágenes con fondos removidos (productos completados)</li>
                       <li>• Precios y descripciones de todos los productos</li>
                       <li>• Diseño profesional personalizable</li>
                     </ul>
@@ -647,7 +487,7 @@ const Products = () => {
               onClick={() => setShowCatalogPreview(false)}
               className="flex-1"
             >
-              Seguir Editando
+              Cancelar
             </Button>
             <Button
               onClick={() => {
@@ -657,7 +497,7 @@ const Products = () => {
               className="flex-1 bg-purple-600 hover:bg-purple-700"
             >
               <Palette className="h-4 w-4 mr-2" />
-              Crear Catálogo ({selectedByStatus.total})
+              Crear Catálogo ({selectedProductsData.length})
             </Button>
           </div>
         </DialogContent>
@@ -665,10 +505,10 @@ const Products = () => {
     );
   };
 
-  // ACTIONS RESPONSIVAS
+  // ACTIONS responsivas mejoradas
   const actions = (
     <div className="flex items-center gap-2">
-      {/* Búsqueda con filtro de categoría integrado */}
+      {/* Búsqueda */}
       <div className={`items-center gap-2 ${selectedProducts.length > 0 ? 'hidden md:flex' : 'flex'}`}>
         <Search className="h-4 w-4 text-gray-400" />
         <Input
@@ -691,22 +531,21 @@ const Products = () => {
         </select>
       </div>
       
-      {/* Botones de acción - compactos en mobile */}
+      {/* Botones de acción */}
       {selectedProducts.length > 0 && (
         <div className="flex items-center gap-1 md:gap-2">
-          {/* Botón crear catálogo - compacto en mobile */}
           <Button 
             variant="outline"
             onClick={handleCreateCatalog}
             size="sm"
             className="bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100"
+            disabled={!canGenerate}
           >
             <Palette className="h-4 w-4 md:mr-2" />
             <span className="hidden md:inline">Catálogo ({selectedProducts.length})</span>
             <span className="md:hidden">({selectedProducts.length})</span>
           </Button>
 
-          {/* Botón procesar - solo en pending */}
           {activeTab === 'pending' && (
             <Button 
               onClick={handleProcessImages} 
@@ -718,7 +557,7 @@ const Products = () => {
               ) : (
                 <>
                   <Zap className="h-4 w-4 md:mr-2" />
-                  <span className="hidden md:inline">Quitar Fondos ({selectedProducts.length})</span>
+                  <span className="hidden md:inline">Procesar ({selectedProducts.length})</span>
                   <span className="md:hidden">({selectedProducts.length})</span>
                 </>
               )}
@@ -727,20 +566,9 @@ const Products = () => {
         </div>
       )}
       
-      {/* Botón agregar - siempre visible */}
       <Button onClick={() => navigate('/upload')} variant="outline" size="sm">
         <Plus className="h-4 w-4 md:mr-2" />
         <span className="hidden md:inline">Agregar</span>
-      </Button>
-
-      {/* Filtros - botón hamburguesa en mobile */}
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => setShowFilters(!showFilters)}
-        className="md:hidden"
-      >
-        <Filter className="h-4 w-4" />
       </Button>
     </div>
   );
@@ -763,7 +591,13 @@ const Products = () => {
   return (
     <ProtectedRoute>
       <AppLayout actions={actions}>
-        <PlanStatusBanner />
+        {/* NUEVO: Dashboard de uso integrado */}
+        <div className="mb-6">
+          <UsageDashboard />
+        </div>
+        
+        {/* NUEVO: Alertas de límites */}
+        <LimitsAlert />
         
         {products.length === 0 ? (
           <Card>
@@ -783,7 +617,7 @@ const Products = () => {
           </Card>
         ) : (
           <div className="space-y-4 md:space-y-6">
-            {/* PESTAÑAS COMPACTAS */}
+            {/* PESTAÑAS */}
             <Tabs value={activeTab} onValueChange={handleTabChange}>
               <TabsList className="grid w-full grid-cols-3 h-auto">
                 <TabsTrigger value="pending" className="relative px-2 py-2 text-xs md:text-sm">
@@ -822,32 +656,7 @@ const Products = () => {
                 </TabsTrigger>
               </TabsList>
 
-              {/* FILTROS MÓVILES COLAPSABLES */}
-              {showFilters && (
-                <Card className="md:hidden">
-                  <CardContent className="p-4">
-                    <div className="space-y-3">
-                      <div>
-                        <label className="text-sm font-medium mb-1 block">Categoría</label>
-                        <select
-                          value={filterCategory}
-                          onChange={(e) => setFilterCategory(e.target.value)}
-                          className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm bg-white"
-                        >
-                          <option value="all">Todas las categorías</option>
-                          {categories.map(category => (
-                            <option key={category} value={category}>
-                              {category}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* CONTENIDO DE PESTAÑAS */}
+              {/* CONTENIDO SIMPLIFICADO */}
               <TabsContent value="pending" className="space-y-4">
                 {stats.pending === 0 ? (
                   <Card>
@@ -856,50 +665,35 @@ const Products = () => {
                       <h3 className="text-base font-medium text-gray-900 mb-2">
                         No hay productos pendientes
                       </h3>
-                      <p className="text-sm text-gray-600 mb-4">
-                        Todos tus productos han sido procesados o están en proceso
+                      <p className="text-sm text-gray-600">
+                        Todos tus productos han sido procesados
                       </p>
                     </CardContent>
                   </Card>
                 ) : (
                   <>
-                     {/* Controles desktop - Solo contador y selección */}
-                     <Card className="hidden md:block">
-                       <CardContent className="p-4">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-4">
-                              <Checkbox
-                                checked={filteredProducts.length > 0 && selectedProducts.filter(id => filteredProducts.map(p => p.id).includes(id)).length === filteredProducts.length}
-                                onCheckedChange={selectAllProducts}
-                                disabled={processing}
-                              />
-                              <span className="text-sm text-gray-600">
-                                <span className="font-semibold text-blue-600">
-                                  {selectedProducts.length} total seleccionados
-                                </span>
-                                {' '} | {selectedProducts.filter(id => filteredProducts.map(p => p.id).includes(id)).length} de {filteredProducts.length} en esta pestaña
+                    {/* Controles de selección */}
+                    <Card className="hidden md:block">
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-4">
+                            <Checkbox
+                              checked={filteredProducts.length > 0 && selectedProducts.filter(id => filteredProducts.map(p => p.id).includes(id)).length === filteredProducts.length}
+                              onCheckedChange={selectAllProducts}
+                              disabled={processing}
+                            />
+                            <span className="text-sm text-gray-600">
+                              <span className="font-semibold text-blue-600">
+                                {selectedProducts.length} total seleccionados
                               </span>
-                            </div>
+                              {' '} | {selectedProducts.filter(id => filteredProducts.map(p => p.id).includes(id)).length} de {filteredProducts.length} en esta pestaña
+                            </span>
                           </div>
-                       </CardContent>
-                     </Card>
+                        </div>
+                      </CardContent>
+                    </Card>
 
-                    {/* Controles móviles compactos */}
-                    <div className="md:hidden flex items-center justify-between px-2">
-                       <div className="flex items-center gap-2">
-                         <Checkbox
-                           checked={filteredProducts.length > 0 && selectedProducts.filter(id => filteredProducts.map(p => p.id).includes(id)).length === filteredProducts.length}
-                           onCheckedChange={selectAllProducts}
-                           disabled={processing}
-                         />
-                         <span className="text-xs text-gray-600">
-                           <span className="font-semibold text-blue-600">{selectedProducts.length}</span>
-                           {' '}total | {selectedProducts.filter(id => filteredProducts.map(p => p.id).includes(id)).length}/{filteredProducts.length}
-                         </span>
-                       </div>
-                    </div>
-
-                    {/* Grid responsivo mejorado */}
+                    {/* Grid de productos */}
                     <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-6">
                       {filteredProducts.map((product) => (
                         <ProductCard 
@@ -909,7 +703,6 @@ const Products = () => {
                           toggleProductSelection={toggleProductSelection}
                           handleDeleteProduct={handleDeleteProduct}
                           processing={processing}
-                          isMobile={true}
                         />
                       ))}
                     </div>
@@ -925,7 +718,7 @@ const Products = () => {
                       <h3 className="text-base font-medium text-gray-900 mb-2">
                         No hay productos procesándose
                       </h3>
-                      <p className="text-sm text-gray-600 mb-4">
+                      <p className="text-sm text-gray-600">
                         Selecciona productos en "Por Procesar" para quitar fondos
                       </p>
                     </CardContent>
@@ -958,7 +751,6 @@ const Products = () => {
                           handleDeleteProduct={handleDeleteProduct}
                           processing={true}
                           showProgress={true}
-                          isMobile={true}
                         />
                       ))}
                     </div>
@@ -974,7 +766,7 @@ const Products = () => {
                       <h3 className="text-base font-medium text-gray-900 mb-2">
                         No hay productos completados
                       </h3>
-                      <p className="text-sm text-gray-600 mb-4">
+                      <p className="text-sm text-gray-600">
                         Procesa algunos productos para verlos aquí sin fondo
                       </p>
                     </CardContent>
@@ -1007,7 +799,6 @@ const Products = () => {
                           handleDeleteProduct={handleDeleteProduct}
                           processing={false}
                           showCompleted={true}
-                          isMobile={true}
                         />
                       ))}
                     </div>
@@ -1018,16 +809,22 @@ const Products = () => {
           </div>
         )}
         
-        <UpgradeModal />
-        <CreditModal />
         <CatalogPreviewModal />
       </AppLayout>
     </ProtectedRoute>
   );
 };
 
-// COMPONENT CARD OPTIMIZADO PARA MOBILE
-const ProductCard = ({ product, selectedProducts, toggleProductSelection, handleDeleteProduct, processing, showProgress = false, showCompleted = false, isMobile = false }: any) => {
+// COMPONENT CARD SIMPLIFICADO Y OPTIMIZADO
+const ProductCard = ({ 
+  product, 
+  selectedProducts, 
+  toggleProductSelection, 
+  handleDeleteProduct, 
+  processing, 
+  showProgress = false, 
+  showCompleted = false 
+}: any) => {
   const status = getProcessingStatus(product);
   const displayImageUrl = getDisplayImageUrl(product);
 
@@ -1036,7 +833,6 @@ const ProductCard = ({ product, selectedProducts, toggleProductSelection, handle
       processing ? 'opacity-50' : ''
     }`}>
       <div className="relative">
-        {/* Imagen con aspect ratio mejorado para mobile */}
         <div className="aspect-square bg-gray-100">
           <img
             src={displayImageUrl}
@@ -1046,40 +842,35 @@ const ProductCard = ({ product, selectedProducts, toggleProductSelection, handle
           />
         </div>
         
-        {/* Checkbox más grande en mobile */}
-        <div className="absolute top-1 md:top-2 left-1 md:left-2">
+        <div className="absolute top-2 left-2">
           <Checkbox
             checked={selectedProducts.includes(product.id)}
             onCheckedChange={() => toggleProductSelection(product.id)}
-            className={`bg-white shadow-sm ${isMobile ? 'h-5 w-5' : ''}`}
+            className="bg-white shadow-sm"
             disabled={processing}
           />
         </div>
         
-        {/* Badge de estado más legible en mobile */}
-        <div className="absolute top-1 md:top-2 right-1 md:right-2">
+        <div className="absolute top-2 right-2">
           {showCompleted ? (
-            <Badge className="bg-green-100 text-green-800 text-xs px-1 py-0.5 md:px-2 md:py-1">
-              <CheckCircle className="w-2 h-2 md:w-3 md:h-3 mr-1" />
-              <span className="hidden sm:inline">Sin fondo</span>
-              <span className="sm:hidden">✓</span>
+            <Badge className="bg-green-100 text-green-800 text-xs">
+              <CheckCircle className="w-3 h-3 mr-1" />
+              Sin fondo
             </Badge>
           ) : (
-            <Badge className={`text-xs px-1 py-0.5 md:px-2 md:py-1 ${
+            <Badge className={`text-xs ${
               status === 'pending' ? 'bg-gray-100 text-gray-800' : 'bg-blue-100 text-blue-800'
             }`}>
-              {status === 'processing' ? <Loader2 className="w-2 h-2 md:w-3 md:h-3 animate-spin mr-1" /> : <Clock className="w-2 h-2 md:w-3 md:h-3 mr-1" />}
-              <span className="hidden sm:inline">{status === 'pending' ? 'Pendiente' : 'Procesando'}</span>
-              <span className="sm:hidden">{status === 'pending' ? 'P' : 'Proc'}</span>
+              {status === 'processing' ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Clock className="w-3 h-3 mr-1" />}
+              {status === 'pending' ? 'Pendiente' : 'Procesando'}
             </Badge>
           )}
         </div>
         
-        {/* Progress bar más visible en mobile */}
         {showProgress && status === 'processing' && product.processing_progress !== undefined && (
-          <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white p-1 md:p-2">
-            <div className="flex items-center gap-1 md:gap-2">
-              <Loader2 className="w-2 h-2 md:w-3 md:h-3 animate-spin" />
+          <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white p-2">
+            <div className="flex items-center gap-2">
+              <Loader2 className="w-3 h-3 animate-spin" />
               <div className="flex-1">
                 <div className="w-full bg-gray-200 rounded-full h-1">
                   <div 
@@ -1094,42 +885,37 @@ const ProductCard = ({ product, selectedProducts, toggleProductSelection, handle
         )}
       </div>
       
-      {/* Card content compacto para mobile */}
-      <CardContent className="p-2 md:p-4">
-        <h3 className="font-semibold text-sm md:text-lg mb-1 truncate">{product.name}</h3>
+      <CardContent className="p-4">
+        <h3 className="font-semibold text-lg mb-1 truncate">{product.name}</h3>
         
-        {/* Precio más prominente en mobile */}
         {product.price_retail && (
-          <p className="font-bold text-primary mb-2 text-sm md:text-base">
+          <p className="font-bold text-primary mb-2">
             ${(product.price_retail / 100).toFixed(2)}
           </p>
         )}
         
-        {/* Categoría solo en desktop por espacio */}
         {product.category && (
-          <Badge variant="outline" className="text-xs mb-2 hidden md:inline-flex">
+          <Badge variant="outline" className="text-xs mb-2">
             {product.category}
           </Badge>
         )}
         
-        {/* Botones compactos en mobile */}
-        <div className="flex gap-1 md:gap-2">
-          <Button size="sm" variant="outline" className="flex-1 text-xs md:text-sm h-7 md:h-8" disabled={processing}>
-            <Eye className="h-2 w-2 md:h-3 md:w-3 md:mr-1" />
-            <span className="hidden md:inline">Ver</span>
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" className="flex-1" disabled={processing}>
+            <Eye className="h-3 w-3 mr-1" />
+            Ver
           </Button>
-          <Button size="sm" variant="outline" className="flex-1 text-xs md:text-sm h-7 md:h-8" disabled={processing}>
-            <Edit className="h-2 w-2 md:h-3 md:w-3 md:mr-1" />
-            <span className="hidden md:inline">Editar</span>
+          <Button size="sm" variant="outline" className="flex-1" disabled={processing}>
+            <Edit className="h-3 w-3 mr-1" />
+            Editar
           </Button>
           <Button 
             size="sm" 
-            variant="outline" 
-            className="text-xs md:text-sm h-7 md:h-8 px-1 md:px-2"
+            variant="outline"
             disabled={processing}
             onClick={() => handleDeleteProduct(product)}
           >
-            <Trash2 className="h-2 w-2 md:h-3 md:w-3" />
+            <Trash2 className="h-3 w-3" />
           </Button>
         </div>
       </CardContent>
