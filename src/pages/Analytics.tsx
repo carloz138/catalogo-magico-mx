@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import AppLayout from '@/components/layout/AppLayout';
-import SubscriptionCard from '@/components/SubscriptionCard';
+import { UsageDashboard } from '@/components/dashboard/UsageDashboard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/components/ui/use-toast';
+import { useNavigate } from 'react-router-dom';
 import {
   BarChart3,
   TrendingUp,
@@ -17,17 +18,18 @@ import {
   FileText,
   Zap,
   Calendar,
-  DollarSign,
   Clock,
   CheckCircle,
   AlertCircle,
-  Users,
-  Eye,
-  Download,
   Target,
   Award,
   Layers,
-  RefreshCw
+  RefreshCw,
+  Users,
+  Eye,
+  Download,
+  Upload,
+  Plus
 } from 'lucide-react';
 
 interface AnalyticsData {
@@ -67,6 +69,7 @@ interface AnalyticsData {
 
 const Analytics = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
   const [activeTab, setActiveTab] = useState('overview');
@@ -294,7 +297,7 @@ const Analytics = () => {
     return 'text-gray-500';
   };
 
-  // Actions para el header
+  // Actions para el header mejoradas
   const actions = (
     <div className="flex items-center gap-2">
       <Button
@@ -305,18 +308,28 @@ const Analytics = () => {
         className="flex items-center gap-2"
       >
         <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-        <span className="hidden md:inline">Actualizar</span>
+        <span className="hidden sm:inline">Actualizar</span>
       </Button>
       
       <select
         value={dateRange}
         onChange={(e) => setDateRange(e.target.value)}
-        className="px-3 py-1.5 text-sm border border-gray-300 rounded-md bg-white"
+        className="px-2 sm:px-3 py-1.5 text-sm border border-gray-300 rounded-md bg-white"
       >
-        <option value="7">Últimos 7 días</option>
-        <option value="30">Últimos 30 días</option>
-        <option value="90">Últimos 3 meses</option>
+        <option value="7">7 días</option>
+        <option value="30">30 días</option>
+        <option value="90">3 meses</option>
       </select>
+
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => navigate('/products')}
+        className="hidden sm:flex items-center gap-2"
+      >
+        <Package className="h-4 w-4" />
+        Productos
+      </Button>
     </div>
   );
 
@@ -339,129 +352,183 @@ const Analytics = () => {
     <ProtectedRoute>
       <AppLayout actions={actions}>
         <div className="space-y-6">
-          {/* KPIs Overview */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* Total Productos */}
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Productos</p>
-                    <p className="text-2xl font-bold text-gray-900">
-                      {formatNumber(analyticsData.products.total)}
-                    </p>
-                  </div>
-                  <div className="h-12 w-12 bg-blue-50 rounded-lg flex items-center justify-center">
-                    <Package className="h-6 w-6 text-blue-600" />
-                  </div>
-                </div>
-                <div className="flex items-center mt-2">
-                  {getGrowthIcon(analyticsData.performance.monthlyGrowth)}
-                  <span className={`text-sm ml-1 ${getGrowthColor(analyticsData.performance.monthlyGrowth)}`}>
-                    {analyticsData.performance.monthlyGrowth > 0 ? '+' : ''}{analyticsData.performance.monthlyGrowth}%
-                  </span>
-                  <span className="text-xs text-gray-500 ml-2">vs mes anterior</span>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Catálogos */}
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Catálogos</p>
-                    <p className="text-2xl font-bold text-gray-900">
-                      {formatNumber(analyticsData.catalogs.total)}
-                    </p>
-                  </div>
-                  <div className="h-12 w-12 bg-purple-50 rounded-lg flex items-center justify-center">
-                    <FileText className="h-6 w-6 text-purple-600" />
-                  </div>
-                </div>
-                <div className="flex items-center mt-2">
-                  <span className="text-xs text-gray-500">
-                    {analyticsData.catalogs.avgProductsPerCatalog} productos promedio
-                  </span>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Créditos */}
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Créditos</p>
-                    <p className="text-2xl font-bold text-gray-900">
-                      {formatNumber(analyticsData.credits.remaining)}
-                    </p>
-                  </div>
-                  <div className="h-12 w-12 bg-green-50 rounded-lg flex items-center justify-center">
-                    <Zap className="h-6 w-6 text-green-600" />
-                  </div>
-                </div>
-                <div className="flex items-center mt-2">
-                  <span className="text-xs text-gray-500">
-                    {analyticsData.credits.used} usados • {analyticsData.credits.efficiency}% eficiencia
-                  </span>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Éxito de Procesamiento */}
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Éxito</p>
-                    <p className="text-2xl font-bold text-gray-900">
-                      {analyticsData.performance.processingSuccess}%
-                    </p>
-                  </div>
-                  <div className="h-12 w-12 bg-orange-50 rounded-lg flex items-center justify-center">
-                    <Target className="h-6 w-6 text-orange-600" />
-                  </div>
-                </div>
-                <div className="flex items-center mt-2">
-                  <CheckCircle className="h-3 w-3 text-green-500" />
-                  <span className="text-xs text-gray-500 ml-1">
-                    {analyticsData.products.completed} productos completados
-                  </span>
-                </div>
-              </CardContent>
-            </Card>
+          {/* SECCIÓN 1: Dashboard de Uso */}
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="text-lg sm:text-xl font-semibold text-gray-900">Panel de Control</h2>
+                <p className="text-sm text-gray-600">Estado actual de tu cuenta y límites</p>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => navigate('/pricing')}
+                className="hidden sm:flex"
+              >
+                Mejorar Plan
+              </Button>
+            </div>
+            <UsageDashboard />
           </div>
 
-          {/* Sección de Suscripción y otros widgets */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2">
-              {/* Aquí podrían ir gráficos o métricas adicionales */}
-            </div>
-            <div>
-              {/* Componente de suscripción - solo aparece si hay suscripción */}
-              <SubscriptionCard compact={false} showTitle={true} />
+          {/* SECCIÓN 2: KPIs Principales */}
+          <div>
+            <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4">Métricas Principales</h2>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+              {/* Total Productos */}
+              <Card>
+                <CardContent className="p-3 sm:p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">Productos</p>
+                      <p className="text-xl sm:text-2xl font-bold text-gray-900">
+                        {formatNumber(analyticsData.products.total)}
+                      </p>
+                    </div>
+                    <div className="h-8 w-8 sm:h-12 sm:w-12 bg-blue-50 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <Package className="h-4 w-4 sm:h-6 sm:w-6 text-blue-600" />
+                    </div>
+                  </div>
+                  <div className="flex items-center mt-2">
+                    {getGrowthIcon(analyticsData.performance.monthlyGrowth)}
+                    <span className={`text-xs sm:text-sm ml-1 ${getGrowthColor(analyticsData.performance.monthlyGrowth)}`}>
+                      {analyticsData.performance.monthlyGrowth > 0 ? '+' : ''}{analyticsData.performance.monthlyGrowth}%
+                    </span>
+                    <span className="text-xs text-gray-500 ml-2 hidden sm:inline">vs mes anterior</span>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Catálogos */}
+              <Card>
+                <CardContent className="p-3 sm:p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">Catálogos</p>
+                      <p className="text-xl sm:text-2xl font-bold text-gray-900">
+                        {formatNumber(analyticsData.catalogs.total)}
+                      </p>
+                    </div>
+                    <div className="h-8 w-8 sm:h-12 sm:w-12 bg-purple-50 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <FileText className="h-4 w-4 sm:h-6 sm:w-6 text-purple-600" />
+                    </div>
+                  </div>
+                  <div className="flex items-center mt-2">
+                    <span className="text-xs text-gray-500 truncate">
+                      {analyticsData.catalogs.avgProductsPerCatalog} productos promedio
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Créditos */}
+              <Card>
+                <CardContent className="p-3 sm:p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">Créditos</p>
+                      <p className="text-xl sm:text-2xl font-bold text-gray-900">
+                        {formatNumber(analyticsData.credits.remaining)}
+                      </p>
+                    </div>
+                    <div className="h-8 w-8 sm:h-12 sm:w-12 bg-green-50 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <Zap className="h-4 w-4 sm:h-6 sm:w-6 text-green-600" />
+                    </div>
+                  </div>
+                  <div className="flex items-center mt-2">
+                    <span className="text-xs text-gray-500 truncate">
+                      {analyticsData.credits.used} usados • {analyticsData.credits.efficiency}% eficiencia
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Éxito de Procesamiento */}
+              <Card>
+                <CardContent className="p-3 sm:p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">Éxito</p>
+                      <p className="text-xl sm:text-2xl font-bold text-gray-900">
+                        {analyticsData.performance.processingSuccess}%
+                      </p>
+                    </div>
+                    <div className="h-8 w-8 sm:h-12 sm:w-12 bg-orange-50 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <Target className="h-4 w-4 sm:h-6 sm:w-6 text-orange-600" />
+                    </div>
+                  </div>
+                  <div className="flex items-center mt-2">
+                    <CheckCircle className="h-3 w-3 text-green-500" />
+                    <span className="text-xs text-gray-500 ml-1 truncate">
+                      {analyticsData.products.completed} completados
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           </div>
 
-          {/* Tabs para diferentes vistas */}
+          {/* SECCIÓN 3: Acciones Rápidas */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+            <Button
+              onClick={() => navigate('/upload')}
+              className="flex items-center justify-center gap-2 h-16"
+            >
+              <Upload className="h-5 w-5" />
+              <span className="hidden sm:inline">Subir Productos</span>
+              <span className="sm:hidden text-xs">Subir</span>
+            </Button>
+            
+            <Button
+              onClick={() => navigate('/products')}
+              variant="outline"
+              className="flex items-center justify-center gap-2 h-16"
+            >
+              <Package className="h-5 w-5" />
+              <span className="hidden sm:inline">Ver Productos</span>
+              <span className="sm:hidden text-xs">Productos</span>
+            </Button>
+
+            <Button
+              onClick={() => navigate('/template-selection')}
+              variant="outline"
+              className="flex items-center justify-center gap-2 h-16"
+            >
+              <FileText className="h-5 w-5" />
+              <span className="hidden sm:inline">Crear Catálogo</span>
+              <span className="sm:hidden text-xs">Catálogo</span>
+            </Button>
+
+            <Button
+              onClick={() => navigate('/pricing')}
+              variant="outline"
+              className="flex items-center justify-center gap-2 h-16"
+            >
+              <Plus className="h-5 w-5" />
+              <span className="hidden sm:inline">Upgrade</span>
+              <span className="sm:hidden text-xs">Upgrade</span>
+            </Button>
+          </div>
+
+          {/* SECCIÓN 4: Tabs detallados */}
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-1 sm:grid-cols-4 h-auto">
-              <TabsTrigger value="overview" className="flex items-center gap-2">
-                <BarChart3 className="h-4 w-4" />
-                <span className="hidden sm:inline">Resumen</span>
+            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 h-auto">
+              <TabsTrigger value="overview" className="flex items-center gap-2 text-xs sm:text-sm">
+                <BarChart3 className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span>Resumen</span>
               </TabsTrigger>
-              <TabsTrigger value="products" className="flex items-center gap-2">
-                <Package className="h-4 w-4" />
-                <span className="hidden sm:inline">Productos</span>
+              <TabsTrigger value="products" className="flex items-center gap-2 text-xs sm:text-sm">
+                <Package className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span>Productos</span>
               </TabsTrigger>
-              <TabsTrigger value="catalogs" className="flex items-center gap-2">
-                <FileText className="h-4 w-4" />
-                <span className="hidden sm:inline">Catálogos</span>
+              <TabsTrigger value="catalogs" className="flex items-center gap-2 text-xs sm:text-sm">
+                <FileText className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span>Catálogos</span>
               </TabsTrigger>
-              <TabsTrigger value="performance" className="flex items-center gap-2">
-                <Award className="h-4 w-4" />
+              <TabsTrigger value="performance" className="flex items-center gap-2 text-xs sm:text-sm">
+                <Award className="h-3 w-3 sm:h-4 sm:w-4" />
                 <span className="hidden sm:inline">Rendimiento</span>
+                <span className="sm:hidden">KPIs</span>
               </TabsTrigger>
             </TabsList>
 
@@ -470,8 +537,8 @@ const Analytics = () => {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <Card>
                   <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Layers className="h-5 w-5" />
+                    <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                      <Layers className="h-4 w-4 sm:h-5 sm:w-5" />
                       Estado de Productos
                     </CardTitle>
                   </CardHeader>
@@ -527,8 +594,8 @@ const Analytics = () => {
 
                 <Card>
                   <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Calendar className="h-5 w-5" />
+                    <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                      <Calendar className="h-4 w-4 sm:h-5 sm:w-5" />
                       Actividad Mensual
                     </CardTitle>
                   </CardHeader>
@@ -564,47 +631,55 @@ const Analytics = () => {
               {/* Top Categorías */}
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <BarChart3 className="h-5 w-5" />
+                  <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                    <BarChart3 className="h-4 w-4 sm:h-5 sm:w-5" />
                     Categorías Más Populares
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    {analyticsData.products.topCategories.map((category, index) => (
-                      <div key={category.category} className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <Badge variant="outline" className="w-6 h-6 p-0 flex items-center justify-center text-xs">
-                            {index + 1}
-                          </Badge>
-                          <span className="text-sm font-medium">{category.category}</span>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <div className="w-16 bg-gray-200 rounded-full h-2">
-                            <div 
-                              className="bg-primary h-2 rounded-full" 
-                              style={{ width: `${category.percentage}%` }}
-                            ></div>
+                    {analyticsData.products.topCategories.length > 0 ? (
+                      analyticsData.products.topCategories.map((category, index) => (
+                        <div key={category.category} className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <Badge variant="outline" className="w-6 h-6 p-0 flex items-center justify-center text-xs">
+                              {index + 1}
+                            </Badge>
+                            <span className="text-sm font-medium">{category.category}</span>
                           </div>
-                          <span className="text-sm text-gray-600 w-12 text-right">
-                            {category.count}
-                          </span>
+                          <div className="flex items-center gap-3">
+                            <div className="w-16 bg-gray-200 rounded-full h-2">
+                              <div 
+                                className="bg-primary h-2 rounded-full" 
+                                style={{ width: `${category.percentage}%` }}
+                              ></div>
+                            </div>
+                            <span className="text-sm text-gray-600 w-12 text-right">
+                              {category.count}
+                            </span>
+                          </div>
                         </div>
+                      ))
+                    ) : (
+                      <div className="text-center py-8 text-gray-500">
+                        <Package className="h-12 w-12 mx-auto mb-2 text-gray-300" />
+                        <p className="text-sm">No hay categorías aún</p>
+                        <p className="text-xs">Sube productos para ver estadísticas</p>
                       </div>
-                    ))}
+                    )}
                   </div>
                 </CardContent>
               </Card>
             </TabsContent>
 
             <TabsContent value="products" className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                 <Card>
                   <CardHeader className="pb-3">
                     <CardTitle className="text-base">Productos Totales</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-3xl font-bold text-blue-600">
+                    <div className="text-2xl sm:text-3xl font-bold text-blue-600">
                       {formatNumber(analyticsData.products.total)}
                     </div>
                     <p className="text-xs text-gray-500 mt-1">
@@ -618,7 +693,7 @@ const Analytics = () => {
                     <CardTitle className="text-base">Tasa de Éxito</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-3xl font-bold text-green-600">
+                    <div className="text-2xl sm:text-3xl font-bold text-green-600">
                       {analyticsData.performance.processingSuccess}%
                     </div>
                     <p className="text-xs text-gray-500 mt-1">
@@ -632,7 +707,7 @@ const Analytics = () => {
                     <CardTitle className="text-base">Tiempo Promedio</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-3xl font-bold text-orange-600">
+                    <div className="text-2xl sm:text-3xl font-bold text-orange-600">
                       {analyticsData.products.avgProcessingTime}
                     </div>
                     <p className="text-xs text-gray-500 mt-1">
@@ -644,13 +719,13 @@ const Analytics = () => {
             </TabsContent>
 
             <TabsContent value="catalogs" className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                 <Card>
                   <CardHeader className="pb-3">
                     <CardTitle className="text-base">Catálogos Creados</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-3xl font-bold text-purple-600">
+                    <div className="text-2xl sm:text-3xl font-bold text-purple-600">
                       {formatNumber(analyticsData.catalogs.total)}
                     </div>
                     <p className="text-xs text-gray-500 mt-1">
@@ -664,7 +739,7 @@ const Analytics = () => {
                     <CardTitle className="text-base">Productos por Catálogo</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-3xl font-bold text-indigo-600">
+                    <div className="text-2xl sm:text-3xl font-bold text-indigo-600">
                       {analyticsData.catalogs.avgProductsPerCatalog}
                     </div>
                     <p className="text-xs text-gray-500 mt-1">
@@ -690,11 +765,11 @@ const Analytics = () => {
             </TabsContent>
 
             <TabsContent value="performance" className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <Card>
                   <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Award className="h-5 w-5" />
+                    <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                      <Award className="h-4 w-4 sm:h-5 sm:w-5" />
                       KPIs de Rendimiento
                     </CardTitle>
                   </CardHeader>
@@ -744,8 +819,8 @@ const Analytics = () => {
 
                 <Card>
                   <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <TrendingUp className="h-5 w-5" />
+                    <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                      <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5" />
                       Insights y Recomendaciones
                     </CardTitle>
                   </CardHeader>
@@ -755,8 +830,8 @@ const Analytics = () => {
                       {analyticsData.products.pending > analyticsData.products.completed && (
                         <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
                           <div className="flex items-start gap-2">
-                            <AlertCircle className="h-4 w-4 text-yellow-600 mt-0.5" />
-                            <div>
+                            <AlertCircle className="h-4 w-4 text-yellow-600 mt-0.5 flex-shrink-0" />
+                            <div className="min-w-0">
                               <p className="text-sm font-medium text-yellow-800">
                                 Procesa tus productos pendientes
                               </p>
@@ -771,8 +846,8 @@ const Analytics = () => {
                       {analyticsData.credits.remaining < 5 && (
                         <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
                           <div className="flex items-start gap-2">
-                            <AlertCircle className="h-4 w-4 text-red-600 mt-0.5" />
-                            <div>
+                            <AlertCircle className="h-4 w-4 text-red-600 mt-0.5 flex-shrink-0" />
+                            <div className="min-w-0">
                               <p className="text-sm font-medium text-red-800">
                                 Créditos bajos
                               </p>
@@ -787,8 +862,8 @@ const Analytics = () => {
                       {analyticsData.catalogs.total === 0 && analyticsData.products.completed > 0 && (
                         <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
                           <div className="flex items-start gap-2">
-                            <CheckCircle className="h-4 w-4 text-green-600 mt-0.5" />
-                            <div>
+                            <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+                            <div className="min-w-0">
                               <p className="text-sm font-medium text-green-800">
                                 ¡Crea tu primer catálogo!
                               </p>
@@ -803,13 +878,30 @@ const Analytics = () => {
                       {analyticsData.performance.monthlyGrowth > 50 && (
                         <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
                           <div className="flex items-start gap-2">
-                            <TrendingUp className="h-4 w-4 text-blue-600 mt-0.5" />
-                            <div>
+                            <TrendingUp className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                            <div className="min-w-0">
                               <p className="text-sm font-medium text-blue-800">
                                 ¡Excelente crecimiento!
                               </p>
                               <p className="text-xs text-blue-700">
                                 Has crecido {analyticsData.performance.monthlyGrowth}% este mes.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Si no hay insights, mostrar mensaje motivacional */}
+                      {analyticsData.products.total === 0 && (
+                        <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                          <div className="flex items-start gap-2">
+                            <Package className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium text-blue-800">
+                                ¡Comienza tu primer proyecto!
+                              </p>
+                              <p className="text-xs text-blue-700">
+                                Sube algunos productos para ver tus métricas aquí.
                               </p>
                             </div>
                           </div>
