@@ -24,12 +24,7 @@ import {
   Target,
   Award,
   Layers,
-  RefreshCw,
-  Users,
-  Eye,
-  Download,
-  Upload,
-  Plus
+  RefreshCw
 } from 'lucide-react';
 
 interface AnalyticsData {
@@ -421,7 +416,7 @@ const Analytics = () => {
                 </CardContent>
               </Card>
 
-              {/* Créditos */}
+              {/* Créditos IA */}
               <Card>
                 <CardContent className="p-3 sm:p-4">
                   <div className="flex items-center justify-between">
@@ -468,49 +463,7 @@ const Analytics = () => {
             </div>
           </div>
 
-          {/* SECCIÓN 3: Acciones Rápidas */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-            <Button
-              onClick={() => navigate('/upload')}
-              className="flex items-center justify-center gap-2 h-16"
-            >
-              <Upload className="h-5 w-5" />
-              <span className="hidden sm:inline">Subir Productos</span>
-              <span className="sm:hidden text-xs">Subir</span>
-            </Button>
-            
-            <Button
-              onClick={() => navigate('/products')}
-              variant="outline"
-              className="flex items-center justify-center gap-2 h-16"
-            >
-              <Package className="h-5 w-5" />
-              <span className="hidden sm:inline">Ver Productos</span>
-              <span className="sm:hidden text-xs">Productos</span>
-            </Button>
-
-            <Button
-              onClick={() => navigate('/template-selection')}
-              variant="outline"
-              className="flex items-center justify-center gap-2 h-16"
-            >
-              <FileText className="h-5 w-5" />
-              <span className="hidden sm:inline">Crear Catálogo</span>
-              <span className="sm:hidden text-xs">Catálogo</span>
-            </Button>
-
-            <Button
-              onClick={() => navigate('/pricing')}
-              variant="outline"
-              className="flex items-center justify-center gap-2 h-16"
-            >
-              <Plus className="h-5 w-5" />
-              <span className="hidden sm:inline">Upgrade</span>
-              <span className="sm:hidden text-xs">Upgrade</span>
-            </Button>
-          </div>
-
-          {/* SECCIÓN 4: Tabs detallados */}
+          {/* SECCIÓN 3: Tabs detallados */}
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 h-auto">
               <TabsTrigger value="overview" className="flex items-center gap-2 text-xs sm:text-sm">
