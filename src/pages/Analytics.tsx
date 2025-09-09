@@ -426,7 +426,7 @@ const Analytics = () => {
                 <CardContent className="p-3 sm:p-4">
                   <div className="flex items-center justify-between">
                     <div className="min-w-0 flex-1">
-                      <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">Créditos</p>
+                      <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">Créditos IA</p>
                       <p className="text-xl sm:text-2xl font-bold text-gray-900">
                         {formatNumber(analyticsData.credits.remaining)}
                       </p>
@@ -437,7 +437,7 @@ const Analytics = () => {
                   </div>
                   <div className="flex items-center mt-2">
                     <span className="text-xs text-gray-500 truncate">
-                      {analyticsData.credits.used} usados • {analyticsData.credits.efficiency}% eficiencia
+                      Para remover fondos de imágenes
                     </span>
                   </div>
                 </CardContent>
