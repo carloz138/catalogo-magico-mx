@@ -103,20 +103,39 @@ const TemplateSelectionEnhanced = () => {
   const state = location.state as LocationState;
 
   useEffect(() => {
-    console.log('🔍 TemplateSelectionEnhanced montado');
-    console.log('🔍 state?.products:', state?.products?.length || 0);
-
-    if (state?.products && state.products.length > 0) {
-      console.log('✅ Productos encontrados:', state.products.length);
-      setSelectedProducts(state.products);
-    } else {
-      console.log('❌ No hay productos, redirigiendo...');
-      navigate('/image-review');
-      return;
+  console.log('🔍 TemplateSelectionEnhanced montado');
+  
+  let productsToUse: any[] = [];
+  
+  // 1. PRIORIDAD: Buscar en localStorage (desde Products)
+  try {
+    const storedProducts = localStorage.getItem('selectedProductsData');
+    if (storedProducts) {
+      productsToUse = JSON.parse(storedProducts);
+      console.log('✅ Productos encontrados en localStorage:', productsToUse.length);
     }
+  } catch (error) {
+    console.error('Error leyendo localStorage:', error);
+  }
+  
+  // 2. FALLBACK: Buscar en router state
+  if (productsToUse.length === 0 && state?.products && state.products.length > 0) {
+    productsToUse = state.products;
+    console.log('✅ Productos encontrados en router state:', productsToUse.length);
+  }
+  
+  // 3. VALIDAR Y USAR
+  if (productsToUse.length > 0) {
+    setSelectedProducts(productsToUse);
+    console.log('✅ Productos cargados correctamente:', productsToUse.length);
+  } else {
+    console.log('❌ No hay productos, redirigiendo...');
+    navigate('/products'); // Cambié de '/image-review' a '/products'
+    return;
+  }
 
-    fetchUserPlan();
-  }, [state, navigate]);
+  fetchUserPlan();
+}, [state, navigate]);
 
   const fetchUserPlan = async () => {
     if (!user) return;
