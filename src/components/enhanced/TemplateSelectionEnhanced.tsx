@@ -1,58 +1,51 @@
-
 // src/components/enhanced/TemplateSelectionEnhanced.tsx
-// 🔧 VERSIÓN CORREGIDA - Errores de TypeScript solucionados
+// 🎯 VERSIÓN LIMPIA - Solo usa nuestro sistema nuevo
 
-// @ts-nocheck
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
+import AppLayout from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { 
-  ArrowLeft, Crown, Check, Loader2, Download, Zap, FileText, 
-  Image, Timer, Sparkles, Palette, Layout, Filter 
-} from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { toast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { useBusinessInfo } from '@/hooks/useBusinessInfo';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/hooks/use-toast';
 
-// ✅ IMPORTS CORREGIDOS
-import { 
-  ENHANCED_TEMPLATES, 
-  EnhancedTemplateConfig,
-  getTemplateRecommendations
-} from '@/lib/templates/enhanced-config';
+// ✅ SOLO NUESTRO SISTEMA NUEVO
+import { SmartTemplateSelector } from '@/components/templates/SmartTemplateSelector';
+import { generateCatalog, checkLimits } from '@/lib/catalog/unified-generator';
+import { IndustryType } from '@/lib/templates/industry-templates';
 
 import { 
-  REFERENCE_TEMPLATES
-} from '@/lib/templates/reference-inspired';
+  ArrowLeft,
+  ArrowRight,
+  Palette,
+  Loader2,
+  AlertTriangle,
+  CheckCircle,
+  Sparkles,
+  Package
+} from 'lucide-react';
 
-import { 
-  generateCatalogWithProgress,
-  GenerationProgress 
-} from '@/lib/enhancedPDFGenerator';
-
-// ✅ TIPOS CORREGIDOS
-interface TemplateConfig {
+interface Product {
   id: string;
   name: string;
-  displayName: string;
-  description: string;
-  isPremium: boolean;
-  productsPerPage: number;
-  imageSize: { width: number; height: number };
-  colors: {
-    primary: string;
-    secondary: string;
-    accent?: string;
-    background: string;
-    text: string;
-  };
-  layout: string;
-  features: string[];
-  category: string;
+  description?: string;
+  price_retail: number;
+  image_url: string;
+  sku?: string;
+  category?: string;
+  specifications?: string;
+}
+
+interface UsageLimits {
+  canGenerate: boolean;
+  catalogsUsed: number;
+  catalogsLimit: number | 'unlimited';
+  remainingCatalogs: number;
+  message: string;
 }
 
 interface LocationState {
@@ -61,636 +54,428 @@ interface LocationState {
   skipProcessing?: boolean;
 }
 
-type TemplateCategory = 'all' | 'free' | 'premium' | 'professional' | 'reference';
-
-// ✅ TYPE GUARD FUNCTIONS
-const isEnhancedTemplate = (template: TemplateConfig | EnhancedTemplateConfig): template is EnhancedTemplateConfig => {
-  return 'elements' in template && 'layout' in template && typeof template.layout === 'object';
-};
-
-const getTemplateProductsPerPage = (template: TemplateConfig | EnhancedTemplateConfig): number => {
-  if (isEnhancedTemplate(template)) {
-    return template.layout.productsPerPage;
-  }
-  return template.productsPerPage;
-};
-
-const getTemplateLayoutType = (template: TemplateConfig | EnhancedTemplateConfig): string => {
-  if (isEnhancedTemplate(template)) {
-    return template.layout.type;
-  }
-  return template.layout;
-};
-
 const TemplateSelectionEnhanced = () => {
   const { user } = useAuth();
   const { businessInfo } = useBusinessInfo();
   const navigate = useNavigate();
   const location = useLocation();
   
-  const [selectedProducts, setSelectedProducts] = useState<any[]>([]);
-  const [userPlan, setUserPlan] = useState<string>('basic');
+  // Estados principales
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
+  const [selectedProducts, setSelectedProducts] = useState<Product[]>([]);
   const [generating, setGenerating] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [activeCategory, setActiveCategory] = useState<TemplateCategory>('all');
-  const [showRecommendations, setShowRecommendations] = useState(true);
   
-  // ✅ ESTADOS PARA PROGRESO MEJORADO
-  const [generationProgress, setGenerationProgress] = useState<GenerationProgress | null>(null);
-  const [showProgressDetails, setShowProgressDetails] = useState(false);
+  // Estados de límites
+  const [limits, setLimits] = useState<UsageLimits | null>(null);
+  
+  // Estados de UX
+  const [userIndustry, setUserIndustry] = useState<IndustryType | undefined>();
+  const [userPlan, setUserPlan] = useState<'basic' | 'premium'>('basic');
 
   const state = location.state as LocationState;
 
   useEffect(() => {
-  console.log('🔍 TemplateSelectionEnhanced montado');
-  
-  let productsToUse: any[] = [];
-  
-  // 1. PRIORIDAD: Buscar en localStorage (desde Products)
-  try {
-    const storedProducts = localStorage.getItem('selectedProductsData');
-    if (storedProducts) {
-      productsToUse = JSON.parse(storedProducts);
-      console.log('✅ Productos encontrados en localStorage:', productsToUse.length);
-    }
-  } catch (error) {
-    console.error('Error leyendo localStorage:', error);
-  }
-  
-  // 2. FALLBACK: Buscar en router state
-  if (productsToUse.length === 0 && state?.products && state.products.length > 0) {
-    productsToUse = state.products;
-    console.log('✅ Productos encontrados en router state:', productsToUse.length);
-  }
-  
-  // 3. VALIDAR Y USAR
-  if (productsToUse.length > 0) {
-    setSelectedProducts(productsToUse);
-    console.log('✅ Productos cargados correctamente:', productsToUse.length);
-  } else {
-    console.log('❌ No hay productos, redirigiendo...');
-    navigate('/products'); // Cambié de '/image-review' a '/products'
-    return;
-  }
+    initializeComponent();
+  }, [user]);
 
-  fetchUserPlan();
-}, [state, navigate]);
-
-  const fetchUserPlan = async () => {
+  const initializeComponent = async () => {
     if (!user) return;
-
+    
     try {
-      const { data, error } = await supabase
-        .from('users')
-        .select('plan_type')
-        .eq('id', user.id)
-        .single();
-
-      if (!error && data?.plan_type) {
-        setUserPlan(data.plan_type);
-        console.log('✅ Plan de usuario:', data.plan_type);
-      }
+      setLoading(true);
+      console.log('🔍 TemplateSelectionEnhanced montado');
+      
+      // 1. Cargar productos seleccionados desde localStorage
+      await loadSelectedProducts();
+      
+      // 2. Detectar industria del usuario (si es posible)
+      await detectUserIndustry();
+      
+      // 3. Verificar plan del usuario
+      await loadUserPlan();
+      
+      // 4. Verificar límites de catálogos
+      await loadCatalogLimits();
+      
     } catch (error) {
-      console.error('Error fetching user plan:', error);
+      console.error('Error initializing template selection:', error);
+      toast({
+        title: "Error de inicialización",
+        description: "Hubo un problema cargando la información",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
   };
 
-    // ✅ FUNCIÓN CORREGIDA: Obtener templates básicos usando tu sistema real
-      const getBasicTemplates = (): TemplateConfig[] => {
-        // ✅ Usar tu sistema de templates real
-        try {
-          const { getFreeTemplates } = require('@/lib/templates');
-          return getFreeTemplates();
-        } catch (error) {
-          console.warn('⚠️ No se pudieron cargar templates básicos, usando fallback');
-          return [
-            {
-              id: 'minimalista-gris',
-              name: 'minimalista-gris',
-              displayName: 'Minimalista Gris',
-              description: 'Diseño limpio y profesional con tonos grises elegantes',
-              isPremium: false,
-              productsPerPage: 4,
-              imageSize: { width: 400, height: 400 },
-              colors: {
-                primary: '#6B7280',
-                secondary: '#F3F4F6',
-                background: '#FFFFFF',
-                text: '#111827'
-              },
-              layout: 'grid',
-              features: ['Diseño limpio', 'Tipografía moderna', 'Espacios amplios'],
-              category: 'business'
-            }
-          ];
-        }
-      };
-
-  // ✅ FUNCIÓN CORREGIDA: Combinar todos los templates
-  const getAllTemplates = (): (TemplateConfig | EnhancedTemplateConfig)[] => {
-    const basicTemplates = getBasicTemplates();
-    const enhancedTemplates = Object.values(ENHANCED_TEMPLATES);
-    const referenceTemplates = Object.values(REFERENCE_TEMPLATES);
+  const loadSelectedProducts = async () => {
+    let productsToUse: Product[] = [];
     
-    return [...basicTemplates, ...enhancedTemplates, ...referenceTemplates];
-  };
-
-  // ✅ FUNCIÓN CORREGIDA: Filtrar templates por categoría
-  const getFilteredTemplates = (): (TemplateConfig | EnhancedTemplateConfig)[] => {
-    const allTemplates = getAllTemplates();
+    // 1. PRIORIDAD: Buscar en localStorage (desde Products)
+    try {
+      const storedProducts = localStorage.getItem('selectedProductsData');
+      if (storedProducts) {
+        productsToUse = JSON.parse(storedProducts);
+        console.log('✅ Productos encontrados en localStorage:', productsToUse.length);
+      }
+    } catch (error) {
+      console.error('Error leyendo localStorage:', error);
+    }
     
-    switch (activeCategory) {
-      case 'free':
-        return allTemplates.filter(t => !t.isPremium);
-      case 'premium':
-        return allTemplates.filter(t => t.isPremium);
-      case 'professional':
-        return Object.values(ENHANCED_TEMPLATES);
-      case 'reference':
-        return Object.values(REFERENCE_TEMPLATES);
-      default:
-        return allTemplates;
+    // 2. FALLBACK: Buscar en router state
+    if (productsToUse.length === 0 && state?.products && state.products.length > 0) {
+      productsToUse = state.products;
+      console.log('✅ Productos encontrados en router state:', productsToUse.length);
+    }
+    
+    // 3. VALIDAR Y USAR
+    if (productsToUse.length > 0) {
+      setSelectedProducts(productsToUse);
+      console.log('✅ Productos cargados correctamente:', productsToUse.length);
+    } else {
+      console.log('❌ No hay productos, redirigiendo...');
+      toast({
+        title: "No hay productos seleccionados",
+        description: "Selecciona productos primero",
+        variant: "destructive",
+      });
+      navigate('/products');
+      return;
     }
   };
 
-  // ✅ FUNCIÓN CORREGIDA: Obtener recomendaciones
-  const getRecommendedTemplates = (): EnhancedTemplateConfig[] => {
-    if (!selectedProducts.length) return [];
+  const detectUserIndustry = async () => {
+    // Intentar detectar industria desde las categorías de productos
+    if (selectedProducts.length > 0) {
+      const categories = selectedProducts
+        .map(p => p.category?.toLowerCase())
+        .filter(Boolean);
+      
+      // Lógica simple de detección por categorías de productos
+      if (categories.some(c => c?.includes('joyeria') || c?.includes('jewelry') || c?.includes('anillo') || c?.includes('collar'))) {
+        setUserIndustry('joyeria');
+      } else if (categories.some(c => c?.includes('ropa') || c?.includes('clothing') || c?.includes('vestido') || c?.includes('blusa'))) {
+        setUserIndustry('moda');
+      } else if (categories.some(c => c?.includes('electronico') || c?.includes('electronic') || c?.includes('smartphone') || c?.includes('laptop'))) {
+        setUserIndustry('electronica');
+      } else if (categories.some(c => c?.includes('ferreteria') || c?.includes('hardware') || c?.includes('herramienta') || c?.includes('tool'))) {
+        setUserIndustry('ferreteria');
+      } else if (categories.some(c => c?.includes('flor') || c?.includes('flower') || c?.includes('planta') || c?.includes('plant'))) {
+        setUserIndustry('floreria');
+      } else if (categories.some(c => c?.includes('cosmetico') || c?.includes('cosmetic') || c?.includes('maquillaje') || c?.includes('makeup'))) {
+        setUserIndustry('cosmeticos');
+      } else if (categories.some(c => c?.includes('decoracion') || c?.includes('decoration') || c?.includes('hogar') || c?.includes('home'))) {
+        setUserIndustry('decoracion');
+      } else if (categories.some(c => c?.includes('mueble') || c?.includes('furniture') || c?.includes('silla') || c?.includes('mesa'))) {
+        setUserIndustry('muebles');
+      }
+    }
     
-    // ✅ Fix: Use a default industry value instead of trying to access non-existent property
-    const businessType = 'general'; // businessInfo?.industry is not available
-    return getTemplateRecommendations(selectedProducts, businessType).slice(0, 3);
+    // También podríamos detectar desde el nombre del negocio
+    if (!userIndustry && businessInfo?.business_name) {
+      const businessName = businessInfo.business_name.toLowerCase();
+      
+      if (businessName.includes('joyeria') || businessName.includes('jewelry')) {
+        setUserIndustry('joyeria');
+      } else if (businessName.includes('moda') || businessName.includes('fashion') || businessName.includes('boutique')) {
+        setUserIndustry('moda');
+      } else if (businessName.includes('electronico') || businessName.includes('tech') || businessName.includes('digital')) {
+        setUserIndustry('electronica');
+      } else if (businessName.includes('ferreteria') || businessName.includes('hardware') || businessName.includes('construccion')) {
+        setUserIndustry('ferreteria');
+      } else if (businessName.includes('flor') || businessName.includes('flower') || businessName.includes('jardin')) {
+        setUserIndustry('floreria');
+      } else if (businessName.includes('beauty') || businessName.includes('belleza') || businessName.includes('cosmeticos')) {
+        setUserIndustry('cosmeticos');
+      } else if (businessName.includes('decoracion') || businessName.includes('hogar') || businessName.includes('home')) {
+        setUserIndustry('decoracion');
+      } else if (businessName.includes('muebles') || businessName.includes('furniture')) {
+        setUserIndustry('muebles');
+      }
+    }
   };
 
-  // ✅ FUNCIÓN CORREGIDA: Obtener template por ID
-  const getTemplateById = (templateId: string): TemplateConfig | EnhancedTemplateConfig | null => {
-    const allTemplates = getAllTemplates();
-    return allTemplates.find(t => t.id === templateId) || null;
+  const loadUserPlan = async () => {
+    if (!user) return;
+    
+    try {
+      // Consultar plan actual del usuario
+      const { data: subscription } = await (window as any).supabase
+        .from('subscriptions')
+        .select(`
+          status,
+          credit_packages (
+            package_type,
+            name
+          )
+        `)
+        .eq('user_id', user.id)
+        .in('status', ['active', 'trialing'])
+        .maybeSingle();
+      
+      if (subscription?.credit_packages?.package_type) {
+        const packageType = subscription.credit_packages.package_type;
+        setUserPlan(packageType === 'basic' || packageType === 'free' ? 'basic' : 'premium');
+        console.log('✅ Plan de usuario:', packageType);
+      }
+    } catch (error) {
+      console.error('Error loading user plan:', error);
+      // Mantener 'basic' como default
+    }
   };
 
-  // ✅ FUNCIÓN PRINCIPAL MEJORADA: Generar PDF
-  const handleGeneratePDF = async (templateId: string) => {
-    if (!selectedProducts.length) {
+  const loadCatalogLimits = async () => {
+    if (!user) return;
+    
+    try {
+      const limitsData = await checkLimits(user.id);
+      setLimits(limitsData);
+    } catch (error) {
+      console.error('Error loading catalog limits:', error);
+    }
+  };
+
+  const handleTemplateSelect = (templateId: string) => {
+    setSelectedTemplate(templateId);
+    console.log('🎨 Template seleccionado:', templateId);
+  };
+
+  const handleGenerateCatalog = async () => {
+    if (!selectedTemplate || !user || !businessInfo) {
       toast({
-        title: "No hay productos",
-        description: "No se encontraron productos para el catálogo",
+        title: "Información faltante",
+        description: "Selecciona un template y asegúrate de tener la información del negocio completa",
         variant: "destructive",
       });
       return;
     }
 
-    if (!businessInfo) {
+    if (!limits?.canGenerate) {
       toast({
-        title: "Configura tu negocio",
-        description: "Ve a configuración para completar la información",
+        title: "Límite alcanzado",
+        description: limits?.message || "No puedes generar más catálogos",
         variant: "destructive",
       });
       return;
     }
 
     setGenerating(true);
-    setSelectedTemplate(templateId);
-    setGenerationProgress(null);
-    setShowProgressDetails(false);
-
+    
     try {
-      console.log('🚀 GENERANDO PDF MEJORADO:', templateId);
+      console.log('🚀 Iniciando generación con nuevo sistema...');
       
-      // ✅ VERIFICAR TIPO DE TEMPLATE
-      const isReferenceTemplate = REFERENCE_TEMPLATES[templateId];
-      const isEnhancedTemplate = ENHANCED_TEMPLATES[templateId];
-      const isBasicTemplate = getTemplateById(templateId);
-      
-      let templateType = 'basic';
-      if (isReferenceTemplate) templateType = 'reference';
-      else if (isEnhancedTemplate) templateType = 'professional';
-      
-      console.log(`✨ Tipo de template: ${templateType}`);
-
-      // ✅ VALIDAR PLAN PREMIUM
-      const template = isReferenceTemplate || isEnhancedTemplate || isBasicTemplate;
-      if (template?.isPremium && userPlan === 'basic') {
-        toast({
-          title: "Template Premium",
-          description: "Actualiza tu plan para acceder a este template",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // ✅ MOSTRAR PROGRESO DESPUÉS DE 1 SEGUNDO
-      setTimeout(() => {
-        setShowProgressDetails(true);
-      }, 1000);
-
-      // ✅ GENERAR Y DESCARGAR PDF CON SISTEMA MEJORADO
-      const result = await generateCatalogWithProgress(
+      // Usar nuestro nuevo generador unificado
+      const result = await generateCatalog(
         selectedProducts,
-        businessInfo,
-        templateId,
-        (progress) => {
-          console.log(`📊 Progreso: ${progress.phase} - ${progress.message}`);
-          setGenerationProgress(progress);
-        }
+        {
+          business_name: businessInfo.business_name,
+          email: businessInfo.email,
+          phone: businessInfo.phone,
+          website: businessInfo.website,
+          address: businessInfo.address
+        },
+        selectedTemplate,
+        user.id
       );
       
       if (result.success) {
         toast({
-          title: "🎉 ¡Catálogo profesional generado!",
-          description: `PDF ${templateType} descargado exitosamente (${selectedProducts.length} productos)`,
-          variant: "default",
+          title: "🎉 ¡Catálogo generado exitosamente!",
+          description: result.message,
         });
 
-        // ✅ OPCIONAL: Guardar registro en BD
-        await saveCatalogRecord(templateId, templateType);
+        // Limpiar localStorage
+        localStorage.removeItem('selectedTemplate');
+        localStorage.removeItem('selectedProducts');
+        localStorage.removeItem('selectedProductsData');
         
-        console.log('✅ PDF mejorado generado exitosamente:', result);
+        // Actualizar límites
+        await loadCatalogLimits();
+        
+        // Redirigir a catálogos
+        navigate('/catalogs');
+        
       } else {
-        throw new Error(result.error || 'Error generando PDF mejorado');
+        throw new Error(result.message || 'Error desconocido');
       }
 
     } catch (error) {
-      console.error('❌ Error generando PDF mejorado:', error);
+      console.error('❌ Error generando catálogo:', error);
       toast({
-        title: "Error generando PDF",
-        description: error instanceof Error ? error.message : "No se pudo generar el catálogo",
+        title: "Error al generar catálogo",
+        description: error instanceof Error ? error.message : "Error desconocido",
         variant: "destructive",
       });
     } finally {
       setGenerating(false);
-      setSelectedTemplate(null);
-      setGenerationProgress(null);
-      setShowProgressDetails(false);
     }
   };
 
-  // ✅ FUNCIÓN: Guardar registro
-  const saveCatalogRecord = async (templateId: string, templateType: string) => {
-    try {
-      if (!user) return;
-      
-      const template = ENHANCED_TEMPLATES[templateId] || REFERENCE_TEMPLATES[templateId] || getTemplateById(templateId);
-      
-      console.log(`💾 Guardando catálogo: ${templateId} (${templateType})`);
-      
-      const catalogData = {
-        user_id: user.id,
-        name: `Catálogo ${template?.displayName || templateId} - ${new Date().toLocaleDateString('es-MX')}`,
-        product_ids: selectedProducts.map(p => p.id),
-        template_style: templateId,
-        template_type: templateType,
-        brand_colors: {
-          primary: businessInfo?.primary_color || (template as any)?.colors?.primary || '#3B82F6',
-          secondary: businessInfo?.secondary_color || (template as any)?.colors?.secondary || '#1F2937'
-        },
-        logo_url: businessInfo?.logo_url || null,
-        show_retail_prices: true,
-        show_wholesale_prices: false,
-        total_products: selectedProducts.length,
-        credits_used: 0
-      };
-      
-      const { error } = await supabase.from('catalogs').insert(catalogData);
-      
-      if (error) {
-        console.warn('⚠️ No se pudo guardar registro:', error.message);
-      } else {
-        console.log('✅ Registro de catálogo guardado exitosamente');
-      }
-    } catch (error) {
-      console.warn('⚠️ Error guardando registro:', error);
-    }
-  };
-
-  // ✅ COMPONENTE DE TEMPLATE CARD MEJORADO
-  const TemplateCard = ({ template }: { template: TemplateConfig | EnhancedTemplateConfig }) => {
-    const isLocked = template.isPremium && userPlan === 'basic';
-    const isGenerating = generating && selectedTemplate === template.id;
-    
-    // Determinar tipo de template
-    const isReference = REFERENCE_TEMPLATES[template.id];
-    const isEnhanced = ENHANCED_TEMPLATES[template.id];
-    const templateType = isReference ? 'reference' : isEnhanced ? 'professional' : 'basic';
-
-    return (
-      <Card className={`overflow-hidden transition-all duration-200 hover:shadow-xl ${isLocked ? 'opacity-70' : ''}`}>
-        {/* ✅ PREVIEW VISUAL MEJORADO */}
-        <div className="relative h-48 overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100">
-          {/* Template preview placeholder */}
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="text-center">
-              <div className="text-4xl mb-2">
-                {templateType === 'reference' ? '🎯' : 
-                 templateType === 'professional' ? '✨' : '📄'}
-              </div>
-              <div className="text-sm text-gray-600">{template.displayName}</div>
-            </div>
-          </div>
-          
-          {/* Template badges */}
-          <div className="absolute top-2 left-2 space-y-1">
-            <Badge variant="secondary" className="text-xs bg-white/90 text-gray-700">
-              {template.category}
-            </Badge>
-            {templateType === 'reference' && (
-              <Badge className="bg-purple-500 text-white text-xs">
-                <Sparkles className="w-3 h-3 mr-1" />
-                Inspirado en Referencias
-              </Badge>
-            )}
-            {templateType === 'professional' && (
-              <Badge className="bg-blue-500 text-white text-xs">
-                <Zap className="w-3 h-3 mr-1" />
-                Profesional
-              </Badge>
-            )}
-          </div>
-          
-          {/* Lock overlay */}
-          {isLocked && (
-            <div className="absolute inset-0 bg-black/30 backdrop-blur-[1px] flex items-center justify-center">
-              <div className="bg-white rounded-full p-3 shadow-lg">
-                <Crown className="w-6 h-6 text-yellow-500" />
-              </div>
-            </div>
-          )}
-
-          {/* ✅ QUALITY BADGES */}
-          <div className="absolute top-2 right-2 space-y-1">
-            <Badge className="bg-gradient-to-r from-green-500 to-blue-500 text-white text-xs flex items-center gap-1">
-              <Image className="w-3 h-3" />
-              PNG HD
-            </Badge>
-            <Badge className="bg-purple-500 text-white text-xs flex items-center gap-1">
-              <FileText className="w-3 h-3" />
-              300 DPI
-            </Badge>
-          </div>
-        </div>
-
-        <CardContent className="p-4">
-          <div className="flex justify-between items-start mb-3">
-            <div className="flex-1 min-w-0 pr-2">
-              <h3 className="font-semibold text-lg truncate">{template.displayName}</h3>
-              <p className="text-sm text-gray-600 mb-2 line-clamp-2">{template.description}</p>
-            </div>
-            {template.isPremium && (
-              <Badge variant="outline" className="bg-gradient-to-r from-purple-500 to-pink-500 text-white border-none shrink-0">
-                <Crown className="w-3 h-3 mr-1" />
-                Premium
-              </Badge>
-            )}
-          </div>
-
-          {/* ✅ STATS ESPECÍFICOS POR TIPO */}
-          <div className="text-xs text-gray-500 mb-4 grid grid-cols-2 gap-1">
-            {isEnhancedTemplate(template) ? (
-              <>
-                <div>• {template.layout.productsPerPage} por página</div>
-                <div>• {template.layout.type} layout</div>
-                <div>• {templateType} quality</div>
-                <div>• Elementos {template.elements?.geometricShapes ? 'gráficos' : 'básicos'}</div>
-              </>
-            ) : (
-              <>
-                <div>• {template.productsPerPage} por página</div>
-                <div>• {template.layout} diseño</div>
-                <div>• Calidad estándar</div>
-                <div>• Estilo clásico</div>
-              </>
-            )}
-          </div>
-
-          {/* ✅ BOTÓN PRINCIPAL */}
-          <Button
-            onClick={() => handleGeneratePDF(template.id)}
-            disabled={isLocked || generating}
-            className="w-full"
-            variant={isLocked ? "outline" : "default"}
-          >
-            {isGenerating ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Generando {templateType === 'reference' ? 'Referencia' : templateType === 'professional' ? 'Profesional' : 'Básico'}...
-              </>
-            ) : isLocked ? (
-              <>
-                <Crown className="w-4 h-4 mr-2" />
-                Requiere Premium
-              </>
-            ) : (
-              <>
-                <Download className="w-4 h-4 mr-2" />
-                Generar PDF {templateType === 'reference' ? '🎯' : templateType === 'professional' ? '✨' : '📄'}
-              </>
-            )}
-          </Button>
-        </CardContent>
-      </Card>
-    );
-  };
-
+  // Estados de carga
   if (loading) {
     return (
       <ProtectedRoute>
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-          <div className="text-center">
-            <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <p className="text-gray-600">Preparando sistema de templates mejorado...</p>
+        <AppLayout>
+          <div className="flex items-center justify-center py-12">
+            <div className="text-center">
+              <Loader2 className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+              <p className="text-gray-600">Cargando sistema de templates...</p>
+            </div>
           </div>
-        </div>
+        </AppLayout>
       </ProtectedRoute>
     );
   }
 
-  const filteredTemplates = getFilteredTemplates();
-  const recommendedTemplates = getRecommendedTemplates();
+  // Header actions
+  const actions = (
+    <div className="flex items-center gap-3">
+      <div className="hidden md:block">
+        <Badge variant="outline" className="flex items-center gap-1">
+          <Package className="w-3 h-3" />
+          {selectedProducts.length} productos
+        </Badge>
+      </div>
+      
+      {limits && (
+        <div className="hidden lg:block text-sm text-gray-600">
+          {limits.catalogsLimit === 'unlimited' 
+            ? 'Catálogos ilimitados' 
+            : `${limits.remainingCatalogs}/${limits.catalogsLimit} restantes`
+          }
+        </div>
+      )}
+      
+      <Button 
+        onClick={handleGenerateCatalog}
+        disabled={!selectedTemplate || generating || !limits?.canGenerate}
+        className="flex items-center gap-2"
+      >
+        {generating ? (
+          <>
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Generando...
+          </>
+        ) : (
+          <>
+            <Palette className="h-4 w-4" />
+            Generar Catálogo
+            <ArrowRight className="h-4 w-4" />
+          </>
+        )}
+      </Button>
+    </div>
+  );
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-gray-50">
-        {/* ✅ HEADER MEJORADO */}
-        <header className="bg-white border-b">
-          <div className="max-w-7xl mx-auto px-4 py-6">
-            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-              <div className="flex items-center space-x-4">
+      <AppLayout actions={actions}>
+        <div className="space-y-6">
+          {/* Header con información */}
+          <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+            <div>
+              <div className="flex items-center gap-3 mb-2">
                 <Button 
                   variant="ghost" 
-                  onClick={() => navigate('/image-review')}
-                  className="flex items-center space-x-2"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                  <span>Volver a Biblioteca</span>
-                </Button>
-                <div>
-                  <h1 className="text-2xl font-bold">
-                    Sistema de Templates Profesionales
-                    <span className="ml-2 text-sm bg-gradient-to-r from-purple-500 to-pink-500 text-white px-2 py-1 rounded">
-                      ✨ MEJORADO
-                    </span>
-                  </h1>
-                  <p className="text-gray-600">
-                    {filteredTemplates.length} templates • {selectedProducts.length} productos • 
-                    <span className="text-green-600 font-semibold ml-1">
-                      <Image className="w-4 h-4 inline mr-1" />
-                      PNG sin fondo + 300 DPI
-                    </span>
-                  </p>
-                </div>
-              </div>
-              
-              {userPlan === 'basic' && (
-                <Button 
-                  onClick={() => navigate('/checkout')}
-                  className="bg-gradient-to-r from-purple-500 to-pink-500 text-white"
-                >
-                  <Crown className="w-4 h-4 mr-2" />
-                  Actualizar a Premium
-                </Button>
-              )}
-            </div>
-          </div>
-        </header>
-        
-        {/* ✅ BARRA DE PROGRESO PROFESIONAL */}
-        {generating && generationProgress && showProgressDetails && (
-          <div className="bg-gradient-to-r from-blue-50 to-green-50 border-b border-blue-200">
-            <div className="max-w-7xl mx-auto px-4 py-4">
-              <div className="flex items-center gap-4">
-                <div className="animate-spin w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full"></div>
-                <div className="flex-1">
-                  <div className="text-sm text-blue-800 font-medium mb-1">
-                    {generationProgress.message}
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
-                    <div 
-                      className="bg-gradient-to-r from-blue-500 to-green-500 h-2 rounded-full transition-all duration-300" 
-                      style={{ 
-                        width: `${(generationProgress.currentProduct / generationProgress.totalProducts) * 100}%` 
-                      }}
-                    />
-                  </div>
-                  <div className="flex justify-between text-xs text-blue-600">
-                    <span>
-                      {generationProgress.phase === 'processing' ? '🔄 Optimizando imágenes HD...' :
-                       generationProgress.phase === 'generating' ? '📄 Generando PDF profesional...' :
-                       generationProgress.phase === 'complete' ? '✅ ¡PDF completado!' : '🚀 Iniciando generación...'}
-                    </span>
-                    <span>
-                      {generationProgress.currentProduct}/{generationProgress.totalProducts} productos • 
-                      Página {generationProgress.currentPage}/{generationProgress.totalPages}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-        
-        <main className="max-w-7xl mx-auto px-4 py-6">
-          {/* ✅ FILTROS DE CATEGORÍA */}
-          <div className="mb-8">
-            <div className="flex flex-wrap gap-2 mb-4">
-              {([
-                { key: 'all', label: 'Todos', icon: Layout },
-                { key: 'reference', label: 'Inspirados en Referencias', icon: Sparkles },
-                { key: 'professional', label: 'Profesionales', icon: Zap },
-                { key: 'premium', label: 'Premium', icon: Crown },
-                { key: 'free', label: 'Gratuitos', icon: Check }
-              ] as const).map(({ key, label, icon: Icon }) => (
-                <Button
-                  key={key}
-                  variant={activeCategory === key ? "default" : "outline"}
                   size="sm"
-                  onClick={() => setActiveCategory(key)}
+                  onClick={() => navigate('/products')}
                   className="flex items-center gap-2"
                 >
-                  <Icon className="w-4 h-4" />
-                  {label}
-                </Button>
-              ))}
-            </div>
-          </div>
-
-          {/* ✅ RECOMENDACIONES INTELIGENTES */}
-          {showRecommendations && recommendedTemplates.length > 0 && activeCategory === 'all' && (
-            <section className="mb-12">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
-                    <Sparkles className="w-5 h-5 text-purple-500" />
-                    Recomendado para tu Negocio
-                  </h2>
-                  <p className="text-gray-600">Templates perfectos para tu tipo de productos</p>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowRecommendations(false)}
-                >
-                  Ocultar
+                  <ArrowLeft className="w-4 h-4" />
+                  Volver a Productos
                 </Button>
               </div>
               
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {recommendedTemplates.map(template => (
-                  <TemplateCard key={template.id} template={template} />
-                ))}
-              </div>
-            </section>
-          )}
-
-          {/* ✅ TEMPLATES FILTRADOS */}
-          <section>
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h2 className="text-xl font-semibold text-gray-900">
-                  {activeCategory === 'reference' ? '🎯 Templates Inspirados en Referencias' :
-                   activeCategory === 'professional' ? '✨ Templates Profesionales' :
-                   activeCategory === 'premium' ? '👑 Templates Premium' :
-                   activeCategory === 'free' ? '🆓 Templates Gratuitos' :
-                   '🎨 Todos los Templates'}
-                </h2>
-                <p className="text-gray-600">
-                  {filteredTemplates.length} templates disponibles • PDF 300 DPI • PNG sin fondo negro
-                </p>
-              </div>
-              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                <FileText className="w-3 h-3 mr-1" />
-                {filteredTemplates.length} disponibles
-              </Badge>
+              <h1 className="text-2xl font-bold text-gray-900">
+                Selecciona tu Template
+                <Sparkles className="w-6 h-6 inline ml-2 text-purple-500" />
+              </h1>
+              <p className="text-gray-600">
+                Elige el diseño perfecto para tu catálogo de {selectedProducts.length} productos
+              </p>
             </div>
             
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredTemplates.map(template => (
-                <TemplateCard key={template.id} template={template} />
-              ))}
-            </div>
-          </section>
-        </main>
-
-        {/* ✅ FLOATING ACTION BAR MEJORADO */}
-        {selectedProducts.length > 0 && (
-          <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-t border-gray-200 shadow-xl">
-            <div className="max-w-7xl mx-auto px-4 py-4">
-              <div className="flex flex-col sm:flex-row justify-between items-center gap-3">
-                <div className="text-sm text-gray-700">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                    <span className="font-medium">{selectedProducts.length} productos PNG listos</span>
+            {/* Mostrar info del plan en móvil */}
+            <div className="sm:hidden w-full">
+              <Card>
+                <CardContent className="p-3">
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-gray-600">
+                      {selectedProducts.length} productos seleccionados
+                    </span>
+                    {limits && (
+                      <Badge variant="outline">
+                        {limits.catalogsLimit === 'unlimited' 
+                          ? 'Ilimitados' 
+                          : `${limits.remainingCatalogs} restantes`
+                        }
+                      </Badge>
+                    )}
                   </div>
-                </div>
-                <div className="text-sm font-semibold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-                  🚀 Sistema Mejorado • Templates Profesionales • PNG HD • 300 DPI
-                </div>
-              </div>
+                </CardContent>
+              </Card>
             </div>
           </div>
-        )}
-      </div>
+
+          {/* Alert de límites si es necesario */}
+          {limits && !limits.canGenerate && (
+            <Alert className="border-red-200 bg-red-50">
+              <AlertTriangle className="h-4 w-4 text-red-600" />
+              <AlertDescription className="text-red-800">
+                <strong>Límite alcanzado:</strong> {limits.message}
+                <Button 
+                  variant="link" 
+                  className="h-auto p-0 ml-2 text-red-600"
+                  onClick={() => navigate('/pricing')}
+                >
+                  Ver planes
+                </Button>
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {/* Selector inteligente de templates */}
+          <SmartTemplateSelector
+            selectedTemplate={selectedTemplate}
+            onTemplateSelect={handleTemplateSelect}
+            userPlan={userPlan}
+            userIndustry={userIndustry}
+            productCount={selectedProducts.length}
+          />
+
+          {/* Template seleccionado */}
+          {selectedTemplate && limits?.canGenerate && (
+            <Card className="border-green-200 bg-green-50">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
+                  <div className="flex-1">
+                    <h4 className="font-medium text-green-900">
+                      ¡Template seleccionado!
+                    </h4>
+                    <p className="text-sm text-green-700">
+                      Listo para generar tu catálogo con {selectedProducts.length} productos
+                    </p>
+                  </div>
+                  <Button 
+                    onClick={handleGenerateCatalog}
+                    disabled={generating}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    {generating ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      'Generar Ahora'
+                    )}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </AppLayout>
     </ProtectedRoute>
   );
 };
