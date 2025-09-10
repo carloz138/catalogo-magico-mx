@@ -1,5 +1,8 @@
 // src/lib/templates/industry-templates.ts
-// 🎯 SISTEMA DE TEMPLATES POR INDUSTRIA CON DENSIDADES APROPIADAS
+// 🎯 SISTEMA DE TEMPLATES ACTUALIZADO - Enero 2025
+
+// ===== IMPORTS =====
+import { TEMPLATES_ENERO_2025, CHANGELOG_ENERO_2025 } from './templates-enero-2025';
 
 export type ProductDensity = 'alta' | 'media' | 'baja';
 export type IndustryType = 'joyeria' | 'moda' | 'electronica' | 'ferreteria' | 'floreria' | 'cosmeticos' | 'decoracion' | 'muebles';
@@ -48,7 +51,6 @@ export interface IndustryTemplate {
 }
 
 // ===== CONFIGURACIONES POR DENSIDAD =====
-
 const DENSITY_CONFIG = {
   alta: {
     productsPerPage: 12,
@@ -70,11 +72,10 @@ const DENSITY_CONFIG = {
   }
 };
 
-// ===== TEMPLATES POR INDUSTRIA =====
-
-export const INDUSTRY_TEMPLATES: Record<string, IndustryTemplate> = {
-
-  // ===== JOYERÍA (DENSIDAD ALTA) =====
+// ===== TEMPLATES ORIGINALES =====
+const ORIGINAL_TEMPLATES: Record<string, IndustryTemplate> = {
+  
+  // JOYERÍA
   'joyeria-elegante': {
     id: 'joyeria-elegante',
     name: 'joyeria-elegante',
@@ -143,7 +144,7 @@ export const INDUSTRY_TEMPLATES: Record<string, IndustryTemplate> = {
     }
   },
 
-  // ===== MODA (DENSIDAD MEDIA) =====
+  // MODA
   'moda-boutique': {
     id: 'moda-boutique',
     name: 'moda-boutique',
@@ -212,7 +213,7 @@ export const INDUSTRY_TEMPLATES: Record<string, IndustryTemplate> = {
     }
   },
 
-  // ===== ELECTRÓNICOS (DENSIDAD BAJA) =====
+  // ELECTRÓNICOS
   'electronica-tech': {
     id: 'electronica-tech',
     name: 'electronica-tech',
@@ -281,7 +282,7 @@ export const INDUSTRY_TEMPLATES: Record<string, IndustryTemplate> = {
     }
   },
 
-  // ===== FERRETERÍA (DENSIDAD BAJA) =====
+  // FERRETERÍA
   'ferreteria-pro': {
     id: 'ferreteria-pro',
     name: 'ferreteria-pro',
@@ -316,7 +317,7 @@ export const INDUSTRY_TEMPLATES: Record<string, IndustryTemplate> = {
     }
   },
 
-  // ===== FLORERÍA (DENSIDAD ALTA) =====
+  // FLORERÍA
   'floreria-natural': {
     id: 'floreria-natural',
     name: 'floreria-natural',
@@ -385,7 +386,7 @@ export const INDUSTRY_TEMPLATES: Record<string, IndustryTemplate> = {
     }
   },
 
-  // ===== COSMÉTICOS (DENSIDAD MEDIA) =====
+  // COSMÉTICOS
   'cosmeticos-beauty': {
     id: 'cosmeticos-beauty',
     name: 'cosmeticos-beauty',
@@ -420,7 +421,7 @@ export const INDUSTRY_TEMPLATES: Record<string, IndustryTemplate> = {
     }
   },
 
-  // ===== MUEBLES (DENSIDAD BAJA) =====
+  // MUEBLES
   'muebles-hogar': {
     id: 'muebles-hogar',
     name: 'muebles-hogar',
@@ -456,43 +457,13 @@ export const INDUSTRY_TEMPLATES: Record<string, IndustryTemplate> = {
   }
 };
 
-// ===== HELPER FUNCTIONS =====
-
-export const getTemplatesByIndustry = (industry: IndustryType): IndustryTemplate[] => {
-  return Object.values(INDUSTRY_TEMPLATES).filter(template => template.industry === industry);
-};
-
-export const getTemplatesByDensity = (density: ProductDensity): IndustryTemplate[] => {
-  return Object.values(INDUSTRY_TEMPLATES).filter(template => template.density === density);
-};
-
-export const getFreeTemplates = (): IndustryTemplate[] => {
-  return Object.values(INDUSTRY_TEMPLATES).filter(template => !template.isPremium);
-};
-
-export const getPremiumTemplates = (): IndustryTemplate[] => {
-  return Object.values(INDUSTRY_TEMPLATES).filter(template => template.isPremium);
-};
-
-export const getTemplateById = (id: string): IndustryTemplate | null => {
-  return INDUSTRY_TEMPLATES[id] || null;
-};
-
-export const getRecommendedTemplates = (industry?: IndustryType): IndustryTemplate[] => {
-  if (industry) {
-    return getTemplatesByIndustry(industry);
-  }
-  
-  // Templates recomendados generales (uno de cada densidad)
-  return [
-    INDUSTRY_TEMPLATES['moda-boutique'],      // Media densidad
-    INDUSTRY_TEMPLATES['joyeria-elegante'],   // Alta densidad  
-    INDUSTRY_TEMPLATES['electronica-tech']    // Baja densidad
-  ];
+// ===== COMBINANDO TODOS LOS TEMPLATES =====
+export const INDUSTRY_TEMPLATES: Record<string, IndustryTemplate> = {
+  ...ORIGINAL_TEMPLATES,
+  ...TEMPLATES_ENERO_2025  // 🎯 NUEVOS TEMPLATES INTEGRADOS
 };
 
 // ===== MAPEO DE INDUSTRIAS =====
-
 export const INDUSTRY_MAP = {
   joyeria: {
     name: 'Joyería',
@@ -543,3 +514,107 @@ export const INDUSTRY_MAP = {
     icon: '🪑'
   }
 } as const;
+
+// ===== HELPER FUNCTIONS ACTUALIZADAS =====
+
+export const getTemplatesByIndustry = (industry: IndustryType): IndustryTemplate[] => {
+  return Object.values(INDUSTRY_TEMPLATES).filter(template => template.industry === industry);
+};
+
+export const getTemplatesByDensity = (density: ProductDensity): IndustryTemplate[] => {
+  return Object.values(INDUSTRY_TEMPLATES).filter(template => template.density === density);
+};
+
+export const getFreeTemplates = (): IndustryTemplate[] => {
+  return Object.values(INDUSTRY_TEMPLATES).filter(template => !template.isPremium);
+};
+
+export const getPremiumTemplates = (): IndustryTemplate[] => {
+  return Object.values(INDUSTRY_TEMPLATES).filter(template => template.isPremium);
+};
+
+export const getTemplateById = (id: string): IndustryTemplate | null => {
+  return INDUSTRY_TEMPLATES[id] || null;
+};
+
+// ===== RECOMENDACIONES MEJORADAS CON NUEVOS TEMPLATES =====
+export const getRecommendedTemplates = (industry?: IndustryType, productCount?: number): IndustryTemplate[] => {
+  let recommendations: IndustryTemplate[] = [];
+  
+  // Priorizar nuevos templates por industria
+  if (industry) {
+    const industryTemplates = getTemplatesByIndustry(industry);
+    // Poner nuevos templates primero
+    const nuevosTemplates = industryTemplates.filter(t => Object.keys(TEMPLATES_ENERO_2025).includes(t.id));
+    const originalTemplates = industryTemplates.filter(t => !Object.keys(TEMPLATES_ENERO_2025).includes(t.id));
+    recommendations.push(...nuevosTemplates, ...originalTemplates);
+  }
+  
+  // Recomendar por densidad según cantidad de productos
+  if (productCount) {
+    const recommendedDensity: ProductDensity = 
+      productCount <= 4 ? 'baja' : 
+      productCount <= 8 ? 'media' : 'alta';
+    
+    const densityTemplates = getTemplatesByDensity(recommendedDensity)
+      .filter(t => !recommendations.find(r => r.id === t.id));
+    recommendations.push(...densityTemplates.slice(0, 2));
+  }
+  
+  // Si no hay suficientes, agregar populares (priorizando nuevos)
+  if (recommendations.length < 4) {
+    const popular = [
+      // NUEVOS TEMPLATES PRIMERO
+      INDUSTRY_TEMPLATES['floreria-elegante-rosa'],
+      INDUSTRY_TEMPLATES['moda-magazine-pro'],
+      INDUSTRY_TEMPLATES['floreria-vintage-pastel'],
+      INDUSTRY_TEMPLATES['moda-boutique-luxury'],
+      // ORIGINALES
+      INDUSTRY_TEMPLATES['moda-boutique'],
+      INDUSTRY_TEMPLATES['joyeria-elegante'],
+      INDUSTRY_TEMPLATES['electronica-tech']
+    ].filter(t => t && !recommendations.find(r => r.id === t.id));
+    recommendations.push(...popular);
+  }
+  
+  return recommendations.slice(0, 6);
+};
+
+// ===== ESTADÍSTICAS DEL SISTEMA =====
+export const getTemplateStats = () => {
+  const allTemplates = Object.values(INDUSTRY_TEMPLATES);
+  const newTemplates = Object.values(TEMPLATES_ENERO_2025);
+  
+  return {
+    total: allTemplates.length,
+    nuevos: newTemplates.length,
+    byIndustry: Object.keys(INDUSTRY_MAP).reduce((acc, industry) => {
+      acc[industry] = getTemplatesByIndustry(industry as IndustryType).length;
+      return acc;
+    }, {} as Record<string, number>),
+    byDensity: {
+      alta: getTemplatesByDensity('alta').length,
+      media: getTemplatesByDensity('media').length,
+      baja: getTemplatesByDensity('baja').length
+    },
+    byPremium: {
+      free: getFreeTemplates().length,
+      premium: getPremiumTemplates().length
+    },
+    changelog: CHANGELOG_ENERO_2025
+  };
+};
+
+// ===== NUEVAS FUNCIONES PARA GESTIÓN =====
+export const getNewTemplates = (): IndustryTemplate[] => {
+  return Object.values(TEMPLATES_ENERO_2025);
+};
+
+export const getTemplatesByBatch = (batch: 'enero-2025' | 'original'): IndustryTemplate[] => {
+  if (batch === 'enero-2025') {
+    return Object.values(TEMPLATES_ENERO_2025);
+  }
+  return Object.values(ORIGINAL_TEMPLATES);
+};
+
+export default INDUSTRY_TEMPLATES;
