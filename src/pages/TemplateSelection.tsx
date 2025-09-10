@@ -176,7 +176,7 @@ const TemplateSelection = () => {
       } else if (businessName.includes('beauty') || businessName.includes('belleza') || businessName.includes('cosmeticos')) {
         setUserIndustry('cosmeticos');
       } else if (businessName.includes('decoracion') || businessName.includes('hogar') || businessName.includes('home')) {
-        setUserIndustria('decoracion');
+        setUserIndustry('decoracion');
       } else if (businessName.includes('muebles') || businessName.includes('furniture')) {
         setUserIndustry('muebles');
       }
