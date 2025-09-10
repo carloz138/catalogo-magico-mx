@@ -62,88 +62,97 @@ export const UsageDashboard = () => {
       setError(null);
       
       const currentMonth = parseInt(
-        new Date().toISOString().slice(0, 7).replace('-', '') + 
-        new Date().toISOString().slice(5, 7)
-      ); // Format: YYYYMM
+        new Date().getFullYear().toString() + 
+        new Date().getMonth().toString().padStart(2, '0')
+      ); // Format: YYYYMM (ej: 202509)
 
-      // 1. Obtener uso del mes actual desde catalog_usage
+      // 1. Query a catalog_usage (tabla real pero no en tipos)
       const { data: catalogUsage, error: catalogError } = await supabase
         .from('catalog_usage' as any)
-        .select('*')
+        .select('catalogs_generated, uploads_used')
         .eq('user_id', user.id)
         .eq('usage_month', currentMonth)
-        .single();
+        .maybeSingle();
 
       if (catalogError && catalogError.code !== 'PGRST116') {
         console.error('Error fetching catalog usage:', catalogError);
       }
 
-      // 2. Obtener suscripción activa del usuario
+      // 2. Query a subscriptions usando el campo correcto
       const { data: subscription, error: subError } = await supabase
         .from('subscriptions')
-        .select(`
-          *,
-          credit_packages (
-            name,
-            credits,
-            max_catalogs,
-            max_uploads,
-            price_mxn
-          )
-        `)
+        .select('package_id, status')
         .eq('user_id', user.id)
-        .eq('is_active', true)
-        .single();
+        .in('status', ['active', 'trialing']) // Estados activos
+        .maybeSingle();
 
       if (subError) {
         console.error('Error fetching subscription:', subError);
-        throw new Error('No se pudo obtener información de suscripción');
       }
 
-      // 3. Obtener créditos restantes
+      if (!subscription) {
+        setUsage(null);
+        return;
+      }
+
+      // 3. Query a credit_packages para obtener detalles del plan
+      const { data: planData, error: planError } = await supabase
+        .from('credit_packages')
+        .select('name, credits, max_catalogs, max_uploads, price_mxn')
+        .eq('id', subscription.package_id)
+        .single();
+
+      if (planError) {
+        console.error('Error fetching plan data:', planError);
+        throw new Error('No se pudo obtener información del plan');
+      }
+
+      // 4. Query a credit_usage para obtener créditos restantes
       const { data: creditData, error: creditError } = await supabase
         .from('credit_usage')
         .select('credits_remaining')
         .eq('user_id', user.id)
-        .single();
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
       if (creditError && creditError.code !== 'PGRST116') {
         console.error('Error fetching credits:', creditError);
       }
 
-      // 4. Construir datos de uso
-      const planData = subscription?.credit_packages;
+      // 5. Construir datos de forma segura
       const currentUsage = catalogUsage || { 
         catalogs_generated: 0, 
         uploads_used: 0 
       };
-      const creditsRemaining = creditData?.credits_remaining || planData?.credits || 0;
-
-      const isUnlimitedCatalogs = planData?.max_catalogs === 0;
-      const isUnlimitedUploads = planData?.max_uploads === 0;
+      
+      const creditsRemaining = creditData?.credits_remaining || planData.credits || 0;
+      
+      const isUnlimitedCatalogs = planData.max_catalogs === null || planData.max_catalogs === 0;
+      const isUnlimitedUploads = planData.max_uploads === null || planData.max_uploads === 0;
 
       const usageData: UsageData = {
         current_plan: {
-          name: planData?.name || 'Plan Básico',
-          credits: planData?.credits || 0,
-          max_catalogs: planData?.max_catalogs || 0,
-          max_uploads: planData?.max_uploads || 0,
-          price_mxn: planData?.price_mxn || 0
+          name: planData.name,
+          credits: planData.credits,
+          max_catalogs: planData.max_catalogs || 0,
+          max_uploads: planData.max_uploads || 0,
+          price_mxn: planData.price_mxn
         },
         current_usage: {
-          catalogs_generated: currentUsage.catalogs_generated,
-          uploads_used: currentUsage.uploads_used,
+          catalogs_generated: currentUsage.catalogs_generated || 0,
+          uploads_used: currentUsage.uploads_used || 0,
           credits_remaining: creditsRemaining
         },
         limits: {
           can_generate_catalog: isUnlimitedCatalogs || 
-            (currentUsage.catalogs_generated < planData?.max_catalogs),
+            (currentUsage.catalogs_generated || 0) < (planData.max_catalogs || 0),
           can_upload: isUnlimitedUploads || 
-            (currentUsage.uploads_used < planData?.max_uploads),
+            (currentUsage.uploads_used || 0) < (planData.max_uploads || 0),
           catalogs_remaining: isUnlimitedCatalogs ? 0 : 
-            Math.max(0, (planData?.max_catalogs || 0) - currentUsage.catalogs_generated),
+            Math.max(0, (planData.max_catalogs || 0) - (currentUsage.catalogs_generated || 0)),
           uploads_remaining: isUnlimitedUploads ? 0 : 
-            Math.max(0, (planData?.max_uploads || 0) - currentUsage.uploads_used)
+            Math.max(0, (planData.max_uploads || 0) - (currentUsage.uploads_used || 0))
         }
       };
 
