@@ -133,36 +133,53 @@ const TemplateSelection = () => {
   };
 
   const detectUserIndustry = async () => {
-    // Intentar detectar industria desde businessInfo o productos
-    if (businessInfo?.business_type) {
-      // Mapear business_type a nuestras industrias
-      const industryMap: Record<string, IndustryType> = {
-        'jewelry': 'joyeria',
-        'fashion': 'moda',
-        'electronics': 'electronica',
-        'hardware': 'ferreteria',
-        'flowers': 'floreria',
-        'cosmetics': 'cosmeticos',
-        'decoration': 'decoracion',
-        'furniture': 'muebles'
-      };
-      
-      setUserIndustry(industryMap[businessInfo.business_type]);
-    }
-    
-    // También podríamos inferir de las categorías de productos
-    if (selectedProducts.length > 0 && !userIndustry) {
+    // Intentar detectar industria desde las categorías de productos
+    if (selectedProducts.length > 0) {
       const categories = selectedProducts
         .map(p => p.category?.toLowerCase())
         .filter(Boolean);
       
-      // Lógica simple de detección por categorías
-      if (categories.some(c => c?.includes('joyeria') || c?.includes('jewelry'))) {
+      // Lógica simple de detección por categorías de productos
+      if (categories.some(c => c?.includes('joyeria') || c?.includes('jewelry') || c?.includes('anillo') || c?.includes('collar'))) {
         setUserIndustry('joyeria');
-      } else if (categories.some(c => c?.includes('ropa') || c?.includes('clothing'))) {
+      } else if (categories.some(c => c?.includes('ropa') || c?.includes('clothing') || c?.includes('vestido') || c?.includes('blusa'))) {
         setUserIndustry('moda');
+      } else if (categories.some(c => c?.includes('electronico') || c?.includes('electronic') || c?.includes('smartphone') || c?.includes('laptop'))) {
+        setUserIndustry('electronica');
+      } else if (categories.some(c => c?.includes('ferreteria') || c?.includes('hardware') || c?.includes('herramienta') || c?.includes('tool'))) {
+        setUserIndustry('ferreteria');
+      } else if (categories.some(c => c?.includes('flor') || c?.includes('flower') || c?.includes('planta') || c?.includes('plant'))) {
+        setUserIndustry('floreria');
+      } else if (categories.some(c => c?.includes('cosmetico') || c?.includes('cosmetic') || c?.includes('maquillaje') || c?.includes('makeup'))) {
+        setUserIndustry('cosmeticos');
+      } else if (categories.some(c => c?.includes('decoracion') || c?.includes('decoration') || c?.includes('hogar') || c?.includes('home'))) {
+        setUserIndustry('decoracion');
+      } else if (categories.some(c => c?.includes('mueble') || c?.includes('furniture') || c?.includes('silla') || c?.includes('mesa'))) {
+        setUserIndustry('muebles');
       }
-      // ... más lógica según necesites
+    }
+    
+    // También podríamos detectar desde el nombre del negocio
+    if (!userIndustry && businessInfo?.business_name) {
+      const businessName = businessInfo.business_name.toLowerCase();
+      
+      if (businessName.includes('joyeria') || businessName.includes('jewelry')) {
+        setUserIndustry('joyeria');
+      } else if (businessName.includes('moda') || businessName.includes('fashion') || businessName.includes('boutique')) {
+        setUserIndustry('moda');
+      } else if (businessName.includes('electronico') || businessName.includes('tech') || businessName.includes('digital')) {
+        setUserIndustry('electronica');
+      } else if (businessName.includes('ferreteria') || businessName.includes('hardware') || businessName.includes('construccion')) {
+        setUserIndustry('ferreteria');
+      } else if (businessName.includes('flor') || businessName.includes('flower') || businessName.includes('jardin')) {
+        setUserIndustry('floreria');
+      } else if (businessName.includes('beauty') || businessName.includes('belleza') || businessName.includes('cosmeticos')) {
+        setUserIndustry('cosmeticos');
+      } else if (businessName.includes('decoracion') || businessName.includes('hogar') || businessName.includes('home')) {
+        setUserIndustria('decoracion');
+      } else if (businessName.includes('muebles') || businessName.includes('furniture')) {
+        setUserIndustry('muebles');
+      }
     }
   };
 
