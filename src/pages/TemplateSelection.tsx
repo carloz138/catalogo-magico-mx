@@ -29,6 +29,10 @@ import {
   Package
 } from 'lucide-react';
 
+// Después de los imports, agrega:
+import { SmartTemplateSelector } from '@/components/templates/SmartTemplateSelector';
+
+console.log('🔍 DEBUG: SmartTemplateSelector importado:', SmartTemplateSelector);
 interface Product {
   id: string;
   name: string;
