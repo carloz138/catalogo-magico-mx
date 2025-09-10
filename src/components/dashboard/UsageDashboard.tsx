@@ -412,15 +412,15 @@ export const UsageDashboard = () => {
             </div>
             <div>
               <div className="font-semibold text-base sm:text-lg">
-                {usage.current_plan.credits - usage.current_usage.credits_remaining}
+                {Math.max(0, usage.current_plan.credits - usage.current_usage.credits_remaining)}
               </div>
               <div className="text-xs sm:text-sm text-gray-600">
-                Créditos usados
+                Créditos usados del plan
               </div>
             </div>
             <div>
               <div className="font-semibold text-green-600 text-base sm:text-lg">
-                ${((usage.current_plan.credits - usage.current_usage.credits_remaining) * 2).toLocaleString()}
+                ${(Math.max(0, usage.current_plan.credits - usage.current_usage.credits_remaining) * 2).toLocaleString()}
               </div>
               <div className="text-xs sm:text-sm text-gray-600">
                 Valor procesado
