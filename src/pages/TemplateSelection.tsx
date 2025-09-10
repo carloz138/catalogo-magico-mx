@@ -1,3 +1,6 @@
+// src/pages/TemplateSelection.tsx
+// 🎨 NUEVA SELECCIÓN DE TEMPLATES INTEGRADA CON SISTEMA INTELIGENTE
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
@@ -5,154 +8,250 @@ import AppLayout from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from '@/components/ui/use-toast';
-import { createCatalog } from '@/lib/catalogService'; // NUEVO: Importar servicio modificado
-import { useCatalogLimits, getCatalogUsageDisplay } from '@/hooks/useCatalogLimits'; // NUEVO: Hook de límites
+import { useAuth } from '@/contexts/AuthContext';
+import { useBusinessInfo } from '@/hooks/useBusinessInfo';
+
+// Importar nuestro nuevo sistema
+import { SmartTemplateSelector } from '@/components/templates/SmartTemplateSelector';
+import { generateCatalog, checkLimits } from '@/lib/catalog/unified-generator';
+import { IndustryType } from '@/lib/templates/industry-templates';
+
 import { 
-  Palette, 
-  Zap, 
-  Crown, 
-  Sparkles,
+  ArrowLeft,
   ArrowRight,
-  Eye,
+  Palette,
+  Loader2,
   AlertTriangle,
-  Info
+  CheckCircle,
+  Sparkles,
+  Package
 } from 'lucide-react';
 
-interface Template {
+interface Product {
   id: string;
   name: string;
-  description: string;
-  preview: string;
-  category: 'basic' | 'professional' | 'premium';
-  features: string[];
-  price: number;
+  description?: string;
+  price_retail: number;
+  image_url: string;
+  sku?: string;
+  category?: string;
+  specifications?: string;
 }
 
-const templates: Template[] = [
-  {
-    id: 'modern-clean',
-    name: 'Moderno Limpio',
-    description: 'Diseño minimalista y elegante, perfecto para productos de alta gama',
-    preview: '/placeholder.svg',
-    category: 'basic',
-    features: ['Diseño limpio', 'Responsive', 'Colores personalizables'],
-    price: 0
-  },
-  {
-    id: 'professional-grid',
-    name: 'Rejilla Profesional',
-    description: 'Layout en rejilla profesional ideal para catálogos extensos',
-    preview: '/placeholder.svg',
-    category: 'professional',
-    features: ['Layout en rejilla', 'Filtros avanzados', 'Búsqueda integrada', 'Branding personalizado'],
-    price: 50
-  },
-  {
-    id: 'luxury-magazine',
-    name: 'Revista de Lujo',
-    description: 'Estilo revista premium con efectos visuales avanzados',
-    preview: '/placeholder.svg',
-    category: 'premium',
-    features: ['Efectos visuales', 'Animaciones', 'Múltiples layouts', 'Integración social', 'Analytics'],
-    price: 100
-  }
-];
+interface UsageLimits {
+  canGenerate: boolean;
+  catalogsUsed: number;
+  catalogsLimit: number | 'unlimited';
+  remainingCatalogs: number;
+  message: string;
+}
 
 const TemplateSelection = () => {
+  const { user } = useAuth();
+  const { businessInfo } = useBusinessInfo();
   const navigate = useNavigate();
-  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
-  const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
-  const [generating, setGenerating] = useState(false); // NUEVO: Estado de generación
   
-  // NUEVO: Hook para validar límites de catálogos
-  const { 
-    validateBeforeGeneration, 
-    canGenerate, 
-    validation,
-    catalogsUsed,
-    catalogsLimit 
-  } = useCatalogLimits();
+  // Estados principales
+  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
+  const [selectedProducts, setSelectedProducts] = useState<Product[]>([]);
+  const [generating, setGenerating] = useState(false);
+  const [loading, setLoading] = useState(true);
+  
+  // Estados de límites
+  const [limits, setLimits] = useState<UsageLimits | null>(null);
+  
+  // Estados de UX
+  const [userIndustry, setUserIndustry] = useState<IndustryType | undefined>();
+  const [userPlan, setUserPlan] = useState<'basic' | 'premium'>('basic');
 
   useEffect(() => {
-    // Load selected products from localStorage
-    const products = localStorage.getItem('selectedProducts');
-    if (products) {
-      setSelectedProducts(JSON.parse(products));
-    } else {
+    initializeComponent();
+  }, [user]);
+
+  const initializeComponent = async () => {
+    if (!user) return;
+    
+    try {
+      setLoading(true);
+      
+      // 1. Cargar productos seleccionados desde localStorage
+      await loadSelectedProducts();
+      
+      // 2. Detectar industria del usuario (si es posible)
+      await detectUserIndustry();
+      
+      // 3. Verificar plan del usuario
+      await loadUserPlan();
+      
+      // 4. Verificar límites de catálogos
+      await loadCatalogLimits();
+      
+    } catch (error) {
+      console.error('Error initializing template selection:', error);
       toast({
-        title: "No hay productos seleccionados",
-        description: "Selecciona productos primero desde tu biblioteca",
+        title: "Error de inicialización",
+        description: "Hubo un problema cargando la información",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadSelectedProducts = async () => {
+    // Cargar desde localStorage (como en el componente original)
+    const productsData = localStorage.getItem('selectedProductsData');
+    const productsIds = localStorage.getItem('selectedProducts');
+    
+    if (productsData) {
+      const products = JSON.parse(productsData);
+      setSelectedProducts(products);
+      console.log('✅ Productos cargados:', products.length);
+    } else if (productsIds) {
+      // Fallback: solo IDs, necesitaríamos cargar datos completos
+      const ids = JSON.parse(productsIds);
+      console.log('⚠️ Solo IDs disponibles, redirigiendo a productos');
+      toast({
+        title: "Datos incompletos",
+        description: "Regresa a seleccionar productos",
         variant: "destructive",
       });
       navigate('/products');
+      return;
+    } else {
+      console.log('❌ No hay productos seleccionados');
+      toast({
+        title: "No hay productos seleccionados",
+        description: "Selecciona productos primero",
+        variant: "destructive",
+      });
+      navigate('/products');
+      return;
     }
-  }, [navigate]);
+  };
 
-  const getCategoryBadge = (category: string) => {
-    const configs = {
-      basic: { color: 'bg-blue-100 text-blue-800', icon: Zap, text: 'Básico' },
-      professional: { color: 'bg-purple-100 text-purple-800', icon: Sparkles, text: 'Profesional' },
-      premium: { color: 'bg-yellow-100 text-yellow-800', icon: Crown, text: 'Premium' },
-    };
+  const detectUserIndustry = async () => {
+    // Intentar detectar industria desde businessInfo o productos
+    if (businessInfo?.business_type) {
+      // Mapear business_type a nuestras industrias
+      const industryMap: Record<string, IndustryType> = {
+        'jewelry': 'joyeria',
+        'fashion': 'moda',
+        'electronics': 'electronica',
+        'hardware': 'ferreteria',
+        'flowers': 'floreria',
+        'cosmetics': 'cosmeticos',
+        'decoration': 'decoracion',
+        'furniture': 'muebles'
+      };
+      
+      setUserIndustry(industryMap[businessInfo.business_type]);
+    }
     
-    const config = configs[category as keyof typeof configs] || configs.basic;
-    const Icon = config.icon;
+    // También podríamos inferir de las categorías de productos
+    if (selectedProducts.length > 0 && !userIndustry) {
+      const categories = selectedProducts
+        .map(p => p.category?.toLowerCase())
+        .filter(Boolean);
+      
+      // Lógica simple de detección por categorías
+      if (categories.some(c => c?.includes('joyeria') || c?.includes('jewelry'))) {
+        setUserIndustry('joyeria');
+      } else if (categories.some(c => c?.includes('ropa') || c?.includes('clothing'))) {
+        setUserIndustry('moda');
+      }
+      // ... más lógica según necesites
+    }
+  };
+
+  const loadUserPlan = async () => {
+    if (!user) return;
     
-    return (
-      <Badge className={`${config.color} flex items-center gap-1`} variant="outline">
-        <Icon className="w-3 h-3" />
-        {config.text}
-      </Badge>
-    );
+    try {
+      // Consultar plan actual del usuario
+      const { data: subscription } = await (window as any).supabase
+        .from('subscriptions')
+        .select(`
+          status,
+          credit_packages (
+            package_type,
+            name
+          )
+        `)
+        .eq('user_id', user.id)
+        .in('status', ['active', 'trialing'])
+        .maybeSingle();
+      
+      if (subscription?.credit_packages?.package_type) {
+        const packageType = subscription.credit_packages.package_type;
+        setUserPlan(packageType === 'basic' || packageType === 'free' ? 'basic' : 'premium');
+      }
+    } catch (error) {
+      console.error('Error loading user plan:', error);
+      // Mantener 'basic' como default
+    }
+  };
+
+  const loadCatalogLimits = async () => {
+    if (!user) return;
+    
+    try {
+      const limitsData = await checkLimits(user.id);
+      setLimits(limitsData);
+    } catch (error) {
+      console.error('Error loading catalog limits:', error);
+    }
   };
 
   const handleTemplateSelect = (templateId: string) => {
     setSelectedTemplate(templateId);
+    console.log('🎨 Template seleccionado:', templateId);
   };
 
-  // NUEVO: Función modificada para validar límites antes de generar
   const handleGenerateCatalog = async () => {
-    if (!selectedTemplate) {
+    if (!selectedTemplate || !user || !businessInfo) {
       toast({
-        title: "Selecciona un template",
-        description: "Debes seleccionar un template para continuar",
+        title: "Información faltante",
+        description: "Selecciona un template y asegúrate de tener la información del negocio completa",
         variant: "destructive",
       });
       return;
     }
 
-    // VALIDAR LÍMITES ANTES DE GENERAR
-    const canProceed = await validateBeforeGeneration();
-    if (!canProceed) {
-      return; // El error ya se mostró en validateBeforeGeneration
+    if (!limits?.canGenerate) {
+      toast({
+        title: "Límite alcanzado",
+        description: limits?.message || "No puedes generar más catálogos",
+        variant: "destructive",
+      });
+      return;
     }
 
     setGenerating(true);
     
     try {
-      // Obtener productos completos del localStorage
-      const productsData = localStorage.getItem('selectedProductsData');
-      const businessData = localStorage.getItem('businessInfo');
+      console.log('🚀 Iniciando generación con nuevo sistema...');
       
-      let products = [];
-      let businessInfo = {};
-      
-      if (productsData) {
-        products = JSON.parse(productsData);
-      }
-      
-      if (businessData) {
-        businessInfo = JSON.parse(businessData);
-      }
-
-      // Crear catálogo usando el servicio modificado (que incluye tracking)
-      const result = await createCatalog(products, businessInfo, selectedTemplate);
+      // Usar nuestro nuevo generador unificado
+      const result = await generateCatalog(
+        selectedProducts,
+        {
+          business_name: businessInfo.business_name,
+          email: businessInfo.email,
+          phone: businessInfo.phone,
+          website: businessInfo.website,
+          address: businessInfo.address
+        },
+        selectedTemplate,
+        user.id
+      );
       
       if (result.success) {
         toast({
-          title: "Catálogo generado exitosamente",
-          description: "Tu catálogo se está procesando. Te notificaremos cuando esté listo.",
+          title: "🎉 ¡Catálogo generado exitosamente!",
+          description: result.message,
         });
 
         // Limpiar localStorage
@@ -160,17 +259,21 @@ const TemplateSelection = () => {
         localStorage.removeItem('selectedProducts');
         localStorage.removeItem('selectedProductsData');
         
-        // Navegar a catálogos
+        // Actualizar límites
+        await loadCatalogLimits();
+        
+        // Redirigir a catálogos
         navigate('/catalogs');
+        
       } else {
-        throw new Error(result.error || 'Error desconocido');
+        throw new Error(result.message || 'Error desconocido');
       }
 
     } catch (error) {
-      console.error('Error generating catalog:', error);
+      console.error('❌ Error generando catálogo:', error);
       toast({
         title: "Error al generar catálogo",
-        description: error instanceof Error ? error.message : "Error desconocido al generar catálogo",
+        description: error instanceof Error ? error.message : "Error desconocido",
         variant: "destructive",
       });
     } finally {
@@ -178,82 +281,58 @@ const TemplateSelection = () => {
     }
   };
 
-  // NUEVO: Componente para mostrar estado de límites
-  const CatalogLimitsAlert = () => {
-    if (!validation) return null;
-
-    const isUnlimited = validation.catalogs_limit === 'unlimited' || validation.catalogs_limit === 0;
-    const isNearLimit = !isUnlimited && validation.remaining !== undefined && validation.remaining <= 2;
-    const isAtLimit = !canGenerate;
-
-    if (isAtLimit) {
-      return (
-        <Card className="mb-6 border-red-200 bg-red-50">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0" />
-              <div className="flex-1">
-                <h3 className="font-semibold text-red-900">Límite alcanzado</h3>
-                <p className="text-sm text-red-700 mt-1">
-                  {validation.message}
-                </p>
-              </div>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => navigate('/pricing')}
-                className="border-red-300 text-red-700 hover:bg-red-100"
-              >
-                Mejorar Plan
-              </Button>
+  // Estados de carga
+  if (loading) {
+    return (
+      <ProtectedRoute>
+        <AppLayout>
+          <div className="flex items-center justify-center py-12">
+            <div className="text-center">
+              <Loader2 className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+              <p className="text-gray-600">Cargando sistema de templates...</p>
             </div>
-          </CardContent>
-        </Card>
-      );
-    }
+          </div>
+        </AppLayout>
+      </ProtectedRoute>
+    );
+  }
 
-    if (isNearLimit) {
-      return (
-        <Card className="mb-6 border-amber-200 bg-amber-50">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <Info className="w-5 h-5 text-amber-600 flex-shrink-0" />
-              <div className="flex-1">
-                <h3 className="font-semibold text-amber-900">Pocos catálogos restantes</h3>
-                <p className="text-sm text-amber-700 mt-1">
-                  Te quedan {validation.remaining} catálogos este mes
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      );
-    }
-
-    return null;
-  };
-
+  // Header actions
   const actions = (
     <div className="flex items-center gap-3">
-      {/* NUEVO: Mostrar uso de catálogos */}
       <div className="hidden md:block">
-        <span className="text-sm text-gray-600">
-          {validation ? getCatalogUsageDisplay(validation) : ''}
-        </span>
+        <Badge variant="outline" className="flex items-center gap-1">
+          <Package className="w-3 h-3" />
+          {selectedProducts.length} productos
+        </Badge>
       </div>
       
-      <span className="text-sm text-gray-600">
-        {selectedProducts.length} productos seleccionados
-      </span>
+      {limits && (
+        <div className="hidden lg:block text-sm text-gray-600">
+          {limits.catalogsLimit === 'unlimited' 
+            ? 'Catálogos ilimitados' 
+            : `${limits.remainingCatalogs}/${limits.catalogsLimit} restantes`
+          }
+        </div>
+      )}
       
       <Button 
         onClick={handleGenerateCatalog}
-        disabled={!selectedTemplate || generating || !canGenerate}
+        disabled={!selectedTemplate || generating || !limits?.canGenerate}
         className="flex items-center gap-2"
       >
-        <Palette className="h-4 w-4" />
-        {generating ? 'Generando...' : 'Generar Catálogo'}
-        {!generating && <ArrowRight className="h-4 w-4" />}
+        {generating ? (
+          <>
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Generando...
+          </>
+        ) : (
+          <>
+            <Palette className="h-4 w-4" />
+            Generar Catálogo
+            <ArrowRight className="h-4 w-4" />
+          </>
+        )}
       </Button>
     </div>
   );
@@ -262,134 +341,107 @@ const TemplateSelection = () => {
     <ProtectedRoute>
       <AppLayout actions={actions}>
         <div className="space-y-6">
-          {/* NUEVO: Alerta de límites */}
-          <CatalogLimitsAlert />
-
-          {/* NUEVO: Uso de catálogos en mobile */}
-          <div className="md:hidden">
-            <Card>
-              <CardContent className="p-4">
-                <span className="text-sm text-gray-600">
-                  {validation ? getCatalogUsageDisplay(validation) : ''}
-                </span>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Template categories */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {templates.map((template) => (
-              <Card 
-                key={template.id} 
-                className={`cursor-pointer transition-all hover:shadow-lg ${
-                  selectedTemplate === template.id 
-                    ? 'ring-2 ring-blue-500 bg-blue-50' 
-                    : 'hover:shadow-md'
-                } ${!canGenerate ? 'opacity-50 cursor-not-allowed' : ''}`}
-                onClick={() => canGenerate && handleTemplateSelect(template.id)}
-              >
-                <div className="aspect-video bg-gray-100 relative overflow-hidden">
-                  <img
-                    src={template.preview}
-                    alt={template.name}
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute top-2 left-2">
-                    {getCategoryBadge(template.category)}
-                  </div>
-                  <div className="absolute top-2 right-2">
-                    <Button size="sm" variant="outline" className="bg-white/80">
-                      <Eye className="h-3 w-3" />
-                    </Button>
-                  </div>
-                </div>
-                
-                <CardContent className="p-4">
-                  <div className="flex justify-between items-start mb-2">
-                    <h3 className="font-semibold text-lg">{template.name}</h3>
-                    <span className="font-bold text-primary">
-                      {template.price === 0 ? 'Gratis' : `$${template.price}`}
+          {/* Header con información */}
+          <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+            <div>
+              <div className="flex items-center gap-3 mb-2">
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => navigate('/products')}
+                  className="flex items-center gap-2"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  Volver a Productos
+                </Button>
+              </div>
+              
+              <h1 className="text-2xl font-bold text-gray-900">
+                Selecciona tu Template
+                <Sparkles className="w-6 h-6 inline ml-2 text-purple-500" />
+              </h1>
+              <p className="text-gray-600">
+                Elige el diseño perfecto para tu catálogo de {selectedProducts.length} productos
+              </p>
+            </div>
+            
+            {/* Mostrar info del plan en móvil */}
+            <div className="sm:hidden w-full">
+              <Card>
+                <CardContent className="p-3">
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-gray-600">
+                      {selectedProducts.length} productos seleccionados
                     </span>
-                  </div>
-                  
-                  <p className="text-gray-600 text-sm mb-3">
-                    {template.description}
-                  </p>
-                  
-                  <div className="space-y-2">
-                    <p className="text-xs font-medium text-gray-700">Características:</p>
-                    <ul className="space-y-1">
-                      {template.features.map((feature, index) => (
-                        <li key={index} className="text-xs text-gray-600 flex items-center">
-                          <div className="w-1 h-1 bg-blue-500 rounded-full mr-2" />
-                          {feature}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                  
-                  {selectedTemplate === template.id && (
-                    <div className="mt-3 pt-3 border-t">
-                      <Badge className="bg-blue-100 text-blue-800 w-full justify-center">
-                        Seleccionado
+                    {limits && (
+                      <Badge variant="outline">
+                        {limits.catalogsLimit === 'unlimited' 
+                          ? 'Ilimitados' 
+                          : `${limits.remainingCatalogs} restantes`
+                        }
                       </Badge>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </CardContent>
               </Card>
-            ))}
+            </div>
           </div>
 
-          {/* Template comparison */}
-          <Card>
-            <CardContent className="p-6">
-              <h3 className="text-lg font-semibold mb-4">Comparación de Templates</h3>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="text-left py-2">Característica</th>
-                      <th className="text-center py-2">Básico</th>
-                      <th className="text-center py-2">Profesional</th>
-                      <th className="text-center py-2">Premium</th>
-                    </tr>
-                  </thead>
-                  <tbody className="text-gray-600">
-                    <tr className="border-b">
-                      <td className="py-2">Productos ilimitados</td>
-                      <td className="text-center">✓</td>
-                      <td className="text-center">✓</td>
-                      <td className="text-center">✓</td>
-                    </tr>
-                    <tr className="border-b">
-                      <td className="py-2">Personalización de colores</td>
-                      <td className="text-center">✓</td>
-                      <td className="text-center">✓</td>
-                      <td className="text-center">✓</td>
-                    </tr>
-                    <tr className="border-b">
-                      <td className="py-2">Branding personalizado</td>
-                      <td className="text-center">-</td>
-                      <td className="text-center">✓</td>
-                      <td className="text-center">✓</td>
-                    </tr>
-                    <tr className="border-b">
-                      <td className="py-2">Efectos visuales avanzados</td>
-                      <td className="text-center">-</td>
-                      <td className="text-center">-</td>
-                      <td className="text-center">✓</td>
-                    </tr>
-                    <tr>
-                      <td className="py-2">Soporte prioritario</td>
-                      <td className="text-center">-</td>
-                      <td className="text-center">-</td>
-                      <td className="text-center">✓</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
+          {/* Alert de límites si es necesario */}
+          {limits && !limits.canGenerate && (
+            <Alert className="border-red-200 bg-red-50">
+              <AlertTriangle className="h-4 w-4 text-red-600" />
+              <AlertDescription className="text-red-800">
+                <strong>Límite alcanzado:</strong> {limits.message}
+                <Button 
+                  variant="link" 
+                  className="h-auto p-0 ml-2 text-red-600"
+                  onClick={() => navigate('/pricing')}
+                >
+                  Ver planes
+                </Button>
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {/* Selector inteligente de templates */}
+          <SmartTemplateSelector
+            selectedTemplate={selectedTemplate}
+            onTemplateSelect={handleTemplateSelect}
+            userPlan={userPlan}
+            userIndustry={userIndustry}
+            productCount={selectedProducts.length}
+          />
+
+          {/* Template seleccionado */}
+          {selectedTemplate && limits?.canGenerate && (
+            <Card className="border-green-200 bg-green-50">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
+                  <div className="flex-1">
+                    <h4 className="font-medium text-green-900">
+                      ¡Template seleccionado!
+                    </h4>
+                    <p className="text-sm text-green-700">
+                      Listo para generar tu catálogo con {selectedProducts.length} productos
+                    </p>
+                  </div>
+                  <Button 
+                    onClick={handleGenerateCatalog}
+                    disabled={generating}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    {generating ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      'Generar Ahora'
+                    )}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </AppLayout>
     </ProtectedRoute>
