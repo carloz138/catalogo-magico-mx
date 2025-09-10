@@ -247,63 +247,79 @@ const Products = () => {
   };
 
   const handleCreateCatalog = async () => {
-    if (selectedProducts.length === 0) {
-      toast({
-        title: "Selecciona productos",
-        description: "Debes seleccionar al menos un producto para crear un catálogo",
-        variant: "destructive",
-      });
-      return;
-    }
+  console.log('🔍 DEBUG: handleCreateCatalog iniciado');
+  console.log('🔍 DEBUG: selectedProducts:', selectedProducts);
+  
+  if (selectedProducts.length === 0) {
+    console.log('🔍 DEBUG: No hay productos seleccionados');
+    toast({
+      title: "Selecciona productos",
+      description: "Debes seleccionar al menos un producto para crear un catálogo",
+      variant: "destructive",
+    });
+    return;
+  }
 
-    // Validar límites antes de mostrar preview
-    const canProceed = await validateBeforeGeneration();
-    if (!canProceed.canGenerate) {
-      toast({
-        title: "Límite alcanzado",
-        description: canProceed.message || "Has alcanzado el límite de catálogos",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    setShowCatalogPreview(true);
-  };
+  console.log('🔍 DEBUG: Validando límites...');
+  // Validar límites antes de mostrar preview
+  const canProceed = await validateBeforeGeneration();
+  console.log('🔍 DEBUG: Resultado validación:', canProceed);
+  
+  if (!canProceed.canGenerate) {
+    console.log('🔍 DEBUG: Validación falló:', canProceed.message);
+    toast({
+      title: "Límite alcanzado",
+      description: canProceed.message || "Has alcanzado el límite de catálogos",
+      variant: "destructive",
+    });
+    return;
+  }
+  
+  console.log('🔍 DEBUG: Mostrando modal de preview');
+  setShowCatalogPreview(true);
+};
 
-  const confirmCreateCatalog = async () => {
-    try {
-      const selectedProductsData = products
-        .filter(p => selectedProducts.includes(p.id))
-        .map(product => ({
-          id: product.id,
-          name: product.name,
-          description: product.description || product.custom_description,
-          category: product.category,
-          price_retail: product.price_retail || 0,
-          image_url: getDisplayImageUrl(product),
-          original_image_url: product.original_image_url,
-          processed_image_url: product.processed_image_url,
-          hd_image_url: product.hd_image_url,
-          created_at: product.created_at
-        }));
-
-      // Guardar en localStorage para TemplateSelection
-      localStorage.setItem('selectedProductsData', JSON.stringify(selectedProductsData));
-      localStorage.setItem('businessInfo', JSON.stringify({
-        business_name: 'Mi Empresa'
+const confirmCreateCatalog = async () => {
+  console.log('🔍 DEBUG: confirmCreateCatalog iniciado');
+  
+  try {
+    const selectedProductsData = products
+      .filter(p => selectedProducts.includes(p.id))
+      .map(product => ({
+        id: product.id,
+        name: product.name,
+        description: product.description || product.custom_description,
+        category: product.category,
+        price_retail: product.price_retail || 0,
+        image_url: getDisplayImageUrl(product),
+        original_image_url: product.original_image_url,
+        processed_image_url: product.processed_image_url,
+        hd_image_url: product.hd_image_url,
+        created_at: product.created_at
       }));
 
-      navigate('/template-selection');
+    console.log('🔍 DEBUG: selectedProductsData:', selectedProductsData);
 
-    } catch (error) {
-      console.error('Error preparando catálogo:', error);
-      toast({
-        title: "Error",
-        description: "No se pudo preparar el catálogo",
-        variant: "destructive",
-      });
-    }
-  };
+    // Guardar en localStorage para TemplateSelection
+    localStorage.setItem('selectedProductsData', JSON.stringify(selectedProductsData));
+    localStorage.setItem('businessInfo', JSON.stringify({
+      business_name: 'Mi Empresa'
+    }));
+
+    console.log('🔍 DEBUG: Datos guardados en localStorage');
+    console.log('🔍 DEBUG: Navegando a /template-selection');
+
+    navigate('/template-selection');
+
+  } catch (error) {
+    console.error('🔍 DEBUG: Error en confirmCreateCatalog:', error);
+    toast({
+      title: "Error",
+      description: "No se pudo preparar el catálogo",
+      variant: "destructive",
+    });
+  }
+};
 
   const handleDeleteProduct = async (product: Product) => {
     if (!confirm(`¿Estás seguro de que quieres eliminar "${product.name}"?`)) {
