@@ -1,4 +1,4 @@
-// src/components/dashboard/UsageDashboard.tsx - CORREGIDO
+// src/components/dashboard/UsageDashboard.tsx
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -14,11 +14,11 @@ import {
   AlertTriangle,
   Infinity as InfinityIcon,
   Calendar,
-  Zap
+  Zap,
+  RefreshCw
 } from 'lucide-react';
 
 interface UsageData {
-  // Plan actual
   current_plan: {
     name: string;
     credits: number;
@@ -27,14 +27,12 @@ interface UsageData {
     price_mxn: number;
   };
   
-  // Uso del mes actual
   current_usage: {
     catalogs_generated: number;
     uploads_used: number;
-    purchased_credits_remaining: number;
+    credits_remaining: number;
   };
   
-  // Límites
   limits: {
     can_generate_catalog: boolean;
     can_upload: boolean;
@@ -48,6 +46,7 @@ export const UsageDashboard = () => {
   const navigate = useNavigate();
   const [usage, setUsage] = useState<UsageData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -60,8 +59,26 @@ export const UsageDashboard = () => {
     
     try {
       setLoading(true);
+      setError(null);
       
-      // CONSULTA CORREGIDA: Obtener plan activo
+      const currentMonth = parseInt(
+        new Date().toISOString().slice(0, 7).replace('-', '') + 
+        new Date().toISOString().slice(5, 7)
+      ); // Format: YYYYMM
+
+      // 1. Obtener uso del mes actual desde catalog_usage
+      const { data: catalogUsage, error: catalogError } = await supabase
+        .from('catalog_usage' as any)
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('usage_month', currentMonth)
+        .single();
+
+      if (catalogError && catalogError.code !== 'PGRST116') {
+        console.error('Error fetching catalog usage:', catalogError);
+      }
+
+      // 2. Obtener suscripción activa del usuario
       const { data: subscription, error: subError } = await supabase
         .from('subscriptions')
         .select(`
@@ -75,120 +92,120 @@ export const UsageDashboard = () => {
           )
         `)
         .eq('user_id', user.id)
-        .eq('status', 'active')
-        .gte('current_period_end', new Date().toISOString())
+        .eq('is_active', true)
         .single();
 
-      if (subError) throw subError;
-
-      // CONSULTA CORREGIDA: Obtener uso del mes actual
-      const currentMonth = new Date().getFullYear() * 100 + (new Date().getMonth() + 1);
-      
-      const { data: monthlyUsage, error: usageError } = await supabase
-        .from('catalog_usage')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('usage_month', currentMonth)
-        .single();
-
-      // Si no existe uso del mes, crear registro
-      let catalogsUsed = 0;
-      let uploadsUsed = 0;
-      
-      if (usageError && usageError.code === 'PGRST116') {
-        // No existe registro, crear uno
-        const { data: newUsage, error: createError } = await supabase
-          .from('catalog_usage')
-          .insert({
-            user_id: user.id,
-            usage_month: currentMonth,
-            catalogs_generated: 0,
-            uploads_used: 0
-          })
-          .select()
-          .single();
-          
-        if (createError) throw createError;
-        catalogsUsed = 0;
-        uploadsUsed = 0;
-      } else if (!usageError && monthlyUsage) {
-        catalogsUsed = monthlyUsage.catalogs_generated || 0;
-        uploadsUsed = monthlyUsage.uploads_used || 0;
+      if (subError) {
+        console.error('Error fetching subscription:', subError);
+        throw new Error('No se pudo obtener información de suscripción');
       }
 
-      // CONSULTA CORREGIDA: Obtener créditos comprados
-      const { data: userCredits, error: creditsError } = await supabase
-        .from('users')
-        .select('credits')
-        .eq('id', user.id)
+      // 3. Obtener créditos restantes
+      const { data: creditData, error: creditError } = await supabase
+        .from('credit_usage')
+        .select('credits_remaining')
+        .eq('user_id', user.id)
         .single();
 
-      if (creditsError) throw creditsError;
+      if (creditError && creditError.code !== 'PGRST116') {
+        console.error('Error fetching credits:', creditError);
+      }
 
-      const plan = subscription.credit_packages;
-      const purchasedCreditsRemaining = userCredits?.credits || 0;
-      
-      // CÁLCULOS CORREGIDOS
-      const isUnlimitedCatalogs = plan.max_catalogs === 0 || plan.max_catalogs === null;
-      const isUnlimitedUploads = plan.max_uploads === 0 || plan.max_uploads === null;
-      
-      const catalogsRemaining = isUnlimitedCatalogs ? Infinity : Math.max(0, plan.max_catalogs - catalogsUsed);
-      const uploadsRemaining = isUnlimitedUploads ? Infinity : Math.max(0, plan.max_uploads - uploadsUsed);
+      // 4. Construir datos de uso
+      const planData = subscription?.credit_packages;
+      const currentUsage = catalogUsage || { 
+        catalogs_generated: 0, 
+        uploads_used: 0 
+      };
+      const creditsRemaining = creditData?.credits_remaining || planData?.credits || 0;
 
-      setUsage({
+      const isUnlimitedCatalogs = planData?.max_catalogs === 0;
+      const isUnlimitedUploads = planData?.max_uploads === 0;
+
+      const usageData: UsageData = {
         current_plan: {
-          name: plan.name,
-          credits: plan.credits,
-          max_catalogs: plan.max_catalogs,
-          max_uploads: plan.max_uploads,
-          price_mxn: plan.price_mxn
+          name: planData?.name || 'Plan Básico',
+          credits: planData?.credits || 0,
+          max_catalogs: planData?.max_catalogs || 0,
+          max_uploads: planData?.max_uploads || 0,
+          price_mxn: planData?.price_mxn || 0
         },
         current_usage: {
-          catalogs_generated: catalogsUsed,
-          uploads_used: uploadsUsed,
-          purchased_credits_remaining: purchasedCreditsRemaining
+          catalogs_generated: currentUsage.catalogs_generated,
+          uploads_used: currentUsage.uploads_used,
+          credits_remaining: creditsRemaining
         },
         limits: {
-          can_generate_catalog: isUnlimitedCatalogs || catalogsRemaining > 0,
-          can_upload: isUnlimitedUploads || uploadsRemaining > 0,
-          catalogs_remaining: catalogsRemaining,
-          uploads_remaining: uploadsRemaining
+          can_generate_catalog: isUnlimitedCatalogs || 
+            (currentUsage.catalogs_generated < planData?.max_catalogs),
+          can_upload: isUnlimitedUploads || 
+            (currentUsage.uploads_used < planData?.max_uploads),
+          catalogs_remaining: isUnlimitedCatalogs ? 0 : 
+            Math.max(0, (planData?.max_catalogs || 0) - currentUsage.catalogs_generated),
+          uploads_remaining: isUnlimitedUploads ? 0 : 
+            Math.max(0, (planData?.max_uploads || 0) - currentUsage.uploads_used)
         }
-      });
+      };
 
-    } catch (error) {
-      console.error('Error fetching usage data:', error);
+      setUsage(usageData);
+
+    } catch (err) {
+      console.error('Error fetching usage data:', err);
+      setError(err instanceof Error ? err.message : 'Error desconocido');
     } finally {
       setLoading(false);
     }
   };
 
+  // Loading skeleton responsive
   if (loading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {[1, 2, 3].map(i => (
-          <Card key={i}>
-            <CardContent className="p-6">
-              <div className="animate-pulse space-y-3">
-                <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                <div className="h-8 bg-gray-200 rounded w-1/2"></div>
-                <div className="h-2 bg-gray-200 rounded"></div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+      <div className="space-y-4 sm:space-y-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+          {[1, 2, 3].map(i => (
+            <Card key={i} className="animate-pulse">
+              <CardContent className="p-4 sm:p-6">
+                <div className="space-y-3">
+                  <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                  <div className="h-8 bg-gray-200 rounded w-1/2"></div>
+                  <div className="h-2 bg-gray-200 rounded"></div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </div>
     );
   }
 
+  // Error state
+  if (error) {
+    return (
+      <Card>
+        <CardContent className="p-4 sm:p-6 text-center">
+          <AlertTriangle className="w-10 h-10 sm:w-12 sm:h-12 text-red-500 mx-auto mb-4" />
+          <h3 className="font-semibold mb-2 text-sm sm:text-base">Error al cargar datos</h3>
+          <p className="text-gray-600 mb-4 text-xs sm:text-sm">{error}</p>
+          <Button onClick={fetchUsageData} size="sm">
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Reintentar
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // No subscription state
   if (!usage) {
     return (
       <Card>
-        <CardContent className="p-6 text-center">
-          <AlertTriangle className="w-12 h-12 text-amber-500 mx-auto mb-4" />
-          <h3 className="font-semibold mb-2">Sin suscripción activa</h3>
-          <p className="text-gray-600 mb-4">Necesitas una suscripción para usar la plataforma</p>
-          <Button onClick={() => navigate('/pricing')}>
+        <CardContent className="p-4 sm:p-6 text-center">
+          <AlertTriangle className="w-10 h-10 sm:w-12 sm:h-12 text-amber-500 mx-auto mb-4" />
+          <h3 className="font-semibold mb-2 text-sm sm:text-base">Sin suscripción activa</h3>
+          <p className="text-gray-600 mb-4 text-xs sm:text-sm">
+            Necesitas una suscripción para usar la plataforma
+          </p>
+          <Button onClick={() => navigate('/pricing')} size="sm">
             Ver Planes
           </Button>
         </CardContent>
@@ -200,31 +217,33 @@ export const UsageDashboard = () => {
   const isUnlimitedUploads = usage.current_plan.max_uploads === 0;
 
   return (
-    <div className="space-y-6">
-      {/* Plan Actual */}
+    <div className="space-y-4 sm:space-y-6">
+      {/* Plan Actual - Mobile optimized */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between">
+        <CardHeader className="pb-3 sm:pb-6">
+          <CardTitle className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <div className="flex items-center gap-2">
-              <CreditCard className="w-5 h-5" />
-              Plan Actual
+              <CreditCard className="w-4 h-4 sm:w-5 sm:h-5" />
+              <span className="text-sm sm:text-base">Plan Actual</span>
             </div>
-            <Badge variant="outline">
+            <Badge variant="outline" className="w-fit text-xs sm:text-sm">
               ${(usage.current_plan.price_mxn / 100).toLocaleString()}/mes
             </Badge>
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
-              <h3 className="font-semibold text-lg">{usage.current_plan.name}</h3>
-              <p className="text-gray-600">
-                {usage.current_plan.credits} créditos mensuales incluidos
+              <h3 className="font-semibold text-base sm:text-lg">{usage.current_plan.name}</h3>
+              <p className="text-gray-600 text-xs sm:text-sm">
+                {usage.current_plan.credits} créditos mensuales
               </p>
             </div>
             <Button 
               variant="outline" 
               onClick={() => navigate('/pricing')}
+              size="sm"
+              className="w-full sm:w-auto"
             >
               Cambiar Plan
             </Button>
@@ -232,30 +251,30 @@ export const UsageDashboard = () => {
         </CardContent>
       </Card>
 
-      {/* Uso Actual */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {/* Uso Actual - Responsive grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
         {/* Catálogos */}
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-base">
+          <CardHeader className="pb-2 sm:pb-3">
+            <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
               <Package className="w-4 h-4" />
               Catálogos
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-0">
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-2xl font-bold">
+                <span className="text-xl sm:text-2xl font-bold">
                   {usage.current_usage.catalogs_generated}
                 </span>
                 <div className="text-right">
                   {isUnlimitedCatalogs ? (
                     <div className="flex items-center gap-1 text-green-600">
-                      <InfinityIcon className="w-4 h-4" />
-                      <span className="text-sm">Ilimitados</span>
+                      <InfinityIcon className="w-3 h-3 sm:w-4 sm:h-4" />
+                      <span className="text-xs sm:text-sm">Ilimitados</span>
                     </div>
                   ) : (
-                    <span className="text-sm text-gray-600">
+                    <span className="text-xs sm:text-sm text-gray-600">
                       / {usage.current_plan.max_catalogs}
                     </span>
                   )}
@@ -266,7 +285,7 @@ export const UsageDashboard = () => {
                 <div className="space-y-2">
                   <Progress 
                     value={(usage.current_usage.catalogs_generated / usage.current_plan.max_catalogs) * 100}
-                    className="h-2"
+                    className="h-1.5 sm:h-2"
                   />
                   <div className="flex justify-between text-xs text-gray-600">
                     <span>Usados este mes</span>
@@ -276,7 +295,7 @@ export const UsageDashboard = () => {
               )}
               
               {!usage.limits.can_generate_catalog && (
-                <Badge variant="destructive" className="w-full justify-center">
+                <Badge variant="destructive" className="w-full justify-center text-xs">
                   Límite alcanzado
                 </Badge>
               )}
@@ -286,26 +305,26 @@ export const UsageDashboard = () => {
 
         {/* Uploads */}
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-base">
+          <CardHeader className="pb-2 sm:pb-3">
+            <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
               <Upload className="w-4 h-4" />
               Uploads
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-0">
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-2xl font-bold">
+                <span className="text-xl sm:text-2xl font-bold">
                   {usage.current_usage.uploads_used}
                 </span>
                 <div className="text-right">
                   {isUnlimitedUploads ? (
                     <div className="flex items-center gap-1 text-green-600">
-                      <InfinityIcon className="w-4 h-4" />
-                      <span className="text-sm">Ilimitados</span>
+                      <InfinityIcon className="w-3 h-3 sm:w-4 sm:h-4" />
+                      <span className="text-xs sm:text-sm">Ilimitados</span>
                     </div>
                   ) : (
-                    <span className="text-sm text-gray-600">
+                    <span className="text-xs sm:text-sm text-gray-600">
                       / {usage.current_plan.max_uploads}
                     </span>
                   )}
@@ -316,7 +335,7 @@ export const UsageDashboard = () => {
                 <div className="space-y-2">
                   <Progress 
                     value={(usage.current_usage.uploads_used / usage.current_plan.max_uploads) * 100}
-                    className="h-2"
+                    className="h-1.5 sm:h-2"
                   />
                   <div className="flex justify-between text-xs text-gray-600">
                     <span>Usados este mes</span>
@@ -326,7 +345,7 @@ export const UsageDashboard = () => {
               )}
               
               {!usage.limits.can_upload && (
-                <Badge variant="destructive" className="w-full justify-center">
+                <Badge variant="destructive" className="w-full justify-center text-xs">
                   Límite alcanzado
                 </Badge>
               )}
@@ -334,82 +353,78 @@ export const UsageDashboard = () => {
           </CardContent>
         </Card>
 
-        {/* Créditos de IA */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-base">
+        {/* Créditos de Procesamiento */}
+        <Card className="sm:col-span-2 lg:col-span-1">
+          <CardHeader className="pb-2 sm:pb-3">
+            <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
               <Zap className="w-4 h-4" />
               Créditos IA
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-0">
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-2xl font-bold">
-                  {usage.current_usage.purchased_credits_remaining}
+                <span className="text-xl sm:text-2xl font-bold">
+                  {usage.current_usage.credits_remaining}
                 </span>
-                <span className="text-sm text-gray-600">disponibles</span>
+                <span className="text-xs sm:text-sm text-gray-600">restantes</span>
               </div>
               
               <div className="text-xs text-gray-600">
-                {usage.current_plan.credits > 0 
-                  ? `Tu plan incluye ${usage.current_plan.credits} créditos mensuales`
-                  : 'Créditos comprados por separado'
-                }
+                Para remover fondos de imágenes
               </div>
               
-              {usage.current_usage.purchased_credits_remaining <= 5 && (
-                <Badge variant="outline" className="w-full justify-center text-amber-600">
+              {usage.current_usage.credits_remaining <= 5 && (
+                <Badge variant="outline" className="w-full justify-center text-xs text-amber-600">
                   Pocos créditos restantes
                 </Badge>
-              )}
-              
-              {usage.current_usage.purchased_credits_remaining === 0 && (
-                <Button 
-                  size="sm" 
-                  variant="outline" 
-                  className="w-full"
-                  onClick={() => navigate('/pricing')}
-                >
-                  Comprar Créditos
-                </Button>
               )}
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Resumen Mensual */}
+      {/* Resumen Mensual - Mobile optimized */}
       <Card>
-        <CardHeader>
+        <CardHeader className="pb-3 sm:pb-6">
           <CardTitle className="flex items-center gap-2">
-            <Calendar className="w-5 h-5" />
-            Resumen del Mes
+            <Calendar className="w-4 h-4 sm:w-5 sm:h-5" />
+            <span className="text-sm sm:text-base">Resumen del Mes</span>
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 text-center">
             <div>
-              <div className="font-semibold">{usage.current_usage.catalogs_generated}</div>
-              <div className="text-sm text-gray-600">Catálogos generados</div>
-            </div>
-            <div>
-              <div className="font-semibold">{usage.current_usage.uploads_used}</div>
-              <div className="text-sm text-gray-600">Imágenes subidas</div>
-            </div>
-            <div>
-              <div className="font-semibold">
-                {usage.current_plan.credits > 0 ? 0 : 'N/A'}
+              <div className="font-semibold text-base sm:text-lg">
+                {usage.current_usage.catalogs_generated}
               </div>
-              <div className="text-sm text-gray-600">
-                {usage.current_plan.credits > 0 ? 'Créditos del plan usados' : 'Plan sin créditos incluidos'}
+              <div className="text-xs sm:text-sm text-gray-600">
+                Catálogos generados
               </div>
             </div>
             <div>
-              <div className="font-semibold text-green-600">
-                $0
+              <div className="font-semibold text-base sm:text-lg">
+                {usage.current_usage.uploads_used}
               </div>
-              <div className="text-sm text-gray-600">Valor procesado</div>
+              <div className="text-xs sm:text-sm text-gray-600">
+                Imágenes subidas
+              </div>
+            </div>
+            <div>
+              <div className="font-semibold text-base sm:text-lg">
+                {usage.current_plan.credits - usage.current_usage.credits_remaining}
+              </div>
+              <div className="text-xs sm:text-sm text-gray-600">
+                Créditos usados
+              </div>
+            </div>
+            <div>
+              <div className="font-semibold text-green-600 text-base sm:text-lg">
+                ${((usage.current_plan.credits - usage.current_usage.credits_remaining) * 2).toLocaleString()}
+              </div>
+              <div className="text-xs sm:text-sm text-gray-600">
+                Valor procesado
+              </div>
             </div>
           </div>
         </CardContent>
