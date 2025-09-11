@@ -13,7 +13,6 @@ import { toast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { useBusinessInfo } from '@/hooks/useBusinessInfo';
 import { isPremiumPlan, getPlanLevel, getPlanPermissions } from '@/lib/utils/subscription-helpers';
-import { supabase } from '@/integrations/supabase/client';
 
 // ✅ SOLO NUESTRO SISTEMA NUEVO
 import { SmartTemplateSelector } from '@/components/templates/SmartTemplateSelector';
@@ -54,6 +53,14 @@ interface LocationState {
   products?: any[];
   businessInfo?: any;
   skipProcessing?: boolean;
+}
+interface SubscriptionData {
+  status: string;
+  credit_packages: {
+    package_type: string;
+    name: string;
+    price_usd: number;
+  };
 }
 
 const TemplateSelectionEnhanced = () => {
