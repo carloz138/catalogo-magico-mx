@@ -76,14 +76,6 @@ const Index = () => {
     }
   };
 
-  // ✅ FUNCIÓN PARA CENTRO DE IMÁGENES
-  const handleImageCenter = () => {
-    if (user) {
-      navigate('/image-review');
-    } else {
-      setLoginModalOpen(true);
-    }
-  };
 
   // ✅ FUNCIONES PARA STYLING DE PAQUETES
   const getPackageIcon = (packageName: string) => {
@@ -205,17 +197,6 @@ const Index = () => {
           </nav>
 
           <div className="flex items-center space-x-3">
-            {/* ✅ BOTÓN CENTRO DE IMÁGENES - Desktop */}
-            {user && (
-              <Button 
-                variant="outline" 
-                className="hidden sm:inline-flex border-secondary text-secondary hover:bg-secondary/10"
-                onClick={handleImageCenter}
-              >
-                <ImageIcon className="w-4 h-4 mr-2" />
-                Centro de Imágenes
-              </Button>
-            )}
             <Button 
               variant="outline" 
               className="hidden lg:inline-flex border-gray-300 text-gray-600 hover:bg-gray-50"
@@ -300,18 +281,6 @@ const Index = () => {
                   <Play className="mr-2 w-5 h-5" />
                   Ver demo
                 </Button>
-                {/* ✅ BOTÓN CENTRO DE IMÁGENES - Mobile Hero */}
-                {user && (
-                  <Button 
-                    variant="outline" 
-                    size="lg" 
-                    className="text-lg px-8 py-4 border-secondary text-secondary hover:bg-secondary/10"
-                    onClick={handleImageCenter}
-                  >
-                    <ImageIcon className="mr-2 w-5 h-5" />
-                    Centro de Imágenes
-                  </Button>
-                )}
               </div>
 
               <p className="text-sm text-neutral/60 mt-4">
