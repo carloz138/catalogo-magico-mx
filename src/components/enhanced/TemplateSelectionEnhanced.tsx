@@ -1,5 +1,5 @@
 // src/components/enhanced/TemplateSelectionEnhanced.tsx
-// 🎯 VERSIÓN LIMPIA - Solo usa nuestro sistema nuevo
+// 🎯 VERSIÓN LIMPIA - Solo usa nuestro sistema nuevo - ACTUALIZADA CON LÓGICA PREMIUM
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -12,6 +12,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { useBusinessInfo } from '@/hooks/useBusinessInfo';
+import { supabase } from '@/integrations/supabase/client';
 import { isPremiumPlan, getPlanLevel, getPlanPermissions } from '@/lib/utils/subscription-helpers';
 
 // ✅ SOLO NUESTRO SISTEMA NUEVO
@@ -27,7 +28,8 @@ import {
   AlertTriangle,
   CheckCircle,
   Sparkles,
-  Package
+  Package,
+  Crown
 } from 'lucide-react';
 
 interface Product {
@@ -55,6 +57,15 @@ interface LocationState {
   skipProcessing?: boolean;
 }
 
+interface SubscriptionData {
+  status: string;
+  credit_packages: {
+    package_type: string;
+    name: string;
+    price_usd: number;
+  };
+}
+
 const TemplateSelectionEnhanced = () => {
   const { user } = useAuth();
   const { businessInfo } = useBusinessInfo();
@@ -69,13 +80,11 @@ const TemplateSelectionEnhanced = () => {
   
   // Estados de límites
   const [limits, setLimits] = useState<UsageLimits | null>(null);
-
-  // Estados de Subscripciones
-  const [subscriptionData, setSubscriptionData] = useState<SubscriptionData | null>(null);
   
   // Estados de UX
   const [userIndustry, setUserIndustry] = useState<IndustryType | undefined>();
   const [userPlan, setUserPlan] = useState<'basic' | 'premium'>('basic');
+  const [subscriptionData, setSubscriptionData] = useState<SubscriptionData | null>(null);
 
   const state = location.state as LocationState;
 
@@ -201,32 +210,59 @@ const TemplateSelectionEnhanced = () => {
     }
   };
 
+  // 🚀 FUNCIÓN loadUserPlan ACTUALIZADA CON NUEVA LÓGICA PREMIUM
   const loadUserPlan = async () => {
     if (!user) return;
     
     try {
-      // Consultar plan actual del usuario
-      const { data: subscription } = await (window as any).supabase
+      console.log('🔍 Verificando plan de usuario...');
+      
+      const { data: subscription, error } = await supabase
         .from('subscriptions')
         .select(`
           status,
           credit_packages (
             package_type,
-            name
+            name,
+            price_usd
           )
         `)
         .eq('user_id', user.id)
         .in('status', ['active', 'trialing'])
         .maybeSingle();
-      
-      if (subscription?.credit_packages?.package_type) {
-        const packageType = subscription.credit_packages.package_type;
-        setUserPlan(packageType === 'basic' || packageType === 'free' ? 'basic' : 'premium');
-        console.log('✅ Plan de usuario:', packageType);
+
+      if (error) {
+        console.error('Error loading user plan:', error);
+        setUserPlan('basic');
+        return;
+      }
+
+      if (subscription?.credit_packages) {
+        const packageData = subscription.credit_packages;
+        setSubscriptionData(subscription as SubscriptionData);
+        
+        // 🎯 NUEVA LÓGICA PREMIUM
+        const isPremium = isPremiumPlan(packageData);
+        const planLevel = getPlanLevel(packageData);
+        const permissions = getPlanPermissions(packageData);
+        
+        setUserPlan(isPremium ? 'premium' : 'basic');
+        
+        console.log('✅ Plan determinado:', {
+          package_type: packageData.package_type,
+          price_usd: packageData.price_usd,
+          name: packageData.name,
+          planLevel,
+          access: isPremium ? 'premium' : 'basic',
+          permissions
+        });
+      } else {
+        setUserPlan('basic');
+        console.log('📝 Sin suscripción activa - Plan básico');
       }
     } catch (error) {
       console.error('Error loading user plan:', error);
-      // Mantener 'basic' como default
+      setUserPlan('basic');
     }
   };
 
@@ -343,6 +379,19 @@ const TemplateSelectionEnhanced = () => {
         </Badge>
       </div>
       
+      {/* Badge de plan premium */}
+      <div className="hidden lg:block">
+        <Badge 
+          variant={userPlan === 'premium' ? 'default' : 'outline'} 
+          className={`flex items-center gap-1 ${
+            userPlan === 'premium' ? 'bg-gradient-to-r from-yellow-500 to-yellow-600 text-white' : ''
+          }`}
+        >
+          {userPlan === 'premium' ? <Crown className="w-3 h-3" /> : null}
+          {subscriptionData?.credit_packages?.name || (userPlan === 'premium' ? 'Premium' : 'Básico')}
+        </Badge>
+      </div>
+      
       {limits && (
         <div className="hidden lg:block text-sm text-gray-600">
           {limits.catalogsLimit === 'unlimited' 
@@ -409,14 +458,23 @@ const TemplateSelectionEnhanced = () => {
                     <span className="text-gray-600">
                       {selectedProducts.length} productos seleccionados
                     </span>
-                    {limits && (
-                      <Badge variant="outline">
-                        {limits.catalogsLimit === 'unlimited' 
-                          ? 'Ilimitados' 
-                          : `${limits.remainingCatalogs} restantes`
-                        }
+                    <div className="flex items-center gap-2">
+                      <Badge 
+                        variant={userPlan === 'premium' ? 'default' : 'outline'}
+                        className={userPlan === 'premium' ? 'bg-gradient-to-r from-yellow-500 to-yellow-600 text-white' : ''}
+                      >
+                        {userPlan === 'premium' ? <Crown className="w-3 h-3 mr-1" /> : null}
+                        {subscriptionData?.credit_packages?.name || (userPlan === 'premium' ? 'Premium' : 'Básico')}
                       </Badge>
-                    )}
+                      {limits && (
+                        <Badge variant="outline">
+                          {limits.catalogsLimit === 'unlimited' 
+                            ? 'Ilimitados' 
+                            : `${limits.remainingCatalogs} restantes`
+                          }
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                 </CardContent>
               </Card>
