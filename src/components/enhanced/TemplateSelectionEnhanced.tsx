@@ -54,14 +54,6 @@ interface LocationState {
   businessInfo?: any;
   skipProcessing?: boolean;
 }
-interface SubscriptionData {
-  status: string;
-  credit_packages: {
-    package_type: string;
-    name: string;
-    price_usd: number;
-  };
-}
 
 const TemplateSelectionEnhanced = () => {
   const { user } = useAuth();
@@ -77,6 +69,9 @@ const TemplateSelectionEnhanced = () => {
   
   // Estados de límites
   const [limits, setLimits] = useState<UsageLimits | null>(null);
+
+  // Estados de Subscripciones
+  const [subscriptionData, setSubscriptionData] = useState<SubscriptionData | null>(null);
   
   // Estados de UX
   const [userIndustry, setUserIndustry] = useState<IndustryType | undefined>();
