@@ -1,4 +1,3 @@
-
 // /src/components/layout/AppSidebar.tsx - DISEÑO SÓLIDO Y PROFESIONAL
 import React from "react";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -30,7 +29,6 @@ import {
   LogOut,
   User,
   CreditCard,
-  FileImage,
   Layers,
   Crown,
   Building2,
@@ -81,11 +79,6 @@ const menuData: MenuItem[] = [
         title: "Editar Productos",
         path: "/products-management",
         icon: Settings,
-      },
-      {
-        title: "Centro de Imágenes",
-        path: "/image-review",
-        icon: FileImage,
       },
     ],
   },
