@@ -13,6 +13,7 @@ import { toast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { useBusinessInfo } from '@/hooks/useBusinessInfo';
 import { isPremiumPlan, getPlanLevel, getPlanPermissions } from '@/lib/utils/subscription-helpers';
+import { supabase } from '@/integrations/supabase/client';
 
 // ✅ SOLO NUESTRO SISTEMA NUEVO
 import { SmartTemplateSelector } from '@/components/templates/SmartTemplateSelector';
@@ -199,59 +200,33 @@ const TemplateSelectionEnhanced = () => {
   };
 
   const loadUserPlan = async () => {
-  if (!user) return;
-  
-  try {
-    console.log('🔍 Verificando plan de usuario...');
+    if (!user) return;
     
-    const { data: subscription, error } = await supabase
-      .from('subscriptions')
-      .select(`
-        status,
-        credit_packages (
-          package_type,
-          name,
-          price_usd
-        )
-      `)
-      .eq('user_id', user.id)
-      .in('status', ['active', 'trialing'])
-      .maybeSingle();
-
-    if (error) {
+    try {
+      // Consultar plan actual del usuario
+      const { data: subscription } = await (window as any).supabase
+        .from('subscriptions')
+        .select(`
+          status,
+          credit_packages (
+            package_type,
+            name
+          )
+        `)
+        .eq('user_id', user.id)
+        .in('status', ['active', 'trialing'])
+        .maybeSingle();
+      
+      if (subscription?.credit_packages?.package_type) {
+        const packageType = subscription.credit_packages.package_type;
+        setUserPlan(packageType === 'basic' || packageType === 'free' ? 'basic' : 'premium');
+        console.log('✅ Plan de usuario:', packageType);
+      }
+    } catch (error) {
       console.error('Error loading user plan:', error);
-      setUserPlan('basic');
-      return;
+      // Mantener 'basic' como default
     }
-
-    if (subscription?.credit_packages) {
-      const packageData = subscription.credit_packages;
-      setSubscriptionData(subscription as SubscriptionData);
-      
-      // 🎯 NUEVA LÓGICA PREMIUM
-      const isPremium = isPremiumPlan(packageData);
-      const planLevel = getPlanLevel(packageData);
-      const permissions = getPlanPermissions(packageData);
-      
-      setUserPlan(isPremium ? 'premium' : 'basic');
-      
-      console.log('✅ Plan determinado:', {
-        package_type: packageData.package_type,
-        price_usd: packageData.price_usd,
-        name: packageData.name,
-        planLevel,
-        access: isPremium ? 'premium' : 'basic',
-        permissions
-      });
-    } else {
-      setUserPlan('basic');
-      console.log('📝 Sin suscripción activa - Plan básico');
-    }
-  } catch (error) {
-    console.error('Error loading user plan:', error);
-    setUserPlan('basic');
-  }
-};
+  };
 
   const loadCatalogLimits = async () => {
     if (!user) return;
