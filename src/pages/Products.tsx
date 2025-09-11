@@ -8,6 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { toast } from '@/components/ui/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -35,7 +37,10 @@ import {
   Sparkles,
   BookOpen,
   ArrowRight,
-  HelpCircle
+  HelpCircle,
+  Save,
+  X,
+  ZoomIn
 } from 'lucide-react';
 
 const Products = () => {
@@ -53,6 +58,20 @@ const Products = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [showCatalogPreview, setShowCatalogPreview] = useState(false);
+  
+  // Estados para modales de productos
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [editForm, setEditForm] = useState({
+    name: '',
+    description: '',
+    custom_description: '',
+    price_retail: '',
+    price_wholesale: '',
+    category: '',
+    brand: ''
+  });
   
   // Estado activo de pestaña
   const [activeTab, setActiveTab] = useState(() => {
@@ -177,6 +196,67 @@ const Products = () => {
     } else {
       // Seleccionar todos los de esta pestaña
       setSelectedProducts(prev => [...new Set([...prev, ...currentTabProductIds])]);
+    }
+  };
+
+  // Funciones para modales
+  const handleViewProduct = (product: Product) => {
+    setSelectedProduct(product);
+    setShowViewModal(true);
+  };
+
+  const handleEditProduct = (product: Product) => {
+    setSelectedProduct(product);
+    setEditForm({
+      name: product.name || '',
+      description: product.description || '',
+      custom_description: product.custom_description || '',
+      price_retail: product.price_retail ? (product.price_retail / 100).toString() : '',
+      price_wholesale: product.price_wholesale ? (product.price_wholesale / 100).toString() : '',
+      category: product.category || '',
+      brand: product.brand || ''
+    });
+    setShowEditModal(true);
+  };
+
+  const handleSaveProduct = async () => {
+    if (!selectedProduct) return;
+
+    try {
+      const updates = {
+        name: editForm.name,
+        description: editForm.description || null,
+        custom_description: editForm.custom_description || null,
+        price_retail: editForm.price_retail ? Math.round(parseFloat(editForm.price_retail) * 100) : null,
+        price_wholesale: editForm.price_wholesale ? Math.round(parseFloat(editForm.price_wholesale) * 100) : null,
+        category: editForm.category || null,
+        brand: editForm.brand || null,
+        updated_at: new Date().toISOString()
+      };
+
+      const { error } = await supabase
+        .from('products')
+        .update(updates)
+        .eq('id', selectedProduct.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Producto actualizado",
+        description: "Los cambios se guardaron correctamente",
+      });
+
+      setShowEditModal(false);
+      setSelectedProduct(null);
+      await loadProducts();
+
+    } catch (error) {
+      console.error('Error updating product:', error);
+      toast({
+        title: "Error",
+        description: "No se pudo actualizar el producto",
+        variant: "destructive",
+      });
     }
   };
 
@@ -452,6 +532,210 @@ const Products = () => {
         </div>
       </CardContent>
     </Card>
+  );
+
+  // Modal para ver producto
+  const ViewProductModal = () => (
+    <Dialog open={showViewModal} onOpenChange={setShowViewModal}>
+      <DialogContent className="sm:max-w-2xl max-h-[80vh] overflow-hidden">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <ZoomIn className="w-5 h-5" />
+            {selectedProduct?.name}
+          </DialogTitle>
+        </DialogHeader>
+        
+        {selectedProduct && (
+          <div className="space-y-4 overflow-y-auto">
+            {/* Imagen principal */}
+            <div className="relative bg-gray-100 rounded-lg overflow-hidden">
+              <img
+                src={getDisplayImageUrl(selectedProduct)}
+                alt={selectedProduct.name}
+                className="w-full h-64 sm:h-80 object-contain"
+              />
+              <div className="absolute top-2 right-2">
+                <Badge className={`${
+                  getProcessingStatus(selectedProduct) === 'completed' 
+                    ? 'bg-green-100 text-green-800' 
+                    : 'bg-orange-100 text-orange-800'
+                }`}>
+                  {getProcessingStatus(selectedProduct) === 'completed' ? 'Sin fondo' : 'Con fondo'}
+                </Badge>
+              </div>
+            </div>
+
+            {/* Información del producto */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-3">
+                <div>
+                  <Label className="text-sm font-medium text-gray-600">Nombre</Label>
+                  <p className="text-sm">{selectedProduct.name}</p>
+                </div>
+                
+                {selectedProduct.description && (
+                  <div>
+                    <Label className="text-sm font-medium text-gray-600">Descripción</Label>
+                    <p className="text-sm">{selectedProduct.description}</p>
+                  </div>
+                )}
+                
+                {selectedProduct.category && (
+                  <div>
+                    <Label className="text-sm font-medium text-gray-600">Categoría</Label>
+                    <p className="text-sm">{selectedProduct.category}</p>
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-3">
+                {selectedProduct.price_retail && (
+                  <div>
+                    <Label className="text-sm font-medium text-gray-600">Precio Público</Label>
+                    <p className="text-sm font-bold text-green-600">
+                      ${(selectedProduct.price_retail / 100).toFixed(2)}
+                    </p>
+                  </div>
+                )}
+                
+                {selectedProduct.price_wholesale && (
+                  <div>
+                    <Label className="text-sm font-medium text-gray-600">Precio Mayoreo</Label>
+                    <p className="text-sm font-bold text-blue-600">
+                      ${(selectedProduct.price_wholesale / 100).toFixed(2)}
+                    </p>
+                  </div>
+                )}
+                
+                {selectedProduct.brand && (
+                  <div>
+                    <Label className="text-sm font-medium text-gray-600">Marca</Label>
+                    <p className="text-sm">{selectedProduct.brand}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+
+  // Modal para editar producto
+  const EditProductModal = () => (
+    <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
+      <DialogContent className="sm:max-w-2xl max-h-[80vh] overflow-hidden">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Edit className="w-5 h-5" />
+            Editar Producto
+          </DialogTitle>
+        </DialogHeader>
+        
+        <div className="space-y-4 overflow-y-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="name">Nombre *</Label>
+                <Input
+                  id="name"
+                  value={editForm.name}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, name: e.target.value }))}
+                  placeholder="Nombre del producto"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="category">Categoría</Label>
+                <Input
+                  id="category"
+                  value={editForm.category}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, category: e.target.value }))}
+                  placeholder="Ej: Electrónicos, Ropa, etc."
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="brand">Marca</Label>
+                <Input
+                  id="brand"
+                  value={editForm.brand}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, brand: e.target.value }))}
+                  placeholder="Marca del producto"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="price_retail">Precio Público</Label>
+                <Input
+                  id="price_retail"
+                  type="number"
+                  step="0.01"
+                  value={editForm.price_retail}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, price_retail: e.target.value }))}
+                  placeholder="0.00"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="price_wholesale">Precio Mayoreo</Label>
+                <Input
+                  id="price_wholesale"
+                  type="number"
+                  step="0.01"
+                  value={editForm.price_wholesale}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, price_wholesale: e.target.value }))}
+                  placeholder="0.00"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <Label htmlFor="description">Descripción</Label>
+            <Textarea
+              id="description"
+              value={editForm.description}
+              onChange={(e) => setEditForm(prev => ({ ...prev, description: e.target.value }))}
+              placeholder="Descripción del producto"
+              rows={3}
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="custom_description">Descripción Personalizada</Label>
+            <Textarea
+              id="custom_description"
+              value={editForm.custom_description}
+              onChange={(e) => setEditForm(prev => ({ ...prev, custom_description: e.target.value }))}
+              placeholder="Descripción adicional"
+              rows={2}
+            />
+          </div>
+        </div>
+
+        <div className="flex gap-3 pt-4 border-t">
+          <Button
+            variant="outline"
+            onClick={() => setShowEditModal(false)}
+            className="flex-1"
+          >
+            <X className="h-4 w-4 mr-2" />
+            Cancelar
+          </Button>
+          <Button
+            onClick={handleSaveProduct}
+            className="flex-1"
+            disabled={!editForm.name.trim()}
+          >
+            <Save className="h-4 w-4 mr-2" />
+            Guardar Cambios
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 
   // Modal de preview del catálogo mejorado
@@ -782,6 +1066,8 @@ const Products = () => {
                           selectedProducts={selectedProducts}
                           toggleProductSelection={toggleProductSelection}
                           handleDeleteProduct={handleDeleteProduct}
+                          handleViewProduct={handleViewProduct}
+                          handleEditProduct={handleEditProduct}
                           processing={processing}
                         />
                       ))}
@@ -829,6 +1115,8 @@ const Products = () => {
                           selectedProducts={selectedProducts}
                           toggleProductSelection={toggleProductSelection}
                           handleDeleteProduct={handleDeleteProduct}
+                          handleViewProduct={handleViewProduct}
+                          handleEditProduct={handleEditProduct}
                           processing={true}
                           showProgress={true}
                         />
@@ -877,6 +1165,8 @@ const Products = () => {
                           selectedProducts={selectedProducts}
                           toggleProductSelection={toggleProductSelection}
                           handleDeleteProduct={handleDeleteProduct}
+                          handleViewProduct={handleViewProduct}
+                          handleEditProduct={handleEditProduct}
                           processing={false}
                           showCompleted={true}
                         />
@@ -889,18 +1179,23 @@ const Products = () => {
           </div>
         )}
         
+        {/* Modales */}
+        <ViewProductModal />
+        <EditProductModal />
         <CatalogPreviewModal />
       </AppLayout>
     </ProtectedRoute>
   );
 };
 
-// Componente de tarjeta de producto mejorado con iconografía más clara
+// Componente de tarjeta de producto mejorado con funcionalidad completa
 const ProductCard = ({ 
   product, 
   selectedProducts, 
   toggleProductSelection, 
-  handleDeleteProduct, 
+  handleDeleteProduct,
+  handleViewProduct,
+  handleEditProduct,
   processing, 
   showProgress = false, 
   showCompleted = false 
@@ -908,10 +1203,22 @@ const ProductCard = ({
   const status = getProcessingStatus(product);
   const displayImageUrl = getDisplayImageUrl(product);
 
+  // Manejador para click en la tarjeta (móvil principalmente)
+  const handleCardClick = (e: React.MouseEvent) => {
+    // Solo seleccionar si el click no fue en un botón
+    const target = e.target as HTMLElement;
+    if (!target.closest('button') && !target.closest('input[type="checkbox"]')) {
+      toggleProductSelection(product.id);
+    }
+  };
+
   return (
-    <Card className={`overflow-hidden hover:shadow-md transition-shadow ${
-      processing ? 'opacity-50' : ''
-    }`}>
+    <Card 
+      className={`overflow-hidden hover:shadow-md transition-shadow cursor-pointer sm:cursor-default ${
+        processing ? 'opacity-50' : ''
+      } ${selectedProducts.includes(product.id) ? 'ring-2 ring-blue-500' : ''}`}
+      onClick={handleCardClick}
+    >
       <div className="relative">
         <div className="aspect-square bg-gray-100">
           <img
@@ -981,11 +1288,29 @@ const ProductCard = ({
         )}
         
         <div className="flex gap-1 sm:gap-2">
-          <Button size="sm" variant="outline" className="flex-1 text-xs" disabled={processing}>
+          <Button 
+            size="sm" 
+            variant="outline" 
+            className="flex-1 text-xs" 
+            disabled={processing}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleViewProduct(product);
+            }}
+          >
             <Eye className="h-3 w-3 sm:mr-1" />
             <span className="hidden sm:inline">Ver</span>
           </Button>
-          <Button size="sm" variant="outline" className="flex-1 text-xs" disabled={processing}>
+          <Button 
+            size="sm" 
+            variant="outline" 
+            className="flex-1 text-xs" 
+            disabled={processing}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleEditProduct(product);
+            }}
+          >
             <Edit className="h-3 w-3 sm:mr-1" />
             <span className="hidden sm:inline">Editar</span>
           </Button>
@@ -993,7 +1318,10 @@ const ProductCard = ({
             size="sm" 
             variant="outline"
             disabled={processing}
-            onClick={() => handleDeleteProduct(product)}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleDeleteProduct(product);
+            }}
             className="text-xs"
           >
             <Trash2 className="h-3 w-3" />
