@@ -82,11 +82,6 @@ const menuData: MenuItem[] = [
         path: "/products-management",
         icon: Settings,
       },
-      {
-        title: "Centro de Imágenes",
-        path: "/image-review",
-        icon: FileImage,
-      },
     ],
   },
   {
