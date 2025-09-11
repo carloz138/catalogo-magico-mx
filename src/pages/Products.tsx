@@ -636,9 +636,9 @@ const Products = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-4">
               <div>
-                <Label htmlFor="name">Nombre *</Label>
+                <Label htmlFor="edit-name">Nombre *</Label>
                 <Input
-                  id="name"
+                  id="edit-name"
                   value={editForm.name}
                   onChange={(e) => setEditForm(prev => ({ ...prev, name: e.target.value }))}
                   placeholder="Nombre del producto"
@@ -646,9 +646,9 @@ const Products = () => {
               </div>
 
               <div>
-                <Label htmlFor="category">Categoría</Label>
+                <Label htmlFor="edit-category">Categoría</Label>
                 <Input
-                  id="category"
+                  id="edit-category"
                   value={editForm.category}
                   onChange={(e) => setEditForm(prev => ({ ...prev, category: e.target.value }))}
                   placeholder="Ej: Electrónicos, Ropa, etc."
@@ -656,9 +656,9 @@ const Products = () => {
               </div>
 
               <div>
-                <Label htmlFor="brand">Marca</Label>
+                <Label htmlFor="edit-brand">Marca</Label>
                 <Input
-                  id="brand"
+                  id="edit-brand"
                   value={editForm.brand}
                   onChange={(e) => setEditForm(prev => ({ ...prev, brand: e.target.value }))}
                   placeholder="Marca del producto"
@@ -668,9 +668,9 @@ const Products = () => {
 
             <div className="space-y-4">
               <div>
-                <Label htmlFor="price_retail">Precio Público</Label>
+                <Label htmlFor="edit-price-retail">Precio Público</Label>
                 <Input
-                  id="price_retail"
+                  id="edit-price-retail"
                   type="number"
                   step="0.01"
                   value={editForm.price_retail}
@@ -680,9 +680,9 @@ const Products = () => {
               </div>
 
               <div>
-                <Label htmlFor="price_wholesale">Precio Mayoreo</Label>
+                <Label htmlFor="edit-price-wholesale">Precio Mayoreo</Label>
                 <Input
-                  id="price_wholesale"
+                  id="edit-price-wholesale"
                   type="number"
                   step="0.01"
                   value={editForm.price_wholesale}
@@ -694,9 +694,9 @@ const Products = () => {
           </div>
 
           <div>
-            <Label htmlFor="description">Descripción</Label>
+            <Label htmlFor="edit-description">Descripción</Label>
             <Textarea
-              id="description"
+              id="edit-description"
               value={editForm.description}
               onChange={(e) => setEditForm(prev => ({ ...prev, description: e.target.value }))}
               placeholder="Descripción del producto"
@@ -705,9 +705,9 @@ const Products = () => {
           </div>
 
           <div>
-            <Label htmlFor="custom_description">Descripción Personalizada</Label>
+            <Label htmlFor="edit-custom-description">Descripción Personalizada</Label>
             <Textarea
-              id="custom_description"
+              id="edit-custom-description"
               value={editForm.custom_description}
               onChange={(e) => setEditForm(prev => ({ ...prev, custom_description: e.target.value }))}
               placeholder="Descripción adicional"
