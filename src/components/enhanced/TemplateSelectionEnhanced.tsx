@@ -199,33 +199,59 @@ const TemplateSelectionEnhanced = () => {
   };
 
   const loadUserPlan = async () => {
-    if (!user) return;
+  if (!user) return;
+  
+  try {
+    console.log('🔍 Verificando plan de usuario...');
     
-    try {
-      // Consultar plan actual del usuario
-      const { data: subscription } = await (window as any).supabase
-        .from('subscriptions')
-        .select(`
-          status,
-          credit_packages (
-            package_type,
-            name
-          )
-        `)
-        .eq('user_id', user.id)
-        .in('status', ['active', 'trialing'])
-        .maybeSingle();
-      
-      if (subscription?.credit_packages?.package_type) {
-        const packageType = subscription.credit_packages.package_type;
-        setUserPlan(packageType === 'basic' || packageType === 'free' ? 'basic' : 'premium');
-        console.log('✅ Plan de usuario:', packageType);
-      }
-    } catch (error) {
+    const { data: subscription, error } = await supabase
+      .from('subscriptions')
+      .select(`
+        status,
+        credit_packages (
+          package_type,
+          name,
+          price_usd
+        )
+      `)
+      .eq('user_id', user.id)
+      .in('status', ['active', 'trialing'])
+      .maybeSingle();
+
+    if (error) {
       console.error('Error loading user plan:', error);
-      // Mantener 'basic' como default
+      setUserPlan('basic');
+      return;
     }
-  };
+
+    if (subscription?.credit_packages) {
+      const packageData = subscription.credit_packages;
+      setSubscriptionData(subscription as SubscriptionData);
+      
+      // 🎯 NUEVA LÓGICA PREMIUM
+      const isPremium = isPremiumPlan(packageData);
+      const planLevel = getPlanLevel(packageData);
+      const permissions = getPlanPermissions(packageData);
+      
+      setUserPlan(isPremium ? 'premium' : 'basic');
+      
+      console.log('✅ Plan determinado:', {
+        package_type: packageData.package_type,
+        price_usd: packageData.price_usd,
+        name: packageData.name,
+        planLevel,
+        access: isPremium ? 'premium' : 'basic',
+        permissions
+      });
+    } else {
+      setUserPlan('basic');
+      console.log('📝 Sin suscripción activa - Plan básico');
+    }
+  } catch (error) {
+    console.error('Error loading user plan:', error);
+    setUserPlan('basic');
+  }
+};
 
   const loadCatalogLimits = async () => {
     if (!user) return;
