@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { LoginModal } from "@/components/auth/LoginModal";
 import { useAuth } from "@/contexts/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 
 interface CreditPackage {
@@ -723,8 +723,8 @@ const Index = () => {
               © 2024 CatalogoIA. Todos los derechos reservados. Hecho con ❤️ en México.
             </p>
             <div className="flex space-x-6 mt-4 md:mt-0">
-              <a href="#" className="text-white/70 hover:text-white text-sm">Privacidad</a>
-              <a href="#" className="text-white/70 hover:text-white text-sm">Términos</a>
+              <Link to="/privacy-policy" className="text-white/70 hover:text-white text-sm">Privacidad</Link>
+              <Link to="/terms-and-conditions" className="text-white/70 hover:text-white text-sm">Términos</Link>
               <a href="#" className="text-white/70 hover:text-white text-sm">Cookies</a>
             </div>
           </div>
