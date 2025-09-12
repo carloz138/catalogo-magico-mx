@@ -21,6 +21,7 @@ import NotFound from "./pages/NotFound";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import BusinessInfoPage from "./pages/BusinessInfoPage";
 import TermsAndConditions from "./pages/TermsAndConditions";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
 
 
 const queryClient = new QueryClient();
@@ -93,6 +94,7 @@ const App = () => (
             {/* Redirect old /creditos route to /checkout */}
             <Route path="/creditos" element={<Navigate to="/checkout" replace />} />
             <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
+            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
