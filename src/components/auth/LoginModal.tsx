@@ -126,7 +126,7 @@ export const LoginModal = ({ open, onOpenChange }: LoginModalProps) => {
             <div className="space-y-4">
               <Button
                 type="button"
-                variant="outline"
+                variant="google"
                 className="w-full"
                 onClick={handleGoogleLogin}
                 disabled={loading}
@@ -199,7 +199,7 @@ export const LoginModal = ({ open, onOpenChange }: LoginModalProps) => {
             <div className="space-y-4">
               <Button
                 type="button"
-                variant="outline"
+                variant="google"
                 className="w-full"
                 onClick={handleGoogleLogin}
                 disabled={loading}
