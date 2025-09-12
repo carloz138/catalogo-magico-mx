@@ -20,6 +20,7 @@ import PaymentInstructions from "./pages/PaymentInstructions";
 import NotFound from "./pages/NotFound";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import BusinessInfoPage from "./pages/BusinessInfoPage";
+import TermsAndConditions from "./pages/TermsAndConditions";
 
 
 const queryClient = new QueryClient();
@@ -91,6 +92,7 @@ const App = () => (
             } />
             {/* Redirect old /creditos route to /checkout */}
             <Route path="/creditos" element={<Navigate to="/checkout" replace />} />
+            <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
