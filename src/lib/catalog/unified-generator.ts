@@ -4,7 +4,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { IndustryTemplate, getTemplateById } from '@/lib/templates/industry-templates';
 import { TemplateGenerator } from '@/lib/templates/css-generator';
-import { DynamicTemplateEngine, generateDynamicCatalogPDF } from '@/lib/pdf/dynamic-template-engine';
+import { generateCatalogPDF } from '@/lib/pdf/pdf-generator';
 import { TemplateDynamicMapper, getDynamicTemplate } from '@/lib/templates/dynamic-mapper';
 
 interface Product {
@@ -242,20 +242,29 @@ export class UnifiedCatalogGenerator {
     try {
       console.log('🚀 Usando Dynamic Template Engine...');
       
+      // Obtener template clásico para generar HTML
+      const template = getTemplateById(templateId);
+      if (!template) {
+        throw new Error(`Template ${templateId} no encontrado`);
+      }
+      
       // Convertir template a formato dinámico
       const dynamicTemplate = getDynamicTemplate(templateId);
       if (!dynamicTemplate) {
         throw new Error(`No se pudo convertir template ${templateId} a formato dinámico`);
       }
       
-      // Usar el sistema dinámico
-      const result = await generateDynamicCatalogPDF(
-        products,
-        businessInfo,
-        dynamicTemplate.id,
+      // Generar HTML para PDF
+      const htmlContent = TemplateGenerator.generateCatalogHTML(products, businessInfo, template);
+      
+      // Usar el sistema dinámico de PDF
+      const result = await generateCatalogPDF(
+        htmlContent,
+        `catalogo-${businessInfo.business_name}`,
         {
-          showProgress: options.showProgress,
-          onProgress: options.onProgress
+          format: 'A4',
+          orientation: 'portrait',
+          quality: 'high'
         }
       );
       
@@ -344,31 +353,22 @@ export class UnifiedCatalogGenerator {
     try {
       console.log('📄 Generando PDF clásico...');
       
-      if (!window.html2pdf) {
-        console.error('html2pdf.js no disponible');
+      // Usar el nuevo sistema de PDF
+      const result = await generateCatalogPDF(
+        htmlContent,
+        filename,
+        {
+          format: 'A4',
+          orientation: 'portrait',
+          quality: 'high'
+        }
+      );
+      
+      if (!result.success) {
+        console.error('Error generando PDF:', result.error);
         this.downloadHTMLFallback(htmlContent, filename);
         return;
       }
-      
-      // Crear elemento temporal
-      const element = document.createElement('div');
-      element.innerHTML = htmlContent;
-      element.style.width = '210mm';
-      element.style.fontFamily = 'Arial, sans-serif';
-      document.body.appendChild(element);
-      
-      const options = {
-        margin: 0.5,
-        filename: `${filename}.pdf`,
-        image: { type: 'jpeg', quality: 0.92 },
-        html2canvas: { scale: 2, useCORS: true },
-        jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
-      };
-      
-      await window.html2pdf().set(options).from(element).save();
-      
-      // Cleanup
-      document.body.removeChild(element);
       console.log('✅ PDF clásico generado');
       
     } catch (error) {
