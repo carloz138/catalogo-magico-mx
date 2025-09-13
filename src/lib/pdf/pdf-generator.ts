@@ -1,5 +1,5 @@
 // src/lib/pdf/pdf-generator.ts
-// 📄 SISTEMA REAL DE CONVERSIÓN HTML→PDF (SIN TEMPLATES)
+// 📄 SISTEMA REAL DE CONVERSIÓN HTML→PDF
 
 interface PDFOptions {
   format: 'A4' | 'Letter' | 'A3';
@@ -190,12 +190,6 @@ export class PDFGenerator {
         @page {
           size: ${options.format} ${options.orientation};
           margin: ${options.margins.top}mm ${options.margins.right}mm ${options.margins.bottom}mm ${options.margins.left}mm;
-          
-          @top-center {
-            content: counter(page) " / " counter(pages);
-            font-size: 10px;
-            color: #666;
-          }
         }
         
         /* Reset para PDF */
@@ -242,8 +236,6 @@ export class PDFGenerator {
           object-fit: contain !important;
           display: block !important;
           filter: none !important;
-          
-          /* Forzar carga de imágenes para PDF */
           image-rendering: -webkit-optimize-contrast !important;
           image-rendering: crisp-edges !important;
         }
@@ -298,14 +290,12 @@ export class PDFGenerator {
         
         /* Ajustar grid según formato */
         @media print and (max-width: 210mm) {
-          /* A4 Portrait */
           .products-grid {
             grid-template-columns: repeat(2, 1fr) !important;
           }
         }
         
         @media print and (min-width: 297mm) {
-          /* A4 Landscape */
           .products-grid {
             grid-template-columns: repeat(3, 1fr) !important;
           }
@@ -318,8 +308,6 @@ export class PDFGenerator {
           border-radius: 8px !important;
           padding: 15px !important;
           box-shadow: none !important;
-          
-          /* Forzar visibilidad */
           opacity: 1 !important;
           visibility: visible !important;
         }
@@ -366,14 +354,6 @@ export class PDFGenerator {
             background-image: none !important;
           }
         `}
-        
-        /* ===== DEBUG PARA PDF ===== */
-        @media print {
-          .debug-pdf {
-            border: 1px solid red !important;
-            background: yellow !important;
-          }
-        }
       </style>
     `;
     
