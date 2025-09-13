@@ -5,7 +5,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { IndustryTemplate, getTemplateById } from '@/lib/templates/industry-templates';
 import { TemplateGenerator } from '@/lib/templates/css-generator';
 import { generateBrowserCompatiblePDF } from '@/lib/pdf/browser-pdf-generator';
-import { getTemplateById } from '@/lib/templates/industry-templates';
 
 interface Product {
   id: string;
