@@ -1,405 +1,552 @@
 // src/components/templates/TemplatePreview.tsx
-// 🖼️ SISTEMA DE PREVISUALIZACIONES VISUALES PARA TEMPLATES
+// 🖼️ SISTEMA DE PREVISUALIZACIONES VISUALES CORREGIDO - Sin deformaciones
 
 import React from 'react';
 import { IndustryTemplate } from '@/lib/templates/industry-templates';
+import { Badge } from '@/components/ui/badge';
+import { Crown, Package } from 'lucide-react';
 
-// Productos de ejemplo para previsualizaciones
+// 🎨 PRODUCTOS DE MUESTRA MÁS REALISTAS Y ESPECÍFICOS
 const SAMPLE_PRODUCTS = {
   joyeria: [
-    { id: '1', name: 'Anillo Diamante', price_retail: 15000, image_url: '/api/placeholder/180/180' },
-    { id: '2', name: 'Collar Oro 18k', price_retail: 8500, image_url: '/api/placeholder/180/180' },
-    { id: '3', name: 'Pulsera Plata', price_retail: 3200, image_url: '/api/placeholder/180/180' },
-    { id: '4', name: 'Aretes Perla', price_retail: 5800, image_url: '/api/placeholder/180/180' }
+    { name: 'Anillo Compromiso', price: 15000, category: 'Anillos' },
+    { name: 'Collar Perlas', price: 8500, category: 'Collares' },
+    { name: 'Pulsera Oro 18k', price: 3200, category: 'Pulseras' },
+    { name: 'Aretes Diamante', price: 5800, category: 'Aretes' },
+    { name: 'Reloj Dama', price: 12000, category: 'Relojes' },
+    { name: 'Cadena Plata', price: 2100, category: 'Cadenas' }
   ],
   moda: [
-    { id: '1', name: 'Vestido Casual', price_retail: 1200, image_url: '/api/placeholder/250/250' },
-    { id: '2', name: 'Blusa Elegante', price_retail: 800, image_url: '/api/placeholder/250/250' },
-    { id: '3', name: 'Pantalón Formal', price_retail: 950, image_url: '/api/placeholder/250/250' }
+    { name: 'Vestido Noche', price: 1200, category: 'Vestidos' },
+    { name: 'Blusa Seda', price: 800, category: 'Blusas' },
+    { name: 'Pantalón Formal', price: 950, category: 'Pantalones' },
+    { name: 'Falda Midi', price: 680, category: 'Faldas' },
+    { name: 'Chaqueta Lino', price: 1400, category: 'Chaquetas' },
+    { name: 'Zapatos Tacón', price: 1100, category: 'Calzado' }
   ],
   electronica: [
-    { id: '1', name: 'Smartphone Pro', price_retail: 12000, image_url: '/api/placeholder/300/300' },
-    { id: '2', name: 'Laptop Gaming', price_retail: 25000, image_url: '/api/placeholder/300/300' },
-    { id: '3', name: 'Auriculares BT', price_retail: 3500, image_url: '/api/placeholder/300/300' }
+    { name: 'iPhone 15 Pro', price: 25000, category: 'Smartphones' },
+    { name: 'Laptop Gaming', price: 35000, category: 'Computadoras' },
+    { name: 'AirPods Pro', price: 6500, category: 'Audio' },
+    { name: 'iPad Air', price: 15000, category: 'Tablets' },
+    { name: 'Apple Watch', price: 8500, category: 'Wearables' },
+    { name: 'MacBook Air', price: 28000, category: 'Laptops' }
   ],
   ferreteria: [
-    { id: '1', name: 'Taladro Eléctrico', price_retail: 2800, image_url: '/api/placeholder/300/300' },
-    { id: '2', name: 'Martillo 500g', price_retail: 450, image_url: '/api/placeholder/300/300' },
-    { id: '3', name: 'Destornillador Set', price_retail: 320, image_url: '/api/placeholder/300/300' }
+    { name: 'Taladro Dewalt', price: 2800, category: 'Herramientas' },
+    { name: 'Martillo 500g', price: 450, category: 'Manuales' },
+    { name: 'Set Destornilladores', price: 320, category: 'Sets' },
+    { name: 'Sierra Circular', price: 1800, category: 'Eléctricas' },
+    { name: 'Nivel Láser', price: 950, category: 'Medición' },
+    { name: 'Caja Herramientas', price: 680, category: 'Almacenaje' }
   ],
   floreria: [
-    { id: '1', name: 'Ramo Rosas', price_retail: 650, image_url: '/api/placeholder/180/180' },
-    { id: '2', name: 'Orquídea Blanca', price_retail: 890, image_url: '/api/placeholder/180/180' },
-    { id: '3', name: 'Arreglo Mixto', price_retail: 1200, image_url: '/api/placeholder/180/180' },
-    { id: '4', name: 'Girasoles', price_retail: 450, image_url: '/api/placeholder/180/180' }
+    { name: 'Ramo 24 Rosas', price: 650, category: 'Ramos' },
+    { name: 'Orquídea Blanca', price: 890, category: 'Plantas' },
+    { name: 'Arreglo Cumpleaños', price: 1200, category: 'Especiales' },
+    { name: 'Corona Funeral', price: 1800, category: 'Funerarios' },
+    { name: 'Centro Mesa', price: 750, category: 'Decoración' },
+    { name: 'Bouquet Novia', price: 2500, category: 'Bodas' }
   ],
   cosmeticos: [
-    { id: '1', name: 'Base Líquida', price_retail: 480, image_url: '/api/placeholder/250/250' },
-    { id: '2', name: 'Labial Mate', price_retail: 320, image_url: '/api/placeholder/250/250' },
-    { id: '3', name: 'Sérum Facial', price_retail: 750, image_url: '/api/placeholder/250/250' }
+    { name: 'Base Longwear', price: 480, category: 'Rostro' },
+    { name: 'Labial Mate', price: 320, category: 'Labios' },
+    { name: 'Sérum Vitamina C', price: 750, category: 'Cuidado' },
+    { name: 'Paleta Sombras', price: 560, category: 'Ojos' },
+    { name: 'Perfume 100ml', price: 1200, category: 'Fragancias' },
+    { name: 'Crema Antiedad', price: 890, category: 'Antiaging' }
   ],
   decoracion: [
-    { id: '1', name: 'Vela Aromática', price_retail: 280, image_url: '/api/placeholder/250/250' },
-    { id: '2', name: 'Marco Foto', price_retail: 420, image_url: '/api/placeholder/250/250' },
-    { id: '3', name: 'Cojín Decorativo', price_retail: 350, image_url: '/api/placeholder/250/250' }
+    { name: 'Vela Aromática', price: 280, category: 'Velas' },
+    { name: 'Marco Vintage', price: 420, category: 'Marcos' },
+    { name: 'Cojín Terciopelo', price: 350, category: 'Textiles' },
+    { name: 'Florero Cristal', price: 680, category: 'Jarrones' },
+    { name: 'Espejo Dorado', price: 950, category: 'Espejos' },
+    { name: 'Lámpara Mesa', price: 1200, category: 'Iluminación' }
   ],
   muebles: [
-    { id: '1', name: 'Silla Ejecutiva', price_retail: 4500, image_url: '/api/placeholder/300/300' },
-    { id: '2', name: 'Mesa Centro', price_retail: 3200, image_url: '/api/placeholder/300/300' },
-    { id: '3', name: 'Librero Modular', price_retail: 5800, image_url: '/api/placeholder/300/300' }
+    { name: 'Silla Ejecutiva', price: 4500, category: 'Oficina' },
+    { name: 'Mesa Centro Roble', price: 3200, category: 'Mesas' },
+    { name: 'Librero 5 Niveles', price: 5800, category: 'Almacenaje' },
+    { name: 'Sofá 3 Plazas', price: 12000, category: 'Salas' },
+    { name: 'Cama King Size', price: 8500, category: 'Recámaras' },
+    { name: 'Escritorio L', price: 6800, category: 'Oficina' }
   ]
+};
+
+// 🎯 ICONOS POR INDUSTRIA PARA PRODUCTOS SIN IMAGEN
+const INDUSTRY_ICONS = {
+  joyeria: ['💍', '💎', '⌚', '📿', '👑', '✨'],
+  moda: ['👗', '👠', '👚', '👖', '🧥', '👜'],
+  electronica: ['📱', '💻', '🎧', '📺', '⌚', '🖥️'],
+  ferreteria: ['🔨', '🔧', '🪚', '🔩', '📐', '🧰'],
+  floreria: ['🌹', '🌺', '🌻', '🌷', '🌸', '💐'],
+  cosmeticos: ['💄', '💅', '🧴', '🪞', '✨', '🌟'],
+  decoracion: ['🕯️', '🖼️', '🛋️', '🪴', '🏺', '💡'],
+  muebles: ['🪑', '🛏️', '📚', '🗄️', '🚪', '🪞']
 };
 
 interface TemplatePreviewProps {
   template: IndustryTemplate;
-  scale?: number; // Para controlar el tamaño del preview
-  showTitle?: boolean;
+  isSelected?: boolean;
+  onClick?: () => void;
+  className?: string;
 }
 
 export const TemplatePreview: React.FC<TemplatePreviewProps> = ({ 
   template, 
-  scale = 0.3,
-  showTitle = true 
+  isSelected = false,
+  onClick,
+  className = ''
 }) => {
   const sampleProducts = SAMPLE_PRODUCTS[template.industry] || SAMPLE_PRODUCTS.moda;
-  const displayProducts = sampleProducts.slice(0, template.productsPerPage);
-  
-  // Generar CSS en línea para el preview
-  const previewStyles = generatePreviewCSS(template, scale);
-  
+  const industryIcons = INDUSTRY_ICONS[template.industry] || INDUSTRY_ICONS.moda;
+  const displayProducts = sampleProducts.slice(0, Math.min(template.productsPerPage, 6));
+
+  // 🎨 GENERAR GRADIENTE ÚNICO PARA CADA PRODUCTO
+  const generateProductGradient = (index: number) => {
+    const colors = [
+      template.colors.primary,
+      template.colors.secondary,
+      template.colors.accent
+    ];
+    const color1 = colors[index % colors.length];
+    const color2 = colors[(index + 1) % colors.length];
+    return `linear-gradient(135deg, ${color1}20, ${color2}40)`;
+  };
+
+  const previewStyles = {
+    '--template-primary': template.colors.primary,
+    '--template-secondary': template.colors.secondary,
+    '--template-accent': template.colors.accent,
+    '--template-background': template.colors.background,
+    '--template-text': template.colors.text,
+    '--template-card-bg': template.colors.cardBackground,
+    '--template-border-radius': `${template.design.borderRadius}px`,
+    '--template-shadow': template.design.shadows ? '0 2px 8px rgba(0, 0, 0, 0.1)' : 'none'
+  } as React.CSSProperties;
+
   return (
-    <div className="template-preview-container">
-      {showTitle && (
-        <div className="preview-header">
-          <h4 className="preview-title">{template.displayName}</h4>
-          <span className="preview-density">{template.density} densidad</span>
+    <div 
+      className={`template-preview-wrapper ${className} ${isSelected ? 'selected' : ''}`}
+      onClick={onClick}
+      style={previewStyles}
+    >
+      {/* Header del preview */}
+      <div className="preview-header">
+        <div className="template-title-section">
+          <h4 className="template-title">{template.displayName}</h4>
+          <div className="template-badges">
+            <Badge variant="outline" className="density-badge">
+              <Package className="w-3 h-3 mr-1" />
+              {template.productsPerPage} productos
+            </Badge>
+            {template.isPremium && (
+              <Badge variant="default" className="premium-badge">
+                <Crown className="w-3 h-3 mr-1" />
+                Premium
+              </Badge>
+            )}
+          </div>
         </div>
-      )}
-      
-      <div 
-        className="preview-frame"
-        style={{
-          transform: `scale(${scale})`,
-          transformOrigin: 'top left',
-          width: `${100 / scale}%`,
-          height: `${100 / scale}%`,
-          overflow: 'hidden',
-          border: '1px solid #e5e7eb',
-          borderRadius: '8px',
-          background: 'white'
-        }}
-      >
-        <style dangerouslySetInnerHTML={{ __html: previewStyles }} />
-        
-        <div className={`preview-catalog template-${template.id}`}>
-          {/* Header del template */}
-          <header className="catalog-header">
-            <h1 className="business-name">Mi Negocio</h1>
-            <p className="catalog-subtitle">Catálogo de Productos</p>
-          </header>
-          
-          {/* Grid de productos */}
-          <main className="products-section">
-            <div className="products-grid">
-              {displayProducts.map((product, index) => (
-                <div key={index} className="product-card">
-                  <div className="product-image-container">
-                    <div 
-                      className="product-image-placeholder"
-                      style={{
-                        width: `${template.imageSize.width * scale}px`,
-                        height: `${template.imageSize.height * scale}px`,
-                        background: `linear-gradient(135deg, ${template.colors.secondary}, ${template.colors.background})`,
-                        borderRadius: '4px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: `${12 * scale}px`,
-                        color: template.colors.text,
-                        opacity: 0.7
-                      }}
-                    >
-                      📦
-                    </div>
+        <p className="template-description">{template.description}</p>
+      </div>
+
+      {/* Preview del catálogo */}
+      <div className="catalog-preview">
+        {/* Header del catálogo */}
+        <div className="catalog-header">
+          <h5 className="business-name">Mi Negocio</h5>
+          <span className="catalog-subtitle">Catálogo de Productos</span>
+        </div>
+
+        {/* Grid de productos */}
+        <div className="products-section">
+          <div 
+            className={`products-grid density-${template.density}`}
+            style={{
+              gridTemplateColumns: `repeat(${Math.min(template.gridColumns, 3)}, 1fr)`
+            }}
+          >
+            {displayProducts.map((product, index) => (
+              <div key={index} className="product-card">
+                {/* Imagen del producto */}
+                <div 
+                  className="product-image"
+                  style={{
+                    background: generateProductGradient(index)
+                  }}
+                >
+                  <span className="product-icon">
+                    {industryIcons[index % industryIcons.length]}
+                  </span>
+                </div>
+
+                {/* Información del producto */}
+                <div className="product-info">
+                  {template.showInfo.category && (
+                    <div className="product-category">{product.category}</div>
+                  )}
+                  
+                  <h6 className="product-name">{product.name}</h6>
+                  
+                  <div className="product-price">
+                    ${product.price.toLocaleString('es-MX')}
                   </div>
                   
-                  <div className="product-info">
-                    {template.showInfo.category && (
-                      <div className="product-category">Categoría</div>
-                    )}
-                    
-                    <h3 className="product-name">{product.name}</h3>
-                    
-                    <div className="product-price">
-                      ${product.price_retail.toLocaleString('es-MX')}
-                    </div>
-                    
-                    {template.showInfo.description && (
-                      <p className="product-description">
-                        Descripción del producto
-                      </p>
-                    )}
-                    
-                    {template.showInfo.sku && (
-                      <div className="product-sku">SKU: ABC123</div>
-                    )}
-                    
-                    {template.showInfo.specifications && (
-                      <div className="product-specifications">
-                        Especificaciones técnicas
-                      </div>
-                    )}
-                  </div>
+                  {template.showInfo.description && (
+                    <p className="product-description">
+                      Descripción detallada del producto
+                    </p>
+                  )}
+                  
+                  {template.showInfo.sku && (
+                    <div className="product-sku">SKU: {template.industry.toUpperCase()}{index + 1}</div>
+                  )}
+                  
+                  {template.showInfo.specifications && (
+                    <div className="product-specs">Especificaciones técnicas</div>
+                  )}
                 </div>
-              ))}
-            </div>
-          </main>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
+
+      {/* Indicador de selección */}
+      {isSelected && (
+        <div className="selection-indicator">
+          <div className="selection-check">✓</div>
+        </div>
+      )}
+
+      <style jsx>{`
+        .template-preview-wrapper {
+          position: relative;
+          background: white;
+          border: 2px solid #e5e7eb;
+          border-radius: 12px;
+          padding: 16px;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          overflow: hidden;
+          min-height: 420px;
+        }
+
+        .template-preview-wrapper:hover {
+          border-color: var(--template-primary);
+          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+          transform: translateY(-2px);
+        }
+
+        .template-preview-wrapper.selected {
+          border-color: var(--template-primary);
+          box-shadow: 0 0 0 3px ${template.colors.primary}20;
+          background: ${template.colors.primary}05;
+        }
+
+        .preview-header {
+          margin-bottom: 16px;
+          padding-bottom: 12px;
+          border-bottom: 1px solid #f3f4f6;
+        }
+
+        .template-title-section {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          margin-bottom: 8px;
+        }
+
+        .template-title {
+          font-size: 14px;
+          font-weight: 600;
+          color: #1f2937;
+          margin: 0;
+        }
+
+        .template-badges {
+          display: flex;
+          gap: 6px;
+          flex-wrap: wrap;
+        }
+
+        .density-badge {
+          font-size: 10px;
+          padding: 2px 6px;
+          background: #f3f4f6;
+          color: #6b7280;
+          border: none;
+        }
+
+        .premium-badge {
+          font-size: 10px;
+          padding: 2px 6px;
+          background: linear-gradient(135deg, #fbbf24, #f59e0b);
+          color: white;
+          border: none;
+        }
+
+        .template-description {
+          font-size: 11px;
+          color: #6b7280;
+          line-height: 1.4;
+          margin: 0;
+        }
+
+        .catalog-preview {
+          background: var(--template-background);
+          border-radius: 8px;
+          overflow: hidden;
+          border: 1px solid #e5e7eb;
+          min-height: 280px;
+        }
+
+        .catalog-header {
+          background: var(--template-primary);
+          color: white;
+          padding: 12px 16px;
+          text-align: center;
+        }
+
+        .business-name {
+          font-size: 14px;
+          font-weight: 700;
+          margin: 0 0 2px 0;
+        }
+
+        .catalog-subtitle {
+          font-size: 10px;
+          opacity: 0.9;
+        }
+
+        .products-section {
+          padding: 12px;
+        }
+
+        .products-grid {
+          display: grid;
+          gap: 8px;
+        }
+
+        .products-grid.density-alta {
+          gap: 6px;
+        }
+
+        .products-grid.density-media {
+          gap: 8px;
+        }
+
+        .products-grid.density-baja {
+          gap: 12px;
+        }
+
+        .product-card {
+          background: var(--template-card-bg);
+          border-radius: var(--template-border-radius);
+          overflow: hidden;
+          border: 1px solid rgba(0, 0, 0, 0.08);
+          box-shadow: var(--template-shadow);
+        }
+
+        .product-image {
+          aspect-ratio: 1;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          position: relative;
+        }
+
+        .product-icon {
+          font-size: 18px;
+          filter: grayscale(0.3);
+        }
+
+        .product-info {
+          padding: 8px;
+        }
+
+        .product-category {
+          font-size: 8px;
+          color: var(--template-accent);
+          text-transform: uppercase;
+          font-weight: 600;
+          margin-bottom: 2px;
+          ${!template.showInfo.category ? 'display: none;' : ''}
+        }
+
+        .product-name {
+          font-size: 10px;
+          font-weight: 600;
+          color: var(--template-text);
+          margin: 0 0 4px 0;
+          line-height: 1.2;
+        }
+
+        .product-price {
+          font-size: 11px;
+          font-weight: 700;
+          color: var(--template-primary);
+          margin-bottom: 4px;
+        }
+
+        .product-description {
+          font-size: 8px;
+          color: var(--template-text);
+          opacity: 0.7;
+          line-height: 1.3;
+          margin: 0 0 4px 0;
+          ${!template.showInfo.description ? 'display: none;' : ''}
+        }
+
+        .product-sku {
+          font-size: 7px;
+          color: var(--template-text);
+          opacity: 0.6;
+          background: rgba(0, 0, 0, 0.05);
+          padding: 1px 4px;
+          border-radius: 2px;
+          display: inline-block;
+          margin-bottom: 2px;
+          ${!template.showInfo.sku ? 'display: none;' : ''}
+        }
+
+        .product-specs {
+          font-size: 7px;
+          color: var(--template-text);
+          opacity: 0.6;
+          border-top: 1px solid rgba(0, 0, 0, 0.1);
+          padding-top: 4px;
+          margin-top: 4px;
+          ${!template.showInfo.specifications ? 'display: none;' : ''}
+        }
+
+        .selection-indicator {
+          position: absolute;
+          top: 12px;
+          right: 12px;
+          width: 24px;
+          height: 24px;
+          background: var(--template-primary);
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .selection-check {
+          color: white;
+          font-size: 12px;
+          font-weight: bold;
+        }
+
+        @media (max-width: 768px) {
+          .template-preview-wrapper {
+            padding: 12px;
+            min-height: 380px;
+          }
+
+          .products-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+          }
+
+          .template-title-section {
+            flex-direction: column;
+            gap: 8px;
+          }
+        }
+      `}</style>
     </div>
   );
 };
 
-/**
- * 🎨 GENERA CSS ESPECÍFICO PARA EL PREVIEW
- */
-function generatePreviewCSS(template: IndustryTemplate, scale: number): string {
-  const spacing = {
-    compacto: { header: 20, section: 15, grid: 10, card: 8 },
-    normal: { header: 25, section: 20, grid: 15, card: 12 },
-    amplio: { header: 30, section: 25, grid: 20, card: 16 }
-  }[template.design.spacing];
-
-  return `
-    .preview-catalog {
-      font-family: 'Inter', sans-serif;
-      background: ${template.colors.background};
-      color: ${template.colors.text};
-      min-height: 400px;
-      width: 600px;
-    }
-    
-    .preview-catalog .catalog-header {
-      background: ${template.colors.primary};
-      color: white;
-      padding: ${spacing.header}px;
-      text-align: center;
-    }
-    
-    .preview-catalog .business-name {
-      font-size: ${24 * scale}px;
-      font-weight: 700;
-      margin-bottom: 4px;
-    }
-    
-    .preview-catalog .catalog-subtitle {
-      font-size: ${14 * scale}px;
-      opacity: 0.9;
-    }
-    
-    .preview-catalog .products-section {
-      padding: ${spacing.section}px;
-    }
-    
-    .preview-catalog .products-grid {
-      display: grid;
-      grid-template-columns: repeat(${template.gridColumns}, 1fr);
-      gap: ${spacing.grid}px;
-    }
-    
-    .preview-catalog .product-card {
-      background: ${template.colors.cardBackground};
-      border-radius: ${template.design.borderRadius}px;
-      overflow: hidden;
-      border: 1px solid rgba(0, 0, 0, 0.08);
-      ${template.design.shadows ? 'box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);' : ''}
-    }
-    
-    .preview-catalog .product-image-container {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: ${spacing.card}px;
-      background: #fafafa;
-    }
-    
-    .preview-catalog .product-info {
-      padding: ${spacing.card}px;
-    }
-    
-    .preview-catalog .product-name {
-      font-size: ${(template.density === 'alta' ? 11 : template.density === 'media' ? 13 : 15) * scale}px;
-      font-weight: 600;
-      margin-bottom: ${spacing.card / 2}px;
-      line-height: 1.2;
-    }
-    
-    .preview-catalog .product-price {
-      font-size: ${(template.density === 'alta' ? 12 : template.density === 'media' ? 14 : 16) * scale}px;
-      font-weight: 700;
-      color: ${template.colors.primary};
-      margin-bottom: ${spacing.card / 2}px;
-    }
-    
-    .preview-catalog .product-category {
-      font-size: ${8 * scale}px;
-      color: ${template.colors.accent};
-      text-transform: uppercase;
-      margin-bottom: ${spacing.card / 2}px;
-      ${template.showInfo.category ? '' : 'display: none;'}
-    }
-    
-    .preview-catalog .product-description {
-      font-size: ${8 * scale}px;
-      color: ${template.colors.text};
-      opacity: 0.7;
-      line-height: 1.3;
-      margin-bottom: ${spacing.card / 2}px;
-      ${template.showInfo.description ? '' : 'display: none;'}
-    }
-    
-    .preview-catalog .product-sku {
-      font-size: ${7 * scale}px;
-      color: ${template.colors.text};
-      opacity: 0.6;
-      background: rgba(0, 0, 0, 0.05);
-      padding: 2px 4px;
-      border-radius: 2px;
-      display: inline-block;
-      margin-bottom: ${spacing.card / 2}px;
-      ${template.showInfo.sku ? '' : 'display: none;'}
-    }
-    
-    .preview-catalog .product-specifications {
-      font-size: ${7 * scale}px;
-      color: ${template.colors.text};
-      opacity: 0.6;
-      border-top: 1px solid rgba(0, 0, 0, 0.1);
-      padding-top: ${spacing.card / 2}px;
-      margin-top: ${spacing.card / 2}px;
-      ${template.showInfo.specifications ? '' : 'display: none;'}
-    }
-  `;
-}
-
-/**
- * 🖼️ COMPONENTE PARA GALERÍA DE PREVIEWS
- */
+// 🖼️ GALERÍA MEJORADA CON GRID RESPONSIVO
 interface TemplateGalleryProps {
   templates: IndustryTemplate[];
   selectedTemplate?: string;
   onTemplateSelect?: (templateId: string) => void;
-  scale?: number;
+  columns?: number;
 }
 
 export const TemplateGallery: React.FC<TemplateGalleryProps> = ({
   templates,
   selectedTemplate,
   onTemplateSelect,
-  scale = 0.25
+  columns = 3
 }) => {
-  const galleryStyles = `
-    .template-gallery {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 20px;
-      padding: 20px 0;
-    }
-    
-    .template-option {
-      cursor: pointer;
-      border: 2px solid transparent;
-      border-radius: 12px;
-      padding: 16px;
-      background: white;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-      transition: all 0.2s ease;
-    }
-    
-    .template-option:hover {
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-      transform: translateY(-2px);
-    }
-    
-    .template-option.selected {
-      border-color: #3b82f6;
-      box-shadow: 0 4px 16px rgba(59, 130, 246, 0.3);
-    }
-    
-    .preview-header {
-      text-align: center;
-      margin-bottom: 12px;
-    }
-    
-    .preview-title {
-      font-size: 14px;
-      font-weight: 600;
-      margin-bottom: 4px;
-      color: #1f2937;
-    }
-    
-    .preview-density {
-      font-size: 11px;
-      color: #6b7280;
-      text-transform: capitalize;
-    }
-    
-    .template-info {
-      margin-top: 12px;
-      text-align: center;
-    }
-    
-    .template-description {
-      font-size: 12px;
-      color: #6b7280;
-      line-height: 1.4;
-      margin-bottom: 8px;
-    }
-    
-    .template-badges {
-      display: flex;
-      justify-content: center;
-      gap: 6px;
-      flex-wrap: wrap;
-    }
-    
-    .template-badge {
-      font-size: 10px;
-      padding: 3px 8px;
-      border-radius: 12px;
-      background: #f3f4f6;
-      color: #4b5563;
-    }
-    
-    .template-badge.premium {
-      background: #fef3c7;
-      color: #d97706;
-    }
-  `;
+  if (templates.length === 0) {
+    return (
+      <div className="empty-gallery">
+        <div className="empty-message">
+          <Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-600 mb-2">
+            No hay templates disponibles
+          </h3>
+          <p className="text-gray-500">
+            Intenta cambiar los filtros para ver más opciones
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="template-gallery">
-      <style dangerouslySetInnerHTML={{ __html: galleryStyles }} />
-      
-      {templates.map(template => (
-        <div
-          key={template.id}
-          className={`template-option ${selectedTemplate === template.id ? 'selected' : ''}`}
-          onClick={() => onTemplateSelect?.(template.id)}
-        >
-          <TemplatePreview template={template} scale={scale} />
-          
-          <div className="template-info">
-            <p className="template-description">{template.description}</p>
-            <div className="template-badges">
-              <span className="template-badge">{template.productsPerPage} productos</span>
-              {template.isPremium && (
-                <span className="template-badge premium">Premium</span>
-              )}
-            </div>
-          </div>
-        </div>
-      ))}
+      <div 
+        className="gallery-grid"
+        style={{
+          gridTemplateColumns: `repeat(auto-fit, minmax(320px, 1fr))`,
+          gap: '20px'
+        }}
+      >
+        {templates.map(template => (
+          <TemplatePreview
+            key={template.id}
+            template={template}
+            isSelected={selectedTemplate === template.id}
+            onClick={() => onTemplateSelect?.(template.id)}
+          />
+        ))}
+      </div>
+
+      <style jsx>{`
+        .template-gallery {
+          width: 100%;
+        }
+
+        .gallery-grid {
+          display: grid;
+          padding: 20px 0;
+        }
+
+        .empty-gallery {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          min-height: 400px;
+          text-align: center;
+        }
+
+        .empty-message {
+          max-width: 300px;
+        }
+
+        @media (max-width: 768px) {
+          .gallery-grid {
+            grid-template-columns: 1fr !important;
+            gap: 16px;
+            padding: 16px 0;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .gallery-grid {
+            gap: 12px;
+          }
+        }
+      `}</style>
     </div>
   );
 };
