@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { IndustryTemplate, getTemplateById } from '@/lib/templates/industry-templates';
 import { TemplateGenerator } from '@/lib/templates/css-generator';
 import { generateBrowserCompatiblePDF } from '@/lib/pdf/browser-pdf-generator';
+import { getDynamicTemplate } from '@/lib/templates/dynamic-mapper';
 
 interface Product {
   id: string;
@@ -346,62 +347,35 @@ export class UnifiedCatalogGenerator {
   }
   
   /**
-/**
- * 📄 PDF CLÁSICO (MANTENER PARA COMPATIBILIDAD)
- */
-private static async downloadCatalogAsPDFClassic(htmlContent: string, filename: string): Promise<void> {
-  try {
-    console.log('📄 Generando PDF clásico...');
-    
-    // Crear configuración básica para PDF
-    const basicTemplate = {
-      id: 'classic-template',
-      displayName: 'Clásico',
-      productsPerPage: 6,
-      layout: {
-        columns: 3,
-        rows: 2,
-        spacing: 'normal'
-      },
-      colors: {
-        primary: '#3498DB',
-        secondary: '#2C3E50',
-        accent: '#E74C3C',
-        background: '#FFFFFF',
-        text: '#2C3E50'
-      },
-      typography: {
-        headerSize: '28px',
-        productNameSize: '16px',
-        priceSize: '18px'
+   * 📄 PDF CLÁSICO (MANTENER PARA COMPATIBILIDAD)
+   */
+  private static async downloadCatalogAsPDFClassic(htmlContent: string, filename: string): Promise<void> {
+    try {
+      console.log('📄 Generando PDF clásico...');
+      
+      // Usar el nuevo sistema de PDF
+      const result = await generateCatalogPDF(
+        htmlContent,
+        filename,
+        {
+          format: 'A4',
+          orientation: 'portrait',
+          quality: 'high'
+        }
+      );
+      
+      if (!result.success) {
+        console.error('Error generando PDF:', result.error);
+        this.downloadHTMLFallback(htmlContent, filename);
+        return;
       }
-    };
-    
-    // Extraer productos y businessInfo del HTML (simplificado para compatibilidad)
-    const products: Product[] = []; // En modo clásico, trabajamos directamente con HTML
-    const businessInfo = { business_name: filename.replace('catalogo-', '') };
-    
-    // Usar el nuevo generador compatible
-    const result = await generateBrowserCompatiblePDF(
-      products,
-      businessInfo,
-      basicTemplate,
-      { quality: 'medium' }
-    );
-    
-    if (!result.success) {
-      console.error('Error generando PDF:', result.error);
+      console.log('✅ PDF clásico generado');
+      
+    } catch (error) {
+      console.error('❌ Error PDF clásico:', error);
       this.downloadHTMLFallback(htmlContent, filename);
-      return;
     }
-    
-    console.log('✅ PDF clásico generado');
-    
-  } catch (error) {
-    console.error('❌ Error PDF clásico:', error);
-    this.downloadHTMLFallback(htmlContent, filename);
   }
-}
   
   /**
    * 💾 GUARDAR REGISTRO MEJORADO CON METADATA
