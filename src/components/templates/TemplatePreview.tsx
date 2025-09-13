@@ -221,7 +221,7 @@ export const TemplatePreview: React.FC<TemplatePreviewProps> = ({
         </div>
       )}
 
-      <style jsx>{`
+      <style>{`
         .template-preview-wrapper {
           position: relative;
           background: white;
@@ -511,7 +511,7 @@ export const TemplateGallery: React.FC<TemplateGalleryProps> = ({
         ))}
       </div>
 
-      <style jsx>{`
+      <style>{`
         .template-gallery {
           width: 100%;
         }
