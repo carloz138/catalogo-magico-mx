@@ -1,5 +1,5 @@
 // src/lib/catalog/unified-generator.ts
-// 🚀 GENERADOR UNIFICADO DE CATÁLOGOS CON TRACKING INTEGRADO
+// 🚀 GENERADOR UNIFICADO DE CATÁLOGOS CON TRACKING INTEGRADO Y PDF REAL
 
 import { supabase } from '@/integrations/supabase/client';
 import { IndustryTemplate, getTemplateById } from '@/lib/templates/industry-templates';
@@ -115,9 +115,9 @@ export class UnifiedCatalogGenerator {
       // 6. ACTUALIZAR CONTADOR DE USO
       await this.updateCatalogUsage(userId);
       
-      // 7. TRIGGER DESCARGA DEL PDF (opcional - solo en frontend)
+      // 7. GENERAR PDF REAL (NUEVO SISTEMA)
       if (typeof window !== 'undefined') {
-        this.downloadCatalogAsPDF(htmlContent, `catalogo-${businessInfo.business_name}`);
+        await this.downloadCatalogAsPDF(htmlContent, `catalogo-${businessInfo.business_name}`);
       }
       
       console.log('✅ Catálogo generado exitosamente:', catalogRecord.catalogId);
@@ -358,12 +358,66 @@ export class UnifiedCatalogGenerator {
   }
   
   /**
-   * 📄 DESCARGAR CATÁLOGO COMO PDF (SOLO FRONTEND)
+   * 📄 NUEVA FUNCIÓN - GENERAR PDF REAL (REEMPLAZA ANTIGUA)
    */
-
-static async downloadCatalogAsPDF(htmlContent: string, filename: string): Promise<void> {
-  await generateCatalogPDF(htmlContent, filename);
-}
+  static async downloadCatalogAsPDF(htmlContent: string, filename: string): Promise<void> {
+    try {
+      console.log('📄 Generando PDF real...');
+      
+      // Usar el nuevo sistema de PDF
+      const result = await generateCatalogPDF(htmlContent, filename, {
+        format: 'A4',
+        orientation: 'portrait',
+        quality: 'high',
+        includeBackground: true,
+        margins: { top: 20, bottom: 20, left: 20, right: 20 }
+      });
+      
+      if (result.success) {
+        console.log('✅ PDF generado exitosamente');
+      } else {
+        console.error('❌ Error generando PDF:', result.error);
+        // Fallback a descarga HTML como backup
+        this.downloadHTMLFallback(htmlContent, filename);
+      }
+      
+    } catch (error) {
+      console.error('❌ Error en downloadCatalogAsPDF:', error);
+      // Fallback a descarga HTML como backup
+      this.downloadHTMLFallback(htmlContent, filename);
+    }
+  }
+  
+  /**
+   * 🔄 FALLBACK - DESCARGA HTML SI PDF FALLA
+   */
+  private static downloadHTMLFallback(htmlContent: string, filename: string): void {
+    try {
+      console.log('🔄 Usando fallback HTML...');
+      
+      // Crear blob con el HTML
+      const blob = new Blob([htmlContent], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      
+      // Crear link de descarga
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${filename}.html`;
+      link.style.display = 'none';
+      
+      // Trigger descarga
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // Limpiar URL
+      URL.revokeObjectURL(url);
+      
+      console.log('📄 Catálogo descargado como HTML (fallback)');
+      
+    } catch (error) {
+      console.error('❌ Error en fallback HTML:', error);
+    }
   }
   
   /**
