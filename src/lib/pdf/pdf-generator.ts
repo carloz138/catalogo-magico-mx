@@ -179,9 +179,9 @@ export class PDFGenerator {
   }
   
   /**
-   * 🎨 OPTIMIZAR HTML PARA IMPRESIÓN PDF
+   * 🎨 OPTIMIZAR HTML PARA IMPRESIÓN PDF - CON MEJORES IMÁGENES
    */
-  private static optimizeHTMLForPrint(htmlContent: string, options: PDFOptions): string {
+  private static async optimizeHTMLForPrint(htmlContent: string, options: PDFOptions): Promise<string> {
     
     const printOptimizedCSS = `
       <style id="pdf-optimization">
@@ -229,20 +229,41 @@ export class PDFGenerator {
           break-before: avoid !important;
         }
         
-        /* ===== OPTIMIZACIÓN DE IMÁGENES ===== */
+        /* ===== OPTIMIZACIÓN MEJORADA DE IMÁGENES ===== */
         .product-image, img {
           max-width: 100% !important;
+          width: 100% !important;
           height: auto !important;
           object-fit: contain !important;
           display: block !important;
           filter: none !important;
           image-rendering: -webkit-optimize-contrast !important;
           image-rendering: crisp-edges !important;
+          border: 1px solid #eee !important;
+          background: white !important;
+          
+          /* Forzar visibilidad de imágenes */
+          opacity: 1 !important;
+          visibility: visible !important;
+          
+          /* Evitar problemas de carga */
+          min-height: 150px !important;
+          background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3QgeD0iMyIgeT0iMyIgd2lkdGg9IjE4IiBoZWlnaHQ9IjE4IiByeD0iMiIgc3Ryb2tlPSIjZDFkNWRiIiBzdHJva2Utd2lkdGg9IjIiLz4KPHN0cm9rZSBzdHJva2U9IiNkMWQ1ZGIiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBkPSJtOSAxMCAzIDNMMTMgMTEiLz4KPGV4cmV4IHJ4PSIyIiByeT0iMiIgdHJhbnNmb3JtPSJyb3RhdGUoLTE4MCA5IDkpIiBmaWxsPSIjZDFkNWRiIi8+Cjwvc3ZnPgo=') !important;
+          background-repeat: no-repeat !important;
+          background-position: center !important;
+          background-size: 24px 24px !important;
         }
         
+        /* Contenedor de imagen optimizado */
         .product-image-container {
           overflow: visible !important;
           background: #fafafa !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          min-height: 150px !important;
+          border: 1px solid #eee !important;
+          padding: 10px !important;
         }
         
         /* ===== OPTIMIZACIÓN DE TEXTO ===== */
@@ -354,11 +375,26 @@ export class PDFGenerator {
             background-image: none !important;
           }
         `}
+        
+        /* ===== FALLBACK PARA IMÁGENES ROTAS ===== */
+        img::after {
+          content: "📦 Imagen no disponible";
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          background: #f8f9fa;
+          padding: 10px;
+          border: 1px solid #ddd;
+          border-radius: 4px;
+          font-size: 12px;
+          color: #666;
+        }
       </style>
     `;
     
-    // Inyectar CSS de optimización
-    let optimizedHTML = htmlContent;
+    // Optimizar URLs de imágenes antes de inyectar CSS
+    let optimizedHTML = await this.optimizeImageURLs(htmlContent);
     
     // Si ya tiene </head>, insertamos antes
     if (optimizedHTML.includes('</head>')) {
@@ -378,6 +414,39 @@ export class PDFGenerator {
         </html>
       `;
     }
+    
+    return optimizedHTML;
+  }
+
+  /**
+   * 🔧 OPTIMIZAR URLs DE IMÁGENES PARA PDF
+   */
+  private static async optimizeImageURLs(htmlContent: string): Promise<string> {
+    // Convertir URLs relativas a absolutas si es necesario
+    let optimizedHTML = htmlContent;
+    
+    // Buscar todas las imágenes con src
+    const imgRegex = /<img([^>]*src=["']([^"']*)["'][^>]*)>/gi;
+    
+    optimizedHTML = optimizedHTML.replace(imgRegex, (match, attributes, src) => {
+      // Si la imagen no tiene src o está vacía, agregar placeholder
+      if (!src || src.trim() === '' || src === '/api/placeholder/180/180') {
+        return `<img${attributes.replace(/src=["'][^"']*["']/i, '')} alt="Producto" style="background: #f8f9fa; border: 1px solid #ddd; min-height: 150px;" />`;
+      }
+      
+      // Si es una URL relativa, intentar convertir a absoluta
+      if (src.startsWith('/') && typeof window !== 'undefined') {
+        const absoluteSrc = window.location.origin + src;
+        return match.replace(src, absoluteSrc);
+      }
+      
+      // Agregar crossorigin para imágenes externas
+      if (src.startsWith('http') && !attributes.includes('crossorigin')) {
+        return `<img${attributes} crossorigin="anonymous" />`;
+      }
+      
+      return match;
+    });
     
     return optimizedHTML;
   }
