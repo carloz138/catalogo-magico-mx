@@ -79,7 +79,7 @@ export class UnifiedCatalogGenerator {
       
       if (options.onProgress) options.onProgress(10);
       
-      // 1. VALIDACIONES PREVIAS (IGUAL QUE ANTES)
+      // 1. VALIDACIONES PREVIAS
       const limitsCheck = await this.checkCatalogLimits(userId);
       if (!limitsCheck.canGenerate) {
         return {
@@ -230,7 +230,7 @@ export class UnifiedCatalogGenerator {
   }
   
   /**
-   * 🚀 GENERAR CON DYNAMIC ENGINE
+   * 🚀 GENERAR CON DYNAMIC ENGINE (CORREGIDO)
    */
   private static async generateWithDynamicEngine(
     products: Product[],
@@ -242,29 +242,45 @@ export class UnifiedCatalogGenerator {
     try {
       console.log('🚀 Usando Dynamic Template Engine...');
       
-      // Obtener template clásico para generar HTML
+      // Obtener template existente
       const template = getTemplateById(templateId);
       if (!template) {
         throw new Error(`Template ${templateId} no encontrado`);
       }
       
-      // Convertir template a formato dinámico
-      const dynamicTemplate = getDynamicTemplate(templateId);
-      if (!dynamicTemplate) {
-        throw new Error(`No se pudo convertir template ${templateId} a formato dinámico`);
-      }
+      // Crear configuración simplificada para PDF
+      const simplifiedTemplate = {
+        id: template.id,
+        displayName: template.displayName,
+        productsPerPage: template.productsPerPage,
+        layout: {
+          columns: template.gridColumns,
+          rows: Math.ceil(template.productsPerPage / template.gridColumns),
+          spacing: template.design.spacing
+        },
+        colors: {
+          primary: template.colors.primary,
+          secondary: template.colors.secondary,
+          accent: template.colors.accent,
+          background: template.colors.background,
+          text: template.colors.text
+        },
+        typography: {
+          headerSize: template.productsPerPage <= 3 ? '32px' : template.productsPerPage <= 6 ? '28px' : '24px',
+          productNameSize: template.productsPerPage <= 3 ? '18px' : template.productsPerPage <= 6 ? '16px' : '14px',
+          priceSize: template.productsPerPage <= 3 ? '20px' : template.productsPerPage <= 6 ? '18px' : '16px'
+        }
+      };
       
-      // Generar HTML para PDF
-      const htmlContent = TemplateGenerator.generateCatalogHTML(products, businessInfo, template);
-      
-      // Usar el sistema dinámico de PDF
-      const result = await generateCatalogPDF(
-        htmlContent,
-        `catalogo-${businessInfo.business_name}`,
+      // Usar el nuevo generador compatible
+      const result = await generateBrowserCompatiblePDF(
+        products,
+        businessInfo,
+        simplifiedTemplate,
         {
-          format: 'A4',
-          orientation: 'portrait',
-          quality: 'high'
+          showProgress: options.showProgress,
+          onProgress: options.onProgress,
+          quality: 'medium'
         }
       );
       
@@ -347,21 +363,46 @@ export class UnifiedCatalogGenerator {
   }
   
   /**
-   * 📄 PDF CLÁSICO (MANTENER PARA COMPATIBILIDAD)
+   * 📄 PDF CLÁSICO CORREGIDO
    */
   private static async downloadCatalogAsPDFClassic(htmlContent: string, filename: string): Promise<void> {
     try {
       console.log('📄 Generando PDF clásico...');
       
-      // Usar el nuevo sistema de PDF
-      const result = await generateCatalogPDF(
-        htmlContent,
-        filename,
-        {
-          format: 'A4',
-          orientation: 'portrait',
-          quality: 'high'
+      // Crear configuración básica para PDF
+      const basicTemplate = {
+        id: 'classic-template',
+        displayName: 'Clásico',
+        productsPerPage: 6,
+        layout: {
+          columns: 3,
+          rows: 2,
+          spacing: 'normal'
+        },
+        colors: {
+          primary: '#3498DB',
+          secondary: '#2C3E50',
+          accent: '#E74C3C',
+          background: '#FFFFFF',
+          text: '#2C3E50'
+        },
+        typography: {
+          headerSize: '28px',
+          productNameSize: '16px',
+          priceSize: '18px'
         }
+      };
+      
+      // Extraer productos y businessInfo del HTML (simplificado)
+      const products: Product[] = [];
+      const businessInfo = { business_name: filename.replace('catalogo-', '') };
+      
+      // Usar el nuevo generador compatible
+      const result = await generateBrowserCompatiblePDF(
+        products,
+        businessInfo,
+        basicTemplate,
+        { quality: 'medium' }
       );
       
       if (!result.success) {
@@ -369,6 +410,7 @@ export class UnifiedCatalogGenerator {
         this.downloadHTMLFallback(htmlContent, filename);
         return;
       }
+      
       console.log('✅ PDF clásico generado');
       
     } catch (error) {
@@ -612,7 +654,6 @@ export class UnifiedCatalogGenerator {
   }
   
   static async getCatalogStats(userId: string) {
-    // Método igual que antes...
     return { totalCatalogs: 0, thisMonth: 0, lastMonth: 0, topTemplates: [] };
   }
 }
