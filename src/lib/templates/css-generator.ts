@@ -1,5 +1,5 @@
 // src/lib/templates/css-generator.ts
-// 🎨 GENERADOR DE CSS ESTANDARIZADO PARA TEMPLATES POR INDUSTRIA
+// 🎨 GENERADOR DE CSS ESTANDARIZADO - CORREGIDO SIN PROMESAS
 
 import { IndustryTemplate } from './industry-templates';
 
@@ -121,7 +121,6 @@ export class TemplateGenerator {
         max-width: 90%;
         max-height: 90%;
         object-fit: contain;
-        /* SIN overlays, badges o decoraciones sobre la imagen */
       }
       
       /* ===== PRODUCT INFO ===== */
@@ -135,7 +134,6 @@ export class TemplateGenerator {
         color: ${template.colors.text};
         margin-bottom: ${spacing.card / 2}px;
         line-height: 1.3;
-        /* Truncar nombres muy largos */
         display: -webkit-box;
         -webkit-line-clamp: 2;
         -webkit-box-orient: vertical;
@@ -158,7 +156,6 @@ export class TemplateGenerator {
         opacity: 0.8;
         margin-bottom: ${spacing.card / 2}px;
         line-height: 1.4;
-        /* Truncar descripciones largas */
         display: -webkit-box;
         -webkit-line-clamp: ${template.density === 'alta' ? '2' : template.density === 'media' ? '3' : '4'};
         -webkit-box-orient: vertical;
@@ -355,7 +352,7 @@ export class TemplateGenerator {
   }
   
   /**
-   * 🏗️ GENERA HTML COMPLETO DEL CATÁLOGO
+   * 🏗️ GENERA HTML COMPLETO DEL CATÁLOGO - FUNCIÓN SÍNCRONA
    */
   static generateCatalogHTML(
     products: Product[],
@@ -363,17 +360,21 @@ export class TemplateGenerator {
     template: IndustryTemplate
   ): string {
     
+    // IMPORTANTE: Esta función debe ser completamente síncrona
     const css = this.generateTemplateCSS(template);
     const productsHTML = this.generateProductsHTML(products, template);
     const footerHTML = this.generateFooterHTML(businessInfo);
     
-    return `
-<!DOCTYPE html>
+    // Validar que businessInfo.business_name no sea undefined
+    const businessName = businessInfo.business_name || 'Mi Negocio';
+    const templateDisplayName = template.displayName || 'Catálogo';
+    
+    return `<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Catálogo - ${businessInfo.business_name}</title>
+    <title>Catálogo - ${businessName}</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         ${css}
@@ -383,7 +384,7 @@ export class TemplateGenerator {
     <div class="catalog-container">
         <!-- Header -->
         <header class="catalog-header">
-            <h1 class="business-name">${businessInfo.business_name}</h1>
+            <h1 class="business-name">${businessName}</h1>
             <p class="catalog-subtitle">Catálogo de Productos</p>
         </header>
         
@@ -402,39 +403,49 @@ export class TemplateGenerator {
   }
   
   /**
-   * 🛍️ GENERA HTML DE PRODUCTOS
+   * 🛍️ GENERA HTML DE PRODUCTOS - FUNCIÓN SÍNCRONA
    */
   private static generateProductsHTML(products: Product[], template: IndustryTemplate): string {
-    return products.map(product => `
+    return products.map(product => {
+      // Validar que todos los campos estén definidos
+      const productName = product.name || 'Producto';
+      const productPrice = typeof product.price_retail === 'number' ? product.price_retail : 0;
+      const productImage = product.image_url || '';
+      const productDescription = product.description || '';
+      const productSku = product.sku || '';
+      const productCategory = product.category || '';
+      const productSpecs = product.specifications || '';
+      
+      return `
       <div class="product-card">
         <div class="product-image-container">
-          <img src="${product.image_url}" alt="${product.name}" class="product-image" />
+          <img src="${productImage}" alt="${productName}" class="product-image" />
         </div>
         <div class="product-info">
-          ${template.showInfo.category && product.category ? 
-            `<div class="product-category">${product.category}</div>` : ''}
+          ${template.showInfo.category && productCategory ? 
+            `<div class="product-category">${productCategory}</div>` : ''}
           
-          <h3 class="product-name">${product.name}</h3>
+          <h3 class="product-name">${productName}</h3>
           
-          <div class="product-price">$${product.price_retail.toLocaleString('es-MX', { 
+          <div class="product-price">$${productPrice.toLocaleString('es-MX', { 
             minimumFractionDigits: 2 
           })}</div>
           
-          ${template.showInfo.description && product.description ? 
-            `<p class="product-description">${product.description}</p>` : ''}
+          ${template.showInfo.description && productDescription ? 
+            `<p class="product-description">${productDescription}</p>` : ''}
           
-          ${template.showInfo.sku && product.sku ? 
-            `<div class="product-sku">SKU: ${product.sku}</div>` : ''}
+          ${template.showInfo.sku && productSku ? 
+            `<div class="product-sku">SKU: ${productSku}</div>` : ''}
           
-          ${template.showInfo.specifications && product.specifications ? 
-            `<div class="product-specifications">${product.specifications}</div>` : ''}
+          ${template.showInfo.specifications && productSpecs ? 
+            `<div class="product-specifications">${productSpecs}</div>` : ''}
         </div>
-      </div>
-    `).join('');
+      </div>`;
+    }).join('');
   }
   
   /**
-   * 🔗 GENERA HTML DEL FOOTER CON INFORMACIÓN CONDICIONAL
+   * 🔗 GENERA HTML DEL FOOTER - FUNCIÓN SÍNCRONA
    */
   private static generateFooterHTML(businessInfo: BusinessInfo): string {
     const contactItems = [
