@@ -229,74 +229,54 @@ export class UnifiedCatalogGenerator {
   }
   
   /**
- /**
- * 🚀 GENERAR CON DYNAMIC ENGINE
- */
-private static async generateWithDynamicEngine(
-  products: Product[],
-  businessInfo: BusinessInfo,
-  templateId: string,
-  options: GenerationOptions
-): Promise<{ success: boolean; error?: string }> {
-  
-  try {
-    console.log('🚀 Usando Dynamic Template Engine...');
+   * 🚀 GENERAR CON DYNAMIC ENGINE
+   */
+  private static async generateWithDynamicEngine(
+    products: Product[],
+    businessInfo: BusinessInfo,
+    templateId: string,
+    options: GenerationOptions
+  ): Promise<{ success: boolean; error?: string }> {
     
-    // Obtener template existente
-    const template = getTemplateById(templateId);
-    if (!template) {
-      throw new Error(`Template ${templateId} no encontrado`);
+    try {
+      console.log('🚀 Usando Dynamic Template Engine...');
+      
+      // Obtener template clásico para generar HTML
+      const template = getTemplateById(templateId);
+      if (!template) {
+        throw new Error(`Template ${templateId} no encontrado`);
+      }
+      
+      // Convertir template a formato dinámico
+      const dynamicTemplate = getDynamicTemplate(templateId);
+      if (!dynamicTemplate) {
+        throw new Error(`No se pudo convertir template ${templateId} a formato dinámico`);
+      }
+      
+      // Generar HTML para PDF
+      const htmlContent = TemplateGenerator.generateCatalogHTML(products, businessInfo, template);
+      
+      // Usar el sistema dinámico de PDF
+      const result = await generateCatalogPDF(
+        htmlContent,
+        `catalogo-${businessInfo.business_name}`,
+        {
+          format: 'A4',
+          orientation: 'portrait',
+          quality: 'high'
+        }
+      );
+      
+      return result;
+      
+    } catch (error) {
+      console.error('❌ Error en dynamic engine:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Error en dynamic engine'
+      };
     }
-    
-    // Generar HTML usando el template existente
-    const htmlContent = TemplateGenerator.generateCatalogHTML(products, businessInfo, template);
-    
-    // Crear configuración simplificada para PDF
-    const simplifiedTemplate = {
-      id: template.id,
-      displayName: template.displayName,
-      productsPerPage: template.productsPerPage,
-      layout: {
-        columns: template.gridColumns,
-        rows: Math.ceil(template.productsPerPage / template.gridColumns),
-        spacing: template.design.spacing
-      },
-      colors: {
-        primary: template.colors.primary,
-        secondary: template.colors.secondary,
-        accent: template.colors.accent,
-        background: template.colors.background,
-        text: template.colors.text
-      },
-      typography: {
-        headerSize: template.productsPerPage <= 3 ? '32px' : template.productsPerPage <= 6 ? '28px' : '24px',
-        productNameSize: template.productsPerPage <= 3 ? '18px' : template.productsPerPage <= 6 ? '16px' : '14px',
-        priceSize: template.productsPerPage <= 3 ? '20px' : template.productsPerPage <= 6 ? '18px' : '16px'
-      }
-    };
-    
-    // Usar el nuevo generador compatible
-    const result = await generateBrowserCompatiblePDF(
-      products,
-      businessInfo,
-      simplifiedTemplate,
-      {
-        showProgress: options.showProgress,
-        onProgress: options.onProgress,
-        quality: 'medium'
-      }
-    );
-    
-    return result;
-    
-  } catch (error) {
-    console.error('❌ Error en dynamic engine:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Error en dynamic engine'
-    };
   }
-}
   
   /**
    * 🎨 GENERAR CON CLASSIC ENGINE (MEJORADO)
@@ -366,35 +346,62 @@ private static async generateWithDynamicEngine(
   }
   
   /**
-   * 📄 PDF CLÁSICO (MANTENER PARA COMPATIBILIDAD)
-   */
-  private static async downloadCatalogAsPDFClassic(htmlContent: string, filename: string): Promise<void> {
-    try {
-      console.log('📄 Generando PDF clásico...');
-      
-      // Usar el nuevo sistema de PDF
-      const result = await generateCatalogPDF(
-        htmlContent,
-        filename,
-        {
-          format: 'A4',
-          orientation: 'portrait',
-          quality: 'high'
-        }
-      );
-      
-      if (!result.success) {
-        console.error('Error generando PDF:', result.error);
-        this.downloadHTMLFallback(htmlContent, filename);
-        return;
+/**
+ * 📄 PDF CLÁSICO (MANTENER PARA COMPATIBILIDAD)
+ */
+private static async downloadCatalogAsPDFClassic(htmlContent: string, filename: string): Promise<void> {
+  try {
+    console.log('📄 Generando PDF clásico...');
+    
+    // Crear configuración básica para PDF
+    const basicTemplate = {
+      id: 'classic-template',
+      displayName: 'Clásico',
+      productsPerPage: 6,
+      layout: {
+        columns: 3,
+        rows: 2,
+        spacing: 'normal'
+      },
+      colors: {
+        primary: '#3498DB',
+        secondary: '#2C3E50',
+        accent: '#E74C3C',
+        background: '#FFFFFF',
+        text: '#2C3E50'
+      },
+      typography: {
+        headerSize: '28px',
+        productNameSize: '16px',
+        priceSize: '18px'
       }
-      console.log('✅ PDF clásico generado');
-      
-    } catch (error) {
-      console.error('❌ Error PDF clásico:', error);
+    };
+    
+    // Extraer productos y businessInfo del HTML (simplificado para compatibilidad)
+    const products: Product[] = []; // En modo clásico, trabajamos directamente con HTML
+    const businessInfo = { business_name: filename.replace('catalogo-', '') };
+    
+    // Usar el nuevo generador compatible
+    const result = await generateBrowserCompatiblePDF(
+      products,
+      businessInfo,
+      basicTemplate,
+      { quality: 'medium' }
+    );
+    
+    if (!result.success) {
+      console.error('Error generando PDF:', result.error);
       this.downloadHTMLFallback(htmlContent, filename);
+      return;
     }
+    
+    console.log('✅ PDF clásico generado');
+    
+  } catch (error) {
+    console.error('❌ Error PDF clásico:', error);
+    this.downloadHTMLFallback(htmlContent, filename);
   }
+}
   
   /**
    * 💾 GUARDAR REGISTRO MEJORADO CON METADATA
