@@ -4,6 +4,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { IndustryTemplate, getTemplateById } from '@/lib/templates/industry-templates';
 import { TemplateGenerator } from '@/lib/templates/css-generator';
+import { generateCatalogPDF } from '@/lib/pdf/pdf-generator';
 
 interface Product {
   id: string;
@@ -359,31 +360,10 @@ export class UnifiedCatalogGenerator {
   /**
    * 📄 DESCARGAR CATÁLOGO COMO PDF (SOLO FRONTEND)
    */
-  static downloadCatalogAsPDF(htmlContent: string, filename: string): void {
-    try {
-      // Crear blob con el HTML
-      const blob = new Blob([htmlContent], { type: 'text/html' });
-      const url = URL.createObjectURL(blob);
-      
-      // Crear link de descarga
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `${filename}.html`;
-      link.style.display = 'none';
-      
-      // Trigger descarga
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      
-      // Limpiar URL
-      URL.revokeObjectURL(url);
-      
-      console.log('📄 Catálogo descargado como HTML');
-      
-    } catch (error) {
-      console.error('Error downloading catalog:', error);
-    }
+
+static async downloadCatalogAsPDF(htmlContent: string, filename: string): Promise<void> {
+  await generateCatalogPDF(htmlContent, filename);
+}
   }
   
   /**
