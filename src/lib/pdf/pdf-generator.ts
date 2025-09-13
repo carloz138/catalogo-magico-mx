@@ -181,7 +181,7 @@ export class PDFGenerator {
   /**
    * 🎨 OPTIMIZAR HTML PARA IMPRESIÓN PDF - CON MEJORES IMÁGENES
    */
-  private static async optimizeHTMLForPrint(htmlContent: string, options: PDFOptions): Promise<string> {
+  private static optimizeHTMLForPrint(htmlContent: string, options: PDFOptions): string {
     
     const printOptimizedCSS = `
       <style id="pdf-optimization">
@@ -393,8 +393,8 @@ export class PDFGenerator {
       </style>
     `;
     
-    // Optimizar URLs de imágenes antes de inyectar CSS
-    let optimizedHTML = await this.optimizeImageURLs(htmlContent);
+    // Inyectar CSS de optimización
+    let optimizedHTML = htmlContent;
     
     // Si ya tiene </head>, insertamos antes
     if (optimizedHTML.includes('</head>')) {
@@ -418,39 +418,6 @@ export class PDFGenerator {
     return optimizedHTML;
   }
 
-  /**
-   * 🔧 OPTIMIZAR URLs DE IMÁGENES PARA PDF
-   */
-  private static async optimizeImageURLs(htmlContent: string): Promise<string> {
-    // Convertir URLs relativas a absolutas si es necesario
-    let optimizedHTML = htmlContent;
-    
-    // Buscar todas las imágenes con src
-    const imgRegex = /<img([^>]*src=["']([^"']*)["'][^>]*)>/gi;
-    
-    optimizedHTML = optimizedHTML.replace(imgRegex, (match, attributes, src) => {
-      // Si la imagen no tiene src o está vacía, agregar placeholder
-      if (!src || src.trim() === '' || src === '/api/placeholder/180/180') {
-        return `<img${attributes.replace(/src=["'][^"']*["']/i, '')} alt="Producto" style="background: #f8f9fa; border: 1px solid #ddd; min-height: 150px;" />`;
-      }
-      
-      // Si es una URL relativa, intentar convertir a absoluta
-      if (src.startsWith('/') && typeof window !== 'undefined') {
-        const absoluteSrc = window.location.origin + src;
-        return match.replace(src, absoluteSrc);
-      }
-      
-      // Agregar crossorigin para imágenes externas
-      if (src.startsWith('http') && !attributes.includes('crossorigin')) {
-        return `<img${attributes} crossorigin="anonymous" />`;
-      }
-      
-      return match;
-    });
-    
-    return optimizedHTML;
-  }
-  
   /**
    * 📥 DESCARGAR BLOB COMO ARCHIVO
    */
