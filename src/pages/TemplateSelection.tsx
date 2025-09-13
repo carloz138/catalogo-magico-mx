@@ -1,5 +1,5 @@
 // src/pages/TemplateSelection.tsx
-// 🎨 NUEVA SELECCIÓN DE TEMPLATES INTEGRADA CON SISTEMA INTELIGENTE
+// 🎨 SELECCIÓN DE TEMPLATES INTEGRADA CON SISTEMA HÍBRIDO DINÁMICO
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -9,13 +9,20 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Progress } from '@/components/ui/progress';
 import { toast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { useBusinessInfo } from '@/hooks/useBusinessInfo';
 
-// Importar nuestro nuevo sistema
+// Importar sistema híbrido
 import { SmartTemplateSelector } from '@/components/templates/SmartTemplateSelector';
-import { generateCatalog, checkLimits } from '@/lib/catalog/unified-generator';
+import { 
+  generateCatalog, 
+  generateDynamicCatalog,
+  generateClassicCatalog,
+  checkLimits 
+} from '@/lib/catalog/unified-generator';
+import { getDynamicTemplate } from '@/lib/templates/dynamic-mapper';
 import { IndustryType } from '@/lib/templates/industry-templates';
 
 import { 
@@ -26,10 +33,13 @@ import {
   AlertTriangle,
   CheckCircle,
   Sparkles,
-  Package
+  Package,
+  Zap,
+  Info,
+  Rocket,
+  Clock
 } from 'lucide-react';
 
-console.log('🔍 DEBUG: SmartTemplateSelector importado:', SmartTemplateSelector);
 interface Product {
   id: string;
   name: string;
@@ -49,6 +59,8 @@ interface UsageLimits {
   message: string;
 }
 
+type GenerationMethod = 'auto' | 'dynamic' | 'classic';
+
 const TemplateSelection = () => {
   const { user } = useAuth();
   const { businessInfo } = useBusinessInfo();
@@ -59,6 +71,8 @@ const TemplateSelection = () => {
   const [selectedProducts, setSelectedProducts] = useState<Product[]>([]);
   const [generating, setGenerating] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [generationProgress, setGenerationProgress] = useState(0);
+  const [generationMethod, setGenerationMethod] = useState<GenerationMethod>('auto');
   
   // Estados de límites
   const [limits, setLimits] = useState<UsageLimits | null>(null);
@@ -66,6 +80,7 @@ const TemplateSelection = () => {
   // Estados de UX
   const [userIndustry, setUserIndustry] = useState<IndustryType | undefined>();
   const [userPlan, setUserPlan] = useState<'basic' | 'premium'>('basic');
+  const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
 
   useEffect(() => {
     initializeComponent();
@@ -102,7 +117,6 @@ const TemplateSelection = () => {
   };
 
   const loadSelectedProducts = async () => {
-    // Cargar desde localStorage (como en el componente original)
     const productsData = localStorage.getItem('selectedProductsData');
     const productsIds = localStorage.getItem('selectedProducts');
     
@@ -111,7 +125,6 @@ const TemplateSelection = () => {
       setSelectedProducts(products);
       console.log('✅ Productos cargados:', products.length);
     } else if (productsIds) {
-      // Fallback: solo IDs, necesitaríamos cargar datos completos
       const ids = JSON.parse(productsIds);
       console.log('⚠️ Solo IDs disponibles, redirigiendo a productos');
       toast({
@@ -134,13 +147,11 @@ const TemplateSelection = () => {
   };
 
   const detectUserIndustry = async () => {
-    // Intentar detectar industria desde las categorías de productos
     if (selectedProducts.length > 0) {
       const categories = selectedProducts
         .map(p => p.category?.toLowerCase())
         .filter(Boolean);
       
-      // Lógica simple de detección por categorías de productos
       if (categories.some(c => c?.includes('joyeria') || c?.includes('jewelry') || c?.includes('anillo') || c?.includes('collar'))) {
         setUserIndustry('joyeria');
       } else if (categories.some(c => c?.includes('ropa') || c?.includes('clothing') || c?.includes('vestido') || c?.includes('blusa'))) {
@@ -160,7 +171,6 @@ const TemplateSelection = () => {
       }
     }
     
-    // También podríamos detectar desde el nombre del negocio
     if (!userIndustry && businessInfo?.business_name) {
       const businessName = businessInfo.business_name.toLowerCase();
       
@@ -188,27 +198,27 @@ const TemplateSelection = () => {
     if (!user) return;
     
     try {
-      // Consultar plan actual del usuario
       const { data: subscription } = await (window as any).supabase
         .from('subscriptions')
         .select(`
           status,
           credit_packages (
             package_type,
-            name
+            name,
+            price_usd
           )
         `)
         .eq('user_id', user.id)
         .in('status', ['active', 'trialing'])
         .maybeSingle();
       
-      if (subscription?.credit_packages?.package_type) {
-        const packageType = subscription.credit_packages.package_type;
-        setUserPlan(packageType === 'basic' || packageType === 'free' ? 'basic' : 'premium');
+      if (subscription?.credit_packages) {
+        const packageData = subscription.credit_packages;
+        const isPremium = packageData.package_type === 'monthly_plan' && packageData.price_usd >= 1250;
+        setUserPlan(isPremium ? 'premium' : 'basic');
       }
     } catch (error) {
       console.error('Error loading user plan:', error);
-      // Mantener 'basic' como default
     }
   };
 
@@ -228,6 +238,7 @@ const TemplateSelection = () => {
     console.log('🎨 Template seleccionado:', templateId);
   };
 
+  // FUNCIÓN PRINCIPAL DE GENERACIÓN HÍBRIDA
   const handleGenerateCatalog = async () => {
     if (!selectedTemplate || !user || !businessInfo) {
       toast({
@@ -248,28 +259,84 @@ const TemplateSelection = () => {
     }
 
     setGenerating(true);
+    setGenerationProgress(0);
     
     try {
-      console.log('🚀 Iniciando generación con nuevo sistema...');
+      console.log('🚀 Iniciando generación con sistema híbrido...');
       
-      // Usar nuestro nuevo generador unificado
-      const result = await generateCatalog(
-        selectedProducts,
-        {
-          business_name: businessInfo.business_name,
-          email: businessInfo.email,
-          phone: businessInfo.phone,
-          website: businessInfo.website,
-          address: businessInfo.address
-        },
-        selectedTemplate,
-        user.id
-      );
+      // Función de progreso
+      const onProgress = (progress: number) => {
+        setGenerationProgress(progress);
+        console.log(`📊 Progreso: ${progress}%`);
+      };
+      
+      // Preparar datos del negocio
+      const businessData = {
+        business_name: businessInfo.business_name,
+        email: businessInfo.email,
+        phone: businessInfo.phone,
+        website: businessInfo.website,
+        address: businessInfo.address
+      };
+      
+      let result;
+      
+      // Seleccionar método de generación
+      switch (generationMethod) {
+        case 'dynamic':
+          console.log('🚀 Usando Dynamic Engine forzado');
+          result = await generateDynamicCatalog(
+            selectedProducts,
+            businessData,
+            selectedTemplate,
+            user.id,
+            onProgress
+          );
+          break;
+          
+        case 'classic':
+          console.log('🎨 Usando Classic Engine forzado');
+          result = await generateClassicCatalog(
+            selectedProducts,
+            businessData,
+            selectedTemplate,
+            user.id,
+            onProgress
+          );
+          break;
+          
+        case 'auto':
+        default:
+          console.log('🧠 Usando selección automática híbrida');
+          result = await generateCatalog(
+            selectedProducts,
+            businessData,
+            selectedTemplate,
+            user.id,
+            {
+              useDynamicEngine: true, // Preferir dinámico
+              showProgress: true,
+              onProgress
+            }
+          );
+          break;
+      }
       
       if (result.success) {
+        // Toast de éxito con información detallada
+        const methodEmoji = result.generationMethod === 'dynamic' ? '🚀' : '🎨';
+        const methodName = result.generationMethod === 'dynamic' ? 'Dynamic Engine' : 'Classic Engine';
+        
         toast({
-          title: "🎉 ¡Catálogo generado exitosamente!",
-          description: result.message,
+          title: `${methodEmoji} ¡Catálogo generado exitosamente!`,
+          description: `${result.message} (${result.stats?.generationTime}ms con ${methodName})`,
+        });
+
+        console.log('📊 Estadísticas de generación:', {
+          productos: result.stats?.totalProducts,
+          páginas: result.stats?.totalPages,
+          método: result.generationMethod,
+          tiempo: result.stats?.generationTime
         });
 
         // Limpiar localStorage
@@ -284,19 +351,74 @@ const TemplateSelection = () => {
         navigate('/catalogs');
         
       } else {
-        throw new Error(result.message || 'Error desconocido');
+        // Manejar diferentes tipos de errores
+        const errorMessages = {
+          'LIMIT_EXCEEDED': 'Has alcanzado tu límite de catálogos',
+          'PREMIUM_REQUIRED': 'Este template requiere plan Premium',
+          'TEMPLATE_NOT_FOUND': 'Template no encontrado',
+          'GENERATION_ERROR': 'Error durante la generación',
+          'DATABASE_ERROR': 'Error guardando en base de datos',
+          'CLASSIC_ENGINE_ERROR': 'Error en engine clásico'
+        };
+        
+        const userMessage = errorMessages[result.error] || result.message || 'Error desconocido';
+        
+        toast({
+          title: "Error al generar catálogo",
+          description: userMessage,
+          variant: "destructive",
+        });
       }
 
     } catch (error) {
       console.error('❌ Error generando catálogo:', error);
       toast({
-        title: "Error al generar catálogo",
+        title: "Error inesperado",
         description: error instanceof Error ? error.message : "Error desconocido",
         variant: "destructive",
       });
     } finally {
       setGenerating(false);
+      setGenerationProgress(0);
     }
+  };
+
+  // Obtener información del template dinámico
+  const getTemplateInfo = (templateId: string) => {
+    const dynamicTemplate = getDynamicTemplate(templateId);
+    
+    if (dynamicTemplate) {
+      return {
+        supportsDynamic: true,
+        productsPerPage: dynamicTemplate.productsPerPage,
+        recommendedFor: dynamicTemplate.productsPerPage <= 3 ? 'productos premium' : 
+                       dynamicTemplate.productsPerPage <= 6 ? 'catálogos estándar' : 
+                       'alta densidad',
+        features: dynamicTemplate.features,
+        layout: `${dynamicTemplate.layout.columns}×${dynamicTemplate.layout.rows}`,
+        spacing: dynamicTemplate.layout.spacing
+      };
+    }
+    
+    return {
+      supportsDynamic: false,
+      productsPerPage: 6,
+      recommendedFor: 'estándar',
+      features: null,
+      layout: '3×2',
+      spacing: 'normal'
+    };
+  };
+
+  // Recomendar método de generación basado en cantidad de productos
+  const getRecommendedMethod = (): GenerationMethod => {
+    const productCount = selectedProducts.length;
+    
+    if (productCount <= 5) return 'dynamic';      // Mejor calidad para pocos productos
+    if (productCount >= 50) return 'dynamic';     // Mejor performance para muchos productos
+    if (productCount >= 20) return 'dynamic';     // Chunking inteligente
+    
+    return 'auto'; // Híbrido para casos medios
   };
 
   // Estados de carga
@@ -331,6 +453,23 @@ const TemplateSelection = () => {
             ? 'Catálogos ilimitados' 
             : `${limits.remainingCatalogs}/${limits.catalogsLimit} restantes`
           }
+        </div>
+      )}
+      
+      {/* Selector de método de generación */}
+      {showAdvancedOptions && selectedTemplate && (
+        <div className="hidden lg:flex items-center gap-2">
+          <span className="text-xs text-gray-500">Método:</span>
+          <select 
+            value={generationMethod}
+            onChange={(e) => setGenerationMethod(e.target.value as GenerationMethod)}
+            className="text-xs border rounded px-2 py-1"
+            disabled={generating}
+          >
+            <option value="auto">Auto (Recomendado)</option>
+            <option value="dynamic">🚀 Dynamic Engine</option>
+            <option value="classic">🎨 Classic Engine</option>
+          </select>
         </div>
       )}
       
@@ -422,6 +561,32 @@ const TemplateSelection = () => {
             </Alert>
           )}
 
+          {/* Progress Bar durante generación */}
+          {generating && (
+            <Card className="border-blue-200 bg-blue-50">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3 mb-3">
+                  <Loader2 className="w-5 h-5 animate-spin text-blue-600" />
+                  <div>
+                    <h4 className="font-medium text-blue-900">
+                      Generando catálogo...
+                    </h4>
+                    <p className="text-sm text-blue-700">
+                      Método: {generationMethod === 'auto' ? 'Híbrido Automático' : 
+                              generationMethod === 'dynamic' ? '🚀 Dynamic Engine' : 
+                              '🎨 Classic Engine'}
+                    </p>
+                  </div>
+                </div>
+                <Progress value={generationProgress} className="h-2" />
+                <div className="flex justify-between text-xs text-blue-600 mt-1">
+                  <span>{generationProgress}% completado</span>
+                  <span>{selectedProducts.length} productos</span>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Selector inteligente de templates */}
           <SmartTemplateSelector
             selectedTemplate={selectedTemplate}
@@ -431,32 +596,108 @@ const TemplateSelection = () => {
             productCount={selectedProducts.length}
           />
 
-          {/* Template seleccionado */}
-          {selectedTemplate && limits?.canGenerate && (
+          {/* Información del template seleccionado */}
+          {selectedTemplate && (
             <Card className="border-green-200 bg-green-50">
               <CardContent className="p-4">
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 mb-3">
                   <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
                   <div className="flex-1">
                     <h4 className="font-medium text-green-900">
-                      ¡Template seleccionado!
+                      Template seleccionado
                     </h4>
                     <p className="text-sm text-green-700">
-                      Listo para generar tu catálogo con {selectedProducts.length} productos
+                      {getTemplateInfo(selectedTemplate).recommendedFor} • {getTemplateInfo(selectedTemplate).productsPerPage} productos/página
                     </p>
                   </div>
-                  <Button 
-                    onClick={handleGenerateCatalog}
-                    disabled={generating}
-                    className="bg-green-600 hover:bg-green-700"
+                  
+                  {/* Botón de configuración avanzada */}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowAdvancedOptions(!showAdvancedOptions)}
+                    className="text-green-700 hover:bg-green-100"
                   >
-                    {generating ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      'Generar Ahora'
-                    )}
+                    <Info className="w-4 h-4" />
                   </Button>
                 </div>
+
+                {/* Opciones avanzadas */}
+                {showAdvancedOptions && (
+                  <div className="border-t border-green-300 pt-3 mt-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div>
+                        <label className="text-xs font-medium text-green-800">Método de Generación</label>
+                        <select 
+                          value={generationMethod}
+                          onChange={(e) => setGenerationMethod(e.target.value as GenerationMethod)}
+                          className="w-full mt-1 text-sm border border-green-300 rounded px-2 py-1"
+                          disabled={generating}
+                        >
+                          <option value="auto">🧠 Auto (Recomendado: {getRecommendedMethod()})</option>
+                          <option value="dynamic">🚀 Dynamic Engine</option>
+                          <option value="classic">🎨 Classic Engine</option>
+                        </select>
+                      </div>
+                      
+                      <div>
+                        <label className="text-xs font-medium text-green-800">Layout</label>
+                        <div className="text-sm text-green-700 mt-1">
+                          {getTemplateInfo(selectedTemplate).layout} • {getTemplateInfo(selectedTemplate).spacing}
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <label className="text-xs font-medium text-green-800">Soporte</label>
+                        <div className="text-sm text-green-700 mt-1">
+                          {getTemplateInfo(selectedTemplate).supportsDynamic ? (
+                            <span className="flex items-center gap-1">
+                              <Rocket className="w-3 h-3" />
+                              Dinámico
+                            </span>
+                          ) : (
+                            <span className="flex items-center gap-1">
+                              <Clock className="w-3 h-3" />
+                              Clásico
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Botón de generación */}
+                {limits?.canGenerate && (
+                  <div className="flex items-center justify-between mt-4">
+                    <div className="text-sm text-green-700">
+                      Listo para generar {selectedProducts.length} productos
+                    </div>
+                    <Button 
+                      onClick={handleGenerateCatalog}
+                      disabled={generating}
+                      className="bg-green-600 hover:bg-green-700"
+                    >
+                      {generating ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                          Generando...
+                        </>
+                      ) : (
+                        <>
+                          {generationMethod === 'dynamic' ? (
+                            <Rocket className="w-4 h-4 mr-2" />
+                          ) : generationMethod === 'classic' ? (
+                            <Palette className="w-4 h-4 mr-2" />
+                          ) : (
+                            <Zap className="w-4 h-4 mr-2" />
+                          )}
+                          Generar Ahora
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}
