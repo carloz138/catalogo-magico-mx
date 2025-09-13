@@ -4,8 +4,8 @@
 import { supabase } from '@/integrations/supabase/client';
 import { IndustryTemplate, getTemplateById } from '@/lib/templates/industry-templates';
 import { TemplateGenerator } from '@/lib/templates/css-generator';
-import { generateCatalogPDF } from '@/lib/pdf/pdf-generator';
-import { TemplateDynamicMapper, getDynamicTemplate } from '@/lib/templates/dynamic-mapper';
+import { generateBrowserCompatiblePDF } from '@/lib/pdf/browser-pdf-generator';
+import { getTemplateById } from '@/lib/templates/industry-templates';
 
 interface Product {
   id: string;
