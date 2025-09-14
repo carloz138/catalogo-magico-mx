@@ -1,5 +1,5 @@
 // src/lib/templates/css-generator.ts
-// 🎨 GENERADOR DE CSS ESTANDARIZADO - IMÁGENES Y TEXTO CORREGIDOS
+// 🚀 GENERADOR CSS PROFESIONAL - IMÁGENES SIN DISTORSIÓN + DISEÑO PREMIUM
 
 import { IndustryTemplate } from './industry-templates';
 
@@ -25,290 +25,387 @@ interface BusinessInfo {
 export class TemplateGenerator {
   
   /**
-   * 🎨 GENERA CSS ESTANDARIZADO CON IMÁGENES Y TEXTO MEJORADOS
+   * 🎨 GENERA CSS PROFESIONAL CON TÉCNICAS MODERNAS
    */
   static generateTemplateCSS(template: IndustryTemplate): string {
     const spacing = this.getSpacingValues(template.design.spacing);
-    const textColors = this.getOptimizedTextColors(template);
+    const colors = this.generateProfessionalColorScheme(template);
     
     return `
-      /* ===== TEMPLATE: ${template.displayName.toUpperCase()} ===== */
+      /* ===== TEMPLATE PROFESIONAL: ${template.displayName.toUpperCase()} ===== */
       
-      /* Reset y base */
-      * { margin: 0; padding: 0; box-sizing: border-box; }
+      /* Reset y variables CSS modernas */
+      :root {
+        --primary-color: ${colors.primary};
+        --secondary-color: ${colors.secondary};
+        --accent-color: ${colors.accent};
+        --background-color: ${colors.background};
+        --card-background: ${colors.cardBackground};
+        --text-primary: ${colors.textPrimary};
+        --text-secondary: ${colors.textSecondary};
+        --border-color: ${colors.borderColor};
+        --shadow-light: ${colors.shadowLight};
+        --shadow-medium: ${colors.shadowMedium};
+      }
+      
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
       
       body.template-${template.id} {
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-        background: ${template.colors.background};
-        color: ${textColors.body};
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: var(--background-color);
+        color: var(--text-primary);
         line-height: 1.6;
-        min-height: 100vh;
+        font-size: 16px;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
       }
       
       .catalog-container {
-        max-width: 1200px;
+        max-width: 1400px;
         margin: 0 auto;
-        background: ${template.colors.background};
+        background: var(--background-color);
         min-height: 100vh;
+        box-shadow: 0 0 60px rgba(0, 0, 0, 0.1);
       }
       
-      /* ===== HEADER ===== */
+      /* ===== HEADER MODERNO ===== */
       .catalog-header {
-        background: ${template.colors.primary};
+        background: linear-gradient(135deg, var(--primary-color) 0%, ${this.darkenColor(template.colors.primary, 15)} 100%);
         color: white;
-        padding: ${spacing.header}px;
+        padding: ${spacing.header + 20}px ${spacing.section}px;
         text-align: center;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        position: relative;
+        overflow: hidden;
+      }
+      
+      .catalog-header::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="0.5"/><circle cx="20" cy="20" r="15" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="0.3"/><circle cx="80" cy="80" r="25" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="0.3"/></svg>') center/300px;
+        pointer-events: none;
       }
       
       .business-name {
         font-size: ${this.getHeaderSize(template.density)};
-        font-weight: 700;
-        margin-bottom: 8px;
-        letter-spacing: 1px;
-        /* Mejorar legibilidad del header */
-        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        font-weight: 800;
+        margin-bottom: 12px;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        position: relative;
+        z-index: 1;
+        text-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
       }
       
       .catalog-subtitle {
-        font-size: 1.1rem;
-        opacity: 0.95;
+        font-size: 1.2rem;
         font-weight: 400;
-        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+        opacity: 0.95;
+        position: relative;
+        z-index: 1;
+        letter-spacing: 1px;
       }
       
-      /* ===== PRODUCTS GRID ===== */
+      /* ===== SECCIÓN DE PRODUCTOS MEJORADA ===== */
       .products-section {
-        padding: ${spacing.section}px;
+        padding: ${spacing.section + 20}px ${spacing.section}px;
+        background: var(--background-color);
       }
       
       .products-grid {
         display: grid;
         grid-template-columns: repeat(${template.gridColumns}, 1fr);
-        gap: ${spacing.grid}px;
+        gap: ${spacing.grid + 10}px;
         max-width: 100%;
       }
       
-      /* ===== PRODUCT CARDS ===== */
+      /* ===== PRODUCT CARDS PREMIUM ===== */
       .product-card {
-        background: ${template.colors.cardBackground};
-        border-radius: ${template.design.borderRadius}px;
+        background: var(--card-background);
+        border-radius: ${Math.max(12, template.design.borderRadius)}px;
         overflow: hidden;
-        border: 1px solid rgba(0, 0, 0, 0.08);
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-        
-        ${template.design.shadows ? `
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        ` : ''}
+        border: 1px solid var(--border-color);
+        transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        position: relative;
+        box-shadow: var(--shadow-light);
       }
       
       .product-card:hover {
-        transform: translateY(-2px);
-        ${template.design.shadows ? `
-          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-        ` : ''}
+        transform: translateY(-8px) scale(1.02);
+        box-shadow: var(--shadow-medium);
+        border-color: var(--accent-color);
       }
       
-      /* ===== PRODUCT IMAGE - CORREGIDO ===== */
+      /* ===== SOLUCIÓN PROFESIONAL PARA IMÁGENES ===== */
       .product-image-container {
-        position: relative;
+        /* Técnica moderna: aspect-ratio + object-fit */
+        aspect-ratio: 1 / 1;
         width: 100%;
-        aspect-ratio: 1 / 1; /* Mantener proporción cuadrada */
-        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-        display: flex;
-        align-items: center;
-        justify-content: center;
+        background: linear-gradient(135deg, #fafafa 0%, #f0f0f0 100%);
+        position: relative;
         overflow: hidden;
-        /* Borde sutil interno */
-        box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.05);
+        border-bottom: 1px solid var(--border-color);
       }
       
       .product-image {
+        /* CLAVE: object-fit: contain mantiene proporción SIN distorsión */
         width: 100%;
         height: 100%;
-        object-fit: contain; /* Mantiene proporción SIN recortar */
+        object-fit: contain;
         object-position: center;
-        /* Padding interno para evitar que toque los bordes */
-        padding: 10px;
+        
+        /* Padding interno para evitar que toque bordes */
+        padding: 15px;
+        
         /* Transición suave */
-        transition: transform 0.3s ease;
+        transition: transform 0.4s ease;
+        
+        /* Filtro sutil para mejorar calidad */
+        image-rendering: high-quality;
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
       }
       
-      /* Hover en imagen */
+      /* Hover effect en imagen */
       .product-card:hover .product-image {
-        transform: scale(1.05);
+        transform: scale(1.08);
       }
       
-      /* Placeholder para imágenes que no cargan */
-      .product-image::before {
+      /* Overlay sutil para mejorar contraste */
+      .product-image-container::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 30%;
+        background: linear-gradient(transparent, rgba(255, 255, 255, 0.1));
+        pointer-events: none;
+      }
+      
+      /* Placeholder para imágenes que fallan */
+      .product-image::after {
         content: '';
         position: absolute;
         top: 50%;
         left: 50%;
         transform: translate(-50%, -50%);
-        width: 40px;
-        height: 40px;
-        background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23999"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>') center/contain no-repeat;
-        opacity: 0.3;
-        z-index: -1;
+        width: 60px;
+        height: 60px;
+        background: var(--border-color);
+        border-radius: 50%;
+        opacity: 0;
+        transition: opacity 0.3s ease;
       }
       
-      /* ===== PRODUCT INFO - TEXTO MEJORADO ===== */
+      .product-image[src=""], .product-image:not([src]) {
+        opacity: 0.3;
+      }
+      
+      .product-image[src=""]:after, .product-image:not([src]):after {
+        opacity: 1;
+      }
+      
+      /* ===== INFORMACIÓN DEL PRODUCTO PREMIUM ===== */
       .product-info {
-        padding: ${spacing.card}px;
+        padding: ${spacing.card + 8}px;
+        background: var(--card-background);
         position: relative;
       }
       
       .product-name {
         font-size: ${this.getProductNameSize(template.density)};
-        font-weight: 600;
-        color: ${textColors.title};
-        margin-bottom: ${spacing.card / 2}px;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: ${spacing.card / 2 + 4}px;
         line-height: 1.3;
+        
+        /* Truncamiento moderno */
         display: -webkit-box;
         -webkit-line-clamp: 2;
         -webkit-box-orient: vertical;
         overflow: hidden;
-        /* Mejorar legibilidad del título */
-        text-shadow: ${this.getTextShadow(template.colors.background, textColors.title)};
-        /* Background sutil si el contraste es bajo */
-        ${this.needsTextBackground(template.colors.background, textColors.title) ? `
-          background: rgba(255, 255, 255, 0.9);
-          padding: 4px 8px;
-          border-radius: 4px;
-          margin: -4px -8px ${spacing.card / 2}px -8px;
-        ` : ''}
+        
+        /* Mejorar legibilidad */
+        letter-spacing: -0.02em;
+        word-break: break-word;
+        hyphens: auto;
       }
       
       .product-price {
         font-size: ${this.getPriceSize(template.density)};
-        font-weight: 700;
-        color: ${textColors.price};
-        margin-bottom: ${spacing.card / 2}px;
-        /* Background destacado para el precio */
-        background: ${this.getPriceBackground(template.colors.primary)};
-        color: ${this.getPriceTextColor(template.colors.primary)};
-        padding: 6px 12px;
-        border-radius: 6px;
+        font-weight: 800;
+        color: white;
+        margin-bottom: ${spacing.card / 2 + 4}px;
+        
+        /* Diseño premium para precio */
+        background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%);
+        padding: 8px 16px;
+        border-radius: 25px;
         display: inline-block;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        font-weight: 700;
-        letter-spacing: 0.5px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        
+        /* Tipografía mejorada */
+        font-family: 'Inter', system-ui, sans-serif;
+        letter-spacing: 0.05em;
+        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+        
+        /* Efecto hover */
+        transition: all 0.3s ease;
       }
       
-      /* ===== INFORMACIÓN CONDICIONAL - TEXTO OPTIMIZADO ===== */
+      .product-card:hover .product-price {
+        transform: scale(1.05);
+        box-shadow: 0 6px 25px rgba(0, 0, 0, 0.3);
+      }
+      
+      /* ===== INFORMACIÓN CONDICIONAL MEJORADA ===== */
+      
+      ${template.showInfo.category ? `
+      .product-category {
+        font-size: 0.75rem;
+        color: var(--accent-color);
+        text-transform: uppercase;
+        letter-spacing: 1.2px;
+        font-weight: 700;
+        margin-bottom: ${spacing.card / 2}px;
+        
+        /* Estilo premium */
+        background: ${this.hexToRgba(template.colors.accent, 0.1)};
+        padding: 4px 10px;
+        border-radius: 15px;
+        display: inline-block;
+        border: 1px solid ${this.hexToRgba(template.colors.accent, 0.3)};
+      }
+      ` : `.product-category { display: none; }`}
       
       ${template.showInfo.description ? `
       .product-description {
         font-size: ${this.getDescriptionSize(template.density)};
-        color: ${textColors.description};
-        margin-bottom: ${spacing.card / 2}px;
-        line-height: 1.4;
+        color: var(--text-secondary);
+        margin-bottom: ${spacing.card / 2 + 4}px;
+        line-height: 1.5;
+        
+        /* Truncamiento mejorado */
         display: -webkit-box;
         -webkit-line-clamp: ${template.density === 'alta' ? '2' : template.density === 'media' ? '3' : '4'};
         -webkit-box-orient: vertical;
         overflow: hidden;
-        /* Mejorar legibilidad de descripción */
-        ${this.needsTextBackground(template.colors.background, textColors.description) ? `
-          background: rgba(255, 255, 255, 0.8);
-          padding: 8px;
-          border-radius: 4px;
-          border-left: 3px solid ${template.colors.accent};
-        ` : ''}
+        
+        /* Mejor tipografía */
+        font-weight: 400;
+        hyphens: auto;
+        word-break: break-word;
       }
-      ` : `
-      .product-description { display: none; }
-      `}
+      ` : `.product-description { display: none; }`}
       
       ${template.showInfo.sku ? `
       .product-sku {
         font-size: 0.8rem;
-        color: ${textColors.sku};
-        font-family: 'Monaco', monospace;
-        background: rgba(0, 0, 0, 0.05);
-        padding: 4px 8px;
-        border-radius: 4px;
+        color: var(--text-secondary);
+        font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+        background: ${this.hexToRgba('#000000', 0.05)};
+        padding: 6px 12px;
+        border-radius: 6px;
         display: inline-block;
         margin-bottom: ${spacing.card / 2}px;
-        border: 1px solid rgba(0, 0, 0, 0.1);
+        border: 1px solid var(--border-color);
+        font-weight: 500;
       }
-      ` : `
-      .product-sku { display: none; }
-      `}
-      
-      ${template.showInfo.category ? `
-      .product-category {
-        font-size: 0.8rem;
-        color: ${template.colors.accent};
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        font-weight: 600;
-        margin-bottom: ${spacing.card / 2}px;
-        background: ${this.getCategoryBackground(template.colors.accent)};
-        padding: 2px 6px;
-        border-radius: 3px;
-        display: inline-block;
-      }
-      ` : `
-      .product-category { display: none; }
-      `}
+      ` : `.product-sku { display: none; }`}
       
       ${template.showInfo.specifications ? `
       .product-specifications {
         font-size: 0.85rem;
-        color: ${textColors.specifications};
-        border-top: 1px solid rgba(0, 0, 0, 0.1);
-        padding-top: ${spacing.card / 2}px;
-        margin-top: ${spacing.card / 2}px;
-        line-height: 1.4;
-        background: rgba(0, 0, 0, 0.02);
-        padding: ${spacing.card / 2}px;
-        border-radius: 4px;
+        color: var(--text-secondary);
+        border-top: 1px solid var(--border-color);
+        padding-top: ${spacing.card / 2 + 4}px;
+        margin-top: ${spacing.card / 2 + 4}px;
+        line-height: 1.5;
+        
+        /* Estilo mejorado */
+        background: ${this.hexToRgba('#000000', 0.02)};
+        padding: ${spacing.card / 2 + 4}px;
+        border-radius: 8px;
+        border-left: 3px solid var(--accent-color);
       }
-      ` : `
-      .product-specifications { display: none; }
-      `}
+      ` : `.product-specifications { display: none; }`}
       
-      /* ===== FOOTER ===== */
+      /* ===== FOOTER ELEGANTE ===== */
       .catalog-footer {
-        background: ${template.colors.secondary};
-        color: ${this.getFooterTextColor(template.colors.secondary)};
-        padding: ${spacing.footer}px;
+        background: linear-gradient(135deg, var(--secondary-color) 0%, ${this.darkenColor(template.colors.secondary || template.colors.primary, 10)} 100%);
+        color: ${this.getContrastColor(template.colors.secondary || template.colors.primary)};
+        padding: ${spacing.footer + 20}px ${spacing.section}px;
         text-align: center;
-        border-top: 1px solid rgba(0, 0, 0, 0.1);
-        margin-top: 40px;
+        border-top: 1px solid var(--border-color);
+        margin-top: 60px;
+        position: relative;
       }
       
       .business-contact {
-        font-size: 0.9rem;
-        line-height: 1.5;
+        font-size: 1rem;
+        line-height: 1.6;
+        margin-bottom: 20px;
       }
       
       .contact-item {
-        display: inline-block;
-        margin: 0 15px 5px 0;
-        padding: 4px 8px;
-        background: rgba(255, 255, 255, 0.1);
-        border-radius: 4px;
+        display: inline-flex;
+        align-items: center;
+        margin: 8px 20px;
+        padding: 8px 16px;
+        background: rgba(255, 255, 255, 0.15);
+        border-radius: 25px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+      }
+      
+      .contact-item:hover {
+        background: rgba(255, 255, 255, 0.25);
+        transform: translateY(-2px);
       }
       
       .footer-branding {
-        margin-top: 15px;
-        font-size: 0.8rem;
+        margin-top: 25px;
+        font-size: 0.9rem;
         opacity: 0.8;
+        font-weight: 500;
+        letter-spacing: 0.5px;
       }
       
-      /* ===== RESPONSIVE DESIGN ===== */
+      /* ===== RESPONSIVE DESIGN AVANZADO ===== */
+      
+      /* Large Desktop */
+      @media (min-width: 1400px) {
+        .products-grid {
+          gap: ${spacing.grid + 15}px;
+        }
+        
+        .product-card {
+          border-radius: ${Math.max(16, template.design.borderRadius)}px;
+        }
+      }
       
       /* Tablet */
       @media (max-width: 1024px) {
         .products-grid {
-          grid-template-columns: repeat(${Math.max(1, template.gridColumns - 1)}, 1fr);
-          gap: ${spacing.grid * 0.8}px;
+          grid-template-columns: repeat(${Math.max(2, template.gridColumns - 1)}, 1fr);
+          gap: ${spacing.grid}px;
         }
         
         .products-section {
-          padding: ${spacing.section * 0.8}px;
+          padding: ${spacing.section}px ${spacing.section * 0.8}px;
+        }
+        
+        .catalog-header {
+          padding: ${spacing.header}px ${spacing.section * 0.8}px;
         }
       }
       
@@ -316,35 +413,54 @@ export class TemplateGenerator {
       @media (max-width: 768px) {
         .products-grid {
           grid-template-columns: ${template.density === 'alta' ? 'repeat(2, 1fr)' : '1fr'};
-          gap: ${spacing.grid * 0.6}px;
+          gap: ${spacing.grid * 0.8}px;
         }
         
         .catalog-header {
-          padding: ${spacing.header * 0.7}px;
+          padding: ${spacing.header * 0.8}px ${spacing.section * 0.6}px;
         }
         
         .business-name {
           font-size: ${this.getMobileHeaderSize(template.density)};
+          letter-spacing: 1px;
         }
         
         .products-section {
-          padding: ${spacing.section * 0.6}px;
+          padding: ${spacing.section * 0.8}px ${spacing.section * 0.6}px;
         }
         
         .product-info {
-          padding: ${spacing.card * 0.8}px;
+          padding: ${spacing.card}px;
         }
         
-        /* En móvil, hacer las imágenes un poco más altas */
+        /* En móvil, aspect ratio ligeramente diferente para mejor uso del espacio */
         .product-image-container {
           aspect-ratio: 4 / 3;
         }
+        
+        .contact-item {
+          display: block;
+          margin: 6px auto;
+          max-width: 280px;
+        }
       }
       
-      /* ===== PRINT STYLES ===== */
+      /* Small Mobile */
+      @media (max-width: 480px) {
+        .products-grid {
+          grid-template-columns: 1fr;
+        }
+        
+        .product-image-container {
+          aspect-ratio: 3 / 2;
+        }
+      }
+      
+      /* ===== PRINT STYLES PROFESIONALES ===== */
       @media print {
         body.template-${template.id} {
           background: white !important;
+          color: black !important;
         }
         
         .catalog-container {
@@ -355,139 +471,89 @@ export class TemplateGenerator {
         .product-card {
           break-inside: avoid;
           box-shadow: none !important;
-          border: 1px solid #ddd !important;
+          border: 2px solid #ddd !important;
+          margin-bottom: 20px;
         }
         
         .catalog-header {
           break-after: avoid;
+          background: #333 !important;
+          color: white !important;
         }
         
-        /* Asegurar que las imágenes se impriman bien */
         .product-image {
           -webkit-print-color-adjust: exact;
           color-adjust: exact;
+          filter: none !important;
+        }
+        
+        .product-price {
+          background: #333 !important;
+          color: white !important;
+        }
+      }
+      
+      /* ===== DARK MODE SUPPORT ===== */
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --background-color: #1a1a1a;
+          --card-background: #2d2d2d;
+          --text-primary: #ffffff;
+          --text-secondary: #cccccc;
+          --border-color: #404040;
+          --shadow-light: 0 2px 15px rgba(0, 0, 0, 0.3);
+          --shadow-medium: 0 10px 40px rgba(0, 0, 0, 0.4);
+        }
+        
+        .product-image-container {
+          background: linear-gradient(135deg, #2a2a2a 0%, #1f1f1f 100%);
         }
       }
     `;
   }
   
   /**
-   * 🎨 OBTENER COLORES DE TEXTO OPTIMIZADOS PARA CONTRASTE
+   * 🎨 GENERAR ESQUEMA DE COLORES PROFESIONAL
    */
-  private static getOptimizedTextColors(template: IndustryTemplate) {
-    const bgColor = template.colors.background;
-    const isLightBg = this.isLightColor(bgColor);
+  private static generateProfessionalColorScheme(template: IndustryTemplate) {
+    const primary = template.colors.primary;
+    const secondary = template.colors.secondary || template.colors.primary;
+    const accent = template.colors.accent || this.adjustColor(primary, 30);
+    const background = template.colors.background || '#ffffff';
+    
+    // Determinar si el fondo es claro u oscuro
+    const isLightBackground = this.isLightColor(background);
     
     return {
-      title: this.getContrastingColor(template.colors.text, bgColor, template.colors.primary),
-      body: this.getContrastingColor(template.colors.text, bgColor),
-      price: template.colors.primary,
-      description: this.getContrastingColor(template.colors.text, bgColor, undefined, 0.8),
-      sku: this.getContrastingColor(template.colors.text, bgColor, undefined, 0.7),
-      specifications: this.getContrastingColor(template.colors.text, bgColor, undefined, 0.75)
+      primary,
+      secondary,
+      accent,
+      background,
+      cardBackground: template.colors.cardBackground || (isLightBackground ? '#ffffff' : '#2d2d2d'),
+      textPrimary: isLightBackground ? '#1a1a1a' : '#ffffff',
+      textSecondary: isLightBackground ? '#666666' : '#cccccc',
+      borderColor: isLightBackground ? '#e5e5e5' : '#404040',
+      shadowLight: isLightBackground ? '0 2px 15px rgba(0, 0, 0, 0.08)' : '0 2px 15px rgba(0, 0, 0, 0.3)',
+      shadowMedium: isLightBackground ? '0 10px 40px rgba(0, 0, 0, 0.15)' : '0 10px 40px rgba(0, 0, 0, 0.4)'
     };
   }
   
   /**
-   * 🔍 VERIFICAR SI UN COLOR ES CLARO O OSCURO
+   * 🔧 UTILIDADES DE COLOR
    */
   private static isLightColor(hexColor: string): boolean {
-    // Convertir hex a RGB
     const hex = hexColor.replace('#', '');
     const r = parseInt(hex.substr(0, 2), 16);
     const g = parseInt(hex.substr(2, 2), 16);
     const b = parseInt(hex.substr(4, 2), 16);
-    
-    // Calcular luminancia
     const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
     return luminance > 0.5;
   }
   
-  /**
-   * 📝 OBTENER COLOR CON BUEN CONTRASTE
-   */
-  private static getContrastingColor(
-    originalColor: string, 
-    backgroundColor: string, 
-    fallbackColor?: string, 
-    opacity: number = 1
-  ): string {
-    const isLightBg = this.isLightColor(backgroundColor);
-    
-    // Si el fondo es claro, usar texto oscuro
-    if (isLightBg) {
-      const darkColor = fallbackColor || '#2d3748';
-      return opacity < 1 ? `rgba(45, 55, 72, ${opacity})` : darkColor;
-    } else {
-      // Si el fondo es oscuro, usar texto claro
-      const lightColor = fallbackColor || '#f7fafc';
-      return opacity < 1 ? `rgba(247, 250, 252, ${opacity})` : lightColor;
-    }
+  private static getContrastColor(hexColor: string): string {
+    return this.isLightColor(hexColor) ? '#1a1a1a' : '#ffffff';
   }
   
-  /**
-   * 🌟 GENERAR TEXT-SHADOW BASADO EN CONTRASTE
-   */
-  private static getTextShadow(backgroundColor: string, textColor: string): string {
-    const isLightBg = this.isLightColor(backgroundColor);
-    
-    if (isLightBg) {
-      // Fondo claro: sombra oscura sutil
-      return '0 1px 2px rgba(0, 0, 0, 0.1)';
-    } else {
-      // Fondo oscuro: sombra clara sutil  
-      return '0 1px 2px rgba(255, 255, 255, 0.2)';
-    }
-  }
-  
-  /**
-   * 📦 VERIFICAR SI NECESITA BACKGROUND PARA TEXTO
-   */
-  private static needsTextBackground(backgroundColor: string, textColor: string): boolean {
-    // Si los colores son muy similares en luminancia, agregar background
-    const bgLuminance = this.isLightColor(backgroundColor) ? 1 : 0;
-    const textLuminance = this.isLightColor(textColor) ? 1 : 0;
-    
-    // Si la diferencia es muy pequeña, necesita background
-    return Math.abs(bgLuminance - textLuminance) < 0.3;
-  }
-  
-  /**
-   * 💰 GENERAR BACKGROUND PARA PRECIO
-   */
-  private static getPriceBackground(primaryColor: string): string {
-    // Hacer el background un poco más claro/oscuro que el color primario
-    if (this.isLightColor(primaryColor)) {
-      return `linear-gradient(135deg, ${primaryColor} 0%, ${this.darkenColor(primaryColor, 10)} 100%)`;
-    } else {
-      return `linear-gradient(135deg, ${this.lightenColor(primaryColor, 10)} 0%, ${primaryColor} 100%)`;
-    }
-  }
-  
-  /**
-   * 💰 COLOR DE TEXTO PARA PRECIO
-   */
-  private static getPriceTextColor(primaryColor: string): string {
-    return this.isLightColor(primaryColor) ? '#2d3748' : '#ffffff';
-  }
-  
-  /**
-   * 🏷️ BACKGROUND PARA CATEGORÍA
-   */
-  private static getCategoryBackground(accentColor: string): string {
-    return `${accentColor}20`; // 20% opacity
-  }
-  
-  /**
-   * 🦶 COLOR DE TEXTO PARA FOOTER
-   */
-  private static getFooterTextColor(secondaryColor: string): string {
-    return this.isLightColor(secondaryColor) ? '#2d3748' : '#f7fafc';
-  }
-  
-  /**
-   * 🔧 UTILITARIAS PARA COLORES
-   */
   private static darkenColor(hexColor: string, percent: number): string {
     const hex = hexColor.replace('#', '');
     const r = Math.max(0, parseInt(hex.substr(0, 2), 16) - Math.round(255 * percent / 100));
@@ -497,72 +563,59 @@ export class TemplateGenerator {
     return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
   }
   
-  private static lightenColor(hexColor: string, percent: number): string {
+  private static adjustColor(hexColor: string, adjustment: number): string {
     const hex = hexColor.replace('#', '');
-    const r = Math.min(255, parseInt(hex.substr(0, 2), 16) + Math.round(255 * percent / 100));
-    const g = Math.min(255, parseInt(hex.substr(2, 2), 16) + Math.round(255 * percent / 100));
-    const b = Math.min(255, parseInt(hex.substr(4, 2), 16) + Math.round(255 * percent / 100));
+    const r = Math.min(255, Math.max(0, parseInt(hex.substr(0, 2), 16) + adjustment));
+    const g = Math.min(255, Math.max(0, parseInt(hex.substr(2, 2), 16) + adjustment));
+    const b = Math.min(255, Math.max(0, parseInt(hex.substr(4, 2), 16) + adjustment));
     
     return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
   }
   
+  private static hexToRgba(hex: string, alpha: number): string {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  }
+  
   /**
-   * 📏 VALORES DE SPACING SEGÚN DENSIDAD
+   * 📏 VALORES DE SPACING MEJORADOS
    */
   private static getSpacingValues(spacing: 'compacto' | 'normal' | 'amplio') {
     const configs = {
-      compacto: { header: 30, section: 20, grid: 15, card: 12, footer: 25 },
-      normal: { header: 40, section: 30, grid: 20, card: 16, footer: 30 },
-      amplio: { header: 50, section: 40, grid: 30, card: 24, footer: 40 }
+      compacto: { header: 35, section: 25, grid: 18, card: 16, footer: 30 },
+      normal: { header: 45, section: 35, grid: 25, card: 20, footer: 35 },
+      amplio: { header: 55, section: 45, grid: 35, card: 28, footer: 45 }
     };
     return configs[spacing];
   }
   
   /**
-   * 📝 TAMAÑOS DE TEXTO SEGÚN DENSIDAD
+   * 📝 TAMAÑOS DE TEXTO OPTIMIZADOS
    */
   private static getHeaderSize(density: 'alta' | 'media' | 'baja'): string {
-    return {
-      alta: '1.8rem',
-      media: '2.2rem', 
-      baja: '2.5rem'
-    }[density];
+    return { alta: '2rem', media: '2.5rem', baja: '3rem' }[density];
   }
   
   private static getMobileHeaderSize(density: 'alta' | 'media' | 'baja'): string {
-    return {
-      alta: '1.4rem',
-      media: '1.6rem',
-      baja: '1.8rem'
-    }[density];
+    return { alta: '1.5rem', media: '1.8rem', baja: '2.2rem' }[density];
   }
   
   private static getProductNameSize(density: 'alta' | 'media' | 'baja'): string {
-    return {
-      alta: '0.95rem',
-      media: '1.1rem',
-      baja: '1.25rem'
-    }[density];
+    return { alta: '1rem', media: '1.2rem', baja: '1.4rem' }[density];
   }
   
   private static getPriceSize(density: 'alta' | 'media' | 'baja'): string {
-    return {
-      alta: '1.1rem',
-      media: '1.3rem',
-      baja: '1.5rem'
-    }[density];
+    return { alta: '1.2rem', media: '1.4rem', baja: '1.6rem' }[density];
   }
   
   private static getDescriptionSize(density: 'alta' | 'media' | 'baja'): string {
-    return {
-      alta: '0.8rem',
-      media: '0.9rem',
-      baja: '0.95rem'
-    }[density];
+    return { alta: '0.85rem', media: '0.95rem', baja: '1rem' }[density];
   }
   
   /**
-   * 🏗️ GENERA HTML COMPLETO DEL CATÁLOGO - FUNCIÓN SÍNCRONA
+   * 🏗️ GENERA HTML COMPLETO DEL CATÁLOGO
    */
   static generateCatalogHTML(
     products: Product[],
@@ -570,14 +623,11 @@ export class TemplateGenerator {
     template: IndustryTemplate
   ): string {
     
-    // IMPORTANTE: Esta función debe ser completamente síncrona
     const css = this.generateTemplateCSS(template);
     const productsHTML = this.generateProductsHTML(products, template);
     const footerHTML = this.generateFooterHTML(businessInfo);
     
-    // Validar que businessInfo.business_name no sea undefined
     const businessName = businessInfo.business_name || 'Mi Negocio';
-    const templateDisplayName = template.displayName || 'Catálogo';
     
     return `<!DOCTYPE html>
 <html lang="es">
@@ -585,7 +635,9 @@ export class TemplateGenerator {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Catálogo - ${businessName}</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
         ${css}
     </style>
@@ -613,11 +665,10 @@ export class TemplateGenerator {
   }
   
   /**
-   * 🛍️ GENERA HTML DE PRODUCTOS - FUNCIÓN SÍNCRONA
+   * 🛍️ GENERA HTML DE PRODUCTOS CON MANEJO AVANZADO DE IMÁGENES
    */
   private static generateProductsHTML(products: Product[], template: IndustryTemplate): string {
     return products.map(product => {
-      // Validar que todos los campos estén definidos
       const productName = product.name || 'Producto';
       const productPrice = typeof product.price_retail === 'number' ? product.price_retail : 0;
       const productImage = product.image_url || '';
@@ -629,10 +680,15 @@ export class TemplateGenerator {
       return `
       <div class="product-card">
         <div class="product-image-container">
-          <img src="${productImage}" alt="${productName}" class="product-image" 
-               onerror="this.style.display='none'" 
-               onload="this.style.opacity='1'" 
-               style="opacity:0; transition: opacity 0.3s ease;" />
+          <img 
+            src="${productImage}" 
+            alt="${productName}" 
+            class="product-image"
+            loading="lazy"
+            onerror="this.style.opacity='0.3'; this.alt='Imagen no disponible';"
+            onload="this.style.opacity='1';"
+            style="opacity: 0; transition: opacity 0.3s ease;"
+          />
         </div>
         <div class="product-info">
           ${template.showInfo.category && productCategory ? 
@@ -641,7 +697,8 @@ export class TemplateGenerator {
           <h3 class="product-name">${productName}</h3>
           
           <div class="product-price">$${productPrice.toLocaleString('es-MX', { 
-            minimumFractionDigits: 2 
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
           })}</div>
           
           ${template.showInfo.description && productDescription ? 
@@ -658,14 +715,14 @@ export class TemplateGenerator {
   }
   
   /**
-   * 🔗 GENERA HTML DEL FOOTER - FUNCIÓN SÍNCRONA
+   * 🔗 GENERA HTML DEL FOOTER ELEGANTE
    */
   private static generateFooterHTML(businessInfo: BusinessInfo): string {
     const contactItems = [
-      businessInfo.phone ? `<span class="contact-item">📞 ${businessInfo.phone}</span>` : '',
-      businessInfo.email ? `<span class="contact-item">📧 ${businessInfo.email}</span>` : '',
-      businessInfo.website ? `<span class="contact-item">🌐 ${businessInfo.website}</span>` : '',
-      businessInfo.address ? `<span class="contact-item">📍 ${businessInfo.address}</span>` : ''
+      businessInfo.phone ? `<div class="contact-item">📞 ${businessInfo.phone}</div>` : '',
+      businessInfo.email ? `<div class="contact-item">📧 ${businessInfo.email}</div>` : '',
+      businessInfo.website ? `<div class="contact-item">🌐 ${businessInfo.website}</div>` : '',
+      businessInfo.address ? `<div class="contact-item">📍 ${businessInfo.address}</div>` : ''
     ].filter(Boolean);
     
     if (contactItems.length === 0) {
