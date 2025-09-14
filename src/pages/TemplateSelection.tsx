@@ -1,5 +1,5 @@
 // src/pages/TemplateSelection.tsx
-// 🎨 SELECCIÓN DE TEMPLATES INTEGRADA CON SISTEMA HÍBRIDO DINÁMICO
+// 🎨 SELECCIÓN DE TEMPLATES INTEGRADA CON SISTEMA HÍBRIDO DINÁMICO - ERROR CORREGIDO
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -57,6 +57,17 @@ interface UsageLimits {
   catalogsLimit: number | 'unlimited';
   remainingCatalogs: number;
   message: string;
+}
+
+// 🔧 INTERFACE CORREGIDA PARA INFO DEL TEMPLATE
+interface TemplateInfo {
+  supportsDynamic: boolean;
+  productsPerPage: number;
+  recommendedFor: string;
+  layout: string;
+  spacing: string;
+  quality: 'standard' | 'high';
+  isPremium: boolean;
 }
 
 type GenerationMethod = 'auto' | 'dynamic' | 'classic';
@@ -361,7 +372,7 @@ const TemplateSelection = () => {
           'CLASSIC_ENGINE_ERROR': 'Error en engine clásico'
         };
         
-        const userMessage = errorMessages[result.error] || result.message || 'Error desconocido';
+        const userMessage = errorMessages[result.error as keyof typeof errorMessages] || result.message || 'Error desconocido';
         
         toast({
           title: "Error al generar catálogo",
@@ -383,30 +394,30 @@ const TemplateSelection = () => {
     }
   };
 
-  // Obtener información del template dinámico
-  const getTemplateInfo = (templateId: string) => {
+  // 🔧 FUNCIÓN CORREGIDA - SIN ACCEDER A 'features'
+  const getTemplateInfo = (templateId: string): TemplateInfo => {
     const dynamicTemplate = getDynamicTemplate(templateId);
     
     if (dynamicTemplate) {
       return {
-        supportsDynamic: true,
+        supportsDynamic: dynamicTemplate.supportsDynamic,
         productsPerPage: dynamicTemplate.productsPerPage,
-        recommendedFor: dynamicTemplate.productsPerPage <= 3 ? 'productos premium' : 
-                       dynamicTemplate.productsPerPage <= 6 ? 'catálogos estándar' : 
-                       'alta densidad',
-        features: dynamicTemplate.features,
+        recommendedFor: dynamicTemplate.recommendedFor, // Usar la propiedad correcta
         layout: `${dynamicTemplate.layout.columns}×${dynamicTemplate.layout.rows}`,
-        spacing: dynamicTemplate.layout.spacing
+        spacing: dynamicTemplate.layout.spacing,
+        quality: dynamicTemplate.pdfConfig.quality,
+        isPremium: dynamicTemplate.isPremium
       };
     }
     
     return {
       supportsDynamic: false,
       productsPerPage: 6,
-      recommendedFor: 'estándar',
-      features: null,
+      recommendedFor: 'catálogos estándar',
       layout: '3×2',
-      spacing: 'normal'
+      spacing: 'normal',
+      quality: 'standard',
+      isPremium: false
     };
   };
 
