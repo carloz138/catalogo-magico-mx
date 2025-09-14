@@ -191,8 +191,17 @@ export const getAllDynamicTemplates = (): SimpleDynamicTemplate[] => {
  * 🔍 FILTRAR TEMPLATES POR INDUSTRIA EN FORMATO DINÁMICO
  */
 export const getDynamicTemplatesByIndustry = (industry: string): SimpleDynamicTemplate[] => {
-  const industryTemplates = INDUSTRY_TEMPLATES[industry] || [];
-  return industryTemplates.map(template => TemplateDynamicMapper.convertToDynamicTemplate(template));
+  const industryTemplates = INDUSTRY_TEMPLATES[industry as keyof typeof INDUSTRY_TEMPLATES];
+  
+  // Asegurar que siempre trabajamos con un array
+  if (!industryTemplates) {
+    return [];
+  }
+  
+  // Si es un solo template (no array), convertirlo a array
+  const templatesArray = Array.isArray(industryTemplates) ? industryTemplates : [industryTemplates];
+  
+  return templatesArray.map(template => TemplateDynamicMapper.convertToDynamicTemplate(template));
 };
 
 /**
