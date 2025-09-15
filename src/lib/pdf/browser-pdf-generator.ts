@@ -1,5 +1,5 @@
 // src/lib/pdf/browser-pdf-generator.ts
-// 📄 GENERADOR PDF COMPATIBLE CON TODOS LOS BROWSERS SIN html2pdf.js
+// 📄 GENERADOR PDF COMPATIBLE CON TODOS LOS BROWSERS - IMÁGENES CORREGIDAS
 
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -109,7 +109,7 @@ export class BrowserPDFGenerator {
   }
   
   /**
-   * 📄 MÉTODO 1: jsPDF + html2canvas
+   * 📄 MÉTODO 1: jsPDF + html2canvas - CORREGIDO
    */
   private static async generateWithJsPDF(
     products: Product[],
@@ -125,9 +125,12 @@ export class BrowserPDFGenerator {
       const htmlElement = this.createOptimizedHTMLElement(products, businessInfo, template);
       document.body.appendChild(htmlElement);
       
+      // Esperar a que las imágenes se carguen completamente
+      await this.preloadImages(htmlElement);
+      
       if (options.onProgress) options.onProgress(40);
       
-      // 2. Configurar html2canvas con opciones optimizadas
+      // 2. Configurar html2canvas con opciones optimizadas para imágenes
       const canvasOptions = {
         scale: options.quality === 'high' ? 2 : options.quality === 'low' ? 1 : 1.5,
         useCORS: true,
@@ -137,8 +140,12 @@ export class BrowserPDFGenerator {
         height: htmlElement.scrollHeight,
         scrollX: 0,
         scrollY: 0,
-        windowWidth: 1200, // Ancho fijo para consistencia
-        windowHeight: htmlElement.scrollHeight
+        windowWidth: 1200,
+        windowHeight: htmlElement.scrollHeight,
+        // Opciones específicas para mejor rendering de imágenes
+        imageTimeout: 15000,
+        removeContainer: true,
+        foreignObjectRendering: false // Mejor para imágenes
       };
       
       // 3. Generar canvas
@@ -154,18 +161,16 @@ export class BrowserPDFGenerator {
       // 5. Calcular dimensiones
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
-      const imgWidth = pageWidth - 20; // 10mm margen cada lado
+      const imgWidth = pageWidth - 20;
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
       
-      // 6. Añadir imagen al PDF
-      const imgData = canvas.toDataURL('image/jpeg', 0.9);
+      // 6. Añadir imagen al PDF con mejor calidad
+      const imgData = canvas.toDataURL('image/jpeg', 0.95); // Calidad más alta
       
       // Si la imagen es más alta que la página, dividir en múltiples páginas
       if (imgHeight <= pageHeight - 20) {
-        // Cabe en una página
         pdf.addImage(imgData, 'JPEG', 10, 10, imgWidth, imgHeight);
       } else {
-        // Dividir en múltiples páginas
         let yPosition = 0;
         const pageContentHeight = pageHeight - 20;
         
@@ -180,7 +185,6 @@ export class BrowserPDFGenerator {
             canvas.height - sourceY
           );
           
-          // Crear canvas temporal para esta página
           const tempCanvas = document.createElement('canvas');
           tempCanvas.width = canvas.width;
           tempCanvas.height = sourceHeight;
@@ -192,7 +196,7 @@ export class BrowserPDFGenerator {
             0, 0, canvas.width, sourceHeight
           );
           
-          const tempImgData = tempCanvas.toDataURL('image/jpeg', 0.9);
+          const tempImgData = tempCanvas.toDataURL('image/jpeg', 0.95);
           const tempImgHeight = (sourceHeight * imgWidth) / canvas.width;
           
           pdf.addImage(tempImgData, 'JPEG', 10, 10, imgWidth, tempImgHeight);
@@ -224,7 +228,30 @@ export class BrowserPDFGenerator {
   }
   
   /**
-   * 🖨️ MÉTODO 2: Browser Print API
+   * 🖼️ PRECARGAR IMÁGENES PARA MEJOR RENDERING
+   */
+  private static async preloadImages(element: HTMLElement): Promise<void> {
+    const images = element.querySelectorAll('img');
+    const imagePromises = Array.from(images).map(img => {
+      return new Promise<void>((resolve) => {
+        if (img.complete) {
+          resolve();
+        } else {
+          img.onload = () => resolve();
+          img.onerror = () => resolve(); // Continuar aunque falle una imagen
+          // Timeout de seguridad
+          setTimeout(() => resolve(), 5000);
+        }
+      });
+    });
+    
+    await Promise.all(imagePromises);
+    // Pequeña pausa adicional para asegurar rendering
+    await new Promise(resolve => setTimeout(resolve, 500));
+  }
+  
+  /**
+   * 🖨️ MÉTODO 2: Browser Print API - MEJORADO
    */
   private static async generateWithPrintAPI(
     products: Product[],
@@ -236,10 +263,8 @@ export class BrowserPDFGenerator {
     try {
       if (options.onProgress) options.onProgress(30);
       
-      // 1. Crear HTML optimizado para impresión
       const printHTML = this.createPrintOptimizedHTML(products, businessInfo, template);
       
-      // 2. Abrir ventana de impresión
       const printWindow = window.open('', '_blank');
       if (!printWindow) {
         throw new Error('No se pudo abrir ventana de impresión');
@@ -247,23 +272,19 @@ export class BrowserPDFGenerator {
       
       if (options.onProgress) options.onProgress(60);
       
-      // 3. Escribir contenido
       printWindow.document.write(printHTML);
       printWindow.document.close();
       
-      // 4. Esperar a que cargue y hacer foco
       await new Promise(resolve => {
         printWindow.onload = resolve;
-        setTimeout(resolve, 1000); // Timeout de seguridad
+        setTimeout(resolve, 1000);
       });
       
       if (options.onProgress) options.onProgress(80);
       
-      // 5. Abrir diálogo de impresión
       printWindow.focus();
       printWindow.print();
       
-      // 6. Cerrar ventana después de un delay
       setTimeout(() => {
         printWindow.close();
       }, 1000);
@@ -291,25 +312,20 @@ export class BrowserPDFGenerator {
   ): Promise<PDFResult> {
     
     try {
-      // 1. Crear HTML standalone
       const standaloneHTML = this.createStandaloneHTML(products, businessInfo, template);
       
-      // 2. Crear blob
       const blob = new Blob([standaloneHTML], { type: 'text/html;charset=utf-8' });
       const url = URL.createObjectURL(blob);
       
-      // 3. Crear link de descarga
       const link = document.createElement('a');
       link.href = url;
       link.download = `catalogo-${businessInfo.business_name.replace(/[^a-zA-Z0-9]/g, '_')}.html`;
       link.style.display = 'none';
       
-      // 4. Trigger descarga
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       
-      // 5. Cleanup URL
       setTimeout(() => URL.revokeObjectURL(url), 1000);
       
       return { success: true };
@@ -324,7 +340,7 @@ export class BrowserPDFGenerator {
   }
   
   /**
-   * 🏗️ CREAR ELEMENTO HTML OPTIMIZADO PARA PDF
+   * 🏗️ CREAR ELEMENTO HTML OPTIMIZADO - IMÁGENES CORREGIDAS
    */
   private static createOptimizedHTMLElement(
     products: Product[],
@@ -335,7 +351,7 @@ export class BrowserPDFGenerator {
     const element = document.createElement('div');
     element.className = 'pdf-catalog';
     
-    // CSS inline para mejor compatibilidad
+    // CSS inline corregido para preservar aspect ratio
     const css = `
       <style>
         .pdf-catalog {
@@ -375,17 +391,35 @@ export class BrowserPDFGenerator {
           background: white;
           border: 2px solid ${template.colors.accent};
           border-radius: 8px;
-          padding: 10px;
+          padding: 12px;
           text-align: center;
           break-inside: avoid;
+          display: flex;
+          flex-direction: column;
+        }
+        
+        /* 🎯 SISTEMA DE IMÁGENES CORREGIDO */
+        .product-image-container {
+          width: 100%;
+          aspect-ratio: 1 / 1;
+          position: relative;
+          background: #f8f9fa;
+          border-radius: 6px;
+          margin-bottom: 12px;
+          overflow: hidden;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border: 1px solid #e9ecef;
         }
         
         .product-image {
-          width: 100%;
-          height: 150px;
+          max-width: 100%;
+          max-height: 100%;
+          width: auto;
+          height: auto;
+          display: block;
           object-fit: contain;
-          margin-bottom: 10px;
-          background: #f8f9fa;
         }
         
         .product-name {
@@ -393,6 +427,14 @@ export class BrowserPDFGenerator {
           font-weight: 600;
           color: ${template.colors.primary};
           margin: 0 0 8px 0;
+          word-wrap: break-word;
+          hyphens: auto;
+          line-height: 1.3;
+          flex-grow: 1;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          text-align: center;
         }
         
         .product-price {
@@ -400,9 +442,21 @@ export class BrowserPDFGenerator {
           font-weight: 700;
           color: ${template.colors.secondary};
           background: ${template.colors.accent}20;
-          padding: 4px 8px;
-          border-radius: 4px;
+          padding: 6px 10px;
+          border-radius: 6px;
           display: inline-block;
+          margin-top: auto;
+        }
+        
+        .product-description {
+          font-size: 11px;
+          margin: 8px 0 0 0;
+          color: #666;
+          word-wrap: break-word;
+          line-height: 1.2;
+          max-height: 2.4em;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
         
         .catalog-footer {
@@ -413,6 +467,33 @@ export class BrowserPDFGenerator {
           border-radius: 8px;
           font-size: 14px;
         }
+        
+        /* Ajustes responsivos para diferentes densidades */
+        ${template.productsPerPage <= 4 ? `
+          .product-image-container {
+            aspect-ratio: 4 / 3;
+          }
+          .product-card {
+            padding: 16px;
+          }
+        ` : template.productsPerPage <= 9 ? `
+          .product-image-container {
+            aspect-ratio: 1 / 1;
+          }
+          .product-card {
+            padding: 12px;
+          }
+        ` : `
+          .product-image-container {
+            aspect-ratio: 1 / 1;
+          }
+          .product-card {
+            padding: 8px;
+          }
+          .product-name {
+            font-size: calc(${template.typography.productNameSize} * 0.9);
+          }
+        `}
         
         @media print {
           .pdf-catalog {
@@ -446,19 +527,34 @@ export class BrowserPDFGenerator {
           ` : ''}
           
           <div class="products-grid">
-            ${pageProducts.map(product => `
-              <div class="product-card">
-                <img 
-                  src="${product.image_url || '/placeholder.png'}" 
-                  alt="${product.name}"
-                  class="product-image"
-                  onerror="this.style.display='none'"
-                />
-                <h3 class="product-name">${product.name}</h3>
-                <div class="product-price">$${product.price_retail.toLocaleString('es-MX')}</div>
-                ${product.description ? `<p style="font-size: 12px; margin: 8px 0 0 0; color: #666;">${product.description}</p>` : ''}
-              </div>
-            `).join('')}
+            ${pageProducts.map(product => {
+              // Generar placeholder SVG para imágenes faltantes
+              const placeholderSvg = `data:image/svg+xml,${encodeURIComponent(`
+                <svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+                  <rect fill="#f8f9fa" stroke="#dee2e6" width="200" height="200"/>
+                  <text x="50%" y="45%" text-anchor="middle" fill="#6c757d" font-family="Arial" font-size="12">Sin imagen</text>
+                  <text x="50%" y="60%" text-anchor="middle" fill="#6c757d" font-family="Arial" font-size="10">${product.name.substring(0, 20)}</text>
+                </svg>
+              `)}`;
+              
+              return `
+                <div class="product-card">
+                  <div class="product-image-container">
+                    <img 
+                      src="${product.image_url || placeholderSvg}" 
+                      alt="${product.name}"
+                      class="product-image"
+                      crossorigin="anonymous"
+                      loading="eager"
+                      onerror="this.src='${placeholderSvg}'"
+                    />
+                  </div>
+                  <h3 class="product-name">${product.name}</h3>
+                  <div class="product-price">$${product.price_retail.toLocaleString('es-MX')}</div>
+                  ${product.description ? `<p class="product-description">${product.description}</p>` : ''}
+                </div>
+              `;
+            }).join('')}
           </div>
           
           ${page === totalPages - 1 ? `
@@ -484,7 +580,7 @@ export class BrowserPDFGenerator {
   }
   
   /**
-   * 🖨️ CREAR HTML OPTIMIZADO PARA IMPRESIÓN
+   * 🖨️ CREAR HTML OPTIMIZADO PARA IMPRESIÓN - MEJORADO
    */
   private static createPrintOptimizedHTML(
     products: Product[],
@@ -536,7 +632,7 @@ export class BrowserPDFGenerator {
           .products-grid {
             display: grid;
             grid-template-columns: repeat(${template.layout.columns}, 1fr);
-            gap: 10px;
+            gap: 12px;
             margin-bottom: 15px;
           }
           
@@ -544,38 +640,62 @@ export class BrowserPDFGenerator {
             background: white;
             border: 1px solid ${template.colors.accent};
             border-radius: 6px;
-            padding: 8px;
+            padding: 10px;
             text-align: center;
             break-inside: avoid;
             page-break-inside: avoid;
             print-color-adjust: exact;
+            display: flex;
+            flex-direction: column;
+          }
+          
+          .product-image-container {
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            position: relative;
+            background: #f8f9fa;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #e9ecef;
           }
           
           .product-image {
-            width: 100%;
-            height: 120px;
+            max-width: 100%;
+            max-height: 100%;
+            width: auto;
+            height: auto;
+            display: block;
             object-fit: contain;
-            margin-bottom: 8px;
-            background: #f8f9fa;
           }
           
           .product-name {
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 600;
             color: ${template.colors.primary};
-            margin-bottom: 5px;
+            margin-bottom: 6px;
             print-color-adjust: exact;
+            word-wrap: break-word;
+            line-height: 1.2;
+            flex-grow: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
           }
           
           .product-price {
-            font-size: 16px;
+            font-size: 15px;
             font-weight: 700;
             color: ${template.colors.secondary};
             background: ${template.colors.accent}20;
-            padding: 2px 6px;
-            border-radius: 3px;
+            padding: 4px 8px;
+            border-radius: 4px;
             display: inline-block;
             print-color-adjust: exact;
+            margin-top: auto;
           }
           
           .catalog-footer {
@@ -621,7 +741,7 @@ export class BrowserPDFGenerator {
   }
   
   /**
-   * 📄 CREAR HTML STANDALONE (Para descarga)
+   * 📄 CREAR HTML STANDALONE (Para descarga) - MEJORADO
    */
   private static createStandaloneHTML(
     products: Product[],
@@ -681,19 +801,35 @@ export class BrowserPDFGenerator {
             text-align: center;
             box-shadow: 0 4px 8px rgba(0,0,0,0.1);
             transition: transform 0.2s;
+            display: flex;
+            flex-direction: column;
           }
           
           .product-card:hover {
             transform: translateY(-5px);
           }
           
-          .product-image {
+          .product-image-container {
             width: 100%;
-            height: 200px;
-            object-fit: contain;
-            margin-bottom: 15px;
+            aspect-ratio: 1 / 1;
+            position: relative;
             background: #f8f9fa;
             border-radius: 8px;
+            margin-bottom: 15px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #e9ecef;
+          }
+          
+          .product-image {
+            max-width: 100%;
+            max-height: 100%;
+            width: auto;
+            height: auto;
+            display: block;
+            object-fit: contain;
           }
           
           .product-name {
@@ -701,6 +837,11 @@ export class BrowserPDFGenerator {
             font-weight: bold;
             color: ${template.colors.primary};
             margin-bottom: 10px;
+            word-wrap: break-word;
+            flex-grow: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
           }
           
           .product-price {
@@ -711,6 +852,7 @@ export class BrowserPDFGenerator {
             padding: 8px 16px;
             border-radius: 8px;
             display: inline-block;
+            margin-top: auto;
           }
           
           .footer {
@@ -767,17 +909,29 @@ export class BrowserPDFGenerator {
           
           <div class="products-grid">
             ${products.map(product => {
-              const placeholderSvg = 'data:image/svg+xml,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="200" height="150" viewBox="0 0 200 150"><rect fill="#f0f0f0" width="200" height="150"/><text fill="#999" x="50%" y="50%" text-anchor="middle" dy=".3em">${product.name}</text></svg>`);
+              const placeholderSvg = `data:image/svg+xml,${encodeURIComponent(`
+                <svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+                  <rect fill="#f8f9fa" stroke="#dee2e6" width="200" height="200"/>
+                  <text x="50%" y="45%" text-anchor="middle" fill="#6c757d" font-family="Arial" font-size="14">Sin imagen</text>
+                  <text x="50%" y="60%" text-anchor="middle" fill="#6c757d" font-family="Arial" font-size="12">${product.name.substring(0, 15)}</text>
+                </svg>
+              `)}`;
+              
               return `
                 <div class="product-card">
-                  <img 
-                    src="${product.image_url || placeholderSvg}"
-                    alt="${product.name}"
-                    class="product-image"
-                  />
+                  <div class="product-image-container">
+                    <img 
+                      src="${product.image_url || placeholderSvg}"
+                      alt="${product.name}"
+                      class="product-image"
+                      crossorigin="anonymous"
+                      loading="lazy"
+                      onerror="this.src='${placeholderSvg}'"
+                    />
+                  </div>
                   <h3 class="product-name">${product.name}</h3>
                   <div class="product-price">$${product.price_retail.toLocaleString('es-MX')}</div>
-                  ${product.description ? `<p style="margin-top: 10px; font-size: 14px; color: #666;">${product.description}</p>` : ''}
+                  ${product.description ? `<p style="margin-top: 10px; font-size: 14px; color: #666; word-wrap: break-word;">${product.description}</p>` : ''}
                 </div>
               `;
             }).join('')}
@@ -799,7 +953,7 @@ export class BrowserPDFGenerator {
   }
   
   /**
-   * 🏭 GENERAR HTML DE PRODUCTOS PARA IMPRESIÓN
+   * 🏭 GENERAR HTML DE PRODUCTOS PARA IMPRESIÓN - MEJORADO
    */
   private static generateProductPagesHTML(products: Product[], template: SimpleDynamicTemplate): string {
     const productsPerPage = template.productsPerPage;
@@ -815,14 +969,26 @@ export class BrowserPDFGenerator {
         <div class="products-page ${page > 0 ? 'page-break' : ''}">
           <div class="products-grid">
             ${pageProducts.map(product => {
-              const placeholderSvg = 'data:image/svg+xml,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120"><rect fill="#f0f0f0" width="120" height="120"/><text fill="#999" x="50%" y="50%" text-anchor="middle" font-size="12">Sin imagen</text></svg>`);
+              const placeholderSvg = `data:image/svg+xml,${encodeURIComponent(`
+                <svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120">
+                  <rect fill="#f8f9fa" stroke="#dee2e6" width="120" height="120"/>
+                  <text x="50%" y="45%" text-anchor="middle" fill="#6c757d" font-family="Arial" font-size="10">Sin imagen</text>
+                  <text x="50%" y="60%" text-anchor="middle" fill="#6c757d" font-family="Arial" font-size="8">${product.name.substring(0, 12)}</text>
+                </svg>
+              `)}`;
+              
               return `
                 <div class="product-card">
-                  <img 
-                    src="${product.image_url || placeholderSvg}"
-                    alt="${product.name}"
-                    class="product-image"
-                  />
+                  <div class="product-image-container">
+                    <img 
+                      src="${product.image_url || placeholderSvg}"
+                      alt="${product.name}"
+                      class="product-image"
+                      crossorigin="anonymous"
+                      loading="eager"
+                      onerror="this.src='${placeholderSvg}'"
+                    />
+                  </div>
                   <h3 class="product-name">${product.name}</h3>
                   <div class="product-price">$${product.price_retail.toLocaleString('es-MX')}</div>
                 </div>
