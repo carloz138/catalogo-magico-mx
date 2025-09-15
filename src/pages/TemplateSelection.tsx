@@ -1,5 +1,5 @@
 // src/pages/TemplateSelection.tsx
-// 🎨 SELECCIÓN DE TEMPLATES INTEGRADA CON SISTEMA HÍBRIDO DINÁMICO - ERROR CORREGIDO
+// 🎨 TEMPLATE SELECTION CON SISTEMA DE PREVIEW INTEGRADO
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -14,8 +14,9 @@ import { toast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { useBusinessInfo } from '@/hooks/useBusinessInfo';
 
-// Importar sistema híbrido
+// Importar sistema híbrido y preview
 import { SmartTemplateSelector } from '@/components/templates/SmartTemplateSelector';
+import { CatalogPreview } from '@/components/catalog/CatalogPreview';
 import { 
   generateCatalog, 
   generateDynamicCatalog,
@@ -23,6 +24,8 @@ import {
   checkLimits 
 } from '@/lib/catalog/unified-generator';
 import { getDynamicTemplate } from '@/lib/templates/dynamic-mapper';
+import { getTemplateById } from '@/lib/templates/industry-templates';
+import { TemplateGenerator } from '@/lib/templates/css-generator';
 import { IndustryType } from '@/lib/templates/industry-templates';
 
 import { 
@@ -37,7 +40,8 @@ import {
   Zap,
   Info,
   Rocket,
-  Clock
+  Clock,
+  Eye
 } from 'lucide-react';
 
 interface Product {
@@ -57,17 +61,6 @@ interface UsageLimits {
   catalogsLimit: number | 'unlimited';
   remainingCatalogs: number;
   message: string;
-}
-
-// 🔧 INTERFACE CORREGIDA PARA INFO DEL TEMPLATE
-interface TemplateInfo {
-  supportsDynamic: boolean;
-  productsPerPage: number;
-  recommendedFor: string;
-  layout: string;
-  spacing: string;
-  quality: 'standard' | 'high';
-  isPremium: boolean;
 }
 
 type GenerationMethod = 'auto' | 'dynamic' | 'classic';
@@ -92,6 +85,11 @@ const TemplateSelection = () => {
   const [userIndustry, setUserIndustry] = useState<IndustryType | undefined>();
   const [userPlan, setUserPlan] = useState<'basic' | 'premium'>('basic');
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
+  
+  // Estados del sistema de preview
+  const [showPreview, setShowPreview] = useState(false);
+  const [previewHTML, setPreviewHTML] = useState<string>('');
+  const [previewLoading, setPreviewLoading] = useState(false);
 
   useEffect(() => {
     initializeComponent();
@@ -249,7 +247,62 @@ const TemplateSelection = () => {
     console.log('🎨 Template seleccionado:', templateId);
   };
 
-  // FUNCIÓN PRINCIPAL DE GENERACIÓN HÍBRIDA
+  // 🔍 NUEVA FUNCIÓN: GENERAR PREVIEW HTML
+  const handlePreviewCatalog = async () => {
+    if (!selectedTemplate || !user || !businessInfo) {
+      toast({
+        title: "Información faltante",
+        description: "Selecciona un template y asegúrate de tener la información del negocio completa",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setPreviewLoading(true);
+    
+    try {
+      console.log('🔍 Generando preview HTML...');
+      
+      // Preparar datos del negocio
+      const businessData = {
+        business_name: businessInfo.business_name,
+        email: businessInfo.email,
+        phone: businessInfo.phone,
+        website: businessInfo.website,
+        address: businessInfo.address
+      };
+      
+      // Obtener template
+      const template = getTemplateById(selectedTemplate);
+      if (!template) {
+        throw new Error(`Template ${selectedTemplate} no encontrado`);
+      }
+      
+      // Generar HTML sin crear PDF
+      const htmlContent = TemplateGenerator.generateCatalogHTML(
+        selectedProducts,
+        businessData,
+        template
+      );
+      
+      setPreviewHTML(htmlContent);
+      setShowPreview(true);
+      
+      console.log('✅ Preview HTML generado:', htmlContent.length, 'caracteres');
+      
+    } catch (error) {
+      console.error('❌ Error generando preview:', error);
+      toast({
+        title: "Error generando preview",
+        description: error instanceof Error ? error.message : "Error desconocido",
+        variant: "destructive",
+      });
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
+  // FUNCIÓN DE GENERACIÓN PDF (mejorada)
   const handleGenerateCatalog = async () => {
     if (!selectedTemplate || !user || !businessInfo) {
       toast({
@@ -358,6 +411,9 @@ const TemplateSelection = () => {
         // Actualizar límites
         await loadCatalogLimits();
         
+        // Cerrar preview si está abierto
+        setShowPreview(false);
+        
         // Redirigir a catálogos
         navigate('/catalogs');
         
@@ -394,18 +450,17 @@ const TemplateSelection = () => {
     }
   };
 
-  // 🔧 FUNCIÓN CORREGIDA - SIN ACCEDER A 'features'
-  const getTemplateInfo = (templateId: string): TemplateInfo => {
+  // Obtener información del template dinámico
+  const getTemplateInfo = (templateId: string) => {
     const dynamicTemplate = getDynamicTemplate(templateId);
     
     if (dynamicTemplate) {
       return {
         supportsDynamic: dynamicTemplate.supportsDynamic,
         productsPerPage: dynamicTemplate.productsPerPage,
-        recommendedFor: dynamicTemplate.recommendedFor, // Usar la propiedad correcta
+        recommendedFor: dynamicTemplate.recommendedFor,
         layout: `${dynamicTemplate.layout.columns}×${dynamicTemplate.layout.rows}`,
         spacing: dynamicTemplate.layout.spacing,
-        quality: dynamicTemplate.pdfConfig.quality,
         isPremium: dynamicTemplate.isPremium
       };
     }
@@ -416,7 +471,6 @@ const TemplateSelection = () => {
       recommendedFor: 'catálogos estándar',
       layout: '3×2',
       spacing: 'normal',
-      quality: 'standard',
       isPremium: false
     };
   };
@@ -475,13 +529,35 @@ const TemplateSelection = () => {
             value={generationMethod}
             onChange={(e) => setGenerationMethod(e.target.value as GenerationMethod)}
             className="text-xs border rounded px-2 py-1"
-            disabled={generating}
+            disabled={generating || previewLoading}
           >
             <option value="auto">Auto (Recomendado)</option>
             <option value="dynamic">🚀 Dynamic Engine</option>
             <option value="classic">🎨 Classic Engine</option>
           </select>
         </div>
+      )}
+      
+      {/* NUEVO: Botón de Preview */}
+      {selectedTemplate && (
+        <Button 
+          onClick={handlePreviewCatalog}
+          disabled={generating || previewLoading}
+          variant="outline"
+          className="flex items-center gap-2"
+        >
+          {previewLoading ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Generando...
+            </>
+          ) : (
+            <>
+              <Eye className="h-4 w-4" />
+              Preview
+            </>
+          )}
+        </Button>
       )}
       
       <Button 
@@ -643,7 +719,7 @@ const TemplateSelection = () => {
                           value={generationMethod}
                           onChange={(e) => setGenerationMethod(e.target.value as GenerationMethod)}
                           className="w-full mt-1 text-sm border border-green-300 rounded px-2 py-1"
-                          disabled={generating}
+                          disabled={generating || previewLoading}
                         >
                           <option value="auto">🧠 Auto (Recomendado: {getRecommendedMethod()})</option>
                           <option value="dynamic">🚀 Dynamic Engine</option>
@@ -678,41 +754,71 @@ const TemplateSelection = () => {
                   </div>
                 )}
 
-                {/* Botón de generación */}
+                {/* Botones de acción */}
                 {limits?.canGenerate && (
                   <div className="flex items-center justify-between mt-4">
                     <div className="text-sm text-green-700">
                       Listo para generar {selectedProducts.length} productos
                     </div>
-                    <Button 
-                      onClick={handleGenerateCatalog}
-                      disabled={generating}
-                      className="bg-green-600 hover:bg-green-700"
-                    >
-                      {generating ? (
-                        <>
+                    <div className="flex items-center gap-2">
+                      {/* Botón Preview */}
+                      <Button 
+                        onClick={handlePreviewCatalog}
+                        disabled={generating || previewLoading}
+                        variant="outline"
+                        className="border-green-300 text-green-700 hover:bg-green-100"
+                      >
+                        {previewLoading ? (
                           <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                          Generando...
-                        </>
-                      ) : (
-                        <>
-                          {generationMethod === 'dynamic' ? (
-                            <Rocket className="w-4 h-4 mr-2" />
-                          ) : generationMethod === 'classic' ? (
-                            <Palette className="w-4 h-4 mr-2" />
-                          ) : (
-                            <Zap className="w-4 h-4 mr-2" />
-                          )}
-                          Generar Ahora
-                        </>
-                      )}
-                    </Button>
+                        ) : (
+                          <Eye className="w-4 h-4 mr-2" />
+                        )}
+                        Preview HTML
+                      </Button>
+                      
+                      {/* Botón Generar */}
+                      <Button 
+                        onClick={handleGenerateCatalog}
+                        disabled={generating || previewLoading}
+                        className="bg-green-600 hover:bg-green-700"
+                      >
+                        {generating ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                            Generando...
+                          </>
+                        ) : (
+                          <>
+                            {generationMethod === 'dynamic' ? (
+                              <Rocket className="w-4 h-4 mr-2" />
+                            ) : generationMethod === 'classic' ? (
+                              <Palette className="w-4 h-4 mr-2" />
+                            ) : (
+                              <Zap className="w-4 h-4 mr-2" />
+                            )}
+                            Generar PDF
+                          </>
+                        )}
+                      </Button>
+                    </div>
                   </div>
                 )}
               </CardContent>
             </Card>
           )}
         </div>
+        
+        {/* Modal de Preview */}
+        {showPreview && (
+          <CatalogPreview
+            htmlContent={previewHTML}
+            templateId={selectedTemplate || ''}
+            productCount={selectedProducts.length}
+            onGeneratePDF={handleGenerateCatalog}
+            onClose={() => setShowPreview(false)}
+            loading={generating}
+          />
+        )}
       </AppLayout>
     </ProtectedRoute>
   );
