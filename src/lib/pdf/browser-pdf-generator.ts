@@ -1,5 +1,5 @@
 // src/lib/pdf/browser-pdf-generator.ts
-// 📄 GENERADOR PDF COMPATIBLE CON TODOS LOS BROWSERS - IMÁGENES CORREGIDAS
+// 📄 GENERADOR PDF CON jsPDF DIRECTO - SIN DEFORMACIÓN DE IMÁGENES
 
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -78,10 +78,10 @@ export class BrowserPDFGenerator {
     if (options.onProgress) options.onProgress(10);
     
     try {
-      // Método 1: jsPDF + html2canvas (Preferido)
+      // Método 1: jsPDF directo (Preferido y corregido)
       const jspdfResult = await this.generateWithJsPDF(products, businessInfo, template, options);
       if (jspdfResult.success) {
-        console.log('✅ PDF generado con jsPDF + html2canvas');
+        console.log('✅ PDF generado con jsPDF directo');
         return { ...jspdfResult, method: 'jspdf' };
       }
       
@@ -109,7 +109,7 @@ export class BrowserPDFGenerator {
   }
   
   /**
-   * 📄 MÉTODO 1: jsPDF + html2canvas - CORREGIDO
+   * 📄 MÉTODO 1: jsPDF DIRECTO - SIN html2canvas - PRESERVA PROPORCIONES
    */
   private static async generateWithJsPDF(
     products: Product[],
@@ -119,135 +119,408 @@ export class BrowserPDFGenerator {
   ): Promise<PDFResult> {
     
     try {
+      console.log('📄 Generando PDF con jsPDF directo...');
+      
       if (options.onProgress) options.onProgress(20);
       
-      // 1. Crear HTML temporal optimizado para PDF
-      const htmlElement = this.createOptimizedHTMLElement(products, businessInfo, template);
-      document.body.appendChild(htmlElement);
-      
-      // Esperar a que las imágenes se carguen completamente
-      await this.preloadImages(htmlElement);
-      
-      if (options.onProgress) options.onProgress(40);
-      
-      // 2. Configurar html2canvas con opciones optimizadas para imágenes
-      const canvasOptions = {
-        scale: options.quality === 'high' ? 2 : options.quality === 'low' ? 1 : 1.5,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: template.colors.background,
-        width: htmlElement.scrollWidth,
-        height: htmlElement.scrollHeight,
-        scrollX: 0,
-        scrollY: 0,
-        windowWidth: 1200,
-        windowHeight: htmlElement.scrollHeight,
-        // Opciones específicas para mejor rendering de imágenes
-        imageTimeout: 15000,
-        removeContainer: true,
-        foreignObjectRendering: false // Mejor para imágenes
-      };
-      
-      // 3. Generar canvas
-      const canvas = await html2canvas(htmlElement, canvasOptions);
-      
-      if (options.onProgress) options.onProgress(70);
-      
-      // 4. Configurar jsPDF
+      // 1. Configurar jsPDF
       const pageSize = options.pageSize || 'A4';
       const orientation = options.orientation || 'portrait';
       const pdf = new jsPDF(orientation, 'mm', pageSize.toLowerCase());
       
-      // 5. Calcular dimensiones
+      // 2. Dimensiones de página
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
-      const imgWidth = pageWidth - 20;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      const margins = { top: 15, bottom: 15, left: 15, right: 15 };
+      const usableWidth = pageWidth - margins.left - margins.right;
+      const usableHeight = pageHeight - margins.top - margins.bottom;
       
-      // 6. Añadir imagen al PDF con mejor calidad
-      const imgData = canvas.toDataURL('image/jpeg', 0.95); // Calidad más alta
+      // 3. Configuración de grid
+      const columns = template.layout.columns;
+      const productsPerPage = template.productsPerPage;
+      const rows = Math.ceil(productsPerPage / columns);
       
-      // Si la imagen es más alta que la página, dividir en múltiples páginas
-      if (imgHeight <= pageHeight - 20) {
-        pdf.addImage(imgData, 'JPEG', 10, 10, imgWidth, imgHeight);
-      } else {
-        let yPosition = 0;
-        const pageContentHeight = pageHeight - 20;
-        
-        while (yPosition < imgHeight) {
-          if (yPosition > 0) {
-            pdf.addPage();
-          }
-          
-          const sourceY = (yPosition * canvas.height) / imgHeight;
-          const sourceHeight = Math.min(
-            (pageContentHeight * canvas.height) / imgHeight,
-            canvas.height - sourceY
-          );
-          
-          const tempCanvas = document.createElement('canvas');
-          tempCanvas.width = canvas.width;
-          tempCanvas.height = sourceHeight;
-          const tempCtx = tempCanvas.getContext('2d')!;
-          
-          tempCtx.drawImage(
-            canvas,
-            0, sourceY, canvas.width, sourceHeight,
-            0, 0, canvas.width, sourceHeight
-          );
-          
-          const tempImgData = tempCanvas.toDataURL('image/jpeg', 0.95);
-          const tempImgHeight = (sourceHeight * imgWidth) / canvas.width;
-          
-          pdf.addImage(tempImgData, 'JPEG', 10, 10, imgWidth, tempImgHeight);
-          
-          yPosition += pageContentHeight;
+      // 4. Calcular dimensiones de cada celda
+      const cellWidth = usableWidth / columns;
+      const cellHeight = usableHeight / (rows + 1); // +1 para header
+      const headerHeight = cellHeight * 0.8;
+      const productCellHeight = cellHeight * 0.9;
+      
+      // Espacios internos de cada celda
+      const cellPadding = 3;
+      const imageAreaWidth = cellWidth - (cellPadding * 2);
+      const imageAreaHeight = productCellHeight * 0.6; // 60% para imagen
+      const textAreaHeight = productCellHeight * 0.4; // 40% para texto
+      
+      if (options.onProgress) options.onProgress(30);
+      
+      // 5. Cargar todas las imágenes
+      console.log('🖼️ Cargando imágenes...');
+      const loadedImages = await this.loadAllImages(products, options.onProgress);
+      
+      if (options.onProgress) options.onProgress(60);
+      
+      // 6. Generar páginas
+      const totalPages = Math.ceil(products.length / productsPerPage);
+      let currentPageProducts = 0;
+      
+      for (let pageIndex = 0; pageIndex < totalPages; pageIndex++) {
+        if (pageIndex > 0) {
+          pdf.addPage();
         }
+        
+        // Header de página
+        this.addPageHeader(pdf, businessInfo, template, pageWidth, margins, headerHeight);
+        
+        // Productos de esta página
+        const startIndex = pageIndex * productsPerPage;
+        const endIndex = Math.min(startIndex + productsPerPage, products.length);
+        const pageProducts = products.slice(startIndex, endIndex);
+        
+        // Dibujar grid de productos
+        await this.drawProductGrid(
+          pdf,
+          pageProducts,
+          loadedImages,
+          template,
+          {
+            startY: margins.top + headerHeight + 5,
+            cellWidth,
+            cellHeight: productCellHeight,
+            cellPadding,
+            imageAreaWidth,
+            imageAreaHeight,
+            textAreaHeight,
+            columns,
+            margins
+          }
+        );
+        
+        currentPageProducts += pageProducts.length;
+        
+        // Footer si es la última página
+        if (pageIndex === totalPages - 1) {
+          this.addPageFooter(pdf, businessInfo, products.length, pageHeight, margins);
+        }
+        
+        // Progress update
+        const progress = 60 + (40 * (currentPageProducts / products.length));
+        if (options.onProgress) options.onProgress(Math.round(progress));
       }
       
-      if (options.onProgress) options.onProgress(90);
+      if (options.onProgress) options.onProgress(95);
       
       // 7. Descargar PDF
       const filename = `catalogo-${businessInfo.business_name.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
       pdf.save(filename);
       
-      // 8. Cleanup
-      document.body.removeChild(htmlElement);
-      
       if (options.onProgress) options.onProgress(100);
       
+      console.log('✅ PDF generado exitosamente con jsPDF directo');
       return { success: true };
       
     } catch (error) {
-      console.error('Error en jsPDF:', error);
+      console.error('❌ Error en jsPDF directo:', error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Error en jsPDF'
+        error: error instanceof Error ? error.message : 'Error en jsPDF directo'
       };
     }
   }
   
   /**
-   * 🖼️ PRECARGAR IMÁGENES PARA MEJOR RENDERING
+   * 🖼️ CARGAR TODAS LAS IMÁGENES Y CALCULAR SUS DIMENSIONES REALES
    */
-  private static async preloadImages(element: HTMLElement): Promise<void> {
-    const images = element.querySelectorAll('img');
-    const imagePromises = Array.from(images).map(img => {
-      return new Promise<void>((resolve) => {
-        if (img.complete) {
-          resolve();
-        } else {
-          img.onload = () => resolve();
-          img.onerror = () => resolve(); // Continuar aunque falle una imagen
-          // Timeout de seguridad
-          setTimeout(() => resolve(), 5000);
+  private static async loadAllImages(
+    products: Product[], 
+    onProgress?: (progress: number) => void
+  ): Promise<Map<string, { img: HTMLImageElement; aspectRatio: number; loaded: boolean }>> {
+    
+    const imageMap = new Map();
+    const loadPromises = products.map(async (product, index) => {
+      
+      try {
+        if (!product.image_url) {
+          imageMap.set(product.id, { img: null, aspectRatio: 1, loaded: false });
+          return;
         }
-      });
+        
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        
+        const loadPromise = new Promise<void>((resolve) => {
+          img.onload = () => {
+            const aspectRatio = img.naturalWidth / img.naturalHeight;
+            imageMap.set(product.id, { 
+              img, 
+              aspectRatio: isNaN(aspectRatio) ? 1 : aspectRatio, 
+              loaded: true 
+            });
+            resolve();
+          };
+          
+          img.onerror = () => {
+            console.warn(`⚠️ Error cargando imagen: ${product.image_url}`);
+            imageMap.set(product.id, { img: null, aspectRatio: 1, loaded: false });
+            resolve();
+          };
+          
+          // Timeout de seguridad
+          setTimeout(() => {
+            if (!imageMap.has(product.id)) {
+              imageMap.set(product.id, { img: null, aspectRatio: 1, loaded: false });
+              resolve();
+            }
+          }, 8000);
+        });
+        
+        img.src = product.image_url;
+        await loadPromise;
+        
+        // Update progress
+        if (onProgress) {
+          const progress = 30 + (30 * (index + 1) / products.length);
+          onProgress(Math.round(progress));
+        }
+        
+      } catch (error) {
+        console.warn(`⚠️ Error procesando imagen ${product.id}:`, error);
+        imageMap.set(product.id, { img: null, aspectRatio: 1, loaded: false });
+      }
     });
     
-    await Promise.all(imagePromises);
-    // Pequeña pausa adicional para asegurar rendering
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await Promise.all(loadPromises);
+    console.log(`✅ Cargadas ${imageMap.size} imágenes`);
+    
+    return imageMap;
+  }
+  
+  /**
+   * 📋 DIBUJAR GRID DE PRODUCTOS CON PROPORCIONES EXACTAS
+   */
+  private static async drawProductGrid(
+    pdf: jsPDF,
+    products: Product[],
+    loadedImages: Map<string, any>,
+    template: SimpleDynamicTemplate,
+    layout: {
+      startY: number;
+      cellWidth: number;
+      cellHeight: number;
+      cellPadding: number;
+      imageAreaWidth: number;
+      imageAreaHeight: number;
+      textAreaHeight: number;
+      columns: number;
+      margins: { left: number; right: number; top: number; bottom: number; };
+    }
+  ): Promise<void> {
+    
+    for (let i = 0; i < products.length; i++) {
+      const product = products[i];
+      const imageData = loadedImages.get(product.id);
+      
+      // Calcular posición en grid
+      const row = Math.floor(i / layout.columns);
+      const col = i % layout.columns;
+      
+      const x = layout.margins.left + (col * layout.cellWidth);
+      const y = layout.startY + (row * layout.cellHeight);
+      
+      // Dibujar borde de celda
+      pdf.setDrawColor(200, 200, 200);
+      pdf.setLineWidth(0.2);
+      pdf.rect(x, y, layout.cellWidth, layout.cellHeight);
+      
+      // Área de imagen
+      const imgX = x + layout.cellPadding;
+      const imgY = y + layout.cellPadding;
+      const imgMaxWidth = layout.imageAreaWidth;
+      const imgMaxHeight = layout.imageAreaHeight;
+      
+      // Dibujar imagen si existe y se cargó
+      if (imageData && imageData.loaded && imageData.img) {
+        try {
+          // Calcular dimensiones preservando aspect ratio
+          const aspectRatio = imageData.aspectRatio;
+          let finalWidth = imgMaxWidth;
+          let finalHeight = imgMaxWidth / aspectRatio;
+          
+          // Si la altura calculada excede el espacio, ajustar por altura
+          if (finalHeight > imgMaxHeight) {
+            finalHeight = imgMaxHeight;
+            finalWidth = imgMaxHeight * aspectRatio;
+          }
+          
+          // Centrar la imagen en su área
+          const centeredX = imgX + (imgMaxWidth - finalWidth) / 2;
+          const centeredY = imgY + (imgMaxHeight - finalHeight) / 2;
+          
+          // Convertir imagen a base64 para jsPDF
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d')!;
+          canvas.width = imageData.img.naturalWidth;
+          canvas.height = imageData.img.naturalHeight;
+          ctx.drawImage(imageData.img, 0, 0);
+          const imageBase64 = canvas.toDataURL('image/jpeg', 0.9);
+          
+          // Agregar imagen al PDF
+          pdf.addImage(
+            imageBase64, 
+            'JPEG', 
+            centeredX, 
+            centeredY, 
+            finalWidth, 
+            finalHeight
+          );
+          
+        } catch (error) {
+          console.warn(`⚠️ Error añadiendo imagen ${product.id}:`, error);
+          this.drawImagePlaceholder(pdf, imgX, imgY, imgMaxWidth, imgMaxHeight, product.name);
+        }
+      } else {
+        // Dibujar placeholder
+        this.drawImagePlaceholder(pdf, imgX, imgY, imgMaxWidth, imgMaxHeight, product.name);
+      }
+      
+      // Área de texto
+      const textY = imgY + layout.imageAreaHeight + 3;
+      const textMaxWidth = layout.imageAreaWidth;
+      
+      // Nombre del producto
+      pdf.setTextColor(template.colors.primary);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(parseFloat(template.typography.productNameSize) * 0.35); // Conversión px to pt
+      
+      const splitName = pdf.splitTextToSize(product.name, textMaxWidth);
+      const nameLines = Math.min(splitName.length, 2); // Máximo 2 líneas
+      
+      for (let line = 0; line < nameLines; line++) {
+        pdf.text(
+          splitName[line], 
+          x + layout.cellWidth / 2, 
+          textY + (line * 4), 
+          { align: 'center' }
+        );
+      }
+      
+      // Precio
+      const priceY = textY + (nameLines * 4) + 3;
+      pdf.setTextColor(template.colors.secondary);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(parseFloat(template.typography.priceSize) * 0.4);
+      
+      const priceText = `$${product.price_retail.toLocaleString('es-MX')}`;
+      pdf.text(priceText, x + layout.cellWidth / 2, priceY, { align: 'center' });
+      
+      // Descripción (si hay espacio)
+      if (product.description && (priceY + 8) < (y + layout.cellHeight - layout.cellPadding)) {
+        pdf.setTextColor(100, 100, 100);
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(7);
+        
+        const splitDesc = pdf.splitTextToSize(product.description, textMaxWidth);
+        const descLine = splitDesc[0]; // Solo primera línea
+        
+        if (descLine) {
+          pdf.text(descLine, x + layout.cellWidth / 2, priceY + 5, { align: 'center' });
+        }
+      }
+    }
+  }
+  
+  /**
+   * 🖼️ DIBUJAR PLACEHOLDER PARA IMÁGENES FALTANTES
+   */
+  private static drawImagePlaceholder(
+    pdf: jsPDF,
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    productName: string
+  ): void {
+    
+    // Fondo gris claro
+    pdf.setFillColor(248, 249, 250);
+    pdf.setDrawColor(220, 220, 220);
+    pdf.setLineWidth(0.3);
+    pdf.rect(x, y, width, height, 'FD');
+    
+    // Texto "Sin imagen"
+    pdf.setTextColor(150, 150, 150);
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(8);
+    pdf.text('Sin imagen', x + width/2, y + height/2 - 2, { align: 'center' });
+    
+    // Nombre del producto truncado
+    const truncatedName = productName.substring(0, 15) + (productName.length > 15 ? '...' : '');
+    pdf.setFontSize(6);
+    pdf.text(truncatedName, x + width/2, y + height/2 + 2, { align: 'center' });
+  }
+  
+  /**
+   * 📋 AGREGAR HEADER DE PÁGINA
+   */
+  private static addPageHeader(
+    pdf: jsPDF,
+    businessInfo: BusinessInfo,
+    template: SimpleDynamicTemplate,
+    pageWidth: number,
+    margins: { left: number; right: number; top: number; bottom: number; },
+    headerHeight: number
+  ): void {
+    
+    const headerY = margins.top;
+    const headerWidth = pageWidth - margins.left - margins.right;
+    
+    // Fondo del header con gradiente simulado
+    pdf.setFillColor(template.colors.primary);
+    pdf.rect(margins.left, headerY, headerWidth, headerHeight, 'F');
+    
+    // Overlay más claro para simular gradiente
+    pdf.setFillColor(255, 255, 255, 0.1);
+    pdf.rect(margins.left, headerY, headerWidth, headerHeight * 0.5, 'F');
+    
+    // Texto del header
+    pdf.setTextColor(255, 255, 255);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(parseFloat(template.typography.headerSize) * 0.4);
+    
+    const businessName = businessInfo.business_name;
+    pdf.text(businessName, pageWidth / 2, headerY + headerHeight * 0.4, { align: 'center' });
+    
+    // Subtítulo
+    pdf.setFontSize(10);
+    pdf.setFont('helvetica', 'normal');
+    const subtitle = `Catálogo ${template.displayName}`;
+    pdf.text(subtitle, pageWidth / 2, headerY + headerHeight * 0.7, { align: 'center' });
+  }
+  
+  /**
+   * 📄 AGREGAR FOOTER DE PÁGINA
+   */
+  private static addPageFooter(
+    pdf: jsPDF,
+    businessInfo: BusinessInfo,
+    totalProducts: number,
+    pageHeight: number,
+    margins: { left: number; right: number; top: number; bottom: number; }
+  ): void {
+    
+    const footerY = pageHeight - margins.bottom + 2;
+    
+    pdf.setTextColor(100, 100, 100);
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(8);
+    
+    // Línea de contacto
+    const contactLine = `📞 ${businessInfo.phone || ''} | 📧 ${businessInfo.email || ''}`;
+    pdf.text(contactLine, pdf.internal.pageSize.getWidth() / 2, footerY, { align: 'center' });
+    
+    // Línea de info
+    const infoLine = `Catálogo generado con CatalogoIA - ${totalProducts} productos`;
+    pdf.text(infoLine, pdf.internal.pageSize.getWidth() / 2, footerY + 4, { align: 'center' });
   }
   
   /**
@@ -337,246 +610,6 @@ export class BrowserPDFGenerator {
         error: error instanceof Error ? error.message : 'Error en HTML download'
       };
     }
-  }
-  
-  /**
-   * 🏗️ CREAR ELEMENTO HTML OPTIMIZADO - IMÁGENES CORREGIDAS
-   */
-  private static createOptimizedHTMLElement(
-    products: Product[],
-    businessInfo: BusinessInfo,
-    template: SimpleDynamicTemplate
-  ): HTMLElement {
-    
-    const element = document.createElement('div');
-    element.className = 'pdf-catalog';
-    
-    // CSS inline corregido para preservar aspect ratio
-    const css = `
-      <style>
-        .pdf-catalog {
-          width: 210mm;
-          min-height: 297mm;
-          background: ${template.colors.background};
-          font-family: 'Arial', sans-serif;
-          color: ${template.colors.text};
-          padding: 20px;
-          box-sizing: border-box;
-          margin: 0;
-        }
-        
-        .catalog-header {
-          text-align: center;
-          margin-bottom: 30px;
-          padding: 20px;
-          background: linear-gradient(135deg, ${template.colors.primary}, ${template.colors.secondary});
-          color: white;
-          border-radius: 10px;
-        }
-        
-        .business-name {
-          font-size: ${template.typography.headerSize};
-          font-weight: bold;
-          margin: 0;
-        }
-        
-        .products-grid {
-          display: grid;
-          grid-template-columns: repeat(${template.layout.columns}, 1fr);
-          gap: 15px;
-          margin-bottom: 20px;
-        }
-        
-        .product-card {
-          background: white;
-          border: 2px solid ${template.colors.accent};
-          border-radius: 8px;
-          padding: 12px;
-          text-align: center;
-          break-inside: avoid;
-          display: flex;
-          flex-direction: column;
-        }
-        
-        /* 🎯 SISTEMA DE IMÁGENES CORREGIDO */
-        .product-image-container {
-          width: 100%;
-          aspect-ratio: 1 / 1;
-          position: relative;
-          background: #f8f9fa;
-          border-radius: 6px;
-          margin-bottom: 12px;
-          overflow: hidden;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          border: 1px solid #e9ecef;
-        }
-        
-        .product-image {
-          max-width: 100%;
-          max-height: 100%;
-          width: auto;
-          height: auto;
-          display: block;
-          object-fit: contain;
-        }
-        
-        .product-name {
-          font-size: ${template.typography.productNameSize};
-          font-weight: 600;
-          color: ${template.colors.primary};
-          margin: 0 0 8px 0;
-          word-wrap: break-word;
-          hyphens: auto;
-          line-height: 1.3;
-          flex-grow: 1;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          text-align: center;
-        }
-        
-        .product-price {
-          font-size: ${template.typography.priceSize};
-          font-weight: 700;
-          color: ${template.colors.secondary};
-          background: ${template.colors.accent}20;
-          padding: 6px 10px;
-          border-radius: 6px;
-          display: inline-block;
-          margin-top: auto;
-        }
-        
-        .product-description {
-          font-size: 11px;
-          margin: 8px 0 0 0;
-          color: #666;
-          word-wrap: break-word;
-          line-height: 1.2;
-          max-height: 2.4em;
-          overflow: hidden;
-          text-overflow: ellipsis;
-        }
-        
-        .catalog-footer {
-          margin-top: 30px;
-          text-align: center;
-          padding: 15px;
-          background: ${template.colors.primary}10;
-          border-radius: 8px;
-          font-size: 14px;
-        }
-        
-        /* Ajustes responsivos para diferentes densidades */
-        ${template.productsPerPage <= 4 ? `
-          .product-image-container {
-            aspect-ratio: 4 / 3;
-          }
-          .product-card {
-            padding: 16px;
-          }
-        ` : template.productsPerPage <= 9 ? `
-          .product-image-container {
-            aspect-ratio: 1 / 1;
-          }
-          .product-card {
-            padding: 12px;
-          }
-        ` : `
-          .product-image-container {
-            aspect-ratio: 1 / 1;
-          }
-          .product-card {
-            padding: 8px;
-          }
-          .product-name {
-            font-size: calc(${template.typography.productNameSize} * 0.9);
-          }
-        `}
-        
-        @media print {
-          .pdf-catalog {
-            width: 100%;
-            min-height: auto;
-            margin: 0;
-            padding: 10mm;
-          }
-        }
-      </style>
-    `;
-    
-    // Dividir productos en páginas
-    const productsPerPage = template.productsPerPage;
-    const totalPages = Math.ceil(products.length / productsPerPage);
-    
-    let html = css;
-    
-    for (let page = 0; page < totalPages; page++) {
-      const startIndex = page * productsPerPage;
-      const endIndex = Math.min(startIndex + productsPerPage, products.length);
-      const pageProducts = products.slice(startIndex, endIndex);
-      
-      html += `
-        <div class="catalog-page" ${page > 0 ? 'style="page-break-before: always;"' : ''}>
-          ${page === 0 ? `
-            <div class="catalog-header">
-              <h1 class="business-name">${businessInfo.business_name}</h1>
-              <p style="margin: 5px 0 0 0; opacity: 0.9;">Catálogo ${template.displayName}</p>
-            </div>
-          ` : ''}
-          
-          <div class="products-grid">
-            ${pageProducts.map(product => {
-              // Generar placeholder SVG para imágenes faltantes
-              const placeholderSvg = `data:image/svg+xml,${encodeURIComponent(`
-                <svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
-                  <rect fill="#f8f9fa" stroke="#dee2e6" width="200" height="200"/>
-                  <text x="50%" y="45%" text-anchor="middle" fill="#6c757d" font-family="Arial" font-size="12">Sin imagen</text>
-                  <text x="50%" y="60%" text-anchor="middle" fill="#6c757d" font-family="Arial" font-size="10">${product.name.substring(0, 20)}</text>
-                </svg>
-              `)}`;
-              
-              return `
-                <div class="product-card">
-                  <div class="product-image-container">
-                    <img 
-                      src="${product.image_url || placeholderSvg}" 
-                      alt="${product.name}"
-                      class="product-image"
-                      crossorigin="anonymous"
-                      loading="eager"
-                      onerror="this.src='${placeholderSvg}'"
-                    />
-                  </div>
-                  <h3 class="product-name">${product.name}</h3>
-                  <div class="product-price">$${product.price_retail.toLocaleString('es-MX')}</div>
-                  ${product.description ? `<p class="product-description">${product.description}</p>` : ''}
-                </div>
-              `;
-            }).join('')}
-          </div>
-          
-          ${page === totalPages - 1 ? `
-            <div class="catalog-footer">
-              <strong>📞 ${businessInfo.phone || ''} | 📧 ${businessInfo.email || ''}</strong><br>
-              <small>Catálogo generado con CatalogoIA - ${products.length} productos</small>
-            </div>
-          ` : ''}
-        </div>
-      `;
-    }
-    
-    element.innerHTML = html;
-    
-    // Configurar estilos del elemento
-    element.style.position = 'absolute';
-    element.style.left = '-9999px';
-    element.style.top = '0';
-    element.style.width = '210mm';
-    element.style.backgroundColor = template.colors.background;
-    
-    return element;
   }
   
   /**
