@@ -500,9 +500,9 @@ export class PuppeteerServiceClient {
   }
   
   /**
-   * 📄 GENERAR PÁGINAS DEL CATÁLOGO
+   * 📄 GENERAR PÁGINAS CON ESTILOS INLINE (MEJOR COMPATIBILIDAD)
    */
-  private static generateCatalogPages(
+  private static generateInlineCatalogPages(
     products: Product[],
     businessInfo: BusinessInfo,
     template: TemplateConfig
@@ -510,6 +510,7 @@ export class PuppeteerServiceClient {
     
     const productsPerPage = template.productsPerPage;
     const totalPages = Math.ceil(products.length / productsPerPage);
+    const columns = template.productsPerPage <= 3 ? 2 : template.productsPerPage <= 6 ? 3 : 4;
     let pagesHTML = '';
     
     for (let page = 0; page < totalPages; page++) {
@@ -518,17 +519,30 @@ export class PuppeteerServiceClient {
       const pageProducts = products.slice(startIndex, endIndex);
       
       pagesHTML += `
-        <div class="catalog-page">
-          <header class="page-header">
-            <h1 class="business-name">${businessInfo.business_name}</h1>
-            <p class="catalog-subtitle">Catálogo ${template.displayName} - Página ${page + 1} de ${totalPages}</p>
-          </header>
+        <div style="
+          width: 100%;
+          min-height: 100vh;
+          padding: 15mm;
+          page-break-after: ${page === totalPages - 1 ? 'avoid' : 'always'};
+          display: flex;
+          flex-direction: column;
+          background: ${template.colors.background} !important;
+          -webkit-print-color-adjust: exact !important;
+        ">
+          ${this.generateInlinePageHeader(businessInfo, template, page + 1, totalPages)}
           
-          <div class="products-grid">
-            ${pageProducts.map(product => this.generateProductCard(product)).join('')}
+          <div style="
+            display: grid;
+            grid-template-columns: repeat(${columns}, 1fr);
+            gap: 18px;
+            flex-grow: 1;
+            align-content: start;
+            margin-top: 20px;
+          ">
+            ${pageProducts.map(product => this.generateInlineProductCard(product, template)).join('')}
           </div>
           
-          ${page === totalPages - 1 ? this.generatePageFooter(businessInfo, products.length) : ''}
+          ${page === totalPages - 1 ? this.generateInlinePageFooter(businessInfo, products.length) : ''}
         </div>
       `;
     }
@@ -537,58 +551,253 @@ export class PuppeteerServiceClient {
   }
   
   /**
-   * 🛍️ GENERAR TARJETA DE PRODUCTO
+   * 📋 GENERAR HEADER CON ESTILOS INLINE
    */
-  private static generateProductCard(product: Product): string {
+  private static generateInlinePageHeader(
+    businessInfo: BusinessInfo,
+    template: TemplateConfig,
+    pageNum: number,
+    totalPages: number
+  ): string {
+    
+    return `
+      <header style="
+        text-align: center;
+        background: ${template.colors.primary} !important;
+        background-image: linear-gradient(135deg, ${template.colors.primary}, ${template.colors.secondary}) !important;
+        color: white !important;
+        padding: 25px 20px;
+        border-radius: 12px;
+        margin-bottom: 25px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      ">
+        <h1 style="
+          font-size: 32px;
+          font-weight: 700;
+          margin: 0 0 8px 0;
+          color: white !important;
+          text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+          -webkit-print-color-adjust: exact !important;
+        ">${businessInfo.business_name}</h1>
+        <p style="
+          font-size: 16px;
+          opacity: 0.95;
+          font-weight: 300;
+          margin: 0;
+          color: white !important;
+        ">Catálogo ${template.displayName} - Página ${pageNum} de ${totalPages}</p>
+      </header>
+    `;
+  }
+  
+  /**
+   * 🛍️ GENERAR TARJETA DE PRODUCTO CON ESTILOS INLINE
+   */
+  private static generateInlineProductCard(product: Product, template: TemplateConfig): string {
     const imageUrl = product.image_url || '';
     const productName = product.name || 'Producto sin nombre';
     const price = product.price_retail || 0;
     const description = product.description || '';
     
     return `
-      <div class="product-card">
-        <div class="product-image-container">
+      <div style="
+        background: white !important;
+        border: 1px solid ${template.colors.accent}40;
+        border-radius: 12px;
+        padding: 18px;
+        text-align: center;
+        box-shadow: 0 3px 8px rgba(0,0,0,0.08);
+        display: flex;
+        flex-direction: column;
+        height: auto;
+        min-height: 300px;
+        position: relative;
+        overflow: hidden;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      ">
+        <!-- Borde superior decorativo -->
+        <div style="
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          height: 3px;
+          background: ${template.colors.primary} !important;
+          background-image: linear-gradient(90deg, ${template.colors.primary}, ${template.colors.secondary}) !important;
+          -webkit-print-color-adjust: exact !important;
+        "></div>
+        
+        <!-- Contenedor de imagen con fondo gris claro y gradiente -->
+        <div style="
+          width: 100%;
+          height: 180px;
+          position: relative;
+          background: #f8f9fa !important;
+          background-image: 
+            radial-gradient(circle at 50% 50%, rgba(255,255,255,0.8) 0%, rgba(248,249,250,0.9) 70%, rgba(233,236,239,0.95) 100%) !important;
+          border-radius: 8px;
+          margin-bottom: 15px;
+          overflow: hidden;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border: 1px solid #e9ecef;
+          box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
+        ">
           ${imageUrl ? 
             `<img 
               src="${imageUrl}" 
               alt="${productName}"
-              class="product-image"
+              style="
+                max-width: 95%;
+                max-height: 95%;
+                width: auto;
+                height: auto;
+                object-fit: contain;
+                display: block;
+                background: transparent !important;
+                border-radius: 4px;
+                -webkit-print-color-adjust: exact !important;
+              "
               crossorigin="anonymous"
               loading="eager"
-              onerror="this.parentElement.innerHTML='<div class=\\"image-placeholder\\"><div>📷</div><div>Sin imagen</div></div>'"
             />` :
-            `<div class="image-placeholder">
-              <div>📷</div>
-              <div>Sin imagen</div>
-            </div>`
+            this.generateInlineImagePlaceholder(productName)
           }
         </div>
         
-        <h3 class="product-name">${productName}</h3>
+        <!-- Nombre del producto -->
+        <h3 style="
+          font-size: 15px;
+          font-weight: 600;
+          color: ${template.colors.primary} !important;
+          margin: 0 0 12px 0;
+          word-wrap: break-word;
+          line-height: 1.4;
+          flex-grow: 1;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          text-align: center;
+          min-height: 45px;
+          -webkit-print-color-adjust: exact !important;
+        ">${productName}</h3>
         
-        <div class="product-price">$${price.toLocaleString('es-MX')}</div>
+        <!-- Precio con gradiente -->
+        <div style="
+          font-size: 18px;
+          font-weight: 700;
+          color: white !important;
+          background: ${template.colors.secondary} !important;
+          background-image: linear-gradient(135deg, ${template.colors.secondary}, ${template.colors.primary}) !important;
+          padding: 8px 16px;
+          border-radius: 25px;
+          display: inline-block;
+          margin-top: auto;
+          box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+          text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
+        ">${price.toLocaleString('es-MX')}</div>
         
-        ${description ? `<p class="product-description">${description}</p>` : ''}
+        ${description ? `
+          <p style="
+            font-size: 12px;
+            color: #666 !important;
+            margin-top: 8px;
+            line-height: 1.3;
+            max-height: 30px;
+            overflow: hidden;
+            font-style: italic;
+          ">${description}</p>
+        ` : ''}
       </div>
     `;
   }
   
   /**
-   * 📄 GENERAR FOOTER DE PÁGINA
+   * 🖼️ GENERAR PLACEHOLDER DE IMAGEN CON ESTILOS INLINE
    */
-  private static generatePageFooter(businessInfo: BusinessInfo, totalProducts: number): string {
+  private static generateInlineImagePlaceholder(productName: string): string {
     return `
-      <footer class="page-footer">
-        <div class="contact-info">
+      <div style="
+        width: 100%;
+        height: 100%;
+        background: #f8f9fa !important;
+        background-image: 
+          linear-gradient(45deg, #f8f9fa 25%, transparent 25%), 
+          linear-gradient(-45deg, #f8f9fa 25%, transparent 25%), 
+          linear-gradient(45deg, transparent 75%, #f8f9fa 75%), 
+          linear-gradient(-45deg, transparent 75%, #f8f9fa 75%) !important;
+        background-size: 20px 20px !important;
+        background-position: 0 0, 0 10px, 10px -10px, -10px 0px !important;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        color: #aaa !important;
+        font-size: 14px;
+        border: 2px dashed #ddd;
+        border-radius: 4px;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      ">
+        <div style="margin-bottom: 5px; font-size: 18px;">📷</div>
+        <div style="font-size: 12px;">Sin imagen</div>
+        <div style="font-size: 10px; margin-top: 5px;">${productName.substring(0, 15)}</div>
+      </div>
+    `;
+  }
+  
+  /**
+   * 📄 GENERAR FOOTER CON ESTILOS INLINE
+   */
+  private static generateInlinePageFooter(businessInfo: BusinessInfo, totalProducts: number): string {
+    return `
+      <footer style="
+        margin-top: 25px;
+        text-align: center;
+        padding: 20px;
+        background: rgba(${this.hexToRgb(businessInfo.primary_color || '#3B82F6')}, 0.1) !important;
+        border-radius: 8px;
+        font-size: 12px;
+        border-top: 2px solid ${businessInfo.primary_color || '#3B82F6'};
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      ">
+        <div style="
+          font-weight: 600;
+          margin-bottom: 6px;
+          color: ${businessInfo.primary_color || '#3B82F6'} !important;
+        ">
           📞 ${businessInfo.phone || 'Teléfono no disponible'} | 
           📧 ${businessInfo.email || 'Email no disponible'}
           ${businessInfo.website ? ` | 🌐 ${businessInfo.website}` : ''}
         </div>
-        <div class="catalog-info">
+        <div style="
+          color: #777 !important;
+          font-size: 11px;
+          font-style: italic;
+        ">
           Catálogo generado con CatalogoIA - ${totalProducts} productos | ${new Date().toLocaleDateString('es-MX')}
         </div>
       </footer>
     `;
+  }
+  
+  /**
+   * 🎨 CONVERTIR HEX A RGB PARA TRANSPARENCIAS
+   */
+  private static hexToRgb(hex: string): string {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? 
+      `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}` : 
+      '59, 130, 246'; // Default blue
   }
   
   /**
