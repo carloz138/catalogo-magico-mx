@@ -96,7 +96,9 @@ export class PuppeteerServiceClient {
               left: '10mm'
             },
             printBackground: true,
-            preferCSSPageSize: true
+            preferCSSPageSize: true,
+            displayHeaderFooter: false,
+            waitUntil: 'networkidle0'
           },
           filename: `catalogo-${businessInfo.business_name.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`
         })
@@ -163,7 +165,7 @@ export class PuppeteerServiceClient {
   }
   
   /**
-   * 🎨 GENERAR HTML OPTIMIZADO PARA PUPPETEER
+   * 🎨 GENERAR HTML OPTIMIZADO PARA PUPPETEER CON ESTILOS INLINE
    */
   private static generateOptimizedHTML(
     products: Product[],
@@ -174,6 +176,26 @@ export class PuppeteerServiceClient {
     const productsPerPage = template.productsPerPage;
     const totalPages = Math.ceil(products.length / productsPerPage);
     
+    // Estilos base para better compatibility
+    const baseStyles = `
+      <style>
+        * { 
+          -webkit-print-color-adjust: exact !important; 
+          print-color-adjust: exact !important;
+          color-adjust: exact !important;
+        }
+        body { 
+          -webkit-print-color-adjust: exact !important; 
+          margin: 0; 
+          padding: 0; 
+        }
+        @page { 
+          size: A4; 
+          margin: 10mm; 
+        }
+      </style>
+    `;
+    
     return `
       <!DOCTYPE html>
       <html lang="es">
@@ -181,13 +203,24 @@ export class PuppeteerServiceClient {
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Catálogo ${businessInfo.business_name}</title>
-        <style>
-          ${this.generateOptimizedCSS(template)}
-        </style>
+        ${baseStyles}
       </head>
-      <body>
-        <div class="catalog-container">
-          ${this.generateCatalogPages(products, businessInfo, template)}
+      <body style="
+        font-family: 'Segoe UI', 'Roboto', 'Arial', sans-serif;
+        color: ${template.colors.text};
+        background: ${template.colors.background} !important;
+        line-height: 1.5;
+        margin: 0;
+        padding: 0;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      ">
+        <div style="
+          width: 100%;
+          background: ${template.colors.background} !important;
+          -webkit-print-color-adjust: exact !important;
+        ">
+          ${this.generateInlineCatalogPages(products, businessInfo, template)}
         </div>
       </body>
       </html>
