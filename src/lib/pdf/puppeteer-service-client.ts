@@ -213,25 +213,27 @@ export class PuppeteerServiceClient {
       }
       
       body {
-        font-family: 'Arial', sans-serif;
+        font-family: 'Segoe UI', 'Roboto', 'Arial', sans-serif;
         color: ${template.colors.text};
         background: ${template.colors.background};
-        line-height: 1.4;
+        line-height: 1.5;
         print-color-adjust: exact;
         -webkit-print-color-adjust: exact;
       }
       
       .catalog-container {
         width: 100%;
+        background: ${template.colors.background};
       }
       
       .catalog-page {
         width: 100%;
         min-height: 100vh;
-        padding: 20px;
+        padding: 15mm;
         page-break-after: always;
         display: flex;
         flex-direction: column;
+        background: ${template.colors.background};
       }
       
       .catalog-page:last-child {
@@ -242,144 +244,177 @@ export class PuppeteerServiceClient {
         text-align: center;
         background: linear-gradient(135deg, ${template.colors.primary}, ${template.colors.secondary});
         color: white;
-        padding: 20px;
-        border-radius: 8px;
-        margin-bottom: 30px;
+        padding: 25px 20px;
+        border-radius: 12px;
+        margin-bottom: 25px;
         print-color-adjust: exact;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
       }
       
       .business-name {
-        font-size: 28px;
-        font-weight: bold;
+        font-size: 32px;
+        font-weight: 700;
         margin-bottom: 8px;
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
       }
       
       .catalog-subtitle {
         font-size: 16px;
-        opacity: 0.9;
+        opacity: 0.95;
+        font-weight: 300;
       }
       
       .products-grid {
         display: grid;
         grid-template-columns: repeat(${columns}, 1fr);
-        gap: 20px;
+        gap: 18px;
         flex-grow: 1;
         align-content: start;
       }
       
       .product-card {
         background: white;
-        border: 2px solid ${template.colors.accent};
-        border-radius: 8px;
-        padding: 15px;
+        border: 1px solid ${template.colors.accent}40;
+        border-radius: 12px;
+        padding: 18px;
         text-align: center;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        box-shadow: 0 3px 8px rgba(0,0,0,0.08);
         display: flex;
         flex-direction: column;
         height: auto;
-        min-height: 280px;
+        min-height: 300px;
+        print-color-adjust: exact;
+        transition: all 0.2s ease;
+        position: relative;
+        overflow: hidden;
+      }
+      
+      .product-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, ${template.colors.primary}, ${template.colors.secondary});
         print-color-adjust: exact;
       }
       
       .product-image-container {
         width: 100%;
-        height: 160px;
+        height: 180px;
         position: relative;
-        background: #f8f9fa;
-        border-radius: 6px;
-        margin-bottom: 12px;
+        background: white;
+        border-radius: 8px;
+        margin-bottom: 15px;
         overflow: hidden;
         display: flex;
         align-items: center;
         justify-content: center;
-        border: 1px solid #e9ecef;
+        border: 1px solid #f0f0f0;
+        box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
       }
       
       .product-image {
-        max-width: 100%;
-        max-height: 100%;
+        max-width: 95%;
+        max-height: 95%;
         width: auto;
         height: auto;
         object-fit: contain;
         display: block;
+        background: transparent;
+        border-radius: 4px;
       }
       
       .product-name {
-        font-size: 14px;
+        font-size: 15px;
         font-weight: 600;
         color: ${template.colors.primary};
-        margin-bottom: 8px;
+        margin-bottom: 12px;
         word-wrap: break-word;
-        line-height: 1.3;
+        line-height: 1.4;
         flex-grow: 1;
         display: flex;
         align-items: center;
         justify-content: center;
         text-align: center;
-        min-height: 40px;
+        min-height: 45px;
         print-color-adjust: exact;
       }
       
       .product-price {
-        font-size: 16px;
-        font-weight: bold;
-        color: ${template.colors.secondary};
-        background: ${template.colors.accent}20;
-        padding: 6px 12px;
-        border-radius: 6px;
+        font-size: 18px;
+        font-weight: 700;
+        color: white;
+        background: linear-gradient(135deg, ${template.colors.secondary}, ${template.colors.primary});
+        padding: 8px 16px;
+        border-radius: 25px;
         display: inline-block;
         margin-top: auto;
         print-color-adjust: exact;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
       }
       
       .product-description {
-        font-size: 11px;
+        font-size: 12px;
         color: #666;
-        margin-top: 6px;
-        line-height: 1.2;
-        max-height: 24px;
+        margin-top: 8px;
+        line-height: 1.3;
+        max-height: 30px;
         overflow: hidden;
+        font-style: italic;
       }
       
       .page-footer {
-        margin-top: 20px;
+        margin-top: 25px;
         text-align: center;
-        padding: 15px;
-        background: ${template.colors.primary}10;
-        border-radius: 6px;
+        padding: 20px;
+        background: linear-gradient(135deg, ${template.colors.primary}15, ${template.colors.secondary}15);
+        border-radius: 8px;
         font-size: 12px;
         print-color-adjust: exact;
+        border-top: 2px solid ${template.colors.accent};
       }
       
       .contact-info {
         font-weight: 600;
-        margin-bottom: 4px;
+        margin-bottom: 6px;
+        color: ${template.colors.primary};
       }
       
       .catalog-info {
-        color: #666;
+        color: #777;
         font-size: 11px;
+        font-style: italic;
       }
       
-      /* Imagen placeholder */
+      /* Imagen placeholder mejorado */
       .image-placeholder {
         width: 100%;
         height: 100%;
-        background: #f8f9fa;
+        background: linear-gradient(45deg, #f8f9fa 25%, transparent 25%), 
+                    linear-gradient(-45deg, #f8f9fa 25%, transparent 25%), 
+                    linear-gradient(45deg, transparent 75%, #f8f9fa 75%), 
+                    linear-gradient(-45deg, transparent 75%, #f8f9fa 75%);
+        background-size: 20px 20px;
+        background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        color: #999;
-        font-size: 12px;
-        border: 1px dashed #ddd;
+        color: #aaa;
+        font-size: 14px;
+        border: 2px dashed #ddd;
+        border-radius: 4px;
       }
       
       /* Optimizaciones para impresión */
       @media print {
         body { 
-          print-color-adjust: exact; 
-          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact !important; 
+          -webkit-print-color-adjust: exact !important;
+          color-adjust: exact !important;
         }
         
         .catalog-page {
@@ -390,7 +425,44 @@ export class PuppeteerServiceClient {
           page-break-inside: avoid;
           break-inside: avoid;
         }
+        
+        .product-image {
+          print-color-adjust: exact !important;
+          -webkit-print-color-adjust: exact !important;
+          filter: none !important;
+        }
       }
+      
+      /* Mejoras específicas para el template ${template.category} */
+      ${template.category === 'luxury' ? `
+        .product-card {
+          border: 2px solid ${template.colors.accent};
+          background: linear-gradient(145deg, #ffffff 0%, #f9f9f9 100%);
+        }
+        .product-name {
+          font-family: 'Georgia', serif;
+          letter-spacing: 0.5px;
+        }
+      ` : ''}
+      
+      ${template.category === 'creative' ? `
+        .product-card {
+          border-radius: 16px;
+          transform: rotate(-0.5deg);
+        }
+        .product-card:nth-child(even) {
+          transform: rotate(0.5deg);
+        }
+      ` : ''}
+      
+      ${template.category === 'business' ? `
+        .product-card {
+          border-radius: 6px;
+        }
+        .page-header {
+          border-radius: 6px;
+        }
+      ` : ''}
     `;
   }
   
