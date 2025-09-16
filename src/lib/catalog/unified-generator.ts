@@ -290,9 +290,9 @@ export class UnifiedCatalogGenerator {
           background: template.colors.background,
           text: template.colors.text
         },
-        layout: template.layout,
-        features: template.features,
-        category: template.category
+        layout: template.design?.spacing || 'normal',
+        features: template.showInfo ? Object.keys(template.showInfo).filter(key => template.showInfo[key as keyof typeof template.showInfo]) : [],
+        category: template.industry || 'general'
       };
       
       // Llamar al servicio Puppeteer
