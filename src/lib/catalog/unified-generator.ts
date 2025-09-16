@@ -1,11 +1,12 @@
 // src/lib/catalog/unified-generator.ts
-// 🚀 ENHANCED UNIFIED GENERATOR CON SISTEMA DINÁMICO INTEGRADO
+// 🚀 ENHANCED UNIFIED GENERATOR CON SERVICIO PUPPETEER INTEGRADO
 
 import { supabase } from '@/integrations/supabase/client';
 import { IndustryTemplate, getTemplateById } from '@/lib/templates/industry-templates';
 import { TemplateGenerator } from '@/lib/templates/css-generator';
 import { generateBrowserCompatiblePDF } from '@/lib/pdf/browser-pdf-generator';
 import { getDynamicTemplate } from '@/lib/templates/dynamic-mapper';
+import { PuppeteerServiceClient } from '@/lib/pdf/puppeteer-service-client'; // NUEVO IMPORT
 
 interface Product {
   id: string;
@@ -32,7 +33,7 @@ interface GenerationResult {
   htmlContent?: string;
   error?: string;
   message?: string;
-  generationMethod?: 'dynamic' | 'classic' | 'hybrid';
+  generationMethod?: 'puppeteer' | 'dynamic' | 'classic' | 'hybrid'; // AGREGADO PUPPETEER
   stats?: {
     totalProducts: number;
     totalPages: number;
@@ -50,6 +51,7 @@ interface UsageLimits {
 
 interface GenerationOptions {
   useDynamicEngine?: boolean;
+  usePuppeteerService?: boolean; // NUEVA OPCIÓN
   showProgress?: boolean;
   onProgress?: (progress: number) => void;
   forceClassicMode?: boolean;
@@ -58,7 +60,7 @@ interface GenerationOptions {
 export class UnifiedCatalogGenerator {
   
   /**
-   * 🎯 FUNCIÓN PRINCIPAL MEJORADA - GENERA CATÁLOGO CON SISTEMA HÍBRIDO
+   * 🎯 FUNCIÓN PRINCIPAL MEJORADA - GENERA CATÁLOGO CON SERVICIO PUPPETEER
    */
   static async generateCatalog(
     products: Product[],
@@ -74,6 +76,7 @@ export class UnifiedCatalogGenerator {
       console.log('🚀 Iniciando generación híbrida:', { 
         templateId, 
         productCount: products.length,
+        usePuppeteer: options.usePuppeteerService !== false,
         useDynamic: options.useDynamicEngine !== false 
       });
       
@@ -115,16 +118,44 @@ export class UnifiedCatalogGenerator {
       
       if (options.onProgress) options.onProgress(30);
       
-      // 4. DECIDIR MÉTODO DE GENERACIÓN
+      // 4. DECIDIR MÉTODO DE GENERACIÓN (PUPPETEER COMO PREFERIDO)
       const generationMethod = this.selectGenerationMethod(products.length, options);
       console.log(`📋 Método seleccionado: ${generationMethod}`);
       
       let htmlContent = '';
       let pdfGenerationSuccess = false;
+      let finalMethod = generationMethod;
       
       // 5. GENERAR CONTENIDO SEGÚN MÉTODO
-      if (generationMethod === 'dynamic') {
-        // NUEVO SISTEMA DINÁMICO
+      if (generationMethod === 'puppeteer') {
+        // NUEVO: SERVICIO PUPPETEER EXTERNO
+        const result = await this.generateWithPuppeteerService(
+          products, 
+          businessInfo, 
+          template, 
+          options
+        );
+        
+        if (result.success) {
+          pdfGenerationSuccess = true;
+          finalMethod = 'puppeteer';
+          // Generar HTML para guardar en BD
+          htmlContent = TemplateGenerator.generateCatalogHTML(products, businessInfo, template);
+        } else {
+          console.warn('⚠️ Servicio Puppeteer falló, usando fallback dinámico');
+          const fallbackResult = await this.generateWithDynamicEngine(
+            products, 
+            businessInfo, 
+            templateId, 
+            options
+          );
+          pdfGenerationSuccess = fallbackResult.success;
+          finalMethod = 'dynamic';
+          htmlContent = TemplateGenerator.generateCatalogHTML(products, businessInfo, template);
+        }
+        
+      } else if (generationMethod === 'dynamic') {
+        // SISTEMA DINÁMICO (JSPDF MEJORADO)
         const result = await this.generateWithDynamicEngine(
           products, 
           businessInfo, 
@@ -134,17 +165,18 @@ export class UnifiedCatalogGenerator {
         
         if (result.success) {
           pdfGenerationSuccess = true;
-          // Generar HTML para guardar en BD
+          finalMethod = 'dynamic';
           htmlContent = TemplateGenerator.generateCatalogHTML(products, businessInfo, template);
         } else {
           console.warn('⚠️ Dynamic engine falló, usando fallback clásico');
-          return this.generateWithClassicEngine(products, businessInfo, template, userId, options);
+          const fallbackResult = await this.generateWithClassicEngine(products, businessInfo, template, userId, options);
+          return { ...fallbackResult, generationMethod: 'classic' };
         }
         
       } else {
-        // SISTEMA CLÁSICO MEJORADO
+        // SISTEMA CLÁSICO
         const result = await this.generateWithClassicEngine(products, businessInfo, template, userId, options);
-        return result;
+        return { ...result, generationMethod: 'classic' };
       }
       
       if (options.onProgress) options.onProgress(70);
@@ -156,7 +188,7 @@ export class UnifiedCatalogGenerator {
         products,
         businessInfo,
         template,
-        { generationMethod, pdfSuccess: pdfGenerationSuccess }
+        { generationMethod: finalMethod, pdfSuccess: pdfGenerationSuccess }
       );
       
       if (!catalogRecord.success) {
@@ -176,7 +208,7 @@ export class UnifiedCatalogGenerator {
       
       console.log('✅ Catálogo generado exitosamente:', {
         catalogId: catalogRecord.catalogId,
-        method: generationMethod,
+        method: finalMethod,
         time: generationTime
       });
       
@@ -184,8 +216,8 @@ export class UnifiedCatalogGenerator {
         success: true,
         catalogId: catalogRecord.catalogId,
         htmlContent,
-        generationMethod,
-        message: `Catálogo ${template.displayName} generado exitosamente con ${generationMethod} engine`,
+        generationMethod: finalMethod,
+        message: `Catálogo ${template.displayName} generado exitosamente con ${finalMethod} engine`,
         stats: {
           totalProducts: products.length,
           totalPages: Math.ceil(products.length / template.productsPerPage),
@@ -204,33 +236,101 @@ export class UnifiedCatalogGenerator {
   }
   
   /**
-   * 🧠 DECIDIR MÉTODO DE GENERACIÓN INTELIGENTE
+   * 🧠 DECIDIR MÉTODO DE GENERACIÓN INTELIGENTE (ACTUALIZADO)
    */
   private static selectGenerationMethod(
     productCount: number, 
     options: GenerationOptions
-  ): 'dynamic' | 'classic' | 'hybrid' {
+  ): 'puppeteer' | 'dynamic' | 'classic' {
     
     // Forzar modo clásico si se especifica
     if (options.forceClassicMode) {
       return 'classic';
     }
     
-    // Usar dinámico por defecto, especialmente para grandes volúmenes
-    if (options.useDynamicEngine !== false) {
-      // Dinámico es mejor para:
-      if (productCount > 50) return 'dynamic';        // Grandes volúmenes
-      if (productCount >= 20) return 'dynamic';       // Volúmenes medianos-altos
-      if (productCount <= 5) return 'dynamic';        // Pocos productos (mejor calidad)
-      
-      return 'dynamic'; // Default a dinámico
+    // Usar Puppeteer por defecto (mejor calidad y compatibilidad)
+    if (options.usePuppeteerService !== false) {
+      return 'puppeteer';
     }
     
-    return 'classic'; // Fallback
+    // Usar dinámico como segunda opción
+    if (options.useDynamicEngine !== false) {
+      if (productCount > 50) return 'dynamic';        // Grandes volúmenes
+      if (productCount >= 20) return 'dynamic';       // Volúmenes medianos-altos
+      if (productCount <= 5) return 'dynamic';        // Pocos productos
+      
+      return 'dynamic';
+    }
+    
+    return 'classic'; // Fallback final
   }
   
   /**
-   * 🚀 GENERAR CON DYNAMIC ENGINE (CORREGIDO)
+   * 🚀 NUEVO: GENERAR CON SERVICIO PUPPETEER EXTERNO
+   */
+  private static async generateWithPuppeteerService(
+    products: Product[],
+    businessInfo: BusinessInfo,
+    template: IndustryTemplate,
+    options: GenerationOptions
+  ): Promise<{ success: boolean; error?: string }> {
+    
+    try {
+      console.log('🚀 Usando Servicio Puppeteer Externo...');
+      
+      // Convertir template a formato compatible con PuppeteerServiceClient
+      const templateConfig = {
+        id: template.id,
+        displayName: template.displayName,
+        productsPerPage: template.productsPerPage,
+        colors: {
+          primary: template.colors.primary,
+          secondary: template.colors.secondary,
+          accent: template.colors.accent,
+          background: template.colors.background,
+          text: template.colors.text
+        },
+        layout: template.layout,
+        features: template.features,
+        category: template.category
+      };
+      
+      // Llamar al servicio Puppeteer
+      const result = await PuppeteerServiceClient.generatePDF(
+        products,
+        businessInfo,
+        templateConfig,
+        {
+          onProgress: options.onProgress,
+          format: 'A4',
+          margin: {
+            top: '10mm',
+            right: '10mm',
+            bottom: '10mm',
+            left: '10mm'
+          }
+        }
+      );
+      
+      if (result.success) {
+        console.log('✅ PDF generado exitosamente con servicio Puppeteer');
+        return { success: true };
+      } else {
+        console.error('❌ Error en servicio Puppeteer:', result.error);
+        return { success: false, error: result.error };
+      }
+      
+    } catch (error) {
+      console.error('❌ Error en servicio Puppeteer:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Error en servicio Puppeteer'
+      };
+    }
+  }
+  
+  /**
+   * 🚀 GENERAR CON DYNAMIC ENGINE (MANTENER COMO FALLBACK)
    */
   private static async generateWithDynamicEngine(
     products: Product[],
@@ -240,7 +340,7 @@ export class UnifiedCatalogGenerator {
   ): Promise<{ success: boolean; error?: string }> {
     
     try {
-      console.log('🚀 Usando Dynamic Template Engine...');
+      console.log('🚀 Usando Dynamic Template Engine (Fallback)...');
       
       // Obtener template existente
       const template = getTemplateById(templateId);
@@ -272,7 +372,7 @@ export class UnifiedCatalogGenerator {
         }
       };
       
-      // Usar el nuevo generador compatible
+      // Usar el generador compatible
       const result = await generateBrowserCompatiblePDF(
         products,
         businessInfo,
@@ -296,7 +396,7 @@ export class UnifiedCatalogGenerator {
   }
   
   /**
-   * 🎨 GENERAR CON CLASSIC ENGINE (MEJORADO)
+   * 🎨 GENERAR CON CLASSIC ENGINE (SIN CAMBIOS)
    */
   private static async generateWithClassicEngine(
     products: Product[],
@@ -363,64 +463,7 @@ export class UnifiedCatalogGenerator {
   }
   
   /**
-   * 📄 PDF CLÁSICO CORREGIDO
-   */
-  private static async downloadCatalogAsPDFClassic(htmlContent: string, filename: string): Promise<void> {
-    try {
-      console.log('📄 Generando PDF clásico...');
-      
-      // Crear configuración básica para PDF
-      const basicTemplate = {
-        id: 'classic-template',
-        displayName: 'Clásico',
-        productsPerPage: 6,
-        layout: {
-          columns: 3,
-          rows: 2,
-          spacing: 'normal'
-        },
-        colors: {
-          primary: '#3498DB',
-          secondary: '#2C3E50',
-          accent: '#E74C3C',
-          background: '#FFFFFF',
-          text: '#2C3E50'
-        },
-        typography: {
-          headerSize: '28px',
-          productNameSize: '16px',
-          priceSize: '18px'
-        }
-      };
-      
-      // Extraer productos y businessInfo del HTML (simplificado)
-      const products: Product[] = [];
-      const businessInfo = { business_name: filename.replace('catalogo-', '') };
-      
-      // Usar el nuevo generador compatible
-      const result = await generateBrowserCompatiblePDF(
-        products,
-        businessInfo,
-        basicTemplate,
-        { quality: 'medium' }
-      );
-      
-      if (!result.success) {
-        console.error('Error generando PDF:', result.error);
-        this.downloadHTMLFallback(htmlContent, filename);
-        return;
-      }
-      
-      console.log('✅ PDF clásico generado');
-      
-    } catch (error) {
-      console.error('❌ Error PDF clásico:', error);
-      this.downloadHTMLFallback(htmlContent, filename);
-    }
-  }
-  
-  /**
-   * 💾 GUARDAR REGISTRO MEJORADO CON METADATA
+   * 💾 GUARDAR REGISTRO MEJORADO CON METADATA (ACTUALIZADO)
    */
   private static async saveCatalogRecord(
     userId: string,
@@ -429,7 +472,7 @@ export class UnifiedCatalogGenerator {
     businessInfo: BusinessInfo,
     template: IndustryTemplate,
     metadata: {
-      generationMethod: 'dynamic' | 'classic';
+      generationMethod: 'puppeteer' | 'dynamic' | 'classic'; // AGREGADO PUPPETEER
       pdfSuccess: boolean;
     }
   ): Promise<{ success: boolean; catalogId?: string }> {
@@ -450,13 +493,14 @@ export class UnifiedCatalogGenerator {
         total_products: products.length,
         credits_used: 0,
         currency: 'MXN',
-        // NUEVA METADATA
+        // METADATA ACTUALIZADA
         generation_metadata: {
           engine: metadata.generationMethod,
           pdf_success: metadata.pdfSuccess,
           template_density: template.density,
           products_per_page: template.productsPerPage,
-          generated_at: new Date().toISOString()
+          generated_at: new Date().toISOString(),
+          puppeteer_service_used: metadata.generationMethod === 'puppeteer' // NUEVO CAMPO
         }
       };
       
@@ -482,7 +526,7 @@ export class UnifiedCatalogGenerator {
     }
   }
   
-  // ===== RESTO DE MÉTODOS IGUALES =====
+  // ===== RESTO DE MÉTODOS SIN CAMBIOS =====
   
   static async checkCatalogLimits(userId: string): Promise<UsageLimits> {
     try {
@@ -628,6 +672,60 @@ export class UnifiedCatalogGenerator {
     }
   }
   
+  private static async downloadCatalogAsPDFClassic(htmlContent: string, filename: string): Promise<void> {
+    try {
+      console.log('📄 Generando PDF clásico...');
+      
+      // Crear configuración básica para PDF
+      const basicTemplate = {
+        id: 'classic-template',
+        displayName: 'Clásico',
+        productsPerPage: 6,
+        layout: {
+          columns: 3,
+          rows: 2,
+          spacing: 'normal'
+        },
+        colors: {
+          primary: '#3498DB',
+          secondary: '#2C3E50',
+          accent: '#E74C3C',
+          background: '#FFFFFF',
+          text: '#2C3E50'
+        },
+        typography: {
+          headerSize: '28px',
+          productNameSize: '16px',
+          priceSize: '18px'
+        }
+      };
+      
+      // Extraer productos y businessInfo del HTML (simplificado)
+      const products: Product[] = [];
+      const businessInfo = { business_name: filename.replace('catalogo-', '') };
+      
+      // Usar el generador compatible
+      const result = await generateBrowserCompatiblePDF(
+        products,
+        businessInfo,
+        basicTemplate,
+        { quality: 'medium' }
+      );
+      
+      if (!result.success) {
+        console.error('Error generando PDF:', result.error);
+        this.downloadHTMLFallback(htmlContent, filename);
+        return;
+      }
+      
+      console.log('✅ PDF clásico generado');
+      
+    } catch (error) {
+      console.error('❌ Error PDF clásico:', error);
+      this.downloadHTMLFallback(htmlContent, filename);
+    }
+  }
+  
   private static downloadHTMLFallback(htmlContent: string, filename: string): void {
     try {
       console.log('🔄 Usando fallback HTML...');
@@ -661,7 +759,7 @@ export class UnifiedCatalogGenerator {
 // ===== FUNCIONES DE CONVENIENCIA MEJORADAS =====
 
 /**
- * 🎯 FUNCIÓN PRINCIPAL PARA USAR EN COMPONENTES
+ * 🎯 FUNCIÓN PRINCIPAL PARA USAR EN COMPONENTES (ACTUALIZADA)
  */
 export const generateCatalog = async (
   products: Product[],
@@ -688,6 +786,24 @@ export const getCatalogStats = async (userId: string) => {
 };
 
 /**
+ * 🚀 NUEVA: GENERAR CON SERVICIO PUPPETEER (FUNCIÓN DIRECTA)
+ */
+export const generatePuppeteerCatalog = async (
+  products: Product[],
+  businessInfo: BusinessInfo,
+  templateId: string,
+  userId: string,
+  onProgress?: (progress: number) => void
+): Promise<GenerationResult> => {
+  return generateCatalog(products, businessInfo, templateId, userId, {
+    usePuppeteerService: true,
+    useDynamicEngine: false, // Solo Puppeteer
+    showProgress: !!onProgress,
+    onProgress
+  });
+};
+
+/**
  * 🚀 GENERAR CON SISTEMA DINÁMICO (FUNCIÓN DIRECTA)
  */
 export const generateDynamicCatalog = async (
@@ -698,6 +814,7 @@ export const generateDynamicCatalog = async (
   onProgress?: (progress: number) => void
 ): Promise<GenerationResult> => {
   return generateCatalog(products, businessInfo, templateId, userId, {
+    usePuppeteerService: false, // Sin Puppeteer
     useDynamicEngine: true,
     showProgress: !!onProgress,
     onProgress
