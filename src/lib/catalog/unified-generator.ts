@@ -592,7 +592,7 @@ export class UnifiedCatalogGenerator {
         {
           showProgress: options.showProgress,
           onProgress: options.onProgress,
-          quality: dynamicTemplate.quality
+          quality: dynamicTemplate.quality as "low" | "medium" | "high"
         }
       );
       
