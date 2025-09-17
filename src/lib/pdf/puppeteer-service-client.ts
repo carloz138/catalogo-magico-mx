@@ -1,5 +1,5 @@
 // src/lib/pdf/puppeteer-service-client.ts
-// 🚀 CLIENTE PARA EL SERVICIO PUPPETEER EN EASYPANEL
+// 🚀 CLIENTE PARA EL SERVICIO PUPPETEER EN EASYPANEL - VERSIÓN CORREGIDA
 
 interface Product {
   id: string;
@@ -228,7 +228,7 @@ export class PuppeteerServiceClient {
   }
   
   /**
-   * 🎨 GENERAR CSS OPTIMIZADO PARA PUPPETEER
+   * 🎨 GENERAR CSS OPTIMIZADO PARA PUPPETEER - VERSIÓN CORREGIDA
    */
   private static generateOptimizedCSS(template: TemplateConfig): string {
     const columns = template.productsPerPage <= 3 ? 2 : template.productsPerPage <= 6 ? 3 : 4;
@@ -297,15 +297,23 @@ export class PuppeteerServiceClient {
         font-weight: 300;
       }
       
+      /* ===== GRID CORREGIDO - USAR FLEXBOX ===== */
       .products-grid {
-        display: grid;
-        grid-template-columns: repeat(${columns}, 1fr);
-        gap: 18px;
-        flex-grow: 1;
-        align-content: start;
+        display: flex;
+        flex-wrap: wrap;
+        width: 100%;
+        gap: 0; /* Sin gap automático */
+        justify-content: flex-start;
+        align-content: flex-start;
       }
       
+      /* ===== CARDS CON DIMENSIONES CALCULADAS EXACTAS ===== */
       .product-card {
+        /* CÁLCULO EXACTO PARA ${columns} COLUMNAS */
+        width: calc((100% - ${(columns - 1) * 15}px) / ${columns});
+        margin-right: ${columns > 1 ? '15px' : '0'};
+        margin-bottom: 18px;
+        
         background: white;
         border: 1px solid ${template.colors.accent}40;
         border-radius: 12px;
@@ -314,12 +322,19 @@ export class PuppeteerServiceClient {
         box-shadow: 0 3px 8px rgba(0,0,0,0.08);
         display: flex;
         flex-direction: column;
-        height: auto;
         min-height: 300px;
         print-color-adjust: exact;
-        transition: all 0.2s ease;
         position: relative;
         overflow: hidden;
+        
+        /* FLEXBOX CONTROLS */
+        flex-shrink: 0;
+        flex-grow: 0;
+      }
+      
+      /* QUITAR MARGIN DE LA ÚLTIMA COLUMNA */
+      .product-card:nth-child(${columns}n) {
+        margin-right: 0 !important;
       }
       
       .product-card::before {
@@ -333,6 +348,7 @@ export class PuppeteerServiceClient {
         print-color-adjust: exact;
       }
       
+      /* ===== IMAGEN CONTAINER MEJORADO ===== */
       .product-image-container {
         width: 100%;
         height: 180px;
@@ -348,13 +364,15 @@ export class PuppeteerServiceClient {
         box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
       }
       
+      /* ===== IMAGEN CORREGIDA - TAMAÑO SEGURO ===== */
       .product-image {
-        max-width: 95%;
-        max-height: 95%;
-        width: auto;
-        height: auto;
-        object-fit: contain;
-        display: block;
+        max-width: 85% !important; /* REDUCIDO PARA EVITAR CORTES */
+        max-height: 85% !important; /* REDUCIDO PARA EVITAR CORTES */
+        width: auto !important;
+        height: auto !important;
+        object-fit: contain !important;
+        object-position: center !important;
+        display: block !important;
         background: transparent;
         border-radius: 4px;
       }
@@ -422,10 +440,10 @@ export class PuppeteerServiceClient {
         font-style: italic;
       }
       
-      /* Imagen placeholder mejorado */
+      /* IMAGEN PLACEHOLDER MEJORADO */
       .image-placeholder {
-        width: 100%;
-        height: 100%;
+        width: 85%;
+        height: 85%;
         background: linear-gradient(45deg, #f8f9fa 25%, transparent 25%), 
                     linear-gradient(-45deg, #f8f9fa 25%, transparent 25%), 
                     linear-gradient(45deg, transparent 75%, #f8f9fa 75%), 
@@ -442,7 +460,19 @@ export class PuppeteerServiceClient {
         border-radius: 4px;
       }
       
-      /* Optimizaciones para impresión */
+      /* ===== RESPONSIVE ===== */
+      @media (max-width: 1024px) {
+        .products-grid {
+          flex-direction: column;
+        }
+        
+        .product-card {
+          width: 100% !important;
+          margin-right: 0 !important;
+        }
+      }
+      
+      /* ===== OPTIMIZACIONES PARA IMPRESIÓN ===== */
       @media print {
         body { 
           print-color-adjust: exact !important; 
@@ -466,7 +496,7 @@ export class PuppeteerServiceClient {
         }
       }
       
-      /* Mejoras específicas para el template ${template.category} */
+      /* ===== MEJORAS ESPECÍFICAS PARA EL TEMPLATE ${template.category} ===== */
       ${template.category === 'luxury' ? `
         .product-card {
           border: 2px solid ${template.colors.accent};
@@ -481,10 +511,6 @@ export class PuppeteerServiceClient {
       ${template.category === 'creative' ? `
         .product-card {
           border-radius: 16px;
-          transform: rotate(-0.5deg);
-        }
-        .product-card:nth-child(even) {
-          transform: rotate(0.5deg);
         }
       ` : ''}
       
@@ -532,14 +558,15 @@ export class PuppeteerServiceClient {
           ${this.generateInlinePageHeader(businessInfo, template, page + 1, totalPages)}
           
           <div style="
-            display: grid;
-            grid-template-columns: repeat(${columns}, 1fr);
-            gap: 18px;
-            flex-grow: 1;
-            align-content: start;
+            display: flex;
+            flex-wrap: wrap;
+            width: 100%;
+            gap: 0;
+            justify-content: flex-start;
+            align-content: flex-start;
             margin-top: 20px;
           ">
-            ${pageProducts.map(product => this.generateInlineProductCard(product, template)).join('')}
+            ${pageProducts.map((product, index) => this.generateInlineProductCard(product, template, columns, index)).join('')}
           </div>
           
           ${page === totalPages - 1 ? this.generateInlinePageFooter(businessInfo, products.length) : ''}
@@ -593,16 +620,28 @@ export class PuppeteerServiceClient {
   }
   
   /**
-   * 🛍️ GENERAR TARJETA DE PRODUCTO CON ESTILOS INLINE
+   * 🛍️ GENERAR TARJETA DE PRODUCTO CON ESTILOS INLINE - CORREGIDO
    */
-  private static generateInlineProductCard(product: Product, template: TemplateConfig): string {
+  private static generateInlineProductCard(
+    product: Product, 
+    template: TemplateConfig, 
+    columns: number,
+    index: number
+  ): string {
     const imageUrl = product.image_url || '';
     const productName = product.name || 'Producto sin nombre';
     const price = product.price_retail || 0;
     const description = product.description || '';
     
+    // CÁLCULO EXACTO DEL ANCHO PARA EVITAR CORTES
+    const cardWidth = `calc((100% - ${(columns - 1) * 15}px) / ${columns})`;
+    const marginRight = (index + 1) % columns === 0 ? '0' : '15px';
+    
     return `
       <div style="
+        width: ${cardWidth};
+        margin-right: ${marginRight};
+        margin-bottom: 18px;
         background: white !important;
         border: 1px solid ${template.colors.accent}40;
         border-radius: 12px;
@@ -611,10 +650,11 @@ export class PuppeteerServiceClient {
         box-shadow: 0 3px 8px rgba(0,0,0,0.08);
         display: flex;
         flex-direction: column;
-        height: auto;
         min-height: 300px;
         position: relative;
         overflow: hidden;
+        flex-shrink: 0;
+        flex-grow: 0;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
       ">
@@ -630,21 +670,19 @@ export class PuppeteerServiceClient {
           -webkit-print-color-adjust: exact !important;
         "></div>
         
-        <!-- Contenedor de imagen con fondo gris claro y gradiente -->
+        <!-- Contenedor de imagen -->
         <div style="
           width: 100%;
           height: 180px;
           position: relative;
-          background: #f8f9fa !important;
-          background-image: 
-            radial-gradient(circle at 50% 50%, rgba(255,255,255,0.8) 0%, rgba(248,249,250,0.9) 70%, rgba(233,236,239,0.95) 100%) !important;
+          background: white !important;
           border-radius: 8px;
           margin-bottom: 15px;
           overflow: hidden;
           display: flex;
           align-items: center;
           justify-content: center;
-          border: 1px solid #e9ecef;
+          border: 1px solid #f0f0f0;
           box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
           -webkit-print-color-adjust: exact !important;
           print-color-adjust: exact !important;
@@ -654,12 +692,13 @@ export class PuppeteerServiceClient {
               src="${imageUrl}" 
               alt="${productName}"
               style="
-                max-width: 95%;
-                max-height: 95%;
-                width: auto;
-                height: auto;
-                object-fit: contain;
-                display: block;
+                max-width: 85% !important;
+                max-height: 85% !important;
+                width: auto !important;
+                height: auto !important;
+                object-fit: contain !important;
+                object-position: center !important;
+                display: block !important;
                 background: transparent !important;
                 border-radius: 4px;
                 -webkit-print-color-adjust: exact !important;
@@ -726,8 +765,8 @@ export class PuppeteerServiceClient {
   private static generateInlineImagePlaceholder(productName: string): string {
     return `
       <div style="
-        width: 100%;
-        height: 100%;
+        width: 85%;
+        height: 85%;
         background: #f8f9fa !important;
         background-image: 
           linear-gradient(45deg, #f8f9fa 25%, transparent 25%), 
