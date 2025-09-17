@@ -13,6 +13,7 @@ import { Progress } from '@/components/ui/progress';
 import { toast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { useBusinessInfo } from '@/hooks/useBusinessInfo';
+import { initializeOptimizedTemplates } from '@/lib/templates/audited-templates-v2';
 
 // Importar nuevos sistemas integrados
 import { SmartTemplateSelector } from '@/components/templates/SmartTemplateSelector';
@@ -114,6 +115,8 @@ const TemplateSelection = () => {
     
     try {
       setLoading(true);
+
+      await initializeOptimizedTemplates();
       
       await Promise.all([
         loadSelectedProducts(),
