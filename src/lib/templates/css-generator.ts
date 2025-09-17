@@ -1,5 +1,5 @@
-// src/lib/templates/css-generator.ts - SOLUCIÓN INTEGRAL PARA PDF
-// 🎯 REESCRITO COMPLETAMENTE PARA ELIMINAR CORTES Y PÁGINAS VACÍAS
+// src/lib/templates/css-generator.ts - SOLUCIÓN DEFINITIVA PARA PDFS SIN CORTES
+// 🎯 REESCRITO COMPLETAMENTE PARA ELIMINAR TODOS LOS PROBLEMAS DE LAYOUT
 
 import { IndustryTemplate } from './industry-templates';
 
@@ -25,67 +25,84 @@ interface BusinessInfo {
 export class TemplateGenerator {
   
   /**
-   * 🎨 CSS GENERATOR INTEGRAL - PDF-FIRST APPROACH
+   * 🎨 CSS GENERATOR INTEGRAL - SISTEMA ROBUSTO SIN CORTES
    */
   static generateTemplateCSS(template: IndustryTemplate): string {
-    const spacing = this.getSpacingValues(template.design?.spacing || 'normal');
-    const colors = this.generateProfessionalColorScheme(template);
-    const dimensions = this.calculatePDFDimensions(template);
+    const dimensions = this.calculateRobustDimensions(template);
+    const colors = this.generateColorScheme(template);
+    const typography = this.calculateTypography(template);
     
     return `
-      /* ===== PDF-FIRST TEMPLATE: ${template.displayName.toUpperCase()} ===== */
+      /* ===== TEMPLATE: ${template.displayName.toUpperCase()} - ANTI-CORTES ===== */
       
-      /* ===== VARIABLES CSS ===== */
+      /* ===== VARIABLES CSS PRECISAS ===== */
       :root {
-        --primary-color: ${colors.primary};
-        --secondary-color: ${colors.secondary};
-        --accent-color: ${colors.accent};
-        --background-color: ${colors.background};
-        --card-background: ${colors.cardBackground};
-        --text-primary: ${colors.textPrimary};
-        --text-secondary: ${colors.textSecondary};
-        --border-color: ${colors.borderColor};
+        --primary: ${colors.primary};
+        --secondary: ${colors.secondary};
+        --accent: ${colors.accent};
+        --bg: ${colors.background};
+        --card-bg: ${colors.cardBackground};
+        --text: ${colors.textPrimary};
+        --text-light: ${colors.textSecondary};
+        --border: ${colors.borderColor};
         
-        /* DIMENSIONES CALCULADAS PARA PDF */
-        --page-width: ${dimensions.pageWidth}mm;
-        --page-height: ${dimensions.pageHeight}mm;
+        /* DIMENSIONES EXACTAS EN MM (MÁS PRECISAS QUE PX) */
+        --page-width: 210mm;
+        --page-height: 297mm;
         --margin: ${dimensions.margin}mm;
         --content-width: ${dimensions.contentWidth}mm;
+        --content-height: ${dimensions.contentHeight}mm;
+        
+        /* CARD DIMENSIONS - CALCULADAS CON PRECISIÓN MATEMÁTICA */
+        --columns: ${dimensions.columns};
         --card-width: ${dimensions.cardWidth}mm;
         --card-height: ${dimensions.cardHeight}mm;
-        --image-height: ${dimensions.imageHeight}mm;
         --gap: ${dimensions.gap}mm;
+        --image-height: ${dimensions.imageHeight}mm;
+        
+        /* TIPOGRAFÍA EN PT (ÓPTIMA PARA PDF) */
+        --header-size: ${typography.headerSize}pt;
+        --title-size: ${typography.titleSize}pt;
+        --price-size: ${typography.priceSize}pt;
+        --desc-size: ${typography.descSize}pt;
+        --info-size: ${typography.infoSize}pt;
       }
       
-      /* ===== RESET Y BASE ===== */
-      * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
+      /* ===== RESET ABSOLUTO ===== */
+      *, *::before, *::after {
+        margin: 0 !important;
+        padding: 0 !important;
+        box-sizing: border-box !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
         color-adjust: exact !important;
       }
       
-      /* ===== CONFIGURACIÓN PÁGINA PDF ===== */
+      /* ===== PÁGINA PDF PERFECTA ===== */
       @page {
-        size: A4;
+        size: A4 portrait;
         margin: var(--margin);
+        marks: none;
+        bleed: 0;
       }
       
+      /* ===== HTML Y BODY BASE ===== */
       html {
         width: var(--page-width);
-        height: var(--page-height);
+        height: auto;
+        font-size: 12pt; /* Base font size para PDF */
       }
       
       body.template-${template.id} {
-        font-family: 'Arial', 'Helvetica', sans-serif;
-        background: var(--background-color) !important;
-        color: var(--text-primary);
-        line-height: 1.4;
-        font-size: 14px;
+        font-family: 'Arial', 'Helvetica', sans-serif !important;
+        background: var(--bg) !important;
+        color: var(--text) !important;
+        line-height: 1.3;
         width: var(--content-width);
+        min-height: var(--content-height);
         margin: 0 auto;
+        font-size: 12pt;
+        position: relative;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
       }
@@ -94,291 +111,332 @@ export class TemplateGenerator {
       .catalog-container {
         width: 100%;
         max-width: var(--content-width);
-        background: var(--background-color) !important;
+        background: var(--bg) !important;
+        position: relative;
         -webkit-print-color-adjust: exact !important;
       }
       
-      /* ===== HEADER CON DIMENSIONES FIJAS ===== */
+      /* ===== HEADER ROBUSTO ===== */
       .catalog-header {
-        background: var(--primary-color) !important;
-        color: white !important;
-        padding: 15mm 10mm;
-        text-align: center;
         width: 100%;
-        margin-bottom: 8mm;
-        page-break-after: avoid;
-        page-break-inside: avoid;
+        background: var(--primary) !important;
+        background-image: linear-gradient(135deg, var(--primary), var(--secondary)) !important;
+        color: white !important;
+        text-align: center;
+        padding: 12mm 8mm;
+        margin-bottom: 6mm;
+        border-radius: ${template.design.borderRadius}px;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
       }
       
       .business-name {
-        font-size: ${this.getHeaderFontSize(template.density)}pt;
-        font-weight: bold;
-        margin-bottom: 3mm;
-        letter-spacing: 1pt;
+        font-size: var(--header-size);
+        font-weight: 700;
+        margin-bottom: 2mm !important;
         text-transform: uppercase;
+        letter-spacing: 0.5pt;
         color: white !important;
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+        word-wrap: break-word;
+        line-height: 1.2;
         -webkit-print-color-adjust: exact !important;
       }
       
       .catalog-subtitle {
-        font-size: 14pt;
-        font-weight: normal;
+        font-size: calc(var(--header-size) * 0.6);
+        font-weight: 300;
         opacity: 0.95;
         color: white !important;
+        margin-top: 1mm !important;
         -webkit-print-color-adjust: exact !important;
       }
       
-      /* ===== PRODUCTS SECTION CON FLEXBOX (MÁS COMPATIBLE) ===== */
+      /* ===== PRODUCTS SECTION ===== */
       .products-section {
         width: 100%;
-        padding: 0;
-        margin: 0;
       }
       
-      /* ===== SISTEMA FLEXBOX EN LUGAR DE GRID ===== */
+      /* ===== SISTEMA DE GRID ROBUSTO - TABLA EN LUGAR DE FLEXBOX ===== */
       .products-grid {
-        display: flex;
-        flex-wrap: wrap;
-        width: 100%;
-        gap: 0; /* Sin gap - usamos margins */
-        justify-content: flex-start;
-        align-content: flex-start;
+        display: table !important;
+        width: 100% !important;
+        table-layout: fixed !important;
+        border-collapse: separate !important;
+        border-spacing: var(--gap) !important;
+        margin: 0 !important;
         page-break-inside: avoid;
       }
       
-      /* ===== PRODUCT CARDS CON DIMENSIONES ABSOLUTAS ===== */
-      .product-card {
-        /* DIMENSIONES EXACTAS CALCULADAS */
-        width: ${dimensions.cardWidth}mm;
-        height: ${dimensions.cardHeight}mm;
-        margin-right: ${dimensions.gap}mm;
-        margin-bottom: ${dimensions.gap}mm;
-        
-        /* ESTRUCTURA */
-        background: var(--card-background) !important;
-        border: 0.5mm solid var(--border-color);
-        border-radius: ${template.design.borderRadius}px;
-        overflow: hidden;
-        
-        /* PDF OPTIMIZATIONS */
+      /* ===== ROWS DE PRODUCTOS ===== */
+      .products-row {
+        display: table-row !important;
+        width: 100% !important;
         page-break-inside: avoid !important;
         break-inside: avoid !important;
-        position: relative;
-        flex-shrink: 0;
-        flex-grow: 0;
+      }
+      
+      /* ===== PRODUCT CARDS CON TABLE-CELL (MÁS ROBUSTO) ===== */
+      .product-card {
+        /* TABLE CELL - MÁS COMPATIBLE QUE FLEXBOX */
+        display: table-cell !important;
+        width: calc(100% / var(--columns)) !important;
+        height: var(--card-height) !important;
         
-        /* LAYOUT INTERNO */
-        display: flex;
-        flex-direction: column;
+        /* ESTRUCTURA VISUAL */
+        background: var(--card-bg) !important;
+        border: 0.5pt solid var(--border) !important;
+        border-radius: ${template.design.borderRadius}px !important;
+        overflow: hidden !important;
+        position: relative !important;
+        vertical-align: top !important;
         
-        ${template.design.shadows ? 'box-shadow: 0 1mm 2mm rgba(0, 0, 0, 0.1);' : ''}
+        /* PREVENIR CORTES */
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+        box-sizing: border-box !important;
+        
+        /* SOMBRAS CONDICIONALES */
+        ${template.design.shadows ? 'box-shadow: 0 1mm 3mm rgba(0, 0, 0, 0.1);' : ''}
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
       }
       
-      /* AJUSTE PARA ÚLTIMA COLUMNA - QUITAR MARGIN RIGHT */
-      .product-card:nth-child(${template.gridColumns}n) {
-        margin-right: 0 !important;
+      /* ===== CONTENIDO INTERNO DE CARD ===== */
+      .product-card-inner {
+        display: flex !important;
+        flex-direction: column !important;
+        height: 100% !important;
+        width: 100% !important;
+        padding: 3mm !important;
+        box-sizing: border-box !important;
       }
       
-      /* ===== IMAGEN CONTAINER CON DIMENSIONES FIJAS ===== */
+      /* ===== IMAGEN CONTAINER ROBUSTO ===== */
       .product-image-container {
-        width: 100%;
-        height: ${dimensions.imageHeight}mm;
+        width: 100% !important;
+        height: var(--image-height) !important;
         background: #f8f9fa !important;
-        position: relative;
-        overflow: hidden;
-        flex-shrink: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border-bottom: 0.5mm solid var(--border-color);
+        border-radius: ${Math.max(template.design.borderRadius - 2, 2)}px !important;
+        overflow: hidden !important;
+        position: relative !important;
+        flex-shrink: 0 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        border: 0.25pt solid var(--border) !important;
+        margin-bottom: 2mm !important;
         -webkit-print-color-adjust: exact !important;
       }
       
-      /* ===== TÉCNICA IMG MEJORADA (MÁS COMPATIBLE QUE BACKGROUND) ===== */
+      /* ===== IMAGEN PERFECTA SIN CORTES ===== */
       .product-image {
-        max-width: 85%; /* REDUCIDO PARA MARGEN SEGURO */
-        max-height: 85%; /* REDUCIDO PARA MARGEN SEGURO */
-        width: auto;
-        height: auto;
-        object-fit: contain;
-        object-position: center;
-        display: block;
-        margin: auto;
-        border-radius: 2px;
+        max-width: 90% !important;
+        max-height: 90% !important;
+        width: auto !important;
+        height: auto !important;
+        object-fit: contain !important;
+        object-position: center !important;
+        display: block !important;
+        margin: auto !important;
+        border-radius: 2px !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
+        filter: none !important;
       }
       
-      /* FALLBACK PARA IMÁGENES FALTANTES */
+      /* ===== PLACEHOLDER DE IMAGEN ===== */
       .product-image-placeholder {
-        width: 85%;
-        height: 85%;
-        background: linear-gradient(45deg, #f0f0f0 25%, transparent 25%),
-                    linear-gradient(-45deg, #f0f0f0 25%, transparent 25%),
-                    linear-gradient(45deg, transparent 75%, #f0f0f0 75%),
-                    linear-gradient(-45deg, transparent 75%, #f0f0f0 75%);
-        background-size: 8px 8px;
-        background-position: 0 0, 0 4px, 4px -4px, -4px 0px;
-        border: 1px dashed #ddd;
-        border-radius: 4px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: #999;
-        font-size: 10pt;
-        text-align: center;
+        width: 90% !important;
+        height: 90% !important;
+        background: 
+          repeating-conic-gradient(from 0deg at 50% 50%, 
+            #f0f0f0 0deg 90deg, 
+            transparent 90deg 180deg) !important;
+        background-size: 10px 10px !important;
+        border: 1pt dashed #ccc !important;
+        border-radius: 3px !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+        color: #999 !important;
+        font-size: 8pt !important;
+        text-align: center !important;
         -webkit-print-color-adjust: exact !important;
       }
       
       /* ===== INFORMACIÓN DEL PRODUCTO ===== */
       .product-info {
-        flex-grow: 1;
-        padding: ${this.getTextPadding(template.density)}mm;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        min-height: ${dimensions.textHeight}mm;
-        background: var(--card-background) !important;
-        -webkit-print-color-adjust: exact !important;
+        flex-grow: 1 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: space-between !important;
+        min-height: calc(var(--card-height) - var(--image-height) - 8mm) !important;
+        text-align: center !important;
       }
       
+      /* ===== ELEMENTOS DE TEXTO CON TRUNCACIÓN INTELIGENTE ===== */
       .product-name {
-        font-size: ${this.getProductNameFontSize(template.density)}pt;
-        font-weight: bold;
-        color: var(--text-primary) !important;
-        margin-bottom: 2mm;
-        line-height: 1.2;
-        word-wrap: break-word;
-        overflow: hidden;
-        /* TRUNCAR TEXTO ESPECÍFICO POR DENSIDAD */
-        display: -webkit-box;
-        -webkit-line-clamp: ${this.getMaxLines(template.density)};
-        -webkit-box-orient: vertical;
+        font-size: var(--title-size) !important;
+        font-weight: 600 !important;
+        color: var(--primary) !important;
+        line-height: 1.2 !important;
+        margin-bottom: 1mm !important;
+        word-wrap: break-word !important;
+        overflow-wrap: break-word !important;
+        hyphens: auto !important;
+        
+        /* TRUNCATION SYSTEM */
+        display: -webkit-box !important;
+        -webkit-line-clamp: ${this.getNameLines(template.density)} !important;
+        -webkit-box-orient: vertical !important;
+        overflow: hidden !important;
+        
         -webkit-print-color-adjust: exact !important;
       }
       
       .product-price {
-        font-size: ${this.getPriceFontSize(template.density)}pt;
-        font-weight: bold;
+        font-size: var(--price-size) !important;
+        font-weight: 700 !important;
         color: white !important;
-        background: var(--primary-color) !important;
-        padding: 2mm 4mm;
-        border-radius: 10px;
-        display: inline-block;
-        text-align: center;
-        margin: 2mm 0;
-        max-width: 100%;
-        box-sizing: border-box;
+        background: var(--secondary) !important;
+        background-image: linear-gradient(135deg, var(--secondary), var(--primary)) !important;
+        padding: 1.5mm 3mm !important;
+        border-radius: 15px !important;
+        display: inline-block !important;
+        margin: 1mm auto !important;
+        text-align: center !important;
+        white-space: nowrap !important;
+        max-width: 95% !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        box-shadow: 0 1pt 2pt rgba(0,0,0,0.2) !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
       }
       
-      /* ===== INFORMACIÓN CONDICIONAL OPTIMIZADA ===== */
+      /* ===== ELEMENTOS CONDICIONALES OPTIMIZADOS ===== */
       
       ${template.showInfo.category ? `
       .product-category {
-        font-size: ${this.getCategoryFontSize(template.density)}pt;
-        color: var(--accent-color) !important;
-        text-transform: uppercase;
-        font-weight: bold;
-        margin-bottom: 1.5mm;
+        font-size: var(--info-size) !important;
+        color: var(--accent) !important;
+        font-weight: 600 !important;
+        text-transform: uppercase !important;
         background: ${this.hexToRgba(template.colors.accent, 0.15)} !important;
-        padding: 1mm 2mm;
-        border-radius: 8px;
-        display: inline-block;
-        max-width: 100%;
+        padding: 0.5mm 2mm !important;
+        border-radius: 8px !important;
+        display: inline-block !important;
+        margin-bottom: 1mm !important;
+        max-width: 100% !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        white-space: nowrap !important;
         -webkit-print-color-adjust: exact !important;
       }
       ` : `.product-category { display: none !important; }`}
       
       ${template.showInfo.description ? `
       .product-description {
-        font-size: ${this.getDescriptionFontSize(template.density)}pt;
-        color: var(--text-secondary) !important;
-        margin-bottom: 1.5mm;
-        line-height: 1.3;
-        overflow: hidden;
-        display: -webkit-box;
-        -webkit-line-clamp: ${this.getDescriptionMaxLines(template.density)};
-        -webkit-box-orient: vertical;
-        word-wrap: break-word;
+        font-size: var(--desc-size) !important;
+        color: var(--text-light) !important;
+        line-height: 1.3 !important;
+        margin: 1mm 0 !important;
+        
+        /* TRUNCATION */
+        display: -webkit-box !important;
+        -webkit-line-clamp: ${this.getDescLines(template.density)} !important;
+        -webkit-box-orient: vertical !important;
+        overflow: hidden !important;
+        word-wrap: break-word !important;
+        
         -webkit-print-color-adjust: exact !important;
       }
       ` : `.product-description { display: none !important; }`}
       
       ${template.showInfo.sku ? `
       .product-sku {
-        font-size: ${this.getSkuFontSize(template.density)}pt;
-        color: var(--text-secondary) !important;
-        font-family: 'Courier New', monospace;
+        font-size: calc(var(--info-size) * 0.9) !important;
+        color: var(--text-light) !important;
+        font-family: 'Courier New', monospace !important;
         background: rgba(0, 0, 0, 0.05) !important;
-        padding: 1mm 2mm;
-        border-radius: 3px;
-        display: inline-block;
-        margin-bottom: 1mm;
-        border: 0.5px solid var(--border-color);
+        padding: 0.5mm 1.5mm !important;
+        border-radius: 3px !important;
+        display: inline-block !important;
+        margin: 0.5mm 0 !important;
+        border: 0.25pt solid var(--border) !important;
+        max-width: 100% !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        white-space: nowrap !important;
         -webkit-print-color-adjust: exact !important;
       }
       ` : `.product-sku { display: none !important; }`}
       
       ${template.showInfo.specifications ? `
       .product-specifications {
-        font-size: ${this.getSpecsFontSize(template.density)}pt;
-        color: var(--text-secondary) !important;
-        border-top: 0.5px solid var(--border-color);
-        padding-top: 1.5mm;
-        margin-top: 1.5mm;
-        line-height: 1.3;
-        overflow: hidden;
-        max-height: ${this.getSpecsMaxHeight(template.density)}mm;
+        font-size: calc(var(--info-size) * 0.85) !important;
+        color: var(--text-light) !important;
+        border-top: 0.25pt solid var(--border) !important;
+        padding-top: 1mm !important;
+        margin-top: 1mm !important;
+        line-height: 1.3 !important;
+        
+        /* TRUNCATION */
+        max-height: ${this.getSpecsHeight(template.density)}mm !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        
         -webkit-print-color-adjust: exact !important;
       }
       ` : `.product-specifications { display: none !important; }`}
       
-      /* ===== FOOTER CON DIMENSIONES FIJAS ===== */
+      /* ===== FOOTER ROBUSTO ===== */
       .catalog-footer {
-        width: 100%;
-        background: var(--secondary-color) !important;
+        width: 100% !important;
+        background: var(--secondary) !important;
         color: ${this.getContrastColor(template.colors.secondary || template.colors.primary)} !important;
-        padding: 8mm;
-        text-align: center;
-        border-top: 1mm solid var(--border-color);
-        margin-top: 10mm;
-        page-break-before: avoid !important;
+        padding: 6mm !important;
+        text-align: center !important;
+        border-top: 1pt solid var(--border) !important;
+        margin-top: 8mm !important;
+        border-radius: ${template.design.borderRadius}px !important;
         page-break-inside: avoid !important;
+        break-inside: avoid !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
       }
       
       .business-contact {
-        font-size: 11pt;
-        line-height: 1.4;
-        margin-bottom: 3mm;
-        font-weight: bold;
+        font-size: 10pt !important;
+        line-height: 1.4 !important;
+        margin-bottom: 2mm !important;
+        font-weight: 600 !important;
+        word-wrap: break-word !important;
       }
       
       .contact-item {
-        display: inline-block;
-        margin: 0 3mm;
-        padding: 1.5mm 3mm;
+        display: inline-block !important;
+        margin: 0 2mm !important;
+        padding: 1mm 2mm !important;
         background: rgba(255, 255, 255, 0.15) !important;
-        border-radius: 10px;
-        font-weight: bold;
+        border-radius: 8px !important;
+        font-weight: 600 !important;
+        white-space: nowrap !important;
         -webkit-print-color-adjust: exact !important;
       }
       
       .footer-branding {
-        margin-top: 4mm;
-        font-size: 9pt;
-        opacity: 0.8;
-        font-weight: normal;
+        margin-top: 3mm !important;
+        font-size: 8pt !important;
+        opacity: 0.8 !important;
+        font-weight: 300 !important;
       }
       
-      /* ===== PAGE BREAK MANAGEMENT - CLAVE PARA EVITAR PÁGINAS VACÍAS ===== */
+      /* ===== SYSTEM DE PAGINACIÓN ROBUSTO ===== */
       .page-break-before {
         page-break-before: always !important;
         break-before: page !important;
@@ -392,37 +450,44 @@ export class TemplateGenerator {
       .page-break-avoid {
         page-break-inside: avoid !important;
         break-inside: avoid !important;
-      }
-      
-      /* EVITAR CARDS HUÉRFANAS */
-      .products-grid .product-card:last-child {
+        page-break-before: avoid !important;
         page-break-after: avoid !important;
       }
       
-      /* CONTROL DE FLUJO DE PÁGINAS */
+      /* CONTROL DE HUÉRFANOS Y VIUDAS */
       .products-section {
-        orphans: 1;
-        widows: 1;
+        orphans: 1 !important;
+        widows: 1 !important;
       }
       
-      /* ===== RESPONSIVE SIMPLIFICADO - MOBILE ONLY ===== */
-      @media (max-width: 768px) {
+      .products-grid .products-row:last-child {
+        page-break-after: avoid !important;
+      }
+      
+      /* ===== RESPONSIVE SIMPLIFICADO ===== */
+      @media screen and (max-width: 768px) {
         :root {
-          --card-width: ${dimensions.contentWidth - 10}mm;
-          --gap: 3mm;
+          --columns: 1;
+          --card-width: calc(var(--content-width) - 4mm);
+          --gap: 2mm;
+        }
+        
+        .products-grid {
+          display: block !important;
+        }
+        
+        .products-row {
+          display: block !important;
         }
         
         .product-card {
+          display: block !important;
           width: 100% !important;
-          margin-right: 0 !important;
-        }
-        
-        .product-card:nth-child(${template.gridColumns}n) {
-          margin-right: 0 !important;
+          margin-bottom: var(--gap) !important;
         }
       }
       
-      /* ===== PRINT/PDF OVERRIDES ===== */
+      /* ===== PRINT/PDF OPTIMIZATIONS ===== */
       @media print {
         * {
           -webkit-print-color-adjust: exact !important;
@@ -430,9 +495,8 @@ export class TemplateGenerator {
           print-color-adjust: exact !important;
         }
         
-        body {
+        html, body {
           background: white !important;
-          font-size: 12px !important;
           -webkit-print-color-adjust: exact !important;
         }
         
@@ -444,55 +508,56 @@ export class TemplateGenerator {
         .product-card {
           page-break-inside: avoid !important;
           break-inside: avoid !important;
-          border: 1px solid #ddd !important;
-          -webkit-print-color-adjust: exact !important;
         }
         
         .product-image {
           -webkit-print-color-adjust: exact !important;
           print-color-adjust: exact !important;
           color-adjust: exact !important;
-        }
-        
-        .catalog-header,
-        .catalog-footer,
-        .product-price,
-        .product-category {
-          -webkit-print-color-adjust: exact !important;
-          print-color-adjust: exact !important;
-          color-adjust: exact !important;
+          filter: none !important;
         }
       }
       
-      /* ===== OPTIMIZACIONES ESPECÍFICAS POR TEMPLATE ===== */
-      ${this.generateTemplateSpecificCSS(template)}
+      /* ===== OPTIMIZACIONES ESPECÍFICAS POR INDUSTRIA ===== */
+      ${this.generateIndustrySpecificCSS(template)}
+      
+      /* ===== OPTIMIZACIONES POR DENSIDAD ===== */
+      ${this.generateDensitySpecificCSS(template)}
     `;
   }
   
   /**
-   * 📐 CALCULAR DIMENSIONES PDF EXACTAS
+   * 📐 CALCULAR DIMENSIONES ROBUSTAS MATEMÁTICAMENTE
    */
-  private static calculatePDFDimensions(template: IndustryTemplate) {
-    // Dimensiones A4: 210mm x 297mm
+  private static calculateRobustDimensions(template: IndustryTemplate) {
+    // A4: 210mm x 297mm
     const pageWidth = 210;
     const pageHeight = 297;
-    const margin = template.density === 'alta' ? 15 : template.density === 'media' ? 20 : 25;
+    
+    // Márgenes seguros según densidad
+    const marginMap = { alta: 12, media: 15, baja: 18 };
+    const margin = marginMap[template.density as keyof typeof marginMap] || 15;
+    
     const contentWidth = pageWidth - (margin * 2);
     const contentHeight = pageHeight - (margin * 2);
     
-    // Calcular dimensiones de cards
+    // Columnas según products per page
     const columns = template.gridColumns;
-    const gap = template.density === 'alta' ? 3 : template.density === 'media' ? 4 : 5;
+    
+    // Gap seguro según densidad
+    const gapMap = { alta: 2, media: 3, baja: 4 };
+    const gap = gapMap[template.density as keyof typeof gapMap] || 3;
+    
+    // Ancho de card matemáticamente exacto
     const totalGapWidth = (columns - 1) * gap;
     const cardWidth = (contentWidth - totalGapWidth) / columns;
     
-    // Altura de card según densidad
-    const baseCardHeight = template.density === 'alta' ? 60 : template.density === 'media' ? 80 : 100;
-    const cardHeight = baseCardHeight;
+    // Altura de card según densidad y productos por página
+    const baseHeightMap = { alta: 50, media: 65, baja: 80 };
+    const cardHeight = baseHeightMap[template.density as keyof typeof baseHeightMap] || 65;
     
-    // Altura de imagen (60% de la card)
-    const imageHeight = cardHeight * 0.6;
-    const textHeight = cardHeight * 0.4;
+    // Altura de imagen (65% de la card)
+    const imageHeight = cardHeight * 0.65;
     
     return {
       pageWidth,
@@ -500,134 +565,350 @@ export class TemplateGenerator {
       margin,
       contentWidth,
       contentHeight,
-      cardWidth,
+      columns,
+      gap,
+      cardWidth: Math.floor(cardWidth * 100) / 100, // Redondear a 2 decimales
       cardHeight,
       imageHeight,
-      textHeight,
-      gap,
-      columns
+      textHeight: cardHeight * 0.35
     };
   }
   
   /**
-   * 🎯 TAMAÑOS DE FUENTE EN PUNTOS (PT) - MÁS PRECISOS PARA PDF
+   * 🎯 CALCULAR TIPOGRAFÍA SEGÚN DENSIDAD
    */
-  private static getHeaderFontSize(density: string): number {
-    return { alta: 18, media: 22, baja: 26 }[density as keyof typeof density] || 22;
-  }
-  
-  private static getProductNameFontSize(density: string): number {
-    return { alta: 10, media: 12, baja: 14 }[density as keyof typeof density] || 12;
-  }
-  
-  private static getPriceFontSize(density: string): number {
-    return { alta: 11, media: 13, baja: 15 }[density as keyof typeof density] || 13;
-  }
-  
-  private static getCategoryFontSize(density: string): number {
-    return { alta: 8, media: 9, baja: 10 }[density as keyof typeof density] || 9;
-  }
-  
-  private static getDescriptionFontSize(density: string): number {
-    return { alta: 8, media: 9, baja: 10 }[density as keyof typeof density] || 9;
-  }
-  
-  private static getSkuFontSize(density: string): number {
-    return { alta: 7, media: 8, baja: 9 }[density as keyof typeof density] || 8;
-  }
-  
-  private static getSpecsFontSize(density: string): number {
-    return { alta: 7, media: 8, baja: 9 }[density as keyof typeof density] || 8;
+  private static calculateTypography(template: IndustryTemplate) {
+    const densityMap = {
+      alta: { header: 16, title: 9, price: 10, desc: 7, info: 6 },
+      media: { header: 20, title: 11, price: 12, desc: 8, info: 7 },
+      baja: { header: 24, title: 13, price: 14, desc: 9, info: 8 }
+    };
+    
+    const sizes = densityMap[template.density as keyof typeof densityMap] || densityMap.media;
+    
+    return {
+      headerSize: sizes.header,
+      titleSize: sizes.title,
+      priceSize: sizes.price,
+      descSize: sizes.desc,
+      infoSize: sizes.info
+    };
   }
   
   /**
-   * 📝 ALTURA Y LÍNEAS PARA TEXTO
+   * 🎨 GENERAR ESQUEMA DE COLORES
    */
-  private static getTextPadding(density: string): number {
-    return { alta: 2, media: 3, baja: 4 }[density as keyof typeof density] || 3;
-  }
-  
-  private static getMaxLines(density: string): number {
-    return { alta: 2, media: 3, baja: 4 }[density as keyof typeof density] || 3;
-  }
-  
-  private static getDescriptionMaxLines(density: string): number {
-    return { alta: 2, media: 3, baja: 4 }[density as keyof typeof density] || 3;
-  }
-  
-  private static getSpecsMaxHeight(density: string): number {
-    return { alta: 10, media: 15, baja: 20 }[density as keyof typeof density] || 15;
-  }
-  
-  /**
-   * 🎨 CSS ESPECÍFICO POR TEMPLATE
-   */
-  private static generateTemplateSpecificCSS(template: IndustryTemplate): string {
-    let specificCSS = '';
-    
-    // Optimizaciones por industria
-    switch (template.industry) {
-      case 'joyeria':
-        specificCSS += `
-          .template-${template.id} .product-image-container {
-            background: linear-gradient(45deg, #f8f9fa, #ffffff) !important;
-          }
-          .template-${template.id} .product-card {
-            border: 1mm solid var(--accent-color) !important;
-          }
-        `;
-        break;
-      
-      case 'moda':
-        specificCSS += `
-          .template-${template.id} .product-card {
-            border-radius: ${template.design.borderRadius * 1.5}px !important;
-          }
-        `;
-        break;
-      
-      case 'electronica':
-        specificCSS += `
-          .template-${template.id} .product-image-container {
-            background: linear-gradient(135deg, #f1f3f4, #ffffff) !important;
-          }
-        `;
-        break;
-    }
-    
-    // Optimizaciones por densidad
-    if (template.density === 'alta') {
-      specificCSS += `
-        .template-${template.id} .product-card {
-          border-width: 0.3mm !important;
-        }
-      `;
-    }
-    
-    return specificCSS;
-  }
-  
-  // ===== RESTO DE MÉTODOS HELPER (MANTENER IGUAL) =====
-  
-  private static generateProfessionalColorScheme(template: IndustryTemplate) {
+  private static generateColorScheme(template: IndustryTemplate) {
     const primary = template.colors.primary;
     const secondary = template.colors.secondary || template.colors.primary;
     const accent = template.colors.accent || this.adjustColor(primary, 30);
     const background = template.colors.background || '#ffffff';
     
-    const isLightBackground = this.isLightColor(background);
+    const isLight = this.isLightColor(background);
     
     return {
       primary,
       secondary,
       accent,
       background,
-      cardBackground: template.colors.cardBackground || (isLightBackground ? '#ffffff' : '#f8f9fa'),
-      textPrimary: isLightBackground ? '#2c3e50' : '#ffffff',
-      textSecondary: isLightBackground ? '#7f8c8d' : '#bdc3c7',
-      borderColor: isLightBackground ? '#ecf0f1' : '#34495e'
+      cardBackground: template.colors.cardBackground || (isLight ? '#ffffff' : '#f8f9fa'),
+      textPrimary: isLight ? '#2c3e50' : '#ffffff',
+      textSecondary: isLight ? '#7f8c8d' : '#bdc3c7',
+      borderColor: isLight ? '#ecf0f1' : '#34495e'
     };
   }
+  
+  /**
+   * 📝 HELPERS PARA TRUNCACIÓN DE TEXTO
+   */
+  private static getNameLines(density: string): number {
+    return { alta: 2, media: 3, baja: 4 }[density as keyof typeof density] || 3;
+  }
+  
+  private static getDescLines(density: string): number {
+    return { alta: 2, media: 3, baja: 4 }[density as keyof typeof density] || 3;
+  }
+  
+  private static getSpecsHeight(density: string): number {
+    return { alta: 8, media: 12, baja: 16 }[density as keyof typeof density] || 12;
+  }
+  
+  /**
+   * 🏭 CSS ESPECÍFICO POR INDUSTRIA
+   */
+  private static generateIndustrySpecificCSS(template: IndustryTemplate): string {
+    const industryStyles = {
+      joyeria: `
+        .template-${template.id} .product-image-container {
+          background: linear-gradient(45deg, #fff8f0, #ffffff) !important;
+          border: 1pt solid ${template.colors.accent}50 !important;
+        }
+        .template-${template.id} .product-card {
+          border: 1pt solid ${template.colors.accent} !important;
+        }
+        .template-${template.id} .product-name {
+          font-family: 'Georgia', serif !important;
+          letter-spacing: 0.3pt !important;
+        }
+      `,
+      moda: `
+        .template-${template.id} .product-card {
+          border-radius: ${template.design.borderRadius * 1.5}px !important;
+        }
+        .template-${template.id} .product-image-container {
+          border-radius: ${template.design.borderRadius * 1.2}px !important;
+        }
+      `,
+      electronica: `
+        .template-${template.id} .product-image-container {
+          background: linear-gradient(135deg, #f1f3f4, #ffffff) !important;
+          border: 1pt solid #e0e0e0 !important;
+        }
+        .template-${template.id} .product-card {
+          border-radius: ${Math.max(template.design.borderRadius * 0.8, 4)}px !important;
+        }
+      `,
+      ferreteria: `
+        .template-${template.id} .product-card {
+          border: 1.5pt solid ${template.colors.accent} !important;
+          border-radius: 4px !important;
+        }
+      `,
+      cosmeticos: `
+        .template-${template.id} .product-card {
+          border-radius: ${template.design.borderRadius * 1.3}px !important;
+          background: linear-gradient(145deg, #ffffff, #fefefe) !important;
+        }
+      `
+    };
+    
+    return industryStyles[template.industry as keyof typeof industryStyles] || '';
+  }
+  
+  /**
+   * 🎯 CSS ESPECÍFICO POR DENSIDAD
+   */
+  private static generateDensitySpecificCSS(template: IndustryTemplate): string {
+    if (template.density === 'alta') {
+      return `
+        .template-${template.id} .product-card {
+          border-width: 0.25pt !important;
+        }
+        .template-${template.id} .product-card-inner {
+          padding: 2mm !important;
+        }
+      `;
+    }
+    
+    if (template.density === 'baja') {
+      return `
+        .template-${template.id} .product-card {
+          border-width: 1pt !important;
+        }
+        .template-${template.id} .product-card-inner {
+          padding: 4mm !important;
+        }
+      `;
+    }
+    
+    return '';
+  }
+  
+  /**
+   * 🏗️ GENERAR HTML CON ESTRUCTURA TABLA ROBUSTA
+   */
+  static generateCatalogHTML(
+    products: Product[],
+    businessInfo: BusinessInfo,
+    template: IndustryTemplate
+  ): string {
+    
+    const css = this.generateTemplateCSS(template);
+    const productsHTML = this.generateProductsHTMLTable(products, template);
+    const footerHTML = this.generateFooterHTML(businessInfo);
+    
+    const businessName = businessInfo.business_name || 'Mi Negocio';
+    
+    return `<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=210mm, initial-scale=1.0">
+    <title>Catálogo - ${businessName}</title>
+    <style>
+        ${css}
+    </style>
+</head>
+<body class="template-${template.id}">
+    <div class="catalog-container">
+        <!-- Header robusto -->
+        <header class="catalog-header page-break-avoid">
+            <h1 class="business-name">${businessName}</h1>
+            <p class="catalog-subtitle">Catálogo de Productos</p>
+        </header>
+        
+        <!-- Products con tabla robusta -->
+        <main class="products-section">
+            ${productsHTML}
+        </main>
+        
+        <!-- Footer -->
+        ${footerHTML}
+    </div>
+</body>
+</html>`;
+  }
+  
+  /**
+   * 🛍️ GENERAR HTML DE PRODUCTOS CON TABLA (MÁS ROBUSTO QUE FLEXBOX)
+   */
+  private static generateProductsHTMLTable(products: Product[], template: IndustryTemplate): string {
+    const productsPerPage = template.productsPerPage;
+    const columns = template.gridColumns;
+    const rowsPerPage = Math.ceil(productsPerPage / columns);
+    const totalPages = Math.ceil(products.length / productsPerPage);
+    
+    let htmlPages = '';
+    
+    for (let page = 0; page < totalPages; page++) {
+      const startIndex = page * productsPerPage;
+      const endIndex = Math.min(startIndex + productsPerPage, products.length);
+      const pageProducts = products.slice(startIndex, endIndex);
+      
+      const pageBreakClass = page > 0 ? 'page-break-before' : '';
+      
+      htmlPages += `
+        <div class="products-page ${pageBreakClass}">
+          <div class="products-grid">
+            ${this.generateProductRows(pageProducts, columns, template)}
+          </div>
+        </div>
+      `;
+    }
+    
+    return htmlPages;
+  }
+  
+  /**
+   * 📋 GENERAR FILAS DE PRODUCTOS
+   */
+  private static generateProductRows(products: Product[], columns: number, template: IndustryTemplate): string {
+    let rowsHTML = '';
+    
+    for (let i = 0; i < products.length; i += columns) {
+      const rowProducts = products.slice(i, i + columns);
+      
+      rowsHTML += `
+        <div class="products-row page-break-avoid">
+          ${rowProducts.map(product => this.generateProductCard(product, template)).join('')}
+          ${this.fillEmptyCards(columns - rowProducts.length)}
+        </div>
+      `;
+    }
+    
+    return rowsHTML;
+  }
+  
+  /**
+   * 🎴 GENERAR TARJETA DE PRODUCTO INDIVIDUAL
+   */
+  private static generateProductCard(product: Product, template: IndustryTemplate): string {
+    const productName = product.name || 'Producto';
+    const productPrice = typeof product.price_retail === 'number' ? product.price_retail : 0;
+    const productImage = product.image_url || '';
+    const productDescription = product.description || '';
+    const productSku = product.sku || '';
+    const productCategory = product.category || '';
+    const productSpecs = product.specifications || '';
+    
+    const imageHTML = productImage ? 
+      `<img src="${productImage}" alt="${productName}" class="product-image" loading="eager" crossorigin="anonymous" />` :
+      `<div class="product-image-placeholder">
+         <div style="font-size: 14pt; margin-bottom: 2mm;">📷</div>
+         <div style="font-size: 8pt;">Sin imagen</div>
+       </div>`;
+    
+    return `
+      <div class="product-card page-break-avoid">
+        <div class="product-card-inner">
+          <div class="product-image-container">
+            ${imageHTML}
+          </div>
+          <div class="product-info">
+            ${template.showInfo.category && productCategory ? 
+              `<div class="product-category">${productCategory}</div>` : ''}
+            
+            <h3 class="product-name">${productName}</h3>
+            
+            <div class="product-price">$${productPrice.toLocaleString('es-MX', { 
+              minimumFractionDigits: 0,
+              maximumFractionDigits: 0
+            })}</div>
+            
+            ${template.showInfo.description && productDescription ? 
+              `<p class="product-description">${productDescription}</p>` : ''}
+            
+            ${template.showInfo.sku && productSku ? 
+              `<div class="product-sku">SKU: ${productSku}</div>` : ''}
+            
+            ${template.showInfo.specifications && productSpecs ? 
+              `<div class="product-specifications">${productSpecs}</div>` : ''}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+  
+  /**
+   * ⬜ LLENAR CARDS VACÍAS PARA COMPLETAR FILA
+   */
+  private static fillEmptyCards(count: number): string {
+    if (count <= 0) return '';
+    
+    return Array(count).fill(`
+      <div class="product-card" style="visibility: hidden;">
+        <div class="product-card-inner">
+          <div class="product-image-container"></div>
+          <div class="product-info"></div>
+        </div>
+      </div>
+    `).join('');
+  }
+  
+  /**
+   * 📄 GENERAR FOOTER
+   */
+  private static generateFooterHTML(businessInfo: BusinessInfo): string {
+    const contactItems = [
+      businessInfo.phone ? `<span class="contact-item">📞 ${businessInfo.phone}</span>` : '',
+      businessInfo.email ? `<span class="contact-item">📧 ${businessInfo.email}</span>` : '',
+      businessInfo.website ? `<span class="contact-item">🌐 ${businessInfo.website}</span>` : '',
+      businessInfo.address ? `<span class="contact-item">📍 ${businessInfo.address}</span>` : ''
+    ].filter(Boolean);
+    
+    if (contactItems.length === 0) {
+      return `
+        <footer class="catalog-footer page-break-avoid">
+          <div class="footer-branding">
+            Generado con CatalogoIA
+          </div>
+        </footer>
+      `;
+    }
+    
+    return `
+      <footer class="catalog-footer page-break-avoid">
+        <div class="business-contact">
+          ${contactItems.join(' ')}
+        </div>
+        <div class="footer-branding">
+          Generado con CatalogoIA
+        </div>
+      </footer>
+    `;
+  }
+  
+  // ===== UTILITY FUNCTIONS ===== 
   
   private static isLightColor(hexColor: string): boolean {
     const hex = hexColor.replace('#', '');
@@ -656,168 +937,5 @@ export class TemplateGenerator {
     const g = parseInt(hex.slice(3, 5), 16);
     const b = parseInt(hex.slice(5, 7), 16);
     return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-  }
-  
-  private static getSpacingValues(spacing: 'compacto' | 'normal' | 'amplio') {
-    const configs = {
-      compacto: { header: 25, section: 20, grid: 10, card: 12, footer: 20 },
-      normal: { header: 35, section: 25, grid: 15, card: 16, footer: 25 },
-      amplio: { header: 45, section: 35, grid: 20, card: 20, footer: 35 }
-    };
-    return configs[spacing];
-  }
-  
-  /**
-   * 🏗️ GENERAR HTML CON ESTRUCTURA MEJORADA - EVITA PÁGINAS VACÍAS
-   */
-  static generateCatalogHTML(
-    products: Product[],
-    businessInfo: BusinessInfo,
-    template: IndustryTemplate
-  ): string {
-    
-    const css = this.generateTemplateCSS(template);
-    const productsHTML = this.generateProductsHTMLOptimized(products, template);
-    const footerHTML = this.generateFooterHTML(businessInfo);
-    
-    const businessName = businessInfo.business_name || 'Mi Negocio';
-    
-    return `<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Catálogo - ${businessName}</title>
-    <style>
-        ${css}
-    </style>
-</head>
-<body class="template-${template.id}">
-    <div class="catalog-container">
-        <!-- Header con page-break control -->
-        <header class="catalog-header page-break-avoid">
-            <h1 class="business-name">${businessName}</h1>
-            <p class="catalog-subtitle">Catálogo de Productos</p>
-        </header>
-        
-        <!-- Products con manejo de páginas -->
-        <main class="products-section">
-            ${productsHTML}
-        </main>
-        
-        <!-- Footer -->
-        ${footerHTML}
-    </div>
-</body>
-</html>`;
-  }
-  
-  /**
-   * 🛍️ GENERAR HTML DE PRODUCTOS OPTIMIZADO - PREVIENE PÁGINAS VACÍAS
-   */
-  private static generateProductsHTMLOptimized(products: Product[], template: IndustryTemplate): string {
-    const productsPerPage = template.productsPerPage;
-    const totalPages = Math.ceil(products.length / productsPerPage);
-    let htmlPages = '';
-    
-    for (let page = 0; page < totalPages; page++) {
-      const startIndex = page * productsPerPage;
-      const endIndex = Math.min(startIndex + productsPerPage, products.length);
-      const pageProducts = products.slice(startIndex, endIndex);
-      
-      // Clase para control de page-break
-      const pageBreakClass = page > 0 ? 'page-break-before' : '';
-      
-      htmlPages += `
-        <div class="products-page ${pageBreakClass}">
-          <div class="products-grid">
-            ${pageProducts.map((product, index) => 
-              this.generateProductCardHTMLOptimized(product, template, index)
-            ).join('')}
-          </div>
-        </div>
-      `;
-    }
-    
-    return htmlPages;
-  }
-  
-  /**
-   * 🎴 GENERAR HTML DE PRODUCTO INDIVIDUAL - USA IMG EN LUGAR DE BACKGROUND
-   */
-  private static generateProductCardHTMLOptimized(product: Product, template: IndustryTemplate, index: number): string {
-    const productName = product.name || 'Producto';
-    const productPrice = typeof product.price_retail === 'number' ? product.price_retail : 0;
-    const productImage = product.image_url || '';
-    const productDescription = product.description || '';
-    const productSku = product.sku || '';
-    const productCategory = product.category || '';
-    const productSpecs = product.specifications || '';
-    
-    // USAR IMG EN LUGAR DE BACKGROUND-IMAGE (MÁS COMPATIBLE)
-    const imageHTML = productImage ? 
-      `<img src="${productImage}" alt="${productName}" class="product-image" loading="eager" crossorigin="anonymous" />` :
-      `<div class="product-image-placeholder">
-         <div>Sin imagen</div>
-         <div>${productName.substring(0, 12)}...</div>
-       </div>`;
-    
-    return `
-      <div class="product-card page-break-avoid" data-product-index="${index}">
-        <div class="product-image-container">
-          ${imageHTML}
-        </div>
-        <div class="product-info">
-          ${template.showInfo.category && productCategory ? 
-            `<div class="product-category">${productCategory}</div>` : ''}
-          
-          <h3 class="product-name">${productName}</h3>
-          
-          <div class="product-price">$${productPrice.toLocaleString('es-MX', { 
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 0
-          })}</div>
-          
-          ${template.showInfo.description && productDescription ? 
-            `<p class="product-description">${productDescription}</p>` : ''}
-          
-          ${template.showInfo.sku && productSku ? 
-            `<div class="product-sku">SKU: ${productSku}</div>` : ''}
-          
-          ${template.showInfo.specifications && productSpecs ? 
-            `<div class="product-specifications">${productSpecs}</div>` : ''}
-        </div>
-      </div>
-    `;
-  }
-  
-  private static generateFooterHTML(businessInfo: BusinessInfo): string {
-    const contactItems = [
-      businessInfo.phone ? `<span class="contact-item">📞 ${businessInfo.phone}</span>` : '',
-      businessInfo.email ? `<span class="contact-item">📧 ${businessInfo.email}</span>` : '',
-      businessInfo.website ? `<span class="contact-item">🌐 ${businessInfo.website}</span>` : '',
-      businessInfo.address ? `<span class="contact-item">📍 ${businessInfo.address}</span>` : ''
-    ].filter(Boolean);
-    
-    if (contactItems.length === 0) {
-      return `
-        <footer class="catalog-footer page-break-avoid">
-          <div class="footer-branding">
-            Generado con CatalogoIA
-          </div>
-        </footer>
-      `;
-    }
-    
-    return `
-      <footer class="catalog-footer page-break-avoid">
-        <div class="business-contact">
-          ${contactItems.join('')}
-        </div>
-        <div class="footer-branding">
-          Generado con CatalogoIA
-        </div>
-      </footer>
-    `;
   }
 }
