@@ -676,7 +676,7 @@ const TemplateSelection = () => {
               
               <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
                 Selecciona tu Template
-                <Shield className="w-5 h-5 text-green-500" title="Sistema protegido contra cortes" />
+                <Shield className="w-5 h-5 text-green-500" />
               </h1>
               <p className="text-gray-600">
                 Elige el diseño perfecto para tu catálogo de {selectedProducts.length} productos
