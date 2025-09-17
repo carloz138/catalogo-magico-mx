@@ -14,6 +14,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useBusinessInfo } from '@/hooks/useBusinessInfo';
 import { supabase } from '@/integrations/supabase/client';
 import { isPremiumPlan, getPlanLevel, getPlanPermissions } from '@/lib/utils/subscription-helpers';
+import { initializeOptimizedTemplates } from '@/lib/templates/audited-templates-v2';
 
 // ✅ SOLO NUESTRO SISTEMA NUEVO
 import { SmartTemplateSelector } from '@/components/templates/SmartTemplateSelector';
@@ -98,6 +99,8 @@ const TemplateSelectionEnhanced = () => {
     try {
       setLoading(true);
       console.log('🔍 TemplateSelectionEnhanced montado');
+
+      await initializeOptimizedTemplates();
       
       // 1. Cargar productos seleccionados desde localStorage
       await loadSelectedProducts();
