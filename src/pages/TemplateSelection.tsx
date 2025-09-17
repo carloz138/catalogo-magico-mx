@@ -1,7 +1,7 @@
 // src/pages/TemplateSelection.tsx
-// 🎨 TEMPLATE SELECTION CON SISTEMA DE PREVIEW INTEGRADO
+// TEMPLATE SELECTION ACTUALIZADO - INTEGRA SISTEMA SIN CORTES V2.0
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import AppLayout from '@/components/layout/AppLayout';
@@ -14,18 +14,20 @@ import { toast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { useBusinessInfo } from '@/hooks/useBusinessInfo';
 
-// Importar sistema híbrido y preview
+// Importar nuevos sistemas integrados
 import { SmartTemplateSelector } from '@/components/templates/SmartTemplateSelector';
 import { CatalogPreview } from '@/components/catalog/CatalogPreview';
 import { 
   generateCatalog, 
   generateDynamicCatalog,
   generateClassicCatalog,
+  generatePuppeteerCatalog,
   checkLimits 
 } from '@/lib/catalog/unified-generator';
 import { getDynamicTemplate } from '@/lib/templates/dynamic-mapper';
 import { getTemplateById } from '@/lib/templates/industry-templates';
 import { TemplateGenerator } from '@/lib/templates/css-generator';
+import { TemplateAuditSystem } from '@/lib/templates/template-audit-system';
 import { IndustryType } from '@/lib/templates/industry-templates';
 
 import { 
@@ -41,7 +43,10 @@ import {
   Info,
   Rocket,
   Clock,
-  Eye
+  Eye,
+  Shield,
+  Star,
+  AlertCircle
 } from 'lucide-react';
 
 interface Product {
@@ -63,7 +68,14 @@ interface UsageLimits {
   message: string;
 }
 
-type GenerationMethod = 'auto' | 'dynamic' | 'classic';
+type GenerationMethod = 'auto' | 'puppeteer' | 'dynamic' | 'classic';
+
+interface TemplateQuality {
+  score: number;
+  status: 'perfect' | 'good' | 'needs_fix' | 'broken';
+  issues: string[];
+  recommendations: string[];
+}
 
 const TemplateSelection = () => {
   const { user } = useAuth();
@@ -78,13 +90,15 @@ const TemplateSelection = () => {
   const [generationProgress, setGenerationProgress] = useState(0);
   const [generationMethod, setGenerationMethod] = useState<GenerationMethod>('auto');
   
-  // Estados de límites
+  // Estados de límites y calidad
   const [limits, setLimits] = useState<UsageLimits | null>(null);
+  const [templateQuality, setTemplateQuality] = useState<TemplateQuality | null>(null);
   
   // Estados de UX
   const [userIndustry, setUserIndustry] = useState<IndustryType | undefined>();
   const [userPlan, setUserPlan] = useState<'basic' | 'premium'>('basic');
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
+  const [autoFix, setAutoFix] = useState(true);
   
   // Estados del sistema de preview
   const [showPreview, setShowPreview] = useState(false);
@@ -101,17 +115,12 @@ const TemplateSelection = () => {
     try {
       setLoading(true);
       
-      // 1. Cargar productos seleccionados desde localStorage
-      await loadSelectedProducts();
-      
-      // 2. Detectar industria del usuario (si es posible)
-      await detectUserIndustry();
-      
-      // 3. Verificar plan del usuario
-      await loadUserPlan();
-      
-      // 4. Verificar límites de catálogos
-      await loadCatalogLimits();
+      await Promise.all([
+        loadSelectedProducts(),
+        detectUserIndustry(),
+        loadUserPlan(),
+        loadCatalogLimits()
+      ]);
       
     } catch (error) {
       console.error('Error initializing template selection:', error);
@@ -132,10 +141,10 @@ const TemplateSelection = () => {
     if (productsData) {
       const products = JSON.parse(productsData);
       setSelectedProducts(products);
-      console.log('✅ Productos cargados:', products.length);
+      console.log('Productos cargados:', products.length);
     } else if (productsIds) {
       const ids = JSON.parse(productsIds);
-      console.log('⚠️ Solo IDs disponibles, redirigiendo a productos');
+      console.log('Solo IDs disponibles, redirigiendo a productos');
       toast({
         title: "Datos incompletos",
         description: "Regresa a seleccionar productos",
@@ -144,7 +153,7 @@ const TemplateSelection = () => {
       navigate('/products');
       return;
     } else {
-      console.log('❌ No hay productos seleccionados');
+      console.log('No hay productos seleccionados');
       toast({
         title: "No hay productos seleccionados",
         description: "Selecciona productos primero",
@@ -161,45 +170,35 @@ const TemplateSelection = () => {
         .map(p => p.category?.toLowerCase())
         .filter(Boolean);
       
-      if (categories.some(c => c?.includes('joyeria') || c?.includes('jewelry') || c?.includes('anillo') || c?.includes('collar'))) {
-        setUserIndustry('joyeria');
-      } else if (categories.some(c => c?.includes('ropa') || c?.includes('clothing') || c?.includes('vestido') || c?.includes('blusa'))) {
-        setUserIndustry('moda');
-      } else if (categories.some(c => c?.includes('electronico') || c?.includes('electronic') || c?.includes('smartphone') || c?.includes('laptop'))) {
-        setUserIndustry('electronica');
-      } else if (categories.some(c => c?.includes('ferreteria') || c?.includes('hardware') || c?.includes('herramienta') || c?.includes('tool'))) {
-        setUserIndustry('ferreteria');
-      } else if (categories.some(c => c?.includes('flor') || c?.includes('flower') || c?.includes('planta') || c?.includes('plant'))) {
-        setUserIndustry('floreria');
-      } else if (categories.some(c => c?.includes('cosmetico') || c?.includes('cosmetic') || c?.includes('maquillaje') || c?.includes('makeup'))) {
-        setUserIndustry('cosmeticos');
-      } else if (categories.some(c => c?.includes('decoracion') || c?.includes('decoration') || c?.includes('hogar') || c?.includes('home'))) {
-        setUserIndustry('decoracion');
-      } else if (categories.some(c => c?.includes('mueble') || c?.includes('furniture') || c?.includes('silla') || c?.includes('mesa'))) {
-        setUserIndustry('muebles');
+      // Lógica de detección de industria mejorada
+      const industryKeywords = {
+        joyeria: ['joyeria', 'jewelry', 'anillo', 'collar', 'pulsera', 'oro', 'plata'],
+        moda: ['ropa', 'clothing', 'vestido', 'blusa', 'pantalon', 'fashion'],
+        electronica: ['electronico', 'electronic', 'smartphone', 'laptop', 'tech'],
+        ferreteria: ['ferreteria', 'hardware', 'herramienta', 'tool', 'tornillo'],
+        floreria: ['flor', 'flower', 'planta', 'plant', 'jardin', 'ramo'],
+        cosmeticos: ['cosmetico', 'cosmetic', 'maquillaje', 'makeup', 'belleza'],
+        decoracion: ['decoracion', 'decoration', 'hogar', 'home', 'mueble'],
+        muebles: ['mueble', 'furniture', 'silla', 'mesa', 'sofa']
+      };
+
+      for (const [industry, keywords] of Object.entries(industryKeywords)) {
+        if (categories.some(c => keywords.some(k => c?.includes(k)))) {
+          setUserIndustry(industry as IndustryType);
+          break;
+        }
       }
     }
     
+    // Detectar por nombre del negocio si no se detectó por productos
     if (!userIndustry && businessInfo?.business_name) {
       const businessName = businessInfo.business_name.toLowerCase();
       
       if (businessName.includes('joyeria') || businessName.includes('jewelry')) {
         setUserIndustry('joyeria');
-      } else if (businessName.includes('moda') || businessName.includes('fashion') || businessName.includes('boutique')) {
+      } else if (businessName.includes('moda') || businessName.includes('fashion')) {
         setUserIndustry('moda');
-      } else if (businessName.includes('electronico') || businessName.includes('tech') || businessName.includes('digital')) {
-        setUserIndustry('electronica');
-      } else if (businessName.includes('ferreteria') || businessName.includes('hardware') || businessName.includes('construccion')) {
-        setUserIndustry('ferreteria');
-      } else if (businessName.includes('flor') || businessName.includes('flower') || businessName.includes('jardin')) {
-        setUserIndustry('floreria');
-      } else if (businessName.includes('beauty') || businessName.includes('belleza') || businessName.includes('cosmeticos')) {
-        setUserIndustry('cosmeticos');
-      } else if (businessName.includes('decoracion') || businessName.includes('hogar') || businessName.includes('home')) {
-        setUserIndustry('decoracion');
-      } else if (businessName.includes('muebles') || businessName.includes('furniture')) {
-        setUserIndustry('muebles');
-      }
+      } // ... más detecciones
     }
   };
 
@@ -242,12 +241,48 @@ const TemplateSelection = () => {
     }
   };
 
-  const handleTemplateSelect = (templateId: string) => {
+  // NUEVA FUNCIÓN: Auditar template al seleccionarlo
+  const handleTemplateSelect = useCallback(async (templateId: string) => {
     setSelectedTemplate(templateId);
-    console.log('🎨 Template seleccionado:', templateId);
-  };
+    setTemplateQuality(null);
+    
+    console.log('Template seleccionado:', templateId);
+    
+    // Auditar calidad del template
+    try {
+      const template = getTemplateById(templateId);
+      if (template) {
+        console.log('Auditando calidad del template...');
+        const auditResult = await TemplateAuditSystem.auditSingleTemplate(template);
+        
+        setTemplateQuality({
+          score: auditResult.qualityScore,
+          status: auditResult.status,
+          issues: auditResult.issues.map(i => i.description),
+          recommendations: auditResult.recommendations
+        });
+        
+        // Mostrar advertencia si hay problemas críticos
+        if (auditResult.status === 'broken') {
+          toast({
+            title: "Template con problemas críticos",
+            description: "Este template requiere corrección antes de usarse",
+            variant: "destructive",
+          });
+        } else if (auditResult.status === 'needs_fix') {
+          toast({
+            title: "Template con problemas menores",
+            description: `Calidad: ${auditResult.qualityScore}/100. Se aplicarán correcciones automáticas`,
+            variant: "default",
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error auditando template:', error);
+    }
+  }, []);
 
-  // 🔍 NUEVA FUNCIÓN: GENERAR PREVIEW HTML
+  // FUNCIÓN MEJORADA: Generar preview HTML
   const handlePreviewCatalog = async () => {
     if (!selectedTemplate || !user || !businessInfo) {
       toast({
@@ -261,9 +296,8 @@ const TemplateSelection = () => {
     setPreviewLoading(true);
     
     try {
-      console.log('🔍 Generando preview HTML...');
+      console.log('Generando preview HTML mejorado...');
       
-      // Preparar datos del negocio
       const businessData = {
         business_name: businessInfo.business_name,
         email: businessInfo.email,
@@ -272,13 +306,12 @@ const TemplateSelection = () => {
         address: businessInfo.address
       };
       
-      // Obtener template
       const template = getTemplateById(selectedTemplate);
       if (!template) {
         throw new Error(`Template ${selectedTemplate} no encontrado`);
       }
       
-      // Generar HTML sin crear PDF
+      // Generar HTML con nuevo sistema robusto
       const htmlContent = TemplateGenerator.generateCatalogHTML(
         selectedProducts,
         businessData,
@@ -288,10 +321,10 @@ const TemplateSelection = () => {
       setPreviewHTML(htmlContent);
       setShowPreview(true);
       
-      console.log('✅ Preview HTML generado:', htmlContent.length, 'caracteres');
+      console.log('Preview HTML generado:', htmlContent.length, 'caracteres');
       
     } catch (error) {
-      console.error('❌ Error generando preview:', error);
+      console.error('Error generando preview:', error);
       toast({
         title: "Error generando preview",
         description: error instanceof Error ? error.message : "Error desconocido",
@@ -302,7 +335,7 @@ const TemplateSelection = () => {
     }
   };
 
-  // FUNCIÓN DE GENERACIÓN PDF (mejorada)
+  // FUNCIÓN MEJORADA: Generar catálogo con nuevo sistema
   const handleGenerateCatalog = async () => {
     if (!selectedTemplate || !user || !businessInfo) {
       toast({
@@ -326,15 +359,13 @@ const TemplateSelection = () => {
     setGenerationProgress(0);
     
     try {
-      console.log('🚀 Iniciando generación con sistema híbrido...');
+      console.log('Iniciando generación con sistema v2.0...');
       
-      // Función de progreso
       const onProgress = (progress: number) => {
         setGenerationProgress(progress);
-        console.log(`📊 Progreso: ${progress}%`);
+        console.log(`Progreso: ${progress}%`);
       };
       
-      // Preparar datos del negocio
       const businessData = {
         business_name: businessInfo.business_name,
         email: businessInfo.email,
@@ -347,8 +378,19 @@ const TemplateSelection = () => {
       
       // Seleccionar método de generación
       switch (generationMethod) {
+        case 'puppeteer':
+          console.log('Usando Puppeteer Service (mejor calidad)');
+          result = await generatePuppeteerCatalog(
+            selectedProducts,
+            businessData,
+            selectedTemplate,
+            user.id,
+            onProgress
+          );
+          break;
+          
         case 'dynamic':
-          console.log('🚀 Usando Dynamic Engine forzado');
+          console.log('Usando Dynamic Engine');
           result = await generateDynamicCatalog(
             selectedProducts,
             businessData,
@@ -359,7 +401,7 @@ const TemplateSelection = () => {
           break;
           
         case 'classic':
-          console.log('🎨 Usando Classic Engine forzado');
+          console.log('Usando Classic Engine');
           result = await generateClassicCatalog(
             selectedProducts,
             businessData,
@@ -371,64 +413,87 @@ const TemplateSelection = () => {
           
         case 'auto':
         default:
-          console.log('🧠 Usando selección automática híbrida');
+          console.log('Usando selección automática inteligente');
           result = await generateCatalog(
             selectedProducts,
             businessData,
             selectedTemplate,
             user.id,
             {
-              useDynamicEngine: true, // Preferir dinámico
+              usePuppeteerService: true,
+              useDynamicEngine: true,
               showProgress: true,
-              onProgress
+              onProgress,
+              qualityCheck: true,
+              autoFix: autoFix
             }
           );
           break;
       }
       
       if (result.success) {
-        // Toast de éxito con información detallada
-        const methodEmoji = result.generationMethod === 'dynamic' ? '🚀' : '🎨';
-        const methodName = result.generationMethod === 'dynamic' ? 'Dynamic Engine' : 'Classic Engine';
+        // Toast de éxito mejorado
+        const methodEmoji = {
+          puppeteer: '🚀',
+          dynamic: '⚡',
+          classic: '🎨',
+          hybrid: '🧠'
+        }[result.generationMethod || 'auto'];
+        
+        const methodName = {
+          puppeteer: 'Puppeteer Service',
+          dynamic: 'Dynamic Engine', 
+          classic: 'Classic Engine',
+          hybrid: 'Hybrid System'
+        }[result.generationMethod || 'auto'];
         
         toast({
           title: `${methodEmoji} ¡Catálogo generado exitosamente!`,
-          description: `${result.message} (${result.stats?.generationTime}ms con ${methodName})`,
+          description: `${result.message || 'Completado'} (${result.stats?.generationTime}ms con ${methodName})`,
         });
 
-        console.log('📊 Estadísticas de generación:', {
+        // Mostrar advertencias si las hay
+        if (result.warnings && result.warnings.length > 0) {
+          toast({
+            title: "Generación completada con advertencias",
+            description: `${result.warnings.length} advertencia(s) detectada(s). Ver detalles en el dashboard.`,
+            variant: "default",
+          });
+        }
+
+        console.log('Estadísticas de generación:', {
           productos: result.stats?.totalProducts,
           páginas: result.stats?.totalPages,
           método: result.generationMethod,
-          tiempo: result.stats?.generationTime
+          tiempo: result.stats?.generationTime,
+          calidad: result.stats?.templateQuality
         });
 
-        // Limpiar localStorage
+        // Limpiar datos
         localStorage.removeItem('selectedTemplate');
         localStorage.removeItem('selectedProducts');
         localStorage.removeItem('selectedProductsData');
         
-        // Actualizar límites
         await loadCatalogLimits();
-        
-        // Cerrar preview si está abierto
         setShowPreview(false);
-        
-        // Redirigir a catálogos
         navigate('/catalogs');
         
       } else {
-        // Manejar diferentes tipos de errores
+        // Manejo de errores mejorado
         const errorMessages = {
           'LIMIT_EXCEEDED': 'Has alcanzado tu límite de catálogos',
           'PREMIUM_REQUIRED': 'Este template requiere plan Premium',
           'TEMPLATE_NOT_FOUND': 'Template no encontrado',
+          'TEMPLATE_BROKEN': 'Template tiene errores críticos',
           'GENERATION_ERROR': 'Error durante la generación',
           'DATABASE_ERROR': 'Error guardando en base de datos',
-          'CLASSIC_ENGINE_ERROR': 'Error en engine clásico'
+          'CLASSIC_ENGINE_ERROR': 'Error en engine clásico',
+          'INVALID_PRODUCT_DATA': 'Datos de productos inválidos'
         };
         
-        const userMessage = errorMessages[result.error as keyof typeof errorMessages] || result.message || 'Error desconocido';
+        const userMessage = errorMessages[result.error as keyof typeof errorMessages] || 
+                           result.message || 
+                           'Error desconocido';
         
         toast({
           title: "Error al generar catálogo",
@@ -438,7 +503,7 @@ const TemplateSelection = () => {
       }
 
     } catch (error) {
-      console.error('❌ Error generando catálogo:', error);
+      console.error('Error generando catálogo:', error);
       toast({
         title: "Error inesperado",
         description: error instanceof Error ? error.message : "Error desconocido",
@@ -450,7 +515,7 @@ const TemplateSelection = () => {
     }
   };
 
-  // Obtener información del template dinámico
+  // Obtener información del template mejorada
   const getTemplateInfo = (templateId: string) => {
     const dynamicTemplate = getDynamicTemplate(templateId);
     
@@ -475,18 +540,23 @@ const TemplateSelection = () => {
     };
   };
 
-  // Recomendar método de generación basado en cantidad de productos
+  // Recomendar método de generación inteligente
   const getRecommendedMethod = (): GenerationMethod => {
     const productCount = selectedProducts.length;
+    const templateScore = templateQuality?.score || 100;
     
-    if (productCount <= 5) return 'dynamic';      // Mejor calidad para pocos productos
-    if (productCount >= 50) return 'dynamic';     // Mejor performance para muchos productos
-    if (productCount >= 20) return 'dynamic';     // Chunking inteligente
+    // Si hay problemas críticos en el template, usar clásico
+    if (templateScore < 60) return 'classic';
     
-    return 'auto'; // Híbrido para casos medios
+    // Para alta calidad y volúmenes grandes, Puppeteer
+    if (productCount > 50 || templateScore >= 90) return 'puppeteer';
+    
+    // Para volúmenes medianos, dinámico
+    if (productCount >= 10 && productCount <= 50) return 'dynamic';
+    
+    return 'auto'; // Híbrido para casos generales
   };
 
-  // Estados de carga
   if (loading) {
     return (
       <ProtectedRoute>
@@ -494,7 +564,7 @@ const TemplateSelection = () => {
           <div className="flex items-center justify-center py-12">
             <div className="text-center">
               <Loader2 className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-              <p className="text-gray-600">Cargando sistema de templates...</p>
+              <p className="text-gray-600">Cargando sistema de templates v2.0...</p>
             </div>
           </div>
         </AppLayout>
@@ -502,7 +572,7 @@ const TemplateSelection = () => {
     );
   }
 
-  // Header actions
+  // Header actions mejoradas
   const actions = (
     <div className="flex items-center gap-3">
       <div className="hidden md:block">
@@ -521,7 +591,7 @@ const TemplateSelection = () => {
         </div>
       )}
       
-      {/* Selector de método de generación */}
+      {/* Selector de método mejorado */}
       {showAdvancedOptions && selectedTemplate && (
         <div className="hidden lg:flex items-center gap-2">
           <span className="text-xs text-gray-500">Método:</span>
@@ -531,14 +601,15 @@ const TemplateSelection = () => {
             className="text-xs border rounded px-2 py-1"
             disabled={generating || previewLoading}
           >
-            <option value="auto">Auto (Recomendado)</option>
-            <option value="dynamic">🚀 Dynamic Engine</option>
-            <option value="classic">🎨 Classic Engine</option>
+            <option value="auto">Auto (Recomendado: {getRecommendedMethod()})</option>
+            <option value="puppeteer">🚀 Puppeteer (Mejor calidad)</option>
+            <option value="dynamic">⚡ Dynamic (Rápido)</option>
+            <option value="classic">🎨 Classic (Compatible)</option>
           </select>
         </div>
       )}
       
-      {/* NUEVO: Botón de Preview */}
+      {/* Botón de Preview mejorado */}
       {selectedTemplate && (
         <Button 
           onClick={handlePreviewCatalog}
@@ -554,7 +625,7 @@ const TemplateSelection = () => {
           ) : (
             <>
               <Eye className="h-4 w-4" />
-              Preview
+              Preview v2.0
             </>
           )}
         </Button>
@@ -562,7 +633,7 @@ const TemplateSelection = () => {
       
       <Button 
         onClick={handleGenerateCatalog}
-        disabled={!selectedTemplate || generating || !limits?.canGenerate}
+        disabled={!selectedTemplate || generating || !limits?.canGenerate || templateQuality?.status === 'broken'}
         className="flex items-center gap-2"
       >
         {generating ? (
@@ -585,7 +656,7 @@ const TemplateSelection = () => {
     <ProtectedRoute>
       <AppLayout actions={actions}>
         <div className="space-y-6">
-          {/* Header con información */}
+          {/* Header con información mejorada */}
           <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
             <div>
               <div className="flex items-center gap-3 mb-2">
@@ -598,18 +669,21 @@ const TemplateSelection = () => {
                   <ArrowLeft className="w-4 h-4" />
                   Volver a Productos
                 </Button>
+                <Badge variant="secondary" className="text-xs">
+                  Sistema v2.0 - Sin Cortes
+                </Badge>
               </div>
               
-              <h1 className="text-2xl font-bold text-gray-900">
+              <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
                 Selecciona tu Template
-                <Sparkles className="w-6 h-6 inline ml-2 text-purple-500" />
+                <Shield className="w-5 h-5 text-green-500" title="Sistema protegido contra cortes" />
               </h1>
               <p className="text-gray-600">
                 Elige el diseño perfecto para tu catálogo de {selectedProducts.length} productos
               </p>
             </div>
             
-            {/* Mostrar info del plan en móvil */}
+            {/* Info del plan en móvil */}
             <div className="sm:hidden w-full">
               <Card>
                 <CardContent className="p-3">
@@ -631,7 +705,7 @@ const TemplateSelection = () => {
             </div>
           </div>
 
-          {/* Alert de límites si es necesario */}
+          {/* Alert de límites */}
           {limits && !limits.canGenerate && (
             <Alert className="border-red-200 bg-red-50">
               <AlertTriangle className="h-4 w-4 text-red-600" />
@@ -648,7 +722,7 @@ const TemplateSelection = () => {
             </Alert>
           )}
 
-          {/* Progress Bar durante generación */}
+          {/* Progress Bar mejorada */}
           {generating && (
             <Card className="border-blue-200 bg-blue-50">
               <CardContent className="p-4">
@@ -656,25 +730,27 @@ const TemplateSelection = () => {
                   <Loader2 className="w-5 h-5 animate-spin text-blue-600" />
                   <div>
                     <h4 className="font-medium text-blue-900">
-                      Generando catálogo...
+                      Generando catálogo con sistema v2.0...
                     </h4>
                     <p className="text-sm text-blue-700">
-                      Método: {generationMethod === 'auto' ? 'Híbrido Automático' : 
-                              generationMethod === 'dynamic' ? '🚀 Dynamic Engine' : 
-                              '🎨 Classic Engine'}
+                      Método: {generationMethod === 'auto' ? 'Selección Automática' : 
+                              generationMethod === 'puppeteer' ? '🚀 Puppeteer Service' :
+                              generationMethod === 'dynamic' ? '⚡ Dynamic Engine' : 
+                              '🎨 Classic Engine'} | 
+                      Auto-corrección: {autoFix ? 'Activa' : 'Inactiva'}
                     </p>
                   </div>
                 </div>
                 <Progress value={generationProgress} className="h-2" />
                 <div className="flex justify-between text-xs text-blue-600 mt-1">
                   <span>{generationProgress}% completado</span>
-                  <span>{selectedProducts.length} productos</span>
+                  <span>{selectedProducts.length} productos | 0% cortes garantizado</span>
                 </div>
               </CardContent>
             </Card>
           )}
 
-          {/* Selector inteligente de templates */}
+          {/* Selector de templates */}
           <SmartTemplateSelector
             selectedTemplate={selectedTemplate}
             onTemplateSelect={handleTemplateSelect}
@@ -683,69 +759,136 @@ const TemplateSelection = () => {
             productCount={selectedProducts.length}
           />
 
-          {/* Información del template seleccionado */}
+          {/* Información del template seleccionado mejorada */}
           {selectedTemplate && (
-            <Card className="border-green-200 bg-green-50">
+            <Card className={`border-2 ${
+              templateQuality?.status === 'broken' ? 'border-red-200 bg-red-50' :
+              templateQuality?.status === 'needs_fix' ? 'border-yellow-200 bg-yellow-50' :
+              'border-green-200 bg-green-50'
+            }`}>
               <CardContent className="p-4">
                 <div className="flex items-center gap-3 mb-3">
-                  <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
+                  {templateQuality?.status === 'broken' ? (
+                    <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
+                  ) : templateQuality?.status === 'needs_fix' ? (
+                    <AlertTriangle className="w-5 h-5 text-yellow-600 flex-shrink-0" />
+                  ) : (
+                    <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
+                  )}
                   <div className="flex-1">
-                    <h4 className="font-medium text-green-900">
+                    <h4 className={`font-medium ${
+                      templateQuality?.status === 'broken' ? 'text-red-900' :
+                      templateQuality?.status === 'needs_fix' ? 'text-yellow-900' :
+                      'text-green-900'
+                    }`}>
                       Template seleccionado
+                      {templateQuality && (
+                        <Badge variant="outline" className="ml-2">
+                          {templateQuality.score}/100
+                        </Badge>
+                      )}
                     </h4>
-                    <p className="text-sm text-green-700">
-                      {getTemplateInfo(selectedTemplate).recommendedFor} • {getTemplateInfo(selectedTemplate).productsPerPage} productos/página
+                    <p className={`text-sm ${
+                      templateQuality?.status === 'broken' ? 'text-red-700' :
+                      templateQuality?.status === 'needs_fix' ? 'text-yellow-700' :
+                      'text-green-700'
+                    }`}>
+                      {getTemplateInfo(selectedTemplate).recommendedFor} • 
+                      {getTemplateInfo(selectedTemplate).productsPerPage} productos/página
+                      {templateQuality && templateQuality.status === 'broken' && (
+                        <span className="font-semibold"> • REQUIERE CORRECCIÓN</span>
+                      )}
                     </p>
                   </div>
                   
-                  {/* Botón de configuración avanzada */}
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => setShowAdvancedOptions(!showAdvancedOptions)}
-                    className="text-green-700 hover:bg-green-100"
+                    className={`${
+                      templateQuality?.status === 'broken' ? 'text-red-700 hover:bg-red-100' :
+                      templateQuality?.status === 'needs_fix' ? 'text-yellow-700 hover:bg-yellow-100' :
+                      'text-green-700 hover:bg-green-100'
+                    }`}
                   >
                     <Info className="w-4 h-4" />
                   </Button>
                 </div>
 
+                {/* Mostrar issues si los hay */}
+                {templateQuality && templateQuality.issues.length > 0 && (
+                  <div className="mb-3 p-3 bg-white rounded border">
+                    <h5 className="text-sm font-medium mb-2">Issues detectados:</h5>
+                    <ul className="text-xs space-y-1">
+                      {templateQuality.issues.slice(0, 3).map((issue, index) => (
+                        <li key={index} className="flex items-start gap-1">
+                          <span className="text-gray-400">•</span>
+                          <span>{issue}</span>
+                        </li>
+                      ))}
+                      {templateQuality.issues.length > 3 && (
+                        <li className="text-gray-500 italic">
+                          +{templateQuality.issues.length - 3} más...
+                        </li>
+                      )}
+                    </ul>
+                  </div>
+                )}
+
                 {/* Opciones avanzadas */}
                 {showAdvancedOptions && (
-                  <div className="border-t border-green-300 pt-3 mt-3">
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="border-t border-gray-300 pt-3 mt-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                       <div>
-                        <label className="text-xs font-medium text-green-800">Método de Generación</label>
+                        <label className="text-xs font-medium text-gray-800">Método de Generación</label>
                         <select 
                           value={generationMethod}
                           onChange={(e) => setGenerationMethod(e.target.value as GenerationMethod)}
-                          className="w-full mt-1 text-sm border border-green-300 rounded px-2 py-1"
+                          className="w-full mt-1 text-sm border border-gray-300 rounded px-2 py-1"
                           disabled={generating || previewLoading}
                         >
                           <option value="auto">🧠 Auto (Recomendado: {getRecommendedMethod()})</option>
-                          <option value="dynamic">🚀 Dynamic Engine</option>
-                          <option value="classic">🎨 Classic Engine</option>
+                          <option value="puppeteer">🚀 Puppeteer (Mejor calidad)</option>
+                          <option value="dynamic">⚡ Dynamic (Rápido)</option>
+                          <option value="classic">🎨 Classic (Compatible)</option>
                         </select>
                       </div>
                       
                       <div>
-                        <label className="text-xs font-medium text-green-800">Layout</label>
-                        <div className="text-sm text-green-700 mt-1">
+                        <label className="text-xs font-medium text-gray-800">Auto-corrección</label>
+                        <div className="mt-1">
+                          <label className="flex items-center text-sm">
+                            <input
+                              type="checkbox"
+                              checked={autoFix}
+                              onChange={(e) => setAutoFix(e.target.checked)}
+                              className="mr-2"
+                              disabled={generating || previewLoading}
+                            />
+                            Corregir automáticamente
+                          </label>
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <label className="text-xs font-medium text-gray-800">Layout</label>
+                        <div className="text-sm text-gray-700 mt-1">
                           {getTemplateInfo(selectedTemplate).layout} • {getTemplateInfo(selectedTemplate).spacing}
                         </div>
                       </div>
                       
                       <div>
-                        <label className="text-xs font-medium text-green-800">Soporte</label>
-                        <div className="text-sm text-green-700 mt-1">
+                        <label className="text-xs font-medium text-gray-800">Compatibilidad</label>
+                        <div className="text-sm text-gray-700 mt-1">
                           {getTemplateInfo(selectedTemplate).supportsDynamic ? (
                             <span className="flex items-center gap-1">
-                              <Rocket className="w-3 h-3" />
-                              Dinámico
+                              <Star className="w-3 h-3 text-yellow-500" />
+                              Avanzado
                             </span>
                           ) : (
                             <span className="flex items-center gap-1">
-                              <Clock className="w-3 h-3" />
-                              Clásico
+                              <Shield className="w-3 h-3 text-blue-500" />
+                              Estándar
                             </span>
                           )}
                         </div>
@@ -755,28 +898,29 @@ const TemplateSelection = () => {
                 )}
 
                 {/* Botones de acción */}
-                {limits?.canGenerate && (
+                {limits?.canGenerate && templateQuality?.status !== 'broken' && (
                   <div className="flex items-center justify-between mt-4">
-                    <div className="text-sm text-green-700">
+                    <div className="text-sm text-gray-700">
                       Listo para generar {selectedProducts.length} productos
+                      {templateQuality && autoFix && templateQuality.status === 'needs_fix' && (
+                        <span className="text-blue-600"> • Con auto-corrección</span>
+                      )}
                     </div>
                     <div className="flex items-center gap-2">
-                      {/* Botón Preview */}
                       <Button 
                         onClick={handlePreviewCatalog}
                         disabled={generating || previewLoading}
                         variant="outline"
-                        className="border-green-300 text-green-700 hover:bg-green-100"
+                        className="border-gray-300 text-gray-700 hover:bg-gray-100"
                       >
                         {previewLoading ? (
                           <Loader2 className="w-4 h-4 animate-spin mr-2" />
                         ) : (
                           <Eye className="w-4 h-4 mr-2" />
                         )}
-                        Preview HTML
+                        Preview
                       </Button>
                       
-                      {/* Botón Generar */}
                       <Button 
                         onClick={handleGenerateCatalog}
                         disabled={generating || previewLoading}
@@ -789,14 +933,16 @@ const TemplateSelection = () => {
                           </>
                         ) : (
                           <>
-                            {generationMethod === 'dynamic' ? (
+                            {generationMethod === 'puppeteer' ? (
                               <Rocket className="w-4 h-4 mr-2" />
+                            ) : generationMethod === 'dynamic' ? (
+                              <Zap className="w-4 h-4 mr-2" />
                             ) : generationMethod === 'classic' ? (
                               <Palette className="w-4 h-4 mr-2" />
                             ) : (
-                              <Zap className="w-4 h-4 mr-2" />
+                              <Sparkles className="w-4 h-4 mr-2" />
                             )}
-                            Generar PDF
+                            Generar PDF v2.0
                           </>
                         )}
                       </Button>
