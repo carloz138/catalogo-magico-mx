@@ -1227,5 +1227,34 @@ export const CHRISTMAS_TEMPLATE_BLUEPRINT: NewTemplateBlueprint = {
   planLevel: 'basic'
 };
 
+// === TEMPLATES OPTIMIZADOS V2.0 ===
+import { generateAllOptimizedTemplates } from './optimized-templates-v2';
+
+/**
+ * 🚀 FUNCIÓN PARA INICIALIZAR TEMPLATES OPTIMIZADOS
+ * Llama esta función una vez para agregar todos los templates nuevos
+ */
+export const initializeOptimizedTemplates = async () => {
+  console.log('🎨 Inicializando templates optimizados...');
+  
+  try {
+    const newTemplates = await generateAllOptimizedTemplates();
+    
+    // Verificar que no estén duplicados
+    const existingIds = AUDITED_TEMPLATES_V2.map(t => t.id);
+    const filteredTemplates = newTemplates.filter(t => !existingIds.includes(t.id));
+    
+    // Agregar solo templates nuevos
+    AUDITED_TEMPLATES_V2.push(...filteredTemplates);
+    
+    console.log(`✅ ${filteredTemplates.length} templates optimizados agregados`);
+    console.log(`📊 Total templates disponibles: ${AUDITED_TEMPLATES_V2.length}`);
+    
+    return filteredTemplates;
+  } catch (error) {
+    console.error('❌ Error inicializando templates optimizados:', error);
+    return [];
+  }
+};
 // Para usar:
 // const christmasTemplate = await NewTemplateGenerator.createTemplateFromBlueprint(CHRISTMAS_TEMPLATE_BLUEPRINT);
