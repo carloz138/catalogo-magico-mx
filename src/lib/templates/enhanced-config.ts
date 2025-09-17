@@ -481,5 +481,24 @@ export const generateTemplateCSS = (template: EnhancedTemplateConfig): string =>
       /* ✅ SOMBRA PARA PRECIOS */
       ${template.design.shadows ? 'text-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);' : ''}
     }
+
+    /* ===== FIX IMÁGENES - AGREGAR AL FINAL ===== */
+.product-image-container {
+  padding: 3mm !important;
+  box-sizing: border-box !important;
+}
+
+.product-image {
+  max-width: 100% !important;
+  max-height: 100% !important;
+  object-fit: contain !important;
+  margin: 0 auto !important;
+}
+
+/* ===== FIX PUPPETEER TAMBIÉN ===== */
+.image-container {
+  padding: 4mm !important;
+  box-sizing: border-box !important;
+}
   `;
 };
