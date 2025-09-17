@@ -1,5 +1,5 @@
 // src/lib/pdf/puppeteer-service-client.ts
-// 🚀 CLIENTE PARA EL SERVICIO PUPPETEER EN EASYPANEL - VERSIÓN CORREGIDA
+// 🚀 CLIENTE PUPPETEER ROBUSTO - INTEGRADO CON NUEVO SISTEMA SIN CORTES
 
 interface Product {
   id: string;
@@ -40,19 +40,26 @@ interface PuppeteerServiceOptions {
   onProgress?: (progress: number) => void;
   format?: 'A4' | 'Letter';
   margin?: { top: string; right: string; bottom: string; left: string; };
+  quality?: 'low' | 'medium' | 'high';
 }
 
 interface PuppeteerResult {
   success: boolean;
   error?: string;
   downloadUrl?: string;
+  stats?: {
+    totalProducts: number;
+    totalPages: number;
+    generationTime: number;
+  };
 }
 
 export class PuppeteerServiceClient {
   private static readonly SERVICE_URL = 'https://min8n-puppeteer-pdf.fqr2ax.easypanel.host';
+  private static readonly TIMEOUT = 30000; // 30 seconds
   
   /**
-   * 🎯 FUNCIÓN PRINCIPAL - GENERAR PDF CON SERVICIO PUPPETEER
+   * 🎯 FUNCIÓN PRINCIPAL MEJORADA - GENERAR PDF SIN CORTES
    */
   static async generatePDF(
     products: Product[],
@@ -61,166 +68,134 @@ export class PuppeteerServiceClient {
     options: PuppeteerServiceOptions = {}
   ): Promise<PuppeteerResult> {
     
+    const startTime = Date.now();
+    
     try {
-      console.log('🚀 Enviando solicitud a servicio Puppeteer...');
+      console.log('🚀 Iniciando generación con Puppeteer Service...', {
+        products: products.length,
+        template: template.id,
+        quality: options.quality || 'medium'
+      });
       
-      if (options.onProgress) options.onProgress(10);
+      if (options.onProgress) options.onProgress(5);
       
-      // 1. Verificar que el servicio esté disponible
-      const healthCheck = await this.checkServiceHealth();
-      if (!healthCheck) {
-        throw new Error('Servicio Puppeteer no disponible');
+      // 1. Health Check con retry
+      const isHealthy = await this.checkServiceHealthWithRetry();
+      if (!isHealthy) {
+        throw new Error('Servicio Puppeteer no disponible después de varios intentos');
       }
       
-      if (options.onProgress) options.onProgress(20);
+      if (options.onProgress) options.onProgress(15);
       
-      // 2. Generar HTML optimizado para Puppeteer
-      const htmlContent = this.generateOptimizedHTML(products, businessInfo, template);
+      // 2. Generar HTML optimizado usando nuevo sistema
+      const htmlContent = this.generateRobustHTML(products, businessInfo, template, options.quality);
       
       if (options.onProgress) options.onProgress(30);
       
-      // 3. Enviar solicitud al servicio
-      const response = await fetch(`${this.SERVICE_URL}/generate-pdf`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          html: htmlContent,
-          options: {
-            format: options.format || 'A4',
-            margin: options.margin || {
-              top: '10mm',
-              right: '10mm',
-              bottom: '10mm',
-              left: '10mm'
-            },
-            printBackground: true,
-            preferCSSPageSize: true,
-            displayHeaderFooter: false,
-            waitUntil: 'networkidle0'
-          },
-          filename: `catalogo-${businessInfo.business_name.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`
-        })
-      });
+      // 3. Preparar configuración de PDF optimizada
+      const pdfOptions = this.getPDFOptions(options);
       
-      if (options.onProgress) options.onProgress(70);
-      
-      if (!response.ok) {
-        throw new Error(`Error del servicio: ${response.status} ${response.statusText}`);
-      }
-      
-      // 4. Descargar el PDF
-      const blob = await response.blob();
+      // 4. Enviar solicitud con timeout y retry
+      const pdfBlob = await this.generatePDFWithRetry(htmlContent, pdfOptions, businessInfo, options.onProgress);
       
       if (options.onProgress) options.onProgress(90);
       
-      // 5. Crear URL de descarga
-      const downloadUrl = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = downloadUrl;
-      link.download = `catalogo-${businessInfo.business_name.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
-      link.style.display = 'none';
-      
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      
-      // Limpiar URL después de un tiempo
-      setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
+      // 5. Descargar PDF
+      await this.downloadPDF(pdfBlob, businessInfo.business_name);
       
       if (options.onProgress) options.onProgress(100);
       
-      console.log('✅ PDF generado y descargado exitosamente');
+      const generationTime = Date.now() - startTime;
+      
+      console.log('✅ PDF generado exitosamente con Puppeteer:', {
+        time: generationTime,
+        size: pdfBlob.size,
+        products: products.length
+      });
       
       return {
         success: true,
-        downloadUrl
+        stats: {
+          totalProducts: products.length,
+          totalPages: Math.ceil(products.length / template.productsPerPage),
+          generationTime
+        }
       };
       
     } catch (error) {
-      console.error('❌ Error en servicio Puppeteer:', error);
+      console.error('❌ Error en Puppeteer Service:', error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Error desconocido'
+        error: error instanceof Error ? error.message : 'Error desconocido en Puppeteer'
       };
     }
   }
   
   /**
-   * 🏥 VERIFICAR SALUD DEL SERVICIO
+   * 🏥 VERIFICAR SALUD CON RETRY
    */
-  private static async checkServiceHealth(): Promise<boolean> {
-    try {
-      const response = await fetch(`${this.SERVICE_URL}/health`, {
-        method: 'GET',
-        timeout: 5000
-      } as RequestInit);
-      
-      return response.ok;
-    } catch (error) {
-      console.error('❌ Servicio Puppeteer no disponible:', error);
-      return false;
+  private static async checkServiceHealthWithRetry(maxRetries: number = 3): Promise<boolean> {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+        
+        const response = await fetch(`${this.SERVICE_URL}/health`, {
+          method: 'GET',
+          signal: controller.signal
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (response.ok) {
+          console.log(`✅ Puppeteer Service healthy (attempt ${attempt}/${maxRetries})`);
+          return true;
+        }
+        
+      } catch (error) {
+        console.warn(`⚠️ Health check attempt ${attempt}/${maxRetries} failed:`, error);
+        
+        if (attempt < maxRetries) {
+          // Esperar antes del siguiente intento (exponential backoff)
+          await new Promise(resolve => setTimeout(resolve, attempt * 1000));
+        }
+      }
     }
+    
+    return false;
   }
   
   /**
-   * 🎨 GENERAR HTML OPTIMIZADO PARA PUPPETEER CON ESTILOS INLINE
+   * 🎨 GENERAR HTML ROBUSTO CON NUEVO SISTEMA
    */
-  private static generateOptimizedHTML(
+  private static generateRobustHTML(
     products: Product[],
     businessInfo: BusinessInfo,
-    template: TemplateConfig
+    template: TemplateConfig,
+    quality: 'low' | 'medium' | 'high' = 'medium'
   ): string {
     
     const productsPerPage = template.productsPerPage;
     const totalPages = Math.ceil(products.length / productsPerPage);
+    const columns = this.calculateColumns(productsPerPage);
     
-    // Estilos base para better compatibility
-    const baseStyles = `
-      <style>
-        * { 
-          -webkit-print-color-adjust: exact !important; 
-          print-color-adjust: exact !important;
-          color-adjust: exact !important;
-        }
-        body { 
-          -webkit-print-color-adjust: exact !important; 
-          margin: 0; 
-          padding: 0; 
-        }
-        @page { 
-          size: A4; 
-          margin: 10mm; 
-        }
-      </style>
-    `;
+    // CSS base optimizado para Puppeteer
+    const baseStyles = this.generatePuppeteerOptimizedCSS(template, columns, quality);
     
     return `
       <!DOCTYPE html>
       <html lang="es">
       <head>
         <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="viewport" content="width=210mm, height=297mm, initial-scale=1.0">
         <title>Catálogo ${businessInfo.business_name}</title>
-        ${baseStyles}
+        <style>
+          ${baseStyles}
+        </style>
       </head>
-      <body style="
-        font-family: 'Segoe UI', 'Roboto', 'Arial', sans-serif;
-        color: ${template.colors.text};
-        background: ${template.colors.background} !important;
-        line-height: 1.5;
-        margin: 0;
-        padding: 0;
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-      ">
-        <div style="
-          width: 100%;
-          background: ${template.colors.background} !important;
-          -webkit-print-color-adjust: exact !important;
-        ">
-          ${this.generateInlineCatalogPages(products, businessInfo, template)}
+      <body>
+        <div class="catalog-wrapper">
+          ${this.generateCatalogPages(products, businessInfo, template, columns)}
         </div>
       </body>
       </html>
@@ -228,315 +203,371 @@ export class PuppeteerServiceClient {
   }
   
   /**
-   * 🎨 GENERAR CSS OPTIMIZADO PARA PUPPETEER - VERSIÓN CORREGIDA
+   * 🎨 CSS OPTIMIZADO ESPECÍFICO PARA PUPPETEER
    */
-  private static generateOptimizedCSS(template: TemplateConfig): string {
-    const columns = template.productsPerPage <= 3 ? 2 : template.productsPerPage <= 6 ? 3 : 4;
+  private static generatePuppeteerOptimizedCSS(
+    template: TemplateConfig, 
+    columns: number,
+    quality: 'low' | 'medium' | 'high'
+  ): string {
+    
+    // Configuraciones según calidad
+    const qualityConfig = {
+      low: { imgQuality: 80, fontSize: 11, cardPadding: 2, borderRadius: 4 },
+      medium: { imgQuality: 90, fontSize: 12, cardPadding: 3, borderRadius: 6 },
+      high: { imgQuality: 100, fontSize: 13, cardPadding: 4, borderRadius: 8 }
+    };
+    
+    const config = qualityConfig[quality];
     
     return `
-      @page {
-        size: A4;
-        margin: 10mm;
-      }
+      /* ===== PUPPETEER OPTIMIZED CSS - ${template.id.toUpperCase()} ===== */
       
       * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
+        margin: 0 !important;
+        padding: 0 !important;
+        box-sizing: border-box !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        color-adjust: exact !important;
       }
       
-      body {
-        font-family: 'Segoe UI', 'Roboto', 'Arial', sans-serif;
-        color: ${template.colors.text};
-        background: ${template.colors.background};
-        line-height: 1.5;
-        print-color-adjust: exact;
+      @page {
+        size: A4 portrait;
+        margin: 12mm;
+        marks: none;
+        bleed: 0;
         -webkit-print-color-adjust: exact;
       }
       
-      .catalog-container {
-        width: 100%;
-        background: ${template.colors.background};
+      html {
+        width: 210mm;
+        height: 297mm;
+        font-size: ${config.fontSize}pt;
       }
       
-      .catalog-page {
+      body {
+        font-family: 'Arial', 'Helvetica', sans-serif !important;
+        background: ${template.colors.background} !important;
+        color: ${template.colors.text} !important;
+        line-height: 1.3;
+        width: 186mm; /* 210mm - 24mm margins */
+        height: 273mm; /* 297mm - 24mm margins */
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        position: relative;
+        -webkit-print-color-adjust: exact !important;
+      }
+      
+      .catalog-wrapper {
         width: 100%;
-        min-height: 100vh;
-        padding: 15mm;
+        height: 100%;
+        position: relative;
+      }
+      
+      /* ===== PÁGINA INDIVIDUAL ===== */
+      .catalog-page {
+        width: 186mm;
+        height: 273mm;
+        position: relative;
+        padding: 0;
+        margin: 0;
         page-break-after: always;
-        display: flex;
-        flex-direction: column;
-        background: ${template.colors.background};
+        page-break-inside: avoid;
+        background: ${template.colors.background} !important;
+        overflow: hidden;
+        -webkit-print-color-adjust: exact !important;
       }
       
       .catalog-page:last-child {
         page-break-after: avoid;
       }
       
+      /* ===== HEADER ROBUSTO ===== */
       .page-header {
+        width: 100%;
+        height: 25mm;
+        background: ${template.colors.primary} !important;
+        background-image: linear-gradient(135deg, ${template.colors.primary}, ${template.colors.secondary}) !important;
+        color: white !important;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
         text-align: center;
-        background: linear-gradient(135deg, ${template.colors.primary}, ${template.colors.secondary});
-        color: white;
-        padding: 25px 20px;
-        border-radius: 12px;
-        margin-bottom: 25px;
-        print-color-adjust: exact;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        margin-bottom: 5mm;
+        border-radius: ${config.borderRadius}px;
+        position: relative;
+        overflow: hidden;
+        -webkit-print-color-adjust: exact !important;
       }
       
       .business-name {
-        font-size: 32px;
+        font-size: ${config.fontSize + 8}pt;
         font-weight: 700;
-        margin-bottom: 8px;
-        text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+        margin: 0;
+        text-transform: uppercase;
+        letter-spacing: 0.5pt;
+        color: white !important;
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+        word-wrap: break-word;
+        max-width: 90%;
+        line-height: 1.1;
       }
       
-      .catalog-subtitle {
-        font-size: 16px;
-        opacity: 0.95;
+      .page-subtitle {
+        font-size: ${config.fontSize + 2}pt;
         font-weight: 300;
+        opacity: 0.9;
+        color: white !important;
+        margin-top: 1mm;
       }
       
-      /* ===== GRID CORREGIDO - USAR FLEXBOX ===== */
-      .products-grid {
-        display: flex;
-        flex-wrap: wrap;
+      /* ===== PRODUCTOS GRID - TABLA ROBUSTA ===== */
+      .products-container {
         width: 100%;
-        gap: 0; /* Sin gap automático */
-        justify-content: flex-start;
-        align-content: flex-start;
-      }
-      
-      /* ===== CARDS CON DIMENSIONES CALCULADAS EXACTAS ===== */
-      .product-card {
-        /* CÁLCULO EXACTO PARA ${columns} COLUMNAS */
-        width: calc((100% - ${(columns - 1) * 15}px) / ${columns});
-        margin-right: ${columns > 1 ? '15px' : '0'};
-        margin-bottom: 18px;
-        
-        background: white;
-        border: 1px solid ${template.colors.accent}40;
-        border-radius: 12px;
-        padding: 18px;
-        text-align: center;
-        box-shadow: 0 3px 8px rgba(0,0,0,0.08);
-        display: flex;
-        flex-direction: column;
-        min-height: 300px;
-        print-color-adjust: exact;
+        height: calc(273mm - 35mm); /* Page height - header - footer */
         position: relative;
         overflow: hidden;
-        
-        /* FLEXBOX CONTROLS */
-        flex-shrink: 0;
-        flex-grow: 0;
       }
       
-      /* QUITAR MARGIN DE LA ÚLTIMA COLUMNA */
-      .product-card:nth-child(${columns}n) {
-        margin-right: 0 !important;
+      .products-table {
+        display: table;
+        width: 100%;
+        height: 100%;
+        table-layout: fixed;
+        border-collapse: separate;
+        border-spacing: 3mm;
+        margin: 0;
       }
       
-      .product-card::before {
-        content: '';
+      .product-row {
+        display: table-row;
+        height: calc((100% - ${this.calculateRows(template.productsPerPage, columns) - 1} * 3mm) / ${this.calculateRows(template.productsPerPage, columns)});
+      }
+      
+      /* ===== PRODUCT CARD ROBUSTO ===== */
+      .product-cell {
+        display: table-cell;
+        width: calc(100% / ${columns});
+        vertical-align: top;
+        padding: 0;
+        position: relative;
+      }
+      
+      .product-card {
+        width: 100%;
+        height: 100%;
+        background: white !important;
+        border: 0.5pt solid ${template.colors.accent}40;
+        border-radius: ${config.borderRadius}px;
+        overflow: hidden;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 1pt 3pt rgba(0,0,0,0.1);
+        -webkit-print-color-adjust: exact !important;
+      }
+      
+      /* ===== DECORACIÓN SUPERIOR ===== */
+      .card-decoration {
         position: absolute;
         top: 0;
         left: 0;
         right: 0;
-        height: 3px;
-        background: linear-gradient(90deg, ${template.colors.primary}, ${template.colors.secondary});
-        print-color-adjust: exact;
+        height: 2pt;
+        background: ${template.colors.primary} !important;
+        background-image: linear-gradient(90deg, ${template.colors.primary}, ${template.colors.secondary}) !important;
+        -webkit-print-color-adjust: exact !important;
       }
       
-      /* ===== IMAGEN CONTAINER MEJORADO ===== */
-      .product-image-container {
+      /* ===== IMAGEN CONTAINER ===== */
+      .image-container {
         width: 100%;
-        height: 180px;
+        height: 60%;
         position: relative;
-        background: white;
-        border-radius: 8px;
-        margin-bottom: 15px;
-        overflow: hidden;
+        background: #f8f9fa !important;
         display: flex;
         align-items: center;
         justify-content: center;
-        border: 1px solid #f0f0f0;
-        box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
+        overflow: hidden;
+        padding: ${config.cardPadding}mm;
+        box-sizing: border-box;
       }
       
-      /* ===== IMAGEN CORREGIDA - TAMAÑO SEGURO ===== */
+      /* ===== IMAGEN PERFECTA ===== */
       .product-image {
-        max-width: 85% !important; /* REDUCIDO PARA EVITAR CORTES */
-        max-height: 85% !important; /* REDUCIDO PARA EVITAR CORTES */
+        max-width: 100% !important;
+        max-height: 100% !important;
         width: auto !important;
         height: auto !important;
         object-fit: contain !important;
         object-position: center !important;
         display: block !important;
-        background: transparent;
-        border-radius: 4px;
+        border-radius: 2px !important;
+        -webkit-print-color-adjust: exact !important;
+        filter: none !important;
       }
       
-      .product-name {
-        font-size: 15px;
-        font-weight: 600;
-        color: ${template.colors.primary};
-        margin-bottom: 12px;
-        word-wrap: break-word;
-        line-height: 1.4;
-        flex-grow: 1;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        text-align: center;
-        min-height: 45px;
-        print-color-adjust: exact;
-      }
-      
-      .product-price {
-        font-size: 18px;
-        font-weight: 700;
-        color: white;
-        background: linear-gradient(135deg, ${template.colors.secondary}, ${template.colors.primary});
-        padding: 8px 16px;
-        border-radius: 25px;
-        display: inline-block;
-        margin-top: auto;
-        print-color-adjust: exact;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-        text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
-      }
-      
-      .product-description {
-        font-size: 12px;
-        color: #666;
-        margin-top: 8px;
-        line-height: 1.3;
-        max-height: 30px;
-        overflow: hidden;
-        font-style: italic;
-      }
-      
-      .page-footer {
-        margin-top: 25px;
-        text-align: center;
-        padding: 20px;
-        background: linear-gradient(135deg, ${template.colors.primary}15, ${template.colors.secondary}15);
-        border-radius: 8px;
-        font-size: 12px;
-        print-color-adjust: exact;
-        border-top: 2px solid ${template.colors.accent};
-      }
-      
-      .contact-info {
-        font-weight: 600;
-        margin-bottom: 6px;
-        color: ${template.colors.primary};
-      }
-      
-      .catalog-info {
-        color: #777;
-        font-size: 11px;
-        font-style: italic;
-      }
-      
-      /* IMAGEN PLACEHOLDER MEJORADO */
+      /* ===== PLACEHOLDER DE IMAGEN ===== */
       .image-placeholder {
-        width: 85%;
-        height: 85%;
-        background: linear-gradient(45deg, #f8f9fa 25%, transparent 25%), 
-                    linear-gradient(-45deg, #f8f9fa 25%, transparent 25%), 
-                    linear-gradient(45deg, transparent 75%, #f8f9fa 75%), 
-                    linear-gradient(-45deg, transparent 75%, #f8f9fa 75%);
-        background-size: 20px 20px;
-        background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+        width: 80%;
+        height: 80%;
+        background: repeating-conic-gradient(from 0deg at 50% 50%, #f0f0f0 0deg 90deg, transparent 90deg 180deg);
+        background-size: 8px 8px;
+        border: 1pt dashed #ddd;
+        border-radius: 3px;
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        color: #aaa;
-        font-size: 14px;
-        border: 2px dashed #ddd;
-        border-radius: 4px;
+        color: #999;
+        font-size: ${config.fontSize - 2}pt;
+        text-align: center;
       }
       
-      /* ===== RESPONSIVE ===== */
-      @media (max-width: 1024px) {
-        .products-grid {
-          flex-direction: column;
-        }
-        
-        .product-card {
-          width: 100% !important;
-          margin-right: 0 !important;
-        }
+      /* ===== INFO CONTAINER ===== */
+      .product-info {
+        height: 40%;
+        padding: ${config.cardPadding}mm;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        text-align: center;
+        position: relative;
+        background: white !important;
+        box-sizing: border-box;
       }
       
-      /* ===== OPTIMIZACIONES PARA IMPRESIÓN ===== */
+      /* ===== TEXTOS OPTIMIZADOS ===== */
+      .product-name {
+        font-size: ${config.fontSize + 1}pt;
+        font-weight: 600;
+        color: ${template.colors.primary} !important;
+        line-height: 1.2;
+        margin-bottom: 1mm;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        hyphens: auto;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        text-align: center;
+      }
+      
+      .product-price {
+        font-size: ${config.fontSize + 2}pt;
+        font-weight: 700;
+        color: white !important;
+        background: ${template.colors.secondary} !important;
+        background-image: linear-gradient(135deg, ${template.colors.secondary}, ${template.colors.primary}) !important;
+        padding: 1mm 2mm;
+        border-radius: 12px;
+        display: inline-block;
+        margin: 0 auto;
+        text-align: center;
+        white-space: nowrap;
+        max-width: 90%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        box-shadow: 0 0.5pt 2pt rgba(0,0,0,0.2);
+        -webkit-print-color-adjust: exact !important;
+      }
+      
+      .product-description {
+        font-size: ${config.fontSize - 1}pt;
+        color: #666 !important;
+        line-height: 1.3;
+        margin-top: 1mm;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        text-align: center;
+      }
+      
+      /* ===== FOOTER ===== */
+      .page-footer {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 15mm;
+        background: ${template.colors.secondary} !important;
+        color: ${this.getContrastColor(template.colors.secondary)} !important;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        border-radius: ${config.borderRadius}px;
+        padding: 2mm;
+        box-sizing: border-box;
+        -webkit-print-color-adjust: exact !important;
+      }
+      
+      .contact-info {
+        font-size: ${config.fontSize - 1}pt;
+        font-weight: 600;
+        margin-bottom: 1mm;
+        word-wrap: break-word;
+      }
+      
+      .footer-brand {
+        font-size: ${config.fontSize - 2}pt;
+        opacity: 0.8;
+        font-weight: 300;
+      }
+      
+      /* ===== OPTIMIZACIONES ESPECÍFICAS POR CATEGORÍA ===== */
+      ${this.getCategorySpecificCSS(template, config)}
+      
+      /* ===== PRINT MEDIA QUERIES ===== */
       @media print {
-        body { 
-          print-color-adjust: exact !important; 
+        * {
           -webkit-print-color-adjust: exact !important;
           color-adjust: exact !important;
+          print-color-adjust: exact !important;
+        }
+        
+        body {
+          background: white !important;
+          -webkit-print-color-adjust: exact !important;
         }
         
         .catalog-page {
-          page-break-inside: avoid;
+          page-break-inside: avoid !important;
+          break-inside: avoid !important;
         }
         
         .product-card {
-          page-break-inside: avoid;
-          break-inside: avoid;
+          page-break-inside: avoid !important;
+          break-inside: avoid !important;
         }
         
         .product-image {
-          print-color-adjust: exact !important;
           -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
           filter: none !important;
         }
       }
-      
-      /* ===== MEJORAS ESPECÍFICAS PARA EL TEMPLATE ${template.category} ===== */
-      ${template.category === 'luxury' ? `
-        .product-card {
-          border: 2px solid ${template.colors.accent};
-          background: linear-gradient(145deg, #ffffff 0%, #f9f9f9 100%);
-        }
-        .product-name {
-          font-family: 'Georgia', serif;
-          letter-spacing: 0.5px;
-        }
-      ` : ''}
-      
-      ${template.category === 'creative' ? `
-        .product-card {
-          border-radius: 16px;
-        }
-      ` : ''}
-      
-      ${template.category === 'business' ? `
-        .product-card {
-          border-radius: 6px;
-        }
-        .page-header {
-          border-radius: 6px;
-        }
-      ` : ''}
     `;
   }
   
   /**
-   * 📄 GENERAR PÁGINAS CON ESTILOS INLINE (MEJOR COMPATIBILIDAD)
+   * 📄 GENERAR PÁGINAS DEL CATÁLOGO
    */
-  private static generateInlineCatalogPages(
+  private static generateCatalogPages(
     products: Product[],
     businessInfo: BusinessInfo,
-    template: TemplateConfig
+    template: TemplateConfig,
+    columns: number
   ): string {
     
     const productsPerPage = template.productsPerPage;
     const totalPages = Math.ceil(products.length / productsPerPage);
-    const columns = template.productsPerPage <= 3 ? 2 : template.productsPerPage <= 6 ? 3 : 4;
     let pagesHTML = '';
     
     for (let page = 0; page < totalPages; page++) {
@@ -545,31 +576,16 @@ export class PuppeteerServiceClient {
       const pageProducts = products.slice(startIndex, endIndex);
       
       pagesHTML += `
-        <div style="
-          width: 100%;
-          min-height: 100vh;
-          padding: 15mm;
-          page-break-after: ${page === totalPages - 1 ? 'avoid' : 'always'};
-          display: flex;
-          flex-direction: column;
-          background: ${template.colors.background} !important;
-          -webkit-print-color-adjust: exact !important;
-        ">
-          ${this.generateInlinePageHeader(businessInfo, template, page + 1, totalPages)}
+        <div class="catalog-page">
+          ${this.generatePageHeader(businessInfo, template, page + 1, totalPages)}
           
-          <div style="
-            display: flex;
-            flex-wrap: wrap;
-            width: 100%;
-            gap: 0;
-            justify-content: flex-start;
-            align-content: flex-start;
-            margin-top: 20px;
-          ">
-            ${pageProducts.map((product, index) => this.generateInlineProductCard(product, template, columns, index)).join('')}
+          <div class="products-container">
+            <div class="products-table">
+              ${this.generateProductRows(pageProducts, columns, template)}
+            </div>
           </div>
           
-          ${page === totalPages - 1 ? this.generateInlinePageFooter(businessInfo, products.length) : ''}
+          ${page === totalPages - 1 ? this.generatePageFooter(businessInfo, products.length) : ''}
         </div>
       `;
     }
@@ -578,307 +594,325 @@ export class PuppeteerServiceClient {
   }
   
   /**
-   * 📋 GENERAR HEADER CON ESTILOS INLINE
+   * 📋 GENERAR HEADER DE PÁGINA
    */
-  private static generateInlinePageHeader(
+  private static generatePageHeader(
     businessInfo: BusinessInfo,
     template: TemplateConfig,
     pageNum: number,
     totalPages: number
   ): string {
-    
     return `
-      <header style="
-        text-align: center;
-        background: ${template.colors.primary} !important;
-        background-image: linear-gradient(135deg, ${template.colors.primary}, ${template.colors.secondary}) !important;
-        color: white !important;
-        padding: 25px 20px;
-        border-radius: 12px;
-        margin-bottom: 25px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-      ">
-        <h1 style="
-          font-size: 32px;
-          font-weight: 700;
-          margin: 0 0 8px 0;
-          color: white !important;
-          text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
-          -webkit-print-color-adjust: exact !important;
-        ">${businessInfo.business_name}</h1>
-        <p style="
-          font-size: 16px;
-          opacity: 0.95;
-          font-weight: 300;
-          margin: 0;
-          color: white !important;
-        ">Catálogo ${template.displayName} - Página ${pageNum} de ${totalPages}</p>
-      </header>
-    `;
-  }
-  
-  /**
-   * 🛍️ GENERAR TARJETA DE PRODUCTO CON ESTILOS INLINE - CORREGIDO
-   */
-  private static generateInlineProductCard(
-    product: Product, 
-    template: TemplateConfig, 
-    columns: number,
-    index: number
-  ): string {
-    const imageUrl = product.image_url || '';
-    const productName = product.name || 'Producto sin nombre';
-    const price = product.price_retail || 0;
-    const description = product.description || '';
-    
-    // CÁLCULO EXACTO DEL ANCHO PARA EVITAR CORTES
-    const cardWidth = `calc((100% - ${(columns - 1) * 15}px) / ${columns})`;
-    const marginRight = (index + 1) % columns === 0 ? '0' : '15px';
-    
-    return `
-      <div style="
-        width: ${cardWidth};
-        margin-right: ${marginRight};
-        margin-bottom: 18px;
-        background: white !important;
-        border: 1px solid ${template.colors.accent}40;
-        border-radius: 12px;
-        padding: 18px;
-        text-align: center;
-        box-shadow: 0 3px 8px rgba(0,0,0,0.08);
-        display: flex;
-        flex-direction: column;
-        min-height: 300px;
-        position: relative;
-        overflow: hidden;
-        flex-shrink: 0;
-        flex-grow: 0;
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-      ">
-        <!-- Borde superior decorativo -->
-        <div style="
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          height: 3px;
-          background: ${template.colors.primary} !important;
-          background-image: linear-gradient(90deg, ${template.colors.primary}, ${template.colors.secondary}) !important;
-          -webkit-print-color-adjust: exact !important;
-        "></div>
-        
-        <!-- Contenedor de imagen -->
-        <div style="
-          width: 100%;
-          height: 180px;
-          position: relative;
-          background: white !important;
-          border-radius: 8px;
-          margin-bottom: 15px;
-          overflow: hidden;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          border: 1px solid #f0f0f0;
-          box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
-          -webkit-print-color-adjust: exact !important;
-          print-color-adjust: exact !important;
-        ">
-          ${imageUrl ? 
-            `<img 
-              src="${imageUrl}" 
-              alt="${productName}"
-              style="
-                max-width: 85% !important;
-                max-height: 85% !important;
-                width: auto !important;
-                height: auto !important;
-                object-fit: contain !important;
-                object-position: center !important;
-                display: block !important;
-                background: transparent !important;
-                border-radius: 4px;
-                -webkit-print-color-adjust: exact !important;
-              "
-              crossorigin="anonymous"
-              loading="eager"
-            />` :
-            this.generateInlineImagePlaceholder(productName)
-          }
-        </div>
-        
-        <!-- Nombre del producto -->
-        <h3 style="
-          font-size: 15px;
-          font-weight: 600;
-          color: ${template.colors.primary} !important;
-          margin: 0 0 12px 0;
-          word-wrap: break-word;
-          line-height: 1.4;
-          flex-grow: 1;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          text-align: center;
-          min-height: 45px;
-          -webkit-print-color-adjust: exact !important;
-        ">${productName}</h3>
-        
-        <!-- Precio con gradiente -->
-        <div style="
-          font-size: 18px;
-          font-weight: 700;
-          color: white !important;
-          background: ${template.colors.secondary} !important;
-          background-image: linear-gradient(135deg, ${template.colors.secondary}, ${template.colors.primary}) !important;
-          padding: 8px 16px;
-          border-radius: 25px;
-          display: inline-block;
-          margin-top: auto;
-          box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-          text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
-          -webkit-print-color-adjust: exact !important;
-          print-color-adjust: exact !important;
-        ">$${price.toLocaleString('es-MX')}</div>
-        
-        ${description ? `
-          <p style="
-            font-size: 12px;
-            color: #666 !important;
-            margin-top: 8px;
-            line-height: 1.3;
-            max-height: 30px;
-            overflow: hidden;
-            font-style: italic;
-          ">${description}</p>
-        ` : ''}
+      <div class="page-header">
+        <h1 class="business-name">${businessInfo.business_name}</h1>
+        <p class="page-subtitle">Catálogo ${template.displayName} - Página ${pageNum} de ${totalPages}</p>
       </div>
     `;
   }
   
   /**
-   * 🖼️ GENERAR PLACEHOLDER DE IMAGEN CON ESTILOS INLINE
+   * 🛍️ GENERAR FILAS DE PRODUCTOS
    */
-  private static generateInlineImagePlaceholder(productName: string): string {
+  private static generateProductRows(products: Product[], columns: number, template: TemplateConfig): string {
+    let rowsHTML = '';
+    
+    for (let i = 0; i < products.length; i += columns) {
+      const rowProducts = products.slice(i, i + columns);
+      
+      rowsHTML += `
+        <div class="product-row">
+          ${rowProducts.map(product => this.generateProductCell(product, template)).join('')}
+          ${this.generateEmptyCells(columns - rowProducts.length)}
+        </div>
+      `;
+    }
+    
+    return rowsHTML;
+  }
+  
+  /**
+   * 🎴 GENERAR CELDA DE PRODUCTO
+   */
+  private static generateProductCell(product: Product, template: TemplateConfig): string {
+    const productName = product.name || 'Producto';
+    const productPrice = typeof product.price_retail === 'number' ? product.price_retail : 0;
+    const productImage = product.image_url || '';
+    const productDescription = product.description || '';
+    
+    const imageHTML = productImage ? 
+      `<img 
+         src="${productImage}" 
+         alt="${productName}"
+         class="product-image" 
+         loading="eager" 
+         crossorigin="anonymous"
+       />` :
+      `<div class="image-placeholder">
+         <div style="font-size: 16pt; margin-bottom: 1mm;">📷</div>
+         <div>Sin imagen</div>
+       </div>`;
+    
     return `
-      <div style="
-        width: 85%;
-        height: 85%;
-        background: #f8f9fa !important;
-        background-image: 
-          linear-gradient(45deg, #f8f9fa 25%, transparent 25%), 
-          linear-gradient(-45deg, #f8f9fa 25%, transparent 25%), 
-          linear-gradient(45deg, transparent 75%, #f8f9fa 75%), 
-          linear-gradient(-45deg, transparent 75%, #f8f9fa 75%) !important;
-        background-size: 20px 20px !important;
-        background-position: 0 0, 0 10px, 10px -10px, -10px 0px !important;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        color: #aaa !important;
-        font-size: 14px;
-        border: 2px dashed #ddd;
-        border-radius: 4px;
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-      ">
-        <div style="margin-bottom: 5px; font-size: 18px;">📷</div>
-        <div style="font-size: 12px;">Sin imagen</div>
-        <div style="font-size: 10px; margin-top: 5px;">${productName.substring(0, 15)}</div>
+      <div class="product-cell">
+        <div class="product-card">
+          <div class="card-decoration"></div>
+          
+          <div class="image-container">
+            ${imageHTML}
+          </div>
+          
+          <div class="product-info">
+            <h3 class="product-name">${productName}</h3>
+            
+            <div class="product-price">$${productPrice.toLocaleString('es-MX', { 
+              minimumFractionDigits: 0,
+              maximumFractionDigits: 0
+            })}</div>
+            
+            ${productDescription ? 
+              `<p class="product-description">${productDescription}</p>` : ''
+            }
+          </div>
+        </div>
       </div>
     `;
   }
   
   /**
-   * 📄 GENERAR FOOTER CON ESTILOS INLINE
+   * ⬜ GENERAR CELDAS VACÍAS
    */
-  private static generateInlinePageFooter(businessInfo: BusinessInfo, totalProducts: number): string {
-    return `
-      <footer style="
-        margin-top: 25px;
-        text-align: center;
-        padding: 20px;
-        background: rgba(59, 130, 246, 0.1) !important;
-        border-radius: 8px;
-        font-size: 12px;
-        border-top: 2px solid #3B82F6;
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-      ">
-        <div style="
-          font-weight: 600;
-          margin-bottom: 6px;
-          color: #3B82F6 !important;
-        ">
-          📞 ${businessInfo.phone || 'Teléfono no disponible'} | 
-          📧 ${businessInfo.email || 'Email no disponible'}
-          ${businessInfo.website ? ` | 🌐 ${businessInfo.website}` : ''}
+  private static generateEmptyCells(count: number): string {
+    if (count <= 0) return '';
+    
+    return Array(count).fill(`
+      <div class="product-cell">
+        <div class="product-card" style="visibility: hidden;">
+          <div class="image-container"></div>
+          <div class="product-info"></div>
         </div>
-        <div style="
-          color: #777 !important;
-          font-size: 11px;
-          font-style: italic;
-        ">
+      </div>
+    `).join('');
+  }
+  
+  /**
+   * 📄 GENERAR FOOTER DE PÁGINA
+   */
+  private static generatePageFooter(businessInfo: BusinessInfo, totalProducts: number): string {
+    const contactInfo = [
+      businessInfo.phone ? `📞 ${businessInfo.phone}` : '',
+      businessInfo.email ? `📧 ${businessInfo.email}` : '',
+      businessInfo.website ? `🌐 ${businessInfo.website}` : ''
+    ].filter(Boolean).join(' | ');
+    
+    return `
+      <div class="page-footer">
+        ${contactInfo ? `<div class="contact-info">${contactInfo}</div>` : ''}
+        <div class="footer-brand">
           Catálogo generado con CatalogoIA - ${totalProducts} productos | ${new Date().toLocaleDateString('es-MX')}
         </div>
-      </footer>
+      </div>
     `;
   }
   
   /**
-   * 🎨 CONVERTIR HEX A RGB PARA TRANSPARENCIAS
+   * ⚙️ GENERAR PDF CON RETRY
    */
-  private static hexToRgb(hex: string): string {
-    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-    return result ? 
-      `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}` : 
-      '59, 130, 246'; // Default blue
+  private static async generatePDFWithRetry(
+    htmlContent: string,
+    pdfOptions: any,
+    businessInfo: BusinessInfo,
+    onProgress?: (progress: number) => void,
+    maxRetries: number = 2
+  ): Promise<Blob> {
+    
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        if (onProgress) onProgress(30 + (attempt - 1) * 10);
+        
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), this.TIMEOUT);
+        
+        const response = await fetch(`${this.SERVICE_URL}/generate-pdf`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            html: htmlContent,
+            options: pdfOptions,
+            filename: `catalogo-${businessInfo.business_name.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`
+          }),
+          signal: controller.signal
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) {
+          throw new Error(`Error HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        if (onProgress) onProgress(70 + attempt * 10);
+        
+        const blob = await response.blob();
+        
+        if (blob.size === 0) {
+          throw new Error('PDF vacío recibido del servicio');
+        }
+        
+        console.log(`✅ PDF generado en intento ${attempt}/${maxRetries}, tamaño: ${blob.size} bytes`);
+        return blob;
+        
+      } catch (error) {
+        console.warn(`⚠️ Intento ${attempt}/${maxRetries} falló:`, error);
+        
+        if (attempt === maxRetries) {
+          throw error;
+        }
+        
+        // Esperar antes del siguiente intento
+        await new Promise(resolve => setTimeout(resolve, attempt * 2000));
+      }
+    }
+    
+    throw new Error('Todos los intentos de generación fallaron');
   }
   
   /**
-   * 🧪 PROBAR SERVICIO CON PDF DE PRUEBA
+   * 💾 DESCARGAR PDF
    */
-  static async testService(): Promise<PuppeteerResult> {
+  private static async downloadPDF(blob: Blob, businessName: string): Promise<void> {
     try {
-      const response = await fetch(`${this.SERVICE_URL}/test-pdf`, {
-        method: 'GET'
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Test failed: ${response.status}`);
-      }
-      
-      const blob = await response.blob();
       const downloadUrl = URL.createObjectURL(blob);
+      const filename = `catalogo-${businessName.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
       
       const link = document.createElement('a');
       link.href = downloadUrl;
-      link.download = 'test-puppeteer-service.pdf';
+      link.download = filename;
       link.style.display = 'none';
       
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       
-      setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
-      
-      return { success: true, downloadUrl };
+      // Limpiar después de un tiempo
+      setTimeout(() => URL.revokeObjectURL(downloadUrl), 5000);
       
     } catch (error) {
-      console.error('Error testing service:', error);
+      console.error('Error descargando PDF:', error);
+      throw new Error('Error descargando el PDF generado');
+    }
+  }
+  
+  /**
+   * ⚙️ CONFIGURACIONES DE PDF OPTIMIZADAS
+   */
+  private static getPDFOptions(options: PuppeteerServiceOptions): any {
+    return {
+      format: options.format || 'A4',
+      margin: options.margin || {
+        top: '12mm',
+        right: '12mm',
+        bottom: '12mm',
+        left: '12mm'
+      },
+      printBackground: true,
+      preferCSSPageSize: true,
+      displayHeaderFooter: false,
+      waitUntil: 'networkidle0',
+      timeout: 30000,
+      omitBackground: false,
+      quality: options.quality === 'high' ? 100 : options.quality === 'low' ? 80 : 90
+    };
+  }
+  
+  // ===== UTILITY FUNCTIONS =====
+  
+  private static calculateColumns(productsPerPage: number): number {
+    if (productsPerPage <= 2) return 1;
+    if (productsPerPage <= 4) return 2;
+    if (productsPerPage <= 9) return 3;
+    return 4;
+  }
+  
+  private static calculateRows(productsPerPage: number, columns: number): number {
+    return Math.ceil(productsPerPage / columns);
+  }
+  
+  private static getContrastColor(hexColor: string): string {
+    const hex = hexColor.replace('#', '');
+    const r = parseInt(hex.substr(0, 2), 16);
+    const g = parseInt(hex.substr(2, 2), 16);
+    const b = parseInt(hex.substr(4, 2), 16);
+    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    return luminance > 0.5 ? '#2c3e50' : '#ffffff';
+  }
+  
+  private static getCategorySpecificCSS(template: TemplateConfig, config: any): string {
+    const categoryStyles = {
+      luxury: `
+        .product-card {
+          border: 1pt solid ${template.colors.accent} !important;
+          background: linear-gradient(145deg, #ffffff 0%, #f9f9f9 100%) !important;
+        }
+        .product-name {
+          font-family: 'Georgia', serif !important;
+          letter-spacing: 0.3pt !important;
+        }
+      `,
+      creative: `
+        .product-card {
+          border-radius: ${config.borderRadius * 1.5}px !important;
+        }
+        .image-container {
+          border-radius: ${config.borderRadius}px !important;
+        }
+      `,
+      business: `
+        .product-card {
+          border-radius: ${Math.max(config.borderRadius * 0.5, 2)}px !important;
+        }
+        .page-header {
+          border-radius: ${Math.max(config.borderRadius * 0.5, 2)}px !important;
+        }
+      `
+    };
+    
+    return categoryStyles[template.category as keyof typeof categoryStyles] || '';
+  }
+  
+  /**
+   * 🧪 TEST SERVICE
+   */
+  static async testService(): Promise<PuppeteerResult> {
+    try {
+      const response = await fetch(`${this.SERVICE_URL}/test-pdf`, {
+        method: 'GET',
+        timeout: this.TIMEOUT
+      } as RequestInit);
+      
+      if (!response.ok) {
+        throw new Error(`Test failed: ${response.status} ${response.statusText}`);
+      }
+      
+      const blob = await response.blob();
+      await this.downloadPDF(blob, 'test-puppeteer');
+      
+      return { 
+        success: true,
+        stats: { totalProducts: 0, totalPages: 1, generationTime: 0 }
+      };
+      
+    } catch (error) {
+      console.error('Test service error:', error);
       return { 
         success: false, 
-        error: error instanceof Error ? error.message : 'Error en test' 
+        error: error instanceof Error ? error.message : 'Error en test de servicio' 
       };
     }
   }
 }
 
-// Función de conveniencia para usar en componentes
+// Función de conveniencia
 export const generatePDFWithPuppeteer = async (
   products: Product[],
   businessInfo: BusinessInfo,
