@@ -1,5 +1,5 @@
-// src/lib/templates/css-generator.ts - VERSIÓN CORREGIDA
-// 🚀 CSS GENERATOR - ARREGLADO PARA EVITAR CORTE DE IMÁGENES
+// src/lib/templates/css-generator.ts - SOLUCIÓN INTEGRAL PARA PDF
+// 🎯 REESCRITO COMPLETAMENTE PARA ELIMINAR CORTES Y PÁGINAS VACÍAS
 
 import { IndustryTemplate } from './industry-templates';
 
@@ -25,16 +25,17 @@ interface BusinessInfo {
 export class TemplateGenerator {
   
   /**
-   * 🎨 CSS GENERATOR CON TÉCNICAS COMPATIBLES PDF - CORREGIDO
+   * 🎨 CSS GENERATOR INTEGRAL - PDF-FIRST APPROACH
    */
   static generateTemplateCSS(template: IndustryTemplate): string {
     const spacing = this.getSpacingValues(template.design?.spacing || 'normal');
     const colors = this.generateProfessionalColorScheme(template);
+    const dimensions = this.calculatePDFDimensions(template);
     
     return `
-      /* ===== TEMPLATE PDF-COMPATIBLE: ${template.displayName.toUpperCase()} ===== */
+      /* ===== PDF-FIRST TEMPLATE: ${template.displayName.toUpperCase()} ===== */
       
-      /* Variables CSS */
+      /* ===== VARIABLES CSS ===== */
       :root {
         --primary-color: ${colors.primary};
         --secondary-color: ${colors.secondary};
@@ -44,454 +45,569 @@ export class TemplateGenerator {
         --text-primary: ${colors.textPrimary};
         --text-secondary: ${colors.textSecondary};
         --border-color: ${colors.borderColor};
+        
+        /* DIMENSIONES CALCULADAS PARA PDF */
+        --page-width: ${dimensions.pageWidth}mm;
+        --page-height: ${dimensions.pageHeight}mm;
+        --margin: ${dimensions.margin}mm;
+        --content-width: ${dimensions.contentWidth}mm;
+        --card-width: ${dimensions.cardWidth}mm;
+        --card-height: ${dimensions.cardHeight}mm;
+        --image-height: ${dimensions.imageHeight}mm;
+        --gap: ${dimensions.gap}mm;
       }
       
+      /* ===== RESET Y BASE ===== */
       * {
         margin: 0;
         padding: 0;
         box-sizing: border-box;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        color-adjust: exact !important;
+      }
+      
+      /* ===== CONFIGURACIÓN PÁGINA PDF ===== */
+      @page {
+        size: A4;
+        margin: var(--margin);
+      }
+      
+      html {
+        width: var(--page-width);
+        height: var(--page-height);
       }
       
       body.template-${template.id} {
-        font-family: 'Arial', 'Helvetica', sans-serif; /* Fuentes seguras para PDF */
-        background: var(--background-color);
+        font-family: 'Arial', 'Helvetica', sans-serif;
+        background: var(--background-color) !important;
         color: var(--text-primary);
-        line-height: 1.6;
-        font-size: 16px;
-      }
-      
-      .catalog-container {
-        max-width: 1400px;
+        line-height: 1.4;
+        font-size: 14px;
+        width: var(--content-width);
         margin: 0 auto;
-        background: var(--background-color);
-        min-height: 100vh;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
       }
       
-      /* ===== HEADER ===== */
+      /* ===== CONTAINER PRINCIPAL ===== */
+      .catalog-container {
+        width: 100%;
+        max-width: var(--content-width);
+        background: var(--background-color) !important;
+        -webkit-print-color-adjust: exact !important;
+      }
+      
+      /* ===== HEADER CON DIMENSIONES FIJAS ===== */
       .catalog-header {
-        background: var(--primary-color);
-        color: white;
-        padding: ${spacing.header}px;
+        background: var(--primary-color) !important;
+        color: white !important;
+        padding: 15mm 10mm;
         text-align: center;
-        page-break-after: avoid; /* PDF-specific */
+        width: 100%;
+        margin-bottom: 8mm;
+        page-break-after: avoid;
+        page-break-inside: avoid;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
       }
       
       .business-name {
-        font-size: ${this.getHeaderSize(template.density)};
+        font-size: ${this.getHeaderFontSize(template.density)}pt;
         font-weight: bold;
-        margin-bottom: 12px;
-        letter-spacing: 1px;
+        margin-bottom: 3mm;
+        letter-spacing: 1pt;
         text-transform: uppercase;
+        color: white !important;
+        -webkit-print-color-adjust: exact !important;
       }
       
       .catalog-subtitle {
-        font-size: 1.2rem;
+        font-size: 14pt;
         font-weight: normal;
         opacity: 0.95;
-        letter-spacing: 0.5px;
+        color: white !important;
+        -webkit-print-color-adjust: exact !important;
       }
       
-      /* ===== PRODUCTS SECTION CORREGIDA ===== */
+      /* ===== PRODUCTS SECTION CON FLEXBOX (MÁS COMPATIBLE) ===== */
       .products-section {
-        padding: ${spacing.section}px;
-        max-width: 100%;
-      }
-      
-      /* ===== GRID SYSTEM MEJORADO - EVITA CORTES ===== */
-      .products-grid {
-        display: grid;
-        grid-template-columns: repeat(${template.gridColumns}, 1fr);
-        gap: ${this.calculateOptimalGap(template.gridColumns, template.density)}px;
         width: 100%;
-        box-sizing: border-box;
-        /* CORRECCIÓN CRÍTICA: Contenido dentro del contenedor */
-        container-type: inline-size;
+        padding: 0;
+        margin: 0;
       }
       
-      /* ===== PRODUCT CARDS - DIMENSIONES CALCULADAS CORRECTAMENTE ===== */
+      /* ===== SISTEMA FLEXBOX EN LUGAR DE GRID ===== */
+      .products-grid {
+        display: flex;
+        flex-wrap: wrap;
+        width: 100%;
+        gap: 0; /* Sin gap - usamos margins */
+        justify-content: flex-start;
+        align-content: flex-start;
+        page-break-inside: avoid;
+      }
+      
+      /* ===== PRODUCT CARDS CON DIMENSIONES ABSOLUTAS ===== */
       .product-card {
-        background: var(--card-background);
-        border: 1px solid var(--border-color);
+        /* DIMENSIONES EXACTAS CALCULADAS */
+        width: ${dimensions.cardWidth}mm;
+        height: ${dimensions.cardHeight}mm;
+        margin-right: ${dimensions.gap}mm;
+        margin-bottom: ${dimensions.gap}mm;
+        
+        /* ESTRUCTURA */
+        background: var(--card-background) !important;
+        border: 0.5mm solid var(--border-color);
         border-radius: ${template.design.borderRadius}px;
         overflow: hidden;
-        page-break-inside: avoid;
-        width: 100%; /* CORRECCIÓN: Usar 100% del grid item */
-        height: auto;
-        min-height: ${this.calculateMinCardHeight(template.density)}px;
+        
+        /* PDF OPTIMIZATIONS */
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+        position: relative;
+        flex-shrink: 0;
+        flex-grow: 0;
+        
+        /* LAYOUT INTERNO */
         display: flex;
         flex-direction: column;
-        ${template.design.shadows ? 'box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);' : ''}
+        
+        ${template.design.shadows ? 'box-shadow: 0 1mm 2mm rgba(0, 0, 0, 0.1);' : ''}
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
       }
       
-      /* ===== IMAGEN CONTAINER - DIMENSIONES FIJAS CALCULADAS ===== */
+      /* AJUSTE PARA ÚLTIMA COLUMNA - QUITAR MARGIN RIGHT */
+      .product-card:nth-child(${template.gridColumns}n) {
+        margin-right: 0 !important;
+      }
+      
+      /* ===== IMAGEN CONTAINER CON DIMENSIONES FIJAS ===== */
       .product-image-container {
         width: 100%;
-        height: ${this.calculateOptimalImageHeight(template.density, template.gridColumns)}px; 
-        background: #f8f9fa;
+        height: ${dimensions.imageHeight}mm;
+        background: #f8f9fa !important;
+        position: relative;
         overflow: hidden;
+        flex-shrink: 0;
         display: flex;
         align-items: center;
         justify-content: center;
-        position: relative;
-        /* CRÍTICO: Evitar desbordamiento */
-        flex-shrink: 0;
+        border-bottom: 0.5mm solid var(--border-color);
+        -webkit-print-color-adjust: exact !important;
       }
       
-      /* TÉCNICA BACKGROUND-IMAGE MEJORADA (Funciona en PDF) */
-      .product-image-bg {
-        width: 95%; /* CORRECCIÓN: 95% para margen interno */
-        height: 95%; /* CORRECCIÓN: 95% para margen interno */
-        background-size: contain; /* Equivalente a object-fit: contain */
-        background-repeat: no-repeat;
-        background-position: center;
-        background-color: transparent;
-        margin: auto; /* CORRECCIÓN: Centrar automáticamente */
-      }
-      
-      /* TÉCNICA IMG CON CONTENEDOR MEJORADA */
+      /* ===== TÉCNICA IMG MEJORADA (MÁS COMPATIBLE QUE BACKGROUND) ===== */
       .product-image {
-        max-width: 90%; /* CORRECCIÓN: Reducir para evitar corte */
-        max-height: 90%; /* CORRECCIÓN: Reducir para evitar corte */
+        max-width: 85%; /* REDUCIDO PARA MARGEN SEGURO */
+        max-height: 85%; /* REDUCIDO PARA MARGEN SEGURO */
         width: auto;
         height: auto;
-        object-fit: contain; /* CRÍTICO para mantener proportiones */
+        object-fit: contain;
+        object-position: center;
         display: block;
-        margin: auto; /* CORRECCIÓN: Centrar */
+        margin: auto;
+        border-radius: 2px;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
       }
       
-      /* ===== INFORMACIÓN PRODUCTO CON ESPACIADO CALCULADO ===== */
+      /* FALLBACK PARA IMÁGENES FALTANTES */
+      .product-image-placeholder {
+        width: 85%;
+        height: 85%;
+        background: linear-gradient(45deg, #f0f0f0 25%, transparent 25%),
+                    linear-gradient(-45deg, #f0f0f0 25%, transparent 25%),
+                    linear-gradient(45deg, transparent 75%, #f0f0f0 75%),
+                    linear-gradient(-45deg, transparent 75%, #f0f0f0 75%);
+        background-size: 8px 8px;
+        background-position: 0 0, 0 4px, 4px -4px, -4px 0px;
+        border: 1px dashed #ddd;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #999;
+        font-size: 10pt;
+        text-align: center;
+        -webkit-print-color-adjust: exact !important;
+      }
+      
+      /* ===== INFORMACIÓN DEL PRODUCTO ===== */
       .product-info {
-        padding: ${this.calculateOptimalPadding(template.density)}px;
-        background: var(--card-background);
         flex-grow: 1;
+        padding: ${this.getTextPadding(template.density)}mm;
         display: flex;
         flex-direction: column;
         justify-content: space-between;
-        min-height: ${this.calculateMinTextHeight(template.density)}px;
+        min-height: ${dimensions.textHeight}mm;
+        background: var(--card-background) !important;
+        -webkit-print-color-adjust: exact !important;
       }
       
       .product-name {
-        font-size: ${this.getProductNameSize(template.density)};
+        font-size: ${this.getProductNameFontSize(template.density)}pt;
         font-weight: bold;
-        color: var(--text-primary);
-        margin-bottom: ${spacing.card / 2}px;
-        line-height: 1.3;
+        color: var(--text-primary) !important;
+        margin-bottom: 2mm;
+        line-height: 1.2;
         word-wrap: break-word;
-        /* CORRECCIÓN: Altura máxima calculada */
-        max-height: ${this.getProductNameMaxHeight(template.density)};
         overflow: hidden;
+        /* TRUNCAR TEXTO ESPECÍFICO POR DENSIDAD */
         display: -webkit-box;
         -webkit-line-clamp: ${this.getMaxLines(template.density)};
         -webkit-box-orient: vertical;
+        -webkit-print-color-adjust: exact !important;
       }
       
       .product-price {
-        font-size: ${this.getPriceSize(template.density)};
+        font-size: ${this.getPriceFontSize(template.density)}pt;
         font-weight: bold;
-        color: white;
-        background: var(--primary-color);
-        padding: ${this.calculatePricePadding(template.density)};
-        border-radius: 15px;
+        color: white !important;
+        background: var(--primary-color) !important;
+        padding: 2mm 4mm;
+        border-radius: 10px;
         display: inline-block;
-        margin: ${spacing.card / 2}px 0;
-        letter-spacing: 0.5px;
         text-align: center;
-        /* CORRECCIÓN: Evitar desbordamiento de precio */
+        margin: 2mm 0;
         max-width: 100%;
         box-sizing: border-box;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
       }
       
-      /* ===== INFORMACIÓN CONDICIONAL CON ESPACIADO OPTIMIZADO ===== */
+      /* ===== INFORMACIÓN CONDICIONAL OPTIMIZADA ===== */
       
       ${template.showInfo.category ? `
       .product-category {
-        font-size: ${this.getCategorySize(template.density)};
-        color: var(--accent-color);
+        font-size: ${this.getCategoryFontSize(template.density)}pt;
+        color: var(--accent-color) !important;
         text-transform: uppercase;
-        letter-spacing: 1px;
         font-weight: bold;
-        margin-bottom: ${spacing.card / 2}px;
-        background: ${this.hexToRgba(template.colors.accent, 0.15)};
-        padding: 3px 8px;
-        border-radius: 10px;
+        margin-bottom: 1.5mm;
+        background: ${this.hexToRgba(template.colors.accent, 0.15)} !important;
+        padding: 1mm 2mm;
+        border-radius: 8px;
         display: inline-block;
         max-width: 100%;
-        box-sizing: border-box;
+        -webkit-print-color-adjust: exact !important;
       }
-      ` : `.product-category { display: none; }`}
+      ` : `.product-category { display: none !important; }`}
       
       ${template.showInfo.description ? `
       .product-description {
-        font-size: ${this.getDescriptionSize(template.density)};
-        color: var(--text-secondary);
-        margin-bottom: ${spacing.card / 2}px;
-        line-height: 1.4;
-        max-height: ${this.getDescriptionMaxHeight(template.density)};
+        font-size: ${this.getDescriptionFontSize(template.density)}pt;
+        color: var(--text-secondary) !important;
+        margin-bottom: 1.5mm;
+        line-height: 1.3;
         overflow: hidden;
-        word-wrap: break-word;
         display: -webkit-box;
         -webkit-line-clamp: ${this.getDescriptionMaxLines(template.density)};
         -webkit-box-orient: vertical;
+        word-wrap: break-word;
+        -webkit-print-color-adjust: exact !important;
       }
-      ` : `.product-description { display: none; }`}
+      ` : `.product-description { display: none !important; }`}
       
       ${template.showInfo.sku ? `
       .product-sku {
-        font-size: ${this.getSkuSize(template.density)};
-        color: var(--text-secondary);
+        font-size: ${this.getSkuFontSize(template.density)}pt;
+        color: var(--text-secondary) !important;
         font-family: 'Courier New', monospace;
-        background: rgba(0, 0, 0, 0.05);
-        padding: 4px 8px;
-        border-radius: 4px;
+        background: rgba(0, 0, 0, 0.05) !important;
+        padding: 1mm 2mm;
+        border-radius: 3px;
         display: inline-block;
-        margin-bottom: ${spacing.card / 2}px;
-        border: 1px solid var(--border-color);
-        max-width: 100%;
-        box-sizing: border-box;
+        margin-bottom: 1mm;
+        border: 0.5px solid var(--border-color);
+        -webkit-print-color-adjust: exact !important;
       }
-      ` : `.product-sku { display: none; }`}
+      ` : `.product-sku { display: none !important; }`}
       
-      /* ===== RESPONSIVE MEJORADO PARA PDF ===== */
+      ${template.showInfo.specifications ? `
+      .product-specifications {
+        font-size: ${this.getSpecsFontSize(template.density)}pt;
+        color: var(--text-secondary) !important;
+        border-top: 0.5px solid var(--border-color);
+        padding-top: 1.5mm;
+        margin-top: 1.5mm;
+        line-height: 1.3;
+        overflow: hidden;
+        max-height: ${this.getSpecsMaxHeight(template.density)}mm;
+        -webkit-print-color-adjust: exact !important;
+      }
+      ` : `.product-specifications { display: none !important; }`}
       
-      /* ===== CORRECCIONES ESPECÍFICAS POR DENSIDAD ===== */
-      ${this.generateDensitySpecificCSS(template)}
-      
-      /* ===== CORRECCIONES POR NÚMERO DE COLUMNAS ===== */
-      ${this.generateColumnSpecificCSS(template.gridColumns)}
-      
-      /* ===== FOOTER IGUAL QUE ANTES ===== */
+      /* ===== FOOTER CON DIMENSIONES FIJAS ===== */
       .catalog-footer {
-        background: var(--secondary-color);
-        color: ${this.getContrastColor(template.colors.secondary || template.colors.primary)};
-        padding: ${spacing.footer}px;
+        width: 100%;
+        background: var(--secondary-color) !important;
+        color: ${this.getContrastColor(template.colors.secondary || template.colors.primary)} !important;
+        padding: 8mm;
         text-align: center;
-        border-top: 1px solid var(--border-color);
-        margin-top: 40px;
-        page-break-before: avoid;
+        border-top: 1mm solid var(--border-color);
+        margin-top: 10mm;
+        page-break-before: avoid !important;
+        page-break-inside: avoid !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
       }
       
       .business-contact {
-        font-size: 1rem;
-        line-height: 1.6;
-        margin-bottom: 15px;
+        font-size: 11pt;
+        line-height: 1.4;
+        margin-bottom: 3mm;
+        font-weight: bold;
       }
       
       .contact-item {
         display: inline-block;
-        margin: 5px 15px;
-        padding: 5px 10px;
-        background: rgba(255, 255, 255, 0.15);
-        border-radius: 15px;
+        margin: 0 3mm;
+        padding: 1.5mm 3mm;
+        background: rgba(255, 255, 255, 0.15) !important;
+        border-radius: 10px;
         font-weight: bold;
+        -webkit-print-color-adjust: exact !important;
       }
       
       .footer-branding {
-        margin-top: 20px;
-        font-size: 0.9rem;
+        margin-top: 4mm;
+        font-size: 9pt;
         opacity: 0.8;
-        font-weight: bold;
-        letter-spacing: 0.5px;
+        font-weight: normal;
       }
       
-      /* ===== RESPONSIVE PARA PDF CON CORRECCIONES ===== */
-      
-      /* Tablet - Ajustar columnas */
-      @media (max-width: 1024px) {
-        .products-grid {
-          grid-template-columns: repeat(${Math.min(template.gridColumns, 2)}, 1fr);
-          gap: ${this.calculateOptimalGap(Math.min(template.gridColumns, 2), template.density)}px;
-        }
+      /* ===== PAGE BREAK MANAGEMENT - CLAVE PARA EVITAR PÁGINAS VACÍAS ===== */
+      .page-break-before {
+        page-break-before: always !important;
+        break-before: page !important;
       }
       
-      /* Mobile - Una sola columna para evitar cortes */
+      .page-break-after {
+        page-break-after: always !important;
+        break-after: page !important;
+      }
+      
+      .page-break-avoid {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+      }
+      
+      /* EVITAR CARDS HUÉRFANAS */
+      .products-grid .product-card:last-child {
+        page-break-after: avoid !important;
+      }
+      
+      /* CONTROL DE FLUJO DE PÁGINAS */
+      .products-section {
+        orphans: 1;
+        widows: 1;
+      }
+      
+      /* ===== RESPONSIVE SIMPLIFICADO - MOBILE ONLY ===== */
       @media (max-width: 768px) {
-        .products-grid {
-          grid-template-columns: 1fr;
-          gap: 15px;
+        :root {
+          --card-width: ${dimensions.contentWidth - 10}mm;
+          --gap: 3mm;
         }
         
-        .product-image-container {
-          height: ${this.calculateOptimalImageHeight(template.density, 1)}px;
+        .product-card {
+          width: 100% !important;
+          margin-right: 0 !important;
+        }
+        
+        .product-card:nth-child(${template.gridColumns}n) {
+          margin-right: 0 !important;
         }
       }
       
-      /* ===== PRINT/PDF STYLES MEJORADOS ===== */
+      /* ===== PRINT/PDF OVERRIDES ===== */
       @media print {
         * {
           -webkit-print-color-adjust: exact !important;
           color-adjust: exact !important;
+          print-color-adjust: exact !important;
         }
         
-        body.template-${template.id} {
+        body {
           background: white !important;
           font-size: 12px !important;
+          -webkit-print-color-adjust: exact !important;
         }
         
-        .products-grid {
-          /* CRÍTICO: Forzar columnas correctas en print */
-          grid-template-columns: repeat(${template.gridColumns}, 1fr) !important;
-          gap: ${Math.max(10, spacing.grid * 0.8)}px !important;
+        .catalog-container {
+          width: 100% !important;
+          max-width: none !important;
         }
         
         .product-card {
           page-break-inside: avoid !important;
           break-inside: avoid !important;
           border: 1px solid #ddd !important;
-          margin-bottom: 10px !important;
-          /* CRÍTICO: Forzar ancho correcto */
-          width: 100% !important;
-          box-sizing: border-box !important;
+          -webkit-print-color-adjust: exact !important;
         }
         
-        .product-image-container {
-          /* CRÍTICO: Altura fija en print */
-          height: ${this.calculateOptimalImageHeight(template.density, template.gridColumns)}px !important;
-        }
-        
-        .product-image-bg,
         .product-image {
           -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
           color-adjust: exact !important;
-          /* CRÍTICO: Evitar desbordamiento en print */
-          max-width: 90% !important;
-          max-height: 90% !important;
+        }
+        
+        .catalog-header,
+        .catalog-footer,
+        .product-price,
+        .product-category {
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
+          color-adjust: exact !important;
         }
       }
+      
+      /* ===== OPTIMIZACIONES ESPECÍFICAS POR TEMPLATE ===== */
+      ${this.generateTemplateSpecificCSS(template)}
     `;
   }
   
   /**
-   * 🎯 FUNCIONES DE CÁLCULO CORREGIDAS
+   * 📐 CALCULAR DIMENSIONES PDF EXACTAS
    */
-  
-  // Calcular gap optimal basado en columnas y densidad
-  private static calculateOptimalGap(columns: number, density: string): number {
-    const baseGap = {
-      alta: 8,    // Gap pequeño para alta densidad
-      media: 12,  // Gap medio
-      baja: 16    // Gap grande para baja densidad
-    }[density as keyof typeof baseGap] || 12;
+  private static calculatePDFDimensions(template: IndustryTemplate) {
+    // Dimensiones A4: 210mm x 297mm
+    const pageWidth = 210;
+    const pageHeight = 297;
+    const margin = template.density === 'alta' ? 15 : template.density === 'media' ? 20 : 25;
+    const contentWidth = pageWidth - (margin * 2);
+    const contentHeight = pageHeight - (margin * 2);
     
-    // Reducir gap si hay muchas columnas
-    if (columns >= 4) return Math.max(6, baseGap - 4);
-    if (columns >= 3) return Math.max(8, baseGap - 2);
+    // Calcular dimensiones de cards
+    const columns = template.gridColumns;
+    const gap = template.density === 'alta' ? 3 : template.density === 'media' ? 4 : 5;
+    const totalGapWidth = (columns - 1) * gap;
+    const cardWidth = (contentWidth - totalGapWidth) / columns;
     
-    return baseGap;
-  }
-  
-  // Calcular altura optimal de imagen
-  private static calculateOptimalImageHeight(density: string, columns: number): number {
-    const baseHeight = {
-      alta: 140,   // Imágenes pequeñas para alta densidad
-      media: 180,  // Imágenes medianas
-      baja: 220    // Imágenes grandes para baja densidad
-    }[density as keyof typeof baseHeight] || 180;
+    // Altura de card según densidad
+    const baseCardHeight = template.density === 'alta' ? 60 : template.density === 'media' ? 80 : 100;
+    const cardHeight = baseCardHeight;
     
-    // Ajustar por número de columnas
-    if (columns >= 4) return Math.max(120, baseHeight - 40);
-    if (columns >= 3) return Math.max(140, baseHeight - 20);
+    // Altura de imagen (60% de la card)
+    const imageHeight = cardHeight * 0.6;
+    const textHeight = cardHeight * 0.4;
     
-    return baseHeight;
-  }
-  
-  // Calcular padding optimal
-  private static calculateOptimalPadding(density: string): number {
     return {
-      alta: 8,    // Padding pequeño para más contenido
-      media: 12,  // Padding medio
-      baja: 16    // Padding grande para menos contenido
-    }[density as keyof typeof density] || 12;
+      pageWidth,
+      pageHeight,
+      margin,
+      contentWidth,
+      contentHeight,
+      cardWidth,
+      cardHeight,
+      imageHeight,
+      textHeight,
+      gap,
+      columns
+    };
   }
   
-  // Calcular altura mínima de card
-  private static calculateMinCardHeight(density: string): number {
-    return {
-      alta: 280,   // Cards compactas
-      media: 320,  // Cards medianas  
-      baja: 380    // Cards grandes
-    }[density as keyof typeof density] || 320;
+  /**
+   * 🎯 TAMAÑOS DE FUENTE EN PUNTOS (PT) - MÁS PRECISOS PARA PDF
+   */
+  private static getHeaderFontSize(density: string): number {
+    return { alta: 18, media: 22, baja: 26 }[density as keyof typeof density] || 22;
   }
   
-  // Calcular altura mínima del área de texto
-  private static calculateMinTextHeight(density: string): number {
-    return {
-      alta: 80,    // Área de texto compacta
-      media: 100,  // Área de texto mediana
-      baja: 120    // Área de texto amplia
-    }[density as keyof typeof density] || 100;
+  private static getProductNameFontSize(density: string): number {
+    return { alta: 10, media: 12, baja: 14 }[density as keyof typeof density] || 12;
   }
   
-  // Calcular padding del precio
-  private static calculatePricePadding(density: string): string {
-    return {
-      alta: '4px 8px',    // Precio compacto
-      media: '6px 12px',  // Precio medio
-      baja: '8px 16px'    // Precio amplio
-    }[density as keyof typeof density] || '6px 12px';
+  private static getPriceFontSize(density: string): number {
+    return { alta: 11, media: 13, baja: 15 }[density as keyof typeof density] || 13;
   }
   
-  // Calcular máximo de líneas para nombres
+  private static getCategoryFontSize(density: string): number {
+    return { alta: 8, media: 9, baja: 10 }[density as keyof typeof density] || 9;
+  }
+  
+  private static getDescriptionFontSize(density: string): number {
+    return { alta: 8, media: 9, baja: 10 }[density as keyof typeof density] || 9;
+  }
+  
+  private static getSkuFontSize(density: string): number {
+    return { alta: 7, media: 8, baja: 9 }[density as keyof typeof density] || 8;
+  }
+  
+  private static getSpecsFontSize(density: string): number {
+    return { alta: 7, media: 8, baja: 9 }[density as keyof typeof density] || 8;
+  }
+  
+  /**
+   * 📝 ALTURA Y LÍNEAS PARA TEXTO
+   */
+  private static getTextPadding(density: string): number {
+    return { alta: 2, media: 3, baja: 4 }[density as keyof typeof density] || 3;
+  }
+  
   private static getMaxLines(density: string): number {
-    return {
-      alta: 2,    // Máximo 2 líneas para alta densidad
-      media: 3,   // Máximo 3 líneas para media densidad
-      baja: 4     // Máximo 4 líneas para baja densidad
-    }[density as keyof typeof density] || 3;
+    return { alta: 2, media: 3, baja: 4 }[density as keyof typeof density] || 3;
   }
   
-  // Calcular máximo de líneas para descripción
   private static getDescriptionMaxLines(density: string): number {
-    return {
-      alta: 2,    // Máximo 2 líneas de descripción
-      media: 3,   // Máximo 3 líneas de descripción
-      baja: 4     // Máximo 4 líneas de descripción
-    }[density as keyof typeof density] || 3;
+    return { alta: 2, media: 3, baja: 4 }[density as keyof typeof density] || 3;
   }
   
-  // Tamaños de fuente optimizados por densidad
-  private static getCategorySize(density: string): string {
-    return {
-      alta: '0.7rem',
-      media: '0.8rem',
-      baja: '0.9rem'
-    }[density as keyof typeof density] || '0.8rem';
-  }
-  
-  private static getSkuSize(density: string): string {
-    return {
-      alta: '0.7rem',
-      media: '0.75rem',
-      baja: '0.8rem'
-    }[density as keyof typeof density] || '0.75rem';
+  private static getSpecsMaxHeight(density: string): number {
+    return { alta: 10, media: 15, baja: 20 }[density as keyof typeof density] || 15;
   }
   
   /**
-   * 🏗️ CSS ESPECÍFICO POR NÚMERO DE COLUMNAS - NUEVO
+   * 🎨 CSS ESPECÍFICO POR TEMPLATE
    */
-  private static generateColumnSpecificCSS(columns: number): string {
-    return `
-      /* ===== OPTIMIZACIONES PARA ${columns} COLUMNAS ===== */
-      .template-${columns}-cols .product-card {
-        /* Ancho calculado específicamente para ${columns} columnas */
-        min-width: ${Math.floor(100 / columns) - 2}%;
-        max-width: ${Math.floor(100 / columns)}%;
-      }
+  private static generateTemplateSpecificCSS(template: IndustryTemplate): string {
+    let specificCSS = '';
+    
+    // Optimizaciones por industria
+    switch (template.industry) {
+      case 'joyeria':
+        specificCSS += `
+          .template-${template.id} .product-image-container {
+            background: linear-gradient(45deg, #f8f9fa, #ffffff) !important;
+          }
+          .template-${template.id} .product-card {
+            border: 1mm solid var(--accent-color) !important;
+          }
+        `;
+        break;
       
-      .template-${columns}-cols .product-name {
-        /* Ajustar tamaño de texto según número de columnas */
-        font-size: ${columns >= 4 ? '0.9rem' : columns >= 3 ? '1rem' : '1.1rem'};
-        line-height: ${columns >= 4 ? '1.2' : '1.3'};
-      }
+      case 'moda':
+        specificCSS += `
+          .template-${template.id} .product-card {
+            border-radius: ${template.design.borderRadius * 1.5}px !important;
+          }
+        `;
+        break;
       
-      .template-${columns}-cols .product-price {
-        /* Ajustar tamaño de precio según columnas */
-        font-size: ${columns >= 4 ? '1rem' : columns >= 3 ? '1.1rem' : '1.2rem'};
-        padding: ${columns >= 4 ? '4px 8px' : columns >= 3 ? '6px 10px' : '8px 12px'};
-      }
-    `;
+      case 'electronica':
+        specificCSS += `
+          .template-${template.id} .product-image-container {
+            background: linear-gradient(135deg, #f1f3f4, #ffffff) !important;
+          }
+        `;
+        break;
+    }
+    
+    // Optimizaciones por densidad
+    if (template.density === 'alta') {
+      specificCSS += `
+        .template-${template.id} .product-card {
+          border-width: 0.3mm !important;
+        }
+      `;
+    }
+    
+    return specificCSS;
   }
   
-  // ===== RESTO DE MÉTODOS SIN CAMBIOS (mantener igual) =====
+  // ===== RESTO DE MÉTODOS HELPER (MANTENER IGUAL) =====
   
   private static generateProfessionalColorScheme(template: IndustryTemplate) {
     const primary = template.colors.primary;
@@ -513,7 +629,6 @@ export class TemplateGenerator {
     };
   }
   
-  // [Incluir todos los demás métodos helper sin cambios]
   private static isLightColor(hexColor: string): boolean {
     const hex = hexColor.replace('#', '');
     const r = parseInt(hex.substr(0, 2), 16);
@@ -552,72 +667,9 @@ export class TemplateGenerator {
     return configs[spacing];
   }
   
-  private static getHeaderSize(density: 'alta' | 'media' | 'baja'): string {
-    return { alta: '1.8rem', media: '2.2rem', baja: '2.5rem' }[density];
-  }
-  
-  private static getProductNameSize(density: 'alta' | 'media' | 'baja'): string {
-    return { alta: '0.95rem', media: '1.1rem', baja: '1.25rem' }[density];
-  }
-  
-  private static getPriceSize(density: 'alta' | 'media' | 'baja'): string {
-    return { alta: '1rem', media: '1.2rem', baja: '1.4rem' }[density];
-  }
-  
-  private static getDescriptionSize(density: 'alta' | 'media' | 'baja'): string {
-    return { alta: '0.8rem', media: '0.9rem', baja: '0.95rem' }[density];
-  }
-  
-  private static getProductNameMaxHeight(density: 'alta' | 'media' | 'baja'): string {
-    return {
-      alta: '2.6em',      // ~2 líneas
-      media: '3.9em',     // ~3 líneas  
-      baja: '5.2em'       // ~4 líneas
-    }[density];
-  }
-  
-  private static getDescriptionMaxHeight(density: 'alta' | 'media' | 'baja'): string {
-    return {
-      alta: '2.8em',      // ~2 líneas
-      media: '4.2em',     // ~3 líneas
-      baja: '5.6em'       // ~4 líneas
-    }[density];
-  }
-  
-  private static generateDensitySpecificCSS(template: IndustryTemplate): string {
-    const adjustments = {
-      alta: {
-        cardPadding: '8px',
-        fontSize: '0.85rem',
-        imageHeight: '140px'
-      },
-      media: {
-        cardPadding: '12px',
-        fontSize: '1rem',
-        imageHeight: '200px'
-      },
-      baja: {
-        cardPadding: '16px',
-        fontSize: '1.1rem',
-        imageHeight: '280px'
-      }
-    };
-    
-    const config = adjustments[template.density];
-    
-    return `
-      /* Ajustes específicos para densidad ${template.density} */
-      .template-${template.id} .product-info {
-        padding: ${config.cardPadding} !important;
-      }
-      
-      .template-${template.id} .product-description {
-        font-size: ${config.fontSize} !important;
-      }
-    `;
-  }
-  
-  // [Resto de métodos incluyendo generateCatalogHTML, etc. - mantener igual]
+  /**
+   * 🏗️ GENERAR HTML CON ESTRUCTURA MEJORADA - EVITA PÁGINAS VACÍAS
+   */
   static generateCatalogHTML(
     products: Product[],
     businessInfo: BusinessInfo,
@@ -625,7 +677,7 @@ export class TemplateGenerator {
   ): string {
     
     const css = this.generateTemplateCSS(template);
-    const productsHTML = this.generateProductsHTMLCompatible(products, template);
+    const productsHTML = this.generateProductsHTMLOptimized(products, template);
     const footerHTML = this.generateFooterHTML(businessInfo);
     
     const businessName = businessInfo.business_name || 'Mi Negocio';
@@ -640,15 +692,15 @@ export class TemplateGenerator {
         ${css}
     </style>
 </head>
-<body class="template-${template.id} template-${template.gridColumns}-cols">
+<body class="template-${template.id}">
     <div class="catalog-container">
-        <!-- Header -->
-        <header class="catalog-header">
+        <!-- Header con page-break control -->
+        <header class="catalog-header page-break-avoid">
             <h1 class="business-name">${businessName}</h1>
             <p class="catalog-subtitle">Catálogo de Productos</p>
         </header>
         
-        <!-- Products -->
+        <!-- Products con manejo de páginas -->
         <main class="products-section">
             ${productsHTML}
         </main>
@@ -660,15 +712,40 @@ export class TemplateGenerator {
 </html>`;
   }
   
-  private static generateProductsHTMLCompatible(products: Product[], template: IndustryTemplate): string {
-    return `
-      <div class="products-grid">
-        ${products.map(product => this.generateProductCardHTML(product, template)).join('')}
-      </div>
-    `;
+  /**
+   * 🛍️ GENERAR HTML DE PRODUCTOS OPTIMIZADO - PREVIENE PÁGINAS VACÍAS
+   */
+  private static generateProductsHTMLOptimized(products: Product[], template: IndustryTemplate): string {
+    const productsPerPage = template.productsPerPage;
+    const totalPages = Math.ceil(products.length / productsPerPage);
+    let htmlPages = '';
+    
+    for (let page = 0; page < totalPages; page++) {
+      const startIndex = page * productsPerPage;
+      const endIndex = Math.min(startIndex + productsPerPage, products.length);
+      const pageProducts = products.slice(startIndex, endIndex);
+      
+      // Clase para control de page-break
+      const pageBreakClass = page > 0 ? 'page-break-before' : '';
+      
+      htmlPages += `
+        <div class="products-page ${pageBreakClass}">
+          <div class="products-grid">
+            ${pageProducts.map((product, index) => 
+              this.generateProductCardHTMLOptimized(product, template, index)
+            ).join('')}
+          </div>
+        </div>
+      `;
+    }
+    
+    return htmlPages;
   }
   
-  private static generateProductCardHTML(product: Product, template: IndustryTemplate): string {
+  /**
+   * 🎴 GENERAR HTML DE PRODUCTO INDIVIDUAL - USA IMG EN LUGAR DE BACKGROUND
+   */
+  private static generateProductCardHTMLOptimized(product: Product, template: IndustryTemplate, index: number): string {
     const productName = product.name || 'Producto';
     const productPrice = typeof product.price_retail === 'number' ? product.price_retail : 0;
     const productImage = product.image_url || '';
@@ -677,12 +754,16 @@ export class TemplateGenerator {
     const productCategory = product.category || '';
     const productSpecs = product.specifications || '';
     
+    // USAR IMG EN LUGAR DE BACKGROUND-IMAGE (MÁS COMPATIBLE)
     const imageHTML = productImage ? 
-      `<div class="product-image-bg" style="background-image: url('${productImage}');"></div>` :
-      `<div class="product-image-bg" style="background-color: #f0f0f0;"></div>`;
+      `<img src="${productImage}" alt="${productName}" class="product-image" loading="eager" crossorigin="anonymous" />` :
+      `<div class="product-image-placeholder">
+         <div>Sin imagen</div>
+         <div>${productName.substring(0, 12)}...</div>
+       </div>`;
     
     return `
-      <div class="product-card">
+      <div class="product-card page-break-avoid" data-product-index="${index}">
         <div class="product-image-container">
           ${imageHTML}
         </div>
@@ -693,8 +774,8 @@ export class TemplateGenerator {
           <h3 class="product-name">${productName}</h3>
           
           <div class="product-price">$${productPrice.toLocaleString('es-MX', { 
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0
           })}</div>
           
           ${template.showInfo.description && productDescription ? 
@@ -720,7 +801,7 @@ export class TemplateGenerator {
     
     if (contactItems.length === 0) {
       return `
-        <footer class="catalog-footer">
+        <footer class="catalog-footer page-break-avoid">
           <div class="footer-branding">
             Generado con CatalogoIA
           </div>
@@ -729,7 +810,7 @@ export class TemplateGenerator {
     }
     
     return `
-      <footer class="catalog-footer">
+      <footer class="catalog-footer page-break-avoid">
         <div class="business-contact">
           ${contactItems.join('')}
         </div>
