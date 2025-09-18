@@ -512,81 +512,83 @@ private static convertAuditedToIndustryTemplate(auditedTemplate: AuditedTemplate
     };
   }
   
-  /**
-   * 🚀 GENERACIÓN CON PUPPETEER SERVICE MEJORADA
-   */
-  private static async generateWithPuppeteerService(
-    products: Product[],
-    businessInfo: BusinessInfo,
-    template: IndustryTemplate,
-    options: GenerationOptions
-  ): Promise<{ success: boolean; error?: string; stats?: any }> {
+// En tu archivo unified-generator.ts existente, busca y REEMPLAZA esta función:
+
+/**
+ * 🚀 GENERACIÓN CON PUPPETEER SERVICE MEJORADA
+ */
+private static async generateWithPuppeteerService(
+  products: Product[],
+  businessInfo: BusinessInfo,
+  template: IndustryTemplate,
+  options: GenerationOptions
+): Promise<{ success: boolean; error?: string; stats?: any }> {
+  
+  try {
+    console.log('🚀 Generando con Puppeteer Service (mejorado)...');
     
-    try {
-      console.log('🚀 Generando con Puppeteer Service (mejorado)...');
-      
-      // Convertir template a formato Puppeteer
-      const templateConfig = {
-        id: template.id,
-        displayName: template.displayName,
-        productsPerPage: template.productsPerPage,
-        colors: {
-          primary: template.colors.primary,
-          secondary: template.colors.secondary || template.colors.primary,
-          accent: template.colors.accent || template.colors.primary,
-          background: template.colors.background || '#ffffff',
-          text: template.colors.text || '#2c3e50'
-        },
-        layout: template.design?.spacing || 'normal',
-        features: template.showInfo ? 
-          Object.keys(template.showInfo).filter(key => 
-            template.showInfo[key as keyof typeof template.showInfo]
-          ) : [],
-        category: template.industry || 'general'
+    // Convertir template a formato Puppeteer
+    const templateConfig = {
+      id: template.id,
+      displayName: template.displayName,
+      productsPerPage: template.productsPerPage,
+      colors: {
+        primary: template.colors.primary,
+        secondary: template.colors.secondary || template.colors.primary,
+        accent: template.colors.accent || template.colors.primary,
+        background: template.colors.background || '#ffffff',
+        text: template.colors.text || '#2c3e50'
+      },
+      layout: template.design?.spacing || 'normal',
+      features: template.showInfo ? 
+        Object.keys(template.showInfo).filter(key => 
+          template.showInfo[key as keyof typeof template.showInfo]
+        ) : [],
+      category: template.industry || 'general'
+    };
+    
+    // 📏 MÁRGENES AUMENTADOS PARA MEJOR COMPATIBILIDAD
+    const puppeteerOptions = {
+      onProgress: options.onProgress,
+      format: 'A4' as const,
+      margin: {
+        top: '15mm',    // Aumentado para mejor spacing
+        right: '15mm',  // Aumentado para mejor spacing  
+        bottom: '25mm', // ESPACIO EXTRA PARA FOOTER FIJO
+        left: '15mm'    // Aumentado para mejor spacing
+      },
+      quality: template.isPremium ? 'high' as const : 'medium' as const
+    };
+    
+    const result = await PuppeteerServiceClient.generatePDF(
+      products,
+      businessInfo,
+      templateConfig,
+      puppeteerOptions
+    );
+    
+    if (result.success) {
+      console.log('✅ Puppeteer Service completado exitosamente');
+      return { 
+        success: true, 
+        stats: result.stats
       };
-      
-      // Configuraciones optimizadas
-      const puppeteerOptions = {
-        onProgress: options.onProgress,
-        format: 'A4' as const,
-        margin: {
-          top: '10mm',
-          right: '10mm',
-          bottom: '10mm',
-          left: '10mm'
-        },
-        quality: template.isPremium ? 'high' as const : 'medium' as const
-      };
-      
-      const result = await PuppeteerServiceClient.generatePDF(
-        products,
-        businessInfo,
-        templateConfig,
-        puppeteerOptions
-      );
-      
-      if (result.success) {
-        console.log('✅ Puppeteer Service completado exitosamente');
-        return { 
-          success: true, 
-          stats: result.stats
-        };
-      } else {
-        console.error('❌ Error en Puppeteer Service:', result.error);
-        return { 
-          success: false, 
-          error: result.error 
-        };
-      }
-      
-    } catch (error) {
-      console.error('❌ Excepción en Puppeteer Service:', error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Error desconocido en Puppeteer'
+    } else {
+      console.error('❌ Error en Puppeteer Service:', result.error);
+      return { 
+        success: false, 
+        error: result.error 
       };
     }
+    
+  } catch (error) {
+    console.error('❌ Excepción en Puppeteer Service:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Error desconocido en Puppeteer'
+    };
   }
+}
   
   /**
    * 🚀 GENERACIÓN CON DYNAMIC ENGINE (MEJORADA)
