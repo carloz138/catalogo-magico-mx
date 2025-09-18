@@ -95,30 +95,36 @@ export class TemplateGenerator {
         height: auto;
         font-size: 12pt;
         line-height: 1.3;
+        margin: 0;
+        padding: 0;
       }
       
       body.template-${template.id} {
         font-family: 'Arial', 'Helvetica', sans-serif !important;
         background: var(--bg) !important;
         color: var(--text) !important;
-        width: var(--content-width);
-        min-height: var(--content-height);
-        margin: 0 auto;
+        width: 100%;
+        min-height: 100vh;
+        margin: 0 !important;
+        padding: var(--margin) !important;
         font-size: 12pt;
         position: relative;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
+        box-sizing: border-box !important;
       }
       
-      /* ===== CONTAINER PRINCIPAL ===== */
+      /* ===== CONTAINER PRINCIPAL CENTRADO ===== */
       .catalog-container {
-        width: 100%;
+        width: var(--content-width);
         max-width: var(--content-width);
         background: var(--bg) !important;
         position: relative;
         min-height: var(--content-height);
+        margin: 0 auto !important;
         display: flex;
         flex-direction: column;
+        justify-content: space-between;
         -webkit-print-color-adjust: exact !important;
       }
       
@@ -161,24 +167,41 @@ export class TemplateGenerator {
         -webkit-print-color-adjust: exact !important;
       }
       
-      /* ===== PRODUCTS SECTION CON FLEX GROW ===== */
+      /* ===== PRODUCTS SECTION CON ESTRUCTURA MEJORADA ===== */
       .products-section {
         width: 100%;
         flex-grow: 1;
         display: flex;
         flex-direction: column;
+        justify-content: flex-start;
+        align-items: center;
+        padding: 0 !important;
+        margin: 0 !important;
+        min-height: 0;
       }
       
-      /* ===== NUEVO SISTEMA DE GRID CSS - MÁS ROBUSTO QUE TABLA ===== */
+      /* ===== PRODUCTS PAGE CON CENTRADO PERFECTO ===== */
+      .products-page {
+        width: 100%;
+        margin-bottom: 8mm;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+      }
+      
+      /* ===== NUEVO SISTEMA DE GRID CSS - CENTRADO PERFECTO ===== */
       .products-grid {
         display: grid !important;
         grid-template-columns: repeat(var(--columns), 1fr) !important;
         gap: var(--gap) !important;
         width: 100% !important;
-        margin: 0 !important;
+        margin: 0 auto !important;
         padding: 0 !important;
         page-break-inside: avoid;
         align-items: start !important;
+        justify-content: center !important;
+        place-content: center !important;
       }
       
       /* ===== PRODUCT CARDS CON GRID (MUCHO MÁS ESTABLE) ===== */
@@ -403,53 +426,60 @@ export class TemplateGenerator {
       }
       ` : `.product-specifications { display: none !important; }`}
       
-      /* ===== FOOTER MEJORADO Y FIJO ===== */
+      /* ===== FOOTER COMPLETAMENTE REESCRITO Y FIJO ===== */
       .catalog-footer {
         width: 100% !important;
         background: var(--secondary) !important;
         color: ${this.getContrastColor(template.colors.secondary || template.colors.primary)} !important;
-        padding: 6mm !important;
+        padding: 8mm !important;
         text-align: center !important;
         border-top: 1pt solid var(--border) !important;
-        margin-top: 6mm !important;
+        margin-top: auto !important;
         border-radius: ${Math.min(template.design?.borderRadius || 8, 12)}px !important;
         page-break-inside: avoid !important;
         break-inside: avoid !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
         flex-shrink: 0 !important;
-        margin-top: auto !important;
+        position: relative !important;
+        bottom: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        box-sizing: border-box !important;
       }
       
       .business-contact {
-        font-size: 10pt !important;
+        font-size: 9pt !important;
         line-height: 1.4 !important;
-        margin-bottom: 2mm !important;
+        margin-bottom: 3mm !important;
         font-weight: 600 !important;
         word-wrap: break-word !important;
         display: flex !important;
         flex-wrap: wrap !important;
         justify-content: center !important;
         align-items: center !important;
-        gap: 2mm !important;
+        gap: 3mm !important;
+        width: 100% !important;
       }
       
       .contact-item {
         display: inline-block !important;
-        padding: 1mm 2mm !important;
-        background: rgba(255, 255, 255, 0.15) !important;
-        border-radius: 6px !important;
+        padding: 1.5mm 3mm !important;
+        background: rgba(255, 255, 255, 0.2) !important;
+        border-radius: 8px !important;
         font-weight: 600 !important;
         white-space: nowrap !important;
         -webkit-print-color-adjust: exact !important;
-        font-size: 9pt !important;
+        font-size: 8pt !important;
+        border: 0.5pt solid rgba(255, 255, 255, 0.1) !important;
       }
       
       .footer-branding {
         margin-top: 3mm !important;
-        font-size: 8pt !important;
-        opacity: 0.8 !important;
+        font-size: 7pt !important;
+        opacity: 0.9 !important;
         font-weight: 300 !important;
+        color: rgba(255, 255, 255, 0.8) !important;
       }
       
       /* ===== PAGINACIÓN ROBUSTA ===== */
@@ -540,62 +570,86 @@ export class TemplateGenerator {
   }
   
   /**
-   * 📐 DIMENSIONES MATEMÁTICAMENTE PRECISAS MEJORADAS
+   * 📐 DIMENSIONES MATEMÁTICAMENTE PRECISAS COMPLETAMENTE REESCRITO
    */
   private static calculateRobustDimensions(template: IndustryTemplate) {
     // A4: 210mm x 297mm
     const pageWidth = 210;
     const pageHeight = 297;
     
-    // Márgenes optimizados por densidad
-    const marginMap = { alta: 10, media: 12, baja: 15 };
-    const margin = marginMap[template.density as keyof typeof marginMap] || 12;
+    // 🎯 MÁRGENES OPTIMIZADOS Y BALANCEADOS
+    const marginMap = { 
+      alta: 8,     // Márgenes más pequeños para más contenido
+      media: 10,   // Márgenes balanceados  
+      baja: 12     // Márgenes amplios para look premium
+    };
+    const margin = marginMap[template.density as keyof typeof marginMap] || 10;
     
+    // 📏 DIMENSIONES DE CONTENIDO EXACTAS
     const contentWidth = pageWidth - (margin * 2);
     const contentHeight = pageHeight - (margin * 2);
     
-    // Columnas según el template (RESPETA EL TEMPLATE)
+    // Columnas según el template
     const columns = template.gridColumns;
     
-    // Gap proporcional al tamaño de página
-    const gapMap = { alta: 2, media: 3, baja: 4 };
+    // 📐 GAP PROPORCIONAL AL ANCHO DE PÁGINA
+    const gapMap = { 
+      alta: Math.max(2, contentWidth * 0.01),      // 1% del ancho
+      media: Math.max(3, contentWidth * 0.015),    // 1.5% del ancho
+      baja: Math.max(4, contentWidth * 0.02)       // 2% del ancho
+    };
     const gap = gapMap[template.density as keyof typeof gapMap] || 3;
     
-    // Ancho de card MATEMÁTICAMENTE EXACTO
+    // 🎯 ANCHO DE CARD MATEMÁTICAMENTE PERFECTO
     const totalGapWidth = (columns - 1) * gap;
-    const cardWidth = (contentWidth - totalGapWidth) / columns;
+    const availableWidth = contentWidth - totalGapWidth;
+    const cardWidth = availableWidth / columns;
     
-    // 🎯 TARJETAS MÁS CUADRADAS - Calcular altura basada en ancho
-    // Para 3 columnas, hacer las tarjetas más cuadradas
+    // 📦 ALTURA DE CARD CALCULADA PARA PROPORCIÓN PERFECTA
     let cardHeight;
+    
     if (columns === 3) {
-      // Hacer tarjetas cuadradas: altura = ancho + espacio para texto
-      cardHeight = cardWidth + 15; // +15mm para texto y precios
-    } else if (columns <= 2) {
-      // Para pocas columnas, tarjetas más altas
-      cardHeight = cardWidth + 20;
+      // Para 3 columnas: tarjetas cuadradas
+      cardHeight = cardWidth + 18; // +18mm para texto y precio
+    } else if (columns === 2) {
+      // Para 2 columnas: tarjetas más altas
+      cardHeight = cardWidth + 25;
+    } else if (columns === 4) {
+      // Para 4 columnas: tarjetas compactas pero proporcionadas
+      cardHeight = cardWidth + 15;
+    } else if (columns >= 5) {
+      // Para 5+ columnas: tarjetas pequeñas pero legibles
+      cardHeight = cardWidth + 12;
     } else {
-      // Para muchas columnas, usar altura por densidad
-      const cardHeightMap = { alta: 45, media: 55, baja: 70 };
-      cardHeight = cardHeightMap[template.density as keyof typeof cardHeightMap] || 55;
+      // Para 1 columna: tarjetas horizontales
+      cardHeight = cardWidth * 0.6 + 20;
     }
     
-    // Distribución interna de la card optimizada para cuadradas
-    const imageHeight = cardHeight * 0.65; // 65% para imagen en tarjetas cuadradas
-    const textAreaHeight = cardHeight * 0.35; // 35% para texto
+    // 🖼️ DISTRIBUCIÓN INTERNA OPTIMIZADA
+    const imageHeightRatio = columns <= 2 ? 0.7 : columns === 3 ? 0.65 : 0.6;
+    const imageHeight = cardHeight * imageHeightRatio;
+    const textAreaHeight = cardHeight - imageHeight;
+    
+    // 🔍 VALIDACIÓN Y AJUSTES FINALES
+    const minCardHeight = 35; // Mínimo 35mm para legibilidad
+    const maxCardHeight = 90; // Máximo 90mm para caber en página
+    
+    const finalCardHeight = Math.max(minCardHeight, Math.min(maxCardHeight, cardHeight));
+    const finalImageHeight = finalCardHeight * imageHeightRatio;
+    const finalTextAreaHeight = finalCardHeight - finalImageHeight;
     
     return {
       pageWidth,
       pageHeight,
       margin,
-      contentWidth,
-      contentHeight,
+      contentWidth: Math.floor(contentWidth * 100) / 100,
+      contentHeight: Math.floor(contentHeight * 100) / 100,
       columns,
-      gap,
+      gap: Math.floor(gap * 100) / 100,
       cardWidth: Math.floor(cardWidth * 100) / 100,
-      cardHeight: Math.floor(cardHeight * 100) / 100,
-      imageHeight: Math.floor(imageHeight * 100) / 100,
-      textAreaHeight: Math.floor(textAreaHeight * 100) / 100
+      cardHeight: Math.floor(finalCardHeight * 100) / 100,
+      imageHeight: Math.floor(finalImageHeight * 100) / 100,
+      textAreaHeight: Math.floor(finalTextAreaHeight * 100) / 100
     };
   }
   
