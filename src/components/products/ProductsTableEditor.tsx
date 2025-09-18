@@ -193,11 +193,12 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
 
     setLoading(true);
     try {
-      // SELECT con URLs de imágenes para el catálogo
+      // SELECT completo para compatibilidad con interfaz Product
       const { data, error } = await supabase
         .from('products')
         .select(`
           id,
+          user_id,
           name,
           sku,
           description,
@@ -212,6 +213,7 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
           features,
           processing_status,
           created_at,
+          updated_at,
           original_image_url,
           processed_image_url,
           hd_image_url,
