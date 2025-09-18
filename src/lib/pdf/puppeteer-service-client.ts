@@ -1,5 +1,5 @@
 // src/lib/pdf/puppeteer-service-client.ts
-// 🚀 CLIENTE PUPPETEER ROBUSTO - INTEGRADO CON NUEVO SISTEMA SIN CORTES
+// 🚀 CLIENTE PUPPETEER ROBUSTO - VERSION COMPLETA CORREGIDA
 
 interface Product {
   id: string;
@@ -156,7 +156,6 @@ export class PuppeteerServiceClient {
         console.warn(`⚠️ Health check attempt ${attempt}/${maxRetries} failed:`, error);
         
         if (attempt < maxRetries) {
-          // Esperar antes del siguiente intento (exponential backoff)
           await new Promise(resolve => setTimeout(resolve, attempt * 1000));
         }
       }
@@ -166,7 +165,7 @@ export class PuppeteerServiceClient {
   }
   
   /**
-   * 🎨 GENERAR HTML ROBUSTO CON NUEVO SISTEMA
+   * 🎨 GENERAR HTML ROBUSTO CON NUEVO SISTEMA CORREGIDO
    */
   private static generateRobustHTML(
     products: Product[],
@@ -179,7 +178,6 @@ export class PuppeteerServiceClient {
     const totalPages = Math.ceil(products.length / productsPerPage);
     const columns = this.calculateColumns(productsPerPage);
     
-    // CSS base optimizado para Puppeteer
     const baseStyles = this.generatePuppeteerOptimizedCSS(template, columns, quality);
     
     return `
@@ -203,7 +201,7 @@ export class PuppeteerServiceClient {
   }
   
   /**
-   * 🎨 CSS OPTIMIZADO ESPECÍFICO PARA PUPPETEER
+   * 🎨 CSS OPTIMIZADO ESPECÍFICO PARA PUPPETEER - VERSIÓN CORREGIDA COMPLETA
    */
   private static generatePuppeteerOptimizedCSS(
     template: TemplateConfig, 
@@ -211,7 +209,6 @@ export class PuppeteerServiceClient {
     quality: 'low' | 'medium' | 'high'
   ): string {
     
-    // Configuraciones según calidad
     const qualityConfig = {
       low: { imgQuality: 80, fontSize: 11, cardPadding: 2, borderRadius: 4 },
       medium: { imgQuality: 90, fontSize: 12, cardPadding: 3, borderRadius: 6 },
@@ -221,7 +218,7 @@ export class PuppeteerServiceClient {
     const config = qualityConfig[quality];
     
     return `
-      /* ===== PUPPETEER OPTIMIZED CSS - ${template.id.toUpperCase()} ===== */
+      /* ===== PUPPETEER OPTIMIZED CSS CORREGIDO - ${template.id.toUpperCase()} ===== */
       
       * {
         margin: 0 !important;
@@ -255,33 +252,41 @@ export class PuppeteerServiceClient {
         height: 273mm; /* 297mm - 24mm margins */
         margin: 0;
         padding: 0;
-        overflow: hidden;
+        overflow: visible;
         position: relative;
         -webkit-print-color-adjust: exact !important;
       }
       
       .catalog-wrapper {
         width: 100%;
-        height: 100%;
+        height: auto;
         position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
       }
       
-      /* ===== PÁGINA INDIVIDUAL ===== */
+      /* ===== PÁGINA INDIVIDUAL CORREGIDA ===== */
       .catalog-page {
         width: 186mm;
-        height: 273mm;
+        height: auto;
+        min-height: 240mm;
         position: relative;
         padding: 0;
-        margin: 0;
+        margin: 0 0 10mm 0;
         page-break-after: always;
         page-break-inside: avoid;
         background: ${template.colors.background} !important;
-        overflow: hidden;
+        overflow: visible;
         -webkit-print-color-adjust: exact !important;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
       }
       
       .catalog-page:last-child {
         page-break-after: avoid;
+        margin-bottom: 0;
       }
       
       /* ===== HEADER ROBUSTO ===== */
@@ -301,6 +306,7 @@ export class PuppeteerServiceClient {
         position: relative;
         overflow: hidden;
         -webkit-print-color-adjust: exact !important;
+        flex-shrink: 0;
       }
       
       .business-name {
@@ -324,50 +330,50 @@ export class PuppeteerServiceClient {
         margin-top: 1mm;
       }
       
-      /* ===== PRODUCTOS GRID - TABLA ROBUSTA ===== */
+      /* ===== PRODUCTOS CONTAINER CORREGIDO ===== */
       .products-container {
         width: 100%;
-        height: calc(273mm - 35mm); /* Page height - header - footer */
+        flex-grow: 1;
         position: relative;
-        overflow: hidden;
+        overflow: visible;
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        margin-bottom: 10mm;
       }
       
-      .products-table {
-        display: table;
-        width: 100%;
-        height: 100%;
-        table-layout: fixed;
-        border-collapse: separate;
-        border-spacing: 3mm;
-        margin: 0;
+      /* ===== GRID SYSTEM COMPLETAMENTE REDISEÑADO ===== */
+      .products-grid {
+        display: grid !important;
+        grid-template-columns: repeat(${columns}, 1fr) !important;
+        gap: 4mm !important;
+        width: 100% !important;
+        max-width: 186mm !important;
+        margin: 0 auto !important;
+        padding: 2mm !important;
+        justify-content: center !important;
+        align-items: start !important;
+        grid-auto-rows: minmax(60mm, auto) !important;
+        box-sizing: border-box !important;
       }
       
-      .product-row {
-        display: table-row;
-        height: calc((100% - ${this.calculateRows(template.productsPerPage, columns) - 1} * 3mm) / ${this.calculateRows(template.productsPerPage, columns)});
-      }
-      
-      /* ===== PRODUCT CARD ROBUSTO ===== */
-      .product-cell {
-        display: table-cell;
-        width: calc(100% / ${columns});
-        vertical-align: top;
-        padding: 0;
-        position: relative;
-      }
-      
+      /* ===== PRODUCT CARDS UNIFORMES ===== */
       .product-card {
-        width: 100%;
-        height: 100%;
+        width: 100% !important;
+        height: auto !important;
+        min-height: 60mm !important;
         background: white !important;
         border: 0.5pt solid ${template.colors.accent}40;
         border-radius: ${config.borderRadius}px;
         overflow: hidden;
         position: relative;
-        display: flex;
-        flex-direction: column;
+        display: flex !important;
+        flex-direction: column !important;
         box-shadow: 0 1pt 3pt rgba(0,0,0,0.1);
         -webkit-print-color-adjust: exact !important;
+        page-break-inside: avoid !important;
+        align-self: stretch !important;
+        justify-self: center !important;
       }
       
       /* ===== DECORACIÓN SUPERIOR ===== */
@@ -380,12 +386,15 @@ export class PuppeteerServiceClient {
         background: ${template.colors.primary} !important;
         background-image: linear-gradient(90deg, ${template.colors.primary}, ${template.colors.secondary}) !important;
         -webkit-print-color-adjust: exact !important;
+        flex-shrink: 0;
       }
       
-      /* ===== IMAGEN CONTAINER ===== */
+      /* ===== IMAGEN CONTAINER PROPORCIONADO ===== */
       .image-container {
         width: 100%;
-        height: 60%;
+        height: 35mm !important;
+        min-height: 35mm !important;
+        max-height: 35mm !important;
         position: relative;
         background: #f8f9fa !important;
         display: flex;
@@ -394,6 +403,7 @@ export class PuppeteerServiceClient {
         overflow: hidden;
         padding: ${config.cardPadding}mm;
         box-sizing: border-box;
+        flex-shrink: 0;
       }
       
       /* ===== IMAGEN PERFECTA ===== */
@@ -427,9 +437,10 @@ export class PuppeteerServiceClient {
         text-align: center;
       }
       
-      /* ===== INFO CONTAINER ===== */
+      /* ===== INFO CONTAINER FLEXIBLE ===== */
       .product-info {
-        height: 40%;
+        flex-grow: 1;
+        min-height: 20mm !important;
         padding: ${config.cardPadding}mm;
         display: flex;
         flex-direction: column;
@@ -446,7 +457,7 @@ export class PuppeteerServiceClient {
         font-weight: 600;
         color: ${template.colors.primary} !important;
         line-height: 1.2;
-        margin-bottom: 1mm;
+        margin-bottom: 2mm;
         word-wrap: break-word;
         overflow-wrap: break-word;
         hyphens: auto;
@@ -455,6 +466,7 @@ export class PuppeteerServiceClient {
         -webkit-box-orient: vertical;
         overflow: hidden;
         text-align: center;
+        flex-shrink: 0;
       }
       
       .product-price {
@@ -463,10 +475,10 @@ export class PuppeteerServiceClient {
         color: white !important;
         background: ${template.colors.secondary} !important;
         background-image: linear-gradient(135deg, ${template.colors.secondary}, ${template.colors.primary}) !important;
-        padding: 1mm 2mm;
+        padding: 1.5mm 2.5mm;
         border-radius: 12px;
         display: inline-block;
-        margin: 0 auto;
+        margin: 2mm auto 0 auto;
         text-align: center;
         white-space: nowrap;
         max-width: 90%;
@@ -474,6 +486,7 @@ export class PuppeteerServiceClient {
         text-overflow: ellipsis;
         box-shadow: 0 0.5pt 2pt rgba(0,0,0,0.2);
         -webkit-print-color-adjust: exact !important;
+        flex-shrink: 0;
       }
       
       .product-description {
@@ -486,15 +499,13 @@ export class PuppeteerServiceClient {
         -webkit-box-orient: vertical;
         overflow: hidden;
         text-align: center;
+        flex-grow: 1;
       }
       
-      /* ===== FOOTER ===== */
+      /* ===== FOOTER REPOSICIONADO ===== */
       .page-footer {
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        height: 15mm;
+        position: static !important;
+        width: 100%;
         background: ${template.colors.secondary} !important;
         color: ${this.getContrastColor(template.colors.secondary)} !important;
         display: flex;
@@ -503,9 +514,11 @@ export class PuppeteerServiceClient {
         align-items: center;
         text-align: center;
         border-radius: ${config.borderRadius}px;
-        padding: 2mm;
+        padding: 3mm 2mm !important;
         box-sizing: border-box;
         -webkit-print-color-adjust: exact !important;
+        margin-top: auto;
+        flex-shrink: 0;
       }
       
       .contact-info {
@@ -513,16 +526,15 @@ export class PuppeteerServiceClient {
         font-weight: 600;
         margin-bottom: 1mm;
         word-wrap: break-word;
+        line-height: 1.2;
       }
       
       .footer-brand {
         font-size: ${config.fontSize - 2}pt;
         opacity: 0.8;
         font-weight: 300;
+        line-height: 1.1;
       }
-      
-      /* ===== OPTIMIZACIONES ESPECÍFICAS POR CATEGORÍA ===== */
-      ${this.getCategorySpecificCSS(template, config)}
       
       /* ===== PRINT MEDIA QUERIES ===== */
       @media print {
@@ -553,11 +565,14 @@ export class PuppeteerServiceClient {
           filter: none !important;
         }
       }
+      
+      /* ===== OPTIMIZACIONES POR CATEGORÍA CORREGIDAS ===== */
+      ${this.getCategorySpecificCSS(template, config)}
     `;
   }
   
   /**
-   * 📄 GENERAR PÁGINAS DEL CATÁLOGO
+   * 📄 GENERAR PÁGINAS DEL CATÁLOGO - VERSIÓN CORREGIDA
    */
   private static generateCatalogPages(
     products: Product[],
@@ -580,17 +595,24 @@ export class PuppeteerServiceClient {
           ${this.generatePageHeader(businessInfo, template, page + 1, totalPages)}
           
           <div class="products-container">
-            <div class="products-table">
-              ${this.generateProductRows(pageProducts, columns, template)}
+            <div class="products-grid">
+              ${this.generateProductCards(pageProducts, template)}
             </div>
           </div>
           
-          ${page === totalPages - 1 ? this.generatePageFooter(businessInfo, products.length) : ''}
+          ${this.generatePageFooter(businessInfo, products.length)}
         </div>
       `;
     }
     
     return pagesHTML;
+  }
+  
+  /**
+   * 🎴 GENERAR CARDS DIRECTAMENTE (MÁS SIMPLE QUE EL SISTEMA DE FILAS)
+   */
+  private static generateProductCards(products: Product[], template: TemplateConfig): string {
+    return products.map(product => this.generateProductCard(product, template)).join('');
   }
   
   /**
@@ -611,29 +633,9 @@ export class PuppeteerServiceClient {
   }
   
   /**
-   * 🛍️ GENERAR FILAS DE PRODUCTOS
+   * 🎴 GENERAR CELDA DE PRODUCTO MEJORADA
    */
-  private static generateProductRows(products: Product[], columns: number, template: TemplateConfig): string {
-    let rowsHTML = '';
-    
-    for (let i = 0; i < products.length; i += columns) {
-      const rowProducts = products.slice(i, i + columns);
-      
-      rowsHTML += `
-        <div class="product-row">
-          ${rowProducts.map(product => this.generateProductCell(product, template)).join('')}
-          ${this.generateEmptyCells(columns - rowProducts.length)}
-        </div>
-      `;
-    }
-    
-    return rowsHTML;
-  }
-  
-  /**
-   * 🎴 GENERAR CELDA DE PRODUCTO
-   */
-  private static generateProductCell(product: Product, template: TemplateConfig): string {
+  private static generateProductCard(product: Product, template: TemplateConfig): string {
     const productName = product.name || 'Producto';
     const productPrice = typeof product.price_retail === 'number' ? product.price_retail : 0;
     const productImage = product.image_url || '';
@@ -653,49 +655,31 @@ export class PuppeteerServiceClient {
        </div>`;
     
     return `
-      <div class="product-cell">
-        <div class="product-card">
-          <div class="card-decoration"></div>
+      <div class="product-card">
+        <div class="card-decoration"></div>
+        
+        <div class="image-container">
+          ${imageHTML}
+        </div>
+        
+        <div class="product-info">
+          <h3 class="product-name">${productName}</h3>
           
-          <div class="image-container">
-            ${imageHTML}
-          </div>
+          ${productDescription ? 
+            `<p class="product-description">${productDescription}</p>` : ''
+          }
           
-          <div class="product-info">
-            <h3 class="product-name">${productName}</h3>
-            
-            <div class="product-price">$${productPrice.toLocaleString('es-MX', { 
-              minimumFractionDigits: 0,
-              maximumFractionDigits: 0
-            })}</div>
-            
-            ${productDescription ? 
-              `<p class="product-description">${productDescription}</p>` : ''
-            }
-          </div>
+          <div class="product-price">$${productPrice.toLocaleString('es-MX', { 
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0
+          })}</div>
         </div>
       </div>
     `;
   }
   
   /**
-   * ⬜ GENERAR CELDAS VACÍAS
-   */
-  private static generateEmptyCells(count: number): string {
-    if (count <= 0) return '';
-    
-    return Array(count).fill(`
-      <div class="product-cell">
-        <div class="product-card" style="visibility: hidden;">
-          <div class="image-container"></div>
-          <div class="product-info"></div>
-        </div>
-      </div>
-    `).join('');
-  }
-  
-  /**
-   * 📄 GENERAR FOOTER DE PÁGINA
+   * 📄 GENERAR FOOTER DE PÁGINA MEJORADO
    */
   private static generatePageFooter(businessInfo: BusinessInfo, totalProducts: number): string {
     const contactInfo = [
@@ -769,7 +753,6 @@ export class PuppeteerServiceClient {
           throw error;
         }
         
-        // Esperar antes del siguiente intento
         await new Promise(resolve => setTimeout(resolve, attempt * 2000));
       }
     }
@@ -794,7 +777,6 @@ export class PuppeteerServiceClient {
       link.click();
       document.body.removeChild(link);
       
-      // Limpiar después de un tiempo
       setTimeout(() => URL.revokeObjectURL(downloadUrl), 5000);
       
     } catch (error) {
@@ -832,10 +814,6 @@ export class PuppeteerServiceClient {
     if (productsPerPage <= 4) return 2;
     if (productsPerPage <= 9) return 3;
     return 4;
-  }
-  
-  private static calculateRows(productsPerPage: number, columns: number): number {
-    return Math.ceil(productsPerPage / columns);
   }
   
   private static getContrastColor(hexColor: string): string {
