@@ -10,10 +10,9 @@ import {
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
-import { Product } from '@/types/products'; // IMPORTAR LA INTERFAZ CENTRALIZADA
 
 // ==========================================
-// TIPOS LOCALES ESPECÍFICOS DEL EDITOR
+// TIPOS ESPECÍFICOS DEL EDITOR
 // ==========================================
 
 type EditableProductField = 
@@ -32,6 +31,31 @@ type EditableProductField =
   | 'tags';
 
 type ProductCategory = 'ropa' | 'calzado' | 'electronica' | 'joyeria' | 'fiestas' | 'floreria' | 'general';
+
+// Interfaz específica para el editor - solo propiedades que necesitamos
+interface EditorProduct {
+  id: string;
+  name: string;
+  sku: string | null;
+  description: string | null;
+  custom_description: string | null;
+  price_retail: number | null;
+  price_wholesale: number | null;
+  wholesale_min_qty: number | null;
+  category: ProductCategory | null;
+  brand: string | null;
+  model: string | null;
+  color: string | null;
+  features: string[] | null;
+  tags: string[] | null;
+  processing_status: string;
+  created_at: string;
+  // URLs de imágenes para el catálogo
+  original_image_url?: string;
+  processed_image_url?: string;
+  hd_image_url?: string;
+  image_url?: string;
+}
 
 interface EditingCell {
   rowId: string;
@@ -71,7 +95,7 @@ const MAX_TAGS = 10;
 // ==========================================
 
 // Función helper para determinar la mejor URL de imagen
-const getDisplayImageUrl = (product: Product): string => {
+const getDisplayImageUrl = (product: EditorProduct): string => {
   return product.processed_image_url || 
          product.hd_image_url || 
          product.image_url || 
@@ -153,7 +177,8 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
   const { user } = useAuth();
   
   // Estados principales
-  const [products, setProducts] = useState<Product[]>([]);
+  const [products, setProducts] = useState<EditorProduct[]>([]);
+  const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
   
@@ -536,7 +561,7 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
   // COMPONENTES DE RENDERIZADO
   // ==========================================
 
-  const renderEditableCell = (product: Product, column: EditableProductField, value: any, type: string = 'text') => {
+  const renderEditableCell = (product: EditorProduct, column: EditableProductField, value: any, type: string = 'text') => {
     const isEditing = editingCell?.rowId === product.id && editingCell?.column === column;
     const isSaving = saving === product.id;
 
@@ -617,7 +642,7 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
     );
   };
 
-  const renderSelectCell = (product: Product, column: EditableProductField, value: any, options: typeof PRODUCT_CATEGORIES) => {
+  const renderSelectCell = (product: EditorProduct, column: EditableProductField, value: any, options: typeof PRODUCT_CATEGORIES) => {
     const isEditing = editingCell?.rowId === product.id && editingCell?.column === column;
     
     if (isEditing) {
