@@ -12,6 +12,31 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "12.2.12 (cd3cf9e)"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       backup_view_definitions: {
@@ -94,6 +119,47 @@ export type Database = {
           },
         ]
       }
+      catalog_usage: {
+        Row: {
+          catalogs_generated: number | null
+          created_at: string
+          id: string
+          subscription_plan_id: string | null
+          updated_at: string
+          uploads_used: number | null
+          usage_month: number
+          user_id: string
+        }
+        Insert: {
+          catalogs_generated?: number | null
+          created_at?: string
+          id?: string
+          subscription_plan_id?: string | null
+          updated_at?: string
+          uploads_used?: number | null
+          usage_month: number
+          user_id: string
+        }
+        Update: {
+          catalogs_generated?: number | null
+          created_at?: string
+          id?: string
+          subscription_plan_id?: string | null
+          updated_at?: string
+          uploads_used?: number | null
+          usage_month?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "catalog_usage_subscription_plan_id_fkey"
+            columns: ["subscription_plan_id"]
+            isOneToOne: false
+            referencedRelation: "credit_packages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       catalogs: {
         Row: {
           brand_colors: Json | null
@@ -102,6 +168,7 @@ export type Database = {
           currency: string | null
           description: string | null
           file_size_bytes: number | null
+          generation_metadata: Json | null
           id: string
           logo_url: string | null
           name: string
@@ -122,6 +189,7 @@ export type Database = {
           currency?: string | null
           description?: string | null
           file_size_bytes?: number | null
+          generation_metadata?: Json | null
           id?: string
           logo_url?: string | null
           name: string
@@ -142,6 +210,7 @@ export type Database = {
           currency?: string | null
           description?: string | null
           file_size_bytes?: number | null
+          generation_metadata?: Json | null
           id?: string
           logo_url?: string | null
           name?: string
@@ -424,6 +493,7 @@ export type Database = {
           sku: string | null
           smart_analysis: Json | null
           social_media_urls: Json | null
+          tags: string[] | null
           updated_at: string
           user_id: string
           variant_count: number | null
@@ -467,6 +537,7 @@ export type Database = {
           sku?: string | null
           smart_analysis?: Json | null
           social_media_urls?: Json | null
+          tags?: string[] | null
           updated_at?: string
           user_id: string
           variant_count?: number | null
@@ -510,6 +581,7 @@ export type Database = {
           sku?: string | null
           smart_analysis?: Json | null
           social_media_urls?: Json | null
+          tags?: string[] | null
           updated_at?: string
           user_id?: string
           variant_count?: number | null
@@ -1016,6 +1088,10 @@ export type Database = {
         Args: { transaction_user_id: string }
         Returns: boolean
       }
+      can_generate_catalog: {
+        Args: { p_user_id: string }
+        Returns: Json
+      }
       complete_user_profile: {
         Args: {
           p_business_name?: string
@@ -1061,6 +1137,19 @@ export type Database = {
           id: string
           updated_at: string
         }[]
+      }
+      get_or_create_monthly_usage: {
+        Args: { p_user_id: string }
+        Returns: {
+          catalogs_generated: number | null
+          created_at: string
+          id: string
+          subscription_plan_id: string | null
+          updated_at: string
+          uploads_used: number | null
+          usage_month: number
+          user_id: string
+        }
       }
       get_product_variants: {
         Args: { product_uuid: string }
@@ -1108,6 +1197,10 @@ export type Database = {
           name: string
           variant_values: Json
         }[]
+      }
+      increment_catalog_usage: {
+        Args: { p_user_id: string }
+        Returns: Json
       }
       update_product_field: {
         Args: { field_name: string; field_value: string; product_id: string }
@@ -1245,6 +1338,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {},
   },
