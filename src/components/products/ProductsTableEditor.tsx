@@ -248,8 +248,8 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
 
       if (error) throw error;
 
-      // ✅ CORRECCIÓN: Mapeo con validación de categoría y tags
-      const productsData: Product[] = data ? data.map(product => ({
+      // Mapeo simple y directo - solo propiedades que necesitamos
+      const productsData: EditorProduct[] = data ? data.map(product => ({
         id: product.id,
         name: product.name,
         sku: product.sku,
@@ -445,6 +445,38 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
       toast({
         title: "Error",
         description: "No se pudo preparar el catálogo",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteProduct = async (product: EditorProduct) => {
+    if (!confirm(`¿Estás seguro de que quieres eliminar "${product.name}"?`)) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('products')
+        .delete()
+        .eq('id', product.id)
+        .eq('user_id', user?.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Producto eliminado",
+        description: `${product.name} ha sido eliminado correctamente`,
+      });
+
+      await fetchProducts();
+      setSelectedProducts(prev => prev.filter(id => id !== product.id));
+
+    } catch (error) {
+      console.error('Error eliminando producto:', error);
+      toast({
+        title: "Error",
+        description: "No se pudo eliminar el producto",
         variant: "destructive",
       });
     }
