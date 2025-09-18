@@ -81,18 +81,39 @@ const convertToIndustryTemplate = (auditedTemplate: AuditedTemplate): any => {
   return {
     id: auditedTemplate.id,
     name: auditedTemplate.displayName,
-    description: auditedTemplate.description,
-    industry: auditedTemplate.industry,
-    density: auditedTemplate.density,
-    isPremium: auditedTemplate.isPremium,
-    planLevel: auditedTemplate.planLevel,
-    colors: auditedTemplate.colors,
-    productsPerPage: auditedTemplate.productsPerPage,
-    gridColumns: auditedTemplate.gridColumns,
-    tags: auditedTemplate.tags,
-    qualityScore: auditedTemplate.qualityScore,
-    previewUrl: `/templates/${auditedTemplate.id}/preview.png`, // URL de preview generada
-    category: auditedTemplate.category
+    description: auditedTemplate.description || 'Template optimizado V2.0',
+    industry: auditedTemplate.industry || 'general',
+    density: auditedTemplate.density || 'media',
+    isPremium: auditedTemplate.isPremium || false,
+    planLevel: auditedTemplate.planLevel || 'free',
+    colors: auditedTemplate.colors || {
+      primary: '#007BFF',
+      secondary: '#0056B3', 
+      accent: '#CCE5FF',
+      background: '#FFFFFF',
+      text: '#2C3E50',
+      cardBackground: '#F8F9FA'
+    },
+    productsPerPage: auditedTemplate.productsPerPage || 6,
+    gridColumns: auditedTemplate.gridColumns || 3,
+    tags: auditedTemplate.tags || [],
+    qualityScore: auditedTemplate.qualityScore || 95,
+    previewUrl: `/templates/${auditedTemplate.id}/preview.png`,
+    category: auditedTemplate.category || 'modern', // ✅ AGREGADO: Esta propiedad faltaba
+    
+    // ✅ AGREGADOS: Propiedades que podrían estar faltando
+    borderRadius: auditedTemplate.design?.borderRadius || 8,
+    shadows: auditedTemplate.design?.shadows || true,
+    spacing: auditedTemplate.design?.spacing || 'normal',
+    typography: auditedTemplate.design?.typography || 'modern',
+    
+    // ✅ AGREGADO: Información que podría necesitar el preview
+    showInfo: auditedTemplate.showInfo || {
+      category: true,
+      description: true,
+      sku: false,
+      specifications: false
+    }
   };
 };
 
