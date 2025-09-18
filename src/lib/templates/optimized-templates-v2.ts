@@ -576,6 +576,113 @@ export const HALLOWEEN_FESTIVO: NewTemplateBlueprint = {
   planLevel: 'basic'
 };
 
+   // 🔧 TEMPLATE FERRETERÍA CUADRADA - AGREGAR A optimized-templates-v2.ts
+
+/**
+ * 🔧 TEMPLATE DE FERRETERÍA CON TARJETAS CUADRADAS
+ * Layout 3x3 con tarjetas más cuadradas y espaciosas
+ */
+
+export const FERRETERIA_CUADRADA_MODERNA: NewTemplateBlueprint = {
+  id: 'ferreteria-cuadrada-moderna',
+  displayName: 'Ferretería Cuadrada Moderna',
+  description: 'Layout cuadrado 3x3 perfecto para herramientas y ferretería',
+  industry: 'ferreteria',
+  category: 'business',
+  tags: ['cuadrada', 'herramientas', 'ferreteria', '3x3', 'moderna', 'organizada'],
+  
+  colors: {
+    primary: '#FF6B35',     // Naranja ferretería (como en el PDF actual)
+    secondary: '#CC5429',   // Naranja oscuro
+    accent: '#FFF3E0'       // Naranja muy claro
+  },
+  
+  // 🎯 CONFIGURACIÓN PARA TARJETAS CUADRADAS
+  density: 'media',         // Cambiado de 'alta' a 'media' para tarjetas más grandes
+  productsPerPage: 9,       // 3x3 = 9 productos (ideal para cuadradas)
+  gridColumns: 3,           // 3 columnas (en lugar de 5)
+  borderRadius: 8,          // Bordes moderados
+  shadows: false,           // Sin sombras para look industrial limpio
+  spacing: 'normal',        // Espacio normal entre tarjetas
+  typography: 'modern',
+  
+  showInfo: {
+    category: true,          // HERRAMIENTAS, TORNILLOS, etc.
+    description: false,      // Sin descripción para ahorrar espacio
+    sku: true,              // SKU importante en ferretería
+    specifications: true     // Medidas, materiales, etc.
+  },
+  
+  isPremium: false,
+  planLevel: 'starter'
+};
+
+// 🎯 VERSIÓN ALTERNATIVA CON 6 PRODUCTOS (3x2) PARA TARJETAS AÚN MÁS GRANDES
+export const FERRETERIA_CUADRADA_PREMIUM: NewTemplateBlueprint = {
+  id: 'ferreteria-cuadrada-premium',
+  displayName: 'Ferretería Cuadrada Premium',
+  description: 'Layout premium 3x2 con tarjetas extra grandes para herramientas especializadas',
+  industry: 'ferreteria',
+  category: 'business',
+  tags: ['premium', 'herramientas', 'ferreteria', '3x2', 'grandes', 'especializada'],
+  
+  colors: {
+    primary: '#2E8B57',     // Verde industrial
+    secondary: '#228B22',   // Verde oscuro
+    accent: '#F0FFF0'       // Verde muy claro
+  },
+  
+  // 🎯 CONFIGURACIÓN PARA TARJETAS MÁS GRANDES
+  density: 'baja',          // Baja densidad = tarjetas más grandes
+  productsPerPage: 6,       // 3x2 = 6 productos
+  gridColumns: 3,           // 3 columnas
+  borderRadius: 10,         
+  shadows: true,            // Sombras para look premium
+  spacing: 'amplio',        // Más espacio entre tarjetas
+  typography: 'modern',
+  
+  showInfo: {
+    category: true,
+    description: true,       // Incluir descripción en versión premium
+    sku: true,
+    specifications: true
+  },
+  
+  isPremium: true,          // Versión premium
+  planLevel: 'professional'
+};
+
+// 📝 INSTRUCCIONES PARA IMPLEMENTAR:
+
+/*
+1. AGREGAR estos blueprints al array de generateAllOptimizedTemplates():
+
+```typescript
+const blueprints = [
+  // ... otros templates existentes
+  
+  // FERRETERÍA CUADRADA (NUEVOS)
+  FERRETERIA_CUADRADA_MODERNA,
+  FERRETERIA_CUADRADA_PREMIUM,
+  
+  // ... resto de templates
+];
+```
+
+2. REEMPLAZAR o DESACTIVAR el template anterior "hardware-industrial" 
+   que tiene 5 columnas y 15 productos por página.
+
+3. Los nuevos templates darán:
+   ✅ Tarjetas cuadradas (ancho ≈ alto)
+   ✅ 3 productos por fila (más espacioso)
+   ✅ Grid 3x3 (9 productos) o 3x2 (6 productos)
+   ✅ Mejor proporción visual
+   ✅ Más espacio para imágenes de herramientas
+
+4. El CSS Generator ya está optimizado para calcular automáticamente 
+   tarjetas cuadradas cuando gridColumns: 3
+*/
+
 /**
  * 🏭 FUNCIÓN PARA GENERAR TODOS LOS TEMPLATES
  */
@@ -607,9 +714,14 @@ export const generateAllOptimizedTemplates = async () => {
     JUGUETES_INFANTIL_COLORES,
     JUGUETES_EDUCATIVO_SUAVE,
     JUGUETES_PREMIUM_ELEGANTE,
+
+      // FERRETERÍA CUADRADA (NUEVOS)
+    FERRETERIA_CUADRADA_MODERNA,
+    FERRETERIA_CUADRADA_PREMIUM,
     
     // ESPECIALES
     HALLOWEEN_FESTIVO
+    
   ];
   
   const generatedTemplates = [];
