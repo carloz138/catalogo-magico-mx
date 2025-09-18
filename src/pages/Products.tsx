@@ -165,7 +165,7 @@ const Products = () => {
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
           <Input
-            placeholder="Buscar productos..."
+            placeholder="Buscar por nombre, marca, categoría o etiquetas..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-9 w-32 sm:w-40 lg:w-48"
