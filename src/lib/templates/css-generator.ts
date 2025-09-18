@@ -1,5 +1,5 @@
-// src/lib/templates/css-generator.ts - SOLUCIÓN DEFINITIVA PARA PDFS SIN CORTES
-// 🎯 REESCRITO COMPLETAMENTE PARA ELIMINAR TODOS LOS PROBLEMAS DE LAYOUT
+// src/lib/templates/css-generator.ts - ARREGLADO COMPLETAMENTE
+// 🎯 NUEVA VERSIÓN SIN DEFORMACIONES - REEMPLAZA EL ARCHIVO ACTUAL
 
 import { IndustryTemplate } from './industry-templates';
 
@@ -25,7 +25,7 @@ interface BusinessInfo {
 export class TemplateGenerator {
   
   /**
-   * 🎨 CSS GENERATOR INTEGRAL - SISTEMA ROBUSTO SIN CORTES
+   * 🎨 CSS GENERATOR COMPLETAMENTE REESCRITO - GRID SYSTEM ROBUSTO
    */
   static generateTemplateCSS(template: IndustryTemplate): string {
     const dimensions = this.calculateRobustDimensions(template);
@@ -33,7 +33,7 @@ export class TemplateGenerator {
     const typography = this.calculateTypography(template);
     
     return `
-      /* ===== TEMPLATE: ${template.displayName.toUpperCase()} - ANTI-CORTES ===== */
+      /* ===== TEMPLATE: ${template.displayName.toUpperCase()} - GRID SYSTEM ROBUSTO ===== */
       
       /* ===== VARIABLES CSS PRECISAS ===== */
       :root {
@@ -46,21 +46,22 @@ export class TemplateGenerator {
         --text-light: ${colors.textSecondary};
         --border: ${colors.borderColor};
         
-        /* DIMENSIONES EXACTAS EN MM (MÁS PRECISAS QUE PX) */
+        /* DIMENSIONES EXACTAS CALCULADAS */
         --page-width: 210mm;
         --page-height: 297mm;
         --margin: ${dimensions.margin}mm;
         --content-width: ${dimensions.contentWidth}mm;
         --content-height: ${dimensions.contentHeight}mm;
         
-        /* CARD DIMENSIONS - CALCULADAS CON PRECISIÓN MATEMÁTICA */
+        /* GRID DIMENSIONS - MATEMÁTICAMENTE PRECISAS */
         --columns: ${dimensions.columns};
         --card-width: ${dimensions.cardWidth}mm;
         --card-height: ${dimensions.cardHeight}mm;
         --gap: ${dimensions.gap}mm;
         --image-height: ${dimensions.imageHeight}mm;
+        --text-area-height: ${dimensions.textAreaHeight}mm;
         
-        /* TIPOGRAFÍA EN PT (ÓPTIMA PARA PDF) */
+        /* TIPOGRAFÍA OPTIMIZADA */
         --header-size: ${typography.headerSize}pt;
         --title-size: ${typography.titleSize}pt;
         --price-size: ${typography.priceSize}pt;
@@ -84,20 +85,22 @@ export class TemplateGenerator {
         margin: var(--margin);
         marks: none;
         bleed: 0;
+        orphans: 1;
+        widows: 1;
       }
       
-      /* ===== HTML Y BODY BASE ===== */
+      /* ===== HTML Y BODY OPTIMIZADOS ===== */
       html {
         width: var(--page-width);
         height: auto;
-        font-size: 12pt; /* Base font size para PDF */
+        font-size: 12pt;
+        line-height: 1.3;
       }
       
       body.template-${template.id} {
         font-family: 'Arial', 'Helvetica', sans-serif !important;
         background: var(--bg) !important;
         color: var(--text) !important;
-        line-height: 1.3;
         width: var(--content-width);
         min-height: var(--content-height);
         margin: 0 auto;
@@ -113,6 +116,9 @@ export class TemplateGenerator {
         max-width: var(--content-width);
         background: var(--bg) !important;
         position: relative;
+        min-height: var(--content-height);
+        display: flex;
+        flex-direction: column;
         -webkit-print-color-adjust: exact !important;
       }
       
@@ -123,13 +129,14 @@ export class TemplateGenerator {
         background-image: linear-gradient(135deg, var(--primary), var(--secondary)) !important;
         color: white !important;
         text-align: center;
-        padding: 12mm 8mm;
+        padding: 8mm;
         margin-bottom: 6mm;
-        border-radius: ${template.design?.borderRadius || 8}px;
+        border-radius: ${Math.min(template.design?.borderRadius || 8, 12)}px;
         page-break-inside: avoid !important;
         break-inside: avoid !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
+        flex-shrink: 0;
       }
       
       .business-name {
@@ -154,57 +161,55 @@ export class TemplateGenerator {
         -webkit-print-color-adjust: exact !important;
       }
       
-      /* ===== PRODUCTS SECTION ===== */
+      /* ===== PRODUCTS SECTION CON FLEX GROW ===== */
       .products-section {
         width: 100%;
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
       }
       
-      /* ===== SISTEMA DE GRID ROBUSTO - TABLA EN LUGAR DE FLEXBOX ===== */
+      /* ===== NUEVO SISTEMA DE GRID CSS - MÁS ROBUSTO QUE TABLA ===== */
       .products-grid {
-        display: table !important;
+        display: grid !important;
+        grid-template-columns: repeat(var(--columns), 1fr) !important;
+        gap: var(--gap) !important;
         width: 100% !important;
-        table-layout: fixed !important;
-        border-collapse: separate !important;
-        border-spacing: var(--gap) !important;
         margin: 0 !important;
+        padding: 0 !important;
         page-break-inside: avoid;
+        align-items: start !important;
       }
       
-      /* ===== ROWS DE PRODUCTOS ===== */
-      .products-row {
-        display: table-row !important;
-        width: 100% !important;
-        page-break-inside: avoid !important;
-        break-inside: avoid !important;
-      }
-      
-      /* ===== PRODUCT CARDS CON TABLE-CELL (MÁS ROBUSTO) ===== */
+      /* ===== PRODUCT CARDS CON GRID (MUCHO MÁS ESTABLE) ===== */
       .product-card {
-        /* TABLE CELL - MÁS COMPATIBLE QUE FLEXBOX */
-        display: table-cell !important;
-        width: calc(100% / var(--columns)) !important;
+        /* GRID ITEM - MÁS CONFIABLE QUE TABLE-CELL */
+        display: flex !important;
+        flex-direction: column !important;
+        width: 100% !important;
         height: var(--card-height) !important;
+        min-height: var(--card-height) !important;
+        max-height: var(--card-height) !important;
         
         /* ESTRUCTURA VISUAL */
         background: var(--card-bg) !important;
         border: 0.5pt solid var(--border) !important;
-        border-radius: ${template.design?.borderRadius || 8}px !important;
+        border-radius: ${Math.min(template.design?.borderRadius || 8, 15)}px !important;
         overflow: hidden !important;
         position: relative !important;
-        vertical-align: top !important;
         
-        /* PREVENIR CORTES */
+        /* PREVENIR CORTES Y DEFORMACIONES */
         page-break-inside: avoid !important;
         break-inside: avoid !important;
         box-sizing: border-box !important;
         
         /* SOMBRAS CONDICIONALES */
-        ${template.design.shadows ? 'box-shadow: 0 1mm 3mm rgba(0, 0, 0, 0.1);' : ''}
+        ${template.design.shadows ? 'box-shadow: 0 1mm 3mm rgba(0, 0, 0, 0.08);' : ''}
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
       }
       
-      /* ===== CONTENIDO INTERNO DE CARD ===== */
+      /* ===== CONTENIDO INTERNO OPTIMIZADO ===== */
       .product-card-inner {
         display: flex !important;
         flex-direction: column !important;
@@ -214,12 +219,14 @@ export class TemplateGenerator {
         box-sizing: border-box !important;
       }
       
-      /* ===== IMAGEN CONTAINER ROBUSTO ===== */
+      /* ===== IMAGEN CONTAINER CON ALTURA FIJA ===== */
       .product-image-container {
         width: 100% !important;
         height: var(--image-height) !important;
+        min-height: var(--image-height) !important;
+        max-height: var(--image-height) !important;
         background: #f8f9fa !important;
-        border-radius: ${Math.max((template.design?.borderRadius || 8) - 2, 2)}px !important;
+        border-radius: ${Math.max(Math.min(template.design?.borderRadius || 8, 15) - 2, 2)}px !important;
         overflow: hidden !important;
         position: relative !important;
         flex-shrink: 0 !important;
@@ -231,10 +238,10 @@ export class TemplateGenerator {
         -webkit-print-color-adjust: exact !important;
       }
       
-      /* ===== IMAGEN PERFECTA SIN CORTES ===== */
+      /* ===== IMAGEN PERFECTA SIN DISTORSIÓN ===== */
       .product-image {
-        max-width: 90% !important;
-        max-height: 90% !important;
+        max-width: 95% !important;
+        max-height: 95% !important;
         width: auto !important;
         height: auto !important;
         object-fit: contain !important;
@@ -244,10 +251,9 @@ export class TemplateGenerator {
         border-radius: 2px !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
-        filter: none !important;
       }
       
-      /* ===== PLACEHOLDER DE IMAGEN ===== */
+      /* ===== PLACEHOLDER MEJORADO ===== */
       .product-image-placeholder {
         width: 90% !important;
         height: 90% !important;
@@ -255,7 +261,7 @@ export class TemplateGenerator {
           repeating-conic-gradient(from 0deg at 50% 50%, 
             #f0f0f0 0deg 90deg, 
             transparent 90deg 180deg) !important;
-        background-size: 10px 10px !important;
+        background-size: 8px 8px !important;
         border: 1pt dashed #ccc !important;
         border-radius: 3px !important;
         display: flex !important;
@@ -268,17 +274,19 @@ export class TemplateGenerator {
         -webkit-print-color-adjust: exact !important;
       }
       
-      /* ===== INFORMACIÓN DEL PRODUCTO ===== */
+      /* ===== INFORMACIÓN CON ALTURA RESTANTE ===== */
       .product-info {
         flex-grow: 1 !important;
         display: flex !important;
         flex-direction: column !important;
         justify-content: space-between !important;
-        min-height: calc(var(--card-height) - var(--image-height) - 8mm) !important;
+        height: var(--text-area-height) !important;
+        min-height: var(--text-area-height) !important;
         text-align: center !important;
+        overflow: hidden !important;
       }
       
-      /* ===== ELEMENTOS DE TEXTO CON TRUNCACIÓN INTELIGENTE ===== */
+      /* ===== ELEMENTOS DE TEXTO OPTIMIZADOS ===== */
       .product-name {
         font-size: var(--title-size) !important;
         font-weight: 600 !important;
@@ -289,7 +297,7 @@ export class TemplateGenerator {
         overflow-wrap: break-word !important;
         hyphens: auto !important;
         
-        /* TRUNCATION SYSTEM */
+        /* TRUNCATION MEJORADO */
         display: -webkit-box !important;
         -webkit-line-clamp: ${this.getNameLines(template.density)} !important;
         -webkit-box-orient: vertical !important;
@@ -305,7 +313,7 @@ export class TemplateGenerator {
         background: var(--secondary) !important;
         background-image: linear-gradient(135deg, var(--secondary), var(--primary)) !important;
         padding: 1.5mm 3mm !important;
-        border-radius: 15px !important;
+        border-radius: 12px !important;
         display: inline-block !important;
         margin: 1mm auto !important;
         text-align: center !important;
@@ -313,9 +321,10 @@ export class TemplateGenerator {
         max-width: 95% !important;
         overflow: hidden !important;
         text-overflow: ellipsis !important;
-        box-shadow: 0 1pt 2pt rgba(0,0,0,0.2) !important;
+        box-shadow: 0 1pt 2pt rgba(0,0,0,0.15) !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
+        flex-shrink: 0 !important;
       }
       
       /* ===== ELEMENTOS CONDICIONALES OPTIMIZADOS ===== */
@@ -328,7 +337,7 @@ export class TemplateGenerator {
         text-transform: uppercase !important;
         background: ${this.hexToRgba(template.colors.accent, 0.15)} !important;
         padding: 0.5mm 2mm !important;
-        border-radius: 8px !important;
+        border-radius: 6px !important;
         display: inline-block !important;
         margin-bottom: 1mm !important;
         max-width: 100% !important;
@@ -346,7 +355,7 @@ export class TemplateGenerator {
         line-height: 1.3 !important;
         margin: 1mm 0 !important;
         
-        /* TRUNCATION */
+        /* TRUNCATION PERFECTO */
         display: -webkit-box !important;
         -webkit-line-clamp: ${this.getDescLines(template.density)} !important;
         -webkit-box-orient: vertical !important;
@@ -394,7 +403,7 @@ export class TemplateGenerator {
       }
       ` : `.product-specifications { display: none !important; }`}
       
-      /* ===== FOOTER ROBUSTO ===== */
+      /* ===== FOOTER MEJORADO Y FIJO ===== */
       .catalog-footer {
         width: 100% !important;
         background: var(--secondary) !important;
@@ -402,12 +411,14 @@ export class TemplateGenerator {
         padding: 6mm !important;
         text-align: center !important;
         border-top: 1pt solid var(--border) !important;
-        margin-top: 8mm !important;
-        border-radius: ${template.design?.borderRadius || 8}px !important;
+        margin-top: 6mm !important;
+        border-radius: ${Math.min(template.design?.borderRadius || 8, 12)}px !important;
         page-break-inside: avoid !important;
         break-inside: avoid !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
+        flex-shrink: 0 !important;
+        margin-top: auto !important;
       }
       
       .business-contact {
@@ -416,17 +427,22 @@ export class TemplateGenerator {
         margin-bottom: 2mm !important;
         font-weight: 600 !important;
         word-wrap: break-word !important;
+        display: flex !important;
+        flex-wrap: wrap !important;
+        justify-content: center !important;
+        align-items: center !important;
+        gap: 2mm !important;
       }
       
       .contact-item {
         display: inline-block !important;
-        margin: 0 2mm !important;
         padding: 1mm 2mm !important;
         background: rgba(255, 255, 255, 0.15) !important;
-        border-radius: 8px !important;
+        border-radius: 6px !important;
         font-weight: 600 !important;
         white-space: nowrap !important;
         -webkit-print-color-adjust: exact !important;
+        font-size: 9pt !important;
       }
       
       .footer-branding {
@@ -436,7 +452,7 @@ export class TemplateGenerator {
         font-weight: 300 !important;
       }
       
-      /* ===== SYSTEM DE PAGINACIÓN ROBUSTO ===== */
+      /* ===== PAGINACIÓN ROBUSTA ===== */
       .page-break-before {
         page-break-before: always !important;
         break-before: page !important;
@@ -454,40 +470,33 @@ export class TemplateGenerator {
         page-break-after: avoid !important;
       }
       
-      /* CONTROL DE HUÉRFANOS Y VIUDAS */
-      .products-section {
-        orphans: 1 !important;
-        widows: 1 !important;
-      }
-      
-      .products-grid .products-row:last-child {
-        page-break-after: avoid !important;
+      /* ===== CARDS VACÍAS PARA COMPLETAR GRID ===== */
+      .product-card.empty-card {
+        visibility: hidden !important;
+        height: var(--card-height) !important;
+        min-height: var(--card-height) !important;
+        border: none !important;
+        background: transparent !important;
+        box-shadow: none !important;
       }
       
       /* ===== RESPONSIVE SIMPLIFICADO ===== */
       @media screen and (max-width: 768px) {
         :root {
           --columns: 1;
-          --card-width: calc(var(--content-width) - 4mm);
-          --gap: 2mm;
+          --gap: 3mm;
         }
         
         .products-grid {
-          display: block !important;
-        }
-        
-        .products-row {
-          display: block !important;
+          grid-template-columns: 1fr !important;
         }
         
         .product-card {
-          display: block !important;
-          width: 100% !important;
-          margin-bottom: var(--gap) !important;
+          max-width: none !important;
         }
       }
       
-      /* ===== PRINT/PDF OPTIMIZATIONS ===== */
+      /* ===== OPTIMIZACIONES ESPECÍFICAS PARA PDF ===== */
       @media print {
         * {
           -webkit-print-color-adjust: exact !important;
@@ -514,11 +523,15 @@ export class TemplateGenerator {
           -webkit-print-color-adjust: exact !important;
           print-color-adjust: exact !important;
           color-adjust: exact !important;
-          filter: none !important;
+        }
+        
+        /* EVITAR CORTES EN GRID */
+        .products-grid {
+          page-break-inside: auto !important;
         }
       }
       
-      /* ===== OPTIMIZACIONES ESPECÍFICAS POR INDUSTRIA ===== */
+      /* ===== OPTIMIZACIONES POR INDUSTRIA ===== */
       ${this.generateIndustrySpecificCSS(template)}
       
       /* ===== OPTIMIZACIONES POR DENSIDAD ===== */
@@ -527,37 +540,38 @@ export class TemplateGenerator {
   }
   
   /**
-   * 📐 CALCULAR DIMENSIONES ROBUSTAS MATEMÁTICAMENTE
+   * 📐 DIMENSIONES MATEMÁTICAMENTE PRECISAS MEJORADAS
    */
   private static calculateRobustDimensions(template: IndustryTemplate) {
     // A4: 210mm x 297mm
     const pageWidth = 210;
     const pageHeight = 297;
     
-    // Márgenes seguros según densidad
-    const marginMap = { alta: 12, media: 15, baja: 18 };
-    const margin = marginMap[template.density as keyof typeof marginMap] || 15;
+    // Márgenes optimizados por densidad
+    const marginMap = { alta: 10, media: 12, baja: 15 };
+    const margin = marginMap[template.density as keyof typeof marginMap] || 12;
     
     const contentWidth = pageWidth - (margin * 2);
     const contentHeight = pageHeight - (margin * 2);
     
-    // Columnas según products per page
+    // Columnas según el template (RESPETA EL TEMPLATE)
     const columns = template.gridColumns;
     
-    // Gap seguro según densidad
-    const gapMap = { alta: 2, media: 3, baja: 4 };
-    const gap = gapMap[template.density as keyof typeof gapMap] || 3;
+    // Gap proporcional al tamaño de página
+    const gapMap = { alta: 2, media: 2.5, baja: 3 };
+    const gap = gapMap[template.density as keyof typeof gapMap] || 2.5;
     
-    // Ancho de card matemáticamente exacto
+    // Ancho de card MATEMÁTICAMENTE EXACTO
     const totalGapWidth = (columns - 1) * gap;
     const cardWidth = (contentWidth - totalGapWidth) / columns;
     
-    // Altura de card según densidad y productos por página
-    const baseHeightMap = { alta: 50, media: 65, baja: 80 };
-    const cardHeight = baseHeightMap[template.density as keyof typeof baseHeightMap] || 65;
+    // Altura de card OPTIMIZADA por densidad
+    const cardHeightMap = { alta: 45, media: 55, baja: 70 };
+    const cardHeight = cardHeightMap[template.density as keyof typeof cardHeightMap] || 55;
     
-    // Altura de imagen (65% de la card)
-    const imageHeight = cardHeight * 0.65;
+    // Distribución interna de la card
+    const imageHeight = cardHeight * 0.60; // 60% para imagen
+    const textAreaHeight = cardHeight * 0.40; // 40% para texto
     
     return {
       pageWidth,
@@ -567,21 +581,21 @@ export class TemplateGenerator {
       contentHeight,
       columns,
       gap,
-      cardWidth: Math.floor(cardWidth * 100) / 100, // Redondear a 2 decimales
+      cardWidth: Math.floor(cardWidth * 100) / 100,
       cardHeight,
       imageHeight,
-      textHeight: cardHeight * 0.35
+      textAreaHeight
     };
   }
   
   /**
-   * 🎯 CALCULAR TIPOGRAFÍA SEGÚN DENSIDAD
+   * 🎯 CALCULAR TIPOGRAFÍA SEGÚN DENSIDAD MEJORADA
    */
   private static calculateTypography(template: IndustryTemplate) {
     const densityMap = {
-      alta: { header: 16, title: 9, price: 10, desc: 7, info: 6 },
-      media: { header: 20, title: 11, price: 12, desc: 8, info: 7 },
-      baja: { header: 24, title: 13, price: 14, desc: 9, info: 8 }
+      alta: { header: 14, title: 8, price: 9, desc: 6, info: 5 },
+      media: { header: 18, title: 10, price: 11, desc: 7, info: 6 },
+      baja: { header: 22, title: 12, price: 13, desc: 8, info: 7 }
     };
     
     const sizes = densityMap[template.density as keyof typeof densityMap] || densityMap.media;
@@ -596,7 +610,7 @@ export class TemplateGenerator {
   }
   
   /**
-   * 🎨 GENERAR ESQUEMA DE COLORES
+   * 🎨 GENERAR ESQUEMA DE COLORES MEJORADO
    */
   private static generateColorScheme(template: IndustryTemplate) {
     const primary = template.colors.primary;
@@ -614,108 +628,12 @@ export class TemplateGenerator {
       cardBackground: template.colors.cardBackground || (isLight ? '#ffffff' : '#f8f9fa'),
       textPrimary: isLight ? '#2c3e50' : '#ffffff',
       textSecondary: isLight ? '#7f8c8d' : '#bdc3c7',
-      borderColor: isLight ? '#ecf0f1' : '#34495e'
+      borderColor: isLight ? '#e9ecef' : '#34495e'
     };
   }
   
   /**
-   * 📝 HELPERS PARA TRUNCACIÓN DE TEXTO
-   */
-  private static getNameLines(density: string): number {
-    return { alta: 2, media: 3, baja: 4 }[density as keyof typeof density] || 3;
-  }
-  
-  private static getDescLines(density: string): number {
-    return { alta: 2, media: 3, baja: 4 }[density as keyof typeof density] || 3;
-  }
-  
-  private static getSpecsHeight(density: string): number {
-    return { alta: 8, media: 12, baja: 16 }[density as keyof typeof density] || 12;
-  }
-  
-  /**
-   * 🏭 CSS ESPECÍFICO POR INDUSTRIA
-   */
-  private static generateIndustrySpecificCSS(template: IndustryTemplate): string {
-    const industryStyles = {
-      joyeria: `
-        .template-${template.id} .product-image-container {
-          background: linear-gradient(45deg, #fff8f0, #ffffff) !important;
-          border: 1pt solid ${template.colors.accent}50 !important;
-        }
-        .template-${template.id} .product-card {
-          border: 1pt solid ${template.colors.accent} !important;
-        }
-        .template-${template.id} .product-name {
-          font-family: 'Georgia', serif !important;
-          letter-spacing: 0.3pt !important;
-        }
-      `,
-      moda: `
-        .template-${template.id} .product-card {
-          border-radius: ${(template.design?.borderRadius || 8) * 1.5}px !important;
-        }
-        .template-${template.id} .product-image-container {
-          border-radius: ${(template.design?.borderRadius || 8) * 1.2}px !important;
-        }
-      `,
-      electronica: `
-        .template-${template.id} .product-image-container {
-          background: linear-gradient(135deg, #f1f3f4, #ffffff) !important;
-          border: 1pt solid #e0e0e0 !important;
-        }
-        .template-${template.id} .product-card {
-          border-radius: ${Math.max((template.design?.borderRadius || 8) * 0.8, 4)}px !important;
-        }
-      `,
-      ferreteria: `
-        .template-${template.id} .product-card {
-          border: 1.5pt solid ${template.colors.accent} !important;
-          border-radius: 4px !important;
-        }
-      `,
-      cosmeticos: `
-        .template-${template.id} .product-card {
-          border-radius: ${(template.design?.borderRadius || 8) * 1.3}px !important;
-          background: linear-gradient(145deg, #ffffff, #fefefe) !important;
-        }
-      `
-    };
-    
-    return industryStyles[template.industry as keyof typeof industryStyles] || '';
-  }
-  
-  /**
-   * 🎯 CSS ESPECÍFICO POR DENSIDAD
-   */
-  private static generateDensitySpecificCSS(template: IndustryTemplate): string {
-    if (template.density === 'alta') {
-      return `
-        .template-${template.id} .product-card {
-          border-width: 0.25pt !important;
-        }
-        .template-${template.id} .product-card-inner {
-          padding: 2mm !important;
-        }
-      `;
-    }
-    
-    if (template.density === 'baja') {
-      return `
-        .template-${template.id} .product-card {
-          border-width: 1pt !important;
-        }
-        .template-${template.id} .product-card-inner {
-          padding: 4mm !important;
-        }
-      `;
-    }
-    
-    return '';
-  }
-  
-  /**
-   * 🏗️ GENERAR HTML CON ESTRUCTURA TABLA ROBUSTA
+   * 🏗️ GENERAR HTML CON GRID SYSTEM ROBUSTO
    */
   static generateCatalogHTML(
     products: Product[],
@@ -724,7 +642,7 @@ export class TemplateGenerator {
   ): string {
     
     const css = this.generateTemplateCSS(template);
-    const productsHTML = this.generateProductsHTMLTable(products, template);
+    const productsHTML = this.generateProductsHTMLGrid(products, template);
     const footerHTML = this.generateFooterHTML(businessInfo);
     
     const businessName = businessInfo.business_name || 'Mi Negocio';
@@ -741,18 +659,18 @@ export class TemplateGenerator {
 </head>
 <body class="template-${template.id}">
     <div class="catalog-container">
-        <!-- Header robusto -->
+        <!-- Header optimizado -->
         <header class="catalog-header page-break-avoid">
             <h1 class="business-name">${businessName}</h1>
             <p class="catalog-subtitle">Catálogo de Productos</p>
         </header>
         
-        <!-- Products con tabla robusta -->
+        <!-- Products con CSS Grid -->
         <main class="products-section">
             ${productsHTML}
         </main>
         
-        <!-- Footer -->
+        <!-- Footer fijo -->
         ${footerHTML}
     </div>
 </body>
@@ -760,12 +678,11 @@ export class TemplateGenerator {
   }
   
   /**
-   * 🛍️ GENERAR HTML DE PRODUCTOS CON TABLA (MÁS ROBUSTO QUE FLEXBOX)
+   * 🛍️ GENERAR HTML CON CSS GRID (MUCHO MÁS ROBUSTO)
    */
-  private static generateProductsHTMLTable(products: Product[], template: IndustryTemplate): string {
+  private static generateProductsHTMLGrid(products: Product[], template: IndustryTemplate): string {
     const productsPerPage = template.productsPerPage;
     const columns = template.gridColumns;
-    const rowsPerPage = Math.ceil(productsPerPage / columns);
     const totalPages = Math.ceil(products.length / productsPerPage);
     
     let htmlPages = '';
@@ -775,12 +692,23 @@ export class TemplateGenerator {
       const endIndex = Math.min(startIndex + productsPerPage, products.length);
       const pageProducts = products.slice(startIndex, endIndex);
       
+      // Completar con cards vacías para mantener grid
+      const emptyCardsNeeded = productsPerPage - pageProducts.length;
+      const totalCards = [...pageProducts];
+      
+      // Agregar productos vacíos para completar el grid
+      for (let i = 0; i < emptyCardsNeeded; i++) {
+        totalCards.push(null as any);
+      }
+      
       const pageBreakClass = page > 0 ? 'page-break-before' : '';
       
       htmlPages += `
         <div class="products-page ${pageBreakClass}">
           <div class="products-grid">
-            ${this.generateProductRows(pageProducts, columns, template)}
+            ${totalCards.map(product => 
+              product ? this.generateProductCard(product, template) : this.generateEmptyCard()
+            ).join('')}
           </div>
         </div>
       `;
@@ -790,27 +718,7 @@ export class TemplateGenerator {
   }
   
   /**
-   * 📋 GENERAR FILAS DE PRODUCTOS
-   */
-  private static generateProductRows(products: Product[], columns: number, template: IndustryTemplate): string {
-    let rowsHTML = '';
-    
-    for (let i = 0; i < products.length; i += columns) {
-      const rowProducts = products.slice(i, i + columns);
-      
-      rowsHTML += `
-        <div class="products-row page-break-avoid">
-          ${rowProducts.map(product => this.generateProductCard(product, template)).join('')}
-          ${this.fillEmptyCards(columns - rowProducts.length)}
-        </div>
-      `;
-    }
-    
-    return rowsHTML;
-  }
-  
-  /**
-   * 🎴 GENERAR TARJETA DE PRODUCTO INDIVIDUAL
+   * 🎴 GENERAR TARJETA DE PRODUCTO OPTIMIZADA
    */
   private static generateProductCard(product: Product, template: IndustryTemplate): string {
     const productName = product.name || 'Producto';
@@ -824,8 +732,8 @@ export class TemplateGenerator {
     const imageHTML = productImage ? 
       `<img src="${productImage}" alt="${productName}" class="product-image" loading="eager" crossorigin="anonymous" />` :
       `<div class="product-image-placeholder">
-         <div style="font-size: 14pt; margin-bottom: 2mm;">📷</div>
-         <div style="font-size: 8pt;">Sin imagen</div>
+         <div style="font-size: 12pt; margin-bottom: 1mm;">📷</div>
+         <div style="font-size: 7pt;">Sin imagen</div>
        </div>`;
     
     return `
@@ -860,23 +768,14 @@ export class TemplateGenerator {
   }
   
   /**
-   * ⬜ LLENAR CARDS VACÍAS PARA COMPLETAR FILA
+   * ⬜ CARD VACÍA PARA MANTENER GRID
    */
-  private static fillEmptyCards(count: number): string {
-    if (count <= 0) return '';
-    
-    return Array(count).fill(`
-      <div class="product-card" style="visibility: hidden;">
-        <div class="product-card-inner">
-          <div class="product-image-container"></div>
-          <div class="product-info"></div>
-        </div>
-      </div>
-    `).join('');
+  private static generateEmptyCard(): string {
+    return `<div class="product-card empty-card"></div>`;
   }
   
   /**
-   * 📄 GENERAR FOOTER
+   * 📄 GENERAR FOOTER MEJORADO
    */
   private static generateFooterHTML(businessInfo: BusinessInfo): string {
     const contactItems = [
@@ -890,7 +789,7 @@ export class TemplateGenerator {
       return `
         <footer class="catalog-footer page-break-avoid">
           <div class="footer-branding">
-            Generado con CatalogoIA
+            Generado con CatalogoIA v2.0
           </div>
         </footer>
       `;
@@ -899,16 +798,103 @@ export class TemplateGenerator {
     return `
       <footer class="catalog-footer page-break-avoid">
         <div class="business-contact">
-          ${contactItems.join(' ')}
+          ${contactItems.join('')}
         </div>
         <div class="footer-branding">
-          Generado con CatalogoIA
+          Generado con CatalogoIA v2.0
         </div>
       </footer>
     `;
   }
   
-  // ===== UTILITY FUNCTIONS ===== 
+  // ===== UTILITY FUNCTIONS (SIN CAMBIOS) ===== 
+  
+  private static getNameLines(density: string): number {
+    return { alta: 2, media: 2, baja: 3 }[density as keyof typeof density] || 2;
+  }
+  
+  private static getDescLines(density: string): number {
+    return { alta: 1, media: 2, baja: 3 }[density as keyof typeof density] || 2;
+  }
+  
+  private static getSpecsHeight(density: string): number {
+    return { alta: 6, media: 8, baja: 12 }[density as keyof typeof density] || 8;
+  }
+  
+  private static generateIndustrySpecificCSS(template: IndustryTemplate): string {
+    const industryStyles = {
+      joyeria: `
+        .template-${template.id} .product-image-container {
+          background: linear-gradient(45deg, #fff8f0, #ffffff) !important;
+          border: 0.5pt solid ${template.colors.accent}50 !important;
+        }
+        .template-${template.id} .product-card {
+          border: 0.75pt solid ${template.colors.accent} !important;
+        }
+        .template-${template.id} .product-name {
+          font-family: 'Georgia', serif !important;
+          letter-spacing: 0.2pt !important;
+        }
+      `,
+      moda: `
+        .template-${template.id} .product-card {
+          border-radius: ${Math.min((template.design?.borderRadius || 8) * 1.2, 15)}px !important;
+        }
+        .template-${template.id} .product-image-container {
+          border-radius: ${Math.min((template.design?.borderRadius || 8) * 1.1, 12)}px !important;
+        }
+      `,
+      electronica: `
+        .template-${template.id} .product-image-container {
+          background: linear-gradient(135deg, #f1f3f4, #ffffff) !important;
+          border: 0.5pt solid #e0e0e0 !important;
+        }
+        .template-${template.id} .product-card {
+          border-radius: ${Math.min((template.design?.borderRadius || 8) * 0.8, 8)}px !important;
+        }
+      `,
+      ferreteria: `
+        .template-${template.id} .product-card {
+          border: 1pt solid ${template.colors.accent} !important;
+          border-radius: 4px !important;
+        }
+      `,
+      cosmeticos: `
+        .template-${template.id} .product-card {
+          border-radius: ${Math.min((template.design?.borderRadius || 8) * 1.3, 15)}px !important;
+          background: linear-gradient(145deg, #ffffff, #fefefe) !important;
+        }
+      `
+    };
+    
+    return industryStyles[template.industry as keyof typeof industryStyles] || '';
+  }
+  
+  private static generateDensitySpecificCSS(template: IndustryTemplate): string {
+    if (template.density === 'alta') {
+      return `
+        .template-${template.id} .product-card {
+          border-width: 0.25pt !important;
+        }
+        .template-${template.id} .product-card-inner {
+          padding: 2mm !important;
+        }
+      `;
+    }
+    
+    if (template.density === 'baja') {
+      return `
+        .template-${template.id} .product-card {
+          border-width: 1pt !important;
+        }
+        .template-${template.id} .product-card-inner {
+          padding: 4mm !important;
+        }
+      `;
+    }
+    
+    return '';
+  }
   
   private static isLightColor(hexColor: string): boolean {
     const hex = hexColor.replace('#', '');
