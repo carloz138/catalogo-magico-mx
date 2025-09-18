@@ -3,6 +3,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { IndustryTemplate, getTemplateById } from '@/lib/templates/industry-templates';
+import { AuditedTemplate, AuditedTemplateManager } from '@/lib/templates/audited-templates-v2';
 import { TemplateGenerator } from '@/lib/templates/css-generator';
 import { PuppeteerServiceClient } from '@/lib/pdf/puppeteer-service-client';
 import { generateBrowserCompatiblePDF } from '@/lib/pdf/browser-pdf-generator';
@@ -102,14 +103,26 @@ export class UnifiedCatalogGenerator {
       if (options.onProgress) options.onProgress(10);
       
       // 2. OBTENER Y AUDITAR TEMPLATE
-      let template = getTemplateById(templateId);
-      if (!template) {
-        return {
-          success: false,
-          error: 'TEMPLATE_NOT_FOUND',
-          message: `Template ${templateId} no encontrado`
-        };
-      }
+      // 2. OBTENER Y AUDITAR TEMPLATE (NUEVO SISTEMA V2.0)
+let auditedTemplate = AuditedTemplateManager.getAuditedTemplateById(templateId);
+let template: IndustryTemplate;
+
+if (auditedTemplate) {
+  // Convertir AuditedTemplate a IndustryTemplate para compatibilidad
+  template = this.convertAuditedToIndustryTemplate(auditedTemplate);
+  console.log(`✅ Template encontrado en sistema V2.0: ${template.displayName}`);
+} else {
+  // Fallback al sistema viejo
+  template = getTemplateById(templateId);
+  if (!template) {
+    return {
+      success: false,
+      error: 'TEMPLATE_NOT_FOUND',
+      message: `Template ${templateId} no encontrado en ningún sistema`
+    };
+  }
+  console.log(`⚠️ Template encontrado en sistema legacy: ${template.displayName}`);
+}
       
       // 3. AUDITORÍA DE CALIDAD DEL TEMPLATE (NUEVA)
       let templateQuality = 100;
