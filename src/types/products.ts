@@ -1,4 +1,3 @@
-
 // src/types/products.ts
 // ✅ TIPOS BASADOS EN TU ESTRUCTURA REAL DE SUPABASE
 
@@ -17,6 +16,7 @@ export interface Product {
   model?: string;
   color?: string;
   features?: string[];
+  tags?: string[] | null; // ← CAMPO AGREGADO
   
   // ✅ CAMPOS DE IMÁGENES CORRECTOS
   original_image_url: string; // NO NULL en tu BD
@@ -128,7 +128,6 @@ export const productToProcessedImage = (product: Product): ProcessedImageForUI =
   progress: product.processing_progress || 0,
   product_name: product.name,
   product_description: product.description,
-  price_retail: product.price_retail,
   category: product.category,
   credits_used: product.credits_used,
   service_type: product.service_type,
