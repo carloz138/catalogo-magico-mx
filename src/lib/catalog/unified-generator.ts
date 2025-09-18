@@ -355,7 +355,27 @@ if (auditedTemplate) {
       };
     }
   }
-  
+
+  /**
+ * 🔄 CONVERTIR AUDITED TEMPLATE A INDUSTRY TEMPLATE PARA COMPATIBILIDAD
+ */
+private static convertAuditedToIndustryTemplate(auditedTemplate: AuditedTemplate): IndustryTemplate {
+  return {
+    id: auditedTemplate.id,
+    displayName: auditedTemplate.displayName,
+    description: auditedTemplate.description,
+    industry: auditedTemplate.industry,
+    density: auditedTemplate.density,
+    productsPerPage: auditedTemplate.productsPerPage,
+    gridColumns: auditedTemplate.gridColumns,
+    colors: auditedTemplate.colors,
+    design: auditedTemplate.design,
+    showInfo: auditedTemplate.showInfo,
+    isPremium: auditedTemplate.isPremium,
+    planLevel: auditedTemplate.planLevel,
+    tags: auditedTemplate.tags
+  } as IndustryTemplate;
+}
   /**
    * 🧠 SELECCIÓN INTELIGENTE DE MÉTODO DE GENERACIÓN
    */
