@@ -558,20 +558,31 @@ export class TemplateGenerator {
     const columns = template.gridColumns;
     
     // Gap proporcional al tamaño de página
-    const gapMap = { alta: 2, media: 2.5, baja: 3 };
-    const gap = gapMap[template.density as keyof typeof gapMap] || 2.5;
+    const gapMap = { alta: 2, media: 3, baja: 4 };
+    const gap = gapMap[template.density as keyof typeof gapMap] || 3;
     
     // Ancho de card MATEMÁTICAMENTE EXACTO
     const totalGapWidth = (columns - 1) * gap;
     const cardWidth = (contentWidth - totalGapWidth) / columns;
     
-    // Altura de card OPTIMIZADA por densidad
-    const cardHeightMap = { alta: 45, media: 55, baja: 70 };
-    const cardHeight = cardHeightMap[template.density as keyof typeof cardHeightMap] || 55;
+    // 🎯 TARJETAS MÁS CUADRADAS - Calcular altura basada en ancho
+    // Para 3 columnas, hacer las tarjetas más cuadradas
+    let cardHeight;
+    if (columns === 3) {
+      // Hacer tarjetas cuadradas: altura = ancho + espacio para texto
+      cardHeight = cardWidth + 15; // +15mm para texto y precios
+    } else if (columns <= 2) {
+      // Para pocas columnas, tarjetas más altas
+      cardHeight = cardWidth + 20;
+    } else {
+      // Para muchas columnas, usar altura por densidad
+      const cardHeightMap = { alta: 45, media: 55, baja: 70 };
+      cardHeight = cardHeightMap[template.density as keyof typeof cardHeightMap] || 55;
+    }
     
-    // Distribución interna de la card
-    const imageHeight = cardHeight * 0.60; // 60% para imagen
-    const textAreaHeight = cardHeight * 0.40; // 40% para texto
+    // Distribución interna de la card optimizada para cuadradas
+    const imageHeight = cardHeight * 0.65; // 65% para imagen en tarjetas cuadradas
+    const textAreaHeight = cardHeight * 0.35; // 35% para texto
     
     return {
       pageWidth,
@@ -582,9 +593,9 @@ export class TemplateGenerator {
       columns,
       gap,
       cardWidth: Math.floor(cardWidth * 100) / 100,
-      cardHeight,
-      imageHeight,
-      textAreaHeight
+      cardHeight: Math.floor(cardHeight * 100) / 100,
+      imageHeight: Math.floor(imageHeight * 100) / 100,
+      textAreaHeight: Math.floor(textAreaHeight * 100) / 100
     };
   }
   
