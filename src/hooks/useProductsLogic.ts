@@ -61,7 +61,7 @@ export const useProductsLogic = () => {
           original_image_url, processed_image_url, hd_image_url, image_url,
           processing_status, processing_progress, is_processed, processed_at,
           credits_used, service_type, error_message,
-          has_variants, variant_count,
+          has_variants, variant_count, tags,
           created_at, updated_at
         `)
         .eq('user_id', user.id)
@@ -102,8 +102,16 @@ export const useProductsLogic = () => {
     return products.filter(product => {
       const status = getProcessingStatus(product);
       const matchesStatus = statusFilter.includes(status);
-      const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           (product.description?.toLowerCase().includes(searchTerm.toLowerCase()));
+      
+      // MEJORA: Búsqueda expandida que incluye tags
+      const searchLower = searchTerm.toLowerCase();
+      const matchesSearch = !searchTerm || 
+        product.name.toLowerCase().includes(searchLower) ||
+        (product.description?.toLowerCase().includes(searchLower)) ||
+        (product.brand?.toLowerCase().includes(searchLower)) ||
+        (product.tags && Array.isArray(product.tags) && 
+         product.tags.some(tag => tag.toLowerCase().includes(searchLower)));
+      
       const matchesCategory = filterCategory === 'all' || product.category === filterCategory;
       
       return matchesStatus && matchesSearch && matchesCategory;
