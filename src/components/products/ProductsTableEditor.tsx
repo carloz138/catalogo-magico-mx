@@ -217,7 +217,7 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
 
     setLoading(true);
     try {
-      // SELECT completo para compatibilidad con interfaz Product
+      // SELECT completo incluyendo tags
       const { data, error } = await supabase
         .from('products')
         .select(`
@@ -235,6 +235,7 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
           model,
           color,
           features,
+          tags,
           processing_status,
           created_at,
           updated_at,
@@ -263,7 +264,7 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
         model: product.model,
         color: product.color,
         features: product.features,
-        tags: [], // Temporalmente vacío hasta solucionar problema de BD
+        tags: product.tags || [], // Restaurado: mapear tags desde la BD
         processing_status: product.processing_status,
         created_at: product.created_at
       })) : [];
