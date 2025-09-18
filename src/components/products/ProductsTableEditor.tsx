@@ -178,7 +178,6 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
   
   // Estados principales
   const [products, setProducts] = useState<EditorProduct[]>([]);
-  const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
   
