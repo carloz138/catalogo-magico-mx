@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { 
   Save, X, Edit, Trash2, Plus, Eye, Package, 
   Filter, Search, RefreshCw, Settings, Palette, ShoppingCart,
-  AlertCircle, CheckCircle, Clock, Upload, ExternalLink
+  AlertCircle, CheckCircle, Clock, Upload, ExternalLink, Tag
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -27,7 +27,8 @@ type EditableProductField =
   | 'brand'
   | 'model'
   | 'color'
-  | 'features';
+  | 'features'
+  | 'tags';
 
 type ProductCategory = 'ropa' | 'calzado' | 'electronica' | 'joyeria' | 'fiestas' | 'floreria' | 'general';
 
@@ -42,7 +43,7 @@ interface ProductFilters {
   status: string;
 }
 
-// CORRECCIÓN: Eliminadas las columnas inexistentes
+// CORRECCIÓN: Agregado el campo tags
 interface Product {
   id: string;
   name: string;
@@ -57,6 +58,7 @@ interface Product {
   model: string | null;
   color: string | null;
   features: string[] | null;
+  tags: string[] | null;
   processing_status: string;
   created_at: string;
 }
@@ -74,6 +76,8 @@ const PRODUCT_CATEGORIES = [
   { value: 'floreria' as ProductCategory, label: 'Florería', icon: '🌺' },
   { value: 'general' as ProductCategory, label: 'General', icon: '📦' }
 ];
+
+const MAX_TAGS = 10;
 
 // ==========================================
 // FUNCIONES AUXILIARES
@@ -100,6 +104,25 @@ const parseFeatures = (featuresStr: string): string[] => {
   } catch {
     return [];
   }
+};
+
+// NUEVAS FUNCIONES PARA TAGS
+const formatTags = (tags: string[] | null): string => {
+  if (!tags || !Array.isArray(tags)) return '';
+  return tags.join(', ');
+};
+
+const parseTags = (tagsStr: string): string[] => {
+  if (!tagsStr.trim()) return [];
+  
+  const tags = tagsStr
+    .split(',')
+    .map(tag => tag.trim().toLowerCase())
+    .filter(tag => tag.length > 0)
+    .slice(0, MAX_TAGS); // Limitar a máximo 10 tags
+  
+  // Remover duplicados
+  return [...new Set(tags)];
 };
 
 // ✅ CORRECCIÓN: Función helper para validar y castear la categoría
@@ -172,7 +195,7 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
 
     setLoading(true);
     try {
-      // CORRECCIÓN: Eliminadas las columnas inexistentes
+      // CORRECCIÓN: Agregada la columna tags
       const { data, error } = await supabase
         .from('products')
         .select(`
@@ -189,6 +212,7 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
           model,
           color,
           features,
+          tags,
           processing_status,
           created_at
         `)
@@ -197,7 +221,7 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
 
       if (error) throw error;
 
-      // ✅ CORRECCIÓN: Mapeo con validación de categoría
+      // ✅ CORRECCIÓN: Mapeo con validación de categoría y tags
       const productsData: Product[] = data ? data.map(product => ({
         id: product.id,
         name: product.name,
@@ -207,11 +231,12 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
         price_retail: product.price_retail,
         price_wholesale: product.price_wholesale,
         wholesale_min_qty: product.wholesale_min_qty,
-        category: validateProductCategory(product.category), // ✅ CORRECCIÓN AQUÍ
+        category: validateProductCategory(product.category),
         brand: product.brand,
         model: product.model,
         color: product.color,
         features: product.features,
+        tags: product.tags || [],
         processing_status: product.processing_status,
         created_at: product.created_at
       })) : [];
@@ -240,6 +265,8 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
       setEditingValue(currentValue ? centsToPrice(currentValue) : '');
     } else if (column === 'features') {
       setEditingValue(formatFeatures(currentValue));
+    } else if (column === 'tags') {
+      setEditingValue(formatTags(currentValue));
     } else if (column === 'wholesale_min_qty') {
       setEditingValue(currentValue ? currentValue.toString() : '');
     } else {
@@ -271,6 +298,16 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
       processedValue = priceToCents(numericValue);
     } else if (column === 'features') {
       processedValue = parseFeatures(editingValue);
+    } else if (column === 'tags') {
+      processedValue = parseTags(editingValue);
+      if (processedValue.length > MAX_TAGS) {
+        toast({
+          title: "Error",
+          description: `Máximo ${MAX_TAGS} etiquetas permitidas`,
+          variant: "destructive",
+        });
+        return;
+      }
     } else if (column === 'wholesale_min_qty') {
       const intValue = parseInt(editingValue);
       if (isNaN(intValue)) {
@@ -423,7 +460,7 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
   };
 
   // ==========================================
-  // PRODUCTOS FILTRADOS
+  // PRODUCTOS FILTRADOS - MEJORADO PARA INCLUIR TAGS
   // ==========================================
 
   const filteredProducts = useMemo(() => {
@@ -431,7 +468,8 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
       const matchesSearch = !filters.search || 
         product.name?.toLowerCase().includes(filters.search.toLowerCase()) ||
         product.sku?.toLowerCase()?.includes(filters.search.toLowerCase()) ||
-        product.brand?.toLowerCase()?.includes(filters.search.toLowerCase());
+        product.brand?.toLowerCase()?.includes(filters.search.toLowerCase()) ||
+        product.tags?.some(tag => tag.toLowerCase().includes(filters.search.toLowerCase()));
       
       const matchesCategory = !filters.category || product.category === filters.category;
       
@@ -460,6 +498,7 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
             onBlur={saveEdit}
             className="h-8 text-sm"
             autoFocus
+            placeholder={column === 'tags' ? 'etiqueta1, etiqueta2, etiqueta3...' : ''}
           />
           <Button
             size="sm"
@@ -491,6 +530,22 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
       displayValue = featuresArray.length > 0 
         ? featuresArray.join(', ') 
         : '-';
+    } else if (column === 'tags') {
+      const tagsArray = value && Array.isArray(value) ? value : [];
+      displayValue = tagsArray.length > 0 ? (
+        <div className="flex flex-wrap gap-1">
+          {tagsArray.slice(0, 3).map((tag, index) => (
+            <Badge key={index} variant="secondary" className="text-xs">
+              {tag}
+            </Badge>
+          ))}
+          {tagsArray.length > 3 && (
+            <Badge variant="outline" className="text-xs">
+              +{tagsArray.length - 3}
+            </Badge>
+          )}
+        </div>
+      ) : '-';
     } else if (column === 'wholesale_min_qty') {
       displayValue = value ?? '-';
     }
@@ -630,7 +685,7 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             <Input
-              placeholder="Buscar por nombre, SKU o marca..."
+              placeholder="Buscar por nombre, SKU, marca o etiquetas..."
               value={filters.search}
               onChange={(e) => setFilters({...filters, search: e.target.value})}
               className="pl-10"
@@ -725,6 +780,12 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
                 <th className="p-3 text-left font-medium min-w-[140px]">Precio Mayoreo</th>
                 <th className="p-3 text-left font-medium min-w-[120px]">Min. Mayoreo</th>
                 <th className="p-3 text-left font-medium min-w-[120px]">Marca</th>
+                <th className="p-3 text-left font-medium min-w-[150px]">
+                  <div className="flex items-center gap-1">
+                    <Tag className="w-4 h-4" />
+                    Etiquetas
+                  </div>
+                </th>
                 <th className="p-3 text-left font-medium min-w-[120px]">Estado</th>
                 <th className="p-3 text-left font-medium min-w-[120px]">Acciones</th>
               </tr>
@@ -766,6 +827,9 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
                   </td>
                   <td className="p-3">
                     {renderEditableCell(product, 'brand', product.brand)}
+                  </td>
+                  <td className="p-3 min-w-[150px]">
+                    {renderEditableCell(product, 'tags', product.tags)}
                   </td>
                   <td className="p-3">
                     {getStatusBadge(product.processing_status)}
