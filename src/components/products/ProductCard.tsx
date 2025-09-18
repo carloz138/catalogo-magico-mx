@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Eye, Trash2 } from 'lucide-react';
+import { Eye, Trash2, Tag } from 'lucide-react';
 import { Product, getDisplayImageUrl } from '@/types/products';
 
 interface ProductCardProps {
@@ -25,7 +25,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   processing = false
 }) => {
   const displayImageUrl = getDisplayImageUrl(product);
-
+  
+  // Manejar tags - verificar que existe y es array
+  const productTags = product.tags && Array.isArray(product.tags) ? product.tags : [];
+  
   // Manejador para click en la tarjeta (móvil principalmente)
   const handleCardClick = (e: React.MouseEvent) => {
     const target = e.target as HTMLElement;
@@ -60,6 +63,15 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             disabled={processing}
           />
         </div>
+
+        {/* Mostrar indicador de tags si las tiene */}
+        {productTags.length > 0 && (
+          <div className="absolute top-2 right-2">
+            <div className="bg-white/90 backdrop-blur-sm rounded-full p-1.5 shadow-sm">
+              <Tag className="h-3 w-3 text-gray-600" />
+            </div>
+          </div>
+        )}
       </div>
       
       <CardContent className="p-3 sm:p-4">
@@ -73,11 +85,38 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           </p>
         )}
         
-        {product.category && (
-          <Badge variant="outline" className="text-xs mb-2">
-            {product.category}
-          </Badge>
-        )}
+        {/* Categoría y Tags en la misma línea */}
+        <div className="flex flex-wrap gap-1 mb-2">
+          {product.category && (
+            <Badge variant="outline" className="text-xs">
+              {product.category}
+            </Badge>
+          )}
+          
+          {/* Mostrar hasta 2 tags principales + contador si hay más */}
+          {productTags.length > 0 && (
+            <>
+              {productTags.slice(0, 2).map((tag, index) => (
+                <Badge 
+                  key={index} 
+                  variant="secondary" 
+                  className="text-xs bg-blue-100 text-blue-800 hover:bg-blue-200"
+                >
+                  {tag}
+                </Badge>
+              ))}
+              {productTags.length > 2 && (
+                <Badge 
+                  variant="outline" 
+                  className="text-xs text-gray-500 border-gray-300"
+                  title={`Tags adicionales: ${productTags.slice(2).join(', ')}`}
+                >
+                  +{productTags.length - 2}
+                </Badge>
+              )}
+            </>
+          )}
+        </div>
         
         {/* Solo 2 botones: Ver y Eliminar */}
         <div className="flex gap-1 sm:gap-2">
