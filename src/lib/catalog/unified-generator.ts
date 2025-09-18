@@ -359,9 +359,13 @@ if (auditedTemplate) {
   /**
  * 🔄 CONVERTIR AUDITED TEMPLATE A INDUSTRY TEMPLATE PARA COMPATIBILIDAD
  */
+/**
+ * 🔄 CONVERTIR AUDITED TEMPLATE A INDUSTRY TEMPLATE PARA COMPATIBILIDAD
+ */
 private static convertAuditedToIndustryTemplate(auditedTemplate: AuditedTemplate): IndustryTemplate {
   return {
     id: auditedTemplate.id,
+    name: auditedTemplate.displayName,  // ✅ Mapear displayName a name
     displayName: auditedTemplate.displayName,
     description: auditedTemplate.description,
     industry: auditedTemplate.industry,
@@ -373,7 +377,14 @@ private static convertAuditedToIndustryTemplate(auditedTemplate: AuditedTemplate
     showInfo: auditedTemplate.showInfo,
     isPremium: auditedTemplate.isPremium,
     planLevel: auditedTemplate.planLevel,
-    tags: auditedTemplate.tags
+    tags: auditedTemplate.tags,
+    imageSize: 'medium',  // ✅ Agregar propiedad faltante con valor por defecto
+    // Agregar otras propiedades que puedan faltar
+    category: auditedTemplate.category,
+    borderRadius: auditedTemplate.design?.borderRadius || 8,
+    shadows: auditedTemplate.design?.shadows || true,
+    spacing: auditedTemplate.design?.spacing || 'normal',
+    typography: auditedTemplate.design?.typography || 'modern'
   } as IndustryTemplate;
 }
   /**
