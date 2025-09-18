@@ -160,8 +160,8 @@ const Products = () => {
     </Card>
   );
 
-  // NUEVA SECCIÓN: Barra de búsqueda y filtros prominente - Memoizada
-  const SearchAndFiltersSection = React.useMemo(() => (
+  // NUEVA SECCIÓN: Barra de búsqueda y filtros prominente - Componente Memoizado
+  const SearchAndFiltersSection = React.memo(() => (
     <Card className="mb-6 bg-white shadow-sm border-gray-200">
       <CardContent className="p-4 md:p-6">
         <div className="space-y-4">
@@ -169,7 +169,6 @@ const Products = () => {
           <div className="relative">
             <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
             <Input
-              key="search-input" // Key estable para evitar re-mount
               placeholder="Buscar por nombre, marca, categoría o etiquetas..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -252,7 +251,7 @@ const Products = () => {
         </div>
       </CardContent>
     </Card>
-  ), [searchTerm, filterCategory, categories, filteredProducts.length, products.length, setSearchTerm, setFilterCategory]);
+  ));
 
   // Actions simplificadas (sin buscador)
   const actions = (
