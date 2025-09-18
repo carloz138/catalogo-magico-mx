@@ -67,9 +67,6 @@ export class TemplateGenerator {
         --price-size: ${typography.priceSize}pt;
         --desc-size: ${typography.descSize}pt;
         --info-size: ${typography.infoSize}pt;
-        
-        /* ESPACIOS PARA FOOTER FIJO */
-        --footer-height: 25mm;
       }
       
       /* ===== RESET ABSOLUTO ===== */
@@ -110,7 +107,6 @@ export class TemplateGenerator {
         min-height: 100vh !important;
         margin: 0 auto !important;
         padding: var(--margin) !important;
-        padding-bottom: var(--footer-height) !important; /* ESPACIO PARA FOOTER FIJO */
         font-size: 12pt;
         position: relative;
         -webkit-print-color-adjust: exact !important;
@@ -118,7 +114,7 @@ export class TemplateGenerator {
         box-sizing: border-box !important;
         display: flex !important;
         flex-direction: column !important;
-        align-items: center !important; /* CENTRADO HORIZONTAL */
+        align-items: center !important;
       }
       
       /* ===== CONTAINER PRINCIPAL CENTRADO ===== */
@@ -127,13 +123,14 @@ export class TemplateGenerator {
         max-width: var(--content-width) !important;
         background: var(--bg) !important;
         position: relative !important;
-        min-height: var(--content-height) !important;
+        min-height: calc(100vh - 40mm) !important;
         margin: 0 auto !important;
         display: flex !important;
         flex-direction: column !important;
         justify-content: flex-start !important;
+        align-items: center !important;
         -webkit-print-color-adjust: exact !important;
-        padding-bottom: 5mm !important; /* Espacio extra para evitar cortes */
+        padding-bottom: 0 !important;
       }
       
       /* ===== HEADER ROBUSTO ===== */
@@ -204,17 +201,18 @@ export class TemplateGenerator {
         grid-template-columns: repeat(var(--columns), 1fr) !important;
         gap: var(--gap) !important;
         width: 100% !important;
+        max-width: var(--content-width) !important;
         margin: 0 auto !important;
         padding: 0 !important;
         page-break-inside: avoid;
-        align-items: start !important;
+        align-items: stretch !important;
         justify-content: center !important;
-        place-content: center !important;
+        place-content: center stretch !important;
+        grid-auto-rows: minmax(var(--card-height), auto) !important;
       }
       
       /* ===== PRODUCT CARDS CON GRID (MUCHO MÁS ESTABLE) ===== */
       .product-card {
-        /* GRID ITEM - MÁS CONFIABLE QUE TABLE-CELL */
         display: flex !important;
         flex-direction: column !important;
         width: 100% !important;
@@ -222,19 +220,19 @@ export class TemplateGenerator {
         min-height: var(--card-height) !important;
         max-height: var(--card-height) !important;
         
-        /* ESTRUCTURA VISUAL */
         background: var(--card-bg) !important;
         border: 0.5pt solid var(--border) !important;
         border-radius: ${Math.min(template.design?.borderRadius || 8, 15)}px !important;
         overflow: hidden !important;
         position: relative !important;
         
-        /* PREVENIR CORTES Y DEFORMACIONES */
         page-break-inside: avoid !important;
         break-inside: avoid !important;
         box-sizing: border-box !important;
         
-        /* SOMBRAS CONDICIONALES */
+        align-self: stretch !important;
+        justify-self: center !important;
+        
         ${template.design.shadows ? 'box-shadow: 0 1mm 3mm rgba(0, 0, 0, 0.08);' : ''}
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
@@ -328,7 +326,6 @@ export class TemplateGenerator {
         overflow-wrap: break-word !important;
         hyphens: auto !important;
         
-        /* TRUNCATION MEJORADO */
         display: -webkit-box !important;
         -webkit-line-clamp: ${this.getNameLines(template.density)} !important;
         -webkit-box-orient: vertical !important;
@@ -386,7 +383,6 @@ export class TemplateGenerator {
         line-height: 1.3 !important;
         margin: 1mm 0 !important;
         
-        /* TRUNCATION PERFECTO */
         display: -webkit-box !important;
         -webkit-line-clamp: ${this.getDescLines(template.density)} !important;
         -webkit-box-orient: vertical !important;
@@ -425,7 +421,6 @@ export class TemplateGenerator {
         margin-top: 1mm !important;
         line-height: 1.3 !important;
         
-        /* TRUNCATION */
         max-height: ${this.getSpecsHeight(template.density)}mm !important;
         overflow: hidden !important;
         text-overflow: ellipsis !important;
@@ -434,14 +429,11 @@ export class TemplateGenerator {
       }
       ` : `.product-specifications { display: none !important; }`}
       
-      /* ===== FOOTER FIJADO ABSOLUTAMENTE - NUEVA VERSIÓN ===== */
+      /* ===== FOOTER ESTÁTICO - SIN SUPERPOSICIÓN ===== */
       .catalog-footer {
-        position: fixed !important;
-        bottom: 0 !important;
-        left: 50% !important;
-        transform: translateX(-50%) !important;
-        width: var(--content-width) !important;
-        max-width: var(--content-width) !important;
+        position: static !important;
+        width: 100% !important;
+        max-width: 100% !important;
         background: var(--secondary) !important;
         color: ${this.getContrastColor(template.colors.secondary || template.colors.primary)} !important;
         padding: 5mm 8mm !important;
@@ -452,9 +444,11 @@ export class TemplateGenerator {
         break-inside: avoid !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
-        z-index: 1000 !important;
         box-sizing: border-box !important;
-        margin: 0 auto !important;
+        margin: 8mm auto 0 auto !important;
+        transform: none !important;
+        left: auto !important;
+        bottom: auto !important;
       }
       
       .business-contact {
@@ -564,7 +558,6 @@ export class TemplateGenerator {
           color-adjust: exact !important;
         }
         
-        /* EVITAR CORTES EN GRID */
         .products-grid {
           page-break-inside: auto !important;
         }
@@ -582,66 +575,52 @@ export class TemplateGenerator {
    * 📐 DIMENSIONES MATEMÁTICAMENTE PRECISAS
    */
   private static calculateRobustDimensions(template: IndustryTemplate) {
-    // A4: 210mm x 297mm
     const pageWidth = 210;
     const pageHeight = 297;
     
-    // 🎯 MÁRGENES OPTIMIZADOS Y BALANCEADOS
     const marginMap = { 
-      alta: 8,     // Márgenes más pequeños para más contenido
-      media: 10,   // Márgenes balanceados  
-      baja: 12     // Márgenes amplios para look premium
+      alta: 8,
+      media: 10,
+      baja: 12
     };
     const margin = marginMap[template.density as keyof typeof marginMap] || 10;
     
-    // 📏 DIMENSIONES DE CONTENIDO EXACTAS
     const contentWidth = pageWidth - (margin * 2);
     const contentHeight = pageHeight - (margin * 2);
     
-    // Columnas según el template
     const columns = template.gridColumns;
     
-    // 📐 GAP PROPORCIONAL AL ANCHO DE PÁGINA
     const gapMap = { 
-      alta: Math.max(2, contentWidth * 0.01),      // 1% del ancho
-      media: Math.max(3, contentWidth * 0.015),    // 1.5% del ancho
-      baja: Math.max(4, contentWidth * 0.02)       // 2% del ancho
+      alta: Math.max(2, contentWidth * 0.01),
+      media: Math.max(3, contentWidth * 0.015),
+      baja: Math.max(4, contentWidth * 0.02)
     };
     const gap = gapMap[template.density as keyof typeof gapMap] || 3;
     
-    // 🎯 ANCHO DE CARD MATEMÁTICAMENTE PERFECTO
     const totalGapWidth = (columns - 1) * gap;
     const availableWidth = contentWidth - totalGapWidth;
     const cardWidth = availableWidth / columns;
     
-    // 📦 ALTURA DE CARD CALCULADA PARA PROPORCIÓN PERFECTA
     let cardHeight;
     
     if (columns === 3) {
-      // Para 3 columnas: tarjetas cuadradas
-      cardHeight = cardWidth + 18; // +18mm para texto y precio
+      cardHeight = cardWidth + 18;
     } else if (columns === 2) {
-      // Para 2 columnas: tarjetas más altas
       cardHeight = cardWidth + 25;
     } else if (columns === 4) {
-      // Para 4 columnas: tarjetas compactas pero proporcionadas
       cardHeight = cardWidth + 15;
     } else if (columns >= 5) {
-      // Para 5+ columnas: tarjetas pequeñas pero legibles
       cardHeight = cardWidth + 12;
     } else {
-      // Para 1 columna: tarjetas horizontales
       cardHeight = cardWidth * 0.6 + 20;
     }
     
-    // 🖼️ DISTRIBUCIÓN INTERNA OPTIMIZADA
     const imageHeightRatio = columns <= 2 ? 0.7 : columns === 3 ? 0.65 : 0.6;
     const imageHeight = cardHeight * imageHeightRatio;
     const textAreaHeight = cardHeight - imageHeight;
     
-    // 🔍 VALIDACIÓN Y AJUSTES FINALES
-    const minCardHeight = 35; // Mínimo 35mm para legibilidad
-    const maxCardHeight = 90; // Máximo 90mm para caber en página
+    const minCardHeight = 35;
+    const maxCardHeight = 90;
     
     const finalCardHeight = Math.max(minCardHeight, Math.min(maxCardHeight, cardHeight));
     const finalImageHeight = finalCardHeight * imageHeightRatio;
@@ -733,20 +712,17 @@ export class TemplateGenerator {
 </head>
 <body class="template-${template.id}">
     <div class="catalog-container">
-        <!-- Header optimizado -->
         <header class="catalog-header page-break-avoid">
             <h1 class="business-name">${businessName}</h1>
             <p class="catalog-subtitle">Catálogo de Productos</p>
         </header>
         
-        <!-- Products con CSS Grid -->
         <main class="products-section">
             ${productsHTML}
         </main>
+        
+        ${footerHTML}
     </div>
-    
-    <!-- Footer fijo fuera del container principal -->
-    ${footerHTML}
 </body>
 </html>`;
   }
@@ -766,11 +742,9 @@ export class TemplateGenerator {
       const endIndex = Math.min(startIndex + productsPerPage, products.length);
       const pageProducts = products.slice(startIndex, endIndex);
       
-      // Completar con cards vacías para mantener grid
       const emptyCardsNeeded = productsPerPage - pageProducts.length;
       const totalCards = [...pageProducts];
       
-      // Agregar productos vacíos para completar el grid
       for (let i = 0; i < emptyCardsNeeded; i++) {
         totalCards.push(null as any);
       }
@@ -881,7 +855,7 @@ export class TemplateGenerator {
     `;
   }
   
-  // ===== UTILITY FUNCTIONS ===== 
+  // ===== UTILITY FUNCTIONS =====
   
   private static getNameLines(density: string): number {
     return { alta: 2, media: 2, baja: 3 }[density as keyof typeof density] || 2;
