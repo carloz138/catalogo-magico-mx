@@ -83,6 +83,14 @@ const MAX_TAGS = 10;
 // FUNCIONES AUXILIARES
 // ==========================================
 
+// Función helper para determinar la mejor URL de imagen
+const getDisplayImageUrl = (product: Product): string => {
+  return product.processed_image_url || 
+         product.hd_image_url || 
+         product.image_url || 
+         product.original_image_url || '';
+};
+
 const centsToPrice = (cents: number | null): string => {
   return cents ? (cents / 100).toFixed(2) : "0.00";
 };
@@ -198,7 +206,7 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
 
     setLoading(true);
     try {
-      // SELECT sin tags temporalmente para evitar error de BD
+      // SELECT con URLs de imágenes para el catálogo
       const { data, error } = await supabase
         .from('products')
         .select(`
@@ -216,7 +224,11 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
           color,
           features,
           processing_status,
-          created_at
+          created_at,
+          original_image_url,
+          processed_image_url,
+          hd_image_url,
+          image_url
         `)
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
@@ -398,8 +410,11 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
           description: product.description || product.custom_description,
           category: product.category,
           price_retail: product.price_retail || 0,
-          // Usar propiedades básicas disponibles
-          image_url: '', // Se puede llenar desde la página principal si es necesario
+          // Usar la función helper para obtener la mejor URL
+          image_url: getDisplayImageUrl(product),
+          original_image_url: product.original_image_url,
+          processed_image_url: product.processed_image_url,
+          hd_image_url: product.hd_image_url,
           created_at: product.created_at
         }));
 
