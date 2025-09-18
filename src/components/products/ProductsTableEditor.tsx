@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { 
   Save, X, Edit, Trash2, Plus, Eye, Package, 
   Filter, Search, RefreshCw, Settings, Palette, ShoppingCart,
-  AlertCircle, CheckCircle, Clock, Upload, ExternalLink, Tag
+  AlertCircle, CheckCircle, Clock, Upload, ExternalLink, Tag, BookOpen
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -166,6 +166,9 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
   const [editingCell, setEditingCell] = useState<EditingCell | null>(null);
   const [editingValue, setEditingValue] = useState('');
   
+  // Estados de selección
+  const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
+  
   // Estados de modales para catálogo
   const [showCatalogPreview, setShowCatalogPreview] = useState(false);
   
@@ -195,7 +198,7 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
 
     setLoading(true);
     try {
-      // SELECT con tags restaurado
+      // SELECT sin tags temporalmente para evitar error de BD
       const { data, error } = await supabase
         .from('products')
         .select(`
@@ -212,7 +215,6 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
           model,
           color,
           features,
-          tags,
           processing_status,
           created_at
         `)
@@ -236,7 +238,7 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
         model: product.model,
         color: product.color,
         features: product.features,
-        tags: product.tags || [], // Restaurado para mapear tags correctamente
+        tags: [], // Temporalmente vacío hasta solucionar problema de BD
         processing_status: product.processing_status,
         created_at: product.created_at
       })) : [];
@@ -396,10 +398,8 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
           description: product.description || product.custom_description,
           category: product.category,
           price_retail: product.price_retail || 0,
-          // Para el editor inline, usamos las URLs disponibles
-          image_url: product.processed_image_url || product.original_image_url,
-          original_image_url: product.original_image_url,
-          processed_image_url: product.processed_image_url,
+          // Usar propiedades básicas disponibles
+          image_url: '', // Se puede llenar desde la página principal si es necesario
           created_at: product.created_at
         }));
 
@@ -782,6 +782,14 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
         <div className="flex items-center gap-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
           <span className="font-medium">{selectedProducts.length} productos seleccionados</span>
           <div className="flex gap-2">
+            <Button 
+              size="sm" 
+              onClick={handleCreateCatalog}
+              className="bg-purple-600 hover:bg-purple-700 text-white"
+            >
+              <BookOpen className="w-4 h-4 mr-1" />
+              Crear Catálogo
+            </Button>
             <select
               onChange={(e) => e.target.value && bulkUpdateCategory(e.target.value as ProductCategory)}
               className="border rounded-md px-3 py-1 text-sm"
@@ -937,6 +945,52 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
               Agregar Producto
             </Button>
           )}
+        </div>
+      )}
+
+      {/* Modal de Preview de Catálogo */}
+      {showCatalogPreview && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-xl">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-bold text-gray-900">Crear Catálogo</h2>
+              <Button 
+                variant="ghost" 
+                onClick={() => setShowCatalogPreview(false)}
+                className="h-8 w-8 p-0 hover:bg-gray-100"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            
+            <div className="space-y-4">
+              <div className="text-center">
+                <Package className="w-16 h-16 mx-auto mb-4 text-purple-600" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  ¿Crear catálogo con {selectedProducts.length} productos?
+                </h3>
+                <p className="text-gray-600 mb-6">
+                  Se generará un catálogo profesional con los productos seleccionados
+                </p>
+              </div>
+
+              <div className="flex items-center justify-center gap-3">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setShowCatalogPreview(false)}
+                >
+                  Cancelar
+                </Button>
+                <Button 
+                  onClick={confirmCreateCatalog}
+                  className="bg-purple-600 hover:bg-purple-700"
+                >
+                  <BookOpen className="w-4 h-4 mr-2" />
+                  Crear Catálogo
+                </Button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>
