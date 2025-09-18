@@ -356,16 +356,14 @@ if (auditedTemplate) {
     }
   }
 
-  /**
- * 🔄 CONVERTIR AUDITED TEMPLATE A INDUSTRY TEMPLATE PARA COMPATIBILIDAD
- */
-/**
+ /**
  * 🔄 CONVERTIR AUDITED TEMPLATE A INDUSTRY TEMPLATE PARA COMPATIBILIDAD
  */
 private static convertAuditedToIndustryTemplate(auditedTemplate: AuditedTemplate): IndustryTemplate {
-  return {
+  // Crear objeto base con todas las propiedades requeridas
+  const converted = {
     id: auditedTemplate.id,
-    name: auditedTemplate.displayName,  // ✅ Mapear displayName a name
+    name: auditedTemplate.displayName,
     displayName: auditedTemplate.displayName,
     description: auditedTemplate.description,
     industry: auditedTemplate.industry,
@@ -378,14 +376,18 @@ private static convertAuditedToIndustryTemplate(auditedTemplate: AuditedTemplate
     isPremium: auditedTemplate.isPremium,
     planLevel: auditedTemplate.planLevel,
     tags: auditedTemplate.tags,
-    imageSize: 'medium',  // ✅ Agregar propiedad faltante con valor por defecto
-    // Agregar otras propiedades que puedan faltar
+    
+    // Propiedades específicas de IndustryTemplate con valores por defecto
+    imageSize: { width: 200, height: 200 }, // Objeto correcto en lugar de string
     category: auditedTemplate.category,
     borderRadius: auditedTemplate.design?.borderRadius || 8,
     shadows: auditedTemplate.design?.shadows || true,
     spacing: auditedTemplate.design?.spacing || 'normal',
     typography: auditedTemplate.design?.typography || 'modern'
-  } as IndustryTemplate;
+  };
+  
+  // Forzar conversión de tipo para compatibilidad
+  return converted as unknown as IndustryTemplate;
 }
   /**
    * 🧠 SELECCIÓN INTELIGENTE DE MÉTODO DE GENERACIÓN
