@@ -160,8 +160,8 @@ const Products = () => {
     </Card>
   );
 
-  // NUEVA SECCIÓN: Barra de búsqueda y filtros prominente
-  const SearchAndFiltersSection = () => (
+  // NUEVA SECCIÓN: Barra de búsqueda y filtros prominente - Memoizada
+  const SearchAndFiltersSection = React.useMemo(() => (
     <Card className="mb-6 bg-white shadow-sm border-gray-200">
       <CardContent className="p-4 md:p-6">
         <div className="space-y-4">
@@ -169,10 +169,12 @@ const Products = () => {
           <div className="relative">
             <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
             <Input
+              key="search-input" // Key estable para evitar re-mount
               placeholder="Buscar por nombre, marca, categoría o etiquetas..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-12 pr-12 h-12 text-base bg-gray-50 border-gray-300 focus:bg-white focus:border-blue-500 transition-colors"
+              autoComplete="off"
             />
             {searchTerm && (
               <Button
@@ -180,6 +182,7 @@ const Products = () => {
                 size="sm"
                 onClick={() => setSearchTerm('')}
                 className="absolute right-2 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0 hover:bg-gray-200"
+                type="button"
               >
                 <X className="h-4 w-4" />
               </Button>
@@ -217,6 +220,7 @@ const Products = () => {
                         size="sm" 
                         onClick={() => setSearchTerm('')}
                         className="h-4 w-4 p-0 ml-1 hover:bg-gray-300"
+                        type="button"
                       >
                         <X className="h-3 w-3" />
                       </Button>
@@ -230,6 +234,7 @@ const Products = () => {
                         size="sm" 
                         onClick={() => setFilterCategory('all')}
                         className="h-4 w-4 p-0 ml-1 hover:bg-gray-300"
+                        type="button"
                       >
                         <X className="h-3 w-3" />
                       </Button>
@@ -247,7 +252,7 @@ const Products = () => {
         </div>
       </CardContent>
     </Card>
-  );
+  ), [searchTerm, filterCategory, categories, filteredProducts.length, products.length, setSearchTerm, setFilterCategory]);
 
   // Actions simplificadas (sin buscador)
   const actions = (
