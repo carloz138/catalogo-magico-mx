@@ -515,7 +515,11 @@ private static convertAuditedToIndustryTemplate(auditedTemplate: AuditedTemplate
 // En tu archivo unified-generator.ts existente, busca y REEMPLAZA esta función:
 
 /**
- * 🚀 GENERACIÓN CON PUPPETEER SERVICE MEJORADA
+ // CORRECCIONES PARA unified-generator.ts
+// Solo necesitas reemplazar el método generateWithPuppeteerService (línea ~340 aprox)
+
+/**
+ * 🚀 GENERACIÓN CON PUPPETEER SERVICE MEJORADA - CORREGIDA
  */
 private static async generateWithPuppeteerService(
   products: Product[],
@@ -547,15 +551,15 @@ private static async generateWithPuppeteerService(
       category: template.industry || 'general'
     };
     
-    // 📏 MÁRGENES AUMENTADOS PARA MEJOR COMPATIBILIDAD
+    // 📏 MÁRGENES CORREGIDOS PARA MEJOR COMPATIBILIDAD
     const puppeteerOptions = {
       onProgress: options.onProgress,
       format: 'A4' as const,
       margin: {
-        top: '15mm',    // Aumentado para mejor spacing
-        right: '15mm',  // Aumentado para mejor spacing  
-        bottom: '25mm', // ESPACIO EXTRA PARA FOOTER FIJO
-        left: '15mm'    // Aumentado para mejor spacing
+        top: '12mm',    // CORREGIDO: de 15mm a 12mm
+        right: '12mm',  // CORREGIDO: de 15mm a 12mm  
+        bottom: '12mm', // CORREGIDO: de 25mm a 12mm - CRÍTICO PARA EVITAR SUPERPOSICIÓN
+        left: '12mm'    // CORREGIDO: de 15mm a 12mm
       },
       quality: template.isPremium ? 'high' as const : 'medium' as const
     };
