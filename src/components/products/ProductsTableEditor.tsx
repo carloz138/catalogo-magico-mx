@@ -876,7 +876,7 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
               </tr>
             </thead>
             <tbody>
-              {filteredProducts.map((product) => (
+              {filteredProducts.map((product: EditorProduct) => (
                 <tr key={`product-${product.id}`} className="border-t hover:bg-gray-50">
                   <td className="p-3">
                     <input
@@ -940,7 +940,7 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
                       <Button
                         size="sm"
                         variant="ghost"
-                        onClick={() => deleteProducts([product.id])}
+                        onClick={() => handleDeleteProduct(product)}
                         title="Eliminar producto"
                       >
                         <Trash2 className="w-4 h-4" />
