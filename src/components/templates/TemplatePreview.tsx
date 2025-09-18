@@ -99,9 +99,9 @@ export const TemplatePreview: React.FC<TemplatePreviewProps> = ({
   onClick,
   className = ''
 }) => {
-  const sampleProducts = SAMPLE_PRODUCTS[template.industry] || SAMPLE_PRODUCTS.moda;
-  const industryIcons = INDUSTRY_ICONS[template.industry] || INDUSTRY_ICONS.moda;
-  const displayProducts = sampleProducts.slice(0, Math.min(template.productsPerPage, 6));
+  const sampleProducts = SAMPLE_PRODUCTS[template.industry] || SAMPLE_PRODUCTS.moda || SAMPLE_PRODUCTS.joyeria;
+  const industryIcons = INDUSTRY_ICONS[template.industry] || INDUSTRY_ICONS.moda || INDUSTRY_ICONS.joyeria;
+  const displayProducts = (sampleProducts || []).slice(0, Math.min(template.productsPerPage || 6, 6)).filter(Boolean);
 
   // 🎨 GENERAR GRADIENTE ÚNICO PARA CADA PRODUCTO
   const generateProductGradient = (index: number) => {
@@ -168,7 +168,7 @@ export const TemplatePreview: React.FC<TemplatePreviewProps> = ({
               gridTemplateColumns: `repeat(${Math.min(template.gridColumns, 3)}, 1fr)`
             }}
           >
-            {displayProducts.map((product, index) => (
+           {displayProducts.filter(product => product).map((product, index) => (
               <div key={index} className="product-card">
                 {/* Imagen del producto */}
                 <div 
@@ -184,9 +184,9 @@ export const TemplatePreview: React.FC<TemplatePreviewProps> = ({
 
                 {/* Información del producto */}
                 <div className="product-info">
-                  {template.showInfo.category && (
-                    <div className="product-category">{product.category}</div>
-                  )}
+                  {template.showInfo?.category && product?.category && (
+  <div className="product-category">{product.category}</div>
+)}
                   
                   <h6 className="product-name">{product.name}</h6>
                   
