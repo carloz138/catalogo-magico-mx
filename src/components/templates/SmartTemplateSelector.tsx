@@ -1,22 +1,19 @@
 // src/components/templates/SmartTemplateSelector.tsx
-// 🧠 SELECTOR INTELIGENTE CON UX SIMPLIFICADA Y MOBILE-FIRST
+// 🧠 SELECTOR INTELIGENTE ACTUALIZADO - USA TEMPLATES V2.0 OPTIMIZADOS
 
 import React, { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
+// ✅ NUEVO SISTEMA DE TEMPLATES AUDITADOS
 import { 
-  IndustryTemplate, 
-  IndustryType,
-  ProductDensity,
-  INDUSTRY_TEMPLATES,
-  INDUSTRY_MAP,
-  getTemplatesByIndustry,
-  getTemplatesByDensity,
-  getFreeTemplates,
-  getPremiumTemplates
-} from '@/lib/templates/industry-templates';
+  AuditedTemplate,
+  AuditedTemplateManager,
+  AUDITED_TEMPLATES_V2
+} from '@/lib/templates/audited-templates-v2';
+
 import { TemplateGallery } from './TemplatePreview';
 import { 
   Sparkles, 
@@ -31,6 +28,12 @@ import {
   X
 } from 'lucide-react';
 
+// Tipos actualizados
+type IndustryType = AuditedTemplate['industry'];
+type ProductDensity = AuditedTemplate['density'];
+type MainTab = 'recommended' | 'all' | 'premium';
+type QuickFilter = 'industry' | 'density' | null;
+
 interface SmartTemplateSelectorProps {
   selectedTemplate?: string;
   onTemplateSelect: (templateId: string) => void;
@@ -39,8 +42,59 @@ interface SmartTemplateSelectorProps {
   productCount?: number;
 }
 
-type MainTab = 'recommended' | 'all' | 'premium';
-type QuickFilter = 'industry' | 'density' | null;
+// Mapeo de industrias actualizado
+const INDUSTRY_MAP = {
+  joyeria: { name: 'Joyería', icon: '💎' },
+  moda: { name: 'Moda', icon: '👗' },
+  electronica: { name: 'Electrónicos', icon: '📱' },
+  ferreteria: { name: 'Ferretería', icon: '🔧' },
+  floreria: { name: 'Flores', icon: '🌸' },
+  cosmeticos: { name: 'Cosméticos', icon: '💄' },
+  decoracion: { name: 'Decoración', icon: '🏠' },
+  muebles: { name: 'Muebles', icon: '🪑' },
+  general: { name: 'General', icon: '📦' }
+};
+
+// Funciones helper actualizadas para usar el nuevo sistema
+const getTemplatesByIndustry = (industry: IndustryType): AuditedTemplate[] => {
+  return AuditedTemplateManager.getTemplatesByIndustry(industry);
+};
+
+const getTemplatesByDensity = (density: ProductDensity): AuditedTemplate[] => {
+  return AUDITED_TEMPLATES_V2.filter(template => template.density === density);
+};
+
+const getFreeTemplates = (): AuditedTemplate[] => {
+  return AUDITED_TEMPLATES_V2.filter(template => !template.isPremium);
+};
+
+const getPremiumTemplates = (): AuditedTemplate[] => {
+  return AUDITED_TEMPLATES_V2.filter(template => template.isPremium);
+};
+
+const getRecommendedTemplatesByProductCount = (productCount: number): AuditedTemplate[] => {
+  return AuditedTemplateManager.recommendTemplatesForProducts(productCount);
+};
+
+// Helper para convertir AuditedTemplate a formato compatible con TemplateGallery
+const convertToIndustryTemplate = (auditedTemplate: AuditedTemplate): any => {
+  return {
+    id: auditedTemplate.id,
+    name: auditedTemplate.displayName,
+    description: auditedTemplate.description,
+    industry: auditedTemplate.industry,
+    density: auditedTemplate.density,
+    isPremium: auditedTemplate.isPremium,
+    planLevel: auditedTemplate.planLevel,
+    colors: auditedTemplate.colors,
+    productsPerPage: auditedTemplate.productsPerPage,
+    gridColumns: auditedTemplate.gridColumns,
+    tags: auditedTemplate.tags,
+    qualityScore: auditedTemplate.qualityScore,
+    previewUrl: `/templates/${auditedTemplate.id}/preview.png`, // URL de preview generada
+    category: auditedTemplate.category
+  };
+};
 
 export const SmartTemplateSelector: React.FC<SmartTemplateSelectorProps> = ({
   selectedTemplate,
@@ -56,43 +110,35 @@ export const SmartTemplateSelector: React.FC<SmartTemplateSelectorProps> = ({
   const [selectedDensity, setSelectedDensity] = useState<ProductDensity | null>(null);
   const [showIndustrySelector, setShowIndustrySelector] = useState(false);
 
-  // Calcular recomendaciones inteligentes (mismo algoritmo, más limpio)
+  // Calcular recomendaciones inteligentes mejoradas
   const recommendations = useMemo(() => {
-    const suggestions: IndustryTemplate[] = [];
+    const suggestions: AuditedTemplate[] = [];
     
-    // Priorizar por industria conocida
+    // 1. Priorizar por industria conocida
     if (userIndustry) {
       const industryTemplates = getTemplatesByIndustry(userIndustry);
       suggestions.push(...industryTemplates.slice(0, 3));
     }
     
-    // Complementar con densidad recomendada
-    const recommendedDensity: ProductDensity = 
-      productCount <= 4 ? 'baja' : 
-      productCount <= 8 ? 'media' : 'alta';
-    
-    const densityTemplates = getTemplatesByDensity(recommendedDensity)
+    // 2. Usar recomendaciones por cantidad de productos
+    const productRecommendations = getRecommendedTemplatesByProductCount(productCount)
       .filter(t => !suggestions.find(s => s.id === t.id))
-      .slice(0, 2);
-    suggestions.push(...densityTemplates);
+      .slice(0, 3);
+    suggestions.push(...productRecommendations);
     
-    // Llenar con populares si faltan
-    if (suggestions.length < 6) {
-      const popular = [
-        INDUSTRY_TEMPLATES['floreria-elegante-rosa'],
-        INDUSTRY_TEMPLATES['moda-magazine-pro'], 
-        INDUSTRY_TEMPLATES['joyeria-elegante'],
-        INDUSTRY_TEMPLATES['electronica-tech']
-      ].filter(t => t && !suggestions.find(s => s.id === t.id));
-      suggestions.push(...popular);
-    }
+    // 3. Agregar templates populares de alta calidad
+    const highQualityTemplates = AUDITED_TEMPLATES_V2
+      .filter(t => t.qualityScore >= 95 && !suggestions.find(s => s.id === t.id))
+      .sort((a, b) => b.qualityScore - a.qualityScore)
+      .slice(0, 2);
+    suggestions.push(...highQualityTemplates);
     
     return suggestions.slice(0, 6);
   }, [userIndustry, productCount]);
 
   // Obtener templates según tab activo y filtros
   const filteredTemplates = useMemo(() => {
-    let baseTemplates: IndustryTemplate[] = [];
+    let baseTemplates: AuditedTemplate[] = [];
     
     // Templates base según tab principal
     switch (activeTab) {
@@ -104,24 +150,29 @@ export const SmartTemplateSelector: React.FC<SmartTemplateSelectorProps> = ({
         break;
       case 'all':
       default:
-        baseTemplates = Object.values(INDUSTRY_TEMPLATES);
+        baseTemplates = AuditedTemplateManager.getAllAuditedTemplates();
         break;
     }
     
     // Aplicar filtros secundarios
     if (selectedIndustry) {
-      baseTemplates = baseTemplates.filter(t => t.industry === selectedIndustry);
+      baseTemplates = baseTemplates.filter(t => 
+        t.industry === selectedIndustry || t.industry === 'general'
+      );
     }
     
     if (selectedDensity) {
       baseTemplates = baseTemplates.filter(t => t.density === selectedDensity);
     }
     
-    return baseTemplates;
+    // Convertir a formato compatible y ordenar por calidad
+    return baseTemplates
+      .sort((a, b) => b.qualityScore - a.qualityScore)
+      .map(convertToIndustryTemplate);
   }, [activeTab, selectedIndustry, selectedDensity, recommendations]);
 
   // Verificar acceso a template premium
-  const isTemplateAccessible = (template: IndustryTemplate) => {
+  const isTemplateAccessible = (template: any) => {
     return !template.isPremium || userPlan === 'premium';
   };
 
@@ -198,6 +249,9 @@ export const SmartTemplateSelector: React.FC<SmartTemplateSelectorProps> = ({
           {/* Contador de resultados y filtros */}
           <div className="flex items-center gap-3 text-sm text-gray-600">
             <span>{filteredTemplates.length} templates</span>
+            <Badge variant="outline" className="bg-green-50 text-green-700">
+              V2.0 Optimizados
+            </Badge>
             {activeFiltersCount > 0 && (
               <Button
                 variant="outline"
@@ -281,7 +335,7 @@ export const SmartTemplateSelector: React.FC<SmartTemplateSelectorProps> = ({
                     {selectedDensity === 'alta' && <Grid3X3 className="w-4 h-4" />}
                     {selectedDensity === 'media' && <Grid2X2 className="w-4 h-4" />}
                     {selectedDensity === 'baja' && <Square className="w-4 h-4" />}
-                    {selectedDensity === 'alta' ? '12 productos' : selectedDensity === 'media' ? '6 productos' : '3 productos'}
+                    {selectedDensity === 'alta' ? 'Alta densidad' : selectedDensity === 'media' ? 'Media densidad' : 'Baja densidad'}
                     <X className="w-3 h-3 ml-1" onClick={(e) => {
                       e.stopPropagation();
                       setSelectedDensity(null);
@@ -297,25 +351,31 @@ export const SmartTemplateSelector: React.FC<SmartTemplateSelectorProps> = ({
               </Button>
               
               {quickFilter === 'density' && (
-                <Card className="absolute top-full left-0 mt-1 z-10 w-40">
+                <Card className="absolute top-full left-0 mt-1 z-10 w-48">
                   <CardContent className="p-2">
                     {(['alta', 'media', 'baja'] as ProductDensity[]).map(density => {
                       const Icon = density === 'alta' ? Grid3X3 : density === 'media' ? Grid2X2 : Square;
-                      const label = density === 'alta' ? '12 productos' : density === 'media' ? '6 productos' : '3 productos';
+                      const label = density === 'alta' ? 'Alta densidad' : density === 'media' ? 'Media densidad' : 'Baja densidad';
+                      const desc = density === 'alta' ? '12+ productos' : density === 'media' ? '6-8 productos' : '3-4 productos';
                       
                       return (
                         <Button
                           key={density}
                           variant="ghost"
                           size="sm"
-                          className="w-full justify-start"
+                          className="w-full justify-start h-auto p-2"
                           onClick={() => {
                             setSelectedDensity(density);
                             setQuickFilter(null);
                           }}
                         >
-                          <Icon className="w-4 h-4 mr-2" />
-                          <span className="text-xs capitalize">{label}</span>
+                          <div className="flex items-center w-full">
+                            <Icon className="w-4 h-4 mr-2 flex-shrink-0" />
+                            <div className="text-left">
+                              <div className="text-xs font-medium capitalize">{label}</div>
+                              <div className="text-xs text-gray-500">{desc}</div>
+                            </div>
+                          </div>
                         </Button>
                       );
                     })}
@@ -355,9 +415,14 @@ export const SmartTemplateSelector: React.FC<SmartTemplateSelectorProps> = ({
                   {productCount} productos seleccionados
                 </p>
               </div>
-              <Badge variant="outline" className="bg-blue-50 text-blue-700">
-                {recommendations.length} sugerencias
-              </Badge>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="bg-blue-50 text-blue-700">
+                  {recommendations.length} sugerencias
+                </Badge>
+                <Badge variant="outline" className="bg-green-50 text-green-700">
+                  Score 95+
+                </Badge>
+              </div>
             </div>
           </div>
           
@@ -375,12 +440,24 @@ export const SmartTemplateSelector: React.FC<SmartTemplateSelectorProps> = ({
 
         <TabsContent value="all" className="mt-4">
           <div className="mb-4">
-            <h3 className="font-semibold text-gray-900 mb-1">
-              Todos los templates
-            </h3>
-            <p className="text-sm text-gray-600">
-              Explora toda nuestra colección de diseños
-            </p>
+            <div className="flex items-start justify-between">
+              <div>
+                <h3 className="font-semibold text-gray-900 mb-1">
+                  Todos los templates
+                </h3>
+                <p className="text-sm text-gray-600">
+                  Toda nuestra colección optimizada V2.0 - Sin cortes garantizado
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="bg-green-50 text-green-700">
+                  {AuditedTemplateManager.getAuditedTemplateStats().totalTemplates} disponibles
+                </Badge>
+                <Badge variant="outline" className="bg-yellow-50 text-yellow-700">
+                  {AuditedTemplateManager.getAuditedTemplateStats().perfectTemplates} perfectos
+                </Badge>
+              </div>
+            </div>
           </div>
           
           <TemplateGallery
@@ -404,14 +481,19 @@ export const SmartTemplateSelector: React.FC<SmartTemplateSelectorProps> = ({
                   Templates Premium
                 </h3>
                 <p className="text-sm text-gray-600">
-                  Diseños exclusivos con características avanzadas
+                  Diseños exclusivos con máxima calidad y características avanzadas
                 </p>
               </div>
-              {userPlan === 'basic' && (
-                <Badge variant="outline" className="bg-yellow-50 text-yellow-700">
-                  Actualización requerida
+              <div className="flex items-center gap-2">
+                {userPlan === 'basic' && (
+                  <Badge variant="outline" className="bg-yellow-50 text-yellow-700">
+                    Actualización requerida
+                  </Badge>
+                )}
+                <Badge variant="outline" className="bg-purple-50 text-purple-700">
+                  Calidad 98+
                 </Badge>
-              )}
+              </div>
             </div>
             
             {userPlan === 'basic' && (
