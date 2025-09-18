@@ -140,7 +140,7 @@ export class TemplateAuditSystem {
     }
     
     // Verificar compatibilidad de border radius
-    if (template.design.borderRadius > 15) {
+    if ((template.design?.borderRadius || 8) > 15) {
       issues.push({
         severity: 'low',
         category: 'layout',
@@ -295,7 +295,7 @@ export class TemplateAuditSystem {
     };
     
     // Verificar compatibilidad con Puppeteer
-    if (template.design.borderRadius > 20) {
+    if ((template.design?.borderRadius || 8) > 20) {
       compatibility.puppeteer = false;
       issues.push({
         severity: 'medium',
@@ -493,7 +493,7 @@ export class TemplateAuditSystem {
             fixed.gridColumns = this.calculateOptimalColumns(template.productsPerPage);
           }
           if (issue.description.includes('Border radius')) {
-            fixed.design.borderRadius = Math.min(15, template.design.borderRadius);
+            fixed.design.borderRadius = Math.min(15, template.design?.borderRadius || 8);
           }
           if (!template.design.spacing) {
             fixed.design.spacing = 'normal';

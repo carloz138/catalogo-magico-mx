@@ -125,7 +125,7 @@ export class TemplateGenerator {
         text-align: center;
         padding: 12mm 8mm;
         margin-bottom: 6mm;
-        border-radius: ${template.design.borderRadius}px;
+        border-radius: ${template.design?.borderRadius || 8}px;
         page-break-inside: avoid !important;
         break-inside: avoid !important;
         -webkit-print-color-adjust: exact !important;
@@ -188,7 +188,7 @@ export class TemplateGenerator {
         /* ESTRUCTURA VISUAL */
         background: var(--card-bg) !important;
         border: 0.5pt solid var(--border) !important;
-        border-radius: ${template.design.borderRadius}px !important;
+        border-radius: ${template.design?.borderRadius || 8}px !important;
         overflow: hidden !important;
         position: relative !important;
         vertical-align: top !important;
@@ -219,7 +219,7 @@ export class TemplateGenerator {
         width: 100% !important;
         height: var(--image-height) !important;
         background: #f8f9fa !important;
-        border-radius: ${Math.max(template.design.borderRadius - 2, 2)}px !important;
+        border-radius: ${Math.max((template.design?.borderRadius || 8) - 2, 2)}px !important;
         overflow: hidden !important;
         position: relative !important;
         flex-shrink: 0 !important;
@@ -403,7 +403,7 @@ export class TemplateGenerator {
         text-align: center !important;
         border-top: 1pt solid var(--border) !important;
         margin-top: 8mm !important;
-        border-radius: ${template.design.borderRadius}px !important;
+        border-radius: ${template.design?.borderRadius || 8}px !important;
         page-break-inside: avoid !important;
         break-inside: avoid !important;
         -webkit-print-color-adjust: exact !important;
@@ -653,10 +653,10 @@ export class TemplateGenerator {
       `,
       moda: `
         .template-${template.id} .product-card {
-          border-radius: ${template.design.borderRadius * 1.5}px !important;
+          border-radius: ${(template.design?.borderRadius || 8) * 1.5}px !important;
         }
         .template-${template.id} .product-image-container {
-          border-radius: ${template.design.borderRadius * 1.2}px !important;
+          border-radius: ${(template.design?.borderRadius || 8) * 1.2}px !important;
         }
       `,
       electronica: `
@@ -665,7 +665,7 @@ export class TemplateGenerator {
           border: 1pt solid #e0e0e0 !important;
         }
         .template-${template.id} .product-card {
-          border-radius: ${Math.max(template.design.borderRadius * 0.8, 4)}px !important;
+          border-radius: ${Math.max((template.design?.borderRadius || 8) * 0.8, 4)}px !important;
         }
       `,
       ferreteria: `
@@ -676,7 +676,7 @@ export class TemplateGenerator {
       `,
       cosmeticos: `
         .template-${template.id} .product-card {
-          border-radius: ${template.design.borderRadius * 1.3}px !important;
+          border-radius: ${(template.design?.borderRadius || 8) * 1.3}px !important;
           background: linear-gradient(145deg, #ffffff, #fefefe) !important;
         }
       `

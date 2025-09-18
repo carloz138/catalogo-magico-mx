@@ -367,7 +367,7 @@ export class UnifiedCatalogGenerator {
     // Usar Puppeteer por defecto si está disponible (mejor calidad)
     if (options.usePuppeteerService !== false) {
       // Para templates con alta complejidad, Puppeteer es mejor
-      if (template.design.shadows || template.design.borderRadius > 10) {
+      if (template.design?.shadows || (template.design?.borderRadius || 8) > 10) {
         return 'puppeteer';
       }
       
@@ -392,7 +392,7 @@ export class UnifiedCatalogGenerator {
       }
       
       // Para templates simples, dinámico funciona bien
-      if (!template.design.shadows && template.design.borderRadius <= 10) {
+      if (!template.design?.shadows && (template.design?.borderRadius || 8) <= 10) {
         return 'dynamic';
       }
       

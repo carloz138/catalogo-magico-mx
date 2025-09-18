@@ -122,8 +122,8 @@ export const TemplatePreview: React.FC<TemplatePreviewProps> = ({
     '--template-background': template.colors.background,
     '--template-text': template.colors.text,
     '--template-card-bg': template.colors.cardBackground,
-    '--template-border-radius': `${template.design.borderRadius}px`,
-    '--template-shadow': template.design.shadows ? '0 2px 8px rgba(0, 0, 0, 0.1)' : 'none'
+    '--template-border-radius': `${template.design?.borderRadius || 8}px`,
+    '--template-shadow': template.design?.shadows ? '0 2px 8px rgba(0, 0, 0, 0.1)' : 'none'
   } as React.CSSProperties;
 
   return (
