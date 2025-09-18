@@ -1,4 +1,4 @@
-// /src/pages/Products.tsx - Componente Principal Simplificado
+// /src/pages/Products.tsx - Componente Principal con Buscador Mejorado
 import React from 'react';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import AppLayout from '@/components/layout/AppLayout';
@@ -32,7 +32,9 @@ import {
   Sparkles,
   BookOpen,
   ArrowRight,
-  HelpCircle
+  HelpCircle,
+  Filter,
+  X
 } from 'lucide-react';
 
 const Products = () => {
@@ -158,34 +160,98 @@ const Products = () => {
     </Card>
   );
 
-  // Actions responsivas
+  // NUEVA SECCIÓN: Barra de búsqueda y filtros prominente
+  const SearchAndFiltersSection = () => (
+    <Card className="mb-6 bg-white shadow-sm border-gray-200">
+      <CardContent className="p-4 md:p-6">
+        <div className="space-y-4">
+          {/* Búsqueda principal - Muy visible */}
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+            <Input
+              placeholder="Buscar por nombre, marca, categoría o etiquetas..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-12 pr-12 h-12 text-base bg-gray-50 border-gray-300 focus:bg-white focus:border-blue-500 transition-colors"
+            />
+            {searchTerm && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setSearchTerm('')}
+                className="absolute right-2 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0 hover:bg-gray-200"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+
+          {/* Filtros secundarios */}
+          <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
+            <div className="flex flex-wrap gap-3">
+              {/* Filtro de categoría */}
+              <div className="flex items-center gap-2">
+                <Filter className="h-4 w-4 text-gray-500" />
+                <select
+                  value={filterCategory}
+                  onChange={(e) => setFilterCategory(e.target.value)}
+                  className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[150px]"
+                >
+                  <option value="all">Todas las categorías</option>
+                  {categories.map(category => (
+                    <option key={category} value={category}>
+                      {category}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Indicadores de filtros activos */}
+              {(searchTerm || filterCategory !== 'all') && (
+                <div className="flex items-center gap-2">
+                  {searchTerm && (
+                    <Badge variant="secondary" className="text-xs">
+                      Búsqueda: "{searchTerm}"
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => setSearchTerm('')}
+                        className="h-4 w-4 p-0 ml-1 hover:bg-gray-300"
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </Badge>
+                  )}
+                  {filterCategory !== 'all' && (
+                    <Badge variant="secondary" className="text-xs">
+                      Categoría: {filterCategory}
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => setFilterCategory('all')}
+                        className="h-4 w-4 p-0 ml-1 hover:bg-gray-300"
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </Badge>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Contador de resultados */}
+            <div className="text-sm text-gray-500">
+              {filteredProducts.length} de {products.length} productos
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+
+  // Actions simplificadas (sin buscador)
   const actions = (
     <div className="flex items-center gap-2">
-      <div className={`items-center gap-2 ${selectedProducts.length > 0 ? 'hidden lg:flex' : 'flex'}`}>
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <Input
-            placeholder="Buscar por nombre, marca, categoría o etiquetas..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-9 w-32 sm:w-40 lg:w-48"
-          />
-        </div>
-        
-        <select
-          value={filterCategory}
-          onChange={(e) => setFilterCategory(e.target.value)}
-          className="hidden md:block border border-gray-300 rounded-md px-2 py-1.5 text-sm bg-white min-w-[100px]"
-        >
-          <option value="all">Todas las categorías</option>
-          {categories.map(category => (
-            <option key={category} value={category}>
-              {category}
-            </option>
-          ))}
-        </select>
-      </div>
-      
       {selectedProducts.length > 0 && (
         <div className="flex items-center gap-1 sm:gap-2">
           <Button 
@@ -229,17 +295,15 @@ const Products = () => {
         <span className="sm:hidden">Subir</span>
       </Button>
 
-      {selectedProducts.length === 0 && (
-        <Button 
-          onClick={() => navigate('/analytics')} 
-          variant="ghost" 
-          size="sm"
-          className="hidden lg:flex"
-        >
-          <BarChart3 className="h-4 w-4 mr-2" />
-          Analytics
-        </Button>
-      )}
+      <Button 
+        onClick={() => navigate('/analytics')} 
+        variant="ghost" 
+        size="sm"
+        className="hidden lg:flex"
+      >
+        <BarChart3 className="h-4 w-4 mr-2" />
+        Analytics
+      </Button>
     </div>
   );
 
@@ -268,6 +332,9 @@ const Products = () => {
         {!businessInfoLoading && !isBusinessInfoComplete && showBusinessInfoBanner && (
           <BusinessInfoBanner onDismiss={() => setShowBusinessInfoBanner(false)} />
         )}
+
+        {/* NUEVA SECCIÓN DE BÚSQUEDA - Muy prominente */}
+        {products.length > 0 && <SearchAndFiltersSection />}
         
         {products.length === 0 ? (
           <Card>
