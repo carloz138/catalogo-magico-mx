@@ -10,9 +10,10 @@ import {
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { Product } from '@/types/products'; // IMPORTAR LA INTERFAZ CENTRALIZADA
 
 // ==========================================
-// TIPOS LOCALES CORREGIDOS
+// TIPOS LOCALES ESPECÍFICOS DEL EDITOR
 // ==========================================
 
 type EditableProductField = 
@@ -43,24 +44,10 @@ interface ProductFilters {
   status: string;
 }
 
-// CORRECCIÓN: Agregado el campo tags
-interface Product {
-  id: string;
-  name: string;
-  sku: string | null;
-  description: string | null;
-  custom_description: string | null;
-  price_retail: number | null;
-  price_wholesale: number | null;
-  wholesale_min_qty: number | null;
-  category: ProductCategory | null;
-  brand: string | null;
-  model: string | null;
-  color: string | null;
-  features: string[] | null;
-  tags: string[] | null;
-  processing_status: string;
-  created_at: string;
+interface ProductsTableEditorProps {
+  onEditVariants?: (productId: string) => void;
+  onViewProduct?: (productId: string) => void;
+  className?: string;
 }
 
 // ==========================================
@@ -145,7 +132,7 @@ const validateProductCategory = (category: string | null): ProductCategory | nul
 };
 
 // ==========================================
-// INTERFACES LOCALES
+// INTERFACES LOCALES ESPECÍFICAS DEL EDITOR
 // ==========================================
 
 interface ProductsTableEditorProps {
