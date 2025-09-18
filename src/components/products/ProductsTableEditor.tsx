@@ -166,8 +166,8 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
   const [editingCell, setEditingCell] = useState<EditingCell | null>(null);
   const [editingValue, setEditingValue] = useState('');
   
-  // Estados de selección
-  const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
+  // Estados de modales para catálogo
+  const [showCatalogPreview, setShowCatalogPreview] = useState(false);
   
   // Estados de filtros
   const [filters, setFilters] = useState<ProductFilters>({
@@ -195,7 +195,7 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
 
     setLoading(true);
     try {
-      // CORRECCIÓN: Agregada la columna tags
+      // SELECT con tags restaurado
       const { data, error } = await supabase
         .from('products')
         .select(`
@@ -236,7 +236,7 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
         model: product.model,
         color: product.color,
         features: product.features,
-        tags: product.tags || [],
+        tags: product.tags || [], // Restaurado para mapear tags correctamente
         processing_status: product.processing_status,
         created_at: product.created_at
       })) : [];
@@ -370,8 +370,57 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
   };
 
   // ==========================================
-  // FUNCIONES DE ACCIONES MASIVAS
+  // FUNCIONES DE CATÁLOGO
   // ==========================================
+
+  const handleCreateCatalog = async () => {
+    if (selectedProducts.length === 0) {
+      toast({
+        title: "Selecciona productos",
+        description: "Debes seleccionar al menos un producto para crear un catálogo",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setShowCatalogPreview(true);
+  };
+
+  const confirmCreateCatalog = async () => {
+    try {
+      const selectedProductsData = products
+        .filter(p => selectedProducts.includes(p.id))
+        .map(product => ({
+          id: product.id,
+          name: product.name,
+          description: product.description || product.custom_description,
+          category: product.category,
+          price_retail: product.price_retail || 0,
+          // Para el editor inline, usamos las URLs disponibles
+          image_url: product.processed_image_url || product.original_image_url,
+          original_image_url: product.original_image_url,
+          processed_image_url: product.processed_image_url,
+          created_at: product.created_at
+        }));
+
+      // Guardar en localStorage para TemplateSelection
+      localStorage.setItem('selectedProductsData', JSON.stringify(selectedProductsData));
+      localStorage.setItem('businessInfo', JSON.stringify({
+        business_name: 'Mi Empresa'
+      }));
+
+      // Navegar a template selection
+      window.location.href = '/template-selection';
+
+    } catch (error) {
+      console.error('Error en confirmCreateCatalog:', error);
+      toast({
+        title: "Error",
+        description: "No se pudo preparar el catálogo",
+        variant: "destructive",
+      });
+    }
+  };
 
   const deleteProducts = async (productIds: string[]) => {
     if (!confirm(`¿Eliminar ${productIds.length} producto(s)?`)) return;
