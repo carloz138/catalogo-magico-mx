@@ -1,5 +1,5 @@
-// src/lib/templates/css-generator.ts - ARREGLADO COMPLETAMENTE
-// 🎯 NUEVA VERSIÓN SIN DEFORMACIONES - REEMPLAZA EL ARCHIVO ACTUAL
+// src/lib/templates/css-generator.ts - VERSIÓN COMPLETA CORREGIDA
+// 🎯 SISTEMA DE GRID CSS ROBUSTO - CENTRADO PERFECTO Y FOOTER FIJADO
 
 import { IndustryTemplate } from './industry-templates';
 
@@ -25,7 +25,7 @@ interface BusinessInfo {
 export class TemplateGenerator {
   
   /**
-   * 🎨 CSS GENERATOR COMPLETAMENTE REESCRITO - GRID SYSTEM ROBUSTO
+   * 🎨 CSS GENERATOR COMPLETAMENTE OPTIMIZADO - CENTRADO PERFECTO
    */
   static generateTemplateCSS(template: IndustryTemplate): string {
     const dimensions = this.calculateRobustDimensions(template);
@@ -33,7 +33,7 @@ export class TemplateGenerator {
     const typography = this.calculateTypography(template);
     
     return `
-      /* ===== TEMPLATE: ${template.displayName.toUpperCase()} - GRID SYSTEM ROBUSTO ===== */
+      /* ===== TEMPLATE: ${template.displayName.toUpperCase()} - CENTRADO PERFECTO ===== */
       
       /* ===== VARIABLES CSS PRECISAS ===== */
       :root {
@@ -67,6 +67,9 @@ export class TemplateGenerator {
         --price-size: ${typography.priceSize}pt;
         --desc-size: ${typography.descSize}pt;
         --info-size: ${typography.infoSize}pt;
+        
+        /* ESPACIOS PARA FOOTER FIJO */
+        --footer-height: 25mm;
       }
       
       /* ===== RESET ABSOLUTO ===== */
@@ -103,29 +106,34 @@ export class TemplateGenerator {
         font-family: 'Arial', 'Helvetica', sans-serif !important;
         background: var(--bg) !important;
         color: var(--text) !important;
-        width: 100%;
-        min-height: 100vh;
-        margin: 0 !important;
+        width: 100% !important;
+        min-height: 100vh !important;
+        margin: 0 auto !important;
         padding: var(--margin) !important;
+        padding-bottom: var(--footer-height) !important; /* ESPACIO PARA FOOTER FIJO */
         font-size: 12pt;
         position: relative;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
         box-sizing: border-box !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important; /* CENTRADO HORIZONTAL */
       }
       
       /* ===== CONTAINER PRINCIPAL CENTRADO ===== */
       .catalog-container {
-        width: var(--content-width);
-        max-width: var(--content-width);
+        width: var(--content-width) !important;
+        max-width: var(--content-width) !important;
         background: var(--bg) !important;
-        position: relative;
-        min-height: var(--content-height);
+        position: relative !important;
+        min-height: var(--content-height) !important;
         margin: 0 auto !important;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: flex-start !important;
         -webkit-print-color-adjust: exact !important;
+        padding-bottom: 5mm !important; /* Espacio extra para evitar cortes */
       }
       
       /* ===== HEADER ROBUSTO ===== */
@@ -426,26 +434,27 @@ export class TemplateGenerator {
       }
       ` : `.product-specifications { display: none !important; }`}
       
-      /* ===== FOOTER COMPLETAMENTE REESCRITO Y FIJO ===== */
+      /* ===== FOOTER FIJADO ABSOLUTAMENTE - NUEVA VERSIÓN ===== */
       .catalog-footer {
-        width: 100% !important;
+        position: fixed !important;
+        bottom: 0 !important;
+        left: 50% !important;
+        transform: translateX(-50%) !important;
+        width: var(--content-width) !important;
+        max-width: var(--content-width) !important;
         background: var(--secondary) !important;
         color: ${this.getContrastColor(template.colors.secondary || template.colors.primary)} !important;
-        padding: 8mm !important;
+        padding: 5mm 8mm !important;
         text-align: center !important;
         border-top: 1pt solid var(--border) !important;
-        margin-top: auto !important;
-        border-radius: ${Math.min(template.design?.borderRadius || 8, 12)}px !important;
+        border-radius: ${Math.min(template.design?.borderRadius || 8, 12)}px ${Math.min(template.design?.borderRadius || 8, 12)}px 0 0 !important;
         page-break-inside: avoid !important;
         break-inside: avoid !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
-        flex-shrink: 0 !important;
-        position: relative !important;
-        bottom: 0 !important;
-        left: 0 !important;
-        right: 0 !important;
+        z-index: 1000 !important;
         box-sizing: border-box !important;
+        margin: 0 auto !important;
       }
       
       .business-contact {
@@ -570,7 +579,7 @@ export class TemplateGenerator {
   }
   
   /**
-   * 📐 DIMENSIONES MATEMÁTICAMENTE PRECISAS COMPLETAMENTE REESCRITO
+   * 📐 DIMENSIONES MATEMÁTICAMENTE PRECISAS
    */
   private static calculateRobustDimensions(template: IndustryTemplate) {
     // A4: 210mm x 297mm
@@ -734,10 +743,10 @@ export class TemplateGenerator {
         <main class="products-section">
             ${productsHTML}
         </main>
-        
-        <!-- Footer fijo -->
-        ${footerHTML}
     </div>
+    
+    <!-- Footer fijo fuera del container principal -->
+    ${footerHTML}
 </body>
 </html>`;
   }
@@ -872,7 +881,7 @@ export class TemplateGenerator {
     `;
   }
   
-  // ===== UTILITY FUNCTIONS (SIN CAMBIOS) ===== 
+  // ===== UTILITY FUNCTIONS ===== 
   
   private static getNameLines(density: string): number {
     return { alta: 2, media: 2, baja: 3 }[density as keyof typeof density] || 2;
