@@ -817,6 +817,14 @@ export class PuppeteerServiceClient {
     const productName = product.name || 'Producto';
     const productPrice = typeof product.price_retail === 'number' ? product.price_retail : 0;
     const productImage = product.image_url || '';
+
+    console.log('🔍 PUPPETEER DEBUG:', {
+    name: productName,
+    retail_price: productPrice,
+    wholesale_price: product.price_wholesale,
+    wholesale_min_qty: product.wholesale_min_qty,
+    has_wholesale: !!product.price_wholesale
+  });
     
     const imageHTML = productImage ? 
       `<div class="image-cell-optimized">
