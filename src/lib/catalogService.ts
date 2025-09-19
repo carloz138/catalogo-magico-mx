@@ -26,6 +26,7 @@ export interface CatalogCreationRequest {
     category?: string;
     price_retail?: number;
     price_wholesale?: number;
+    wholesale_min_qty?: number;
     original_image_url: string;
     processed_image_url?: string;
     optimized_image_data?: string;
@@ -219,6 +220,7 @@ export const createCatalog = async (
         category: product.category || 'General',
         price_retail: product.price_retail || 0,
         price_wholesale: product.price_wholesale || 0,
+        wholesale_min_qty: product.wholesale_min_qty,
         original_image_url: product.original_image_url,
         processed_image_url: product.processed_image_url || product.image_url,
         optimized_image_data: product.optimized_image_data,
