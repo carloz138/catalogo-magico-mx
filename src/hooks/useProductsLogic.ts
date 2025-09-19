@@ -57,7 +57,7 @@ export const useProductsLogic = () => {
         .from('products')
         .select(`
           id, user_id, name, description, custom_description, 
-          price_retail, price_wholesale, category, brand,
+          price_retail, price_wholesale, wholesale_min_qty, category, brand,
           original_image_url, processed_image_url, hd_image_url, image_url,
           processing_status, processing_progress, is_processed, processed_at,
           credits_used, service_type, error_message,
