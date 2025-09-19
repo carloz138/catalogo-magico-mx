@@ -905,19 +905,19 @@ export class TemplateGenerator {
             
             <h3 class="product-name">${productName}</h3>
             
-            <div class="product-pricing">
+<div class="product-pricing">
   <div class="product-price-retail">$${productPrice.toLocaleString('es-MX', { 
     minimumFractionDigits: 0,
     maximumFractionDigits: 0
   })}</div>
-  ${product.price_wholesale && template.showInfo.wholesalePrice ? `
+  ${product.price_wholesale && template.showInfo?.wholesalePrice ? `
     <div class="product-price-wholesale">
       <span class="wholesale-label">Mayoreo:</span>
       <span class="wholesale-price">$${product.price_wholesale.toLocaleString('es-MX', { 
         minimumFractionDigits: 0,
         maximumFractionDigits: 0
       })}</span>
-      ${product.wholesale_min_qty && template.showInfo.wholesaleMinQty ? `
+      ${product.wholesale_min_qty && template.showInfo?.wholesaleMinQty ? `
         <span class="wholesale-min">Min. ${product.wholesale_min_qty}</span>
       ` : ''}
     </div>
