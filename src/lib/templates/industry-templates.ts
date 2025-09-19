@@ -41,13 +41,14 @@ export interface IndustryTemplate {
     spacing: 'compacto' | 'normal' | 'amplio';
   };
   
+ // Información que se muestra
 showInfo: {
   description: boolean;
   sku: boolean;
   category: boolean;
   specifications: boolean;
-  wholesalePrice?: boolean;  // ✅ OPCIONAL temporalmente
-  wholesaleMinQty?: boolean; // ✅ OPCIONAL temporalmente
+  wholesalePrice: boolean;  // NUEVO: Mostrar precio de mayoreo
+  wholesaleMinQty: boolean; // NUEVO: Mostrar cantidad mínima
 };
 
 // ===== CONFIGURACIONES POR DENSIDAD =====
@@ -516,6 +517,17 @@ export const INDUSTRY_MAP = {
 } as const;
 
 // ===== HELPER FUNCTIONS ACTUALIZADAS =====
+// ===== HELPER FUNCTION PARA DEFAULTS DE MAYOREO =====
+export const addWholesaleDefaults = (template: Partial<IndustryTemplate>): IndustryTemplate => {
+  return {
+    ...template,
+    showInfo: {
+      ...template.showInfo,
+      wholesalePrice: template.showInfo?.wholesalePrice ?? true,
+      wholesaleMinQty: template.showInfo?.wholesaleMinQty ?? true
+    }
+  } as IndustryTemplate;
+};
 
 export const getTemplatesByIndustry = (industry: IndustryType): IndustryTemplate[] => {
   return Object.values(INDUSTRY_TEMPLATES).filter(template => template.industry === industry);
