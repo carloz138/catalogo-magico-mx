@@ -278,8 +278,8 @@ export class PuppeteerServiceClient {
         height: auto !important;
         margin: 0 auto !important;
         padding: 0 !important;
-        padding-top: 25mm !important; /* Header space */
-        padding-bottom: 20mm !important; /* Footer space */
+        padding-top: 15mm !important;   // REDUCIDO: de 25mm a 15mm
+        padding-bottom: 12mm !important; // REDUCIDO: de 20mm a 12mm
         font-family: 'Arial', 'Helvetica', sans-serif !important;
         font-size: ${config.fontSize}pt !important;
         line-height: 1.2 !important;
