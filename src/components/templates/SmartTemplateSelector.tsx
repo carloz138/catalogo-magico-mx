@@ -76,48 +76,48 @@ const getRecommendedTemplatesByProductCount = (productCount: number): AuditedTem
   return AuditedTemplateManager.recommendTemplatesForProducts(productCount);
 };
 
-    // Helper para convertir AuditedTemplate a formato compatible con TemplateGallery
-    const convertToIndustryTemplate = (auditedTemplate: AuditedTemplate): any => {
-      return {
-        id: auditedTemplate.id,
-        name: auditedTemplate.displayName,
-        description: auditedTemplate.description || 'Template optimizado V2.0',
-        industry: auditedTemplate.industry || 'general',
-        density: auditedTemplate.density || 'media',
-        isPremium: auditedTemplate.isPremium || false,
-        planLevel: auditedTemplate.planLevel || 'free',
-        colors: auditedTemplate.colors || {
-          primary: '#007BFF',
-          secondary: '#0056B3', 
-          accent: '#CCE5FF',
-          background: '#FFFFFF',
-          text: '#2C3E50',
-          cardBackground: '#F8F9FA'
-        },
-        productsPerPage: auditedTemplate.productsPerPage || 6,
-        gridColumns: auditedTemplate.gridColumns || 3,
-        tags: auditedTemplate.tags || [],
-        qualityScore: auditedTemplate.qualityScore || 95,
-        previewUrl: `/templates/${auditedTemplate.id}/preview.png`,
-        category: auditedTemplate.category || 'modern',
-        
-        // Propiedades de diseño
-        borderRadius: auditedTemplate.design?.borderRadius || 8,
-        shadows: auditedTemplate.design?.shadows || true,
-        spacing: auditedTemplate.design?.spacing || 'normal',
-        typography: auditedTemplate.design?.typography || 'modern',
-        
-        // ✅ CRÍTICO: Configuración de información mostrada CON PRECIOS MAYOREO
-        showInfo: {
-          category: auditedTemplate.showInfo?.category ?? true,
-          description: auditedTemplate.showInfo?.description ?? true,
-          sku: auditedTemplate.showInfo?.sku ?? false,
-          specifications: auditedTemplate.showInfo?.specifications ?? false,
-          wholesalePrice: auditedTemplate.showInfo?.wholesalePrice ?? true,      // ✅ AGREGADO
-          wholesaleMinQty: auditedTemplate.showInfo?.wholesaleMinQty ?? true     // ✅ AGREGADO
-        }
-      };
-    };
+// Helper para convertir AuditedTemplate a formato compatible con TemplateGallery
+const convertToIndustryTemplate = (auditedTemplate: AuditedTemplate): any => {
+  return {
+    id: auditedTemplate.id,
+    name: auditedTemplate.displayName,
+    description: auditedTemplate.description || 'Template optimizado V2.0',
+    industry: auditedTemplate.industry || 'general',
+    density: auditedTemplate.density || 'media',
+    isPremium: auditedTemplate.isPremium || false,
+    planLevel: auditedTemplate.planLevel || 'free',
+    colors: auditedTemplate.colors || {
+      primary: '#007BFF',
+      secondary: '#0056B3', 
+      accent: '#CCE5FF',
+      background: '#FFFFFF',
+      text: '#2C3E50',
+      cardBackground: '#F8F9FA'
+    },
+    productsPerPage: auditedTemplate.productsPerPage || 6,
+    gridColumns: auditedTemplate.gridColumns || 3,
+    tags: auditedTemplate.tags || [],
+    qualityScore: auditedTemplate.qualityScore || 95,
+    previewUrl: `/templates/${auditedTemplate.id}/preview.png`,
+    category: auditedTemplate.category || 'modern', // ✅ AGREGADO: Esta propiedad faltaba
+    
+    // ✅ AGREGADOS: Propiedades que podrían estar faltando
+    borderRadius: auditedTemplate.design?.borderRadius || 8,
+    shadows: auditedTemplate.design?.shadows || true,
+    spacing: auditedTemplate.design?.spacing || 'normal',
+    typography: auditedTemplate.design?.typography || 'modern',
+    
+    // ✅ AGREGADO: Información que podría necesitar el preview
+   showInfo: {
+  category: auditedTemplate.showInfo?.category ?? true,
+  description: auditedTemplate.showInfo?.description ?? true,
+  sku: auditedTemplate.showInfo?.sku ?? false,
+  specifications: auditedTemplate.showInfo?.specifications ?? false,
+  wholesalePrice: auditedTemplate.showInfo?.wholesalePrice ?? true,      // ✅ DEFAULT: Habilitar funcionalidad
+  wholesaleMinQty: auditedTemplate.showInfo?.wholesaleMinQty ?? true     // ✅ DEFAULT: Mostrar cantidad mínima
+}
+  };
+};
 
 export const SmartTemplateSelector: React.FC<SmartTemplateSelectorProps> = ({
   selectedTemplate,
