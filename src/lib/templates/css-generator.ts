@@ -355,26 +355,107 @@ export class TemplateGenerator {
         -webkit-print-color-adjust: exact !important;
       }
       
-      .product-price {
-        font-size: var(--price-size) !important;
-        font-weight: 700 !important;
-        color: white !important;
-        background: var(--secondary) !important;
-        background-image: linear-gradient(135deg, var(--secondary), var(--primary)) !important;
-        padding: 1.5mm 3mm !important;
-        border-radius: 12px !important;
-        display: inline-block !important;
-        margin: 1mm auto !important;
-        text-align: center !important;
-        white-space: nowrap !important;
-        max-width: 95% !important;
-        overflow: hidden !important;
-        text-overflow: ellipsis !important;
-        box-shadow: 0 1pt 2pt rgba(0,0,0,0.15) !important;
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-        flex-shrink: 0 !important;
-      }
+      /* ===== SISTEMA DE PRECIOS DUALES ===== */
+.product-pricing {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  gap: 1mm !important;
+  margin: 1mm auto !important;
+  width: 100% !important;
+}
+
+/* Precio retail - prominente */
+.product-price-retail {
+  font-size: var(--price-size) !important;
+  font-weight: 700 !important;
+  color: white !important;
+  background: var(--secondary) !important;
+  background-image: linear-gradient(135deg, var(--secondary), var(--primary)) !important;
+  padding: 1.5mm 3mm !important;
+  border-radius: 12px !important;
+  display: inline-block !important;
+  text-align: center !important;
+  white-space: nowrap !important;
+  max-width: 95% !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  box-shadow: 0 1pt 2pt rgba(0,0,0,0.15) !important;
+  -webkit-print-color-adjust: exact !important;
+  print-color-adjust: exact !important;
+  flex-shrink: 0 !important;
+  line-height: 1.2 !important;
+}
+
+/* Precio mayoreo - más discreto */
+.product-price-wholesale {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  gap: 0.5mm !important;
+  font-size: calc(var(--price-size) * 0.75) !important;
+  color: var(--text) !important;
+  background: rgba(0,0,0,0.05) !important;
+  padding: 1mm 2mm !important;
+  border-radius: 6px !important;
+  border: 0.5pt solid var(--border) !important;
+  max-width: 95% !important;
+  text-align: center !important;
+  -webkit-print-color-adjust: exact !important;
+}
+
+.wholesale-label {
+  font-size: calc(var(--info-size) * 0.9) !important;
+  font-weight: 500 !important;
+  color: var(--text-light) !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.3pt !important;
+  margin-bottom: 0.5mm !important;
+}
+
+.wholesale-price {
+  font-weight: 700 !important;
+  color: var(--primary) !important;
+  font-size: calc(var(--price-size) * 0.8) !important;
+}
+
+.wholesale-min {
+  font-size: calc(var(--info-size) * 0.8) !important;
+  color: var(--text-light) !important;
+  font-weight: 400 !important;
+  margin-top: 0.5mm !important;
+  font-style: italic !important;
+}
+
+/* ===== COMPATIBILIDAD CON DENSIDADES ===== */
+.template-alta .product-pricing {
+  gap: 0.5mm !important;
+}
+
+.template-alta .product-price-wholesale {
+  padding: 0.5mm 1.5mm !important;
+  font-size: calc(var(--price-size) * 0.7) !important;
+}
+
+.template-baja .product-pricing {
+  gap: 1.5mm !important;
+}
+
+.template-baja .product-price-wholesale {
+  padding: 1.5mm 3mm !important;
+}
+
+/* ===== RESPONSIVE PARA MÓVIL ===== */
+@media screen and (max-width: 768px) {
+  .product-pricing {
+    gap: 2mm !important;
+  }
+  
+  .product-price-wholesale {
+    padding: 2mm !important;
+    font-size: calc(var(--price-size) * 0.8) !important;
+  }
+}
       
       /* ===== ELEMENTOS CONDICIONALES OPTIMIZADOS ===== */
       
