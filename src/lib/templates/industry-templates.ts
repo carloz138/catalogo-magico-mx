@@ -41,14 +41,15 @@ export interface IndustryTemplate {
     spacing: 'compacto' | 'normal' | 'amplio';
   };
   
-  // Información que se muestra
-  showInfo: {
-    description: boolean;
-    sku: boolean;
-    category: boolean;
-    specifications: boolean;
-  };
-}
+ // Información que se muestra
+showInfo: {
+  description: boolean;
+  sku: boolean;
+  category: boolean;
+  specifications: boolean;
+  wholesalePrice: boolean;  // NUEVO: Mostrar precio de mayoreo
+  wholesaleMinQty: boolean; // NUEVO: Mostrar cantidad mínima
+};
 
 // ===== CONFIGURACIONES POR DENSIDAD =====
 const DENSITY_CONFIG = {
