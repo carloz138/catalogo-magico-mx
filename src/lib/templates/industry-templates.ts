@@ -47,8 +47,8 @@ showInfo: {
   sku: boolean;
   category: boolean;
   specifications: boolean;
-  wholesalePrice: boolean;  // NUEVO: Mostrar precio de mayoreo
-  wholesaleMinQty: boolean; // NUEVO: Mostrar cantidad mínima
+  wholesalePrice?: boolean;  // ✅ AGREGA ? para hacerla opcional
+  wholesaleMinQty?: boolean; // ✅ AGREGA ? para hacerla opcional
 };
 
 // ===== CONFIGURACIONES POR DENSIDAD =====
