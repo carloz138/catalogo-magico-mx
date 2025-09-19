@@ -271,8 +271,8 @@ export class PuppeteerServiceClient {
         height: auto !important;
         margin: 0 auto !important;
         padding: 0 !important;
-        padding-top: 28mm !important; /* Header space AUMENTADO para evitar sobreposición */
-        padding-bottom: 20mm !important; /* Footer space AUMENTADO */
+        padding-top: 22mm !important; /* Header space FIJO */
+        padding-bottom: 18mm !important; /* Footer space FIJO */
         font-family: 'Arial', 'Helvetica', sans-serif !important;
         font-size: ${config.fontSize}pt !important;
         line-height: 1.2 !important;
@@ -290,11 +290,11 @@ export class PuppeteerServiceClient {
         left: ${OPTIMIZED_LAYOUT.PAGE.MARGIN}mm !important;
         right: ${OPTIMIZED_LAYOUT.PAGE.MARGIN}mm !important;
         width: ${CONTENT_AREA.WIDTH}mm !important;
-        height: 18mm !important; /* AUMENTADO de 16mm a 18mm */
+        height: 16mm !important;
         background: ${template.colors.primary} !important;
         background-image: linear-gradient(135deg, ${template.colors.primary}, ${template.colors.secondary}) !important;
         color: white !important;
-        z-index: 9999 !important; /* AUMENTADO para estar por encima */
+        z-index: 1000 !important;
         border-radius: ${OPTIMIZED_LAYOUT.SPACING.BORDER_RADIUS}px !important;
         overflow: hidden !important;
         -webkit-print-color-adjust: exact !important;
@@ -340,10 +340,10 @@ export class PuppeteerServiceClient {
         left: ${OPTIMIZED_LAYOUT.PAGE.MARGIN}mm !important;
         right: ${OPTIMIZED_LAYOUT.PAGE.MARGIN}mm !important;
         width: ${CONTENT_AREA.WIDTH}mm !important;
-        height: 14mm !important; /* AUMENTADO de 12mm a 14mm */
+        height: 12mm !important;
         background: ${template.colors.secondary} !important;
         color: ${this.getContrastColor(template.colors.secondary)} !important;
-        z-index: 9999 !important; /* AUMENTADO para estar por encima */
+        z-index: 1000 !important;
         border-radius: ${OPTIMIZED_LAYOUT.SPACING.BORDER_RADIUS}px !important;
         overflow: hidden !important;
         -webkit-print-color-adjust: exact !important;
@@ -381,8 +381,7 @@ export class PuppeteerServiceClient {
       .content-area {
         width: ${CONTENT_AREA.WIDTH}mm !important;
         margin: 0 auto !important;
-        padding: 6mm !important; /* AUMENTADO padding para mejor espaciado */
-        padding-top: 2mm !important; /* Menos padding top ya que el body ya tiene padding */
+        padding: ${OPTIMIZED_LAYOUT.SPACING.CARD_PADDING}mm !important;
         position: relative !important;
         z-index: 1 !important;
         background: ${template.colors.background} !important;
@@ -394,12 +393,10 @@ export class PuppeteerServiceClient {
       .page-container {
         width: 100% !important;
         margin-bottom: 8mm !important;
-        margin-top: 4mm !important; /* AÑADIDO margen superior para evitar sobreposición */
         page-break-after: always !important;
         page-break-inside: avoid !important;
         position: relative !important;
         background: ${template.colors.background} !important;
-        z-index: 1 !important; /* AÑADIDO z-index menor que header/footer */
       }
       
       .page-container:last-child {
