@@ -1,5 +1,5 @@
 // src/lib/templates/industry-templates.ts
-// 🎯 SISTEMA DE TEMPLATES ACTUALIZADO - Enero 2025 - CON PRECIOS MAYOREO
+// 🎯 SISTEMA DE TEMPLATES ACTUALIZADO - Enero 2025
 
 // ===== IMPORTS =====
 import { TEMPLATES_ENERO_2025, CHANGELOG_ENERO_2025 } from './templates-enero-2025';
@@ -41,16 +41,14 @@ export interface IndustryTemplate {
     spacing: 'compacto' | 'normal' | 'amplio';
   };
   
-  // Información que se muestra
-  showInfo: {
-    description: boolean;
-    sku: boolean;
-    category: boolean;
-    specifications: boolean;
-    wholesalePrice: boolean;  // NUEVO: Mostrar precio de mayoreo
-    wholesaleMinQty: boolean; // NUEVO: Mostrar cantidad mínima
-  };
-}
+showInfo: {
+  description: boolean;
+  sku: boolean;
+  category: boolean;
+  specifications: boolean;
+  wholesalePrice?: boolean;  // ✅ OPCIONAL temporalmente
+  wholesaleMinQty?: boolean; // ✅ OPCIONAL temporalmente
+};
 
 // ===== CONFIGURACIONES POR DENSIDAD =====
 const DENSITY_CONFIG = {
@@ -74,7 +72,7 @@ const DENSITY_CONFIG = {
   }
 };
 
-// ===== TEMPLATES ORIGINALES ACTUALIZADOS CON PRECIOS MAYOREO =====
+// ===== TEMPLATES ORIGINALES =====
 const ORIGINAL_TEMPLATES: Record<string, IndustryTemplate> = {
   
   // JOYERÍA
@@ -108,9 +106,7 @@ const ORIGINAL_TEMPLATES: Record<string, IndustryTemplate> = {
       description: false,
       sku: true,
       category: false,
-      specifications: false,
-      wholesalePrice: true,      // ✅ ACTIVADO - Joyería B2B común
-      wholesaleMinQty: true      // ✅ ACTIVADO
+      specifications: false
     }
   },
 
@@ -144,9 +140,7 @@ const ORIGINAL_TEMPLATES: Record<string, IndustryTemplate> = {
       description: true,
       sku: true,
       category: true,
-      specifications: false,
-      wholesalePrice: true,      // ✅ ACTIVADO - Luxury siempre B2B
-      wholesaleMinQty: true      // ✅ ACTIVADO
+      specifications: false
     }
   },
 
@@ -181,9 +175,7 @@ const ORIGINAL_TEMPLATES: Record<string, IndustryTemplate> = {
       description: true,
       sku: false,
       category: true,
-      specifications: false,
-      wholesalePrice: true,      // ✅ ACTIVADO - Moda tiene mayoreo
-      wholesaleMinQty: true      // ✅ ACTIVADO
+      specifications: false
     }
   },
 
@@ -217,9 +209,7 @@ const ORIGINAL_TEMPLATES: Record<string, IndustryTemplate> = {
       description: true,
       sku: true,
       category: true,
-      specifications: false,
-      wholesalePrice: true,      // ✅ ACTIVADO - Streetwear distribución
-      wholesaleMinQty: true      // ✅ ACTIVADO
+      specifications: false
     }
   },
 
@@ -254,9 +244,7 @@ const ORIGINAL_TEMPLATES: Record<string, IndustryTemplate> = {
       description: true,
       sku: true,
       category: true,
-      specifications: true,
-      wholesalePrice: true,      // ✅ ACTIVADO - Electrónicos B2B fuerte
-      wholesaleMinQty: true      // ✅ ACTIVADO
+      specifications: true
     }
   },
 
@@ -290,9 +278,7 @@ const ORIGINAL_TEMPLATES: Record<string, IndustryTemplate> = {
       description: true,
       sku: true,
       category: true,
-      specifications: true,
-      wholesalePrice: true,      // ✅ ACTIVADO - Gaming distribución
-      wholesaleMinQty: true      // ✅ ACTIVADO
+      specifications: true
     }
   },
 
@@ -327,9 +313,7 @@ const ORIGINAL_TEMPLATES: Record<string, IndustryTemplate> = {
       description: true,
       sku: true,
       category: true,
-      specifications: true,
-      wholesalePrice: true,      // ✅ ACTIVADO - Ferretería definitivamente B2B
-      wholesaleMinQty: true      // ✅ ACTIVADO
+      specifications: true
     }
   },
 
@@ -364,9 +348,7 @@ const ORIGINAL_TEMPLATES: Record<string, IndustryTemplate> = {
       description: true,
       sku: false,
       category: false,
-      specifications: false,
-      wholesalePrice: true,      // ✅ ACTIVADO - Florería mayoreo común
-      wholesaleMinQty: true      // ✅ ACTIVADO
+      specifications: false
     }
   },
 
@@ -400,9 +382,7 @@ const ORIGINAL_TEMPLATES: Record<string, IndustryTemplate> = {
       description: true,
       sku: false,
       category: true,
-      specifications: false,
-      wholesalePrice: true,      // ✅ ACTIVADO - Eventos requieren volumen
-      wholesaleMinQty: true      // ✅ ACTIVADO
+      specifications: false
     }
   },
 
@@ -437,9 +417,7 @@ const ORIGINAL_TEMPLATES: Record<string, IndustryTemplate> = {
       description: true,
       sku: false,
       category: true,
-      specifications: false,
-      wholesalePrice: true,      // ✅ ACTIVADO - Cosméticos distribución
-      wholesaleMinQty: true      // ✅ ACTIVADO
+      specifications: false
     }
   },
 
@@ -474,9 +452,7 @@ const ORIGINAL_TEMPLATES: Record<string, IndustryTemplate> = {
       description: true,
       sku: true,
       category: true,
-      specifications: true,
-      wholesalePrice: true,      // ✅ ACTIVADO - Muebles B2B común
-      wholesaleMinQty: true      // ✅ ACTIVADO
+      specifications: true
     }
   }
 };
@@ -561,15 +537,6 @@ export const getTemplateById = (id: string): IndustryTemplate | null => {
   return INDUSTRY_TEMPLATES[id] || null;
 };
 
-// ===== FUNCIÓN NUEVA: OBTENER TEMPLATES CON PRECIOS MAYOREO =====
-export const getTemplatesWithWholesale = (): IndustryTemplate[] => {
-  return Object.values(INDUSTRY_TEMPLATES).filter(template => template.showInfo.wholesalePrice);
-};
-
-export const getTemplatesWithWholesaleMinQty = (): IndustryTemplate[] => {
-  return Object.values(INDUSTRY_TEMPLATES).filter(template => template.showInfo.wholesaleMinQty);
-};
-
 // ===== RECOMENDACIONES MEJORADAS CON NUEVOS TEMPLATES =====
 export const getRecommendedTemplates = (industry?: IndustryType, productCount?: number): IndustryTemplate[] => {
   let recommendations: IndustryTemplate[] = [];
@@ -613,16 +580,14 @@ export const getRecommendedTemplates = (industry?: IndustryType, productCount?: 
   return recommendations.slice(0, 6);
 };
 
-// ===== ESTADÍSTICAS DEL SISTEMA MEJORADAS =====
+// ===== ESTADÍSTICAS DEL SISTEMA =====
 export const getTemplateStats = () => {
   const allTemplates = Object.values(INDUSTRY_TEMPLATES);
   const newTemplates = Object.values(TEMPLATES_ENERO_2025);
-  const wholesaleTemplates = getTemplatesWithWholesale();
   
   return {
     total: allTemplates.length,
     nuevos: newTemplates.length,
-    withWholesale: wholesaleTemplates.length, // NUEVA ESTADÍSTICA
     byIndustry: Object.keys(INDUSTRY_MAP).reduce((acc, industry) => {
       acc[industry] = getTemplatesByIndustry(industry as IndustryType).length;
       return acc;
