@@ -604,19 +604,18 @@ export class PuppeteerServiceClient {
       }
       
       /* ===== ÁREA DE TEXTO OPTIMIZADA ===== */
-      .text-area-optimized {
+            .text-area-optimized {
         width: 100% !important;
-        height: ${textHeight}mm !important;
-        min-height: ${textHeight}mm !important;
-        max-height: ${textHeight}mm !important;
-        padding: 0 ${OPTIMIZED_LAYOUT.SPACING.CARD_PADDING}mm ${OPTIMIZED_LAYOUT.SPACING.CARD_PADDING}mm ${OPTIMIZED_LAYOUT.SPACING.CARD_PADDING}mm !important;
+        height: auto !important;
+        min-height: ${Math.round(textHeight * 1.3)}mm !important;
+        padding: 1mm ${OPTIMIZED_LAYOUT.SPACING.CARD_PADDING}mm ${OPTIMIZED_LAYOUT.SPACING.CARD_PADDING}mm ${OPTIMIZED_LAYOUT.SPACING.CARD_PADDING}mm !important;
         display: flex !important;
         flex-direction: column !important;
         justify-content: space-between !important;
         align-items: center !important;
         text-align: center !important;
-        overflow: hidden !important;
-        flex-shrink: 0 !important;
+        overflow: visible !important;
+        flex-grow: 1 !important;
         box-sizing: border-box !important;
       }
       
