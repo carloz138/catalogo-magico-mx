@@ -50,6 +50,7 @@ showInfo: {
   wholesalePrice?: boolean;  // ✅ AGREGA ? para hacerla opcional
   wholesaleMinQty?: boolean; // ✅ AGREGA ? para hacerla opcional
 };
+}
 
 // ===== CONFIGURACIONES POR DENSIDAD =====
 const DENSITY_CONFIG = {
