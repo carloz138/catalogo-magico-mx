@@ -463,23 +463,23 @@ export class PuppeteerServiceClient {
         -webkit-print-color-adjust: exact !important;
       }
       
-            /* ===== IMAGEN CONTAINER CORREGIDO - MÁS ESPACIO PARA TEXTO ===== */
-      .image-container-optimized {
-        width: 100% !important;
-        height: ${Math.round(imageHeight * 0.8)}mm !important;
-        min-height: ${Math.round(imageHeight * 0.8)}mm !important;
-        max-height: ${Math.round(imageHeight * 0.8)}mm !important;
-        background: #f8f9fa !important;
-        border-radius: ${Math.max(OPTIMIZED_LAYOUT.SPACING.BORDER_RADIUS - 2, 2)}px !important;
-        border: 0.25pt solid #e9ecef !important;
-        margin: ${OPTIMIZED_LAYOUT.SPACING.CARD_PADDING}mm ${OPTIMIZED_LAYOUT.SPACING.CARD_PADDING}mm 1mm ${OPTIMIZED_LAYOUT.SPACING.CARD_PADDING}mm !important;
-        overflow: hidden !important;
-        -webkit-print-color-adjust: exact !important;
-        flex-shrink: 0 !important;
-        display: table !important;
-        table-layout: fixed !important;
-        /* ELIMINADO: aspect-ratio que causaba el problema */
-      }
+     /* ===== IMAGEN CONTAINER CORREGIDO - MÁS ESPACIO PARA TEXTO ===== */
+.image-container-optimized {
+  width: 100% !important;
+  height: ${Math.round(imageHeight * 0.8)}mm !important;
+  min-height: ${Math.round(imageHeight * 0.8)}mm !important;
+  max-height: ${Math.round(imageHeight * 0.8)}mm !important;
+  background: #f8f9fa !important;
+  border-radius: ${Math.max(OPTIMIZED_LAYOUT.SPACING.BORDER_RADIUS - 2, 2)}px !important;
+  border: 0.25pt solid #e9ecef !important;
+  margin: ${OPTIMIZED_LAYOUT.SPACING.CARD_PADDING}mm ${OPTIMIZED_LAYOUT.SPACING.CARD_PADDING}mm 1mm ${OPTIMIZED_LAYOUT.SPACING.CARD_PADDING}mm !important;
+  overflow: hidden !important;
+  -webkit-print-color-adjust: exact !important;
+  flex-shrink: 0 !important;
+  display: table !important;
+  table-layout: fixed !important;
+  /* ELIMINADO: aspect-ratio que causaba el problema */
+}
       
       .image-cell-optimized {
         display: table-cell !important;
@@ -604,20 +604,21 @@ export class PuppeteerServiceClient {
       }
       
       /* ===== ÁREA DE TEXTO OPTIMIZADA ===== */
-          .text-area-optimized {
-      width: 100% !important;
-      height: auto !important;
-      min-height: ${Math.round(textHeight * 1.3)}mm !important;
-      padding: 1mm ${OPTIMIZED_LAYOUT.SPACING.CARD_PADDING}mm ${OPTIMIZED_LAYOUT.SPACING.CARD_PADDING}mm ${OPTIMIZED_LAYOUT.SPACING.CARD_PADDING}mm !important;
-      display: flex !important;
-      flex-direction: column !important;
-      justify-content: space-between !important;
-      align-items: center !important;
-      text-align: center !important;
-      overflow: visible !important;
-      flex-grow: 1 !important;
-      box-sizing: border-box !important;
-    }
+      .text-area-optimized {
+        width: 100% !important;
+        height: ${textHeight}mm !important;
+        min-height: ${textHeight}mm !important;
+        max-height: ${textHeight}mm !important;
+        padding: 0 ${OPTIMIZED_LAYOUT.SPACING.CARD_PADDING}mm ${OPTIMIZED_LAYOUT.SPACING.CARD_PADDING}mm ${OPTIMIZED_LAYOUT.SPACING.CARD_PADDING}mm !important;
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        text-align: center !important;
+        overflow: hidden !important;
+        flex-shrink: 0 !important;
+        box-sizing: border-box !important;
+      }
       
       .product-name-optimized {
         font-size: ${config.nameSize}pt !important;
