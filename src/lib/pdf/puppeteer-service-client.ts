@@ -278,8 +278,8 @@ export class PuppeteerServiceClient {
         height: auto !important;
         margin: 0 auto !important;
         padding: 0 !important;
-        padding-top: 15mm !important;   // REDUCIDO: de 25mm a 15mm
-        padding-bottom: 12mm !important; // REDUCIDO: de 20mm a 12mm
+        padding-top: 25mm !important; /* Header space */
+        padding-bottom: 20mm !important; /* Footer space */
         font-family: 'Arial', 'Helvetica', sans-serif !important;
         font-size: ${config.fontSize}pt !important;
         line-height: 1.2 !important;
@@ -463,23 +463,22 @@ export class PuppeteerServiceClient {
         -webkit-print-color-adjust: exact !important;
       }
       
-      /* ===== IMAGEN CONTAINER CON ASPECT RATIO FIJO ===== */
+            /* ===== IMAGEN CONTAINER CORREGIDO - MÁS ESPACIO PARA TEXTO ===== */
       .image-container-optimized {
         width: 100% !important;
-        height: ${imageHeight}mm !important;
-        min-height: ${imageHeight}mm !important;
-        max-height: ${imageHeight}mm !important;
+        height: ${Math.round(imageHeight * 0.8)}mm !important;
+        min-height: ${Math.round(imageHeight * 0.8)}mm !important;
+        max-height: ${Math.round(imageHeight * 0.8)}mm !important;
         background: #f8f9fa !important;
         border-radius: ${Math.max(OPTIMIZED_LAYOUT.SPACING.BORDER_RADIUS - 2, 2)}px !important;
         border: 0.25pt solid #e9ecef !important;
-        margin: ${OPTIMIZED_LAYOUT.SPACING.CARD_PADDING}mm ${OPTIMIZED_LAYOUT.SPACING.CARD_PADDING}mm 2mm ${OPTIMIZED_LAYOUT.SPACING.CARD_PADDING}mm !important;
+        margin: ${OPTIMIZED_LAYOUT.SPACING.CARD_PADDING}mm ${OPTIMIZED_LAYOUT.SPACING.CARD_PADDING}mm 1mm ${OPTIMIZED_LAYOUT.SPACING.CARD_PADDING}mm !important;
         overflow: hidden !important;
         -webkit-print-color-adjust: exact !important;
         flex-shrink: 0 !important;
         display: table !important;
         table-layout: fixed !important;
-        /* 🎯 ASPECT RATIO CUADRADO PARA CONSISTENCIA - CLAVE PARA EVITAR DEFORMACIÓN */
-        aspect-ratio: 1 / 1 !important;
+        /* ELIMINADO: aspect-ratio que causaba el problema */
       }
       
       .image-cell-optimized {
@@ -605,21 +604,20 @@ export class PuppeteerServiceClient {
       }
       
       /* ===== ÁREA DE TEXTO OPTIMIZADA ===== */
-      .text-area-optimized {
-        width: 100% !important;
-        height: ${textHeight}mm !important;
-        min-height: ${textHeight}mm !important;
-        max-height: ${textHeight}mm !important;
-        padding: 0 ${OPTIMIZED_LAYOUT.SPACING.CARD_PADDING}mm ${OPTIMIZED_LAYOUT.SPACING.CARD_PADDING}mm ${OPTIMIZED_LAYOUT.SPACING.CARD_PADDING}mm !important;
-        display: flex !important;
-        flex-direction: column !important;
-        justify-content: space-between !important;
-        align-items: center !important;
-        text-align: center !important;
-        overflow: hidden !important;
-        flex-shrink: 0 !important;
-        box-sizing: border-box !important;
-      }
+          .text-area-optimized {
+      width: 100% !important;
+      height: auto !important;
+      min-height: ${Math.round(textHeight * 1.3)}mm !important;
+      padding: 1mm ${OPTIMIZED_LAYOUT.SPACING.CARD_PADDING}mm ${OPTIMIZED_LAYOUT.SPACING.CARD_PADDING}mm ${OPTIMIZED_LAYOUT.SPACING.CARD_PADDING}mm !important;
+      display: flex !important;
+      flex-direction: column !important;
+      justify-content: space-between !important;
+      align-items: center !important;
+      text-align: center !important;
+      overflow: visible !important;
+      flex-grow: 1 !important;
+      box-sizing: border-box !important;
+    }
       
       .product-name-optimized {
         font-size: ${config.nameSize}pt !important;
