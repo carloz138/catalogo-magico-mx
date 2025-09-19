@@ -516,7 +516,6 @@ export const INDUSTRY_MAP = {
   }
 } as const;
 
-// ===== HELPER FUNCTIONS ACTUALIZADAS =====
 // ===== HELPER FUNCTION PARA DEFAULTS DE MAYOREO =====
 export const addWholesaleDefaults = (template: Partial<IndustryTemplate>): IndustryTemplate => {
   return {
