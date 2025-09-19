@@ -546,7 +546,18 @@ export const getPremiumTemplates = (): IndustryTemplate[] => {
 };
 
 export const getTemplateById = (id: string): IndustryTemplate | null => {
-  return INDUSTRY_TEMPLATES[id] || null;
+  const template = INDUSTRY_TEMPLATES[id];
+  if (!template) return null;
+  
+  // Asegurar que la funcionalidad de mayoreo esté habilitada por default
+  return {
+    ...template,
+    showInfo: {
+      ...template.showInfo,
+      wholesalePrice: template.showInfo.wholesalePrice ?? true,      // ✅ Habilitar por default
+      wholesaleMinQty: template.showInfo.wholesaleMinQty ?? true     // ✅ Habilitar por default
+    }
+  };
 };
 
 // ===== RECOMENDACIONES MEJORADAS CON NUEVOS TEMPLATES =====
