@@ -414,7 +414,7 @@ const TemplateSelection = () => {
         case 'puppeteer':
       console.log('🔍 DEBUG - Título desde TemplateSelection:', catalogTitle);
       console.log('Usando Puppeteer Service (mejor calidad)');
-      result = await generatePuppeteerCatalog(
+           result = await generatePuppeteerCatalog(
         selectedProducts,
         businessData,
         selectedTemplate,

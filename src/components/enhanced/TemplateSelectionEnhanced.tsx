@@ -9,6 +9,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { toast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { useBusinessInfo } from '@/hooks/useBusinessInfo';
@@ -78,6 +80,7 @@ const TemplateSelectionEnhanced = () => {
   const [selectedProducts, setSelectedProducts] = useState<Product[]>([]);
   const [generating, setGenerating] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [catalogTitle, setCatalogTitle] = useState(''); // Added catalog title state
   
   // Estados de límites
   const [limits, setLimits] = useState<UsageLimits | null>(null);
@@ -320,7 +323,12 @@ const TemplateSelectionEnhanced = () => {
           address: businessInfo.address
         },
         selectedTemplate,
-        user.id
+        user.id,
+        {
+          catalogTitle: catalogTitle,
+          qualityCheck: true,
+          autoFix: true
+        }
       );
       
       if (result.success) {
@@ -513,7 +521,7 @@ const TemplateSelectionEnhanced = () => {
           {/* Template seleccionado */}
           {selectedTemplate && limits?.canGenerate && (
             <Card className="border-green-200 bg-green-50">
-              <CardContent className="p-4">
+              <CardContent className="p-6 space-y-4">
                 <div className="flex items-center gap-3">
                   <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
                   <div className="flex-1">
@@ -524,6 +532,26 @@ const TemplateSelectionEnhanced = () => {
                       Listo para generar tu catálogo con {selectedProducts.length} productos
                     </p>
                   </div>
+                </div>
+                
+                {/* Campo para el título del catálogo */}
+                <div className="space-y-2">
+                  <Label htmlFor="catalogTitle" className="text-green-900 font-medium">
+                    Nombre del catálogo (opcional)
+                  </Label>
+                  <Input
+                    id="catalogTitle"
+                    value={catalogTitle}
+                    onChange={(e) => setCatalogTitle(e.target.value)}
+                    placeholder="Ej: Catálogo Primavera 2024, Productos Nuevos..."
+                    className="bg-white border-green-300 focus:border-green-500"
+                  />
+                  <p className="text-xs text-green-600">
+                    Si no especificas un nombre, se generará automáticamente
+                  </p>
+                </div>
+
+                <div className="flex justify-end">
                   <Button 
                     onClick={handleGenerateCatalog}
                     disabled={generating}
@@ -532,7 +560,7 @@ const TemplateSelectionEnhanced = () => {
                     {generating ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
                     ) : (
-                      'Generar Ahora'
+                      'Generar Catálogo'
                     )}
                   </Button>
                 </div>
