@@ -9,6 +9,8 @@ interface Product {
   description?: string;
   category?: string;
   price_retail: number;
+  price_wholesale?: number;
+  wholesale_min_qty?: number;
   image_url: string;
   sku?: string;
   brand?: string;
@@ -381,6 +383,30 @@ export class ProfessionalTemplateGenerator {
         box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
       }
       
+      /* ===== WHOLESALE PRICING ===== */
+      .product-wholesale {
+        margin-top: 8px;
+        padding-top: 8px;
+        border-top: 1px solid rgba(0, 0, 0, 0.05);
+      }
+      
+      .wholesale-price {
+        color: var(--text-secondary);
+        font-size: calc(var(--body-size) + 2px);
+        font-weight: 600;
+        display: block;
+        margin-bottom: 4px;
+      }
+      
+      .wholesale-min {
+        color: var(--text-secondary);
+        font-size: calc(var(--body-size) - 2px);
+        background: rgba(0, 0, 0, 0.05);
+        padding: 2px 6px;
+        border-radius: 3px;
+        font-weight: 500;
+      }
+      
       /* ===== FEATURED PRODUCT CON SOMBRA ESPECIAL ===== */
       ${template.layout.featuredProduct ? `
       .product-featured {
@@ -548,6 +574,12 @@ export class ProfessionalTemplateGenerator {
             ${product.description ? `<p class="product-description">${product.description}</p>` : ''}
             <div class="product-price-container">
               <div class="product-price">$${product.price_retail.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</div>
+              ${product.price_wholesale ? `
+                <div class="product-wholesale">
+                  <span class="wholesale-price">Mayoreo: $${product.price_wholesale.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
+                  ${product.wholesale_min_qty ? `<span class="wholesale-min">Min. ${product.wholesale_min_qty}</span>` : ''}
+                </div>
+              ` : ''}
               ${product.sku ? `<div class="product-sku">SKU: ${product.sku}</div>` : ''}
             </div>
           </div>
