@@ -55,12 +55,14 @@ export interface AuditedTemplate {
   };
   
   // Información mostrada
-  showInfo: {
-    category: boolean;
-    description: boolean;
-    sku: boolean;
-    specifications: boolean;
-  };
+    showInfo: {
+      category: boolean;
+      description: boolean;
+      sku: boolean;
+      specifications: boolean;
+      wholesalePrice: boolean;  // NUEVO: Mostrar precio de mayoreo
+      wholesaleMinQty: boolean; // NUEVO: Mostrar cantidad mínima
+    };
   
   // Plan requerido
   isPremium: boolean;
