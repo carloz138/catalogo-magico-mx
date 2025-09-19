@@ -80,6 +80,9 @@ export class UnifiedCatalogGenerator {
     options: GenerationOptions = {}
   ): Promise<GenerationResult> {
     
+    console.log('🔍 DEBUG - generateCatalog recibió options:', options);
+    console.log('🔍 DEBUG - catalogTitle en options:', options.catalogTitle);
+    
     const startTime = Date.now();
     const warnings: string[] = [];
     
@@ -1053,6 +1056,7 @@ export const generatePuppeteerCatalog = async (
   onProgress?: (progress: number) => void,
   catalogTitle?: string
 ): Promise<GenerationResult> => {
+  console.log('🔍 DEBUG - generatePuppeteerCatalog recibió catalogTitle:', catalogTitle);
   return generateCatalog(products, businessInfo, templateId, userId, {
     usePuppeteerService: true,
     useDynamicEngine: false,
