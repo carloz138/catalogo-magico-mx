@@ -8,6 +8,8 @@ interface Product {
   name: string;
   description?: string;
   price_retail: number;
+  price_wholesale?: number;  // NUEVO: Precio de mayoreo
+  wholesale_min_qty?: number;  // NUEVO: Cantidad mínima para mayoreo
   image_url: string;
   sku?: string;
   category?: string;
