@@ -415,7 +415,8 @@ const TemplateSelection = () => {
             businessData,
             selectedTemplate,
             user.id,
-            onProgress
+            onProgress,
+            catalogTitle
           );
           break;
           
@@ -426,7 +427,8 @@ const TemplateSelection = () => {
             businessData,
             selectedTemplate,
             user.id,
-            onProgress
+            onProgress,
+            catalogTitle
           );
           break;
           
@@ -437,7 +439,8 @@ const TemplateSelection = () => {
             businessData,
             selectedTemplate,
             user.id,
-            onProgress
+            onProgress,
+            catalogTitle
           );
           break;
           
@@ -455,7 +458,8 @@ const TemplateSelection = () => {
               showProgress: true,
               onProgress,
               qualityCheck: true,
-              autoFix: autoFix
+              autoFix: true,
+              catalogTitle: catalogTitle // Use the custom title from state
             }
           );
           break;

@@ -64,6 +64,7 @@ interface GenerationOptions {
   qualityCheck?: boolean; // Nueva opción para verificar calidad del template
   autoFix?: boolean; // Nueva opción para auto-corregir templates
   skipAudit?: boolean; // Opción para saltar auditoría si ya fue auditado
+  catalogTitle?: string; // Título personalizado del catálogo
 }
 
 export class UnifiedCatalogGenerator {
@@ -299,6 +300,7 @@ if (auditedTemplate) {
         products,
         businessInfo,
         template,
+        options.catalogTitle || `Catálogo ${template.displayName} - ${new Date().toLocaleDateString('es-MX')}`,
         { 
           generationMethod: finalMethod, 
           pdfSuccess: pdfGenerationSuccess,
@@ -1045,7 +1047,8 @@ export const generatePuppeteerCatalog = async (
   businessInfo: BusinessInfo,
   templateId: string,
   userId: string,
-  onProgress?: (progress: number) => void
+  onProgress?: (progress: number) => void,
+  catalogTitle?: string
 ): Promise<GenerationResult> => {
   return generateCatalog(products, businessInfo, templateId, userId, {
     usePuppeteerService: true,
@@ -1053,7 +1056,8 @@ export const generatePuppeteerCatalog = async (
     showProgress: !!onProgress,
     onProgress,
     qualityCheck: true,
-    autoFix: true
+    autoFix: true,
+    catalogTitle
   });
 };
 
@@ -1065,7 +1069,8 @@ export const generateDynamicCatalog = async (
   businessInfo: BusinessInfo,
   templateId: string,
   userId: string,
-  onProgress?: (progress: number) => void
+  onProgress?: (progress: number) => void,
+  catalogTitle?: string
 ): Promise<GenerationResult> => {
   return generateCatalog(products, businessInfo, templateId, userId, {
     usePuppeteerService: false,
@@ -1073,7 +1078,8 @@ export const generateDynamicCatalog = async (
     showProgress: !!onProgress,
     onProgress,
     qualityCheck: true,
-    autoFix: true
+    autoFix: true,
+    catalogTitle
   });
 };
 
@@ -1085,14 +1091,16 @@ export const generateClassicCatalog = async (
   businessInfo: BusinessInfo,
   templateId: string,
   userId: string,
-  onProgress?: (progress: number) => void
+  onProgress?: (progress: number) => void,
+  catalogTitle?: string
 ): Promise<GenerationResult> => {
   return generateCatalog(products, businessInfo, templateId, userId, {
     forceClassicMode: true,
     showProgress: !!onProgress,
     onProgress,
     qualityCheck: true,
-    autoFix: true
+    autoFix: true,
+    catalogTitle
   });
 };
 
