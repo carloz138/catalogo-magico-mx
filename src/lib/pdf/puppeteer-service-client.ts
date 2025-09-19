@@ -1,6 +1,5 @@
 // src/lib/pdf/puppeteer-service-client.ts
-// 🎯 SOLUCIÓN BULLETPROOF BASADA EN ISSUES DOCUMENTADOS DE GITHUB Y STACK OVERFLOW
-// ✅ Table Layout + CSS Inline + Margins Exactos + printBackground: true
+// 🎯 SOLUCIÓN HEADER/FOOTER FIJA BASADA EN GITHUB ISSUES #4132, #10024, #3672
 
 interface Product {
   id: string;
@@ -60,7 +59,7 @@ export class PuppeteerServiceClient {
   private static readonly TIMEOUT = 30000;
   
   /**
-   * 🎯 MÉTODO PRINCIPAL CON SOLUCIONES DOCUMENTADAS DE GITHUB ISSUES
+   * 🎯 MÉTODO PRINCIPAL CON HEADER/FOOTER FIXED POSITION
    */
   static async generatePDF(
     products: Product[],
@@ -72,10 +71,10 @@ export class PuppeteerServiceClient {
     const startTime = Date.now();
     
     try {
-      console.log('🚀 Generando PDF con solución bulletproof documentada...', {
+      console.log('🚀 Generando PDF con header/footer fixed position...', {
         products: products.length,
         template: template.id,
-        basedOn: 'GitHub Issues #2278, #5236, #10024, Stack Overflow research'
+        basedOn: 'GitHub Issues #4132, #10024, #3672 - Stack Overflow solutions'
       });
       
       if (options.onProgress) options.onProgress(5);
@@ -88,8 +87,8 @@ export class PuppeteerServiceClient {
       
       if (options.onProgress) options.onProgress(15);
       
-      // 2. Generar HTML con TABLE LAYOUT (Issue #5236 solution)
-      const htmlContent = this.generateBulletproofHTML(
+      // 2. Generar HTML con HEADER/FOOTER FIJOS USANDO POSITION FIXED
+      const htmlContent = this.generateHTMLWithFixedHeaderFooter(
         products, 
         businessInfo, 
         template, 
@@ -98,8 +97,8 @@ export class PuppeteerServiceClient {
       
       if (options.onProgress) options.onProgress(30);
       
-      // 3. Configurar PDF con fixes documentados
-      const pdfOptions = this.getBulletproofPDFOptions(options);
+      // 3. Configurar PDF SIN displayHeaderFooter (Issue #10024 fix)
+      const pdfOptions = this.getPDFOptionsWithoutTemplates(options);
       
       // 4. Generar con retry
       const pdfBlob = await this.generatePDFWithRetry(
@@ -118,10 +117,10 @@ export class PuppeteerServiceClient {
       
       const generationTime = Date.now() - startTime;
       
-      console.log('✅ PDF bulletproof generado exitosamente:', {
+      console.log('✅ PDF con header/footer fijos generado exitosamente:', {
         time: generationTime,
         size: pdfBlob.size,
-        solutions: ['table-layout', 'inline-css', 'exact-margins', 'printBackground']
+        solutions: ['position-fixed', 'no-displayHeaderFooter', 'css-inline']
       });
       
       return {
@@ -134,7 +133,7 @@ export class PuppeteerServiceClient {
       };
       
     } catch (error) {
-      console.error('❌ Error en PDF bulletproof:', error);
+      console.error('❌ Error en PDF con header/footer fijos:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Error desconocido'
@@ -143,16 +142,16 @@ export class PuppeteerServiceClient {
   }
   
   /**
-   * 🏗️ GENERAR HTML BULLETPROOF - BASADO EN ISSUES DOCUMENTADOS
+   * 🏗️ GENERAR HTML CON HEADER/FOOTER USANDO POSITION FIXED - ISSUE #4132 SOLUTION
    */
-  private static generateBulletproofHTML(
+  private static generateHTMLWithFixedHeaderFooter(
     products: Product[],
     businessInfo: BusinessInfo,
     template: TemplateConfig,
     quality: 'low' | 'medium' | 'high'
   ): string {
     
-    const pagesHTML = this.generatePagesWithTableLayout(products, businessInfo, template, quality);
+    const pagesHTML = this.generatePagesWithFixedElements(products, businessInfo, template, quality);
     
     return `<!DOCTYPE html>
 <html lang="es">
@@ -161,19 +160,21 @@ export class PuppeteerServiceClient {
   <meta name="viewport" content="width=210mm, height=297mm, initial-scale=1.0">
   <title>Catálogo ${businessInfo.business_name}</title>
   <style>
-    ${this.generateBulletproofCSS(template, quality)}
+    ${this.generateCSSWithFixedPositions(template, quality)}
   </style>
 </head>
 <body>
+  ${this.generateFixedHeader(businessInfo, template)}
+  ${this.generateFixedFooter(businessInfo, products.length)}
   ${pagesHTML}
 </body>
 </html>`;
   }
   
   /**
-   * 🎨 CSS BULLETPROOF - SOLUCIONES DE GITHUB ISSUES Y STACK OVERFLOW
+   * 🎨 CSS CON POSITION FIXED - SOLUCIÓN ISSUES #3672, #1853
    */
-  private static generateBulletproofCSS(
+  private static generateCSSWithFixedPositions(
     template: TemplateConfig,
     quality: 'low' | 'medium' | 'high'
   ): string {
@@ -187,9 +188,9 @@ export class PuppeteerServiceClient {
     const config = qualityConfig[quality];
     
     return `
-      /* ===== SOLUCIÓN BULLETPROOF BASADA EN GITHUB ISSUES Y STACK OVERFLOW ===== */
+      /* ===== SOLUCIÓN HEADER/FOOTER FIJOS - GITHUB ISSUES #4132, #10024, #3672 ===== */
       
-      /* Reset absoluto para evitar issues (Issue #2278) */
+      /* Reset absoluto - Issue #3672 fix */
       * {
         margin: 0 !important;
         padding: 0 !important;
@@ -199,10 +200,10 @@ export class PuppeteerServiceClient {
         color-adjust: exact !important;
       }
       
-      /* @page con dimensiones exactas (Issue #2278, Stack Overflow solution) */
+      /* @page SIN headers/footers - Issue #10024 solution */
       @page {
         size: A4 portrait;
-        margin: 10mm 12mm 15mm 12mm; /* top, right, bottom, left - asimétrico para footer */
+        margin: 12mm; /* Margins simples y simétricos */
         marks: none;
         bleed: 0;
         orphans: 1;
@@ -210,7 +211,7 @@ export class PuppeteerServiceClient {
         -webkit-print-color-adjust: exact;
       }
       
-      /* HTML y Body con dimensiones exactas (Stack Overflow best practice) */
+      /* HTML y Body - Issue #1853 solution */
       html {
         width: 210mm !important;
         height: 297mm !important;
@@ -225,53 +226,40 @@ export class PuppeteerServiceClient {
         height: auto !important;
         margin: 0 auto !important;
         padding: 0 !important;
+        padding-top: 25mm !important; /* Espacio para header fijo */
+        padding-bottom: 20mm !important; /* Espacio para footer fijo */
         font-family: 'Arial', 'Helvetica', sans-serif !important;
         font-size: ${config.fontSize}pt !important;
         line-height: 1.2 !important;
         color: ${template.colors.text} !important;
         background: ${template.colors.background} !important;
+        position: relative !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
       }
       
-      /* ===== PÁGINA INDIVIDUAL - SIN FLEXBOX (Issue #5236 fix) ===== */
-      .page-container {
+      /* ===== HEADER FIJO - POSITION FIXED TOP - ISSUE #4132 SOLUTION ===== */
+      .fixed-header {
+        position: fixed !important;
+        top: 12mm !important; /* Alineado con margin de @page */
+        left: 12mm !important;
+        right: 12mm !important;
         width: 186mm !important;
-        height: auto !important;
-        min-height: 260mm !important; /* Altura mínima para forzar footer abajo */
-        margin: 0 auto 10mm auto !important;
-        padding: 0 !important;
-        position: relative !important;
-        page-break-after: always !important;
-        page-break-inside: avoid !important;
-        background: ${template.colors.background} !important;
-        -webkit-print-color-adjust: exact !important;
-        display: block !important; /* NO flex para evitar Issue #5236 */
-      }
-      
-      .page-container:last-child {
-        page-break-after: avoid !important;
-        margin-bottom: 0 !important;
-      }
-      
-      /* ===== HEADER FIJO CON TABLE (Issue #10024 solution) ===== */
-      .page-header {
-        width: 186mm !important;
-        height: 22mm !important;
+        height: 20mm !important;
         background: ${template.colors.primary} !important;
         background-image: linear-gradient(135deg, ${template.colors.primary}, ${template.colors.secondary}) !important;
-        margin: 0 auto 5mm auto !important;
+        color: white !important;
+        z-index: 1000 !important;
         border-radius: 6px !important;
         overflow: hidden !important;
-        page-break-inside: avoid !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
-        /* TABLE para centrado vertical perfecto */
+        /* TABLE para centrado perfecto */
         display: table !important;
         table-layout: fixed !important;
       }
       
-      .header-content {
+      .header-cell {
         display: table-cell !important;
         vertical-align: middle !important;
         text-align: center !important;
@@ -280,7 +268,7 @@ export class PuppeteerServiceClient {
         padding: 2mm !important;
       }
       
-      .business-name {
+      .header-business-name {
         font-size: ${config.headerSize}pt !important;
         font-weight: 700 !important;
         color: white !important;
@@ -293,7 +281,7 @@ export class PuppeteerServiceClient {
         -webkit-print-color-adjust: exact !important;
       }
       
-      .page-subtitle {
+      .header-subtitle {
         font-size: ${config.fontSize + 1}pt !important;
         font-weight: 300 !important;
         color: rgba(255,255,255,0.9) !important;
@@ -302,16 +290,80 @@ export class PuppeteerServiceClient {
         -webkit-print-color-adjust: exact !important;
       }
       
-      /* ===== PRODUCTOS CON TABLE LAYOUT - SOLUCIÓN ISSUE #5236 ===== */
-      .products-container {
+      /* ===== FOOTER FIJO - POSITION FIXED BOTTOM - ISSUE #4132 SOLUTION ===== */
+      .fixed-footer {
+        position: fixed !important;
+        bottom: 12mm !important; /* Alineado con margin de @page */
+        left: 12mm !important;
+        right: 12mm !important;
+        width: 186mm !important;
+        height: 15mm !important;
+        background: ${template.colors.secondary} !important;
+        color: ${this.getContrastColor(template.colors.secondary)} !important;
+        z-index: 1000 !important;
+        border-radius: 6px !important;
+        overflow: hidden !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        /* TABLE para centrado perfecto */
+        display: table !important;
+        table-layout: fixed !important;
+      }
+      
+      .footer-cell {
+        display: table-cell !important;
+        vertical-align: middle !important;
+        text-align: center !important;
+        width: 100% !important;
+        height: 100% !important;
+        padding: 2mm !important;
+      }
+      
+      .footer-contact {
+        font-size: ${config.fontSize - 1}pt !important;
+        font-weight: 600 !important;
+        margin-bottom: 1mm !important;
+        line-height: 1.1 !important;
+        word-wrap: break-word !important;
+        -webkit-print-color-adjust: exact !important;
+      }
+      
+      .footer-brand {
+        font-size: ${config.fontSize - 2}pt !important;
+        opacity: 0.8 !important;
+        font-weight: 300 !important;
+        line-height: 1 !important;
+        -webkit-print-color-adjust: exact !important;
+      }
+      
+      /* ===== CONTENIDO PRINCIPAL - SIN CONFLICTS CON HEADER/FOOTER ===== */
+      .content-area {
         width: 186mm !important;
         margin: 0 auto !important;
         padding: 2mm !important;
-        min-height: 180mm !important; /* Mínimo para empujar footer abajo */
+        position: relative !important;
+        z-index: 1 !important;
+        background: ${template.colors.background} !important;
+        min-height: 200mm !important; /* Altura mínima para contenido */
         box-sizing: border-box !important;
       }
       
-      /* TABLE PRINCIPAL para productos (NO Grid/Flexbox - Issue #5236) */
+      /* ===== PÁGINA INDIVIDUAL ===== */
+      .page-container {
+        width: 100% !important;
+        margin-bottom: 8mm !important;
+        page-break-after: always !important;
+        page-break-inside: avoid !important;
+        position: relative !important;
+        background: ${template.colors.background} !important;
+      }
+      
+      .page-container:last-child {
+        page-break-after: avoid !important;
+        margin-bottom: 0 !important;
+      }
+      
+      /* ===== PRODUCTOS CON TABLE LAYOUT - ISSUE #5236 FIX ===== */
       .products-table {
         width: 100% !important;
         border-collapse: separate !important;
@@ -332,7 +384,7 @@ export class PuppeteerServiceClient {
         text-align: center !important;
       }
       
-      /* ===== PRODUCT CARDS SIN FLEXBOX ===== */
+      /* ===== PRODUCT CARDS ===== */
       .product-card {
         width: 100% !important;
         height: 55mm !important;
@@ -345,7 +397,6 @@ export class PuppeteerServiceClient {
         box-shadow: 0 0.5pt 2pt rgba(0,0,0,0.1) !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
-        /* TABLE layout interno */
         display: table !important;
         table-layout: fixed !important;
       }
@@ -359,7 +410,6 @@ export class PuppeteerServiceClient {
         text-align: center !important;
       }
       
-      /* Decoración superior */
       .card-decoration {
         position: absolute !important;
         top: 0 !important;
@@ -380,7 +430,6 @@ export class PuppeteerServiceClient {
         margin: 0 auto 2mm auto !important;
         overflow: hidden !important;
         -webkit-print-color-adjust: exact !important;
-        /* TABLE para centrado de imagen */
         display: table !important;
         table-layout: fixed !important;
       }
@@ -418,7 +467,6 @@ export class PuppeteerServiceClient {
         color: #999 !important;
         font-size: 7pt !important;
         -webkit-print-color-adjust: exact !important;
-        /* TABLE para centrado de texto placeholder */
         display: table !important;
         table-layout: fixed !important;
       }
@@ -474,53 +522,9 @@ export class PuppeteerServiceClient {
         visibility: hidden !important;
       }
       
-      /* ===== FOOTER FIJO - SOLUCIÓN ISSUE #4132 ===== */
-      .page-footer {
-        position: absolute !important;
-        bottom: 0 !important;
-        left: 0 !important;
-        width: 186mm !important;
-        height: 15mm !important;
-        background: ${template.colors.secondary} !important;
-        color: ${this.getContrastColor(template.colors.secondary)} !important;
-        border-radius: 6px !important;
-        page-break-inside: avoid !important;
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-        /* TABLE para centrado perfecto */
-        display: table !important;
-        table-layout: fixed !important;
-      }
-      
-      .footer-content {
-        display: table-cell !important;
-        vertical-align: middle !important;
-        text-align: center !important;
-        width: 100% !important;
-        height: 100% !important;
-        padding: 2mm !important;
-      }
-      
-      .contact-info {
-        font-size: ${config.fontSize - 1}pt !important;
-        font-weight: 600 !important;
-        margin-bottom: 1mm !important;
-        line-height: 1.1 !important;
-        word-wrap: break-word !important;
-        -webkit-print-color-adjust: exact !important;
-      }
-      
-      .footer-brand {
-        font-size: ${config.fontSize - 2}pt !important;
-        opacity: 0.8 !important;
-        font-weight: 300 !important;
-        line-height: 1 !important;
-        -webkit-print-color-adjust: exact !important;
-      }
-      
       /* ===== MEDIA PRINT - STACK OVERFLOW BEST PRACTICES ===== */
       @media print {
-        /* Forzar colores (Stack Overflow Issue #54035306) */
+        /* Forzar colores - Issue #2182 fix */
         * {
           -webkit-print-color-adjust: exact !important;
           color-adjust: exact !important;
@@ -532,8 +536,14 @@ export class PuppeteerServiceClient {
           -webkit-print-color-adjust: exact !important;
         }
         
+        /* Mantener posiciones fijas en print */
+        .fixed-header, .fixed-footer {
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
+        }
+        
         /* Evitar breaks en elementos críticos */
-        .page-container, .product-card, .page-header, .page-footer {
+        .page-container, .product-card {
           page-break-inside: avoid !important;
           break-inside: avoid !important;
         }
@@ -549,9 +559,45 @@ export class PuppeteerServiceClient {
   }
   
   /**
-   * 📄 GENERAR PÁGINAS CON TABLE LAYOUT - SOLUCIÓN ISSUE #5236
+   * 📋 GENERAR HEADER FIJO - POSICIÓN FIXED TOP
    */
-  private static generatePagesWithTableLayout(
+  private static generateFixedHeader(businessInfo: BusinessInfo, template: TemplateConfig): string {
+    return `
+      <div class="fixed-header">
+        <div class="header-cell">
+          <div class="header-business-name">${businessInfo.business_name}</div>
+          <div class="header-subtitle">Catálogo ${template.displayName}</div>
+        </div>
+      </div>
+    `;
+  }
+  
+  /**
+   * 📄 GENERAR FOOTER FIJO - POSICIÓN FIXED BOTTOM
+   */
+  private static generateFixedFooter(businessInfo: BusinessInfo, totalProducts: number): string {
+    const contactInfo = [
+      businessInfo.phone ? `📞 ${businessInfo.phone}` : '',
+      businessInfo.email ? `📧 ${businessInfo.email}` : '',
+      businessInfo.website ? `🌐 ${businessInfo.website}` : ''
+    ].filter(Boolean).join(' | ');
+    
+    return `
+      <div class="fixed-footer">
+        <div class="footer-cell">
+          ${contactInfo ? `<div class="footer-contact">${contactInfo}</div>` : ''}
+          <div class="footer-brand">
+            Catálogo generado con CatalogoIA - ${totalProducts} productos | ${new Date().toLocaleDateString('es-MX')}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+  
+  /**
+   * 📄 GENERAR PÁGINAS CON CONTENIDO SEPARADO DE HEADER/FOOTER
+   */
+  private static generatePagesWithFixedElements(
     products: Product[],
     businessInfo: BusinessInfo,
     template: TemplateConfig,
@@ -561,7 +607,7 @@ export class PuppeteerServiceClient {
     const productsPerPage = template.productsPerPage;
     const totalPages = Math.ceil(products.length / productsPerPage);
     const columns = 4; // Fijo para consistencia
-    let pagesHTML = '';
+    let pagesHTML = '<div class="content-area">';
     
     for (let pageIndex = 0; pageIndex < totalPages; pageIndex++) {
       const startIndex = pageIndex * productsPerPage;
@@ -570,41 +616,17 @@ export class PuppeteerServiceClient {
       
       pagesHTML += `
         <div class="page-container">
-          ${this.generatePageHeader(businessInfo, template, pageIndex + 1, totalPages)}
-          
-          <div class="products-container">
-            ${this.generateProductsTableLayout(pageProducts, template, columns)}
-          </div>
-          
-          ${pageIndex === totalPages - 1 ? this.generatePageFooter(businessInfo, products.length) : ''}
+          ${this.generateProductsTableLayout(pageProducts, template, columns)}
         </div>
       `;
     }
     
+    pagesHTML += '</div>';
     return pagesHTML;
   }
   
   /**
-   * 📋 GENERAR HEADER DE PÁGINA
-   */
-  private static generatePageHeader(
-    businessInfo: BusinessInfo,
-    template: TemplateConfig,
-    pageNum: number,
-    totalPages: number
-  ): string {
-    return `
-      <div class="page-header">
-        <div class="header-content">
-          <div class="business-name">${businessInfo.business_name}</div>
-          <div class="page-subtitle">Catálogo ${template.displayName} - Página ${pageNum} de ${totalPages}</div>
-        </div>
-      </div>
-    `;
-  }
-  
-  /**
-   * 🛍️ GENERAR TABLA DE PRODUCTOS - SOLUCIÓN TABLE LAYOUT
+   * 🛍️ GENERAR TABLA DE PRODUCTOS - TABLE LAYOUT
    */
   private static generateProductsTableLayout(
     products: Product[],
@@ -685,47 +707,25 @@ export class PuppeteerServiceClient {
   }
   
   /**
-   * 📄 GENERAR FOOTER FIJO
+   * ⚙️ PDF OPTIONS SIN displayHeaderFooter - ISSUE #10024 FIX
    */
-  private static generatePageFooter(businessInfo: BusinessInfo, totalProducts: number): string {
-    const contactInfo = [
-      businessInfo.phone ? `📞 ${businessInfo.phone}` : '',
-      businessInfo.email ? `📧 ${businessInfo.email}` : '',
-      businessInfo.website ? `🌐 ${businessInfo.website}` : ''
-    ].filter(Boolean).join(' | ');
-    
-    return `
-      <div class="page-footer">
-        <div class="footer-content">
-          ${contactInfo ? `<div class="contact-info">${contactInfo}</div>` : ''}
-          <div class="footer-brand">
-            Catálogo generado con CatalogoIA - ${totalProducts} productos | ${new Date().toLocaleDateString('es-MX')}
-          </div>
-        </div>
-      </div>
-    `;
-  }
-  
-  /**
-   * ⚙️ PDF OPTIONS BULLETPROOF - ISSUES #10024, #4132, #3672 SOLUTIONS
-   */
-  private static getBulletproofPDFOptions(options: PuppeteerServiceOptions): any {
+  private static getPDFOptionsWithoutTemplates(options: PuppeteerServiceOptions): any {
     return {
       format: options.format || 'A4',
-      // Margins específicos para evitar Issues #10024, #4132 (Stack Overflow solutions)
+      // Margins simples - Issue #3672 solution
       margin: {
-        top: '10mm',     // Menos margin arriba para header
-        right: '12mm',   // Standard
-        bottom: '15mm',  // Más margin abajo para footer fijo
-        left: '12mm'     // Standard
+        top: '12mm',
+        right: '12mm',
+        bottom: '12mm',
+        left: '12mm'
       },
-      printBackground: true,        // CRÍTICO - Issue #54035306
-      preferCSSPageSize: true,      // Issue #2278 fix
-      displayHeaderFooter: false,   // NO usar built-in (problemas documentados)
-      waitUntil: 'networkidle0',    // Esperar carga completa
+      printBackground: true,           // CRÍTICO - Issue #2182
+      preferCSSPageSize: true,         // Issue #2278 fix
+      displayHeaderFooter: false,      // NO usar - Issue #10024 fix
+      waitUntil: 'networkidle0',       // Esperar carga completa
       timeout: 30000,
-      omitBackground: false,        // Mantener backgrounds
-      scale: 1.0,                   // Sin scale para evitar rounding issues
+      omitBackground: false,           // Mantener backgrounds
+      scale: 1.0,                      // Sin scale para evitar rounding issues
       quality: options.quality === 'high' ? 100 : options.quality === 'low' ? 80 : 90
     };
   }
@@ -804,7 +804,7 @@ export class PuppeteerServiceClient {
           throw new Error('PDF vacío recibido del servicio');
         }
         
-        console.log(`✅ PDF bulletproof generado en intento ${attempt}/${maxRetries}, tamaño: ${blob.size} bytes`);
+        console.log(`✅ PDF con header/footer fijos generado en intento ${attempt}/${maxRetries}, tamaño: ${blob.size} bytes`);
         return blob;
         
       } catch (error) {
@@ -869,7 +869,7 @@ export class PuppeteerServiceClient {
       }
       
       const blob = await response.blob();
-      await this.downloadPDF(blob, 'test-puppeteer-bulletproof');
+      await this.downloadPDF(blob, 'test-header-footer-fixed');
       
       return { 
         success: true,
