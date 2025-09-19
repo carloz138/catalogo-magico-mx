@@ -53,11 +53,31 @@ import {
 interface Product {
   id: string;
   name: string;
-  description?: string;
-  price_retail: number;
-  image_url: string;
   sku?: string;
+  description?: string;
+  custom_description?: string;
   category?: string;
+  brand?: string;
+  model?: string;
+  color?: string;
+  price_retail: number;
+  price_wholesale?: number;
+  wholesale_min_qty?: number;
+  features?: string[];
+  tags?: string[];
+  image_url: string;
+  original_image_url?: string;
+  processed_image_url?: string;
+  hd_image_url?: string;
+  video_url?: string;
+  social_media_urls?: any;
+  processing_status?: string;
+  ai_description?: string;
+  ai_tags?: string[];
+  has_variants?: boolean;
+  variant_count?: number;
+  created_at?: string;
+  updated_at?: string;
   specifications?: string;
 }
 

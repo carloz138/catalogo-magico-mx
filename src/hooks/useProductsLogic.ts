@@ -259,14 +259,31 @@ export const useProductsLogic = () => {
         .map(product => ({
           id: product.id,
           name: product.name,
+          sku: product.sku,
           description: product.description || product.custom_description,
+          custom_description: product.custom_description,
           category: product.category,
+          brand: product.brand,
+          model: product.model,
+          color: product.color,
           price_retail: product.price_retail || 0,
+          price_wholesale: product.price_wholesale || 0,
+          wholesale_min_qty: product.wholesale_min_qty,
+          features: product.features,
+          tags: product.tags,
           image_url: getDisplayImageUrl(product),
           original_image_url: product.original_image_url,
           processed_image_url: product.processed_image_url,
           hd_image_url: product.hd_image_url,
-          created_at: product.created_at
+          video_url: product.video_url,
+          social_media_urls: product.social_media_urls,
+          processing_status: product.processing_status,
+          ai_description: product.ai_description,
+          ai_tags: product.ai_tags,
+          has_variants: product.has_variants,
+          variant_count: product.variant_count,
+          created_at: product.created_at,
+          updated_at: product.updated_at
         }));
 
       // Guardar en localStorage para TemplateSelection
