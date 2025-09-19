@@ -40,13 +40,15 @@ export const ProductModals: React.FC<ProductModalsProps> = ({
 }) => {
   const [catalogTitle, setCatalogTitle] = useState('');
 
-  // Generar título sugerido cuando se abre el modal
+  // Generar título sugerido cuando se abre el modal por primera vez
   React.useEffect(() => {
-    if (showCatalogPreview && !catalogTitle) {
+    if (showCatalogPreview) {
       const today = new Date().toLocaleDateString('es-MX');
       setCatalogTitle(`Mi Catálogo - ${today}`);
+    } else {
+      setCatalogTitle(''); // Limpiar cuando se cierra el modal
     }
-  }, [showCatalogPreview, catalogTitle]);
+  }, [showCatalogPreview]); // Solo depende de si el modal está abierto
 
   return (
     <>
