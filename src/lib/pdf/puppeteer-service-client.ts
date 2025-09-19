@@ -1,5 +1,5 @@
 // src/lib/pdf/puppeteer-service-client.ts
-// 🎯 SOLUCIÓN HEADER/FOOTER FIJA BASADA EN GITHUB ISSUES #4132, #10024, #3672
+// 🎯 SISTEMA OPTIMIZADO 3x3 GRID - 9 PRODUCTOS POR PÁGINA - ESCALABLE 1-1000+ PRODUCTOS
 
 interface Product {
   id: string;
@@ -54,12 +54,53 @@ interface PuppeteerResult {
   };
 }
 
+// 📐 CONFIGURACIÓN OPTIMIZADA PARA 3x3 GRID - MEJORES PRÁCTICAS DOCUMENTADAS
+const OPTIMIZED_LAYOUT = {
+  // Estándar comercial: 3x3 = 9 productos por página
+  PRODUCTS_PER_PAGE: 9,
+  COLUMNS: 3,
+  ROWS: 3,
+  
+  // Dimensiones A4 optimizadas (mejores prácticas)
+  PAGE: {
+    WIDTH: 210,  // mm
+    HEIGHT: 297, // mm
+    MARGIN: 12   // mm estándar
+  },
+  
+  // Sistema 8pt base unit (Material Design best practice)
+  SPACING: {
+    GRID_GAP: 4,      // mm - 8pt convertido
+    CARD_PADDING: 3,  // mm - 6pt convertido
+    BORDER_RADIUS: 6  // mm - consistente
+  }
+};
+
+// Calcular área disponible para productos
+const CONTENT_AREA = {
+  WIDTH: OPTIMIZED_LAYOUT.PAGE.WIDTH - (OPTIMIZED_LAYOUT.PAGE.MARGIN * 2), // 186mm
+  HEIGHT: 240, // mm - espacio disponible después de header/footer fijos
+  USABLE_WIDTH: 186 - 8, // mm - considerando padding interno
+  USABLE_HEIGHT: 240 - 8 // mm
+};
+
+// Calcular dimensiones exactas para tarjetas 3x3
+const CARD_DIMENSIONS = {
+  // Ancho: (área disponible - gaps) / columnas
+  WIDTH: (CONTENT_AREA.USABLE_WIDTH - (OPTIMIZED_LAYOUT.SPACING.GRID_GAP * 2)) / OPTIMIZED_LAYOUT.COLUMNS, // ~56mm
+  // Alto: (área disponible - gaps) / filas  
+  HEIGHT: (CONTENT_AREA.USABLE_HEIGHT - (OPTIMIZED_LAYOUT.SPACING.GRID_GAP * 2)) / OPTIMIZED_LAYOUT.ROWS, // ~74mm
+  // Distribución interna optimizada
+  IMAGE_HEIGHT_RATIO: 0.65, // 65% para imagen
+  TEXT_HEIGHT_RATIO: 0.35    // 35% para texto
+};
+
 export class PuppeteerServiceClient {
   private static readonly SERVICE_URL = 'https://min8n-puppeteer-pdf.fqr2ax.easypanel.host';
   private static readonly TIMEOUT = 30000;
   
   /**
-   * 🎯 MÉTODO PRINCIPAL CON HEADER/FOOTER FIXED POSITION
+   * 🎯 MÉTODO PRINCIPAL OPTIMIZADO PARA 3x3 GRID
    */
   static async generatePDF(
     products: Product[],
@@ -71,10 +112,13 @@ export class PuppeteerServiceClient {
     const startTime = Date.now();
     
     try {
-      console.log('🚀 Generando PDF con header/footer fixed position...', {
+      console.log('🚀 Generando PDF con 3x3 grid optimizado...', {
         products: products.length,
         template: template.id,
-        basedOn: 'GitHub Issues #4132, #10024, #3672 - Stack Overflow solutions'
+        productsPerPage: OPTIMIZED_LAYOUT.PRODUCTS_PER_PAGE,
+        totalPages: Math.ceil(products.length / OPTIMIZED_LAYOUT.PRODUCTS_PER_PAGE),
+        cardSize: `${Math.round(CARD_DIMENSIONS.WIDTH)}x${Math.round(CARD_DIMENSIONS.HEIGHT)}mm`,
+        basedOn: 'Commercial catalog best practices + Material Design 8pt system'
       });
       
       if (options.onProgress) options.onProgress(5);
@@ -87,8 +131,8 @@ export class PuppeteerServiceClient {
       
       if (options.onProgress) options.onProgress(15);
       
-      // 2. Generar HTML con HEADER/FOOTER FIJOS USANDO POSITION FIXED
-      const htmlContent = this.generateHTMLWithFixedHeaderFooter(
+      // 2. Generar HTML con 3x3 GRID OPTIMIZADO
+      const htmlContent = this.generateOptimized3x3HTML(
         products, 
         businessInfo, 
         template, 
@@ -97,8 +141,8 @@ export class PuppeteerServiceClient {
       
       if (options.onProgress) options.onProgress(30);
       
-      // 3. Configurar PDF SIN displayHeaderFooter (Issue #10024 fix)
-      const pdfOptions = this.getPDFOptionsWithoutTemplates(options);
+      // 3. Configurar PDF optimizado
+      const pdfOptions = this.getOptimizedPDFOptions(options);
       
       // 4. Generar con retry
       const pdfBlob = await this.generatePDFWithRetry(
@@ -116,24 +160,27 @@ export class PuppeteerServiceClient {
       if (options.onProgress) options.onProgress(100);
       
       const generationTime = Date.now() - startTime;
+      const totalPages = Math.ceil(products.length / OPTIMIZED_LAYOUT.PRODUCTS_PER_PAGE);
       
-      console.log('✅ PDF con header/footer fijos generado exitosamente:', {
+      console.log('✅ PDF 3x3 grid optimizado generado exitosamente:', {
         time: generationTime,
         size: pdfBlob.size,
-        solutions: ['position-fixed', 'no-displayHeaderFooter', 'css-inline']
+        totalPages,
+        avgProductsPerPage: products.length / totalPages,
+        optimizations: ['3x3-grid', '9-products-per-page', 'larger-cards', '8pt-spacing']
       });
       
       return {
         success: true,
         stats: {
           totalProducts: products.length,
-          totalPages: Math.ceil(products.length / template.productsPerPage),
+          totalPages,
           generationTime
         }
       };
       
     } catch (error) {
-      console.error('❌ Error en PDF con header/footer fijos:', error);
+      console.error('❌ Error en PDF 3x3 grid optimizado:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Error desconocido'
@@ -142,16 +189,16 @@ export class PuppeteerServiceClient {
   }
   
   /**
-   * 🏗️ GENERAR HTML CON HEADER/FOOTER USANDO POSITION FIXED - ISSUE #4132 SOLUTION
+   * 🏗️ GENERAR HTML CON 3x3 GRID OPTIMIZADO
    */
-  private static generateHTMLWithFixedHeaderFooter(
+  private static generateOptimized3x3HTML(
     products: Product[],
     businessInfo: BusinessInfo,
     template: TemplateConfig,
     quality: 'low' | 'medium' | 'high'
   ): string {
     
-    const pagesHTML = this.generatePagesWithFixedElements(products, businessInfo, template, quality);
+    const pagesHTML = this.generate3x3Pages(products, businessInfo, template, quality);
     
     return `<!DOCTYPE html>
 <html lang="es">
@@ -160,7 +207,7 @@ export class PuppeteerServiceClient {
   <meta name="viewport" content="width=210mm, height=297mm, initial-scale=1.0">
   <title>Catálogo ${businessInfo.business_name}</title>
   <style>
-    ${this.generateCSSWithFixedPositions(template, quality)}
+    ${this.generateOptimized3x3CSS(template, quality)}
   </style>
 </head>
 <body>
@@ -172,25 +219,31 @@ export class PuppeteerServiceClient {
   }
   
   /**
-   * 🎨 CSS CON POSITION FIXED - SOLUCIÓN ISSUES #3672, #1853
+   * 🎨 CSS OPTIMIZADO PARA 3x3 GRID - MATERIALES DESIGN + MEJORES PRÁCTICAS
    */
-  private static generateCSSWithFixedPositions(
+  private static generateOptimized3x3CSS(
     template: TemplateConfig,
     quality: 'low' | 'medium' | 'high'
   ): string {
     
     const qualityConfig = {
-      low: { fontSize: 9, headerSize: 14, priceSize: 10 },
-      medium: { fontSize: 10, headerSize: 16, priceSize: 11 },
-      high: { fontSize: 11, headerSize: 18, priceSize: 12 }
+      low: { fontSize: 9, headerSize: 14, priceSize: 10, nameSize: 9 },
+      medium: { fontSize: 10, headerSize: 16, priceSize: 11, nameSize: 10 },
+      high: { fontSize: 11, headerSize: 18, priceSize: 12, nameSize: 11 }
     };
     
     const config = qualityConfig[quality];
     
+    // Calcular dimensiones exactas
+    const cardWidth = Math.round(CARD_DIMENSIONS.WIDTH * 100) / 100;
+    const cardHeight = Math.round(CARD_DIMENSIONS.HEIGHT * 100) / 100;
+    const imageHeight = Math.round(cardHeight * CARD_DIMENSIONS.IMAGE_HEIGHT_RATIO * 100) / 100;
+    const textHeight = Math.round(cardHeight * CARD_DIMENSIONS.TEXT_HEIGHT_RATIO * 100) / 100;
+    
     return `
-      /* ===== SOLUCIÓN HEADER/FOOTER FIJOS - GITHUB ISSUES #4132, #10024, #3672 ===== */
+      /* ===== 3x3 GRID OPTIMIZADO - COMERCIAL BEST PRACTICES ===== */
       
-      /* Reset absoluto - Issue #3672 fix */
+      /* Reset absoluto */
       * {
         margin: 0 !important;
         padding: 0 !important;
@@ -200,10 +253,10 @@ export class PuppeteerServiceClient {
         color-adjust: exact !important;
       }
       
-      /* @page SIN headers/footers - Issue #10024 solution */
+      /* @page optimizado */
       @page {
         size: A4 portrait;
-        margin: 12mm; /* Margins simples y simétricos */
+        margin: ${OPTIMIZED_LAYOUT.PAGE.MARGIN}mm;
         marks: none;
         bleed: 0;
         orphans: 1;
@@ -211,10 +264,10 @@ export class PuppeteerServiceClient {
         -webkit-print-color-adjust: exact;
       }
       
-      /* HTML y Body - Issue #1853 solution */
+      /* HTML y Body con 8pt system */
       html {
-        width: 210mm !important;
-        height: 297mm !important;
+        width: ${OPTIMIZED_LAYOUT.PAGE.WIDTH}mm !important;
+        height: ${OPTIMIZED_LAYOUT.PAGE.HEIGHT}mm !important;
         font-size: ${config.fontSize}pt !important;
         font-family: 'Arial', 'Helvetica', sans-serif !important;
         background: ${template.colors.background} !important;
@@ -222,12 +275,12 @@ export class PuppeteerServiceClient {
       }
       
       body {
-        width: 186mm !important; /* 210mm - 24mm margins */
+        width: ${CONTENT_AREA.WIDTH}mm !important;
         height: auto !important;
         margin: 0 auto !important;
         padding: 0 !important;
-        padding-top: 25mm !important; /* Espacio para header fijo */
-        padding-bottom: 20mm !important; /* Espacio para footer fijo */
+        padding-top: 25mm !important; /* Header space */
+        padding-bottom: 20mm !important; /* Footer space */
         font-family: 'Arial', 'Helvetica', sans-serif !important;
         font-size: ${config.fontSize}pt !important;
         line-height: 1.2 !important;
@@ -238,23 +291,21 @@ export class PuppeteerServiceClient {
         print-color-adjust: exact !important;
       }
       
-      /* ===== HEADER FIJO - POSITION FIXED TOP - ISSUE #4132 SOLUTION ===== */
+      /* ===== HEADER FIJO ===== */
       .fixed-header {
         position: fixed !important;
-        top: 12mm !important; /* Alineado con margin de @page */
-        left: 12mm !important;
-        right: 12mm !important;
-        width: 186mm !important;
+        top: ${OPTIMIZED_LAYOUT.PAGE.MARGIN}mm !important;
+        left: ${OPTIMIZED_LAYOUT.PAGE.MARGIN}mm !important;
+        right: ${OPTIMIZED_LAYOUT.PAGE.MARGIN}mm !important;
+        width: ${CONTENT_AREA.WIDTH}mm !important;
         height: 20mm !important;
         background: ${template.colors.primary} !important;
         background-image: linear-gradient(135deg, ${template.colors.primary}, ${template.colors.secondary}) !important;
         color: white !important;
         z-index: 1000 !important;
-        border-radius: 6px !important;
+        border-radius: ${OPTIMIZED_LAYOUT.SPACING.BORDER_RADIUS}px !important;
         overflow: hidden !important;
         -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-        /* TABLE para centrado perfecto */
         display: table !important;
         table-layout: fixed !important;
       }
@@ -290,22 +341,20 @@ export class PuppeteerServiceClient {
         -webkit-print-color-adjust: exact !important;
       }
       
-      /* ===== FOOTER FIJO - POSITION FIXED BOTTOM - ISSUE #4132 SOLUTION ===== */
+      /* ===== FOOTER FIJO ===== */
       .fixed-footer {
         position: fixed !important;
-        bottom: 12mm !important; /* Alineado con margin de @page */
-        left: 12mm !important;
-        right: 12mm !important;
-        width: 186mm !important;
+        bottom: ${OPTIMIZED_LAYOUT.PAGE.MARGIN}mm !important;
+        left: ${OPTIMIZED_LAYOUT.PAGE.MARGIN}mm !important;
+        right: ${OPTIMIZED_LAYOUT.PAGE.MARGIN}mm !important;
+        width: ${CONTENT_AREA.WIDTH}mm !important;
         height: 15mm !important;
         background: ${template.colors.secondary} !important;
         color: ${this.getContrastColor(template.colors.secondary)} !important;
         z-index: 1000 !important;
-        border-radius: 6px !important;
+        border-radius: ${OPTIMIZED_LAYOUT.SPACING.BORDER_RADIUS}px !important;
         overflow: hidden !important;
         -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-        /* TABLE para centrado perfecto */
         display: table !important;
         table-layout: fixed !important;
       }
@@ -336,15 +385,15 @@ export class PuppeteerServiceClient {
         -webkit-print-color-adjust: exact !important;
       }
       
-      /* ===== CONTENIDO PRINCIPAL - SIN CONFLICTS CON HEADER/FOOTER ===== */
+      /* ===== CONTENIDO PRINCIPAL ===== */
       .content-area {
-        width: 186mm !important;
+        width: ${CONTENT_AREA.WIDTH}mm !important;
         margin: 0 auto !important;
-        padding: 2mm !important;
+        padding: ${OPTIMIZED_LAYOUT.SPACING.CARD_PADDING}mm !important;
         position: relative !important;
         z-index: 1 !important;
         background: ${template.colors.background} !important;
-        min-height: 200mm !important; /* Altura mínima para contenido */
+        min-height: ${CONTENT_AREA.HEIGHT}mm !important;
         box-sizing: border-box !important;
       }
       
@@ -363,78 +412,76 @@ export class PuppeteerServiceClient {
         margin-bottom: 0 !important;
       }
       
-      /* ===== PRODUCTOS CON TABLE LAYOUT - ISSUE #5236 FIX ===== */
-      .products-table {
+      /* ===== 3x3 GRID PERFECTO - TABLE LAYOUT PARA MÁXIMA COMPATIBILIDAD ===== */
+      .products-grid-3x3 {
         width: 100% !important;
         border-collapse: separate !important;
-        border-spacing: 3mm !important;
+        border-spacing: ${OPTIMIZED_LAYOUT.SPACING.GRID_GAP}mm !important;
         table-layout: fixed !important;
         margin: 0 auto !important;
       }
       
-      .products-row {
+      .grid-row {
         display: table-row !important;
+        height: ${cardHeight}mm !important;
       }
       
-      .product-cell {
+      .grid-cell {
         display: table-cell !important;
         vertical-align: top !important;
-        width: 25% !important; /* 4 columnas fijas */
+        width: ${100 / OPTIMIZED_LAYOUT.COLUMNS}% !important;
+        height: ${cardHeight}mm !important;
         padding: 0 !important;
         text-align: center !important;
       }
       
-      /* ===== PRODUCT CARDS ===== */
-      .product-card {
+      /* ===== PRODUCT CARDS OPTIMIZADAS - MÁS GRANDES ===== */
+      .product-card-optimized {
         width: 100% !important;
-        height: 55mm !important;
+        height: ${cardHeight}mm !important;
+        min-height: ${cardHeight}mm !important;
+        max-height: ${cardHeight}mm !important;
         background: white !important;
         border: 0.5pt solid ${template.colors.accent}60 !important;
-        border-radius: 6px !important;
+        border-radius: ${OPTIMIZED_LAYOUT.SPACING.BORDER_RADIUS}px !important;
         overflow: hidden !important;
         position: relative !important;
         page-break-inside: avoid !important;
-        box-shadow: 0 0.5pt 2pt rgba(0,0,0,0.1) !important;
+        box-shadow: 0 1pt 3pt rgba(0,0,0,0.1) !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
-        display: table !important;
-        table-layout: fixed !important;
+        display: flex !important;
+        flex-direction: column !important;
       }
       
-      .card-inner {
-        display: table-cell !important;
-        vertical-align: top !important;
-        width: 100% !important;
-        height: 100% !important;
-        padding: 2mm !important;
-        text-align: center !important;
-      }
-      
-      .card-decoration {
+      .card-decoration-optimized {
         position: absolute !important;
         top: 0 !important;
         left: 0 !important;
         right: 0 !important;
-        height: 1.5pt !important;
+        height: 2pt !important;
         background: ${template.colors.primary} !important;
         -webkit-print-color-adjust: exact !important;
       }
       
-      /* ===== IMAGEN CONTAINER ===== */
-      .image-container {
+      /* ===== IMAGEN CONTAINER OPTIMIZADA ===== */
+      .image-container-optimized {
         width: 100% !important;
-        height: 30mm !important;
+        height: ${imageHeight}mm !important;
+        min-height: ${imageHeight}mm !important;
+        max-height: ${imageHeight}mm !important;
         background: #f8f9fa !important;
-        border-radius: 4px !important;
+        border-radius: ${Math.max(OPTIMIZED_LAYOUT.SPACING.BORDER_RADIUS - 2, 2)}px !important;
         border: 0.25pt solid #e9ecef !important;
-        margin: 0 auto 2mm auto !important;
+        margin: ${OPTIMIZED_LAYOUT.SPACING.CARD_PADDING}mm ${OPTIMIZED_LAYOUT.SPACING.CARD_PADDING}mm 2mm ${OPTIMIZED_LAYOUT.SPACING.CARD_PADDING}mm !important;
         overflow: hidden !important;
         -webkit-print-color-adjust: exact !important;
+        flex-shrink: 0 !important;
         display: table !important;
         table-layout: fixed !important;
       }
       
-      .image-cell {
+      .image-cell-optimized {
         display: table-cell !important;
         vertical-align: middle !important;
         text-align: center !important;
@@ -442,9 +489,9 @@ export class PuppeteerServiceClient {
         height: 100% !important;
       }
       
-      .product-image {
-        max-width: 90% !important;
-        max-height: 90% !important;
+      .product-image-optimized {
+        max-width: 92% !important;
+        max-height: 92% !important;
         width: auto !important;
         height: auto !important;
         object-fit: contain !important;
@@ -456,22 +503,22 @@ export class PuppeteerServiceClient {
         print-color-adjust: exact !important;
       }
       
-      .image-placeholder {
-        width: 80% !important;
-        height: 80% !important;
+      .image-placeholder-optimized {
+        width: 85% !important;
+        height: 85% !important;
         background: repeating-conic-gradient(from 0deg at 50% 50%, #f0f0f0 0deg 90deg, transparent 90deg 180deg) !important;
-        background-size: 6px 6px !important;
+        background-size: 8px 8px !important;
         border: 1pt dashed #ccc !important;
         border-radius: 3px !important;
         margin: 0 auto !important;
         color: #999 !important;
-        font-size: 7pt !important;
+        font-size: 8pt !important;
         -webkit-print-color-adjust: exact !important;
         display: table !important;
         table-layout: fixed !important;
       }
       
-      .placeholder-cell {
+      .placeholder-cell-optimized {
         display: table-cell !important;
         vertical-align: middle !important;
         text-align: center !important;
@@ -479,52 +526,72 @@ export class PuppeteerServiceClient {
         height: 100% !important;
       }
       
-      /* ===== TEXTOS DEL PRODUCTO ===== */
-      .product-name {
-        font-size: ${config.fontSize}pt !important;
+      /* ===== ÁREA DE TEXTO OPTIMIZADA ===== */
+      .text-area-optimized {
+        width: 100% !important;
+        height: ${textHeight}mm !important;
+        min-height: ${textHeight}mm !important;
+        max-height: ${textHeight}mm !important;
+        padding: 0 ${OPTIMIZED_LAYOUT.SPACING.CARD_PADDING}mm ${OPTIMIZED_LAYOUT.SPACING.CARD_PADDING}mm ${OPTIMIZED_LAYOUT.SPACING.CARD_PADDING}mm !important;
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        text-align: center !important;
+        overflow: hidden !important;
+        flex-shrink: 0 !important;
+        box-sizing: border-box !important;
+      }
+      
+      .product-name-optimized {
+        font-size: ${config.nameSize}pt !important;
         font-weight: 600 !important;
         color: ${template.colors.primary} !important;
         line-height: 1.1 !important;
-        margin: 0 auto 1mm auto !important;
+        margin: 0 auto 1.5mm auto !important;
         text-align: center !important;
         word-wrap: break-word !important;
         overflow-wrap: break-word !important;
         hyphens: auto !important;
-        max-height: ${config.fontSize * 2.2}pt !important;
+        display: -webkit-box !important;
+        -webkit-line-clamp: 2 !important;
+        -webkit-box-orient: vertical !important;
         overflow: hidden !important;
+        flex-grow: 1 !important;
         -webkit-print-color-adjust: exact !important;
       }
       
-      .product-price {
+      .product-price-optimized {
         font-size: ${config.priceSize}pt !important;
         font-weight: 700 !important;
         color: white !important;
         background: ${template.colors.secondary} !important;
         background-image: linear-gradient(135deg, ${template.colors.secondary}, ${template.colors.primary}) !important;
-        padding: 1mm 2.5mm !important;
-        border-radius: 8px !important;
+        padding: 1.5mm 3mm !important;
+        border-radius: 10px !important;
         display: inline-block !important;
-        margin: 2mm auto 0 auto !important;
+        margin: 0 auto !important;
         text-align: center !important;
         white-space: nowrap !important;
-        max-width: 90% !important;
+        max-width: 95% !important;
         overflow: hidden !important;
         text-overflow: ellipsis !important;
-        box-shadow: 0 0.5pt 1.5pt rgba(0,0,0,0.15) !important;
+        box-shadow: 0 1pt 2pt rgba(0,0,0,0.15) !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
+        flex-shrink: 0 !important;
       }
       
-      /* ===== CELDA VACÍA ===== */
+      /* ===== CELDA VACÍA PARA COMPLETAR GRID ===== */
       .empty-cell {
         display: table-cell !important;
-        width: 25% !important;
+        width: ${100 / OPTIMIZED_LAYOUT.COLUMNS}% !important;
+        height: ${cardHeight}mm !important;
         visibility: hidden !important;
       }
       
-      /* ===== MEDIA PRINT - STACK OVERFLOW BEST PRACTICES ===== */
+      /* ===== MEDIA PRINT OPTIMIZADO ===== */
       @media print {
-        /* Forzar colores - Issue #2182 fix */
         * {
           -webkit-print-color-adjust: exact !important;
           color-adjust: exact !important;
@@ -536,20 +603,17 @@ export class PuppeteerServiceClient {
           -webkit-print-color-adjust: exact !important;
         }
         
-        /* Mantener posiciones fijas en print */
         .fixed-header, .fixed-footer {
           -webkit-print-color-adjust: exact !important;
           print-color-adjust: exact !important;
         }
         
-        /* Evitar breaks en elementos críticos */
-        .page-container, .product-card {
+        .page-container, .product-card-optimized {
           page-break-inside: avoid !important;
           break-inside: avoid !important;
         }
         
-        /* Forzar imágenes */
-        .product-image {
+        .product-image-optimized {
           -webkit-print-color-adjust: exact !important;
           print-color-adjust: exact !important;
           filter: none !important;
@@ -559,7 +623,7 @@ export class PuppeteerServiceClient {
   }
   
   /**
-   * 📋 GENERAR HEADER FIJO - POSICIÓN FIXED TOP
+   * 📋 GENERAR HEADER FIJO
    */
   private static generateFixedHeader(businessInfo: BusinessInfo, template: TemplateConfig): string {
     return `
@@ -573,7 +637,7 @@ export class PuppeteerServiceClient {
   }
   
   /**
-   * 📄 GENERAR FOOTER FIJO - POSICIÓN FIXED BOTTOM
+   * 📄 GENERAR FOOTER FIJO
    */
   private static generateFixedFooter(businessInfo: BusinessInfo, totalProducts: number): string {
     const contactInfo = [
@@ -595,28 +659,26 @@ export class PuppeteerServiceClient {
   }
   
   /**
-   * 📄 GENERAR PÁGINAS CON CONTENIDO SEPARADO DE HEADER/FOOTER
+   * 📄 GENERAR PÁGINAS CON 3x3 GRID OPTIMIZADO
    */
-  private static generatePagesWithFixedElements(
+  private static generate3x3Pages(
     products: Product[],
     businessInfo: BusinessInfo,
     template: TemplateConfig,
     quality: string
   ): string {
     
-    const productsPerPage = template.productsPerPage;
-    const totalPages = Math.ceil(products.length / productsPerPage);
-    const columns = 4; // Fijo para consistencia
+    const totalPages = Math.ceil(products.length / OPTIMIZED_LAYOUT.PRODUCTS_PER_PAGE);
     let pagesHTML = '<div class="content-area">';
     
     for (let pageIndex = 0; pageIndex < totalPages; pageIndex++) {
-      const startIndex = pageIndex * productsPerPage;
-      const endIndex = Math.min(startIndex + productsPerPage, products.length);
+      const startIndex = pageIndex * OPTIMIZED_LAYOUT.PRODUCTS_PER_PAGE;
+      const endIndex = Math.min(startIndex + OPTIMIZED_LAYOUT.PRODUCTS_PER_PAGE, products.length);
       const pageProducts = products.slice(startIndex, endIndex);
       
       pagesHTML += `
         <div class="page-container">
-          ${this.generateProductsTableLayout(pageProducts, template, columns)}
+          ${this.generate3x3Grid(pageProducts)}
         </div>
       `;
     }
@@ -626,78 +688,76 @@ export class PuppeteerServiceClient {
   }
   
   /**
-   * 🛍️ GENERAR TABLA DE PRODUCTOS - TABLE LAYOUT
+   * 🛍️ GENERAR 3x3 GRID CON TABLE LAYOUT - ESCALABLE 1-1000+ PRODUCTOS
    */
-  private static generateProductsTableLayout(
-    products: Product[],
-    template: TemplateConfig,
-    columns: number
-  ): string {
+  private static generate3x3Grid(products: Product[]): string {
+    let gridHTML = '<table class="products-grid-3x3">';
     
-    let tableHTML = '<table class="products-table">';
-    
-    // Crear filas
-    for (let i = 0; i < products.length; i += columns) {
-      tableHTML += '<tr class="products-row">';
+    // Crear exactamente 3 filas (3x3 = 9 slots)
+    for (let row = 0; row < OPTIMIZED_LAYOUT.ROWS; row++) {
+      gridHTML += '<tr class="grid-row">';
       
-      // Agregar productos de la fila
-      for (let j = 0; j < columns; j++) {
-        const productIndex = i + j;
+      // Crear 3 columnas por fila
+      for (let col = 0; col < OPTIMIZED_LAYOUT.COLUMNS; col++) {
+        const productIndex = (row * OPTIMIZED_LAYOUT.COLUMNS) + col;
         
         if (productIndex < products.length) {
+          // Producto real
           const product = products[productIndex];
-          tableHTML += `
-            <td class="product-cell">
-              ${this.generateProductCard(product)}
+          gridHTML += `
+            <td class="grid-cell">
+              ${this.generateOptimizedProductCard(product)}
             </td>
           `;
         } else {
-          // Celda vacía para completar la fila
-          tableHTML += '<td class="empty-cell"></td>';
+          // Celda vacía para completar el grid
+          gridHTML += '<td class="empty-cell"></td>';
         }
       }
       
-      tableHTML += '</tr>';
+      gridHTML += '</tr>';
     }
     
-    tableHTML += '</table>';
-    return tableHTML;
+    gridHTML += '</table>';
+    return gridHTML;
   }
   
   /**
-   * 🎴 GENERAR TARJETA DE PRODUCTO
+   * 🎴 GENERAR TARJETA OPTIMIZADA - MÁS GRANDE Y MEJOR DISEÑO
    */
-  private static generateProductCard(product: Product): string {
+  private static generateOptimizedProductCard(product: Product): string {
     const productName = product.name || 'Producto';
     const productPrice = typeof product.price_retail === 'number' ? product.price_retail : 0;
     const productImage = product.image_url || '';
     
     const imageHTML = productImage ? 
-      `<div class="image-cell">
+      `<div class="image-cell-optimized">
          <img 
            src="${productImage}" 
            alt="${productName}"
-           class="product-image" 
+           class="product-image-optimized" 
            loading="eager" 
            crossorigin="anonymous"
          />
        </div>` :
-      `<div class="image-placeholder">
-         <div class="placeholder-cell">
-           <div style="font-size: 12pt; margin-bottom: 1mm;">📷</div>
+      `<div class="image-placeholder-optimized">
+         <div class="placeholder-cell-optimized">
+           <div style="font-size: 14pt; margin-bottom: 1mm;">📷</div>
            <div>Sin imagen</div>
          </div>
        </div>`;
     
     return `
-      <div class="product-card">
-        <div class="card-decoration"></div>
-        <div class="card-inner">
-          <div class="image-container">
-            ${imageHTML}
-          </div>
-          <div class="product-name">${productName}</div>
-          <div class="product-price">$${productPrice.toLocaleString('es-MX', { 
+      <div class="product-card-optimized">
+        <div class="card-decoration-optimized"></div>
+        
+        <div class="image-container-optimized">
+          ${imageHTML}
+        </div>
+        
+        <div class="text-area-optimized">
+          <div class="product-name-optimized">${productName}</div>
+          <div class="product-price-optimized">$${productPrice.toLocaleString('es-MX', { 
             minimumFractionDigits: 0,
             maximumFractionDigits: 0
           })}</div>
@@ -707,25 +767,24 @@ export class PuppeteerServiceClient {
   }
   
   /**
-   * ⚙️ PDF OPTIONS SIN displayHeaderFooter - ISSUE #10024 FIX
+   * ⚙️ PDF OPTIONS OPTIMIZADO
    */
-  private static getPDFOptionsWithoutTemplates(options: PuppeteerServiceOptions): any {
+  private static getOptimizedPDFOptions(options: PuppeteerServiceOptions): any {
     return {
       format: options.format || 'A4',
-      // Margins simples - Issue #3672 solution
       margin: {
-        top: '12mm',
-        right: '12mm',
-        bottom: '12mm',
-        left: '12mm'
+        top: `${OPTIMIZED_LAYOUT.PAGE.MARGIN}mm`,
+        right: `${OPTIMIZED_LAYOUT.PAGE.MARGIN}mm`,
+        bottom: `${OPTIMIZED_LAYOUT.PAGE.MARGIN}mm`,
+        left: `${OPTIMIZED_LAYOUT.PAGE.MARGIN}mm`
       },
-      printBackground: true,           // CRÍTICO - Issue #2182
-      preferCSSPageSize: true,         // Issue #2278 fix
-      displayHeaderFooter: false,      // NO usar - Issue #10024 fix
-      waitUntil: 'networkidle0',       // Esperar carga completa
+      printBackground: true,
+      preferCSSPageSize: true,
+      displayHeaderFooter: false, // NO usar templates (bugs documentados)
+      waitUntil: 'networkidle0',
       timeout: 30000,
-      omitBackground: false,           // Mantener backgrounds
-      scale: 1.0,                      // Sin scale para evitar rounding issues
+      omitBackground: false,
+      scale: 1.0,
       quality: options.quality === 'high' ? 100 : options.quality === 'low' ? 80 : 90
     };
   }
@@ -804,7 +863,7 @@ export class PuppeteerServiceClient {
           throw new Error('PDF vacío recibido del servicio');
         }
         
-        console.log(`✅ PDF con header/footer fijos generado en intento ${attempt}/${maxRetries}, tamaño: ${blob.size} bytes`);
+        console.log(`✅ PDF 3x3 grid optimizado en intento ${attempt}/${maxRetries}, tamaño: ${blob.size} bytes`);
         return blob;
         
       } catch (error) {
@@ -869,7 +928,7 @@ export class PuppeteerServiceClient {
       }
       
       const blob = await response.blob();
-      await this.downloadPDF(blob, 'test-header-footer-fixed');
+      await this.downloadPDF(blob, 'test-3x3-grid-optimized');
       
       return { 
         success: true,
