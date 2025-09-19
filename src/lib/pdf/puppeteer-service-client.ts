@@ -848,15 +848,15 @@ export class PuppeteerServiceClient {
             <div class="product-name-optimized">${productName}</div>
            <div class="product-pricing-optimized">
   <div class="product-price-retail-optimized">$${productPrice.toLocaleString('es-MX', { 
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
   })}</div>
   ${product.price_wholesale ? `
     <div class="product-price-wholesale-optimized">
       <span class="wholesale-label-optimized">Mayoreo:</span>
       <span class="wholesale-price-optimized">$${product.price_wholesale.toLocaleString('es-MX', { 
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
       })}</span>
       ${product.wholesale_min_qty ? `
         <span class="wholesale-min-optimized">Min. ${product.wholesale_min_qty}</span>
