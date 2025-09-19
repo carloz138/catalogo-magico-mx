@@ -1,5 +1,5 @@
-// src/lib/pdf/puppeteer-service-client.ts
-// 🎯 SISTEMA OPTIMIZADO 3x3 GRID - 9 PRODUCTOS POR PÁGINA - ESCALABLE 1-1000+ PRODUCTOS
+// src/lib/pdf/puppeteer-service-client.ts - CORREGIDO PARA IMÁGENES VERTICALES
+// 🎯 SISTEMA OPTIMIZADO 3x3 GRID - ORIENTACIÓN INTELIGENTE DE IMÁGENES
 
 interface Product {
   id: string;
@@ -100,7 +100,7 @@ export class PuppeteerServiceClient {
   private static readonly TIMEOUT = 30000;
   
   /**
-   * 🎯 MÉTODO PRINCIPAL OPTIMIZADO PARA 3x3 GRID
+   * 🎯 MÉTODO PRINCIPAL OPTIMIZADO PARA 3x3 GRID CON IMÁGENES CORREGIDAS
    */
   static async generatePDF(
     products: Product[],
@@ -112,13 +112,13 @@ export class PuppeteerServiceClient {
     const startTime = Date.now();
     
     try {
-      console.log('🚀 Generando PDF con 3x3 grid optimizado...', {
+      console.log('🚀 Generando PDF con 3x3 grid e imágenes verticales corregidas...', {
         products: products.length,
         template: template.id,
         productsPerPage: OPTIMIZED_LAYOUT.PRODUCTS_PER_PAGE,
         totalPages: Math.ceil(products.length / OPTIMIZED_LAYOUT.PRODUCTS_PER_PAGE),
         cardSize: `${Math.round(CARD_DIMENSIONS.WIDTH)}x${Math.round(CARD_DIMENSIONS.HEIGHT)}mm`,
-        basedOn: 'Commercial catalog best practices + Material Design 8pt system'
+        imageStrategy: 'intelligent-orientation-handling'
       });
       
       if (options.onProgress) options.onProgress(5);
@@ -131,8 +131,8 @@ export class PuppeteerServiceClient {
       
       if (options.onProgress) options.onProgress(15);
       
-      // 2. Generar HTML con 3x3 GRID OPTIMIZADO
-      const htmlContent = this.generateOptimized3x3HTML(
+      // 2. Generar HTML con ORIENTACIÓN INTELIGENTE DE IMÁGENES
+      const htmlContent = this.generateOptimizedHTMLWithImageFix(
         products, 
         businessInfo, 
         template, 
@@ -162,12 +162,11 @@ export class PuppeteerServiceClient {
       const generationTime = Date.now() - startTime;
       const totalPages = Math.ceil(products.length / OPTIMIZED_LAYOUT.PRODUCTS_PER_PAGE);
       
-      console.log('✅ PDF 3x3 grid optimizado generado exitosamente:', {
+      console.log('✅ PDF con imágenes verticales corregidas generado exitosamente:', {
         time: generationTime,
         size: pdfBlob.size,
         totalPages,
-        avgProductsPerPage: products.length / totalPages,
-        optimizations: ['3x3-grid', '9-products-per-page', 'larger-cards', '8pt-spacing']
+        imageImprovements: ['object-fit-cover', 'aspect-ratio-fixed', 'orientation-intelligent', 'no-distortion']
       });
       
       return {
@@ -180,7 +179,7 @@ export class PuppeteerServiceClient {
       };
       
     } catch (error) {
-      console.error('❌ Error en PDF 3x3 grid optimizado:', error);
+      console.error('❌ Error en PDF con correcciones de imagen:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Error desconocido'
@@ -189,16 +188,16 @@ export class PuppeteerServiceClient {
   }
   
   /**
-   * 🏗️ GENERAR HTML CON 3x3 GRID OPTIMIZADO
+   * 🏗️ GENERAR HTML CON ORIENTACIÓN INTELIGENTE DE IMÁGENES
    */
-  private static generateOptimized3x3HTML(
+  private static generateOptimizedHTMLWithImageFix(
     products: Product[],
     businessInfo: BusinessInfo,
     template: TemplateConfig,
     quality: 'low' | 'medium' | 'high'
   ): string {
     
-    const pagesHTML = this.generate3x3Pages(products, businessInfo, template, quality);
+    const pagesHTML = this.generate3x3PagesWithImageFix(products, businessInfo, template, quality);
     
     return `<!DOCTYPE html>
 <html lang="es">
@@ -207,7 +206,7 @@ export class PuppeteerServiceClient {
   <meta name="viewport" content="width=210mm, height=297mm, initial-scale=1.0">
   <title>Catálogo ${businessInfo.business_name}</title>
   <style>
-    ${this.generateOptimized3x3CSS(template, quality)}
+    ${this.generateCSSWithImageOrientationFix(template, quality)}
   </style>
 </head>
 <body>
@@ -219,9 +218,9 @@ export class PuppeteerServiceClient {
   }
   
   /**
-   * 🎨 CSS OPTIMIZADO PARA 3x3 GRID - MATERIALES DESIGN + MEJORES PRÁCTICAS
+   * 🎨 CSS CORREGIDO PARA ORIENTACIÓN DE IMÁGENES - ELIMINA DEFORMACIÓN
    */
-  private static generateOptimized3x3CSS(
+  private static generateCSSWithImageOrientationFix(
     template: TemplateConfig,
     quality: 'low' | 'medium' | 'high'
   ): string {
@@ -241,7 +240,7 @@ export class PuppeteerServiceClient {
     const textHeight = Math.round(cardHeight * CARD_DIMENSIONS.TEXT_HEIGHT_RATIO * 100) / 100;
     
     return `
-      /* ===== 3x3 GRID OPTIMIZADO - COMERCIAL BEST PRACTICES ===== */
+      /* ===== 3x3 GRID CON IMÁGENES VERTICALES CORREGIDAS ===== */
       
       /* Reset absoluto */
       * {
@@ -291,7 +290,7 @@ export class PuppeteerServiceClient {
         print-color-adjust: exact !important;
       }
       
-      /* ===== HEADER FIJO ===== */
+      /* ===== HEADER FIJO (SIN CAMBIOS) ===== */
       .fixed-header {
         position: fixed !important;
         top: ${OPTIMIZED_LAYOUT.PAGE.MARGIN}mm !important;
@@ -341,7 +340,7 @@ export class PuppeteerServiceClient {
         -webkit-print-color-adjust: exact !important;
       }
       
-      /* ===== FOOTER FIJO ===== */
+      /* ===== FOOTER FIJO (SIN CAMBIOS) ===== */
       .fixed-footer {
         position: fixed !important;
         bottom: ${OPTIMIZED_LAYOUT.PAGE.MARGIN}mm !important;
@@ -412,7 +411,7 @@ export class PuppeteerServiceClient {
         margin-bottom: 0 !important;
       }
       
-      /* ===== 3x3 GRID PERFECTO - TABLE LAYOUT PARA MÁXIMA COMPATIBILIDAD ===== */
+      /* ===== 3x3 GRID CON TABLE LAYOUT MEJORADO ===== */
       .products-grid-3x3 {
         width: 100% !important;
         border-collapse: separate !important;
@@ -435,7 +434,7 @@ export class PuppeteerServiceClient {
         text-align: center !important;
       }
       
-      /* ===== PRODUCT CARDS OPTIMIZADAS - MÁS GRANDES ===== */
+      /* ===== PRODUCT CARDS CON IMÁGENES CORREGIDAS ===== */
       .product-card-optimized {
         width: 100% !important;
         height: ${cardHeight}mm !important;
@@ -464,7 +463,7 @@ export class PuppeteerServiceClient {
         -webkit-print-color-adjust: exact !important;
       }
       
-      /* ===== IMAGEN CONTAINER OPTIMIZADA ===== */
+      /* ===== IMAGEN CONTAINER CON ASPECT RATIO FIJO ===== */
       .image-container-optimized {
         width: 100% !important;
         height: ${imageHeight}mm !important;
@@ -479,6 +478,8 @@ export class PuppeteerServiceClient {
         flex-shrink: 0 !important;
         display: table !important;
         table-layout: fixed !important;
+        /* 🎯 ASPECT RATIO CUADRADO PARA CONSISTENCIA - CLAVE PARA EVITAR DEFORMACIÓN */
+        aspect-ratio: 1 / 1 !important;
       }
       
       .image-cell-optimized {
@@ -489,24 +490,101 @@ export class PuppeteerServiceClient {
         height: 100% !important;
       }
       
+      /* ===== IMAGEN CORREGIDA PARA VERTICALES - SOLUCIÓN PRINCIPAL ===== */
       .product-image-optimized {
-        max-width: 92% !important;
-        max-height: 92% !important;
-        width: auto !important;
-        height: auto !important;
-        object-fit: contain !important;
+        width: 100% !important;
+        height: 100% !important;
+        /* 🎯 CAMBIO CRÍTICO: object-fit cover para aprovechar espacio sin deformar */
+        object-fit: cover !important;
         object-position: center !important;
         display: block !important;
         margin: 0 auto !important;
         border-radius: 2px !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
+        /* 🚀 MEJORAS DE RENDERIZADO PARA PDF */
+        image-rendering: auto !important;
+        transform: translateZ(0) !important;
+        backface-visibility: hidden !important;
       }
       
+      /* ===== ESTRATEGIAS POR INDUSTRIA - INTELIGENCIA DE ORIENTACIÓN ===== */
+      
+      /* Joyería: mostrar pieza completa sin cortes */
+      .template-joyeria .product-image-optimized,
+      .template-joyeria-elegante .product-image-optimized,
+      .template-joyeria-luxury .product-image-optimized {
+        object-fit: contain !important;
+        padding: 3px !important;
+        background: linear-gradient(45deg, #fff8f0, #ffffff) !important;
+      }
+      
+      /* Electrónicos: mostrar producto completo */
+      .template-electronica .product-image-optimized,
+      .template-electronica-tech .product-image-optimized,
+      .template-electronica-gaming .product-image-optimized {
+        object-fit: contain !important;
+        padding: 4px !important;
+      }
+      
+      /* Ferretería: mostrar herramienta completa */
+      .template-ferreteria .product-image-optimized,
+      .template-ferreteria-pro .product-image-optimized {
+        object-fit: contain !important;
+        padding: 3px !important;
+      }
+      
+      /* Muebles: mostrar pieza completa */
+      .template-muebles .product-image-optimized,
+      .template-muebles-hogar .product-image-optimized {
+        object-fit: contain !important;
+        padding: 4px !important;
+      }
+      
+      /* Cosméticos: balance entre mostrar y aprovechar */
+      .template-cosmeticos .product-image-optimized,
+      .template-cosmeticos-beauty .product-image-optimized {
+        object-fit: contain !important;
+        padding: 2px !important;
+      }
+      
+      /* Moda: aprovechar espacio, crop inteligente */
+      .template-moda .product-image-optimized,
+      .template-moda-boutique .product-image-optimized,
+      .template-moda-urban .product-image-optimized {
+        object-fit: cover !important;
+        object-position: center top !important; /* Enfocar parte superior para ropa */
+      }
+      
+      /* Florería: aprovechar espacio para arreglos */
+      .template-floreria .product-image-optimized,
+      .template-floreria-natural .product-image-optimized,
+      .template-floreria-boda .product-image-optimized {
+        object-fit: cover !important;
+        object-position: center !important;
+      }
+      
+      /* Decoración: aprovechar espacio */
+      .template-decoracion .product-image-optimized {
+        object-fit: cover !important;
+        object-position: center !important;
+      }
+      
+      /* General: estrategia balanceada */
+      .template-general .product-image-optimized,
+      .template-universal .product-image-optimized {
+        object-fit: cover !important;
+        object-position: center !important;
+      }
+      
+      /* ===== PLACEHOLDER MEJORADO ===== */
       .image-placeholder-optimized {
-        width: 85% !important;
-        height: 85% !important;
-        background: repeating-conic-gradient(from 0deg at 50% 50%, #f0f0f0 0deg 90deg, transparent 90deg 180deg) !important;
+        width: 90% !important;
+        height: 90% !important;
+        background: 
+          repeating-conic-gradient(from 0deg at 50% 50%, 
+            #f0f0f0 0deg 90deg, 
+            transparent 90deg 180deg) !important;
         background-size: 8px 8px !important;
         border: 1pt dashed #ccc !important;
         border-radius: 3px !important;
@@ -590,7 +668,7 @@ export class PuppeteerServiceClient {
         visibility: hidden !important;
       }
       
-      /* ===== MEDIA PRINT OPTIMIZADO ===== */
+      /* ===== MEDIA PRINT OPTIMIZADO CON CORRECCIONES DE IMAGEN ===== */
       @media print {
         * {
           -webkit-print-color-adjust: exact !important;
@@ -617,13 +695,38 @@ export class PuppeteerServiceClient {
           -webkit-print-color-adjust: exact !important;
           print-color-adjust: exact !important;
           filter: none !important;
+          image-rendering: -webkit-optimize-contrast !important;
+          transform: translateZ(0) !important;
+        }
+        
+        .image-container-optimized {
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
         }
       }
     `;
   }
   
   /**
-   * 📋 GENERAR HEADER FIJO
+   * 🧠 DETECTAR ESTRATEGIA DE IMAGEN POR INDUSTRIA
+   */
+  private static getImageFitStrategy(templateCategory: string): 'cover' | 'contain' {
+    // Industrias que necesitan mostrar producto completo
+    const containIndustries = ['joyeria', 'electronica', 'ferreteria', 'muebles', 'cosmeticos'];
+    
+    // Verificar si la categoría del template coincide
+    for (const industry of containIndustries) {
+      if (templateCategory.toLowerCase().includes(industry)) {
+        return 'contain';
+      }
+    }
+    
+    // Por defecto usar cover (mejor aprovechamiento de espacio)
+    return 'cover';
+  }
+  
+  /**
+   * 📋 GENERAR HEADER FIJO (SIN CAMBIOS)
    */
   private static generateFixedHeader(businessInfo: BusinessInfo, template: TemplateConfig): string {
     return `
@@ -637,7 +740,7 @@ export class PuppeteerServiceClient {
   }
   
   /**
-   * 📄 GENERAR FOOTER FIJO
+   * 📄 GENERAR FOOTER FIJO (SIN CAMBIOS)
    */
   private static generateFixedFooter(businessInfo: BusinessInfo, totalProducts: number): string {
     const contactInfo = [
@@ -659,9 +762,9 @@ export class PuppeteerServiceClient {
   }
   
   /**
-   * 📄 GENERAR PÁGINAS CON 3x3 GRID OPTIMIZADO
+   * 📄 GENERAR PÁGINAS CON ORIENTACIÓN INTELIGENTE DE IMÁGENES
    */
-  private static generate3x3Pages(
+  private static generate3x3PagesWithImageFix(
     products: Product[],
     businessInfo: BusinessInfo,
     template: TemplateConfig,
@@ -678,7 +781,7 @@ export class PuppeteerServiceClient {
       
       pagesHTML += `
         <div class="page-container">
-          ${this.generate3x3Grid(pageProducts)}
+          ${this.generate3x3GridWithImageFix(pageProducts, template)}
         </div>
       `;
     }
@@ -688,9 +791,9 @@ export class PuppeteerServiceClient {
   }
   
   /**
-   * 🛍️ GENERAR 3x3 GRID CON TABLE LAYOUT - ESCALABLE 1-1000+ PRODUCTOS
+   * 🛍️ GENERAR 3x3 GRID CON ORIENTACIÓN DE IMAGEN CORREGIDA
    */
-  private static generate3x3Grid(products: Product[]): string {
+  private static generate3x3GridWithImageFix(products: Product[], template: TemplateConfig): string {
     let gridHTML = '<table class="products-grid-3x3">';
     
     // Crear exactamente 3 filas (3x3 = 9 slots)
@@ -702,11 +805,11 @@ export class PuppeteerServiceClient {
         const productIndex = (row * OPTIMIZED_LAYOUT.COLUMNS) + col;
         
         if (productIndex < products.length) {
-          // Producto real
+          // Producto real con corrección de imagen
           const product = products[productIndex];
           gridHTML += `
             <td class="grid-cell">
-              ${this.generateOptimizedProductCard(product)}
+              ${this.generateProductCardWithImageFix(product, template)}
             </td>
           `;
         } else {
@@ -723,12 +826,16 @@ export class PuppeteerServiceClient {
   }
   
   /**
-   * 🎴 GENERAR TARJETA OPTIMIZADA - MÁS GRANDE Y MEJOR DISEÑO
+   * 🎴 GENERAR TARJETA CON ORIENTACIÓN DE IMAGEN INTELIGENTE
    */
-  private static generateOptimizedProductCard(product: Product): string {
+  private static generateProductCardWithImageFix(product: Product, template: TemplateConfig): string {
     const productName = product.name || 'Producto';
     const productPrice = typeof product.price_retail === 'number' ? product.price_retail : 0;
     const productImage = product.image_url || '';
+    
+    // Aplicar estrategia inteligente según industria
+    const imageStrategy = this.getImageFitStrategy(template.category);
+    const templateClass = `template-${template.category.toLowerCase()}`;
     
     const imageHTML = productImage ? 
       `<div class="image-cell-optimized">
@@ -738,6 +845,7 @@ export class PuppeteerServiceClient {
            class="product-image-optimized" 
            loading="eager" 
            crossorigin="anonymous"
+           data-strategy="${imageStrategy}"
          />
        </div>` :
       `<div class="image-placeholder-optimized">
@@ -748,7 +856,7 @@ export class PuppeteerServiceClient {
        </div>`;
     
     return `
-      <div class="product-card-optimized">
+      <div class="product-card-optimized ${templateClass}">
         <div class="card-decoration-optimized"></div>
         
         <div class="image-container-optimized">
@@ -863,7 +971,7 @@ export class PuppeteerServiceClient {
           throw new Error('PDF vacío recibido del servicio');
         }
         
-        console.log(`✅ PDF 3x3 grid optimizado en intento ${attempt}/${maxRetries}, tamaño: ${blob.size} bytes`);
+        console.log(`✅ PDF con imágenes corregidas en intento ${attempt}/${maxRetries}, tamaño: ${blob.size} bytes`);
         return blob;
         
       } catch (error) {
@@ -928,7 +1036,7 @@ export class PuppeteerServiceClient {
       }
       
       const blob = await response.blob();
-      await this.downloadPDF(blob, 'test-3x3-grid-optimized');
+      await this.downloadPDF(blob, 'test-imagen-vertical-corregida');
       
       return { 
         success: true,
