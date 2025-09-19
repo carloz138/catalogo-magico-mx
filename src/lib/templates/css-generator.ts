@@ -1,5 +1,5 @@
-// src/lib/templates/css-generator.ts - VERSIÓN COMPLETA CORREGIDA
-// 🎯 SISTEMA DE GRID CSS ROBUSTO - CENTRADO PERFECTO Y FOOTER FIJADO
+// src/lib/templates/css-generator.ts - VERSIÓN CORREGIDA PARA IMÁGENES VERTICALES
+// 🎯 SISTEMA DE GRID CSS ROBUSTO - CENTRADO PERFECTO Y ORIENTACIÓN INTELIGENTE
 
 import { IndustryTemplate } from './industry-templates';
 
@@ -25,7 +25,7 @@ interface BusinessInfo {
 export class TemplateGenerator {
   
   /**
-   * 🎨 CSS GENERATOR COMPLETAMENTE OPTIMIZADO - CENTRADO PERFECTO
+   * 🎨 CSS GENERATOR COMPLETAMENTE OPTIMIZADO - IMÁGENES VERTICALES CORREGIDAS
    */
   static generateTemplateCSS(template: IndustryTemplate): string {
     const dimensions = this.calculateRobustDimensions(template);
@@ -33,7 +33,7 @@ export class TemplateGenerator {
     const typography = this.calculateTypography(template);
     
     return `
-      /* ===== TEMPLATE: ${template.displayName.toUpperCase()} - CENTRADO PERFECTO ===== */
+      /* ===== TEMPLATE: ${template.displayName.toUpperCase()} - IMÁGENES CORREGIDAS ===== */
       
       /* ===== VARIABLES CSS PRECISAS ===== */
       :root {
@@ -133,7 +133,7 @@ export class TemplateGenerator {
         padding-bottom: 0 !important;
       }
       
-      /* ===== HEADER ROBUSTO ===== */
+      /* ===== HEADER ROBUSTO (SIN CAMBIOS) ===== */
       .catalog-header {
         width: 100%;
         background: var(--primary) !important;
@@ -248,7 +248,7 @@ export class TemplateGenerator {
         box-sizing: border-box !important;
       }
       
-      /* ===== IMAGEN CONTAINER CON ALTURA FIJA ===== */
+      /* ===== IMAGEN CONTAINER CORREGIDO PARA VERTICALES ===== */
       .product-image-container {
         width: 100% !important;
         height: var(--image-height) !important;
@@ -265,21 +265,40 @@ export class TemplateGenerator {
         border: 0.25pt solid var(--border) !important;
         margin-bottom: 2mm !important;
         -webkit-print-color-adjust: exact !important;
+        /* 🎯 CRÍTICO: Aspect ratio fijo para evitar deformación */
+        aspect-ratio: 1 / 1 !important;
       }
       
-      /* ===== IMAGEN PERFECTA SIN DISTORSIÓN ===== */
+      /* ===== IMAGEN CORREGIDA PARA ORIENTACIÓN VERTICAL ===== */
       .product-image {
-        max-width: 95% !important;
-        max-height: 95% !important;
-        width: auto !important;
-        height: auto !important;
-        object-fit: contain !important;
+        width: 100% !important;
+        height: 100% !important;
+        /* 🎯 CAMBIO PRINCIPAL: object-fit cover para mejor aprovechamiento */
+        object-fit: cover !important;
         object-position: center !important;
         display: block !important;
-        margin: auto !important;
+        margin: 0 !important;
         border-radius: 2px !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
+        /* 🔧 Mejoras para renderizado */
+        image-rendering: -webkit-optimize-contrast !important;
+        image-rendering: crisp-edges !important;
+        transform: translateZ(0) !important;
+        backface-visibility: hidden !important;
+      }
+      
+      /* ===== ESTRATEGIAS POR ORIENTACIÓN DE IMAGEN ===== */
+      .product-image.cover-mode {
+        object-fit: cover !important;
+        object-position: center !important;
+      }
+
+      .product-image.contain-mode {
+        object-fit: contain !important;
+        object-position: center !important;
+        padding: 2px !important;
+        background: #fafafa !important;
       }
       
       /* ===== PLACEHOLDER MEJORADO ===== */
@@ -429,7 +448,7 @@ export class TemplateGenerator {
       }
       ` : `.product-specifications { display: none !important; }`}
       
-      /* ===== FOOTER ESTÁTICO - SIN SUPERPOSICIÓN ===== */
+      /* ===== FOOTER ESTÁTICO - SIN CAMBIOS ===== */
       .catalog-footer {
         position: static !important;
         width: 100% !important;
@@ -513,6 +532,67 @@ export class TemplateGenerator {
         box-shadow: none !important;
       }
       
+      /* ===== OPTIMIZACIONES POR INDUSTRIA - ESTRATEGIA DE IMAGEN ===== */
+      
+      /* Joyería: mostrar pieza completa sin cortes */
+      .template-joyeria-elegante .product-image,
+      .template-joyeria-luxury .product-image {
+        object-fit: contain !important;
+        background: linear-gradient(45deg, #fff8f0, #ffffff) !important;
+        padding: 3px !important;
+      }
+      
+      .template-joyeria-elegante .product-image-container,
+      .template-joyeria-luxury .product-image-container {
+        background: linear-gradient(45deg, #fff8f0, #ffffff) !important;
+        border: 0.5pt solid ${template.colors.accent}50 !important;
+      }
+      
+      /* Moda: aprovechar espacio, crop inteligente */
+      .template-moda-boutique .product-image,
+      .template-moda-urban .product-image {
+        object-fit: cover !important;
+        object-position: center top !important; /* Enfocar parte superior para ropa */
+      }
+      
+      /* Electrónicos: mostrar producto completo con padding */
+      .template-electronica-tech .product-image,
+      .template-electronica-gaming .product-image {
+        object-fit: contain !important;
+        padding: 4px !important;
+      }
+      
+      .template-electronica-tech .product-image-container,
+      .template-electronica-gaming .product-image-container {
+        background: linear-gradient(135deg, #f1f3f4, #ffffff) !important;
+        border: 0.5pt solid #e0e0e0 !important;
+      }
+      
+      /* Cosméticos: balance entre mostrar producto y aprovechar espacio */
+      .template-cosmeticos-beauty .product-image {
+        object-fit: contain !important;
+        padding: 2px !important;
+      }
+      
+      /* Ferretería: mostrar herramienta completa */
+      .template-ferreteria-pro .product-image {
+        object-fit: contain !important;
+        padding: 3px !important;
+      }
+      
+      /* Florería: aprovechar espacio para mostrar arreglos */
+      .template-floreria-natural .product-image,
+      .template-floreria-boda .product-image {
+        object-fit: cover !important;
+        object-position: center !important;
+      }
+      
+      /* Muebles: mostrar pieza completa */
+      .template-muebles-hogar .product-image {
+        object-fit: contain !important;
+        padding: 4px !important;
+      }
+      
       /* ===== RESPONSIVE SIMPLIFICADO ===== */
       @media screen and (max-width: 768px) {
         :root {
@@ -556,6 +636,13 @@ export class TemplateGenerator {
           -webkit-print-color-adjust: exact !important;
           print-color-adjust: exact !important;
           color-adjust: exact !important;
+          image-rendering: -webkit-optimize-contrast !important;
+          transform: translateZ(0) !important;
+        }
+        
+        .product-image-container {
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
         }
         
         .products-grid {
@@ -563,12 +650,23 @@ export class TemplateGenerator {
         }
       }
       
-      /* ===== OPTIMIZACIONES POR INDUSTRIA ===== */
-      ${this.generateIndustrySpecificCSS(template)}
-      
       /* ===== OPTIMIZACIONES POR DENSIDAD ===== */
       ${this.generateDensitySpecificCSS(template)}
     `;
+  }
+  
+  /**
+   * 🧠 DETECTAR ORIENTACIÓN DE IMAGEN Y APLICAR ESTRATEGIA ÓPTIMA
+   */
+  private static getImageFitStrategy(imageUrl: string, template: IndustryTemplate): string {
+    // Para industrias que necesitan mostrar imagen completa (joyería, cosméticos, electrónicos)
+    const containIndustries = ['joyeria', 'electronica', 'ferreteria', 'muebles'];
+    if (containIndustries.includes(template.industry)) {
+      return 'contain-mode';
+    }
+    
+    // Para el resto (moda, florería, decoración), usar cover por defecto
+    return 'cover-mode';
   }
   
   /**
@@ -766,7 +864,7 @@ export class TemplateGenerator {
   }
   
   /**
-   * 🎴 GENERAR TARJETA DE PRODUCTO OPTIMIZADA
+   * 🎴 GENERAR TARJETA DE PRODUCTO CON ORIENTACIÓN INTELIGENTE
    */
   private static generateProductCard(product: Product, template: IndustryTemplate): string {
     const productName = product.name || 'Producto';
@@ -777,8 +875,17 @@ export class TemplateGenerator {
     const productCategory = product.category || '';
     const productSpecs = product.specifications || '';
     
+    // Aplicar estrategia inteligente de imagen
+    const fitStrategy = this.getImageFitStrategy(productImage, template);
+    
     const imageHTML = productImage ? 
-      `<img src="${productImage}" alt="${productName}" class="product-image" loading="eager" crossorigin="anonymous" />` :
+      `<img 
+         src="${productImage}" 
+         alt="${productName}" 
+         class="product-image ${fitStrategy}" 
+         loading="eager" 
+         crossorigin="anonymous" 
+       />` :
       `<div class="product-image-placeholder">
          <div style="font-size: 12pt; margin-bottom: 1mm;">📷</div>
          <div style="font-size: 7pt;">Sin imagen</div>
@@ -867,55 +974,6 @@ export class TemplateGenerator {
   
   private static getSpecsHeight(density: string): number {
     return { alta: 6, media: 8, baja: 12 }[density as keyof typeof density] || 8;
-  }
-  
-  private static generateIndustrySpecificCSS(template: IndustryTemplate): string {
-    const industryStyles = {
-      joyeria: `
-        .template-${template.id} .product-image-container {
-          background: linear-gradient(45deg, #fff8f0, #ffffff) !important;
-          border: 0.5pt solid ${template.colors.accent}50 !important;
-        }
-        .template-${template.id} .product-card {
-          border: 0.75pt solid ${template.colors.accent} !important;
-        }
-        .template-${template.id} .product-name {
-          font-family: 'Georgia', serif !important;
-          letter-spacing: 0.2pt !important;
-        }
-      `,
-      moda: `
-        .template-${template.id} .product-card {
-          border-radius: ${Math.min((template.design?.borderRadius || 8) * 1.2, 15)}px !important;
-        }
-        .template-${template.id} .product-image-container {
-          border-radius: ${Math.min((template.design?.borderRadius || 8) * 1.1, 12)}px !important;
-        }
-      `,
-      electronica: `
-        .template-${template.id} .product-image-container {
-          background: linear-gradient(135deg, #f1f3f4, #ffffff) !important;
-          border: 0.5pt solid #e0e0e0 !important;
-        }
-        .template-${template.id} .product-card {
-          border-radius: ${Math.min((template.design?.borderRadius || 8) * 0.8, 8)}px !important;
-        }
-      `,
-      ferreteria: `
-        .template-${template.id} .product-card {
-          border: 1pt solid ${template.colors.accent} !important;
-          border-radius: 4px !important;
-        }
-      `,
-      cosmeticos: `
-        .template-${template.id} .product-card {
-          border-radius: ${Math.min((template.design?.borderRadius || 8) * 1.3, 15)}px !important;
-          background: linear-gradient(145deg, #ffffff, #fefefe) !important;
-        }
-      `
-    };
-    
-    return industryStyles[template.industry as keyof typeof industryStyles] || '';
   }
   
   private static generateDensitySpecificCSS(template: IndustryTemplate): string {
