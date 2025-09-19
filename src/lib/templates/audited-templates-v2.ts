@@ -1,5 +1,5 @@
 // src/lib/templates/audited-templates-v2.ts
-// 🎨 TEMPLATES AUDITADOS Y CORREGIDOS - VERSIÓN 2.0 SIN CORTES
+// 🎨 TEMPLATES AUDITADOS Y CORREGIDOS - VERSIÓN 2.0 SIN CORTES - CON PRECIOS MAYOREO
 
 export interface AuditedTemplate {
   // Información básica
@@ -55,14 +55,14 @@ export interface AuditedTemplate {
   };
   
   // Información mostrada
-    showInfo: {
-      category: boolean;
-      description: boolean;
-      sku: boolean;
-      specifications: boolean;
-      wholesalePrice: boolean;  // NUEVO: Mostrar precio de mayoreo
-      wholesaleMinQty: boolean; // NUEVO: Mostrar cantidad mínima
-    };
+  showInfo: {
+    category: boolean;
+    description: boolean;
+    sku: boolean;
+    specifications: boolean;
+    wholesalePrice: boolean;  // NUEVO: Mostrar precio de mayoreo
+    wholesaleMinQty: boolean; // NUEVO: Mostrar cantidad mínima
+  };
   
   // Plan requerido
   isPremium: boolean;
@@ -81,6 +81,7 @@ export interface AuditedTemplate {
 /**
  * 🎨 TEMPLATES AUDITADOS Y LISTOS PARA PRODUCCIÓN
  * Todos garantizan 0% cortes y máxima calidad
+ * TODOS CONFIGURADOS PARA MOSTRAR PRECIOS MAYOREO
  */
 export const AUDITED_TEMPLATES_V2: AuditedTemplate[] = [
   
@@ -136,7 +137,9 @@ export const AUDITED_TEMPLATES_V2: AuditedTemplate[] = [
       category: true,
       description: true,
       sku: false,
-      specifications: true
+      specifications: true,
+      wholesalePrice: true,      // ✅ ACTIVADO
+      wholesaleMinQty: true      // ✅ ACTIVADO
     },
     
     isPremium: true,
@@ -201,7 +204,9 @@ export const AUDITED_TEMPLATES_V2: AuditedTemplate[] = [
       category: true,
       description: true,
       sku: false,
-      specifications: false
+      specifications: false,
+      wholesalePrice: true,      // ✅ ACTIVADO
+      wholesaleMinQty: true      // ✅ ACTIVADO
     },
     
     isPremium: false,
@@ -268,7 +273,9 @@ export const AUDITED_TEMPLATES_V2: AuditedTemplate[] = [
       category: true,
       description: true,
       sku: false,
-      specifications: false
+      specifications: false,
+      wholesalePrice: true,      // ✅ ACTIVADO
+      wholesaleMinQty: true      // ✅ ACTIVADO
     },
     
     isPremium: false,
@@ -333,7 +340,9 @@ export const AUDITED_TEMPLATES_V2: AuditedTemplate[] = [
       category: false,
       description: true,
       sku: false,
-      specifications: false
+      specifications: false,
+      wholesalePrice: true,      // ✅ ACTIVADO
+      wholesaleMinQty: true      // ✅ ACTIVADO
     },
     
     isPremium: true,
@@ -400,7 +409,9 @@ export const AUDITED_TEMPLATES_V2: AuditedTemplate[] = [
       category: true,
       description: false,
       sku: true,
-      specifications: true
+      specifications: true,
+      wholesalePrice: true,      // ✅ ACTIVADO
+      wholesaleMinQty: true      // ✅ ACTIVADO
     },
     
     isPremium: false,
@@ -465,7 +476,9 @@ export const AUDITED_TEMPLATES_V2: AuditedTemplate[] = [
       category: true,
       description: true,
       sku: true,
-      specifications: true
+      specifications: true,
+      wholesalePrice: true,      // ✅ ACTIVADO
+      wholesaleMinQty: true      // ✅ ACTIVADO
     },
     
     isPremium: true,
@@ -532,7 +545,9 @@ export const AUDITED_TEMPLATES_V2: AuditedTemplate[] = [
       category: true,
       description: false,
       sku: true,
-      specifications: true
+      specifications: true,
+      wholesalePrice: true,      // ✅ ACTIVADO
+      wholesaleMinQty: true      // ✅ ACTIVADO
     },
     
     isPremium: false,
@@ -599,7 +614,9 @@ export const AUDITED_TEMPLATES_V2: AuditedTemplate[] = [
       category: false,
       description: true,
       sku: false,
-      specifications: false
+      specifications: false,
+      wholesalePrice: true,      // ✅ ACTIVADO
+      wholesaleMinQty: true      // ✅ ACTIVADO
     },
     
     isPremium: true,
@@ -666,7 +683,9 @@ export const AUDITED_TEMPLATES_V2: AuditedTemplate[] = [
       category: true,
       description: true,
       sku: false,
-      specifications: false
+      specifications: false,
+      wholesalePrice: true,      // ✅ ACTIVADO
+      wholesaleMinQty: true      // ✅ ACTIVADO
     },
     
     isPremium: false,
@@ -731,7 +750,9 @@ export const AUDITED_TEMPLATES_V2: AuditedTemplate[] = [
       category: true,
       description: false,
       sku: true,
-      specifications: false
+      specifications: false,
+      wholesalePrice: true,      // ✅ ACTIVADO
+      wholesaleMinQty: true      // ✅ ACTIVADO
     },
     
     isPremium: false,
@@ -946,6 +967,8 @@ export interface NewTemplateBlueprint {
     description?: boolean;    // Default: true
     sku?: boolean;           // Default: false
     specifications?: boolean; // Default: false
+    wholesalePrice?: boolean; // Default: true (NUEVO)
+    wholesaleMinQty?: boolean; // Default: true (NUEVO)
   };
   
   // Configuración de acceso (definir)
@@ -1010,7 +1033,9 @@ export class NewTemplateGenerator {
         category: blueprint.showInfo?.category ?? true,
         description: blueprint.showInfo?.description ?? true,
         sku: blueprint.showInfo?.sku ?? false,
-        specifications: blueprint.showInfo?.specifications ?? false
+        specifications: blueprint.showInfo?.specifications ?? false,
+        wholesalePrice: blueprint.showInfo?.wholesalePrice ?? true,  // ✅ DEFAULT TRUE
+        wholesaleMinQty: blueprint.showInfo?.wholesaleMinQty ?? true  // ✅ DEFAULT TRUE
       },
       
       isPremium: blueprint.isPremium ?? false,
@@ -1222,7 +1247,9 @@ export const CHRISTMAS_TEMPLATE_BLUEPRINT: NewTemplateBlueprint = {
     category: true,
     description: true,
     sku: false,
-    specifications: false
+    specifications: false,
+    wholesalePrice: true,    // ✅ ACTIVADO POR DEFAULT
+    wholesaleMinQty: true    // ✅ ACTIVADO POR DEFAULT
   },
   
   isPremium: false,
