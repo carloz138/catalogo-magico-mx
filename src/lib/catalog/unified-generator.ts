@@ -294,6 +294,7 @@ if (auditedTemplate) {
       if (options.onProgress) options.onProgress(70);
       
       // 8. GUARDAR EN BASE DE DATOS CON METADATA MEJORADA
+      console.log('🔍 DEBUG - Guardando catálogo con título:', options.catalogTitle);
       const catalogRecord = await this.saveCatalogRecord(
         userId,
         templateId,
@@ -760,6 +761,7 @@ private static async generateWithPuppeteerService(
   ): Promise<{ success: boolean; catalogId?: string }> {
     
     try {
+      console.log('🔍 DEBUG - Guardando en BD con título:', catalogTitle);
       const catalogData = {
         user_id: userId,
         name: catalogTitle || `Catálogo ${template.displayName} - ${new Date().toLocaleDateString('es-MX')}`,

@@ -287,6 +287,7 @@ export const useProductsLogic = () => {
         }));
 
       // Guardar en localStorage para TemplateSelection (incluyendo el título personalizado)
+      console.log('🔍 DEBUG - Guardando título en localStorage:', catalogTitle);
       localStorage.setItem('selectedProductsData', JSON.stringify(selectedProductsData));
       localStorage.setItem('catalogTitle', catalogTitle); // Guardar el título personalizado
       localStorage.setItem('businessInfo', JSON.stringify({

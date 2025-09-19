@@ -165,7 +165,10 @@ const TemplateSelection = () => {
     
     // Cargar título personalizado si existe
     if (catalogTitleFromStorage) {
+      console.log('🔍 DEBUG - Título cargado del localStorage:', catalogTitleFromStorage);
       setCatalogTitle(catalogTitleFromStorage);
+    } else {
+      console.log('🔍 DEBUG - No hay título en localStorage');
     }
     
     if (productsData) {
@@ -409,15 +412,16 @@ const TemplateSelection = () => {
       // Seleccionar método de generación
       switch (generationMethod) {
         case 'puppeteer':
-          console.log('Usando Puppeteer Service (mejor calidad)');
-          result = await generatePuppeteerCatalog(
-            selectedProducts,
-            businessData,
-            selectedTemplate,
-            user.id,
-            onProgress,
-            catalogTitle
-          );
+      console.log('🔍 DEBUG - Título desde TemplateSelection:', catalogTitle);
+      console.log('Usando Puppeteer Service (mejor calidad)');
+      result = await generatePuppeteerCatalog(
+        selectedProducts,
+        businessData,
+        selectedTemplate,
+        user.id,
+        onProgress,
+        catalogTitle
+      );
           break;
           
         case 'dynamic':
