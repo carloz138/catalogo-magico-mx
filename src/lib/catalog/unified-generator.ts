@@ -703,7 +703,7 @@ private static async generateWithPuppeteerService(
         products, 
         businessInfo, 
         template,
-        '', // catalogTitle por defecto
+        options.catalogTitle || `Catálogo ${template.displayName} - ${new Date().toLocaleDateString('es-MX')}`, // Usar el título personalizado
         { generationMethod: 'classic', pdfSuccess: false, templateQuality: 80 }
       );
       
