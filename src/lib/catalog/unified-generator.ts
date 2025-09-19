@@ -374,7 +374,14 @@ private static convertAuditedToIndustryTemplate(auditedTemplate: AuditedTemplate
     gridColumns: auditedTemplate.gridColumns,
     colors: auditedTemplate.colors,
     design: auditedTemplate.design,
-    showInfo: auditedTemplate.showInfo,
+    showInfo: {
+  category: auditedTemplate.showInfo?.category ?? true,
+  description: auditedTemplate.showInfo?.description ?? true,
+  sku: auditedTemplate.showInfo?.sku ?? false,
+  specifications: auditedTemplate.showInfo?.specifications ?? false,
+  wholesalePrice: auditedTemplate.showInfo?.wholesalePrice ?? true,      // ✅ NUEVO: Default true
+  wholesaleMinQty: auditedTemplate.showInfo?.wholesaleMinQty ?? true     // ✅ NUEVO: Default true
+},
     isPremium: auditedTemplate.isPremium,
     planLevel: auditedTemplate.planLevel,
     tags: auditedTemplate.tags,
