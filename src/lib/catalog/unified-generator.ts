@@ -579,7 +579,8 @@ private static async generateWithPuppeteerService(
       products,
       businessInfo,
       templateConfig,
-      puppeteerOptions
+      puppeteerOptions,
+      options.catalogTitle
     );
     
     if (result.success) {

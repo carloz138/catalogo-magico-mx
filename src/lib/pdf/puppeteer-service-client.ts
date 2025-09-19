@@ -105,7 +105,8 @@ export class PuppeteerServiceClient {
     products: Product[],
     businessInfo: BusinessInfo,
     template: TemplateConfig,
-    options: PuppeteerServiceOptions = {}
+    options: PuppeteerServiceOptions = {},
+    catalogTitle?: string
   ): Promise<PuppeteerResult> {
     
     const startTime = Date.now();
@@ -148,13 +149,15 @@ export class PuppeteerServiceClient {
         htmlContent, 
         pdfOptions, 
         businessInfo, 
-        options.onProgress
+        options.onProgress,
+        catalogTitle
       );
       
       if (options.onProgress) options.onProgress(90);
       
       // 5. Descargar
-      await this.downloadPDF(pdfBlob, businessInfo.business_name);
+      const finalTitle = catalogTitle || businessInfo.business_name;
+      await this.downloadPDF(pdfBlob, finalTitle);
       
       if (options.onProgress) options.onProgress(100);
       
@@ -193,23 +196,25 @@ export class PuppeteerServiceClient {
     products: Product[],
     businessInfo: BusinessInfo,
     template: TemplateConfig,
-    quality: 'low' | 'medium' | 'high'
+    quality: 'low' | 'medium' | 'high',
+    catalogTitle?: string
   ): string {
     
     const pagesHTML = this.generateCorrected3x3Pages(products, businessInfo, template, quality);
+    const finalTitle = catalogTitle || `Catálogo ${businessInfo.business_name}`;
     
     return `<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=210mm, height=297mm, initial-scale=1.0">
-  <title>Catálogo ${businessInfo.business_name}</title>
+  <title>${finalTitle}</title>
   <style>
     ${this.generateCorrectedCSS(template, quality)}
   </style>
 </head>
 <body>
-  ${this.generateFixedHeader(businessInfo, template)}
+  ${this.generateFixedHeader(businessInfo, template, catalogTitle)}
   ${this.generateFixedFooter(businessInfo, products.length)}
   ${pagesHTML}
 </body>
@@ -713,12 +718,13 @@ export class PuppeteerServiceClient {
   /**
    * 📋 GENERAR HEADER FIJO (SIN CAMBIOS)
    */
-  private static generateFixedHeader(businessInfo: BusinessInfo, template: TemplateConfig): string {
+  private static generateFixedHeader(businessInfo: BusinessInfo, template: TemplateConfig, catalogTitle?: string): string {
+    const displayTitle = catalogTitle || `Catálogo ${template.displayName}`;
     return `
       <div class="fixed-header">
         <div class="header-cell">
           <div class="header-business-name">${businessInfo.business_name}</div>
-          <div class="header-subtitle">Catálogo ${template.displayName}</div>
+          <div class="header-subtitle">${displayTitle}</div>
         </div>
       </div>
     `;
@@ -938,6 +944,7 @@ export class PuppeteerServiceClient {
     pdfOptions: any,
     businessInfo: BusinessInfo,
     onProgress?: (progress: number) => void,
+    catalogTitle?: string,
     maxRetries: number = 2
   ): Promise<Blob> {
     
@@ -956,7 +963,7 @@ export class PuppeteerServiceClient {
           body: JSON.stringify({
             html: htmlContent,
             options: pdfOptions,
-            filename: `catalogo-${businessInfo.business_name.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`
+            filename: `${(catalogTitle || businessInfo.business_name).replace(/[^a-zA-Z0-9]/g, '_')}.pdf`
           }),
           signal: controller.signal
         });
