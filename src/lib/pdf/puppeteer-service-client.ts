@@ -560,28 +560,98 @@ export class PuppeteerServiceClient {
         -webkit-print-color-adjust: exact !important;
       }
       
-      .product-price-optimized {
-        font-size: ${config.priceSize}pt !important;
-        font-weight: 700 !important;
-        color: white !important;
-        background: ${template.colors.secondary} !important;
-        background-image: linear-gradient(135deg, ${template.colors.secondary}, ${template.colors.primary}) !important;
-        padding: 1.5mm 3mm !important;
-        border-radius: 10px !important;
-        display: inline-block !important;
-        margin: 0 auto !important;
-        text-align: center !important;
-        white-space: nowrap !important;
-        max-width: 95% !important;
-        overflow: hidden !important;
-        text-overflow: ellipsis !important;
-        box-shadow: 0 1pt 2pt rgba(0,0,0,0.15) !important;
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-        
-        height: 7mm !important;
-        line-height: 4mm !important;
-      }
+      /* ===== SISTEMA DE PRECIOS DUALES OPTIMIZADO PUPPETEER ===== */
+.product-pricing-optimized {
+  display: table !important;
+  width: 100% !important;
+  height: auto !important;
+  margin: 0 auto !important;
+  text-align: center !important;
+}
+
+/* Precio retail - prominente */
+.product-price-retail-optimized {
+  font-size: ${config.priceSize}pt !important;
+  font-weight: 700 !important;
+  color: white !important;
+  background: ${template.colors.secondary} !important;
+  background-image: linear-gradient(135deg, ${template.colors.secondary}, ${template.colors.primary}) !important;
+  padding: 1.5mm 3mm !important;
+  border-radius: 10px !important;
+  display: inline-block !important;
+  margin: 0 auto 1mm auto !important;
+  text-align: center !important;
+  white-space: nowrap !important;
+  max-width: 95% !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  box-shadow: 0 1pt 2pt rgba(0,0,0,0.15) !important;
+  -webkit-print-color-adjust: exact !important;
+  print-color-adjust: exact !important;
+  
+  height: auto !important;
+  line-height: 1.2 !important;
+}
+
+/* Precio mayoreo - más compacto para 3x3 grid */
+.product-price-wholesale-optimized {
+  display: table !important;
+  width: 90% !important;
+  margin: 0 auto !important;
+  font-size: ${Math.max(config.priceSize - 2, 6)}pt !important;
+  color: ${template.colors.text} !important;
+  background: rgba(0,0,0,0.03) !important;
+  padding: 1mm !important;
+  border-radius: 4px !important;
+  border: 0.25pt solid ${template.colors.accent}50 !important;
+  text-align: center !important;
+  -webkit-print-color-adjust: exact !important;
+  table-layout: fixed !important;
+}
+
+.wholesale-label-optimized {
+  font-size: ${Math.max(config.priceSize - 3, 5)}pt !important;
+  font-weight: 500 !important;
+  color: ${template.colors.text}80 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.2pt !important;
+  display: block !important;
+  margin-bottom: 0.5mm !important;
+  line-height: 1 !important;
+}
+
+.wholesale-price-optimized {
+  font-weight: 700 !important;
+  color: ${template.colors.primary} !important;
+  font-size: ${Math.max(config.priceSize - 1, 7)}pt !important;
+  display: block !important;
+  line-height: 1.1 !important;
+  margin-bottom: 0.5mm !important;
+}
+
+.wholesale-min-optimized {
+  font-size: ${Math.max(config.priceSize - 4, 5)}pt !important;
+  color: ${template.colors.text}60 !important;
+  font-weight: 400 !important;
+  font-style: italic !important;
+  display: block !important;
+  line-height: 1 !important;
+}
+
+/* ===== AJUSTES PARA GRID 3X3 ===== */
+@media print {
+  .product-pricing-optimized {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+  
+  .product-price-retail-optimized,
+  .product-price-wholesale-optimized {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+}
       
       /* ===== CELDA VACÍA PARA COMPLETAR GRID ===== */
       .empty-cell {
