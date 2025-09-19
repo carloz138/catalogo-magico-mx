@@ -244,18 +244,18 @@ export class PuppeteerServiceClient {
       
       /* Reset absoluto */
       * {
-        margin: 0 !important;
-        padding: 0 !important;
-        box-sizing: border-box !important;
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-        color-adjust: exact !important;
-      }
+  margin: 0 !important;
+  padding: 0 !important;
+  box-sizing: border-box !important;
+  -webkit-print-color-adjust: exact !important;
+  print-color-adjust: exact !important;
+  color-adjust: exact !important;
+}
       
       /* @page optimizado */
-      @page {
+            @page {
         size: A4 portrait;
-        margin: ${OPTIMIZED_LAYOUT.PAGE.MARGIN}mm;
+        margin: 6mm; /* FIJO: sin variables */
         marks: none;
         bleed: 0;
         orphans: 1;
