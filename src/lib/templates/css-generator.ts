@@ -677,9 +677,9 @@ export class TemplateGenerator {
     const pageHeight = 297;
     
     const marginMap = { 
-      alta: 8,
-      media: 10,
-      baja: 12
+      alta: 6,
+      media: 7,
+      baja: 8
     };
     const margin = marginMap[template.density as keyof typeof marginMap] || 10;
     
