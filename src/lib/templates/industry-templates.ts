@@ -1,5 +1,5 @@
 // src/lib/templates/industry-templates.ts
-// 🎯 SISTEMA DE TEMPLATES ACTUALIZADO - Enero 2025
+// 🎯 SISTEMA DE TEMPLATES ACTUALIZADO - Enero 2025 - CON PRECIOS MAYOREO
 
 // ===== IMPORTS =====
 import { TEMPLATES_ENERO_2025, CHANGELOG_ENERO_2025 } from './templates-enero-2025';
@@ -41,15 +41,15 @@ export interface IndustryTemplate {
     spacing: 'compacto' | 'normal' | 'amplio';
   };
   
- // Información que se muestra
-showInfo: {
-  description: boolean;
-  sku: boolean;
-  category: boolean;
-  specifications: boolean;
-  wholesalePrice?: boolean;  // ✅ AGREGA ? para hacerla opcional
-  wholesaleMinQty?: boolean; // ✅ AGREGA ? para hacerla opcional
-};
+  // Información que se muestra - ACTUALIZADA CON PRECIOS MAYOREO
+  showInfo: {
+    description: boolean;
+    sku: boolean;
+    category: boolean;
+    specifications: boolean;
+    wholesalePrice: boolean;  // ✅ AHORA REQUERIDO
+    wholesaleMinQty: boolean; // ✅ AHORA REQUERIDO
+  };
 }
 
 // ===== CONFIGURACIONES POR DENSIDAD =====
@@ -74,7 +74,7 @@ const DENSITY_CONFIG = {
   }
 };
 
-// ===== TEMPLATES ORIGINALES =====
+// ===== TEMPLATES ORIGINALES ACTUALIZADOS =====
 const ORIGINAL_TEMPLATES: Record<string, IndustryTemplate> = {
   
   // JOYERÍA
@@ -108,7 +108,9 @@ const ORIGINAL_TEMPLATES: Record<string, IndustryTemplate> = {
       description: false,
       sku: true,
       category: false,
-      specifications: false
+      specifications: false,
+      wholesalePrice: true,    // ✅ AGREGADO
+      wholesaleMinQty: true    // ✅ AGREGADO
     }
   },
 
@@ -142,7 +144,9 @@ const ORIGINAL_TEMPLATES: Record<string, IndustryTemplate> = {
       description: true,
       sku: true,
       category: true,
-      specifications: false
+      specifications: false,
+      wholesalePrice: true,    // ✅ AGREGADO
+      wholesaleMinQty: true    // ✅ AGREGADO
     }
   },
 
@@ -177,7 +181,9 @@ const ORIGINAL_TEMPLATES: Record<string, IndustryTemplate> = {
       description: true,
       sku: false,
       category: true,
-      specifications: false
+      specifications: false,
+      wholesalePrice: true,    // ✅ AGREGADO
+      wholesaleMinQty: true    // ✅ AGREGADO
     }
   },
 
@@ -211,7 +217,9 @@ const ORIGINAL_TEMPLATES: Record<string, IndustryTemplate> = {
       description: true,
       sku: true,
       category: true,
-      specifications: false
+      specifications: false,
+      wholesalePrice: true,    // ✅ AGREGADO
+      wholesaleMinQty: true    // ✅ AGREGADO
     }
   },
 
@@ -246,7 +254,9 @@ const ORIGINAL_TEMPLATES: Record<string, IndustryTemplate> = {
       description: true,
       sku: true,
       category: true,
-      specifications: true
+      specifications: true,
+      wholesalePrice: true,    // ✅ AGREGADO
+      wholesaleMinQty: true    // ✅ AGREGADO
     }
   },
 
@@ -280,7 +290,9 @@ const ORIGINAL_TEMPLATES: Record<string, IndustryTemplate> = {
       description: true,
       sku: true,
       category: true,
-      specifications: true
+      specifications: true,
+      wholesalePrice: true,    // ✅ AGREGADO
+      wholesaleMinQty: true    // ✅ AGREGADO
     }
   },
 
@@ -315,7 +327,9 @@ const ORIGINAL_TEMPLATES: Record<string, IndustryTemplate> = {
       description: true,
       sku: true,
       category: true,
-      specifications: true
+      specifications: true,
+      wholesalePrice: true,    // ✅ AGREGADO
+      wholesaleMinQty: true    // ✅ AGREGADO
     }
   },
 
@@ -350,7 +364,9 @@ const ORIGINAL_TEMPLATES: Record<string, IndustryTemplate> = {
       description: true,
       sku: false,
       category: false,
-      specifications: false
+      specifications: false,
+      wholesalePrice: true,    // ✅ AGREGADO
+      wholesaleMinQty: true    // ✅ AGREGADO
     }
   },
 
@@ -384,7 +400,9 @@ const ORIGINAL_TEMPLATES: Record<string, IndustryTemplate> = {
       description: true,
       sku: false,
       category: true,
-      specifications: false
+      specifications: false,
+      wholesalePrice: true,    // ✅ AGREGADO
+      wholesaleMinQty: true    // ✅ AGREGADO
     }
   },
 
@@ -419,7 +437,9 @@ const ORIGINAL_TEMPLATES: Record<string, IndustryTemplate> = {
       description: true,
       sku: false,
       category: true,
-      specifications: false
+      specifications: false,
+      wholesalePrice: true,    // ✅ AGREGADO
+      wholesaleMinQty: true    // ✅ AGREGADO
     }
   },
 
@@ -454,7 +474,9 @@ const ORIGINAL_TEMPLATES: Record<string, IndustryTemplate> = {
       description: true,
       sku: true,
       category: true,
-      specifications: true
+      specifications: true,
+      wholesalePrice: true,    // ✅ AGREGADO
+      wholesaleMinQty: true    // ✅ AGREGADO
     }
   }
 };
@@ -517,18 +539,22 @@ export const INDUSTRY_MAP = {
   }
 } as const;
 
-// ===== HELPER FUNCTION PARA DEFAULTS DE MAYOREO =====
+// ===== HELPER FUNCTION ACTUALIZADA PARA MAYOREO =====
 export const addWholesaleDefaults = (template: Partial<IndustryTemplate>): IndustryTemplate => {
   return {
     ...template,
     showInfo: {
-      ...template.showInfo,
+      description: template.showInfo?.description ?? true,
+      sku: template.showInfo?.sku ?? false,
+      category: template.showInfo?.category ?? true,
+      specifications: template.showInfo?.specifications ?? false,
       wholesalePrice: template.showInfo?.wholesalePrice ?? true,
       wholesaleMinQty: template.showInfo?.wholesaleMinQty ?? true
     }
   } as IndustryTemplate;
 };
 
+// ===== FUNCIONES HELPER ACTUALIZADAS =====
 export const getTemplatesByIndustry = (industry: IndustryType): IndustryTemplate[] => {
   return Object.values(INDUSTRY_TEMPLATES).filter(template => template.industry === industry);
 };
@@ -545,8 +571,13 @@ export const getPremiumTemplates = (): IndustryTemplate[] => {
   return Object.values(INDUSTRY_TEMPLATES).filter(template => template.isPremium);
 };
 
+// ✅ FUNCIÓN GETTEMPLATE ACTUALIZADA CON MAYOREO GARANTIZADO
 export const getTemplateById = (id: string): IndustryTemplate | null => {
-  return INDUSTRY_TEMPLATES[id] || null;
+  const template = INDUSTRY_TEMPLATES[id];
+  if (!template) return null;
+  
+  // Asegurar que el template tenga configuración de mayoreo
+  return addWholesaleDefaults(template);
 };
 
 // ===== RECOMENDACIONES MEJORADAS CON NUEVOS TEMPLATES =====
@@ -589,7 +620,8 @@ export const getRecommendedTemplates = (industry?: IndustryType, productCount?: 
     recommendations.push(...popular);
   }
   
-  return recommendations.slice(0, 6);
+  // Asegurar configuración de mayoreo en todas las recomendaciones
+  return recommendations.slice(0, 6).map(addWholesaleDefaults);
 };
 
 // ===== ESTADÍSTICAS DEL SISTEMA =====
