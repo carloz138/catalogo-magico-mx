@@ -9,16 +9,18 @@ import { PuppeteerServiceClient } from '@/lib/pdf/puppeteer-service-client';
 import { generateBrowserCompatiblePDF } from '@/lib/pdf/browser-pdf-generator';
 import { TemplateAuditSystem } from '@/lib/templates/template-audit-system';
 
-interface Product {
-  id: string;
-  name: string;
-  description?: string;
-  price_retail: number;
-  image_url: string;
-  sku?: string;
-  category?: string;
-  specifications?: string;
-}
+  interface Product {
+    id: string;
+    name: string;
+    description?: string;
+    price_retail: number;
+    price_wholesale?: number;  // NUEVO: Precio de mayoreo
+    wholesale_min_qty?: number;  // NUEVO: Cantidad mínima para mayoreo
+    image_url: string;
+    sku?: string;
+    category?: string;
+    specifications?: string;
+  }
 
 interface BusinessInfo {
   business_name: string;
