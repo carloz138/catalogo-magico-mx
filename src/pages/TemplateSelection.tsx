@@ -106,6 +106,7 @@ const TemplateSelection = () => {
   // Estados principales
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
   const [selectedProducts, setSelectedProducts] = useState<Product[]>([]);
+  const [catalogTitle, setCatalogTitle] = useState<string>('');
   const [generating, setGenerating] = useState(false);
   const [loading, setLoading] = useState(true);
   const [generationProgress, setGenerationProgress] = useState(0);
@@ -160,6 +161,12 @@ const TemplateSelection = () => {
   const loadSelectedProducts = async () => {
     const productsData = localStorage.getItem('selectedProductsData');
     const productsIds = localStorage.getItem('selectedProducts');
+    const catalogTitleFromStorage = localStorage.getItem('catalogTitle');
+    
+    // Cargar título personalizado si existe
+    if (catalogTitleFromStorage) {
+      setCatalogTitle(catalogTitleFromStorage);
+    }
     
     if (productsData) {
       const products = JSON.parse(productsData);

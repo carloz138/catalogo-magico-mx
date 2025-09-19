@@ -252,7 +252,7 @@ export const useProductsLogic = () => {
     setShowCatalogPreview(true);
   };
 
-  const confirmCreateCatalog = async () => {
+  const confirmCreateCatalog = async (catalogTitle: string) => {
     try {
       const selectedProductsData = products
         .filter(p => selectedProducts.includes(p.id))
@@ -286,8 +286,9 @@ export const useProductsLogic = () => {
           updated_at: product.updated_at
         }));
 
-      // Guardar en localStorage para TemplateSelection
+      // Guardar en localStorage para TemplateSelection (incluyendo el título personalizado)
       localStorage.setItem('selectedProductsData', JSON.stringify(selectedProductsData));
+      localStorage.setItem('catalogTitle', catalogTitle); // Guardar el título personalizado
       localStorage.setItem('businessInfo', JSON.stringify({
         business_name: 'Mi Empresa'
       }));

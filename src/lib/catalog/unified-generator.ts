@@ -695,11 +695,12 @@ private static async generateWithPuppeteerService(
       
       // Guardar en BD
       const catalogRecord = await this.saveCatalogRecord(
-        userId,
-        template.id,
-        products,
-        businessInfo,
+        userId, 
+        template.id, 
+        products, 
+        businessInfo, 
         template,
+        '', // catalogTitle por defecto
         { generationMethod: 'classic', pdfSuccess: false, templateQuality: 80 }
       );
       
@@ -745,6 +746,7 @@ private static async generateWithPuppeteerService(
     products: Product[],
     businessInfo: BusinessInfo,
     template: IndustryTemplate,
+    catalogTitle: string,
     metadata: {
       generationMethod: 'puppeteer' | 'dynamic' | 'classic';
       pdfSuccess: boolean;
@@ -757,7 +759,7 @@ private static async generateWithPuppeteerService(
     try {
       const catalogData = {
         user_id: userId,
-        name: `Catálogo ${template.displayName} - ${new Date().toLocaleDateString('es-MX')}`,
+        name: catalogTitle || `Catálogo ${template.displayName} - ${new Date().toLocaleDateString('es-MX')}`,
         product_ids: products.map(p => p.id),
         template_style: templateId,
         brand_colors: {

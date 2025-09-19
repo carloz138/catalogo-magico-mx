@@ -1,10 +1,11 @@
 // /src/components/products/ProductModals.tsx
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { 
   ZoomIn, 
@@ -24,7 +25,7 @@ interface ProductModalsProps {
   selectedProduct: Product | null;
   selectedProducts: string[];
   products: Product[];
-  confirmCreateCatalog: () => void;
+  confirmCreateCatalog: (catalogTitle: string) => void;
 }
 
 export const ProductModals: React.FC<ProductModalsProps> = ({
@@ -37,6 +38,16 @@ export const ProductModals: React.FC<ProductModalsProps> = ({
   products,
   confirmCreateCatalog
 }) => {
+  const [catalogTitle, setCatalogTitle] = useState('');
+
+  // Generar título sugerido cuando se abre el modal
+  React.useEffect(() => {
+    if (showCatalogPreview && !catalogTitle) {
+      const today = new Date().toLocaleDateString('es-MX');
+      setCatalogTitle(`Mi Catálogo - ${today}`);
+    }
+  }, [showCatalogPreview, catalogTitle]);
+
   return (
     <>
       {/* Modal para ver producto */}
@@ -148,6 +159,23 @@ export const ProductModals: React.FC<ProductModalsProps> = ({
             products={products}
           />
 
+          {/* Campo para título del catálogo */}
+          <div className="space-y-2 pt-4 border-t">
+            <Label htmlFor="catalog-title" className="text-sm font-medium">
+              Título del Catálogo
+            </Label>
+            <Input
+              id="catalog-title"
+              value={catalogTitle}
+              onChange={(e) => setCatalogTitle(e.target.value)}
+              placeholder="Ingresa el título de tu catálogo"
+              className="w-full"
+            />
+            <p className="text-xs text-gray-500">
+              Este título aparecerá en tu catálogo PDF y en la lista de catálogos
+            </p>
+          </div>
+
           {/* Botones de acción */}
           <div className="flex gap-3 pt-4 border-t">
             <Button
@@ -159,10 +187,15 @@ export const ProductModals: React.FC<ProductModalsProps> = ({
             </Button>
             <Button
               onClick={() => {
+                if (!catalogTitle.trim()) {
+                  return; // No hacer nada si no hay título
+                }
                 setShowCatalogPreview(false);
-                confirmCreateCatalog();
+                confirmCreateCatalog(catalogTitle.trim());
+                setCatalogTitle(''); // Limpiar el campo
               }}
-              className="flex-1 bg-purple-600 hover:bg-purple-700"
+              disabled={!catalogTitle.trim()}
+              className="flex-1 bg-purple-600 hover:bg-purple-700 disabled:opacity-50"
             >
               <Palette className="h-4 w-4 mr-2" />
               Crear Catálogo ({selectedProducts.length})

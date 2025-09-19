@@ -115,7 +115,8 @@ const incrementCatalogUsage = async (userId: string): Promise<{ success: boolean
 export const createCatalog = async (
   selectedProducts: any[],
   businessInfo: any,
-  templateStyle: string = 'minimalista-gris'
+  templateStyle: string = 'minimalista-gris',
+  catalogTitle?: string
 ): Promise<{ success: boolean; catalog_id?: string; error?: string }> => {
   try {
     console.log('Iniciando creación de catálogo');
@@ -169,7 +170,7 @@ export const createCatalog = async (
     
     const catalogData = {
       user_id: user.id,
-      name: `Catálogo ${template.displayName} - ${new Date().toLocaleDateString()}`,
+      name: catalogTitle || `Catálogo ${template.displayName} - ${new Date().toLocaleDateString()}`,
       product_ids: selectedProducts.map(p => p.id),
       template_style: templateStyle,
       brand_colors: {

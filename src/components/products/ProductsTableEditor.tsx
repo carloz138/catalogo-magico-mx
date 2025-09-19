@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { 
   Save, X, Edit, Trash2, Plus, Eye, Package, 
@@ -190,6 +191,7 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
   
   // Estados de modales para catálogo
   const [showCatalogPreview, setShowCatalogPreview] = useState(false);
+  const [catalogTitle, setCatalogTitle] = useState('');
   
   // Estados de filtros
   const [filters, setFilters] = useState<ProductFilters>({
@@ -411,10 +413,22 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
       return;
     }
 
+    // Generar título sugerido
+    const today = new Date().toLocaleDateString('es-MX');
+    setCatalogTitle(`Mi Catálogo - ${today}`);
     setShowCatalogPreview(true);
   };
 
   const confirmCreateCatalog = async () => {
+    if (!catalogTitle.trim()) {
+      toast({
+        title: "Título requerido",
+        description: "Por favor ingresa un título para tu catálogo",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       const selectedProductsData = products
         .filter(p => selectedProducts.includes(p.id))
@@ -432,8 +446,9 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
           created_at: product.created_at
         }));
 
-      // Guardar en localStorage para TemplateSelection
+      // Guardar en localStorage para TemplateSelection (incluyendo el título)
       localStorage.setItem('selectedProductsData', JSON.stringify(selectedProductsData));
+      localStorage.setItem('catalogTitle', catalogTitle.trim()); // Guardar el título personalizado
       localStorage.setItem('businessInfo', JSON.stringify({
         business_name: 'Mi Empresa'
       }));
@@ -1028,10 +1043,27 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
               <div className="text-center">
                 <Package className="w-16 h-16 mx-auto mb-4 text-purple-600" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  ¿Crear catálogo con {selectedProducts.length} productos?
+                  {selectedProducts.length} productos seleccionados
                 </h3>
                 <p className="text-gray-600 mb-6">
                   Se generará un catálogo profesional con los productos seleccionados
+                </p>
+              </div>
+
+              {/* Campo para título del catálogo */}
+              <div className="space-y-2">
+                <Label htmlFor="catalog-title-editor" className="text-sm font-medium">
+                  Título del Catálogo
+                </Label>
+                <Input
+                  id="catalog-title-editor"
+                  value={catalogTitle}
+                  onChange={(e) => setCatalogTitle(e.target.value)}
+                  placeholder="Ingresa el título de tu catálogo"
+                  className="w-full"
+                />
+                <p className="text-xs text-gray-500">
+                  Este título aparecerá en tu catálogo PDF y en la lista de catálogos
                 </p>
               </div>
 
@@ -1044,7 +1076,8 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
                 </Button>
                 <Button 
                   onClick={confirmCreateCatalog}
-                  className="bg-purple-600 hover:bg-purple-700"
+                  disabled={!catalogTitle.trim()}
+                  className="bg-purple-600 hover:bg-purple-700 disabled:opacity-50"
                 >
                   <BookOpen className="w-4 h-4 mr-2" />
                   Crear Catálogo
