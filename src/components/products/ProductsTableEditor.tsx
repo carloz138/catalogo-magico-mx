@@ -1301,17 +1301,44 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
               <div className="flex justify-center">
                 <div className="relative w-80 h-80 bg-gray-100 rounded-lg overflow-hidden">
                   {getDisplayImageUrl(selectedProduct) ? (
-                    <img
-                      src={getDisplayImageUrl(selectedProduct)}
-                      alt={selectedProduct.name}
-                      className="w-full h-full object-contain"
-                      onError={(e) => {
-                        e.currentTarget.src = '/placeholder.svg';
-                      }}
-                    />
+                    <>
+                      <img
+                        src={getDisplayImageUrl(selectedProduct)}
+                        alt={selectedProduct.name}
+                        className="w-full h-full object-contain"
+                        onError={(e) => {
+                          console.error('Error loading image:', getDisplayImageUrl(selectedProduct));
+                          // Intentar con la imagen original si la procesada falla
+                          if (selectedProduct.processed_image_url && e.currentTarget.src !== selectedProduct.original_image_url) {
+                            e.currentTarget.src = selectedProduct.original_image_url || '';
+                          } else {
+                            // Mostrar icono si todas las imágenes fallan
+                            e.currentTarget.style.display = 'none';
+                            const parent = e.currentTarget.parentElement;
+                            if (parent && !parent.querySelector('.fallback-icon')) {
+                              const fallback = document.createElement('div');
+                              fallback.className = 'fallback-icon w-full h-full flex items-center justify-center text-gray-400';
+                              fallback.innerHTML = '<div class="text-center"><div class="w-16 h-16 mx-auto mb-2 opacity-50"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg></div><p class="text-sm">Imagen no disponible</p></div>';
+                              parent.appendChild(fallback);
+                            }
+                          }
+                        }}
+                        onLoad={() => {
+                          console.log('Image loaded successfully:', getDisplayImageUrl(selectedProduct));
+                        }}
+                      />
+                      {/* Mostrar información de debug */}
+                      <div className="absolute top-2 right-2 bg-black/70 text-white text-xs p-1 rounded">
+                        {selectedProduct.processed_image_url ? 'Procesada' : 
+                         selectedProduct.original_image_url ? 'Original' : 'Sin imagen'}
+                      </div>
+                    </>
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-gray-400">
-                      <Package className="w-16 h-16" />
+                      <div className="text-center">
+                        <Package className="w-16 h-16 mx-auto mb-2" />
+                        <p className="text-sm">Sin imagen disponible</p>
+                      </div>
                     </div>
                   )}
                 </div>
