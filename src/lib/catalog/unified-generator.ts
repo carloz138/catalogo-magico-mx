@@ -1,5 +1,5 @@
 // src/lib/catalog/unified-generator.ts
-// 🚀 GENERADOR UNIFICADO ACTUALIZADO - INTEGRA TODOS LOS ARREGLOS SIN CORTES
+// 🚀 GENERADOR UNIFICADO ACTUALIZADO - CON ORDENAMIENTO ALFABÉTICO
 
 import { supabase } from '@/integrations/supabase/client';
 import { IndustryTemplate, getTemplateById } from '@/lib/templates/industry-templates';
@@ -9,20 +9,19 @@ import { PuppeteerServiceClient } from '@/lib/pdf/puppeteer-service-client';
 import { generateBrowserCompatiblePDF } from '@/lib/pdf/browser-pdf-generator';
 import { TemplateAuditSystem } from '@/lib/templates/template-audit-system';
 
-  interface Product {
-    id: string;
-    name: string;
-    description?: string;
-    price_retail: number;
-    price_wholesale?: number;  // NUEVO: Precio de mayoreo
-    wholesale_min_qty?: number;  // NUEVO: Cantidad mínima para mayoreo
-    image_url: string;
-    sku?: string;
-    category?: string;
-    specifications?: string;
-  }
+interface Product {
+  id: string;
+  name: string;
+  description?: string;
+  price_retail: number;
+  price_wholesale?: number;
+  wholesale_min_qty?: number;
+  image_url: string;
+  sku?: string;
+  category?: string;
+  specifications?: string;
+}
 
-// Interfaz específica para el catálogo que incluye todos los campos necesarios
 interface BusinessInfo {
   business_name: string;
   email?: string;
@@ -35,9 +34,6 @@ interface BusinessInfo {
     instagram?: string;
     twitter?: string;
   };
-  logo_url?: string;
-  primary_color?: string;
-  secondary_color?: string;
 }
 
 interface GenerationResult {
@@ -71,16 +67,16 @@ interface GenerationOptions {
   showProgress?: boolean;
   onProgress?: (progress: number) => void;
   forceClassicMode?: boolean;
-  qualityCheck?: boolean; // Nueva opción para verificar calidad del template
-  autoFix?: boolean; // Nueva opción para auto-corregir templates
-  skipAudit?: boolean; // Opción para saltar auditoría si ya fue auditado
-  catalogTitle?: string; // Título personalizado del catálogo
+  qualityCheck?: boolean;
+  autoFix?: boolean;
+  skipAudit?: boolean;
+  catalogTitle?: string;
 }
 
 export class UnifiedCatalogGenerator {
   
   /**
-   * 🎯 FUNCIÓN PRINCIPAL MEJORADA CON AUDITORÍA DE CALIDAD
+   * 🎯 FUNCIÓN PRINCIPAL MEJORADA CON AUDITORÍA DE CALIDAD Y ORDENAMIENTO ALFABÉTICO
    */
   static async generateCatalog(
     products: Product[],
@@ -89,6 +85,11 @@ export class UnifiedCatalogGenerator {
     userId: string,
     options: GenerationOptions = {}
   ): Promise<GenerationResult> {
+    
+    console.log('🔍 DEBUG - generateCatalog recibió options:', options);
+    console.log('🔍 DEBUG - catalogTitle en options:', options.catalogTitle);
+    console.log('🔍 DEBUG - generateCatalog businessInfo recibido:', JSON.stringify(businessInfo, null, 2));
+    
     const startTime = Date.now();
     const warnings: string[] = [];
     
@@ -115,26 +116,23 @@ export class UnifiedCatalogGenerator {
       if (options.onProgress) options.onProgress(10);
       
       // 2. OBTENER Y AUDITAR TEMPLATE
-      // 2. OBTENER Y AUDITAR TEMPLATE (NUEVO SISTEMA V2.0)
-let auditedTemplate = AuditedTemplateManager.getAuditedTemplateById(templateId);
-let template: IndustryTemplate;
+      let auditedTemplate = AuditedTemplateManager.getAuditedTemplateById(templateId);
+      let template: IndustryTemplate;
 
-if (auditedTemplate) {
-  // Convertir AuditedTemplate a IndustryTemplate para compatibilidad
-  template = this.convertAuditedToIndustryTemplate(auditedTemplate);
-  console.log(`✅ Template encontrado en sistema V2.0: ${template.displayName}`);
-} else {
-  // Fallback al sistema viejo
-  template = getTemplateById(templateId);
-  if (!template) {
-    return {
-      success: false,
-      error: 'TEMPLATE_NOT_FOUND',
-      message: `Template ${templateId} no encontrado en ningún sistema`
-    };
-  }
-  console.log(`⚠️ Template encontrado en sistema legacy: ${template.displayName}`);
-}
+      if (auditedTemplate) {
+        template = this.convertAuditedToIndustryTemplate(auditedTemplate);
+        console.log(`✅ Template encontrado en sistema V2.0: ${template.displayName}`);
+      } else {
+        template = getTemplateById(templateId);
+        if (!template) {
+          return {
+            success: false,
+            error: 'TEMPLATE_NOT_FOUND',
+            message: `Template ${templateId} no encontrado en ningún sistema`
+          };
+        }
+        console.log(`⚠️ Template encontrado en sistema legacy: ${template.displayName}`);
+      }
       
       // 3. AUDITORÍA DE CALIDAD DEL TEMPLATE (NUEVA)
       let templateQuality = 100;
@@ -152,7 +150,6 @@ if (auditedTemplate) {
           };
         }
         
-        // Auto-corrección si está habilitada
         if (options.autoFix !== false && auditResult.status === 'needs_fix') {
           console.log('🔧 Auto-corrigiendo template...');
           const fixedTemplates = TemplateAuditSystem.generateFixedTemplates([auditResult]);
@@ -162,7 +159,6 @@ if (auditedTemplate) {
           }
         }
         
-        // Agregar warnings por issues del template
         if (auditResult.issues.length > 0) {
           const criticalIssues = auditResult.issues.filter(i => i.severity === 'critical').length;
           const highIssues = auditResult.issues.filter(i => i.severity === 'high').length;
@@ -177,6 +173,23 @@ if (auditedTemplate) {
       }
       
       if (options.onProgress) options.onProgress(20);
+      
+      // 📋 ORDENAMIENTO ALFABÉTICO DE PRODUCTOS (NUEVO)
+      console.log('📋 Ordenando productos alfabéticamente...');
+      const originalOrder = products.map(p => p.name).slice(0, 3);
+      products.sort((a, b) => {
+        const nameA = (a.name || '').toLowerCase().trim();
+        const nameB = (b.name || '').toLowerCase().trim();
+        return nameA.localeCompare(nameB, 'es', { numeric: true });
+      });
+      const sortedOrder = products.map(p => p.name).slice(0, 3);
+      console.log('✅ Productos ordenados alfabéticamente:', { 
+        antes: originalOrder, 
+        después: sortedOrder,
+        total: products.length 
+      });
+      
+      if (options.onProgress) options.onProgress(22);
       
       // 4. VALIDAR ACCESO PREMIUM
       if (template.isPremium) {
@@ -276,7 +289,6 @@ if (auditedTemplate) {
           }
           
         } else {
-          // Método clásico directo
           const result = await this.generateWithClassicEngine(products, businessInfo, template, userId, options);
           return { 
             ...result, 
@@ -288,7 +300,6 @@ if (auditedTemplate) {
       } catch (generationError) {
         console.error('❌ Error en generación primaria:', generationError);
         
-        // Fallback final a método clásico
         console.log('🔄 Usando fallback final (clásico)...');
         warnings.push('Error en método primario, usando fallback clásico');
         
@@ -370,46 +381,44 @@ if (auditedTemplate) {
     }
   }
 
- /**
- * 🔄 CONVERTIR AUDITED TEMPLATE A INDUSTRY TEMPLATE PARA COMPATIBILIDAD
- */
-private static convertAuditedToIndustryTemplate(auditedTemplate: AuditedTemplate): IndustryTemplate {
-  // Crear objeto base con todas las propiedades requeridas
-  const converted = {
-    id: auditedTemplate.id,
-    name: auditedTemplate.displayName,
-    displayName: auditedTemplate.displayName,
-    description: auditedTemplate.description,
-    industry: auditedTemplate.industry,
-    density: auditedTemplate.density,
-    productsPerPage: auditedTemplate.productsPerPage,
-    gridColumns: auditedTemplate.gridColumns,
-    colors: auditedTemplate.colors,
-    design: auditedTemplate.design,
-    showInfo: {
-  category: auditedTemplate.showInfo?.category ?? true,
-  description: auditedTemplate.showInfo?.description ?? true,
-  sku: auditedTemplate.showInfo?.sku ?? false,
-  specifications: auditedTemplate.showInfo?.specifications ?? false,
-  wholesalePrice: auditedTemplate.showInfo?.wholesalePrice ?? true,      // ✅ NUEVO: Default true
-  wholesaleMinQty: auditedTemplate.showInfo?.wholesaleMinQty ?? true     // ✅ NUEVO: Default true
-},
-    isPremium: auditedTemplate.isPremium,
-    planLevel: auditedTemplate.planLevel,
-    tags: auditedTemplate.tags,
+  /**
+   * 🔄 CONVERTIR AUDITED TEMPLATE A INDUSTRY TEMPLATE PARA COMPATIBILIDAD
+   */
+  private static convertAuditedToIndustryTemplate(auditedTemplate: AuditedTemplate): IndustryTemplate {
+    const converted = {
+      id: auditedTemplate.id,
+      name: auditedTemplate.displayName,
+      displayName: auditedTemplate.displayName,
+      description: auditedTemplate.description,
+      industry: auditedTemplate.industry,
+      density: auditedTemplate.density,
+      productsPerPage: auditedTemplate.productsPerPage,
+      gridColumns: auditedTemplate.gridColumns,
+      colors: auditedTemplate.colors,
+      design: auditedTemplate.design,
+      showInfo: {
+        category: auditedTemplate.showInfo?.category ?? true,
+        description: auditedTemplate.showInfo?.description ?? true,
+        sku: auditedTemplate.showInfo?.sku ?? false,
+        specifications: auditedTemplate.showInfo?.specifications ?? false,
+        wholesalePrice: auditedTemplate.showInfo?.wholesalePrice ?? true,
+        wholesaleMinQty: auditedTemplate.showInfo?.wholesaleMinQty ?? true
+      },
+      isPremium: auditedTemplate.isPremium,
+      planLevel: auditedTemplate.planLevel,
+      tags: auditedTemplate.tags,
+      
+      imageSize: { width: 200, height: 200 },
+      category: auditedTemplate.category,
+      borderRadius: auditedTemplate.design?.borderRadius || 8,
+      shadows: auditedTemplate.design?.shadows || true,
+      spacing: auditedTemplate.design?.spacing || 'normal',
+      typography: auditedTemplate.design?.typography || 'modern'
+    };
     
-    // Propiedades específicas de IndustryTemplate con valores por defecto
-    imageSize: { width: 200, height: 200 }, // Objeto correcto en lugar de string
-    category: auditedTemplate.category,
-    borderRadius: auditedTemplate.design?.borderRadius || 8,
-    shadows: auditedTemplate.design?.shadows || true,
-    spacing: auditedTemplate.design?.spacing || 'normal',
-    typography: auditedTemplate.design?.typography || 'modern'
-  };
-  
-  // Forzar conversión de tipo para compatibilidad
-  return converted as unknown as IndustryTemplate;
-}
+    return converted as unknown as IndustryTemplate;
+  }
+
   /**
    * 🧠 SELECCIÓN INTELIGENTE DE MÉTODO DE GENERACIÓN
    */
@@ -420,30 +429,24 @@ private static convertAuditedToIndustryTemplate(auditedTemplate: AuditedTemplate
     options: GenerationOptions
   ): 'puppeteer' | 'dynamic' | 'classic' {
     
-    // Forzar modo clásico si se especifica
     if (options.forceClassicMode) {
       return 'classic';
     }
     
-    // Si la calidad del template es muy baja, usar clásico (más robusto)
     if (templateQuality < 60) {
       console.log('⚠️ Calidad baja del template, usando método clásico para mayor estabilidad');
       return 'classic';
     }
     
-    // Usar Puppeteer por defecto si está disponible (mejor calidad)
     if (options.usePuppeteerService !== false) {
-      // Para templates con alta complejidad, Puppeteer es mejor
       if (template.design?.shadows || (template.design?.borderRadius || 8) > 10) {
         return 'puppeteer';
       }
       
-      // Para volúmenes grandes, Puppeteer maneja mejor el memory
       if (productCount > 100) {
         return 'puppeteer';
       }
       
-      // Para templates premium, usar la mejor calidad
       if (template.isPremium) {
         return 'puppeteer';
       }
@@ -451,14 +454,11 @@ private static convertAuditedToIndustryTemplate(auditedTemplate: AuditedTemplate
       return 'puppeteer';
     }
     
-    // Usar dinámico como segunda opción
     if (options.useDynamicEngine !== false) {
-      // Dinámico es bueno para volúmenes medianos
       if (productCount >= 10 && productCount <= 200) {
         return 'dynamic';
       }
       
-      // Para templates simples, dinámico funciona bien
       if (!template.design?.shadows && (template.design?.borderRadius || 8) <= 10) {
         return 'dynamic';
       }
@@ -466,7 +466,7 @@ private static convertAuditedToIndustryTemplate(auditedTemplate: AuditedTemplate
       return 'dynamic';
     }
     
-    return 'classic'; // Fallback final
+    return 'classic';
   }
   
   /**
@@ -482,7 +482,6 @@ private static convertAuditedToIndustryTemplate(auditedTemplate: AuditedTemplate
     let isValid = true;
     let isCritical = false;
     
-    // Validar cantidad mínima
     if (products.length === 0) {
       return {
         isValid: false,
@@ -492,7 +491,6 @@ private static convertAuditedToIndustryTemplate(auditedTemplate: AuditedTemplate
       };
     }
     
-    // Validar imágenes faltantes
     const productsWithoutImages = products.filter(p => !p.image_url || p.image_url.trim() === '').length;
     const imagePercentage = ((products.length - productsWithoutImages) / products.length) * 100;
     
@@ -500,19 +498,16 @@ private static convertAuditedToIndustryTemplate(auditedTemplate: AuditedTemplate
       warnings.push(`Solo ${imagePercentage.toFixed(1)}% de productos tienen imágenes. Considera agregar más imágenes para mejor presentación.`);
     }
     
-    // Validar nombres muy largos
     const longNames = products.filter(p => p.name && p.name.length > 50).length;
     if (longNames > products.length * 0.2) {
       warnings.push(`${longNames} productos tienen nombres muy largos que podrían cortarse en el PDF.`);
     }
     
-    // Validar precios
     const productsWithoutPrice = products.filter(p => !p.price_retail || p.price_retail <= 0).length;
     if (productsWithoutPrice > 0) {
       warnings.push(`${productsWithoutPrice} productos sin precio válido.`);
     }
     
-    // Validar densidad vs cantidad
     if (template.density === 'alta' && products.length < 10) {
       warnings.push('Template de alta densidad con pocos productos puede verse espacioso. Considera usar densidad media o baja.');
     }
@@ -521,7 +516,6 @@ private static convertAuditedToIndustryTemplate(auditedTemplate: AuditedTemplate
       warnings.push('Template de baja densidad con muchos productos generará muchas páginas. Considera usar densidad alta.');
     }
     
-    // Validar compatibilidad con productos por página
     if (products.length < template.productsPerPage) {
       warnings.push(`Solo tienes ${products.length} productos pero el template muestra ${template.productsPerPage} por página. El diseño podría verse incompleto.`);
     }
@@ -533,88 +527,83 @@ private static convertAuditedToIndustryTemplate(auditedTemplate: AuditedTemplate
     };
   }
   
-// En tu archivo unified-generator.ts existente, busca y REEMPLAZA esta función:
-
-/**
- // CORRECCIONES PARA unified-generator.ts
-// Solo necesitas reemplazar el método generateWithPuppeteerService (línea ~340 aprox)
-
-/**
- * 🚀 GENERACIÓN CON PUPPETEER SERVICE MEJORADA - CORREGIDA
- */
-private static async generateWithPuppeteerService(
-  products: Product[],
-  businessInfo: BusinessInfo,
-  template: IndustryTemplate,
-  options: GenerationOptions
-): Promise<{ success: boolean; error?: string; stats?: any }> {
-  
-  try {
-    console.log('🚀 Generando con Puppeteer Service (mejorado)...');
+  /**
+   * 🚀 GENERACIÓN CON PUPPETEER SERVICE MEJORADA
+   */
+  private static async generateWithPuppeteerService(
+    products: Product[],
+    businessInfo: BusinessInfo,
+    template: IndustryTemplate,
+    options: GenerationOptions
+  ): Promise<{ success: boolean; error?: string; stats?: any }> {
     
-    // Convertir template a formato Puppeteer
-    const templateConfig = {
-      id: template.id,
-      displayName: template.displayName,
-      productsPerPage: template.productsPerPage,
-      colors: {
-        primary: template.colors.primary,
-        secondary: template.colors.secondary || template.colors.primary,
-        accent: template.colors.accent || template.colors.primary,
-        background: template.colors.background || '#ffffff',
-        text: template.colors.text || '#2c3e50'
-      },
-      layout: template.design?.spacing || 'normal',
-      features: template.showInfo ? 
-        Object.keys(template.showInfo).filter(key => 
-          template.showInfo[key as keyof typeof template.showInfo]
-        ) : [],
-      category: template.industry || 'general'
-    };
-    
-    // 📏 MÁRGENES CORREGIDOS PARA MEJOR COMPATIBILIDAD
-    const puppeteerOptions = {
-      onProgress: options.onProgress,
-      format: 'A4' as const,
-      margin: {
-        top: '12mm',    // CORREGIDO: de 15mm a 12mm
-        right: '12mm',  // CORREGIDO: de 15mm a 12mm  
-        bottom: '12mm', // CORREGIDO: de 25mm a 12mm - CRÍTICO PARA EVITAR SUPERPOSICIÓN
-        left: '12mm'    // CORREGIDO: de 15mm a 12mm
-      },
-      quality: template.isPremium ? 'high' as const : 'medium' as const,
-      catalogTitle: options.catalogTitle
-    };
-    
-    const result = await PuppeteerServiceClient.generatePDF(
-      products,
-      businessInfo,
-      templateConfig,
-      puppeteerOptions
-    );
-    
-    if (result.success) {
-      console.log('✅ Puppeteer Service completado exitosamente');
-      return { 
-        success: true, 
-        stats: result.stats
+    try {
+      console.log('🚀 Generando con Puppeteer Service (mejorado)...');
+      console.log('🔍 DEBUG - UnifiedGenerator businessInfo antes de PuppeteerServiceClient:', businessInfo);
+      
+      const templateConfig = {
+        id: template.id,
+        displayName: template.displayName,
+        productsPerPage: template.productsPerPage,
+        colors: {
+          primary: template.colors.primary,
+          secondary: template.colors.secondary || template.colors.primary,
+          accent: template.colors.accent || template.colors.primary,
+          background: template.colors.background || '#ffffff',
+          text: template.colors.text || '#2c3e50'
+        },
+        layout: template.design?.spacing || 'normal',
+        features: template.showInfo ? 
+          Object.keys(template.showInfo).filter(key => 
+            template.showInfo[key as keyof typeof template.showInfo]
+          ) : [],
+        category: template.industry || 'general'
       };
-    } else {
-      console.error('❌ Error en Puppeteer Service:', result.error);
-      return { 
-        success: false, 
-        error: result.error 
+      
+      const puppeteerOptions = {
+        onProgress: options.onProgress,
+        format: 'A4' as const,
+        margin: {
+          top: '12mm',
+          right: '12mm',
+          bottom: '12mm',
+          left: '12mm'
+        },
+        quality: template.isPremium ? 'high' as const : 'medium' as const,
+        catalogTitle: options.catalogTitle
+      };
+      
+      console.log('🔍 DEBUG - Pasando businessInfo a PuppeteerServiceClient:', JSON.stringify(businessInfo, null, 2));
+      
+      const result = await PuppeteerServiceClient.generatePDF(
+        products,
+        businessInfo,
+        templateConfig,
+        puppeteerOptions
+      );
+      
+      if (result.success) {
+        console.log('✅ Puppeteer Service completado exitosamente');
+        return { 
+          success: true, 
+          stats: result.stats
+        };
+      } else {
+        console.error('❌ Error en Puppeteer Service:', result.error);
+        return { 
+          success: false, 
+          error: result.error 
+        };
+      }
+      
+    } catch (error) {
+      console.error('❌ Excepción en Puppeteer Service:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Error desconocido en Puppeteer'
       };
     }
-    
-  } catch (error) {
-    console.error('❌ Excepción en Puppeteer Service:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Error desconocido en Puppeteer'
-    };
   }
-}
   
   /**
    * 🚀 GENERACIÓN CON DYNAMIC ENGINE (MEJORADA)
@@ -634,7 +623,6 @@ private static async generateWithPuppeteerService(
         throw new Error(`Template ${templateId} no encontrado`);
       }
       
-      // Configuración optimizada para dynamic engine
       const dynamicTemplate = {
         id: template.id,
         displayName: template.displayName,
@@ -697,7 +685,6 @@ private static async generateWithPuppeteerService(
       
       if (options.onProgress) options.onProgress(40);
       
-      // Generar HTML con nuevo sistema robusto
       const htmlContent = TemplateGenerator.generateCatalogHTML(
         products,
         businessInfo,
@@ -706,14 +693,13 @@ private static async generateWithPuppeteerService(
       
       if (options.onProgress) options.onProgress(60);
       
-      // Guardar en BD
       const catalogRecord = await this.saveCatalogRecord(
         userId, 
         template.id, 
         products, 
         businessInfo, 
         template,
-        options.catalogTitle || `Catálogo ${template.displayName} - ${new Date().toLocaleDateString('es-MX')}`, // Usar el título personalizado
+        options.catalogTitle || `Catálogo ${template.displayName} - ${new Date().toLocaleDateString('es-MX')}`,
         { generationMethod: 'classic', pdfSuccess: false, templateQuality: 80 }
       );
       
@@ -721,12 +707,10 @@ private static async generateWithPuppeteerService(
         throw new Error('Error guardando catálogo en base de datos');
       }
       
-      // Generar PDF con mejor compatibilidad
       if (typeof window !== 'undefined') {
         await this.downloadCatalogAsHTMLWithStyles(htmlContent, businessInfo.business_name);
       }
       
-      // Actualizar uso
       await this.updateCatalogUsage(userId);
       
       if (options.onProgress) options.onProgress(100);
@@ -786,7 +770,6 @@ private static async generateWithPuppeteerService(
         total_products: products.length,
         credits_used: 0,
         currency: 'MXN',
-        // METADATA MEJORADA
         generation_metadata: {
           engine: metadata.generationMethod,
           pdf_success: metadata.pdfSuccess,
@@ -796,10 +779,11 @@ private static async generateWithPuppeteerService(
           generated_at: new Date().toISOString(),
           puppeteer_service_used: metadata.generationMethod === 'puppeteer',
           issues_detected: metadata.issues || [],
-          template_version: '2.0', // Nueva versión con arreglos
+          template_version: '2.0',
           generation_warnings: metadata.issues?.length || 0,
           estimated_pages: Math.ceil(products.length / template.productsPerPage),
-          ...metadata // Incluir cualquier metadata adicional
+          products_sorted_alphabetically: true,
+          ...metadata
         }
       };
       
@@ -835,7 +819,6 @@ private static async generateWithPuppeteerService(
     try {
       console.log('📄 Descargando catálogo como HTML mejorado...');
       
-      // Agregar meta tags para mejor visualización
       const enhancedHTML = htmlContent.replace(
         '<head>',
         `<head>
@@ -1035,7 +1018,7 @@ private static async generateWithPuppeteerService(
 // ===== FUNCIONES DE CONVENIENCIA MEJORADAS =====
 
 /**
- * 🎯 FUNCIÓN PRINCIPAL CON AUDITORÍA AUTOMÁTICA
+ * 🎯 FUNCIÓN PRINCIPAL CON AUDITORÍA AUTOMÁTICA Y ORDENAMIENTO ALFABÉTICO
  */
 export const generateCatalog = async (
   products: Product[],
