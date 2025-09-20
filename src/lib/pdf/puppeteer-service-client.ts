@@ -231,478 +231,496 @@ export class PuppeteerServiceClient {
   /**
    * 🎨 CSS COMPLETAMENTE CORREGIDO - SOLUCIÓN TOTAL
    */
-/**
- * 🎨 CSS COMPLETAMENTE CORREGIDO - SOLUCIÓN TOTAL A TODOS LOS PROBLEMAS
- */
-private static generateCorrectedCSS(
-  template: TemplateConfig,
-  quality: 'low' | 'medium' | 'high'
-): string {
-  
-  const qualityConfig = {
-    low: { fontSize: 9, headerSize: 14, priceSize: 10, nameSize: 9 },
-    medium: { fontSize: 10, headerSize: 16, priceSize: 11, nameSize: 10 },
-    high: { fontSize: 11, headerSize: 18, priceSize: 12, nameSize: 11 }
-  };
-  
-  const config = qualityConfig[quality];
-  
-  return `
-    /* ===== SOLUCIÓN COMPLETA - TODOS LOS PROBLEMAS CORREGIDOS ===== */
+  private static generateCorrectedCSS(
+    template: TemplateConfig,
+    quality: 'low' | 'medium' | 'high'
+  ): string {
     
-    /* 🔧 FIX 1: RESET ABSOLUTO CON PRINT COLOR ADJUST */
-    * {
-      margin: 0 !important;
-      padding: 0 !important;
-      box-sizing: border-box !important;
-      -webkit-print-color-adjust: exact !important;
-      print-color-adjust: exact !important;
-      color-adjust: exact !important;
-    }
+    const qualityConfig = {
+      low: { fontSize: 9, headerSize: 14, priceSize: 10, nameSize: 9 },
+      medium: { fontSize: 10, headerSize: 16, priceSize: 11, nameSize: 10 },
+      high: { fontSize: 11, headerSize: 18, priceSize: 12, nameSize: 11 }
+    };
     
-    /* 🔧 FIX 2: @PAGE CORREGIDO - MÁRGENES EXACTOS */
-    @page {
-      size: A4 portrait;
-      margin: 18mm 12mm 18mm 12mm; /* CRÍTICO: Top/Bottom más grandes */
-      marks: none;
-      bleed: 0;
-      orphans: 1;
-      widows: 1;
-      -webkit-print-color-adjust: exact;
-    }
+    const config = qualityConfig[quality];
     
-    /* 🔧 FIX 3: HTML/BODY CORREGIDOS */
-    html {
-      width: 210mm !important;
-      height: 297mm !important;
-      font-size: ${config.fontSize}pt !important;
-      font-family: 'Arial', 'Helvetica', sans-serif !important;
-      background: ${template.colors.background} !important;
-      -webkit-print-color-adjust: exact !important;
-      margin: 0 !important;
-      padding: 0 !important;
-    }
-    
-    body {
-      width: 186mm !important; /* 210 - 24mm margins */
-      min-height: 261mm !important; /* 297 - 36mm margins */
-      margin: 0 auto !important;
-      padding: 0 !important;
-      font-family: 'Arial', 'Helvetica', sans-serif !important;
-      font-size: ${config.fontSize}pt !important;
-      line-height: 1.2 !important;
-      color: ${template.colors.text} !important;
-      background: ${template.colors.background} !important;
-      position: relative !important;
-      -webkit-print-color-adjust: exact !important;
-      print-color-adjust: exact !important;
+    return `
+      /* ===== SOLUCIÓN COMPLETA - TODOS LOS ERRORES CORREGIDOS ===== */
       
-      /* 🔧 FIX 4: ESPACIADO CORRECTO PARA HEADER/FOOTER */
-      padding-top: 20mm !important; /* Espacio para header fijo */
-      padding-bottom: 16mm !important; /* Espacio para footer fijo */
-    }
-    
-    /* 🔧 FIX 5: HEADER FIJO CORREGIDO - POSICIÓN ABSOLUTA */
-    .fixed-header {
-      position: fixed !important;
-      top: 18mm !important; /* Alineado con @page margin */
-      left: 12mm !important;
-      right: 12mm !important;
-      width: 186mm !important; /* Width exacto */
-      height: 14mm !important;
-      background: ${template.colors.primary} !important;
-      background-image: linear-gradient(135deg, ${template.colors.primary}, ${template.colors.secondary}) !important;
-      color: white !important;
-      z-index: 9999 !important; /* Z-index alto */
-      border-radius: 4px !important;
-      overflow: hidden !important;
-      -webkit-print-color-adjust: exact !important;
-      print-color-adjust: exact !important;
-      
-      /* 🔧 FIX 6: TABLE LAYOUT PARA ESTABILIDAD */
-      display: table !important;
-      table-layout: fixed !important;
-    }
-    
-    .header-cell {
-      display: table-cell !important;
-      vertical-align: middle !important;
-      text-align: center !important;
-      width: 100% !important;
-      height: 100% !important;
-      padding: 2mm !important;
-    }
-    
-    .header-business-name {
-      font-size: ${config.headerSize}pt !important;
-      font-weight: 700 !important;
-      color: white !important;
-      text-shadow: 1px 1px 2px rgba(0,0,0,0.3) !important;
-      text-transform: uppercase !important;
-      letter-spacing: 0.3pt !important;
-      margin: 0 !important;
-      line-height: 1.1 !important;
-      word-wrap: break-word !important;
-      -webkit-print-color-adjust: exact !important;
-    }
-    
-    .header-subtitle {
-      font-size: ${config.fontSize + 1}pt !important;
-      font-weight: 300 !important;
-      color: rgba(255,255,255,0.9) !important;
-      margin-top: 1mm !important;
-      line-height: 1 !important;
-      -webkit-print-color-adjust: exact !important;
-    }
-    
-    /* 🔧 FIX 7: FOOTER FIJO CORREGIDO */
-    .fixed-footer {
-      position: fixed !important;
-      bottom: 18mm !important; /* Alineado con @page margin */
-      left: 12mm !important;
-      right: 12mm !important;
-      width: 186mm !important; /* Width exacto */
-      height: 10mm !important;
-      background: ${template.colors.secondary} !important;
-      color: ${this.getContrastColor(template.colors.secondary)} !important;
-      z-index: 9999 !important; /* Z-index alto */
-      border-radius: 4px !important;
-      overflow: hidden !important;
-      -webkit-print-color-adjust: exact !important;
-      print-color-adjust: exact !important;
-      
-      /* 🔧 FIX 8: TABLE LAYOUT PARA ESTABILIDAD */
-      display: table !important;
-      table-layout: fixed !important;
-    }
-    
-    .footer-cell {
-      display: table-cell !important;
-      vertical-align: middle !important;
-      text-align: center !important;
-      width: 100% !important;
-      height: 100% !important;
-      padding: 1.5mm !important;
-    }
-    
-    .footer-contact {
-      font-size: ${config.fontSize - 1}pt !important;
-      font-weight: 600 !important;
-      margin-bottom: 0.5mm !important;
-      line-height: 1.1 !important;
-      word-wrap: break-word !important;
-      -webkit-print-color-adjust: exact !important;
-    }
-    
-    .footer-brand {
-      font-size: ${config.fontSize - 2}pt !important;
-      opacity: 0.8 !important;
-      font-weight: 300 !important;
-      line-height: 1 !important;
-      -webkit-print-color-adjust: exact !important;
-    }
-    
-    /* 🔧 FIX 9: CONTENIDO PRINCIPAL SIN SUPERPOSICIÓN */
-    .content-area {
-      width: 186mm !important; /* Width exacto */
-      margin: 0 auto !important;
-      padding: 3mm !important;
-      position: relative !important;
-      z-index: 1 !important; /* Por debajo de header/footer */
-      background: ${template.colors.background} !important;
-      min-height: 225mm !important; /* Altura disponible */
-      box-sizing: border-box !important;
-      -webkit-print-color-adjust: exact !important;
-    }
-    
-    /* 🔧 FIX 10: PAGINACIÓN CORREGIDA */
-    .page-container {
-      width: 100% !important;
-      margin-bottom: 6mm !important;
-      page-break-after: always !important;
-      page-break-inside: avoid !important;
-      break-after: page !important;
-      break-inside: avoid !important;
-      position: relative !important;
-      background: ${template.colors.background} !important;
-      min-height: 215mm !important; /* Altura mínima por página */
-      -webkit-print-color-adjust: exact !important;
-    }
-    
-    .page-container:last-child {
-      page-break-after: avoid !important;
-      break-after: avoid !important;
-      margin-bottom: 0 !important;
-    }
-    
-    /* 🔧 FIX 11: GRID 3x3 SUPER ESTABLE - SOLO TABLE LAYOUT */
-    .products-grid-3x3 {
-      width: 100% !important;
-      border-collapse: separate !important;
-      border-spacing: 3mm !important; /* Espacio reducido */
-      table-layout: fixed !important;
-      margin: 0 auto !important;
-      page-break-inside: auto !important;
-      -webkit-print-color-adjust: exact !important;
-    }
-    
-    .grid-row {
-      display: table-row !important;
-      height: 45mm !important; /* Altura reducida */
-      page-break-inside: avoid !important;
-      break-inside: avoid !important;
-    }
-    
-    .grid-cell {
-      display: table-cell !important;
-      vertical-align: top !important;
-      width: 33.333% !important; /* 3 columnas exactas */
-      height: 45mm !important; /* Altura reducida */
-      padding: 0 !important;
-      text-align: center !important;
-      page-break-inside: avoid !important;
-      break-inside: avoid !important;
-    }
-    
-    /* 🔧 FIX 12: PRODUCT CARDS COMPACTAS */
-    .product-card-optimized {
-      width: 100% !important;
-      height: 45mm !important; /* Altura reducida */
-      min-height: 45mm !important;
-      max-height: 45mm !important;
-      background: white !important;
-      border: 0.5pt solid ${template.colors.accent}60 !important;
-      border-radius: 4px !important;
-      overflow: hidden !important;
-      position: relative !important;
-      page-break-inside: avoid !important;
-      break-inside: avoid !important;
-      box-shadow: 0 1pt 3pt rgba(0,0,0,0.1) !important;
-      -webkit-print-color-adjust: exact !important;
-      print-color-adjust: exact !important;
-      display: table !important;
-      table-layout: fixed !important;
-    }
-    
-    .card-decoration-optimized {
-      position: absolute !important;
-      top: 0 !important;
-      left: 0 !important;
-      right: 0 !important;
-      height: 2pt !important;
-      background: ${template.colors.primary} !important;
-      -webkit-print-color-adjust: exact !important;
-    }
-    
-    /* 🔧 FIX 13: IMAGEN CONTAINER OPTIMIZADO */
-    .image-container-optimized {
-      display: table-row !important;
-      width: 100% !important;
-      height: 28mm !important; /* Altura reducida */
-      background: #f8f9fa !important;
-      border-radius: 2px !important;
-      border: 0.25pt solid #e9ecef !important;
-      margin: 2mm 2mm 1mm 2mm !important;
-      overflow: hidden !important;
-      -webkit-print-color-adjust: exact !important;
-    }
-    
-    .image-cell-optimized {
-      display: table-cell !important;
-      vertical-align: middle !important;
-      text-align: center !important;
-      width: 100% !important;
-      height: 28mm !important; /* Altura reducida */
-    }
-    
-    .product-image-optimized {
-      max-width: 95% !important;
-      max-height: 26mm !important; /* Altura reducida */
-      width: auto !important;
-      height: auto !important;
-      object-fit: contain !important;
-      object-position: center !important;
-      display: block !important;
-      margin: 0 auto !important;
-      border-radius: 2px !important;
-      -webkit-print-color-adjust: exact !important;
-      print-color-adjust: exact !important;
-    }
-    
-    /* 🔧 FIX 14: ÁREA DE TEXTO COMPACTA */
-    .text-area-optimized {
-      display: table-row !important;
-      width: 100% !important;
-      height: 14mm !important; /* Altura reducida */
-      padding: 1mm 2mm 2mm 2mm !important;
-      text-align: center !important;
-      overflow: visible !important;
-      box-sizing: border-box !important;
-    }
-    
-    .text-content-cell {
-      display: table-cell !important;
-      vertical-align: middle !important;
-      text-align: center !important;
-      width: 100% !important;
-      height: 14mm !important; /* Altura reducida */
-    }
-    
-    .product-name-optimized {
-      font-size: ${config.nameSize}pt !important;
-      font-weight: 600 !important;
-      color: ${template.colors.primary} !important;
-      line-height: 1.1 !important;
-      margin: 0 auto 1mm auto !important;
-      text-align: center !important;
-      word-wrap: break-word !important;
-      overflow-wrap: break-word !important;
-      hyphens: auto !important;
-      
-      display: -webkit-box !important;
-      -webkit-line-clamp: 1 !important; /* Solo 1 línea */
-      -webkit-box-orient: vertical !important;
-      overflow: hidden !important;
-      
-      height: 3mm !important;
-      max-height: 3mm !important;
-      
-      -webkit-print-color-adjust: exact !important;
-    }
-    
-    /* 🔧 FIX 15: PRECIOS OPTIMIZADOS PARA ESPACIO */
-    .product-pricing-optimized {
-      display: table !important;
-      width: 100% !important;
-      height: auto !important;
-      margin: 0 auto !important;
-      text-align: center !important;
-    }
-    
-    .product-price-retail-optimized {
-      font-size: ${config.priceSize - 1}pt !important; /* Más pequeño */
-      font-weight: 700 !important;
-      color: white !important;
-      background: ${template.colors.secondary} !important;
-      background-image: linear-gradient(135deg, ${template.colors.secondary}, ${template.colors.primary}) !important;
-      padding: 1mm 2mm !important; /* Padding reducido */
-      border-radius: 8px !important;
-      display: inline-block !important;
-      margin: 0 auto 0.5mm auto !important;
-      text-align: center !important;
-      white-space: nowrap !important;
-      max-width: 95% !important;
-      overflow: hidden !important;
-      text-overflow: ellipsis !important;
-      box-shadow: 0 1pt 2pt rgba(0,0,0,0.15) !important;
-      -webkit-print-color-adjust: exact !important;
-      print-color-adjust: exact !important;
-      
-      height: auto !important;
-      line-height: 1.1 !important;
-    }
-    
-    .product-price-wholesale-optimized {
-      display: table !important;
-      width: 85% !important; /* Más pequeño */
-      margin: 0 auto !important;
-      font-size: ${Math.max(config.priceSize - 3, 6)}pt !important; /* Más pequeño */
-      color: ${template.colors.text} !important;
-      background: rgba(0,0,0,0.03) !important;
-      padding: 0.5mm !important; /* Padding reducido */
-      border-radius: 3px !important;
-      border: 0.25pt solid ${template.colors.accent}50 !important;
-      text-align: center !important;
-      -webkit-print-color-adjust: exact !important;
-      table-layout: fixed !important;
-    }
-    
-    .wholesale-label-optimized {
-      font-size: ${Math.max(config.priceSize - 4, 5)}pt !important;
-      font-weight: 500 !important;
-      color: ${template.colors.text}80 !important;
-      text-transform: uppercase !important;
-      letter-spacing: 0.1pt !important;
-      display: block !important;
-      margin-bottom: 0.2mm !important;
-      line-height: 1 !important;
-    }
-    
-    .wholesale-price-optimized {
-      font-weight: 700 !important;
-      color: ${template.colors.primary} !important;
-      font-size: ${Math.max(config.priceSize - 2, 6)}pt !important;
-      display: block !important;
-      line-height: 1 !important;
-      margin-bottom: 0.2mm !important;
-    }
-    
-    .wholesale-min-optimized {
-      font-size: ${Math.max(config.priceSize - 5, 4)}pt !important;
-      color: ${template.colors.text}60 !important;
-      font-weight: 400 !important;
-      font-style: italic !important;
-      display: block !important;
-      line-height: 1 !important;
-    }
-    
-    /* 🔧 FIX 16: CELDA VACÍA */
-    .empty-cell {
-      display: table-cell !important;
-      width: 33.333% !important;
-      height: 45mm !important;
-      visibility: hidden !important;
-    }
-    
-    /* 🔧 FIX 17: MEDIA PRINT CRÍTICO */
-    @media print {
+      /* ===== ERROR 1: NO MÁS FLEXBOX - SOLO TABLE LAYOUT ===== */
       * {
+        margin: 0 !important;
+        padding: 0 !important;
+        box-sizing: border-box !important;
         -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
         color-adjust: exact !important;
-        print-color-adjust: exact !important;
       }
       
-      html, body {
-        background: white !important;
+      /* ===== ERROR 2: @PAGE CORREGIDO CON VALORES EXACTOS ===== */
+      @page {
+        size: A4 portrait;
+        margin: ${OPTIMIZED_LAYOUT.PAGE.MARGIN}mm;
+        marks: none;
+        bleed: 0;
+        orphans: 1;
+        widows: 1;
+        -webkit-print-color-adjust: exact;
+      }
+      
+      /* ===== ERROR 3: NO MÁS CSS VARIABLES - VALORES FIJOS ===== */
+      html {
+        width: ${OPTIMIZED_LAYOUT.PAGE.WIDTH}mm !important;
+        height: ${OPTIMIZED_LAYOUT.PAGE.HEIGHT}mm !important;
+        font-size: ${config.fontSize}pt !important;
+        font-family: 'Arial', 'Helvetica', sans-serif !important;
+        background: ${template.colors.background} !important;
         -webkit-print-color-adjust: exact !important;
       }
       
-      .fixed-header, .fixed-footer {
+      body {
+        width: ${CONTENT_AREA.WIDTH}mm !important;
+        height: auto !important;
+        margin: 0 auto !important;
+        padding: 0 !important;
+        padding-top: 28mm !important; /* Header space FIJO */
+        padding-bottom: 24mm !important; /* Footer space FIJO */
+        font-family: 'Arial', 'Helvetica', sans-serif !important;
+        font-size: ${config.fontSize}pt !important;
+        line-height: 1.2 !important;
+        color: ${template.colors.text} !important;
+        background: ${template.colors.background} !important;
+        position: relative !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
-        position: fixed !important; /* FORZAR FIXED EN PRINT */
       }
       
-      .page-container, .product-card-optimized {
-        page-break-inside: avoid !important;
-        break-inside: avoid !important;
-      }
-      
-      .product-image-optimized {
+      /* ===== HEADER FIJO - SIN PROBLEMAS DE POSITIONING ===== */
+      .fixed-header {
+        position: fixed !important;
+        top: ${OPTIMIZED_LAYOUT.PAGE.MARGIN}mm !important;
+        left: ${OPTIMIZED_LAYOUT.PAGE.MARGIN}mm !important;
+        right: ${OPTIMIZED_LAYOUT.PAGE.MARGIN}mm !important;
+        width: ${CONTENT_AREA.WIDTH}mm !important;
+        height: 16mm !important;
+        background: ${template.colors.primary} !important;
+        background-image: linear-gradient(135deg, ${template.colors.primary}, ${template.colors.secondary}) !important;
+        color: white !important;
+        z-index: 1000 !important;
+        border-radius: ${OPTIMIZED_LAYOUT.SPACING.BORDER_RADIUS}px !important;
+        overflow: hidden !important;
         -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-        filter: none !important;
-      }
-      
-      .products-grid-3x3 {
         display: table !important;
+        table-layout: fixed !important;
+      }
+      
+      .header-cell {
+        display: table-cell !important;
+        vertical-align: middle !important;
+        text-align: center !important;
         width: 100% !important;
+        height: 100% !important;
+        padding: 2mm !important;
+      }
+      
+      .header-business-name {
+        font-size: ${config.headerSize}pt !important;
+        font-weight: 700 !important;
+        color: white !important;
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.3) !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.3pt !important;
+        margin: 0 !important;
+        line-height: 1.1 !important;
+        word-wrap: break-word !important;
+        -webkit-print-color-adjust: exact !important;
+      }
+      
+      .header-subtitle {
+        font-size: ${config.fontSize + 1}pt !important;
+        font-weight: 300 !important;
+        color: rgba(255,255,255,0.9) !important;
+        margin-top: 1mm !important;
+        line-height: 1 !important;
+        -webkit-print-color-adjust: exact !important;
+      }
+      
+      /* ===== FOOTER FIJO - SIN PROBLEMAS DE POSITIONING ===== */
+      .fixed-footer {
+        position: fixed !important;
+        bottom: ${OPTIMIZED_LAYOUT.PAGE.MARGIN}mm !important;
+        left: ${OPTIMIZED_LAYOUT.PAGE.MARGIN}mm !important;
+        right: ${OPTIMIZED_LAYOUT.PAGE.MARGIN}mm !important;
+        width: ${CONTENT_AREA.WIDTH}mm !important;
+        height: 12mm !important;
+        background: ${template.colors.secondary} !important;
+        color: ${this.getContrastColor(template.colors.secondary)} !important;
+        z-index: 1000 !important;
+        border-radius: ${OPTIMIZED_LAYOUT.SPACING.BORDER_RADIUS}px !important;
+        overflow: hidden !important;
+        -webkit-print-color-adjust: exact !important;
+        display: table !important;
+        table-layout: fixed !important;
+      }
+      
+      .footer-cell {
+        display: table-cell !important;
+        vertical-align: middle !important;
+        text-align: center !important;
+        width: 100% !important;
+        height: 100% !important;
+        padding: 2mm !important;
+      }
+      
+      .footer-contact {
+        font-size: ${config.fontSize - 1}pt !important;
+        font-weight: 600 !important;
+        margin-bottom: 1mm !important;
+        line-height: 1.1 !important;
+        word-wrap: break-word !important;
+        -webkit-print-color-adjust: exact !important;
+      }
+      
+      .footer-brand {
+        font-size: ${config.fontSize - 2}pt !important;
+        opacity: 0.8 !important;
+        font-weight: 300 !important;
+        line-height: 1 !important;
+        -webkit-print-color-adjust: exact !important;
+      }
+      
+      /* ===== CONTENIDO PRINCIPAL - SIN FLEX ===== */
+      .content-area {
+        width: ${CONTENT_AREA.WIDTH}mm !important;
+        margin: 0 auto !important;
+        padding: ${OPTIMIZED_LAYOUT.SPACING.CARD_PADDING}mm !important;
+        position: relative !important;
+        z-index: 1 !important;
+        background: ${template.colors.background} !important;
+        min-height: ${CONTENT_AREA.HEIGHT}mm !important;
+        box-sizing: border-box !important;
+      }
+      
+      /* ===== PÁGINA INDIVIDUAL ===== */
+      .page-container {
+        width: 100% !important;
+        margin-bottom: 8mm !important;
+        page-break-after: always !important;
+        page-break-inside: avoid !important;
+        position: relative !important;
+        background: ${template.colors.background} !important;
+      }
+      
+      .page-container:last-child {
+        page-break-after: avoid !important;
+        margin-bottom: 0 !important;
+      }
+      
+      /* ===== 3x3 GRID CORREGIDO - TABLE LAYOUT ROBUSTO ===== */
+      .products-grid-3x3 {
+        width: 100% !important;
+        border-collapse: separate !important;
+        border-spacing: ${OPTIMIZED_LAYOUT.SPACING.GRID_GAP}mm !important;
+        table-layout: fixed !important;
+        margin: 0 auto !important;
       }
       
       .grid-row {
         display: table-row !important;
+        height: ${CARD_DIMENSIONS.HEIGHT}mm !important;
       }
       
       .grid-cell {
         display: table-cell !important;
+        vertical-align: top !important;
+        width: ${100 / OPTIMIZED_LAYOUT.COLUMNS}% !important;
+        height: ${CARD_DIMENSIONS.HEIGHT}mm !important;
+        padding: 0 !important;
+        text-align: center !important;
       }
       
+      /* ===== PRODUCT CARDS SIN FLEX - SOLO TABLE ===== */
       .product-card-optimized {
+        width: 100% !important;
+        height: ${CARD_DIMENSIONS.HEIGHT}mm !important;
+        min-height: ${CARD_DIMENSIONS.HEIGHT}mm !important;
+        max-height: ${CARD_DIMENSIONS.HEIGHT}mm !important;
+        background: white !important;
+        border: 0.5pt solid ${template.colors.accent}60 !important;
+        border-radius: ${OPTIMIZED_LAYOUT.SPACING.BORDER_RADIUS}px !important;
+        overflow: hidden !important;
+        position: relative !important;
+        page-break-inside: avoid !important;
+        box-shadow: 0 1pt 3pt rgba(0,0,0,0.1) !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
         display: table !important;
+        table-layout: fixed !important;
       }
-    }
-  `;
+      
+      .card-decoration-optimized {
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        height: 2pt !important;
+        background: ${template.colors.primary} !important;
+        -webkit-print-color-adjust: exact !important;
+      }
+      
+      /* ===== IMAGEN CONTAINER CORREGIDO - DIMENSIONES FIJAS ===== */
+      .image-container-optimized {
+        display: table-row !important;
+        width: 100% !important;
+        height: ${CARD_DIMENSIONS.IMAGE_HEIGHT}mm !important;
+        background: #f8f9fa !important;
+        border-radius: ${Math.max(OPTIMIZED_LAYOUT.SPACING.BORDER_RADIUS - 2, 2)}px !important;
+        border: 0.25pt solid #e9ecef !important;
+        margin: ${OPTIMIZED_LAYOUT.SPACING.CARD_PADDING}mm ${OPTIMIZED_LAYOUT.SPACING.CARD_PADDING}mm 1mm ${OPTIMIZED_LAYOUT.SPACING.CARD_PADDING}mm !important;
+        overflow: hidden !important;
+        -webkit-print-color-adjust: exact !important;
+      }
+      
+      .image-cell-optimized {
+        display: table-cell !important;
+        vertical-align: middle !important;
+        text-align: center !important;
+        width: 100% !important;
+        height: ${CARD_DIMENSIONS.IMAGE_HEIGHT}mm !important;
+      }
+      
+      /* ===== IMAGEN SIN PROBLEMAS DE RENDERIZADO ===== */
+      .product-image-optimized {
+        max-width: 95% !important;
+        max-height: ${CARD_DIMENSIONS.IMAGE_HEIGHT - 4}mm !important;
+        width: auto !important;
+        height: auto !important;
+        object-fit: contain !important;
+        object-position: center !important;
+        display: block !important;
+        margin: 0 auto !important;
+        border-radius: 2px !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+      
+      .image-placeholder-optimized {
+        width: ${CARD_DIMENSIONS.IMAGE_HEIGHT - 4}mm !important;
+        height: ${CARD_DIMENSIONS.IMAGE_HEIGHT - 4}mm !important;
+        background: 
+          repeating-conic-gradient(from 0deg at 50% 50%, 
+            #f0f0f0 0deg 90deg, 
+            transparent 90deg 180deg) !important;
+        background-size: 8px 8px !important;
+        border: 1pt dashed #ccc !important;
+        border-radius: 3px !important;
+        margin: 0 auto !important;
+        color: #999 !important;
+        font-size: 8pt !important;
+        -webkit-print-color-adjust: exact !important;
+        display: table !important;
+        table-layout: fixed !important;
+      }
+      
+      .placeholder-cell-optimized {
+        display: table-cell !important;
+        vertical-align: middle !important;
+        text-align: center !important;
+        width: 100% !important;
+        height: 100% !important;
+      }
+      
+      /* ===== ÁREA DE TEXTO GARANTIZADA - VISIBLE ===== */
+      .text-area-optimized {
+        display: table-row !important;
+        width: 100% !important;
+        height: ${CARD_DIMENSIONS.TEXT_HEIGHT}mm !important;
+        padding: 1mm ${OPTIMIZED_LAYOUT.SPACING.CARD_PADDING}mm ${OPTIMIZED_LAYOUT.SPACING.CARD_PADDING}mm ${OPTIMIZED_LAYOUT.SPACING.CARD_PADDING}mm !important;
+        text-align: center !important;
+        overflow: visible !important;
+        box-sizing: border-box !important;
+      }
+      
+      .text-content-cell {
+        display: table-cell !important;
+        vertical-align: middle !important;
+        text-align: center !important;
+        width: 100% !important;
+        height: ${CARD_DIMENSIONS.TEXT_HEIGHT}mm !important;
+      }
+      
+      /* ===== TEXTO VISIBLE - DIMENSIONES GARANTIZADAS ===== */
+      .product-name-optimized {
+        font-size: ${config.nameSize}pt !important;
+        font-weight: 600 !important;
+        color: ${template.colors.primary} !important;
+        line-height: 1.1 !important;
+        margin: 0 auto 2mm auto !important;
+        text-align: center !important;
+        word-wrap: break-word !important;
+        overflow-wrap: break-word !important;
+        hyphens: auto !important;
+        
+        display: -webkit-box !important;
+        -webkit-line-clamp: 2 !important;
+        -webkit-box-orient: vertical !important;
+        overflow: hidden !important;
+        
+        height: 6mm !important;
+        max-height: 6mm !important;
+        
+        -webkit-print-color-adjust: exact !important;
+      }
+      
+      /* ===== SISTEMA DE PRECIOS DUALES OPTIMIZADO PUPPETEER ===== */
+.product-pricing-optimized {
+  display: table !important;
+  width: 100% !important;
+  height: auto !important;
+  margin: 0 auto !important;
+  text-align: center !important;
 }
+
+/* Precio retail - prominente */
+.product-price-retail-optimized {
+  font-size: ${config.priceSize}pt !important;
+  font-weight: 700 !important;
+  color: white !important;
+  background: ${template.colors.secondary} !important;
+  background-image: linear-gradient(135deg, ${template.colors.secondary}, ${template.colors.primary}) !important;
+  padding: 1.5mm 3mm !important;
+  border-radius: 10px !important;
+  display: inline-block !important;
+  margin: 0 auto 1mm auto !important;
+  text-align: center !important;
+  white-space: nowrap !important;
+  max-width: 95% !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  box-shadow: 0 1pt 2pt rgba(0,0,0,0.15) !important;
+  -webkit-print-color-adjust: exact !important;
+  print-color-adjust: exact !important;
+  
+  height: auto !important;
+  line-height: 1.2 !important;
+}
+
+/* Precio mayoreo - más compacto para 3x3 grid */
+.product-price-wholesale-optimized {
+  display: table !important;
+  width: 90% !important;
+  margin: 0 auto !important;
+  font-size: ${Math.max(config.priceSize - 2, 6)}pt !important;
+  color: ${template.colors.text} !important;
+  background: rgba(0,0,0,0.03) !important;
+  padding: 1mm !important;
+  border-radius: 4px !important;
+  border: 0.25pt solid ${template.colors.accent}50 !important;
+  text-align: center !important;
+  -webkit-print-color-adjust: exact !important;
+  table-layout: fixed !important;
+}
+
+.wholesale-label-optimized {
+  font-size: ${Math.max(config.priceSize - 3, 5)}pt !important;
+  font-weight: 500 !important;
+  color: ${template.colors.text}80 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.2pt !important;
+  display: block !important;
+  margin-bottom: 0.5mm !important;
+  line-height: 1 !important;
+}
+
+.wholesale-price-optimized {
+  font-weight: 700 !important;
+  color: ${template.colors.primary} !important;
+  font-size: ${Math.max(config.priceSize - 1, 7)}pt !important;
+  display: block !important;
+  line-height: 1.1 !important;
+  margin-bottom: 0.5mm !important;
+}
+
+.wholesale-min-optimized {
+  font-size: ${Math.max(config.priceSize - 4, 5)}pt !important;
+  color: ${template.colors.text}60 !important;
+  font-weight: 400 !important;
+  font-style: italic !important;
+  display: block !important;
+  line-height: 1 !important;
+}
+
+/* ===== AJUSTES PARA GRID 3X3 ===== */
+@media print {
+  .product-pricing-optimized {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+  
+  .product-price-retail-optimized,
+  .product-price-wholesale-optimized {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+}
+      
+      /* ===== CELDA VACÍA PARA COMPLETAR GRID ===== */
+      .empty-cell {
+        display: table-cell !important;
+        width: ${100 / OPTIMIZED_LAYOUT.COLUMNS}% !important;
+        height: ${CARD_DIMENSIONS.HEIGHT}mm !important;
+        visibility: hidden !important;
+      }
+      
+      /* ===== MEDIA PRINT ESPECÍFICO - FUERZA TABLE LAYOUT ===== */
+      @media print {
+        * {
+          -webkit-print-color-adjust: exact !important;
+          color-adjust: exact !important;
+          print-color-adjust: exact !important;
+        }
+        
+        html, body {
+          background: white !important;
+          -webkit-print-color-adjust: exact !important;
+        }
+        
+        .fixed-header, .fixed-footer {
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
+        }
+        
+        .page-container, .product-card-optimized {
+          page-break-inside: avoid !important;
+          break-inside: avoid !important;
+        }
+        
+        .product-image-optimized {
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
+          filter: none !important;
+        }
+        
+        .products-grid-3x3 {
+          display: table !important;
+          width: 100% !important;
+        }
+        
+        .grid-row {
+          display: table-row !important;
+        }
+        
+        .grid-cell {
+          display: table-cell !important;
+        }
+        
+        .product-card-optimized {
+          display: table !important;
+        }
+      }
+    `;
+  }
   
   /**
    * 📋 GENERAR HEADER FIJO (SIN CAMBIOS)
@@ -913,24 +931,24 @@ private static generateCorrectedCSS(
    * ⚙️ PDF OPTIONS OPTIMIZADO
    */
   private static getOptimizedPDFOptions(options: PuppeteerServiceOptions): any {
-    return {
-      format: options.format || 'A4',
-      margin: {
-        top: `${OPTIMIZED_LAYOUT.PAGE.MARGIN}mm`,
-        right: `${OPTIMIZED_LAYOUT.PAGE.MARGIN}mm`,
-        bottom: `${OPTIMIZED_LAYOUT.PAGE.MARGIN}mm`,
-        left: `${OPTIMIZED_LAYOUT.PAGE.MARGIN}mm`
-      },
-      printBackground: true,
-      preferCSSPageSize: true,
-      displayHeaderFooter: false,
-      waitUntil: 'networkidle0',
-      timeout: 30000,
-      omitBackground: false,
-      scale: 1.0,
-      quality: options.quality === 'high' ? 100 : options.quality === 'low' ? 80 : 90
-    };
-  }
+  return {
+    format: options.format || 'A4',
+    margin: {
+      top: '18mm',    // AUMENTADO
+      right: '12mm',
+      bottom: '18mm', // AUMENTADO  
+      left: '12mm'
+    },
+    printBackground: true,
+    preferCSSPageSize: true,
+    displayHeaderFooter: false, // ❌ NUNCA USAR TRUE
+    waitUntil: 'networkidle0',
+    timeout: 30000,
+    omitBackground: false,
+    scale: 1.0,
+    quality: options.quality === 'high' ? 100 : options.quality === 'low' ? 80 : 90
+  };
+}
   
   // ===== MÉTODOS HEREDADOS (SIN CAMBIOS) =====
   
