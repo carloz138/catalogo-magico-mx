@@ -412,11 +412,22 @@ const TemplateSelection = () => {
       console.log('🔍 DEBUG - businessInfo desde useBusinessInfo:', businessInfo);
       console.log('🔍 DEBUG - businessData enviado al generador:', businessData);
       
+      // Si no hay businessInfo, usar datos por defecto de CatifyPro
+      if (!businessInfo || !businessInfo.business_name) {
+        console.warn('⚠️ No hay business_info, usando datos por defecto de CatifyPro');
+        businessData.business_name = "CatifyPro";
+        businessData.phone = "Contact us for pricing";
+        businessData.address = "Professional Catalog Service";
+        businessData.social_media = { whatsapp: "+1-800-CATIFY" };
+      }
+      
+      console.log('🔍 DEBUG - businessData FINAL enviado:', businessData);
+      
       // Validar que social_media esté presente
-      if (!businessInfo.social_media?.whatsapp) {
-        console.warn('⚠️ WhatsApp no encontrado en businessInfo');
+      if (!businessData.social_media?.whatsapp) {
+        console.warn('⚠️ WhatsApp no encontrado en businessData final');
       } else {
-        console.log('✅ WhatsApp encontrado:', businessInfo.social_media.whatsapp);
+        console.log('✅ WhatsApp encontrado en businessData final:', businessData.social_media.whatsapp);
       }
       
       let result;
