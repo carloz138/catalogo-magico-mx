@@ -169,7 +169,7 @@ export class PuppeteerServiceClient {
       if (options.onProgress) options.onProgress(30);
       
       // 3. Configurar PDF con márgenes exactos
-      const pdfOptions = this.getExactPDFOptions(options, businessInfo);
+      const pdfOptions = this.getExactPDFOptions(options, businessInfo, templateConfig);
       
       // 4. Generar con retry
       const pdfBlob = await this.generatePDFWithRetry(
