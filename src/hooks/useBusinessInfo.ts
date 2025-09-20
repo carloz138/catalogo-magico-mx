@@ -19,6 +19,8 @@ export const useBusinessInfo = () => {
         return;
       }
 
+      console.log('🔍 DEBUG - useBusinessInfo - user.id:', user.id);
+      
       // Use any to bypass TypeScript issues with new table
       const { data, error: fetchError } = await (supabase as any)
         .from('business_info')
@@ -26,10 +28,14 @@ export const useBusinessInfo = () => {
         .eq('user_id', user.id)
         .single();
 
+      console.log('🔍 DEBUG - useBusinessInfo - query result:', { data, fetchError });
+
       if (fetchError && fetchError.code !== 'PGRST116') {
+        console.error('🔍 DEBUG - useBusinessInfo - fetchError:', fetchError);
         throw fetchError;
       }
 
+      console.log('🔍 DEBUG - useBusinessInfo - setting businessInfo to:', data);
       setBusinessInfo(data as BusinessInfo);
     } catch (err) {
       console.error('Error loading business info:', err);
