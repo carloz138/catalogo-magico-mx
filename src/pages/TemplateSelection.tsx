@@ -336,7 +336,8 @@ const TemplateSelection = () => {
         email: businessInfo.email,
         phone: businessInfo.phone,
         website: businessInfo.website,
-        address: businessInfo.address
+        address: businessInfo.address,
+        social_media: businessInfo.social_media
       };
       
       const template = getTemplateById(selectedTemplate);
@@ -404,7 +405,8 @@ const TemplateSelection = () => {
         email: businessInfo.email,
         phone: businessInfo.phone,
         website: businessInfo.website,
-        address: businessInfo.address
+        address: businessInfo.address,
+        social_media: businessInfo.social_media
       };
       
       let result;
