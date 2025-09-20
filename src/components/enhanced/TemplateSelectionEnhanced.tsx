@@ -139,6 +139,15 @@ const TemplateSelectionEnhanced = () => {
         productsToUse = JSON.parse(storedProducts);
         console.log('✅ Productos encontrados en localStorage:', productsToUse.length);
       }
+      
+      // 🔧 CRÍTICO: Cargar título personalizado desde localStorage
+      const catalogTitleFromStorage = localStorage.getItem('catalogTitle');
+      if (catalogTitleFromStorage) {
+        console.log('🔍 DEBUG - Título cargado del localStorage:', catalogTitleFromStorage);
+        setCatalogTitle(catalogTitleFromStorage);
+      } else {
+        console.log('🔍 DEBUG - No hay título en localStorage');
+      }
     } catch (error) {
       console.error('Error leyendo localStorage:', error);
     }
@@ -341,6 +350,7 @@ const TemplateSelectionEnhanced = () => {
         localStorage.removeItem('selectedTemplate');
         localStorage.removeItem('selectedProducts');
         localStorage.removeItem('selectedProductsData');
+        localStorage.removeItem('catalogTitle'); // 🔧 Limpiar título personalizado también
         
         // Actualizar límites
         await loadCatalogLimits();
