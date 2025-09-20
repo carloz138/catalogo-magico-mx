@@ -136,7 +136,8 @@ export class PuppeteerServiceClient {
         products, 
         businessInfo, 
         template, 
-        options.quality || 'medium'
+        options.quality || 'medium',
+        catalogTitle
       );
       
       if (options.onProgress) options.onProgress(30);
@@ -719,12 +720,6 @@ export class PuppeteerServiceClient {
    * 📋 GENERAR HEADER FIJO (SIN CAMBIOS)
    */
   private static generateFixedHeader(businessInfo: BusinessInfo, template: TemplateConfig, catalogTitle?: string): string {
-    console.log('🔍 PUPPETEER DEBUG - generateFixedHeader recibió:', { 
-      catalogTitle, 
-      catalogTitleType: typeof catalogTitle, 
-      catalogTitleLength: catalogTitle?.length,
-      templateDisplayName: template.displayName 
-    });
     const displayTitle = (catalogTitle && catalogTitle.trim()) ? catalogTitle.trim() : `Catálogo ${template.displayName}`;
     return `
       <div class="fixed-header">
