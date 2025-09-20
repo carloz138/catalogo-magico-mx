@@ -761,6 +761,32 @@ private static getExactPDFOptions(options: PuppeteerServiceOptions, businessInfo
     `
   };
 }
+
+
+  /**
+ * 📧 GENERAR CONTACT INFO INTELIGENTE - Solo información clave
+ */
+private static generateSmartContactInfo(businessInfo: BusinessInfo): string {
+  const contactItems: string[] = [];
+  
+  // Prioridad 1: WhatsApp (más directo para negocios)
+  if (businessInfo.social_media?.whatsapp) {
+    contactItems.push(`📱 ${businessInfo.social_media.whatsapp}`);
+  }
+  
+  // Prioridad 2: Teléfono (si no hay WhatsApp)
+  else if (businessInfo.phone) {
+    contactItems.push(`📞 ${businessInfo.phone}`);
+  }
+  
+  // Prioridad 3: Email (solo si es corto)
+  if (businessInfo.email && businessInfo.email.length <= 25) {
+    contactItems.push(`📧 ${businessInfo.email}`);
+  }
+  
+  // Máximo 2 items para no saturar el footer
+  return contactItems.slice(0, 2).join(' | ');
+}
   
   // ===== MÉTODOS HEREDADOS (SIN CAMBIOS) =====
   
