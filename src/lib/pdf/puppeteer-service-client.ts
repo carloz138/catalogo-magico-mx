@@ -73,13 +73,13 @@ const OPTIMIZED_LAYOUT = {
   PAGE: {
     WIDTH: 210,  // mm
     HEIGHT: 297, // mm
-    MARGIN: 6    // mm reducido para más espacio
+    MARGIN: 12    // mm reducido para más espacio
   },
   
   // Sistema de spacing fijo - SIN VARIABLES
   SPACING: {
-    GRID_GAP: 4,      // mm
-    CARD_PADDING: 3,  // mm
+    GRID_GAP: 3,      // mm
+    CARD_PADDING: 2,  // mm
     BORDER_RADIUS: 4  // mm
   }
 };
@@ -95,9 +95,9 @@ const CONTENT_AREA = {
 // Dimensiones de tarjetas CALCULADAS Y FIJAS
 const CARD_DIMENSIONS = {
   WIDTH: (CONTENT_AREA.USABLE_WIDTH - (OPTIMIZED_LAYOUT.SPACING.GRID_GAP * 2)) / OPTIMIZED_LAYOUT.COLUMNS, // ~60mm
-  HEIGHT: 60, // mm - altura fija para consistencia
-  IMAGE_HEIGHT: 40, // mm - espacio para imagen
-  TEXT_HEIGHT: 17   // mm - espacio garantizado para texto
+  HEIGHT: 48, // mm - altura fija para consistencia
+  IMAGE_HEIGHT: 30, // mm - espacio para imagen
+  TEXT_HEIGHT: 15   // mm - espacio garantizado para texto
 };
 
 export class PuppeteerServiceClient {
