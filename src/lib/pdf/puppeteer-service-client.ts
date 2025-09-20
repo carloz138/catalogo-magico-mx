@@ -20,6 +20,12 @@ interface BusinessInfo {
   phone?: string;
   website?: string;
   address?: string;
+  social_media?: {
+    whatsapp?: string;
+    instagram?: string;
+    facebook?: string;
+    twitter?: string;
+  };
 }
 
 interface TemplateConfig {
@@ -738,12 +744,12 @@ export class PuppeteerServiceClient {
     // Crear contactInfo dinámico solo con campos que tengan información
     const contactParts = [];
     
-    if (businessInfo.business_name) {
-      contactParts.push(businessInfo.business_name);
-    }
-    
     if (businessInfo.phone) {
       contactParts.push(`Tel: ${businessInfo.phone}`);
+    }
+    
+    if (businessInfo.social_media?.whatsapp) {
+      contactParts.push(`WhatsApp: ${businessInfo.social_media.whatsapp}`);
     }
     
     if (businessInfo.email) {
@@ -772,7 +778,8 @@ export class PuppeteerServiceClient {
         phone: businessInfo.phone,
         email: businessInfo.email, 
         website: businessInfo.website,
-        address: businessInfo.address
+        address: businessInfo.address,
+        whatsapp: businessInfo.social_media?.whatsapp
       }
     });
     
