@@ -193,6 +193,10 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
   const [showCatalogPreview, setShowCatalogPreview] = useState(false);
   const [catalogTitle, setCatalogTitle] = useState('');
   
+  // Estados para modal de vista de producto
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<EditorProduct | null>(null);
+  
   // Estados para acciones masivas
   const [showBulkTagsModal, setShowBulkTagsModal] = useState(false);
   const [showBulkPriceModal, setShowBulkPriceModal] = useState(false);
@@ -471,6 +475,11 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
         variant: "destructive",
       });
     }
+  };
+
+  const handleViewProduct = (product: EditorProduct) => {
+    setSelectedProduct(product);
+    setShowViewModal(true);
   };
 
   const handleDeleteProduct = async (product: EditorProduct) => {
@@ -1112,18 +1121,10 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
                       <Button
                         size="sm"
                         variant="ghost"
-                        onClick={() => onViewProduct?.(product.id)}
+                        onClick={() => handleViewProduct(product)}
                         title="Ver producto"
                       >
                         <Eye className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => onEditVariants?.(product.id)}
-                        title="Editar variantes"
-                      >
-                        <Settings className="w-4 h-4" />
                       </Button>
                       <Button
                         size="sm"
@@ -1271,6 +1272,122 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
                 <Button onClick={bulkUpdatePrice} disabled={!bulkPrice.trim()}>
                   Asignar Precio
                 </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal para Ver Producto */}
+      {showViewModal && selectedProduct && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-xl">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-bold text-gray-900">Detalles del Producto</h2>
+              <Button 
+                variant="ghost" 
+                onClick={() => {
+                  setShowViewModal(false);
+                  setSelectedProduct(null);
+                }}
+                className="h-8 w-8 p-0 hover:bg-gray-100"
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+            
+            <div className="space-y-6">
+              {/* Imagen del producto */}
+              <div className="flex justify-center">
+                <div className="relative w-80 h-80 bg-gray-100 rounded-lg overflow-hidden">
+                  {getDisplayImageUrl(selectedProduct) ? (
+                    <img
+                      src={getDisplayImageUrl(selectedProduct)}
+                      alt={selectedProduct.name}
+                      className="w-full h-full object-contain"
+                      onError={(e) => {
+                        e.currentTarget.src = '/placeholder.svg';
+                      }}
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-gray-400">
+                      <Package className="w-16 h-16" />
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Información del producto */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-sm font-medium text-gray-700">Nombre</Label>
+                  <p className="text-sm text-gray-900 mt-1">{selectedProduct.name}</p>
+                </div>
+                
+                {selectedProduct.sku && (
+                  <div>
+                    <Label className="text-sm font-medium text-gray-700">SKU</Label>
+                    <p className="text-sm text-gray-900 mt-1">{selectedProduct.sku}</p>
+                  </div>
+                )}
+                
+                {selectedProduct.category && (
+                  <div>
+                    <Label className="text-sm font-medium text-gray-700">Categoría</Label>
+                    <p className="text-sm text-gray-900 mt-1">
+                      {PRODUCT_CATEGORIES.find(cat => cat.value === selectedProduct.category)?.label || selectedProduct.category}
+                    </p>
+                  </div>
+                )}
+                
+                {selectedProduct.brand && (
+                  <div>
+                    <Label className="text-sm font-medium text-gray-700">Marca</Label>
+                    <p className="text-sm text-gray-900 mt-1">{selectedProduct.brand}</p>
+                  </div>
+                )}
+                
+                {selectedProduct.price_retail && (
+                  <div>
+                    <Label className="text-sm font-medium text-gray-700">Precio Retail</Label>
+                    <p className="text-sm text-gray-900 mt-1">${centsToPrice(selectedProduct.price_retail)} MXN</p>
+                  </div>
+                )}
+                
+                {selectedProduct.price_wholesale && (
+                  <div>
+                    <Label className="text-sm font-medium text-gray-700">Precio Mayoreo</Label>
+                    <p className="text-sm text-gray-900 mt-1">${centsToPrice(selectedProduct.price_wholesale)} MXN</p>
+                  </div>
+                )}
+              </div>
+
+              {selectedProduct.description && (
+                <div>
+                  <Label className="text-sm font-medium text-gray-700">Descripción</Label>
+                  <p className="text-sm text-gray-900 mt-1">{selectedProduct.description}</p>
+                </div>
+              )}
+
+              {selectedProduct.tags && selectedProduct.tags.length > 0 && (
+                <div>
+                  <Label className="text-sm font-medium text-gray-700">Etiquetas</Label>
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {selectedProduct.tags.map((tag, index) => (
+                      <Badge key={index} variant="secondary" className="text-xs">
+                        {tag}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Estado del producto */}
+              <div>
+                <Label className="text-sm font-medium text-gray-700">Estado</Label>
+                <div className="mt-1">
+                  {getStatusBadge(selectedProduct.processing_status)}
+                </div>
               </div>
             </div>
           </div>
