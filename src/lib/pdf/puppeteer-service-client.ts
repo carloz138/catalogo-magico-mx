@@ -25,6 +25,9 @@ interface BusinessInfo {
     facebook?: string;
     instagram?: string;
   };
+  logo_url?: string;
+  primary_color?: string;
+  secondary_color?: string;
 }
 
 interface TemplateConfig {

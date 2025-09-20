@@ -337,8 +337,13 @@ const TemplateSelection = () => {
         phone: businessInfo.phone,
         website: businessInfo.website,
         address: businessInfo.address,
-        social_media: businessInfo.social_media
+        social_media: businessInfo.social_media,
+        logo_url: businessInfo.logo_url,
+        primary_color: businessInfo.primary_color,
+        secondary_color: businessInfo.secondary_color
       };
+      
+      console.log('🔍 DEBUG - businessData PREVIEW enviado:', businessData);
       
       const template = getTemplateById(selectedTemplate);
       if (!template) {
