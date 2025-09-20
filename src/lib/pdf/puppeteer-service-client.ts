@@ -1,5 +1,5 @@
-// src/lib/pdf/puppeteer-service-client.ts - SOLUCIÓN COMPLETA ESPACIADO
-// 🎯 CÁLCULO MATEMÁTICO EXACTO DEL ESPACIO DISPONIBLE
+// src/lib/pdf/puppeteer-service-client.ts
+// 🎯 VERSIÓN COMPLETAMENTE CORREGIDA - GRID 3x2 (6 PRODUCTOS) + HEADER/FOOTER DINÁMICOS
 
 interface Product {
   id: string;
@@ -62,45 +62,35 @@ interface PuppeteerResult {
   };
 }
 
-// 📐 CÁLCULO MATEMÁTICO EXACTO - BASADO EN RESEARCH
+// 📐 CONFIGURACIÓN MATEMÁTICA EXACTA - GRID 3x2 (6 PRODUCTOS)
 const PDF_LAYOUT = {
-  // Dimensiones A4 en mm
   PAGE_WIDTH: 210,
   PAGE_HEIGHT: 297,
-  
-  // Márgenes para header/footer (EXACTOS)
-  HEADER_MARGIN: 20, // mm
-  FOOTER_MARGIN: 15, // mm
-  SIDE_MARGIN: 12,   // mm
-  
-  // Alturas estimadas de header/footer nativos
-  HEADER_HEIGHT: 12, // mm
-  FOOTER_HEIGHT: 8,  // mm
-  
-  // Grid configuration
+  HEADER_MARGIN: 20,
+  FOOTER_MARGIN: 15,
+  SIDE_MARGIN: 12,
+  HEADER_HEIGHT: 12,
+  FOOTER_HEIGHT: 8,
+  // ✅ GRID 3x2 = 6 PRODUCTOS POR PÁGINA
   COLUMNS: 3,
   ROWS: 2,
   PRODUCTS_PER_PAGE: 6
 };
 
-// 📊 CÁLCULOS DINÁMICOS BASADOS EN ESPACIO REAL
+// 📊 CÁLCULOS DINÁMICOS PARA GRID 3x2
 const calculateAvailableSpace = () => {
   const contentWidth = PDF_LAYOUT.PAGE_WIDTH - (PDF_LAYOUT.SIDE_MARGIN * 2);
-  
-  // ALTURA DISPONIBLE = Página total - márgenes - headers/footers
   const contentHeight = PDF_LAYOUT.PAGE_HEIGHT 
     - PDF_LAYOUT.HEADER_MARGIN 
     - PDF_LAYOUT.FOOTER_MARGIN 
     - PDF_LAYOUT.HEADER_HEIGHT 
     - PDF_LAYOUT.FOOTER_HEIGHT;
   
-  const gap = 4; // mm entre tarjetas
-  const padding = 6; // mm padding interno de página
-  
+  const gap = 4;
+  const padding = 6;
   const usableWidth = contentWidth - (padding * 2);
   const usableHeight = contentHeight - (padding * 2);
   
-  // Calcular dimensiones de tarjetas dinámicamente
   const cardWidth = (usableWidth - (gap * (PDF_LAYOUT.COLUMNS - 1))) / PDF_LAYOUT.COLUMNS;
   const cardHeight = (usableHeight - (gap * (PDF_LAYOUT.ROWS - 1))) / PDF_LAYOUT.ROWS;
   
@@ -118,16 +108,13 @@ const calculateAvailableSpace = () => {
   };
 };
 
-// Usar cálculos dinámicos
 const LAYOUT = calculateAvailableSpace();
 
 export class PuppeteerServiceClient {
   private static readonly SERVICE_URL = 'https://min8n-puppeteer-pdf.fqr2ax.easypanel.host';
   private static readonly TIMEOUT = 30000;
   
-  /**
-   * 🎯 MÉTODO PRINCIPAL CON CÁLCULO EXACTO
-   */
+  // ===== MÉTODO PRINCIPAL =====
   static async generatePDF(
     products: Product[],
     businessInfo: BusinessInfo,
@@ -140,16 +127,15 @@ export class PuppeteerServiceClient {
     console.log('🔍 DEBUG - PuppeteerServiceClient businessInfo recibido:', businessInfo);
     
     try {
-      console.log('🚀 Generando PDF con cálculo exacto del espacio...', {
+      console.log('🚀 Generando PDF con GRID 3x2 (6 productos)...', {
         products: products.length,
         template: template.id,
-        availableSpace: LAYOUT,
+        layout: LAYOUT,
         totalPages: Math.ceil(products.length / PDF_LAYOUT.PRODUCTS_PER_PAGE)
       });
       
       if (options.onProgress) options.onProgress(5);
       
-      // 1. Health Check
       const isHealthy = await this.checkServiceHealthWithRetry();
       if (!isHealthy) {
         throw new Error('Servicio Puppeteer no disponible');
@@ -157,31 +143,16 @@ export class PuppeteerServiceClient {
       
       if (options.onProgress) options.onProgress(15);
       
-      // 2. Generar HTML con cálculos exactos
-      const htmlContent = this.generateOptimizedHTML(
-        products, 
-        businessInfo, 
-        template, 
-        options.quality || 'medium',
-        options
-      );
+      const htmlContent = this.generateOptimizedHTML(products, businessInfo, template, options.quality || 'medium', options);
       
       if (options.onProgress) options.onProgress(30);
       
-      // 3. Configurar PDF con márgenes exactos
       const pdfOptions = this.getExactPDFOptions(options, businessInfo, template);
       
-      // 4. Generar con retry
-      const pdfBlob = await this.generatePDFWithRetry(
-        htmlContent, 
-        pdfOptions, 
-        businessInfo, 
-        options.onProgress
-      );
+      const pdfBlob = await this.generatePDFWithRetry(htmlContent, pdfOptions, businessInfo, options.onProgress);
       
       if (options.onProgress) options.onProgress(90);
       
-      // 5. Descargar
       await this.downloadPDF(pdfBlob, businessInfo.business_name);
       
       if (options.onProgress) options.onProgress(100);
@@ -189,7 +160,7 @@ export class PuppeteerServiceClient {
       const generationTime = Date.now() - startTime;
       const totalPages = Math.ceil(products.length / PDF_LAYOUT.PRODUCTS_PER_PAGE);
       
-      console.log('✅ PDF con espaciado correcto generado:', {
+      console.log('✅ PDF GRID 3x2 generado correctamente:', {
         time: generationTime,
         size: pdfBlob.size,
         totalPages,
@@ -214,9 +185,7 @@ export class PuppeteerServiceClient {
     }
   }
   
-  /**
-   * 🏗️ GENERAR HTML OPTIMIZADO CON CÁLCULOS EXACTOS
-   */
+  // ===== GENERACIÓN DE HTML =====
   private static generateOptimizedHTML(
     products: Product[],
     businessInfo: BusinessInfo,
@@ -246,14 +215,8 @@ export class PuppeteerServiceClient {
 </html>`;
   }
   
-  /**
-   * 🎨 CSS CON CÁLCULOS MATEMÁTICOS EXACTOS
-   */
-  private static generatePreciseCSS(
-    template: TemplateConfig,
-    quality: 'low' | 'medium' | 'high'
-  ): string {
-    
+  // ===== GENERACIÓN DE CSS =====
+  private static generatePreciseCSS(template: TemplateConfig, quality: 'low' | 'medium' | 'high'): string {
     const qualityConfig = {
       low: { fontSize: 9, priceSize: 10, nameSize: 9 },
       medium: { fontSize: 10, priceSize: 11, nameSize: 10 },
@@ -263,8 +226,7 @@ export class PuppeteerServiceClient {
     const config = qualityConfig[quality];
     
     return `
-      /* ===== CÁLCULOS MATEMÁTICOS EXACTOS - SOLUCIÓN TOTAL ===== */
-      
+      /* ===== RESET Y CONFIGURACIÓN BASE ===== */
       * {
         margin: 0 !important;
         padding: 0 !important;
@@ -273,7 +235,6 @@ export class PuppeteerServiceClient {
         print-color-adjust: exact !important;
       }
       
-      /* ===== @PAGE CON MÁRGENES EXACTOS ===== */
       @page {
         size: A4 portrait;
         margin: ${PDF_LAYOUT.HEADER_MARGIN}mm ${PDF_LAYOUT.SIDE_MARGIN}mm ${PDF_LAYOUT.FOOTER_MARGIN}mm ${PDF_LAYOUT.SIDE_MARGIN}mm;
@@ -324,7 +285,7 @@ export class PuppeteerServiceClient {
         margin-bottom: 0 !important;
       }
       
-      /* ===== GRID 3x3 CON DIMENSIONES EXACTAS ===== */
+      /* ===== GRID 3x2 CON TABLE LAYOUT ===== */
       .products-grid-exact {
         width: 100% !important;
         height: 100% !important;
@@ -350,7 +311,7 @@ export class PuppeteerServiceClient {
         page-break-inside: avoid !important;
       }
       
-      /* ===== PRODUCT CARDS CON DIMENSIONES CALCULADAS ===== */
+      /* ===== PRODUCT CARDS ===== */
       .product-card-exact {
         width: 100% !important;
         height: ${LAYOUT.cardHeight}mm !important;
@@ -378,7 +339,7 @@ export class PuppeteerServiceClient {
         -webkit-print-color-adjust: exact !important;
       }
       
-      /* ===== IMAGEN CON ALTURA CALCULADA ===== */
+      /* ===== IMAGEN ===== */
       .image-container-exact {
         display: table-row !important;
         width: 100% !important;
@@ -425,7 +386,7 @@ export class PuppeteerServiceClient {
         font-size: 8pt !important;
       }
       
-      /* ===== TEXTO CON ALTURA CALCULADA ===== */
+      /* ===== TEXTO ===== */
       .text-area-exact {
         display: table-row !important;
         width: 100% !important;
@@ -531,7 +492,7 @@ export class PuppeteerServiceClient {
         visibility: hidden !important;
       }
       
-      /* ===== MEDIA PRINT OPTIMIZADO ===== */
+      /* ===== MEDIA PRINT ===== */
       @media print {
         * {
           -webkit-print-color-adjust: exact !important;
@@ -558,9 +519,7 @@ export class PuppeteerServiceClient {
     `;
   }
   
-  /**
-   * 📄 GENERAR PÁGINAS CON CÁLCULOS EXACTOS
-   */
+  // ===== GENERACIÓN DE PÁGINAS =====
   private static generatePrecisePages(
     products: Product[],
     businessInfo: BusinessInfo,
@@ -586,9 +545,7 @@ export class PuppeteerServiceClient {
     return pagesHTML;
   }
   
-  /**
-   * 🛍️ GENERAR GRID CON DIMENSIONES EXACTAS
-   */
+  // ===== GENERACIÓN DE GRID 3x2 =====
   private static generateExactGrid(products: Product[]): string {
     let gridHTML = '<table class="products-grid-exact">';
     
@@ -617,9 +574,7 @@ export class PuppeteerServiceClient {
     return gridHTML;
   }
   
-  /**
-   * 🎴 GENERAR TARJETA CON DIMENSIONES EXACTAS
-   */
+  // ===== GENERACIÓN DE TARJETA DE PRODUCTO =====
   private static generateExactProductCard(product: Product): string {
     const productName = product.name || 'Producto';
     const productPrice = typeof product.price_retail === 'number' ? product.price_retail : 0;
@@ -642,6 +597,19 @@ export class PuppeteerServiceClient {
          </div>
        </div>`;
     
+    const wholesalePriceHTML = product.price_wholesale ? `
+      <div class="product-price-wholesale-exact">
+        <span class="wholesale-label-exact">Mayoreo:</span>
+        <span class="wholesale-price-exact">$${(product.price_wholesale / 100).toLocaleString('es-MX', { 
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2
+        })}</span>
+        ${product.wholesale_min_qty ? `
+          <span class="wholesale-min-exact">Min. ${product.wholesale_min_qty}</span>
+        ` : ''}
+      </div>
+    ` : '';
+    
     return `
       <div class="product-card-exact">
         <div class="card-decoration-exact"></div>
@@ -658,18 +626,7 @@ export class PuppeteerServiceClient {
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2
               })}</div>
-              ${product.price_wholesale ? `
-                <div class="product-price-wholesale-exact">
-                  <span class="wholesale-label-exact">Mayoreo:</span>
-                  <span class="wholesale-price-exact">$${(product.price_wholesale / 100).toLocaleString('es-MX', { 
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2
-                  })}</span>
-                  ${product.wholesale_min_qty ? `
-                    <span class="wholesale-min-exact">Min. ${product.wholesale_min_qty}</span>
-                  ` : ''}
-                </div>
-              ` : ''}
+              ${wholesalePriceHTML}
             </div>
           </div>
         </div>
@@ -677,140 +634,85 @@ export class PuppeteerServiceClient {
     `;
   }
   
-  /**
-  /**
- * ⚙️ PDF OPTIONS CON HEADER/FOOTER DINÁMICOS SEGÚN TEMPLATE
- */
-  private static getExactPDFOptions(options: PuppeteerServiceOptions, businessInfo: BusinessInfo, template?: any): any {
-  // 🎨 USAR COLORES DEL TEMPLATE (dinámico)
-  // 🎨 USAR COLORES DEL TEMPLATE (dinámico)
+  // ===== PDF OPTIONS CON HEADER/FOOTER DINÁMICOS =====
+  private static getExactPDFOptions(
+    options: PuppeteerServiceOptions, 
+    businessInfo: BusinessInfo, 
+    template?: TemplateConfig
+  ): any {
+    
     const primaryColor = template?.colors?.primary || '#007BFF';
     const secondaryColor = template?.colors?.secondary || '#0056B3';
-  
-  // 📧 CONTACT INFO INTELIGENTE - Solo información clave
-  const contactInfo = this.generateSmartContactInfo(businessInfo);
-  
-  // 📝 TÍTULO DEL CATÁLOGO - Usar nombre personalizado o default
-  const catalogTitle = options.catalogTitle || 'Catálogo de Productos';
-  
-  return {
-    format: options.format || 'A4',
-    margin: {
-      top: `${PDF_LAYOUT.HEADER_MARGIN}mm`,
-      right: `${PDF_LAYOUT.SIDE_MARGIN}mm`,
-      bottom: `${PDF_LAYOUT.FOOTER_MARGIN}mm`,
-      left: `${PDF_LAYOUT.SIDE_MARGIN}mm`
-    },
-    printBackground: true,
-    preferCSSPageSize: true,
-    displayHeaderFooter: true,
-    waitUntil: 'networkidle0',
-    timeout: 30000,
-    omitBackground: false,
-    scale: 1.0,
-    quality: options.quality === 'high' ? 100 : options.quality === 'low' ? 80 : 90,
+    const contactInfo = this.generateSmartContactInfo(businessInfo);
+    const catalogTitle = options.catalogTitle || 'Catálogo de Productos';
     
-    // ✅ HEADER DINÁMICO CON COLORES DEL TEMPLATE
-    headerTemplate: `
-      <div style="
-        font-size: 12px !important; 
-        width: 100% !important; 
-        height: ${PDF_LAYOUT.HEADER_HEIGHT}mm !important;
-        text-align: center !important;
-        background: ${primaryColor} !important;
-        background-image: linear-gradient(135deg, ${primaryColor}, ${secondaryColor}) !important;
-        color: white !important;
-        padding: 2mm !important;
-        margin: 0 !important;
-        border-radius: 4px !important;
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-        display: table !important;
-        table-layout: fixed !important;
-      ">
-        <div style="display: table-cell; vertical-align: middle; text-align: center;">
-          <strong style="color: white !important; font-size: 14px !important;">${businessInfo.business_name || 'Mi Negocio'}</strong><br>
-          <span style="color: rgba(255,255,255,0.9) !important; font-size: 10px !important;">${catalogTitle}</span>
-        </div>
-      </div>
-    `,
+    return {
+      format: options.format || 'A4',
+      margin: {
+        top: `${PDF_LAYOUT.HEADER_MARGIN}mm`,
+        right: `${PDF_LAYOUT.SIDE_MARGIN}mm`,
+        bottom: `${PDF_LAYOUT.FOOTER_MARGIN}mm`,
+        left: `${PDF_LAYOUT.SIDE_MARGIN}mm`
+      },
+      printBackground: true,
+      preferCSSPageSize: true,
+      displayHeaderFooter: true,
+      waitUntil: 'networkidle0',
+      timeout: 30000,
+      omitBackground: false,
+      scale: 1.0,
+      quality: options.quality === 'high' ? 100 : options.quality === 'low' ? 80 : 90,
+      
+      headerTemplate: `<div style="font-size: 12px !important; width: 100% !important; height: ${PDF_LAYOUT.HEADER_HEIGHT}mm !important; text-align: center !important; background: ${primaryColor} !important; background-image: linear-gradient(135deg, ${primaryColor}, ${secondaryColor}) !important; color: white !important; padding: 2mm !important; margin: 0 !important; border-radius: 4px !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; display: table !important; table-layout: fixed !important;"><div style="display: table-cell; vertical-align: middle; text-align: center;"><strong style="color: white !important; font-size: 14px !important;">${businessInfo.business_name || 'Mi Negocio'}</strong><br><span style="color: rgba(255,255,255,0.9) !important; font-size: 10px !important;">${catalogTitle}</span></div></div>`,
+      
+      footerTemplate: `<div style="font-size: 9px !important; width: 100% !important; height: ${PDF_LAYOUT.FOOTER_HEIGHT}mm !important; text-align: center !important; background: ${secondaryColor} !important; color: white !important; padding: 1mm !important; margin: 0 !important; border-radius: 4px !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; display: table !important; table-layout: fixed !important;"><div style="display: table-cell; vertical-align: middle; text-align: center;">${contactInfo ? `<div style="color: white !important; font-size: 8px !important; margin-bottom: 1mm !important;">${contactInfo}</div>` : ''}<div style="color: rgba(255,255,255,0.8) !important; font-size: 7px !important;">Generado con CatifyPro - <span class="pageNumber"></span> de <span class="totalPages"></span></div></div></div>`
+    };
+  }
+  
+  // ===== CONTACT INFO INTELIGENTE CON DEBUG =====
+  private static generateSmartContactInfo(businessInfo: BusinessInfo): string {
+    this.debugBusinessInfo(businessInfo);
     
-    // ✅ FOOTER DINÁMICO CON CONTACT INFO INTELIGENTE
-    footerTemplate: `
-      <div style="
-        font-size: 9px !important; 
-        width: 100% !important; 
-        height: ${PDF_LAYOUT.FOOTER_HEIGHT}mm !important;
-        text-align: center !important;
-        background: ${secondaryColor} !important;
-        color: white !important;
-        padding: 1mm !important;
-        margin: 0 !important;
-        border-radius: 4px !important;
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-        display: table !important;
-        table-layout: fixed !important;
-      ">
-        <div style="display: table-cell; vertical-align: middle; text-align: center;">
-          ${contactInfo ? `<div style="color: white !important; font-size: 8px !important; margin-bottom: 1mm !important;">${contactInfo}</div>` : ''}
-          <div style="color: rgba(255,255,255,0.8) !important; font-size: 7px !important;">
-            Generado con CatifyPro - <span class="pageNumber"></span> de <span class="totalPages"></span>
-          </div>
-        </div>
-      </div>
-    `
-  };
-}
-
-
- 
-private static generateSmartContactInfo(businessInfo: BusinessInfo): string {
-  // 🐛 DEBUG TEMPORAL
-  this.debugBusinessInfo(businessInfo);
-  
-  const contactItems: string[] = [];
-  
-  // Prioridad 1: WhatsApp (más directo para negocios)
-  if (businessInfo.social_media?.whatsapp) {
-    console.log('✅ WhatsApp encontrado:', businessInfo.social_media.whatsapp);
-    contactItems.push(`📱 ${businessInfo.social_media.whatsapp}`);
-  } else {
-    console.log('❌ WhatsApp NO encontrado');
-    console.log('   - social_media existe:', !!businessInfo.social_media);
-    console.log('   - whatsapp field:', businessInfo.social_media?.whatsapp);
+    const contactItems: string[] = [];
+    
+    // Prioridad 1: WhatsApp
+    if (businessInfo.social_media?.whatsapp) {
+      console.log('✅ WhatsApp encontrado:', businessInfo.social_media.whatsapp);
+      contactItems.push(`📱 ${businessInfo.social_media.whatsapp}`);
+    } else {
+      console.log('❌ WhatsApp NO encontrado');
+      console.log('   - social_media existe:', !!businessInfo.social_media);
+      console.log('   - whatsapp field:', businessInfo.social_media?.whatsapp);
+    }
+    
+    // Prioridad 2: Teléfono (si no hay WhatsApp)
+    if (!businessInfo.social_media?.whatsapp && businessInfo.phone) {
+      console.log('✅ Phone encontrado:', businessInfo.phone);
+      contactItems.push(`📞 ${businessInfo.phone}`);
+    }
+    
+    // Prioridad 3: Email (solo si es corto)
+    if (businessInfo.email && businessInfo.email.length <= 25) {
+      console.log('✅ Email encontrado:', businessInfo.email);
+      contactItems.push(`📧 ${businessInfo.email}`);
+    }
+    
+    const result = contactItems.slice(0, 2).join(' | ');
+    console.log('🎯 Contact info final:', result);
+    
+    return result;
   }
   
-  // Prioridad 2: Teléfono (si no hay WhatsApp)
-  else if (businessInfo.phone) {
-    console.log('✅ Phone encontrado:', businessInfo.phone);
-    contactItems.push(`📞 ${businessInfo.phone}`);
+  // ===== DEBUG BUSINESS INFO =====
+  private static debugBusinessInfo(businessInfo: BusinessInfo): void {
+    console.log('🔍 DEBUG - businessInfo completo:', JSON.stringify(businessInfo, null, 2));
+    console.log('🔍 DEBUG - social_media:', businessInfo.social_media);
+    console.log('🔍 DEBUG - whatsapp:', businessInfo.social_media?.whatsapp);
+    console.log('🔍 DEBUG - phone:', businessInfo.phone);
+    console.log('🔍 DEBUG - email:', businessInfo.email);
   }
   
-  // Prioridad 3: Email (solo si es corto)
-  if (businessInfo.email && businessInfo.email.length <= 25) {
-    console.log('✅ Email encontrado:', businessInfo.email);
-    contactItems.push(`📧 ${businessInfo.email}`);
-  }
-  
-  const result = contactItems.slice(0, 2).join(' | ');
-  console.log('🎯 Contact info final:', result);
-  
-  // Máximo 2 items para no saturar el footer
-  return result;
-}
-  /**
- * 🐛 DEBUG: Verificar estructura de businessInfo
- */
-private static debugBusinessInfo(businessInfo: BusinessInfo): void {
-  console.log('🔍 DEBUG - businessInfo completo:', JSON.stringify(businessInfo, null, 2));
-  console.log('🔍 DEBUG - social_media:', businessInfo.social_media);
-  console.log('🔍 DEBUG - whatsapp:', businessInfo.social_media?.whatsapp);
-  console.log('🔍 DEBUG - phone:', businessInfo.phone);
-  console.log('🔍 DEBUG - email:', businessInfo.email);
-}
-  // ===== MÉTODOS HEREDADOS (SIN CAMBIOS) =====
-  
+  // ===== HEALTH CHECK =====
   private static async checkServiceHealthWithRetry(maxRetries: number = 3): Promise<boolean> {
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
@@ -841,6 +743,7 @@ private static debugBusinessInfo(businessInfo: BusinessInfo): void {
     return false;
   }
   
+  // ===== GENERACIÓN CON RETRY =====
   private static async generatePDFWithRetry(
     htmlContent: string,
     pdfOptions: any,
@@ -900,6 +803,7 @@ private static debugBusinessInfo(businessInfo: BusinessInfo): void {
     throw new Error('Todos los intentos de generación fallaron');
   }
   
+  // ===== DESCARGA DE PDF =====
   private static async downloadPDF(blob: Blob, businessName: string): Promise<void> {
     try {
       const downloadUrl = URL.createObjectURL(blob);
@@ -922,6 +826,7 @@ private static debugBusinessInfo(businessInfo: BusinessInfo): void {
     }
   }
   
+  // ===== UTILIDADES =====
   private static getContrastColor(hexColor: string): string {
     const hex = hexColor.replace('#', '');
     const r = parseInt(hex.substr(0, 2), 16);
@@ -931,9 +836,7 @@ private static debugBusinessInfo(businessInfo: BusinessInfo): void {
     return luminance > 0.5 ? '#2c3e50' : '#ffffff';
   }
   
-  /**
-   * 🧪 TEST SERVICE
-   */
+  // ===== TEST SERVICE =====
   static async testService(): Promise<PuppeteerResult> {
     try {
       const response = await fetch(`${this.SERVICE_URL}/test-pdf`, {
@@ -946,7 +849,7 @@ private static debugBusinessInfo(businessInfo: BusinessInfo): void {
       }
       
       const blob = await response.blob();
-      await this.downloadPDF(blob, 'test-exact-spacing');
+      await this.downloadPDF(blob, 'test-grid-3x2');
       
       return { 
         success: true,
@@ -963,7 +866,7 @@ private static debugBusinessInfo(businessInfo: BusinessInfo): void {
   }
 }
 
-// Función de conveniencia
+// ===== FUNCIÓN DE CONVENIENCIA =====
 export const generatePDFWithPuppeteer = async (
   products: Product[],
   businessInfo: BusinessInfo,
