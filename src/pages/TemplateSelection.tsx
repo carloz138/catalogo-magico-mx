@@ -371,6 +371,9 @@ const TemplateSelection = () => {
 
   // FUNCIÓN MEJORADA: Generar catálogo con nuevo sistema
   const handleGenerateCatalog = async () => {
+    console.log('🔍 DEBUG - INICIO handleGenerateCatalog');
+    console.log('🔍 DEBUG - businessInfo completo al iniciar:', JSON.stringify(businessInfo, null, 2));
+    
     if (!selectedTemplate || !user || !businessInfo) {
       toast({
         title: "Información faltante",
@@ -408,6 +411,9 @@ const TemplateSelection = () => {
         address: businessInfo.address,
         social_media: businessInfo.social_media
       };
+      
+      console.log('🔍 DEBUG - businessInfo en construcción de businessData:', JSON.stringify(businessInfo, null, 2));
+      console.log('🔍 DEBUG - businessData construido:', JSON.stringify(businessData, null, 2));
       
       console.log('🔍 DEBUG - businessInfo desde useBusinessInfo:', businessInfo);
       console.log('🔍 DEBUG - businessData enviado al generador:', businessData);
@@ -473,6 +479,7 @@ const TemplateSelection = () => {
           
         case 'auto':
         default:
+          console.log('🔍 DEBUG - catalogTitle en caso auto/default:', catalogTitle);
           console.log('Usando selección automática inteligente');
           result = await generateCatalog(
             selectedProducts,
