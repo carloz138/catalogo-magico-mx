@@ -1,13 +1,13 @@
 // src/lib/pdf/puppeteer-service-client.ts - CÓDIGO COMPLETO CORREGIDO
-// 🎯 SISTEMA OPTIMIZADO 3x3 GRID - TODOS LOS ERRORES DE PUPPETEER SOLUCIONADOS
+// 🎯 SOLUCIÓN DEFINITIVA - DISPLAYHEADERFOOTER CON TEMPLATES
 
 interface Product {
   id: string;
   name: string;
   description?: string;
   price_retail: number;
-  price_wholesale?: number;  // NUEVO: Precio de mayoreo
-  wholesale_min_qty?: number;  // NUEVO: Cantidad mínima para mayoreo
+  price_wholesale?: number;
+  wholesale_min_qty?: number;
   image_url: string;
   sku?: string;
   category?: string;
@@ -20,12 +20,6 @@ interface BusinessInfo {
   phone?: string;
   website?: string;
   address?: string;
-  social_media?: {
-    whatsapp?: string;
-    instagram?: string;
-    facebook?: string;
-    twitter?: string;
-  };
 }
 
 interface TemplateConfig {
@@ -62,42 +56,39 @@ interface PuppeteerResult {
   };
 }
 
-// 📐 CONFIGURACIÓN OPTIMIZADA PARA 3x3 GRID - CORREGIDA
+// 📐 CONFIGURACIÓN OPTIMIZADA PARA 3x3 GRID - FIJA
 const OPTIMIZED_LAYOUT = {
-  // Estándar comercial: 3x3 = 9 productos por página
   PRODUCTS_PER_PAGE: 9,
   COLUMNS: 3,
   ROWS: 3,
   
-  // Dimensiones A4 optimizadas - VALORES FIJOS
   PAGE: {
-    WIDTH: 210,  // mm
-    HEIGHT: 297, // mm
-    MARGIN: 12    // mm reducido para más espacio
+    WIDTH: 210,
+    HEIGHT: 297,
+    MARGIN: 12
   },
   
-  // Sistema de spacing fijo - SIN VARIABLES
   SPACING: {
-    GRID_GAP: 3,      // mm
-    CARD_PADDING: 2,  // mm
-    BORDER_RADIUS: 4  // mm
+    GRID_GAP: 4,
+    CARD_PADDING: 2,
+    BORDER_RADIUS: 4
   }
 };
 
-// Calcular área disponible - VALORES FIJOS
+// Área de contenido calculada
 const CONTENT_AREA = {
-  WIDTH: OPTIMIZED_LAYOUT.PAGE.WIDTH - (OPTIMIZED_LAYOUT.PAGE.MARGIN * 2), // 198mm
-  HEIGHT: 260, // mm - más espacio disponible
-  USABLE_WIDTH: 198 - 6, // mm - padding interno
-  USABLE_HEIGHT: 260 - 6 // mm
+  WIDTH: OPTIMIZED_LAYOUT.PAGE.WIDTH - (OPTIMIZED_LAYOUT.PAGE.MARGIN * 2),
+  HEIGHT: 240, // Altura disponible después de header/footer
+  USABLE_WIDTH: 186 - 8,
+  USABLE_HEIGHT: 240 - 8
 };
 
-// Dimensiones de tarjetas CALCULADAS Y FIJAS
+// Dimensiones de tarjetas
 const CARD_DIMENSIONS = {
-  WIDTH: (CONTENT_AREA.USABLE_WIDTH - (OPTIMIZED_LAYOUT.SPACING.GRID_GAP * 2)) / OPTIMIZED_LAYOUT.COLUMNS, // ~60mm
-  HEIGHT: 48, // mm - altura fija para consistencia
-  IMAGE_HEIGHT: 30, // mm - espacio para imagen
-  TEXT_HEIGHT: 15   // mm - espacio garantizado para texto
+  WIDTH: (CONTENT_AREA.USABLE_WIDTH - (OPTIMIZED_LAYOUT.SPACING.GRID_GAP * 2)) / OPTIMIZED_LAYOUT.COLUMNS,
+  HEIGHT: 50, // Altura optimizada
+  IMAGE_HEIGHT: 32,
+  TEXT_HEIGHT: 16
 };
 
 export class PuppeteerServiceClient {
@@ -105,26 +96,23 @@ export class PuppeteerServiceClient {
   private static readonly TIMEOUT = 30000;
   
   /**
-   * 🎯 MÉTODO PRINCIPAL CORREGIDO PARA TODOS LOS ERRORES
+   * 🎯 MÉTODO PRINCIPAL CORREGIDO CON DISPLAYHEADERFOOTER
    */
   static async generatePDF(
     products: Product[],
     businessInfo: BusinessInfo,
     template: TemplateConfig,
-    options: PuppeteerServiceOptions = {},
-    catalogTitle?: string
+    options: PuppeteerServiceOptions = {}
   ): Promise<PuppeteerResult> {
     
     const startTime = Date.now();
     
     try {
-      console.log('🚀 Generando PDF con sistema corregido...', {
+      console.log('🚀 Generando PDF con solución definitiva...', {
         products: products.length,
         template: template.id,
-        productsPerPage: OPTIMIZED_LAYOUT.PRODUCTS_PER_PAGE,
-        totalPages: Math.ceil(products.length / OPTIMIZED_LAYOUT.PRODUCTS_PER_PAGE),
-        cardSize: `${CARD_DIMENSIONS.WIDTH}x${CARD_DIMENSIONS.HEIGHT}mm`,
-        corrections: 'all-puppeteer-errors-fixed'
+        method: 'displayHeaderFooter',
+        totalPages: Math.ceil(products.length / OPTIMIZED_LAYOUT.PRODUCTS_PER_PAGE)
       });
       
       if (options.onProgress) options.onProgress(5);
@@ -137,34 +125,31 @@ export class PuppeteerServiceClient {
       
       if (options.onProgress) options.onProgress(15);
       
-      // 2. Generar HTML COMPLETAMENTE CORREGIDO
+      // 2. Generar HTML SIMPLIFICADO
       const htmlContent = this.generateCorrectedHTML(
         products, 
         businessInfo, 
         template, 
-        options.quality || 'medium',
-        catalogTitle
+        options.quality || 'medium'
       );
       
       if (options.onProgress) options.onProgress(30);
       
-      // 3. Configurar PDF con mejores prácticas
-      const pdfOptions = this.getOptimizedPDFOptions(options);
+      // 3. Configurar PDF con DISPLAYHEADERFOOTER
+      const pdfOptions = this.getOptimizedPDFOptions(options, businessInfo);
       
       // 4. Generar con retry
       const pdfBlob = await this.generatePDFWithRetry(
         htmlContent, 
         pdfOptions, 
         businessInfo, 
-        options.onProgress,
-        catalogTitle
+        options.onProgress
       );
       
       if (options.onProgress) options.onProgress(90);
       
       // 5. Descargar
-      const finalTitle = catalogTitle || businessInfo.business_name;
-      await this.downloadPDF(pdfBlob, finalTitle);
+      await this.downloadPDF(pdfBlob, businessInfo.business_name);
       
       if (options.onProgress) options.onProgress(100);
       
@@ -175,7 +160,7 @@ export class PuppeteerServiceClient {
         time: generationTime,
         size: pdfBlob.size,
         totalPages,
-        fixes: ['no-flexbox', 'fixed-dimensions', 'table-layout', 'visible-text']
+        method: 'displayHeaderFooter'
       });
       
       return {
@@ -188,7 +173,7 @@ export class PuppeteerServiceClient {
       };
       
     } catch (error) {
-      console.error('❌ Error en PDF corregido:', error);
+      console.error('❌ Error en PDF:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Error desconocido'
@@ -197,39 +182,35 @@ export class PuppeteerServiceClient {
   }
   
   /**
-   * 🏗️ GENERAR HTML COMPLETAMENTE CORREGIDO
+   * 🏗️ GENERAR HTML SIMPLIFICADO - SIN POSITION FIXED
    */
   private static generateCorrectedHTML(
     products: Product[],
     businessInfo: BusinessInfo,
     template: TemplateConfig,
-    quality: 'low' | 'medium' | 'high',
-    catalogTitle?: string
+    quality: 'low' | 'medium' | 'high'
   ): string {
     
     const pagesHTML = this.generateCorrected3x3Pages(products, businessInfo, template, quality);
-    const finalTitle = catalogTitle || `Catálogo ${businessInfo.business_name}`;
     
     return `<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=210mm, height=297mm, initial-scale=1.0">
-  <title>${finalTitle}</title>
+  <title>Catálogo ${businessInfo.business_name}</title>
   <style>
     ${this.generateCorrectedCSS(template, quality)}
   </style>
 </head>
 <body>
-  ${this.generateFixedHeader(businessInfo, template, catalogTitle)}
-  ${this.generateFixedFooter(businessInfo, products.length)}
   ${pagesHTML}
 </body>
 </html>`;
   }
   
   /**
-   * 🎨 CSS COMPLETAMENTE CORREGIDO - SOLUCIÓN TOTAL
+   * 🎨 CSS SIMPLIFICADO - SIN POSITION FIXED
    */
   private static generateCorrectedCSS(
     template: TemplateConfig,
@@ -237,177 +218,59 @@ export class PuppeteerServiceClient {
   ): string {
     
     const qualityConfig = {
-      low: { fontSize: 9, headerSize: 14, priceSize: 10, nameSize: 9 },
-      medium: { fontSize: 10, headerSize: 16, priceSize: 11, nameSize: 10 },
-      high: { fontSize: 11, headerSize: 18, priceSize: 12, nameSize: 11 }
+      low: { fontSize: 9, priceSize: 10, nameSize: 9 },
+      medium: { fontSize: 10, priceSize: 11, nameSize: 10 },
+      high: { fontSize: 11, priceSize: 12, nameSize: 11 }
     };
     
     const config = qualityConfig[quality];
     
     return `
-      /* ===== SOLUCIÓN COMPLETA - TODOS LOS ERRORES CORREGIDOS ===== */
+      /* ===== CSS SIMPLIFICADO - SOLUCIÓN DEFINITIVA ===== */
       
-      /* ===== ERROR 1: NO MÁS FLEXBOX - SOLO TABLE LAYOUT ===== */
       * {
         margin: 0 !important;
         padding: 0 !important;
         box-sizing: border-box !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
-        color-adjust: exact !important;
       }
       
-      /* ===== ERROR 2: @PAGE CORREGIDO CON VALORES EXACTOS ===== */
       @page {
         size: A4 portrait;
-        margin: ${OPTIMIZED_LAYOUT.PAGE.MARGIN}mm;
-        marks: none;
-        bleed: 0;
-        orphans: 1;
-        widows: 1;
-        -webkit-print-color-adjust: exact;
+        margin: 25mm 12mm 20mm 12mm; /* Espacio para header/footer nativo */
       }
       
-      /* ===== ERROR 3: NO MÁS CSS VARIABLES - VALORES FIJOS ===== */
       html {
-        width: ${OPTIMIZED_LAYOUT.PAGE.WIDTH}mm !important;
-        height: ${OPTIMIZED_LAYOUT.PAGE.HEIGHT}mm !important;
         font-size: ${config.fontSize}pt !important;
-        font-family: 'Arial', 'Helvetica', sans-serif !important;
-        background: ${template.colors.background} !important;
+        font-family: 'Arial', sans-serif !important;
         -webkit-print-color-adjust: exact !important;
       }
       
       body {
-        width: ${CONTENT_AREA.WIDTH}mm !important;
-        height: auto !important;
-        margin: 0 auto !important;
-        padding: 0 !important;
-        padding-top: 28mm !important; /* Header space FIJO */
-        padding-bottom: 24mm !important; /* Footer space FIJO */
-        font-family: 'Arial', 'Helvetica', sans-serif !important;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 6mm !important;
+        font-family: 'Arial', sans-serif !important;
         font-size: ${config.fontSize}pt !important;
-        line-height: 1.2 !important;
         color: ${template.colors.text} !important;
         background: ${template.colors.background} !important;
-        position: relative !important;
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-      }
-      
-      /* ===== HEADER FIJO - SIN PROBLEMAS DE POSITIONING ===== */
-      .fixed-header {
-        position: fixed !important;
-        top: ${OPTIMIZED_LAYOUT.PAGE.MARGIN}mm !important;
-        left: ${OPTIMIZED_LAYOUT.PAGE.MARGIN}mm !important;
-        right: ${OPTIMIZED_LAYOUT.PAGE.MARGIN}mm !important;
-        width: ${CONTENT_AREA.WIDTH}mm !important;
-        height: 16mm !important;
-        background: ${template.colors.primary} !important;
-        background-image: linear-gradient(135deg, ${template.colors.primary}, ${template.colors.secondary}) !important;
-        color: white !important;
-        z-index: 1000 !important;
-        border-radius: ${OPTIMIZED_LAYOUT.SPACING.BORDER_RADIUS}px !important;
-        overflow: hidden !important;
-        -webkit-print-color-adjust: exact !important;
-        display: table !important;
-        table-layout: fixed !important;
-      }
-      
-      .header-cell {
-        display: table-cell !important;
-        vertical-align: middle !important;
-        text-align: center !important;
-        width: 100% !important;
-        height: 100% !important;
-        padding: 2mm !important;
-      }
-      
-      .header-business-name {
-        font-size: ${config.headerSize}pt !important;
-        font-weight: 700 !important;
-        color: white !important;
-        text-shadow: 1px 1px 2px rgba(0,0,0,0.3) !important;
-        text-transform: uppercase !important;
-        letter-spacing: 0.3pt !important;
-        margin: 0 !important;
-        line-height: 1.1 !important;
-        word-wrap: break-word !important;
         -webkit-print-color-adjust: exact !important;
       }
       
-      .header-subtitle {
-        font-size: ${config.fontSize + 1}pt !important;
-        font-weight: 300 !important;
-        color: rgba(255,255,255,0.9) !important;
-        margin-top: 1mm !important;
-        line-height: 1 !important;
-        -webkit-print-color-adjust: exact !important;
-      }
-      
-      /* ===== FOOTER FIJO - SIN PROBLEMAS DE POSITIONING ===== */
-      .fixed-footer {
-        position: fixed !important;
-        bottom: ${OPTIMIZED_LAYOUT.PAGE.MARGIN}mm !important;
-        left: ${OPTIMIZED_LAYOUT.PAGE.MARGIN}mm !important;
-        right: ${OPTIMIZED_LAYOUT.PAGE.MARGIN}mm !important;
-        width: ${CONTENT_AREA.WIDTH}mm !important;
-        height: 12mm !important;
-        background: ${template.colors.secondary} !important;
-        color: ${this.getContrastColor(template.colors.secondary)} !important;
-        z-index: 1000 !important;
-        border-radius: ${OPTIMIZED_LAYOUT.SPACING.BORDER_RADIUS}px !important;
-        overflow: hidden !important;
-        -webkit-print-color-adjust: exact !important;
-        display: table !important;
-        table-layout: fixed !important;
-      }
-      
-      .footer-cell {
-        display: table-cell !important;
-        vertical-align: middle !important;
-        text-align: center !important;
-        width: 100% !important;
-        height: 100% !important;
-        padding: 2mm !important;
-      }
-      
-      .footer-contact {
-        font-size: ${config.fontSize - 1}pt !important;
-        font-weight: 600 !important;
-        margin-bottom: 1mm !important;
-        line-height: 1.1 !important;
-        word-wrap: break-word !important;
-        -webkit-print-color-adjust: exact !important;
-      }
-      
-      .footer-brand {
-        font-size: ${config.fontSize - 2}pt !important;
-        opacity: 0.8 !important;
-        font-weight: 300 !important;
-        line-height: 1 !important;
-        -webkit-print-color-adjust: exact !important;
-      }
-      
-      /* ===== CONTENIDO PRINCIPAL - SIN FLEX ===== */
+      /* ===== CONTENIDO PRINCIPAL ===== */
       .content-area {
-        width: ${CONTENT_AREA.WIDTH}mm !important;
+        width: 100% !important;
         margin: 0 auto !important;
-        padding: ${OPTIMIZED_LAYOUT.SPACING.CARD_PADDING}mm !important;
-        position: relative !important;
-        z-index: 1 !important;
         background: ${template.colors.background} !important;
-        min-height: ${CONTENT_AREA.HEIGHT}mm !important;
-        box-sizing: border-box !important;
+        -webkit-print-color-adjust: exact !important;
       }
       
-      /* ===== PÁGINA INDIVIDUAL ===== */
       .page-container {
         width: 100% !important;
         margin-bottom: 8mm !important;
         page-break-after: always !important;
         page-break-inside: avoid !important;
-        position: relative !important;
         background: ${template.colors.background} !important;
       }
       
@@ -416,11 +279,11 @@ export class PuppeteerServiceClient {
         margin-bottom: 0 !important;
       }
       
-      /* ===== 3x3 GRID CORREGIDO - TABLE LAYOUT ROBUSTO ===== */
+      /* ===== GRID 3x3 OPTIMIZADO ===== */
       .products-grid-3x3 {
         width: 100% !important;
         border-collapse: separate !important;
-        border-spacing: ${OPTIMIZED_LAYOUT.SPACING.GRID_GAP}mm !important;
+        border-spacing: 4mm !important;
         table-layout: fixed !important;
         margin: 0 auto !important;
       }
@@ -433,29 +296,25 @@ export class PuppeteerServiceClient {
       .grid-cell {
         display: table-cell !important;
         vertical-align: top !important;
-        width: ${100 / OPTIMIZED_LAYOUT.COLUMNS}% !important;
+        width: 33.333% !important;
         height: ${CARD_DIMENSIONS.HEIGHT}mm !important;
         padding: 0 !important;
         text-align: center !important;
       }
       
-      /* ===== PRODUCT CARDS SIN FLEX - SOLO TABLE ===== */
+      /* ===== PRODUCT CARDS ===== */
       .product-card-optimized {
         width: 100% !important;
         height: ${CARD_DIMENSIONS.HEIGHT}mm !important;
-        min-height: ${CARD_DIMENSIONS.HEIGHT}mm !important;
-        max-height: ${CARD_DIMENSIONS.HEIGHT}mm !important;
         background: white !important;
         border: 0.5pt solid ${template.colors.accent}60 !important;
         border-radius: ${OPTIMIZED_LAYOUT.SPACING.BORDER_RADIUS}px !important;
         overflow: hidden !important;
-        position: relative !important;
-        page-break-inside: avoid !important;
         box-shadow: 0 1pt 3pt rgba(0,0,0,0.1) !important;
         -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
         display: table !important;
         table-layout: fixed !important;
+        position: relative !important;
       }
       
       .card-decoration-optimized {
@@ -468,56 +327,39 @@ export class PuppeteerServiceClient {
         -webkit-print-color-adjust: exact !important;
       }
       
-      /* ===== IMAGEN CONTAINER CORREGIDO - DIMENSIONES FIJAS ===== */
       .image-container-optimized {
         display: table-row !important;
         width: 100% !important;
         height: ${CARD_DIMENSIONS.IMAGE_HEIGHT}mm !important;
-        background: #f8f9fa !important;
-        border-radius: ${Math.max(OPTIMIZED_LAYOUT.SPACING.BORDER_RADIUS - 2, 2)}px !important;
-        border: 0.25pt solid #e9ecef !important;
-        margin: ${OPTIMIZED_LAYOUT.SPACING.CARD_PADDING}mm ${OPTIMIZED_LAYOUT.SPACING.CARD_PADDING}mm 1mm ${OPTIMIZED_LAYOUT.SPACING.CARD_PADDING}mm !important;
-        overflow: hidden !important;
-        -webkit-print-color-adjust: exact !important;
       }
       
       .image-cell-optimized {
         display: table-cell !important;
         vertical-align: middle !important;
         text-align: center !important;
-        width: 100% !important;
-        height: ${CARD_DIMENSIONS.IMAGE_HEIGHT}mm !important;
+        background: #f8f9fa !important;
+        border-radius: 2px !important;
+        margin: 2mm !important;
       }
       
-      /* ===== IMAGEN SIN PROBLEMAS DE RENDERIZADO ===== */
       .product-image-optimized {
         max-width: 95% !important;
-        max-height: ${CARD_DIMENSIONS.IMAGE_HEIGHT - 4}mm !important;
-        width: auto !important;
-        height: auto !important;
+        max-height: ${CARD_DIMENSIONS.IMAGE_HEIGHT - 2}mm !important;
         object-fit: contain !important;
         object-position: center !important;
         display: block !important;
         margin: 0 auto !important;
-        border-radius: 2px !important;
         -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
       }
       
       .image-placeholder-optimized {
         width: ${CARD_DIMENSIONS.IMAGE_HEIGHT - 4}mm !important;
         height: ${CARD_DIMENSIONS.IMAGE_HEIGHT - 4}mm !important;
-        background: 
-          repeating-conic-gradient(from 0deg at 50% 50%, 
-            #f0f0f0 0deg 90deg, 
-            transparent 90deg 180deg) !important;
+        background: repeating-conic-gradient(from 0deg at 50% 50%, #f0f0f0 0deg 90deg, transparent 90deg 180deg) !important;
         background-size: 8px 8px !important;
         border: 1pt dashed #ccc !important;
         border-radius: 3px !important;
         margin: 0 auto !important;
-        color: #999 !important;
-        font-size: 8pt !important;
-        -webkit-print-color-adjust: exact !important;
         display: table !important;
         table-layout: fixed !important;
       }
@@ -526,154 +368,114 @@ export class PuppeteerServiceClient {
         display: table-cell !important;
         vertical-align: middle !important;
         text-align: center !important;
-        width: 100% !important;
-        height: 100% !important;
+        color: #999 !important;
+        font-size: 8pt !important;
       }
       
-      /* ===== ÁREA DE TEXTO GARANTIZADA - VISIBLE ===== */
       .text-area-optimized {
         display: table-row !important;
         width: 100% !important;
         height: ${CARD_DIMENSIONS.TEXT_HEIGHT}mm !important;
-        padding: 1mm ${OPTIMIZED_LAYOUT.SPACING.CARD_PADDING}mm ${OPTIMIZED_LAYOUT.SPACING.CARD_PADDING}mm ${OPTIMIZED_LAYOUT.SPACING.CARD_PADDING}mm !important;
-        text-align: center !important;
-        overflow: visible !important;
-        box-sizing: border-box !important;
+        padding: 2mm !important;
       }
       
       .text-content-cell {
         display: table-cell !important;
         vertical-align: middle !important;
         text-align: center !important;
-        width: 100% !important;
-        height: ${CARD_DIMENSIONS.TEXT_HEIGHT}mm !important;
       }
       
-      /* ===== TEXTO VISIBLE - DIMENSIONES GARANTIZADAS ===== */
       .product-name-optimized {
         font-size: ${config.nameSize}pt !important;
         font-weight: 600 !important;
         color: ${template.colors.primary} !important;
-        line-height: 1.1 !important;
-        margin: 0 auto 2mm auto !important;
-        text-align: center !important;
-        word-wrap: break-word !important;
-        overflow-wrap: break-word !important;
-        hyphens: auto !important;
-        
+        margin-bottom: 2mm !important;
         display: -webkit-box !important;
-        -webkit-line-clamp: 2 !important;
+        -webkit-line-clamp: 1 !important;
         -webkit-box-orient: vertical !important;
         overflow: hidden !important;
-        
-        height: 6mm !important;
-        max-height: 6mm !important;
-        
+        word-wrap: break-word !important;
         -webkit-print-color-adjust: exact !important;
       }
       
-      /* ===== SISTEMA DE PRECIOS DUALES OPTIMIZADO PUPPETEER ===== */
-.product-pricing-optimized {
-  display: table !important;
-  width: 100% !important;
-  height: auto !important;
-  margin: 0 auto !important;
-  text-align: center !important;
-}
-
-/* Precio retail - prominente */
-.product-price-retail-optimized {
-  font-size: ${config.priceSize}pt !important;
-  font-weight: 700 !important;
-  color: white !important;
-  background: ${template.colors.secondary} !important;
-  background-image: linear-gradient(135deg, ${template.colors.secondary}, ${template.colors.primary}) !important;
-  padding: 1.5mm 3mm !important;
-  border-radius: 10px !important;
-  display: inline-block !important;
-  margin: 0 auto 1mm auto !important;
-  text-align: center !important;
-  white-space: nowrap !important;
-  max-width: 95% !important;
-  overflow: hidden !important;
-  text-overflow: ellipsis !important;
-  box-shadow: 0 1pt 2pt rgba(0,0,0,0.15) !important;
-  -webkit-print-color-adjust: exact !important;
-  print-color-adjust: exact !important;
-  
-  height: auto !important;
-  line-height: 1.2 !important;
-}
-
-/* Precio mayoreo - más compacto para 3x3 grid */
-.product-price-wholesale-optimized {
-  display: table !important;
-  width: 90% !important;
-  margin: 0 auto !important;
-  font-size: ${Math.max(config.priceSize - 2, 6)}pt !important;
-  color: ${template.colors.text} !important;
-  background: rgba(0,0,0,0.03) !important;
-  padding: 1mm !important;
-  border-radius: 4px !important;
-  border: 0.25pt solid ${template.colors.accent}50 !important;
-  text-align: center !important;
-  -webkit-print-color-adjust: exact !important;
-  table-layout: fixed !important;
-}
-
-.wholesale-label-optimized {
-  font-size: ${Math.max(config.priceSize - 3, 5)}pt !important;
-  font-weight: 500 !important;
-  color: ${template.colors.text}80 !important;
-  text-transform: uppercase !important;
-  letter-spacing: 0.2pt !important;
-  display: block !important;
-  margin-bottom: 0.5mm !important;
-  line-height: 1 !important;
-}
-
-.wholesale-price-optimized {
-  font-weight: 700 !important;
-  color: ${template.colors.primary} !important;
-  font-size: ${Math.max(config.priceSize - 1, 7)}pt !important;
-  display: block !important;
-  line-height: 1.1 !important;
-  margin-bottom: 0.5mm !important;
-}
-
-.wholesale-min-optimized {
-  font-size: ${Math.max(config.priceSize - 4, 5)}pt !important;
-  color: ${template.colors.text}60 !important;
-  font-weight: 400 !important;
-  font-style: italic !important;
-  display: block !important;
-  line-height: 1 !important;
-}
-
-/* ===== AJUSTES PARA GRID 3X3 ===== */
-@media print {
-  .product-pricing-optimized {
-    page-break-inside: avoid !important;
-    break-inside: avoid !important;
-  }
-  
-  .product-price-retail-optimized,
-  .product-price-wholesale-optimized {
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-    color-adjust: exact !important;
-  }
-}
+      .product-pricing-optimized {
+        display: table !important;
+        width: 100% !important;
+        margin: 0 auto !important;
+        text-align: center !important;
+      }
       
-      /* ===== CELDA VACÍA PARA COMPLETAR GRID ===== */
+      .product-price-retail-optimized {
+        font-size: ${config.priceSize}pt !important;
+        font-weight: 700 !important;
+        color: white !important;
+        background: ${template.colors.secondary} !important;
+        background-image: linear-gradient(135deg, ${template.colors.secondary}, ${template.colors.primary}) !important;
+        padding: 1.5mm 3mm !important;
+        border-radius: 8px !important;
+        display: inline-block !important;
+        margin-bottom: 1mm !important;
+        text-align: center !important;
+        white-space: nowrap !important;
+        max-width: 95% !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        box-shadow: 0 1pt 2pt rgba(0,0,0,0.15) !important;
+        -webkit-print-color-adjust: exact !important;
+      }
+      
+      .product-price-wholesale-optimized {
+        display: table !important;
+        width: 90% !important;
+        margin: 0 auto !important;
+        font-size: ${Math.max(config.priceSize - 2, 6)}pt !important;
+        color: ${template.colors.text} !important;
+        background: rgba(0,0,0,0.05) !important;
+        padding: 1mm 2mm !important;
+        border-radius: 4px !important;
+        border: 0.25pt solid ${template.colors.accent}50 !important;
+        text-align: center !important;
+        -webkit-print-color-adjust: exact !important;
+        table-layout: fixed !important;
+      }
+      
+      .wholesale-label-optimized {
+        font-size: ${Math.max(config.priceSize - 3, 5)}pt !important;
+        font-weight: 500 !important;
+        color: ${template.colors.text}80 !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.2pt !important;
+        display: block !important;
+        margin-bottom: 0.5mm !important;
+        line-height: 1 !important;
+      }
+      
+      .wholesale-price-optimized {
+        font-weight: 700 !important;
+        color: ${template.colors.primary} !important;
+        font-size: ${Math.max(config.priceSize - 1, 7)}pt !important;
+        display: block !important;
+        line-height: 1.1 !important;
+        margin-bottom: 0.5mm !important;
+      }
+      
+      .wholesale-min-optimized {
+        font-size: ${Math.max(config.priceSize - 4, 5)}pt !important;
+        color: ${template.colors.text}60 !important;
+        font-weight: 400 !important;
+        font-style: italic !important;
+        display: block !important;
+        line-height: 1 !important;
+      }
+      
       .empty-cell {
         display: table-cell !important;
-        width: ${100 / OPTIMIZED_LAYOUT.COLUMNS}% !important;
+        width: 33.333% !important;
         height: ${CARD_DIMENSIONS.HEIGHT}mm !important;
         visibility: hidden !important;
       }
       
-      /* ===== MEDIA PRINT ESPECÍFICO - FUERZA TABLE LAYOUT ===== */
+      /* ===== MEDIA PRINT ===== */
       @media print {
         * {
           -webkit-print-color-adjust: exact !important;
@@ -681,30 +483,8 @@ export class PuppeteerServiceClient {
           print-color-adjust: exact !important;
         }
         
-        html, body {
-          background: white !important;
-          -webkit-print-color-adjust: exact !important;
-        }
-        
-        .fixed-header, .fixed-footer {
-          -webkit-print-color-adjust: exact !important;
-          print-color-adjust: exact !important;
-        }
-        
-        .page-container, .product-card-optimized {
-          page-break-inside: avoid !important;
-          break-inside: avoid !important;
-        }
-        
-        .product-image-optimized {
-          -webkit-print-color-adjust: exact !important;
-          print-color-adjust: exact !important;
-          filter: none !important;
-        }
-        
         .products-grid-3x3 {
           display: table !important;
-          width: 100% !important;
         }
         
         .grid-row {
@@ -723,80 +503,7 @@ export class PuppeteerServiceClient {
   }
   
   /**
-   * 📋 GENERAR HEADER FIJO (SIN CAMBIOS)
-   */
-  private static generateFixedHeader(businessInfo: BusinessInfo, template: TemplateConfig, catalogTitle?: string): string {
-    const displayTitle = (catalogTitle && catalogTitle.trim()) ? catalogTitle.trim() : `Catálogo ${template.displayName}`;
-    return `
-      <div class="fixed-header">
-        <div class="header-cell">
-          <div class="header-business-name">${businessInfo.business_name}</div>
-          <div class="header-subtitle">${displayTitle}</div>
-        </div>
-      </div>
-    `;
-  }
-  
-  /**
-   * 📄 GENERAR FOOTER FIJO (SIN CAMBIOS)
-   */
-  private static generateFixedFooter(businessInfo: BusinessInfo, totalProducts: number): string {
-    // Crear contactInfo dinámico solo con campos que tengan información
-    const contactParts = [];
-    
-    if (businessInfo.phone) {
-      contactParts.push(`Tel: ${businessInfo.phone}`);
-    }
-    
-    if (businessInfo.social_media?.whatsapp) {
-      contactParts.push(`WhatsApp: ${businessInfo.social_media.whatsapp}`);
-    }
-    
-    if (businessInfo.email) {
-      contactParts.push(`Email: ${businessInfo.email}`);
-    }
-    
-    if (businessInfo.website) {
-      contactParts.push(`Web: ${businessInfo.website}`);
-    }
-    
-    if (businessInfo.address) {
-      contactParts.push(`Dir: ${businessInfo.address}`);
-    }
-    
-    const contactInfo = contactParts.join(' | ');
-    const currentDate = new Date().toLocaleDateString('es-MX');
-    const footerBrand = `Catalogo generado con CatifyPro - ${totalProducts} productos | ${currentDate}`;
-    
-    console.log('🔍 PUPPETEER DEBUG - Footer Data:', { 
-      contactInfo,
-      totalProducts,
-      currentDate,
-      footerBrand,
-      businessInfo: {
-        business_name: businessInfo.business_name,
-        phone: businessInfo.phone,
-        email: businessInfo.email, 
-        website: businessInfo.website,
-        address: businessInfo.address,
-        whatsapp: businessInfo.social_media?.whatsapp
-      }
-    });
-    
-    return `
-      <div class="fixed-footer">
-        <div class="footer-cell">
-          ${contactInfo ? `<div class="footer-contact">${contactInfo}</div>` : ''}
-          <div class="footer-brand">
-            ${footerBrand}
-          </div>
-        </div>
-      </div>
-    `;
-  }
-  
-  /**
-   * 📄 GENERAR PÁGINAS CORREGIDAS
+   * 📄 GENERAR PÁGINAS 3x3
    */
   private static generateCorrected3x3Pages(
     products: Product[],
@@ -825,21 +532,18 @@ export class PuppeteerServiceClient {
   }
   
   /**
-   * 🛍️ GENERAR 3x3 GRID CORREGIDO
+   * 🛍️ GENERAR GRID 3x3
    */
   private static generateCorrected3x3Grid(products: Product[]): string {
     let gridHTML = '<table class="products-grid-3x3">';
     
-    // Crear exactamente 3 filas (3x3 = 9 slots)
     for (let row = 0; row < OPTIMIZED_LAYOUT.ROWS; row++) {
       gridHTML += '<tr class="grid-row">';
       
-      // Crear 3 columnas por fila
       for (let col = 0; col < OPTIMIZED_LAYOUT.COLUMNS; col++) {
         const productIndex = (row * OPTIMIZED_LAYOUT.COLUMNS) + col;
         
         if (productIndex < products.length) {
-          // Producto real con texto visible
           const product = products[productIndex];
           gridHTML += `
             <td class="grid-cell">
@@ -847,7 +551,6 @@ export class PuppeteerServiceClient {
             </td>
           `;
         } else {
-          // Celda vacía para completar el grid
           gridHTML += '<td class="empty-cell"></td>';
         }
       }
@@ -860,20 +563,12 @@ export class PuppeteerServiceClient {
   }
   
   /**
-   * 🎴 GENERAR TARJETA CORREGIDA - TEXTO GARANTIZADO VISIBLE
+   * 🎴 GENERAR TARJETA DE PRODUCTO
    */
   private static generateCorrectedProductCard(product: Product): string {
     const productName = product.name || 'Producto';
     const productPrice = typeof product.price_retail === 'number' ? product.price_retail : 0;
     const productImage = product.image_url || '';
-
-    console.log('🔍 PUPPETEER DEBUG:', {
-    name: productName,
-    retail_price: productPrice,
-    wholesale_price: product.price_wholesale,
-    wholesale_min_qty: product.wholesale_min_qty,
-    has_wholesale: !!product.price_wholesale
-  });
     
     const imageHTML = productImage ? 
       `<div class="image-cell-optimized">
@@ -903,24 +598,24 @@ export class PuppeteerServiceClient {
         <div class="text-area-optimized">
           <div class="text-content-cell">
             <div class="product-name-optimized">${productName}</div>
-           <div class="product-pricing-optimized">
-  <div class="product-price-retail-optimized">$${(productPrice / 100).toLocaleString('es-MX', { 
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 2
-})}</div>
-  ${product.price_wholesale ? `
-    <div class="product-price-wholesale-optimized">
-      <span class="wholesale-label-optimized">Mayoreo:</span>
-     <span class="wholesale-price-optimized">$${(product.price_wholesale / 100).toLocaleString('es-MX', { 
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 2
-})}</span>
-      ${product.wholesale_min_qty ? `
-        <span class="wholesale-min-optimized">Min. ${product.wholesale_min_qty}</span>
-      ` : ''}
-    </div>
-  ` : ''}
-</div>
+            <div class="product-pricing-optimized">
+              <div class="product-price-retail-optimized">$${(productPrice / 100).toLocaleString('es-MX', { 
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+              })}</div>
+              ${product.price_wholesale ? `
+                <div class="product-price-wholesale-optimized">
+                  <span class="wholesale-label-optimized">Mayoreo:</span>
+                  <span class="wholesale-price-optimized">$${(product.price_wholesale / 100).toLocaleString('es-MX', { 
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                  })}</span>
+                  ${product.wholesale_min_qty ? `
+                    <span class="wholesale-min-optimized">Min. ${product.wholesale_min_qty}</span>
+                  ` : ''}
+                </div>
+              ` : ''}
+            </div>
           </div>
         </div>
       </div>
@@ -928,27 +623,74 @@ export class PuppeteerServiceClient {
   }
   
   /**
-   * ⚙️ PDF OPTIONS OPTIMIZADO
+   * ⚙️ PDF OPTIONS CON DISPLAYHEADERFOOTER
    */
-  private static getOptimizedPDFOptions(options: PuppeteerServiceOptions): any {
-  return {
-    format: options.format || 'A4',
-    margin: {
-      top: '18mm',    // AUMENTADO
-      right: '12mm',
-      bottom: '18mm', // AUMENTADO  
-      left: '12mm'
-    },
-    printBackground: true,
-    preferCSSPageSize: true,
-    displayHeaderFooter: false, // ❌ NUNCA USAR TRUE
-    waitUntil: 'networkidle0',
-    timeout: 30000,
-    omitBackground: false,
-    scale: 1.0,
-    quality: options.quality === 'high' ? 100 : options.quality === 'low' ? 80 : 90
-  };
-}
+  private static getOptimizedPDFOptions(options: PuppeteerServiceOptions, businessInfo: BusinessInfo): any {
+    const contactInfo = [
+      businessInfo.phone ? `📞 ${businessInfo.phone}` : '',
+      businessInfo.email ? `📧 ${businessInfo.email}` : '',
+      businessInfo.website ? `🌐 ${businessInfo.website}` : ''
+    ].filter(Boolean).join(' | ');
+    
+    return {
+      format: options.format || 'A4',
+      margin: {
+        top: '25mm',
+        right: '12mm',
+        bottom: '20mm',
+        left: '12mm'
+      },
+      printBackground: true,
+      preferCSSPageSize: true,
+      displayHeaderFooter: true, // ✅ SOLUCIÓN DEFINITIVA
+      waitUntil: 'networkidle0',
+      timeout: 30000,
+      omitBackground: false,
+      scale: 1.0,
+      quality: options.quality === 'high' ? 100 : options.quality === 'low' ? 80 : 90,
+      
+      // ✅ HEADER TEMPLATE QUE FUNCIONA
+      headerTemplate: `
+        <div style="
+          font-size: 12px !important; 
+          width: 100% !important; 
+          text-align: center !important;
+          background: #52c41a !important;
+          background-image: linear-gradient(135deg, #52c41a, #389e0d) !important;
+          color: white !important;
+          padding: 4mm !important;
+          margin: 0 !important;
+          border-radius: 4px !important;
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
+        ">
+          <strong style="color: white !important; font-size: 14px !important;">${businessInfo.business_name || 'DM DISFRACES'}</strong><br>
+          <span style="color: rgba(255,255,255,0.9) !important; font-size: 10px !important;">Catálogo de Productos</span>
+        </div>
+      `,
+      
+      // ✅ FOOTER TEMPLATE QUE FUNCIONA
+      footerTemplate: `
+        <div style="
+          font-size: 9px !important; 
+          width: 100% !important; 
+          text-align: center !important;
+          background: #389e0d !important;
+          color: white !important;
+          padding: 3mm !important;
+          margin: 0 !important;
+          border-radius: 4px !important;
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
+        ">
+          ${contactInfo ? `<div style="color: white !important;">${contactInfo}</div>` : ''}
+          <div style="color: rgba(255,255,255,0.8) !important; font-size: 7px !important; margin-top: 1mm;">
+            Catálogo generado con CatalogoIA - <span class="pageNumber"></span> de <span class="totalPages"></span>
+          </div>
+        </div>
+      `
+    };
+  }
   
   // ===== MÉTODOS HEREDADOS (SIN CAMBIOS) =====
   
@@ -987,7 +729,6 @@ export class PuppeteerServiceClient {
     pdfOptions: any,
     businessInfo: BusinessInfo,
     onProgress?: (progress: number) => void,
-    catalogTitle?: string,
     maxRetries: number = 2
   ): Promise<Blob> {
     
@@ -1006,7 +747,7 @@ export class PuppeteerServiceClient {
           body: JSON.stringify({
             html: htmlContent,
             options: pdfOptions,
-            filename: `${(catalogTitle || businessInfo.business_name).replace(/[^a-zA-Z0-9]/g, '_')}.pdf`
+            filename: `catalogo-${businessInfo.business_name.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`
           }),
           signal: controller.signal
         });
@@ -1025,7 +766,7 @@ export class PuppeteerServiceClient {
           throw new Error('PDF vacío recibido del servicio');
         }
         
-        console.log(`✅ PDF corregido en intento ${attempt}/${maxRetries}, tamaño: ${blob.size} bytes`);
+        console.log(`✅ PDF generado en intento ${attempt}/${maxRetries}, tamaño: ${blob.size} bytes`);
         return blob;
         
       } catch (error) {
@@ -1063,8 +804,6 @@ export class PuppeteerServiceClient {
       throw new Error('Error descargando el PDF generado');
     }
   }
-  
-  // ===== UTILITY FUNCTIONS =====
   
   private static getContrastColor(hexColor: string): string {
     const hex = hexColor.replace('#', '');
