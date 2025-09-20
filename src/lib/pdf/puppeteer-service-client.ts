@@ -767,26 +767,42 @@ export class PuppeteerServiceClient {
   /**
  * 📧 GENERAR CONTACT INFO INTELIGENTE - Solo información clave
  */
+/**
+ * 📧 GENERAR CONTACT INFO INTELIGENTE - Solo información clave
+ */
 private static generateSmartContactInfo(businessInfo: BusinessInfo): string {
+  // 🐛 DEBUG TEMPORAL
+  this.debugBusinessInfo(businessInfo);
+  
   const contactItems: string[] = [];
   
   // Prioridad 1: WhatsApp (más directo para negocios)
   if (businessInfo.social_media?.whatsapp) {
+    console.log('✅ WhatsApp encontrado:', businessInfo.social_media.whatsapp);
     contactItems.push(`📱 ${businessInfo.social_media.whatsapp}`);
+  } else {
+    console.log('❌ WhatsApp NO encontrado');
+    console.log('   - social_media existe:', !!businessInfo.social_media);
+    console.log('   - whatsapp field:', businessInfo.social_media?.whatsapp);
   }
   
   // Prioridad 2: Teléfono (si no hay WhatsApp)
   else if (businessInfo.phone) {
+    console.log('✅ Phone encontrado:', businessInfo.phone);
     contactItems.push(`📞 ${businessInfo.phone}`);
   }
   
   // Prioridad 3: Email (solo si es corto)
   if (businessInfo.email && businessInfo.email.length <= 25) {
+    console.log('✅ Email encontrado:', businessInfo.email);
     contactItems.push(`📧 ${businessInfo.email}`);
   }
   
+  const result = contactItems.slice(0, 2).join(' | ');
+  console.log('🎯 Contact info final:', result);
+  
   // Máximo 2 items para no saturar el footer
-  return contactItems.slice(0, 2).join(' | ');
+  return result;
 }
   /**
  * 🐛 DEBUG: Verificar estructura de businessInfo
