@@ -12,6 +12,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { Product, getDisplayImageUrl, getProcessingStatus } from '@/types/products';
+import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 
 // ==========================================
 // TIPOS ESPECÍFICOS DEL EDITOR
@@ -167,6 +168,12 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
   // Estados para modal de vista de producto
   const [showViewModal, setShowViewModal] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<EditorProduct | null>(null);
+  
+  // Estados para modal de confirmación de eliminación
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [productToDelete, setProductToDelete] = useState<EditorProduct | null>(null);
+  const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
+  const [productsToDelete, setProductsToDelete] = useState<string[]>([]);
   
   // Estados para acciones masivas
   const [showBulkTagsModal, setShowBulkTagsModal] = useState(false);
@@ -459,27 +466,31 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
     setShowViewModal(true);
   };
 
-  const handleDeleteProduct = async (product: EditorProduct) => {
-    if (!confirm(`¿Estás seguro de que quieres eliminar "${product.name}"?`)) {
-      return;
-    }
+  const handleDeleteProduct = (product: EditorProduct) => {
+    setProductToDelete(product);
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDeleteProduct = async () => {
+    if (!productToDelete) return;
 
     try {
       const { error } = await supabase
         .from('products')
         .delete()
-        .eq('id', product.id)
+        .eq('id', productToDelete.id)
         .eq('user_id', user?.id);
 
       if (error) throw error;
 
       toast({
         title: "Producto eliminado",
-        description: `${product.name} ha sido eliminado correctamente`,
+        description: `${productToDelete.name} ha sido eliminado correctamente`,
       });
 
       await fetchProducts();
-      setSelectedProducts(prev => prev.filter(id => id !== product.id));
+      setSelectedProducts(prev => prev.filter(id => id !== productToDelete.id));
+      setProductToDelete(null);
 
     } catch (error) {
       console.error('Error eliminando producto:', error);
@@ -491,25 +502,31 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
     }
   };
 
-  const deleteProducts = async (productIds: string[]) => {
-    if (!confirm(`¿Eliminar ${productIds.length} producto(s)?`)) return;
+  const deleteProducts = (productIds: string[]) => {
+    setProductsToDelete(productIds);
+    setShowBulkDeleteConfirm(true);
+  };
+
+  const confirmDeleteProducts = async () => {
+    if (productsToDelete.length === 0) return;
 
     try {
       const { error } = await supabase
         .from('products')
         .delete()
-        .in('id', productIds)
+        .in('id', productsToDelete)
         .eq('user_id', user?.id);
 
       if (error) throw error;
 
-      setProducts(prev => prev.filter(p => !productIds.includes(p.id)));
+      setProducts(prev => prev.filter(p => !productsToDelete.includes(p.id)));
       setSelectedProducts([]);
       
       toast({
         title: "Productos eliminados",
-        description: `${productIds.length} producto(s) eliminado(s)`,
+        description: `${productsToDelete.length} producto(s) eliminado(s)`,
       });
+      setProductsToDelete([]);
     } catch (error) {
       console.error('Error deleting products:', error);
       toast({
@@ -1461,6 +1478,29 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
           </div>
         </div>
       )}
+
+      {/* Modales de Confirmación */}
+      <ConfirmationDialog
+        open={showDeleteConfirm}
+        onOpenChange={setShowDeleteConfirm}
+        title="Eliminar Producto"
+        description={productToDelete ? `¿Estás seguro de que quieres eliminar "${productToDelete.name}"? Esta acción no se puede deshacer.` : ''}
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        onConfirm={confirmDeleteProduct}
+        variant="destructive"
+      />
+
+      <ConfirmationDialog
+        open={showBulkDeleteConfirm}
+        onOpenChange={setShowBulkDeleteConfirm}
+        title="Eliminar Productos"
+        description={`¿Estás seguro de que quieres eliminar ${productsToDelete.length} productos? Esta acción no se puede deshacer.`}
+        confirmText={`Eliminar ${productsToDelete.length} productos`}
+        cancelText="Cancelar"
+        onConfirm={confirmDeleteProducts}
+        variant="destructive"
+      />
     </div>
   );
 };

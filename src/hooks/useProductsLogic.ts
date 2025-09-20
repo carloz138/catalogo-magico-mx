@@ -26,6 +26,10 @@ export const useProductsLogic = () => {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [showBusinessInfoBanner, setShowBusinessInfoBanner] = useState(true);
   
+  // Estados para modal de confirmación de eliminación
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [productToDelete, setProductToDelete] = useState<Product | null>(null);
+  
   // Estado activo de pestaña
   const [activeTab, setActiveTab] = useState(() => {
     return searchParams.get('tab') || 'with-background';
@@ -351,26 +355,30 @@ export const useProductsLogic = () => {
     }
   };
 
-  const handleDeleteProduct = async (product: Product) => {
-    if (!confirm(`¿Estás seguro de que quieres eliminar "${product.name}"?`)) {
-      return;
-    }
+  const handleDeleteProduct = (product: Product) => {
+    setProductToDelete(product);
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDeleteProduct = async () => {
+    if (!productToDelete) return;
 
     try {
       const { error } = await supabase
         .from('products')
         .delete()
-        .eq('id', product.id);
+        .eq('id', productToDelete.id);
 
       if (error) throw error;
 
       toast({
         title: "Producto eliminado",
-        description: `${product.name} ha sido eliminado correctamente`,
+        description: `${productToDelete.name} ha sido eliminado correctamente`,
       });
 
       await loadProducts();
-      setSelectedProducts(prev => prev.filter(id => id !== product.id));
+      setSelectedProducts(prev => prev.filter(id => id !== productToDelete.id));
+      setProductToDelete(null);
 
     } catch (error) {
       console.error('Error eliminando producto:', error);
@@ -411,6 +419,11 @@ export const useProductsLogic = () => {
     setShowBusinessInfoBanner,
     activeTab,
     
+    // Estados de confirmación de eliminación
+    showDeleteConfirm,
+    setShowDeleteConfirm,
+    productToDelete,
+    
     // Datos derivados
     filteredProducts,
     categories,
@@ -426,6 +439,7 @@ export const useProductsLogic = () => {
     handleCreateCatalog,
     confirmCreateCatalog,
     handleDeleteProduct,
+    confirmDeleteProduct,
     navigate
   };
 };

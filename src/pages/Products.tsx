@@ -16,6 +16,7 @@ import { ProductCard } from '@/components/products/ProductCard';
 import { BusinessInfoBanner, isBusinessInfoCompleteForCatalog } from '@/components/products/BusinessInfoBanner';
 import { ProductModals } from '@/components/products/ProductModals';
 import { useProductsLogic } from '@/hooks/useProductsLogic';
+import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 
 import { 
   Package, 
@@ -68,7 +69,11 @@ const Products = () => {
     handleCreateCatalog,
     confirmCreateCatalog,
     handleDeleteProduct,
-    navigate
+    confirmDeleteProduct,
+    navigate,
+    showDeleteConfirm,
+    setShowDeleteConfirm,
+    productToDelete
   } = useProductsLogic();
 
   const { 
@@ -518,6 +523,18 @@ const Products = () => {
           selectedProducts={selectedProducts}
           products={products}
           confirmCreateCatalog={confirmCreateCatalog}
+        />
+
+        {/* Modal de Confirmación de Eliminación */}
+        <ConfirmationDialog
+          open={showDeleteConfirm}
+          onOpenChange={setShowDeleteConfirm}
+          title="Eliminar Producto"
+          description={productToDelete ? `¿Estás seguro de que quieres eliminar "${productToDelete.name}"? Esta acción no se puede deshacer.` : ''}
+          confirmText="Eliminar"
+          cancelText="Cancelar"
+          onConfirm={confirmDeleteProduct}
+          variant="destructive"
         />
       </AppLayout>
     </ProtectedRoute>
