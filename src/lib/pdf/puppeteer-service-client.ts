@@ -79,8 +79,8 @@ const PDF_LAYOUT = {
   
   // Grid configuration
   COLUMNS: 3,
-  ROWS: 3,
-  PRODUCTS_PER_PAGE: 9
+  ROWS: 2,
+  PRODUCTS_PER_PAGE: 6
 };
 
 // 📊 CÁLCULOS DINÁMICOS BASADOS EN ESPACIO REAL
