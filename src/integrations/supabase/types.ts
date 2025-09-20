@@ -12,31 +12,6 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "12.2.12 (cd3cf9e)"
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       backup_view_definitions: {
@@ -352,6 +327,13 @@ export type Database = {
             foreignKeyName: "credit_usage_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
+            referencedRelation: "active_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_usage_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["id"]
           },
@@ -391,6 +373,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      product_archive: {
+        Row: {
+          archived_at: string | null
+          deleted_at: string
+          deletion_reason: string | null
+          id: string
+          original_product_id: string
+          product_data: Json
+          user_id: string
+        }
+        Insert: {
+          archived_at?: string | null
+          deleted_at: string
+          deletion_reason?: string | null
+          id?: string
+          original_product_id: string
+          product_data: Json
+          user_id: string
+        }
+        Update: {
+          archived_at?: string | null
+          deleted_at?: string
+          deletion_reason?: string | null
+          id?: string
+          original_product_id?: string
+          product_data?: Json
+          user_id?: string
+        }
+        Relationships: []
       }
       product_variants: {
         Row: {
@@ -443,6 +455,13 @@ export type Database = {
             foreignKeyName: "product_variants_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
+            referencedRelation: "active_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_variants_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["id"]
           },
@@ -468,6 +487,7 @@ export type Database = {
           created_at: string
           credits_used: number | null
           custom_description: string | null
+          deleted_at: string | null
           description: string | null
           error_message: string | null
           estimated_cost_mxn: number | null
@@ -512,6 +532,7 @@ export type Database = {
           created_at?: string
           credits_used?: number | null
           custom_description?: string | null
+          deleted_at?: string | null
           description?: string | null
           error_message?: string | null
           estimated_cost_mxn?: number | null
@@ -556,6 +577,7 @@ export type Database = {
           created_at?: string
           credits_used?: number | null
           custom_description?: string | null
+          deleted_at?: string | null
           description?: string | null
           error_message?: string | null
           estimated_cost_mxn?: number | null
@@ -968,6 +990,152 @@ export type Database = {
       }
     }
     Views: {
+      active_products: {
+        Row: {
+          ai_confidence_score: number | null
+          ai_description: string | null
+          ai_tags: string[] | null
+          brand: string | null
+          category: string | null
+          cleanup_grace_period: number | null
+          cleanup_scheduled_at: string | null
+          color: string | null
+          created_at: string | null
+          credits_used: number | null
+          custom_description: string | null
+          deleted_at: string | null
+          description: string | null
+          error_message: string | null
+          estimated_cost_mxn: number | null
+          estimated_credits: number | null
+          features: string[] | null
+          has_variants: boolean | null
+          hd_image_url: string | null
+          id: string | null
+          image_url: string | null
+          is_processed: boolean | null
+          model: string | null
+          name: string | null
+          original_image_url: string | null
+          price_retail: number | null
+          price_wholesale: number | null
+          processed_at: string | null
+          processed_image_url: string | null
+          processed_images: Json | null
+          processing_metadata: Json | null
+          processing_progress: number | null
+          processing_status: string | null
+          service_type: string | null
+          sku: string | null
+          smart_analysis: Json | null
+          social_media_urls: Json | null
+          tags: string[] | null
+          updated_at: string | null
+          user_id: string | null
+          variant_count: number | null
+          video_url: string | null
+          wholesale_min_qty: number | null
+        }
+        Insert: {
+          ai_confidence_score?: number | null
+          ai_description?: string | null
+          ai_tags?: string[] | null
+          brand?: string | null
+          category?: string | null
+          cleanup_grace_period?: number | null
+          cleanup_scheduled_at?: string | null
+          color?: string | null
+          created_at?: string | null
+          credits_used?: number | null
+          custom_description?: string | null
+          deleted_at?: string | null
+          description?: string | null
+          error_message?: string | null
+          estimated_cost_mxn?: number | null
+          estimated_credits?: number | null
+          features?: string[] | null
+          has_variants?: boolean | null
+          hd_image_url?: string | null
+          id?: string | null
+          image_url?: string | null
+          is_processed?: boolean | null
+          model?: string | null
+          name?: string | null
+          original_image_url?: string | null
+          price_retail?: number | null
+          price_wholesale?: number | null
+          processed_at?: string | null
+          processed_image_url?: string | null
+          processed_images?: Json | null
+          processing_metadata?: Json | null
+          processing_progress?: number | null
+          processing_status?: string | null
+          service_type?: string | null
+          sku?: string | null
+          smart_analysis?: Json | null
+          social_media_urls?: Json | null
+          tags?: string[] | null
+          updated_at?: string | null
+          user_id?: string | null
+          variant_count?: number | null
+          video_url?: string | null
+          wholesale_min_qty?: number | null
+        }
+        Update: {
+          ai_confidence_score?: number | null
+          ai_description?: string | null
+          ai_tags?: string[] | null
+          brand?: string | null
+          category?: string | null
+          cleanup_grace_period?: number | null
+          cleanup_scheduled_at?: string | null
+          color?: string | null
+          created_at?: string | null
+          credits_used?: number | null
+          custom_description?: string | null
+          deleted_at?: string | null
+          description?: string | null
+          error_message?: string | null
+          estimated_cost_mxn?: number | null
+          estimated_credits?: number | null
+          features?: string[] | null
+          has_variants?: boolean | null
+          hd_image_url?: string | null
+          id?: string | null
+          image_url?: string | null
+          is_processed?: boolean | null
+          model?: string | null
+          name?: string | null
+          original_image_url?: string | null
+          price_retail?: number | null
+          price_wholesale?: number | null
+          processed_at?: string | null
+          processed_image_url?: string | null
+          processed_images?: Json | null
+          processing_metadata?: Json | null
+          processing_progress?: number | null
+          processing_status?: string | null
+          service_type?: string | null
+          sku?: string | null
+          smart_analysis?: Json | null
+          social_media_urls?: Json | null
+          tags?: string[] | null
+          updated_at?: string | null
+          user_id?: string | null
+          variant_count?: number | null
+          video_url?: string | null
+          wholesale_min_qty?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "products_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products_with_variants: {
         Row: {
           category: string | null
@@ -1084,6 +1252,10 @@ export type Database = {
       }
     }
     Functions: {
+      archive_old_deleted_products: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
       can_access_transaction: {
         Args: { transaction_user_id: string }
         Returns: boolean
@@ -1136,6 +1308,18 @@ export type Database = {
           email: string
           id: string
           updated_at: string
+        }[]
+      }
+      get_deleted_products: {
+        Args: { requesting_user_id: string }
+        Returns: {
+          category: string
+          deleted_at: string
+          id: string
+          name: string
+          original_image_url: string
+          processed_image_url: string
+          sku: string
         }[]
       }
       get_or_create_monthly_usage: {
@@ -1201,6 +1385,22 @@ export type Database = {
       increment_catalog_usage: {
         Args: { p_user_id: string }
         Returns: Json
+      }
+      permanently_delete_product: {
+        Args: { product_id: string; requesting_user_id: string }
+        Returns: boolean
+      }
+      restore_product: {
+        Args: { product_id: string; requesting_user_id: string }
+        Returns: boolean
+      }
+      soft_delete_product: {
+        Args: {
+          product_id: string
+          reason?: string
+          requesting_user_id: string
+        }
+        Returns: boolean
       }
       update_product_field: {
         Args: { field_name: string; field_value: string; product_id: string }
@@ -1338,9 +1538,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {},
   },

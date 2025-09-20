@@ -10,6 +10,7 @@ import Index from "./pages/Index";
 import Upload from "./pages/Upload";
 import Products from "./pages/Products";
 import ProductsManagement from "./pages/ProductsManagement";
+import DeletedProducts from "./pages/DeletedProducts";
 import Analytics from "./pages/Analytics";
 import Catalogs from "./pages/Catalogs";
 import ImageReview from "./pages/ImageReview";
@@ -54,6 +55,11 @@ const App = () => (
             <Route path="/products-management" element={
               <ProtectedRoute>
                 <ProductsManagement />
+              </ProtectedRoute>
+            } />
+            <Route path="/deleted-products" element={
+              <ProtectedRoute>
+                <DeletedProducts />
               </ProtectedRoute>
             } />
             <Route path="/image-review" element={

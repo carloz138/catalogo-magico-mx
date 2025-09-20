@@ -56,6 +56,7 @@ export interface Product {
   updated_at: string;
   cleanup_scheduled_at?: string;
   cleanup_grace_period?: number;
+  deleted_at?: string; // ← NUEVO CAMPO PARA SOFT DELETE
 }
 
 export interface ProductVariant {

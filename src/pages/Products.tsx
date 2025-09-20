@@ -260,6 +260,16 @@ const Products = () => {
         <BarChart3 className="h-4 w-4 mr-2" />
         Analytics
       </Button>
+
+      <Button 
+        onClick={() => navigate('/deleted-products')} 
+        variant="ghost" 
+        size="sm"
+        className="hidden lg:flex"
+      >
+        <Package className="h-4 w-4 mr-2" />
+        Papelera
+      </Button>
     </div>
   );
 

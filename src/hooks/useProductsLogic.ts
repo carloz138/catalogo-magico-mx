@@ -66,9 +66,10 @@ export const useProductsLogic = () => {
           processing_status, processing_progress, is_processed, processed_at,
           credits_used, service_type, error_message,
           has_variants, variant_count, tags,
-          created_at, updated_at
+          created_at, updated_at, deleted_at
         `)
         .eq('user_id', user.id)
+        .is('deleted_at', null) // Solo productos activos (no eliminados)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -361,19 +362,30 @@ export const useProductsLogic = () => {
   };
 
   const confirmDeleteProduct = async () => {
-    if (!productToDelete) return;
+    if (!productToDelete || !user) return;
 
     try {
-      const { error } = await supabase
-        .from('products')
-        .delete()
-        .eq('id', productToDelete.id);
+      // Usar función de soft delete
+      const { data, error } = await supabase.rpc('soft_delete_product', {
+        product_id: productToDelete.id,
+        requesting_user_id: user.id,
+        reason: 'User deletion'
+      });
 
       if (error) throw error;
 
+      if (!data) {
+        toast({
+          title: "Error",
+          description: "No tienes permisos para eliminar este producto",
+          variant: "destructive",
+        });
+        return;
+      }
+
       toast({
         title: "Producto eliminado",
-        description: `${productToDelete.name} ha sido eliminado correctamente`,
+        description: `${productToDelete.name} se movió a la papelera`,
       });
 
       await loadProducts();
