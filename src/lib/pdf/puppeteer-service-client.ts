@@ -169,7 +169,7 @@ export class PuppeteerServiceClient {
       if (options.onProgress) options.onProgress(30);
       
       // 3. Configurar PDF con márgenes exactos
-      const pdfOptions = this.getExactPDFOptions(options, businessInfo, templateConfig);
+      const pdfOptions = this.getExactPDFOptions(options, businessInfo, template);
       
       // 4. Generar con retry
       const pdfBlob = await this.generatePDFWithRetry(
@@ -681,10 +681,11 @@ export class PuppeteerServiceClient {
   /**
  * ⚙️ PDF OPTIONS CON HEADER/FOOTER DINÁMICOS SEGÚN TEMPLATE
  */
-private static getExactPDFOptions(options: PuppeteerServiceOptions, businessInfo: BusinessInfo, templateConfig?: any): any {
+  private static getExactPDFOptions(options: PuppeteerServiceOptions, businessInfo: BusinessInfo, template?: any): any {
   // 🎨 USAR COLORES DEL TEMPLATE (dinámico)
-  const primaryColor = templateConfig?.colors?.primary || '#007BFF';
-  const secondaryColor = templateConfig?.colors?.secondary || '#0056B3';
+  // 🎨 USAR COLORES DEL TEMPLATE (dinámico)
+    const primaryColor = template?.colors?.primary || '#007BFF';
+    const secondaryColor = template?.colors?.secondary || '#0056B3';
   
   // 📧 CONTACT INFO INTELIGENTE - Solo información clave
   const contactInfo = this.generateSmartContactInfo(businessInfo);
