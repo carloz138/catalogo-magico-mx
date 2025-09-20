@@ -85,11 +85,6 @@ export class UnifiedCatalogGenerator {
     userId: string,
     options: GenerationOptions = {}
   ): Promise<GenerationResult> {
-    
-    console.log('🔍 DEBUG - generateCatalog recibió options:', options);
-    console.log('🔍 DEBUG - catalogTitle en options:', options.catalogTitle);
-    console.log('🔍 DEBUG - generateCatalog businessInfo recibido:', JSON.stringify(businessInfo, null, 2));
-    
     const startTime = Date.now();
     const warnings: string[] = [];
     
@@ -552,7 +547,6 @@ private static async generateWithPuppeteerService(
   
   try {
     console.log('🚀 Generando con Puppeteer Service (mejorado)...');
-    console.log('🔍 DEBUG - UnifiedGenerator businessInfo antes de PuppeteerServiceClient:', businessInfo);
     
     // Convertir template a formato Puppeteer
     const templateConfig = {
@@ -587,8 +581,6 @@ private static async generateWithPuppeteerService(
       quality: template.isPremium ? 'high' as const : 'medium' as const,
       catalogTitle: options.catalogTitle
     };
-    
-    console.log('🔍 DEBUG - Pasando businessInfo a PuppeteerServiceClient:', JSON.stringify(businessInfo, null, 2));
     
     const result = await PuppeteerServiceClient.generatePDF(
       products,
