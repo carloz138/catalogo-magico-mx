@@ -283,8 +283,8 @@ export class PuppeteerServiceClient {
         height: auto !important;
         margin: 0 auto !important;
         padding: 0 !important;
-        padding-top: 22mm !important; /* Header space FIJO */
-        padding-bottom: 18mm !important; /* Footer space FIJO */
+        padding-top: 28mm !important; /* Header space FIJO */
+        padding-bottom: 24mm !important; /* Footer space FIJO */
         font-family: 'Arial', 'Helvetica', sans-serif !important;
         font-size: ${config.fontSize}pt !important;
         line-height: 1.2 !important;
