@@ -741,12 +741,27 @@ export class PuppeteerServiceClient {
       businessInfo.website ? `🌐 ${businessInfo.website}` : ''
     ].filter(Boolean).join(' | ');
     
+    const currentDate = new Date().toLocaleDateString('es-MX');
+    const footerBrand = `Catálogo generado con CatalogoIA - ${totalProducts} productos | ${currentDate}`;
+    
+    console.log('🔍 PUPPETEER DEBUG - Footer Data:', { 
+      contactInfo,
+      totalProducts,
+      currentDate,
+      footerBrand,
+      businessInfo: {
+        phone: businessInfo.phone,
+        email: businessInfo.email, 
+        website: businessInfo.website
+      }
+    });
+    
     return `
       <div class="fixed-footer">
         <div class="footer-cell">
           ${contactInfo ? `<div class="footer-contact">${contactInfo}</div>` : ''}
           <div class="footer-brand">
-            Catálogo generado con CatalogoIA - ${totalProducts} productos | ${new Date().toLocaleDateString('es-MX')}
+            ${footerBrand}
           </div>
         </div>
       </div>
