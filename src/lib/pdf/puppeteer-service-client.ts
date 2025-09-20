@@ -719,7 +719,7 @@ export class PuppeteerServiceClient {
    * 📋 GENERAR HEADER FIJO (SIN CAMBIOS)
    */
   private static generateFixedHeader(businessInfo: BusinessInfo, template: TemplateConfig, catalogTitle?: string): string {
-    const displayTitle = catalogTitle || `Catálogo ${template.displayName}`;
+    const displayTitle = (catalogTitle && catalogTitle.trim()) ? catalogTitle.trim() : `Catálogo ${template.displayName}`;
     return `
       <div class="fixed-header">
         <div class="header-cell">
