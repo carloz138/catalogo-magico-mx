@@ -576,15 +576,15 @@ private static async generateWithPuppeteerService(
         bottom: '12mm', // CORREGIDO: de 25mm a 12mm - CRÍTICO PARA EVITAR SUPERPOSICIÓN
         left: '12mm'    // CORREGIDO: de 15mm a 12mm
       },
-      quality: template.isPremium ? 'high' as const : 'medium' as const
+      quality: template.isPremium ? 'high' as const : 'medium' as const,
+      catalogTitle: options.catalogTitle
     };
     
     const result = await PuppeteerServiceClient.generatePDF(
       products,
       businessInfo,
       templateConfig,
-      puppeteerOptions,
-      options.catalogTitle
+      puppeteerOptions
     );
     
     if (result.success) {

@@ -20,6 +20,11 @@ interface BusinessInfo {
   phone?: string;
   website?: string;
   address?: string;
+  social_media?: {
+    whatsapp?: string;
+    facebook?: string;
+    instagram?: string;
+  };
 }
 
 interface TemplateConfig {
@@ -43,6 +48,7 @@ interface PuppeteerServiceOptions {
   format?: 'A4' | 'Letter';
   margin?: { top: string; right: string; bottom: string; left: string; };
   quality?: 'low' | 'medium' | 'high';
+  catalogTitle?: string;
 }
 
 interface PuppeteerResult {
@@ -154,7 +160,8 @@ export class PuppeteerServiceClient {
         products, 
         businessInfo, 
         template, 
-        options.quality || 'medium'
+        options.quality || 'medium',
+        options
       );
       
       if (options.onProgress) options.onProgress(30);
@@ -212,17 +219,19 @@ export class PuppeteerServiceClient {
     products: Product[],
     businessInfo: BusinessInfo,
     template: TemplateConfig,
-    quality: 'low' | 'medium' | 'high'
+    quality: 'low' | 'medium' | 'high',
+    options: PuppeteerServiceOptions = {}
   ): string {
     
     const pagesHTML = this.generatePrecisePages(products, businessInfo, template, quality);
+    const pageTitle = options.catalogTitle || `Catálogo ${businessInfo.business_name}`;
     
     return `<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=${PDF_LAYOUT.PAGE_WIDTH}mm, height=${PDF_LAYOUT.PAGE_HEIGHT}mm, initial-scale=1.0">
-  <title>Catálogo ${businessInfo.business_name}</title>
+  <title>${pageTitle}</title>
   <style>
     ${this.generatePreciseCSS(template, quality)}
   </style>
@@ -672,6 +681,7 @@ export class PuppeteerServiceClient {
   private static getExactPDFOptions(options: PuppeteerServiceOptions, businessInfo: BusinessInfo): any {
     const contactInfo = [
       businessInfo.phone ? `📞 ${businessInfo.phone}` : '',
+      businessInfo.social_media?.whatsapp ? `📱 WhatsApp: ${businessInfo.social_media.whatsapp}` : '',
       businessInfo.email ? `📧 ${businessInfo.email}` : '',
       businessInfo.website ? `🌐 ${businessInfo.website}` : ''
     ].filter(Boolean).join(' | ');
