@@ -763,11 +763,6 @@ export class PuppeteerServiceClient {
   };
 }
 
-
-  /**
- * 📧 GENERAR CONTACT INFO INTELIGENTE - Solo información clave
- */
-/**
  * 📧 GENERAR CONTACT INFO INTELIGENTE - Solo información clave
  */
 private static generateSmartContactInfo(businessInfo: BusinessInfo): string {
