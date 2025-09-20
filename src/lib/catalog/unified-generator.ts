@@ -28,6 +28,12 @@ interface BusinessInfo {
   phone?: string;
   website?: string;
   address?: string;
+  social_media?: {
+    whatsapp?: string;
+    facebook?: string;
+    instagram?: string;
+    twitter?: string;
+  };
 }
 
 interface GenerationResult {
