@@ -178,7 +178,7 @@ export const LoginModal = ({ open, onOpenChange }: LoginModalProps) => {
                 Restablecer Contraseña
               </div>
             ) : (
-              "Accede a CatalogoIA"
+              "Accede a CatifyPro"
             )}
           </DialogTitle>
         </DialogHeader>

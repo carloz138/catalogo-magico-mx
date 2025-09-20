@@ -834,8 +834,8 @@ private static async generateWithPuppeteerService(
         '<head>',
         `<head>
           <meta name="viewport" content="width=210mm, initial-scale=1.0">
-          <meta name="description" content="Catálogo generado con CatalogoIA">
-          <meta name="generator" content="CatalogoIA v2.0">`
+          <meta name="description" content="Catálogo generado con CatifyPro">
+          <meta name="generator" content="CatifyPro v2.0">`
       );
       
       const blob = new Blob([enhancedHTML], { type: 'text/html;charset=utf-8' });

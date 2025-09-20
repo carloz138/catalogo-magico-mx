@@ -137,6 +137,8 @@ export class PuppeteerServiceClient {
     
     const startTime = Date.now();
     
+    console.log('🔍 DEBUG - PuppeteerServiceClient businessInfo recibido:', businessInfo);
+    
     try {
       console.log('🚀 Generando PDF con cálculo exacto del espacio...', {
         products: products.length,
@@ -722,7 +724,7 @@ export class PuppeteerServiceClient {
           table-layout: fixed !important;
         ">
           <div style="display: table-cell; vertical-align: middle; text-align: center;">
-            <strong style="color: white !important; font-size: 14px !important;">${businessInfo.business_name || 'DM DISFRACES'}</strong><br>
+            <strong style="color: white !important; font-size: 14px !important;">${businessInfo.business_name || 'CatifyPro'}</strong><br>
             <span style="color: rgba(255,255,255,0.9) !important; font-size: 10px !important;">Catálogo de Productos</span>
           </div>
         </div>
@@ -748,7 +750,7 @@ export class PuppeteerServiceClient {
           <div style="display: table-cell; vertical-align: middle; text-align: center;">
             ${contactInfo ? `<div style="color: white !important; font-size: 8px !important;">${contactInfo}</div>` : ''}
             <div style="color: rgba(255,255,255,0.8) !important; font-size: 7px !important;">
-              Catálogo generado con CatalogoIA - <span class="pageNumber"></span> de <span class="totalPages"></span>
+              Catálogo generado con CatifyPro - <span class="pageNumber"></span> de <span class="totalPages"></span>
             </div>
           </div>
         </div>

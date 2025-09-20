@@ -409,6 +409,9 @@ const TemplateSelection = () => {
         social_media: businessInfo.social_media
       };
       
+      console.log('🔍 DEBUG - businessInfo desde useBusinessInfo:', businessInfo);
+      console.log('🔍 DEBUG - businessData enviado al generador:', businessData);
+      
       let result;
       
       // Seleccionar método de generación

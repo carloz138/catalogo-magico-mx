@@ -1048,7 +1048,7 @@ export class TemplateGenerator {
       return `
         <footer class="catalog-footer page-break-avoid">
           <div class="footer-branding">
-            Generado con CatalogoIA v2.0
+            Generado con CatifyPro v2.0
           </div>
         </footer>
       `;
@@ -1060,7 +1060,7 @@ export class TemplateGenerator {
           ${contactItems.join('')}
         </div>
         <div class="footer-branding">
-          Generado con CatalogoIA v2.0
+          Generado con CatifyPro v2.0
         </div>
       </footer>
     `;

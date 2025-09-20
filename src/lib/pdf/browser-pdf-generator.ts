@@ -519,7 +519,7 @@ export class BrowserPDFGenerator {
     pdf.text(contactLine, pdf.internal.pageSize.getWidth() / 2, footerY, { align: 'center' });
     
     // Línea de info
-    const infoLine = `Catálogo generado con CatalogoIA - ${totalProducts} productos`;
+    const infoLine = `Catálogo generado con CatifyPro - ${totalProducts} productos`;
     pdf.text(infoLine, pdf.internal.pageSize.getWidth() / 2, footerY + 4, { align: 'center' });
   }
   
@@ -766,7 +766,7 @@ export class BrowserPDFGenerator {
         
         <div class="catalog-footer">
           <strong>📞 ${businessInfo.phone || ''} | 📧 ${businessInfo.email || ''}</strong><br>
-          <small>Catálogo generado con CatalogoIA</small>
+          <small>Catálogo generado con CatifyPro</small>
         </div>
       </body>
       </html>
@@ -977,7 +977,7 @@ export class BrowserPDFGenerator {
             ${businessInfo.website ? `<p><strong>🌐 ${businessInfo.website}</strong></p>` : ''}
             ${businessInfo.address ? `<p><strong>📍 ${businessInfo.address}</strong></p>` : ''}
             <br>
-            <small>Catálogo generado con CatalogoIA - ${new Date().toLocaleDateString('es-MX')}</small>
+            <small>Catálogo generado con CatifyPro - ${new Date().toLocaleDateString('es-MX')}</small>
           </footer>
         </div>
       </body>

@@ -1,4 +1,4 @@
-// 🎨 TEMPLATES OPTIMIZADOS PARA CATALOGOIA - V2.0
+// 🎨 TEMPLATES OPTIMIZADOS PARA CATIFYPRO - V2.0
 // Basados en mejores prácticas y ejemplos proporcionados
 
 import { NewTemplateBlueprint, NewTemplateGenerator } from '@/lib/templates/audited-templates-v2';
