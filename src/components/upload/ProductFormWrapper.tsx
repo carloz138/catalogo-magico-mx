@@ -44,9 +44,7 @@ export const ProductFormWrapper = ({ files, onComplete }: ProductFormWrapperProp
   };
 
   const isValid = products.every(product => 
-    product.name.trim() !== '' && 
-    product.category !== '' &&
-    product.price_retail > 0
+    product.name.trim() !== ''
   );
 
   return (
@@ -73,7 +71,7 @@ export const ProductFormWrapper = ({ files, onComplete }: ProductFormWrapperProp
           </Button>
           {!isValid && (
             <p className="text-sm text-gray-500 mt-2">
-              Completa el nombre, categoría y precio de todos los productos
+              Completa el nombre de todos los productos
             </p>
           )}
         </CardContent>

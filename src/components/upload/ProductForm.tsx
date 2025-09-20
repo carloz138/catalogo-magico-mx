@@ -102,7 +102,7 @@ export const ProductForm = ({ product, imageUrl, onUpdate, priceDisplayMode }: P
 
             <div className="space-y-2">
               <Label htmlFor={`category-${product.id}`} className="text-sm font-medium">
-                Categoría *
+                Categoría
               </Label>
               <Select
                 value={product.category}
@@ -124,7 +124,7 @@ export const ProductForm = ({ product, imageUrl, onUpdate, priceDisplayMode }: P
             {shouldShowRetailPrice && (
               <div className="space-y-2">
                 <Label htmlFor={`price-retail-${product.id}`} className="text-sm font-medium">
-                  Precio de venta * (en pesos)
+                  Precio de venta (en pesos)
                 </Label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
