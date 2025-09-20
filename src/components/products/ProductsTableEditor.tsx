@@ -11,6 +11,7 @@ import {
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { Product, getDisplayImageUrl, getProcessingStatus } from '@/types/products';
 
 // ==========================================
 // TIPOS ESPECÍFICOS DEL EDITOR
@@ -33,30 +34,8 @@ type EditableProductField =
 
 type ProductCategory = 'ropa' | 'calzado' | 'electronica' | 'joyeria' | 'fiestas' | 'floreria' | 'general';
 
-// Interfaz específica para el editor - solo propiedades que necesitamos
-interface EditorProduct {
-  id: string;
-  name: string;
-  sku: string | null;
-  description: string | null;
-  custom_description: string | null;
-  price_retail: number | null;
-  price_wholesale: number | null;
-  wholesale_min_qty: number | null;
-  category: ProductCategory | null;
-  brand: string | null;
-  model: string | null;
-  color: string | null;
-  features: string[] | null;
-  tags: string[] | null;
-  processing_status: string;
-  created_at: string;
-  // URLs de imágenes para el catálogo
-  original_image_url?: string;
-  processed_image_url?: string;
-  hd_image_url?: string;
-  image_url?: string;
-}
+// Usamos el tipo Product de /types/products.ts directamente
+type EditorProduct = Product;
 
 interface EditingCell {
   rowId: string;
@@ -94,14 +73,6 @@ const MAX_TAGS = 10;
 // ==========================================
 // FUNCIONES AUXILIARES
 // ==========================================
-
-// Función helper para determinar la mejor URL de imagen
-const getDisplayImageUrl = (product: EditorProduct): string => {
-  return product.processed_image_url || 
-         product.hd_image_url || 
-         product.image_url || 
-         product.original_image_url || '';
-};
 
 const centsToPrice = (cents: number | null): string => {
   return cents ? (cents / 100).toFixed(2) : "0.00";
@@ -262,9 +233,10 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
 
       if (error) throw error;
 
-      // Mapeo simple y directo - solo propiedades que necesitamos
-      const productsData: EditorProduct[] = data ? data.map(product => ({
+      // Mapeo completo para el tipo Product
+      const productsData: Product[] = data ? data.map(product => ({
         id: product.id,
+        user_id: product.user_id,
         name: product.name,
         sku: product.sku,
         description: product.description,
@@ -277,9 +249,14 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
         model: product.model,
         color: product.color,
         features: product.features,
-        tags: product.tags || [], // Restaurado: mapear tags desde la BD
+        tags: product.tags || [],
         processing_status: product.processing_status,
-        created_at: product.created_at
+        created_at: product.created_at,
+        updated_at: product.updated_at,
+        original_image_url: product.original_image_url,
+        processed_image_url: product.processed_image_url,
+        hd_image_url: product.hd_image_url,
+        image_url: product.image_url
       })) : [];
 
       setProducts(productsData);
