@@ -735,14 +735,32 @@ export class PuppeteerServiceClient {
    * 📄 GENERAR FOOTER FIJO (SIN CAMBIOS)
    */
   private static generateFixedFooter(businessInfo: BusinessInfo, totalProducts: number): string {
-    const contactInfo = [
-      businessInfo.phone ? `📞 ${businessInfo.phone}` : '',
-      businessInfo.email ? `📧 ${businessInfo.email}` : '',
-      businessInfo.website ? `🌐 ${businessInfo.website}` : ''
-    ].filter(Boolean).join(' | ');
+    // Crear contactInfo dinámico solo con campos que tengan información
+    const contactParts = [];
     
+    if (businessInfo.business_name) {
+      contactParts.push(businessInfo.business_name);
+    }
+    
+    if (businessInfo.phone) {
+      contactParts.push(`Tel: ${businessInfo.phone}`);
+    }
+    
+    if (businessInfo.email) {
+      contactParts.push(`Email: ${businessInfo.email}`);
+    }
+    
+    if (businessInfo.website) {
+      contactParts.push(`Web: ${businessInfo.website}`);
+    }
+    
+    if (businessInfo.address) {
+      contactParts.push(`Dir: ${businessInfo.address}`);
+    }
+    
+    const contactInfo = contactParts.join(' | ');
     const currentDate = new Date().toLocaleDateString('es-MX');
-    const footerBrand = `Catálogo generado con CatalogoIA - ${totalProducts} productos | ${currentDate}`;
+    const footerBrand = `Catalogo generado con CatifyPro - ${totalProducts} productos | ${currentDate}`;
     
     console.log('🔍 PUPPETEER DEBUG - Footer Data:', { 
       contactInfo,
@@ -750,9 +768,11 @@ export class PuppeteerServiceClient {
       currentDate,
       footerBrand,
       businessInfo: {
+        business_name: businessInfo.business_name,
         phone: businessInfo.phone,
         email: businessInfo.email, 
-        website: businessInfo.website
+        website: businessInfo.website,
+        address: businessInfo.address
       }
     });
     
