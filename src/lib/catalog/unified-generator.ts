@@ -22,6 +22,7 @@ import { TemplateAuditSystem } from '@/lib/templates/template-audit-system';
     specifications?: string;
   }
 
+// Interfaz específica para el catálogo que incluye todos los campos necesarios
 interface BusinessInfo {
   business_name: string;
   email?: string;
@@ -34,6 +35,9 @@ interface BusinessInfo {
     instagram?: string;
     twitter?: string;
   };
+  logo_url?: string;
+  primary_color?: string;
+  secondary_color?: string;
 }
 
 interface GenerationResult {
