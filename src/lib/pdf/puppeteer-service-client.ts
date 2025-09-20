@@ -408,15 +408,19 @@ export class PuppeteerServiceClient {
         font-size: ${config.nameSize}pt !important;
         font-weight: 600 !important;
         color: ${template.colors.primary} !important;
-        margin-bottom: 1mm !important;
+        margin-bottom: 1.5mm !important;
         display: -webkit-box !important;
         -webkit-line-clamp: 2 !important;
         -webkit-box-orient: vertical !important;
         overflow: hidden !important;
         word-wrap: break-word !important;
+        overflow-wrap: break-word !important;
+        hyphens: auto !important;
         -webkit-print-color-adjust: exact !important;
-        height: 6.5mm !important;
-        line-height: 1.2 !important;
+        height: auto !important;
+        min-height: 8mm !important;
+        max-height: 10mm !important;
+        line-height: 1.3 !important;
       }
       
       .product-pricing-exact {
