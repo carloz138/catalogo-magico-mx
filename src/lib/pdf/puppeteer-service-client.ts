@@ -1,5 +1,5 @@
 // src/lib/pdf/puppeteer-service-client.ts
-// 🎯 VERSIÓN ULTRA-OPTIMIZADA PARA PDFs PEQUEÑOS - REDUCCIÓN 70-80%
+// 🎯 VERSIÓN COMPLETAMENTE CORREGIDA - GRID 3x2 (6 PRODUCTOS) + HEADER/FOOTER DINÁMICOS
 
 interface Product {
   id: string;
@@ -117,7 +117,7 @@ export class PuppeteerServiceClient {
   private static readonly SERVICE_URL = 'https://min8n-puppeteer-pdf.fqr2ax.easypanel.host';
   private static readonly TIMEOUT = 30000;
   
-  // ===== MÉTODO PRINCIPAL OPTIMIZADO =====
+  // ===== MÉTODO PRINCIPAL =====
   static async generatePDF(
     products: Product[],
     businessInfo: BusinessInfo,
@@ -130,13 +130,11 @@ export class PuppeteerServiceClient {
     console.log('🔍 DEBUG - PuppeteerServiceClient businessInfo recibido:', businessInfo);
     
     try {
-      console.log('🚀 Generando PDF ULTRA-OPTIMIZADO para tamaño pequeño...', {
+      console.log('🚀 Generando PDF con GRID 3x2 (6 productos)...', {
         products: products.length,
         template: template.id,
         layout: LAYOUT,
-        totalPages: Math.ceil(products.length / PDF_LAYOUT.PRODUCTS_PER_PAGE),
-        estimatedReduction: '70-80%',
-        optimizations: ['no-background', 'no-outline', 'scale-0.75', 'no-gradients', 'no-shadows']
+        totalPages: Math.ceil(products.length / PDF_LAYOUT.PRODUCTS_PER_PAGE)
       });
       
       if (options.onProgress) options.onProgress(5);
@@ -165,13 +163,11 @@ export class PuppeteerServiceClient {
       const generationTime = Date.now() - startTime;
       const totalPages = Math.ceil(products.length / PDF_LAYOUT.PRODUCTS_PER_PAGE);
       
-      console.log('✅ PDF ULTRA-OPTIMIZADO generado correctamente:', {
+      console.log('✅ PDF GRID 3x2 generado correctamente:', {
         time: generationTime,
         size: pdfBlob.size,
-        sizeMB: (pdfBlob.size / (1024 * 1024)).toFixed(2) + 'MB',
         totalPages,
-        cardDimensions: `${LAYOUT.cardWidth}x${LAYOUT.cardHeight}mm`,
-        reduction: '~75% vs original'
+        cardDimensions: `${LAYOUT.cardWidth}x${LAYOUT.cardHeight}mm`
       });
       
       return {
@@ -184,7 +180,7 @@ export class PuppeteerServiceClient {
       };
       
     } catch (error) {
-      console.error('❌ Error en PDF optimizado:', error);
+      console.error('❌ Error en PDF:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Error desconocido'
@@ -211,7 +207,7 @@ export class PuppeteerServiceClient {
   <meta name="viewport" content="width=${PDF_LAYOUT.PAGE_WIDTH}mm, height=${PDF_LAYOUT.PAGE_HEIGHT}mm, initial-scale=1.0">
   <title>${pageTitle}</title>
   <style>
-    ${this.generateOptimizedCSS(template, quality)}
+    ${this.generatePreciseCSS(template, quality)}
   </style>
 </head>
 <body>
@@ -222,8 +218,8 @@ export class PuppeteerServiceClient {
 </html>`;
   }
   
-  // ===== CSS ULTRA-OPTIMIZADO SIN GRADIENTES NI SOMBRAS =====
-  private static generateOptimizedCSS(template: TemplateConfig, quality: 'low' | 'medium' | 'high'): string {
+  // ===== GENERACIÓN DE CSS =====
+  private static generatePreciseCSS(template: TemplateConfig, quality: 'low' | 'medium' | 'high'): string {
     const qualityConfig = {
       low: { fontSize: 9, priceSize: 10, nameSize: 9 },
       medium: { fontSize: 10, priceSize: 11, nameSize: 10 },
@@ -233,8 +229,6 @@ export class PuppeteerServiceClient {
     const config = qualityConfig[quality];
     
     return `
-      /* ===== CSS ULTRA-OPTIMIZADO PARA TAMAÑO PEQUEÑO ===== */
-      
       /* ===== RESET Y CONFIGURACIÓN BASE ===== */
       * {
         margin: 0 !important;
@@ -265,7 +259,7 @@ export class PuppeteerServiceClient {
         font-family: 'Arial', sans-serif !important;
         font-size: ${config.fontSize}pt !important;
         color: ${template.colors.text} !important;
-        background: white !important;
+        background: ${template.colors.background} !important;
         -webkit-print-color-adjust: exact !important;
         position: relative !important;
       }
@@ -274,7 +268,7 @@ export class PuppeteerServiceClient {
       .page-content {
         width: 100% !important;
         height: 100% !important;
-        background: white !important;
+        background: ${template.colors.background} !important;
         -webkit-print-color-adjust: exact !important;
       }
       
@@ -285,7 +279,7 @@ export class PuppeteerServiceClient {
         margin-bottom: 8mm !important;
         page-break-after: always !important;
         page-break-inside: avoid !important;
-        background: white !important;
+        background: ${template.colors.background} !important;
         position: relative !important;
       }
       
@@ -320,7 +314,7 @@ export class PuppeteerServiceClient {
         page-break-inside: avoid !important;
       }
       
-      /* ===== PRODUCT CARDS OPTIMIZADAS (SIN SOMBRAS) ===== */
+      /* ===== PRODUCT CARDS ===== */
       .product-card-exact {
         width: 100% !important;
         height: ${LAYOUT.cardHeight}mm !important;
@@ -330,7 +324,7 @@ export class PuppeteerServiceClient {
         border: 0.5pt solid ${template.colors.accent}60 !important;
         border-radius: 4px !important;
         overflow: hidden !important;
-        box-shadow: none !important;
+        box-shadow: 0 1pt 3pt rgba(0,0,0,0.1) !important;
         -webkit-print-color-adjust: exact !important;
         display: table !important;
         table-layout: fixed !important;
@@ -338,7 +332,6 @@ export class PuppeteerServiceClient {
         page-break-inside: avoid !important;
       }
       
-      /* ===== DECORACIÓN SIMPLE (SIN GRADIENTES) ===== */
       .card-decoration-exact {
         position: absolute !important;
         top: 0 !important;
@@ -349,7 +342,7 @@ export class PuppeteerServiceClient {
         -webkit-print-color-adjust: exact !important;
       }
       
-      /* ===== IMAGEN OPTIMIZADA ===== */
+      /* ===== IMAGEN ===== */
       .image-container-exact {
         display: table-row !important;
         width: 100% !important;
@@ -374,15 +367,13 @@ export class PuppeteerServiceClient {
         display: block !important;
         margin: 0 auto !important;
         -webkit-print-color-adjust: exact !important;
-        image-rendering: optimizeSpeed !important;
-        image-rendering: -webkit-optimize-contrast !important;
       }
       
-      /* ===== PLACEHOLDER SIMPLIFICADO ===== */
       .image-placeholder-exact {
         width: ${LAYOUT.imageHeight - 6}mm !important;
         height: ${LAYOUT.imageHeight - 6}mm !important;
-        background: #f5f5f5 !important;
+        background: repeating-conic-gradient(from 0deg at 50% 50%, #f0f0f0 0deg 90deg, transparent 90deg 180deg) !important;
+        background-size: 6px 6px !important;
         border: 1pt dashed #ccc !important;
         border-radius: 3px !important;
         margin: 0 auto !important;
@@ -434,12 +425,12 @@ export class PuppeteerServiceClient {
         text-align: center !important;
       }
       
-      /* ===== PRECIO RETAIL OPTIMIZADO (SIN GRADIENTES NI SOMBRAS) ===== */
       .product-price-retail-exact {
         font-size: ${config.priceSize}pt !important;
         font-weight: 700 !important;
         color: white !important;
         background: ${template.colors.secondary} !important;
+        background-image: linear-gradient(135deg, ${template.colors.secondary}, ${template.colors.primary}) !important;
         padding: 1mm 2mm !important;
         border-radius: 6px !important;
         display: inline-block !important;
@@ -449,7 +440,7 @@ export class PuppeteerServiceClient {
         max-width: 95% !important;
         overflow: hidden !important;
         text-overflow: ellipsis !important;
-        box-shadow: none !important;
+        box-shadow: 0 1pt 2pt rgba(0,0,0,0.15) !important;
         -webkit-print-color-adjust: exact !important;
       }
       
@@ -600,7 +591,6 @@ export class PuppeteerServiceClient {
            class="product-image-exact" 
            loading="eager" 
            crossorigin="anonymous"
-           decoding="sync"
          />
        </div>` :
       `<div class="image-placeholder-exact">
@@ -647,7 +637,7 @@ export class PuppeteerServiceClient {
     `;
   }
   
-  // ===== PDF OPTIONS ULTRA-OPTIMIZADAS PARA TAMAÑO PEQUEÑO =====
+  // ===== PDF OPTIONS CON HEADER/FOOTER DINÁMICOS =====
   private static getExactPDFOptions(
     options: PuppeteerServiceOptions, 
     businessInfo: BusinessInfo, 
@@ -667,25 +657,18 @@ export class PuppeteerServiceClient {
         bottom: `${PDF_LAYOUT.FOOTER_MARGIN}mm`,
         left: `${PDF_LAYOUT.SIDE_MARGIN}mm`
       },
-      
-      // 🔥 OPTIMIZACIONES CRÍTICAS PARA TAMAÑO PEQUEÑO
-      printBackground: false,        // 🔥 CRÍTICO: Elimina backgrounds (reduce 30-40%)
-      omitBackground: true,          // 🔥 CRÍTICO: Omite background de página
-      outline: false,                // 🔥 CRÍTICO: Sin outline (reduce 10-15%)
-      tagged: false,                 // 🔥 CRÍTICO: Sin tagged content (reduce 10-15%)
-      scale: 0.75,                   // 🔥 CRÍTICO: Reduce escala 25% (reduce 20-30%)
-      
-      // ✅ CONFIGURACIONES ESTÁNDAR OPTIMIZADAS
+      printBackground: true,
       preferCSSPageSize: true,
       displayHeaderFooter: true,
       waitUntil: 'networkidle0',
       timeout: 30000,
+      omitBackground: false,
+      scale: 1.0,
+      quality: options.quality === 'high' ? 100 : options.quality === 'low' ? 80 : 90,
       
-      // ✅ HEADER OPTIMIZADO SIN GRADIENTES
-      headerTemplate: `<div style="font-size: 11px !important; width: 100% !important; height: ${PDF_LAYOUT.HEADER_HEIGHT}mm !important; text-align: center !important; background: ${primaryColor} !important; color: white !important; padding: 2mm !important; margin: 0 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; display: table !important; table-layout: fixed !important;"><div style="display: table-cell; vertical-align: middle; text-align: center;"><strong style="color: white !important; font-size: 13px !important;">${businessInfo.business_name || 'Mi Negocio'}</strong><br><span style="color: rgba(255,255,255,0.9) !important; font-size: 9px !important;">${catalogTitle}</span></div></div>`,
+      headerTemplate: `<div style="font-size: 12px !important; width: 100% !important; height: ${PDF_LAYOUT.HEADER_HEIGHT}mm !important; text-align: center !important; background: ${primaryColor} !important; background-image: linear-gradient(135deg, ${primaryColor}, ${secondaryColor}) !important; color: white !important; padding: 2mm !important; margin: 0 !important; border-radius: 4px !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; display: table !important; table-layout: fixed !important;"><div style="display: table-cell; vertical-align: middle; text-align: center;"><strong style="color: white !important; font-size: 14px !important;">${businessInfo.business_name || 'Mi Negocio'}</strong><br><span style="color: rgba(255,255,255,0.9) !important; font-size: 10px !important;">${catalogTitle}</span></div></div>`,
       
-      // ✅ FOOTER OPTIMIZADO SIN GRADIENTES
-      footerTemplate: `<div style="font-size: 8px !important; width: 100% !important; height: ${PDF_LAYOUT.FOOTER_HEIGHT}mm !important; text-align: center !important; background: ${secondaryColor} !important; color: white !important; padding: 1mm !important; margin: 0 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; display: table !important; table-layout: fixed !important;"><div style="display: table-cell; vertical-align: middle; text-align: center;">${contactInfo ? `<div style="color: white !important; font-size: 7px !important; margin-bottom: 0.5mm !important;">${contactInfo}</div>` : ''}<div style="color: rgba(255,255,255,0.8) !important; font-size: 6px !important;">CatifyPro - <span class="pageNumber"></span>/<span class="totalPages"></span></div></div></div>`
+      footerTemplate: `<div style="font-size: 9px !important; width: 100% !important; height: ${PDF_LAYOUT.FOOTER_HEIGHT}mm !important; text-align: center !important; background: ${secondaryColor} !important; color: white !important; padding: 1mm !important; margin: 0 !important; border-radius: 4px !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; display: table !important; table-layout: fixed !important;"><div style="display: table-cell; vertical-align: middle; text-align: center;">${contactInfo ? `<div style="color: white !important; font-size: 8px !important; margin-bottom: 1mm !important;">${contactInfo}</div>` : ''}<div style="color: rgba(255,255,255,0.8) !important; font-size: 7px !important;">Generado con CatifyPro - <span class="pageNumber"></span> de <span class="totalPages"></span></div></div></div>`
     };
   }
   
@@ -806,7 +789,7 @@ export class PuppeteerServiceClient {
           throw new Error('PDF vacío recibido del servicio');
         }
         
-        console.log(`✅ PDF optimizado generado en intento ${attempt}/${maxRetries}, tamaño: ${blob.size} bytes (${(blob.size / (1024 * 1024)).toFixed(2)}MB)`);
+        console.log(`✅ PDF generado en intento ${attempt}/${maxRetries}, tamaño: ${blob.size} bytes`);
         return blob;
         
       } catch (error) {
@@ -869,7 +852,7 @@ export class PuppeteerServiceClient {
       }
       
       const blob = await response.blob();
-      await this.downloadPDF(blob, 'test-grid-3x2-optimized');
+      await this.downloadPDF(blob, 'test-grid-3x2');
       
       return { 
         success: true,
