@@ -678,85 +678,89 @@ export class PuppeteerServiceClient {
   }
   
   /**
-   * ⚙️ PDF OPTIONS CON MÁRGENES EXACTOS
-   */
-  private static getExactPDFOptions(options: PuppeteerServiceOptions, businessInfo: BusinessInfo): any {
-    const contactInfo = [
-      businessInfo.phone ? `📞 ${businessInfo.phone}` : '',
-      businessInfo.social_media?.whatsapp ? `📱 WhatsApp: ${businessInfo.social_media.whatsapp}` : '',
-      businessInfo.email ? `📧 ${businessInfo.email}` : '',
-      businessInfo.website ? `🌐 ${businessInfo.website}` : ''
-    ].filter(Boolean).join(' | ');
+  /**
+ * ⚙️ PDF OPTIONS CON HEADER/FOOTER DINÁMICOS SEGÚN TEMPLATE
+ */
+private static getExactPDFOptions(options: PuppeteerServiceOptions, businessInfo: BusinessInfo, templateConfig?: any): any {
+  // 🎨 USAR COLORES DEL TEMPLATE (dinámico)
+  const primaryColor = templateConfig?.colors?.primary || '#007BFF';
+  const secondaryColor = templateConfig?.colors?.secondary || '#0056B3';
+  
+  // 📧 CONTACT INFO INTELIGENTE - Solo información clave
+  const contactInfo = this.generateSmartContactInfo(businessInfo);
+  
+  // 📝 TÍTULO DEL CATÁLOGO - Usar nombre personalizado o default
+  const catalogTitle = options.catalogTitle || 'Catálogo de Productos';
+  
+  return {
+    format: options.format || 'A4',
+    margin: {
+      top: `${PDF_LAYOUT.HEADER_MARGIN}mm`,
+      right: `${PDF_LAYOUT.SIDE_MARGIN}mm`,
+      bottom: `${PDF_LAYOUT.FOOTER_MARGIN}mm`,
+      left: `${PDF_LAYOUT.SIDE_MARGIN}mm`
+    },
+    printBackground: true,
+    preferCSSPageSize: true,
+    displayHeaderFooter: true,
+    waitUntil: 'networkidle0',
+    timeout: 30000,
+    omitBackground: false,
+    scale: 1.0,
+    quality: options.quality === 'high' ? 100 : options.quality === 'low' ? 80 : 90,
     
-    return {
-      format: options.format || 'A4',
-      margin: {
-        top: `${PDF_LAYOUT.HEADER_MARGIN}mm`,     // EXACTO
-        right: `${PDF_LAYOUT.SIDE_MARGIN}mm`,     // EXACTO
-        bottom: `${PDF_LAYOUT.FOOTER_MARGIN}mm`,  // EXACTO
-        left: `${PDF_LAYOUT.SIDE_MARGIN}mm`       // EXACTO
-      },
-      printBackground: true,
-      preferCSSPageSize: true, // ✅ CRÍTICO PARA COINCIDENCIA
-      displayHeaderFooter: true,
-      waitUntil: 'networkidle0',
-      timeout: 30000,
-      omitBackground: false,
-      scale: 1.0,
-      quality: options.quality === 'high' ? 100 : options.quality === 'low' ? 80 : 90,
-      
-      // ✅ HEADER TEMPLATE OPTIMIZADO
-      headerTemplate: `
-        <div style="
-          font-size: 12px !important; 
-          width: 100% !important; 
-          height: ${PDF_LAYOUT.HEADER_HEIGHT}mm !important;
-          text-align: center !important;
-          background: #52c41a !important;
-          background-image: linear-gradient(135deg, #52c41a, #389e0d) !important;
-          color: white !important;
-          padding: 2mm !important;
-          margin: 0 !important;
-          border-radius: 4px !important;
-          -webkit-print-color-adjust: exact !important;
-          print-color-adjust: exact !important;
-          display: table !important;
-          table-layout: fixed !important;
-        ">
-          <div style="display: table-cell; vertical-align: middle; text-align: center;">
-            <strong style="color: white !important; font-size: 14px !important;">${businessInfo.business_name || 'CatifyPro'}</strong><br>
-            <span style="color: rgba(255,255,255,0.9) !important; font-size: 10px !important;">Catálogo de Productos</span>
+    // ✅ HEADER DINÁMICO CON COLORES DEL TEMPLATE
+    headerTemplate: `
+      <div style="
+        font-size: 12px !important; 
+        width: 100% !important; 
+        height: ${PDF_LAYOUT.HEADER_HEIGHT}mm !important;
+        text-align: center !important;
+        background: ${primaryColor} !important;
+        background-image: linear-gradient(135deg, ${primaryColor}, ${secondaryColor}) !important;
+        color: white !important;
+        padding: 2mm !important;
+        margin: 0 !important;
+        border-radius: 4px !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        display: table !important;
+        table-layout: fixed !important;
+      ">
+        <div style="display: table-cell; vertical-align: middle; text-align: center;">
+          <strong style="color: white !important; font-size: 14px !important;">${businessInfo.business_name || 'Mi Negocio'}</strong><br>
+          <span style="color: rgba(255,255,255,0.9) !important; font-size: 10px !important;">${catalogTitle}</span>
+        </div>
+      </div>
+    `,
+    
+    // ✅ FOOTER DINÁMICO CON CONTACT INFO INTELIGENTE
+    footerTemplate: `
+      <div style="
+        font-size: 9px !important; 
+        width: 100% !important; 
+        height: ${PDF_LAYOUT.FOOTER_HEIGHT}mm !important;
+        text-align: center !important;
+        background: ${secondaryColor} !important;
+        color: white !important;
+        padding: 1mm !important;
+        margin: 0 !important;
+        border-radius: 4px !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        display: table !important;
+        table-layout: fixed !important;
+      ">
+        <div style="display: table-cell; vertical-align: middle; text-align: center;">
+          ${contactInfo ? `<div style="color: white !important; font-size: 8px !important; margin-bottom: 1mm !important;">${contactInfo}</div>` : ''}
+          <div style="color: rgba(255,255,255,0.8) !important; font-size: 7px !important;">
+            Generado con CatifyPro - <span class="pageNumber"></span> de <span class="totalPages"></span>
           </div>
         </div>
-      `,
-      
-      // ✅ FOOTER TEMPLATE OPTIMIZADO
-      footerTemplate: `
-        <div style="
-          font-size: 9px !important; 
-          width: 100% !important; 
-          height: ${PDF_LAYOUT.FOOTER_HEIGHT}mm !important;
-          text-align: center !important;
-          background: #389e0d !important;
-          color: white !important;
-          padding: 1mm !important;
-          margin: 0 !important;
-          border-radius: 4px !important;
-          -webkit-print-color-adjust: exact !important;
-          print-color-adjust: exact !important;
-          display: table !important;
-          table-layout: fixed !important;
-        ">
-          <div style="display: table-cell; vertical-align: middle; text-align: center;">
-            ${contactInfo ? `<div style="color: white !important; font-size: 8px !important;">${contactInfo}</div>` : ''}
-            <div style="color: rgba(255,255,255,0.8) !important; font-size: 7px !important;">
-              Catálogo generado con CatifyPro - <span class="pageNumber"></span> de <span class="totalPages"></span>
-            </div>
-          </div>
-        </div>
-      `
-    };
-  }
+      </div>
+    `
+  };
+}
   
   // ===== MÉTODOS HEREDADOS (SIN CAMBIOS) =====
   
