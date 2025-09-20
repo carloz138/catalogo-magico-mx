@@ -227,6 +227,51 @@ export const useProductsLogic = () => {
     }
   };
 
+  const resetProcessingProducts = async () => {
+    try {
+      const { data: processingProducts, error } = await supabase
+        .from('products')
+        .select('id')
+        .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
+        .eq('processing_status', 'processing');
+
+      if (error) throw error;
+
+      if (processingProducts && processingProducts.length > 0) {
+        const { error: updateError } = await supabase
+          .from('products')
+          .update({ 
+            processing_status: 'pending',
+            processing_progress: 0 
+          })
+          .in('id', processingProducts.map(p => p.id));
+
+        if (updateError) throw updateError;
+
+        toast({
+          title: "Productos restaurados",
+          description: `${processingProducts.length} productos han vuelto a "Con Fondo"`,
+          variant: "default",
+        });
+
+        await loadProducts();
+      } else {
+        toast({
+          title: "No hay productos procesando",
+          description: "No se encontraron productos en estado de procesamiento",
+          variant: "default",
+        });
+      }
+    } catch (error) {
+      console.error('Error resetting processing products:', error);
+      toast({
+        title: "Error",
+        description: "No se pudieron resetear los productos",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleCreateCatalog = async (isBusinessInfoComplete: boolean) => {
     if (selectedProducts.length === 0) {
       toast({
@@ -377,6 +422,7 @@ export const useProductsLogic = () => {
     selectAllProducts,
     handleViewProduct,
     handleRemoveBackground,
+    resetProcessingProducts,
     handleCreateCatalog,
     confirmCreateCatalog,
     handleDeleteProduct,

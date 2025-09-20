@@ -34,7 +34,8 @@ import {
   ArrowRight,
   HelpCircle,
   Filter,
-  X
+  X,
+  RotateCcw
 } from 'lucide-react';
 
 const Products = () => {
@@ -63,6 +64,7 @@ const Products = () => {
     selectAllProducts,
     handleViewProduct,
     handleRemoveBackground,
+    resetProcessingProducts,
     handleCreateCatalog,
     confirmCreateCatalog,
     handleDeleteProduct,
@@ -220,6 +222,19 @@ const Products = () => {
                   <span className="ml-1">({selectedProducts.length})</span>
                 </>
               )}
+            </Button>
+          )}
+          
+          {activeTab === 'processing' && stats.processing > 0 && (
+            <Button 
+              onClick={resetProcessingProducts} 
+              variant="outline"
+              size="sm"
+              className="text-orange-600 border-orange-600 hover:bg-orange-50"
+            >
+              <RotateCcw className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Resetear ({stats.processing})</span>
+              <span className="sm:hidden">Reset</span>
             </Button>
           )}
         </div>
