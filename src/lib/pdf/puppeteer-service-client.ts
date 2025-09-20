@@ -788,7 +788,16 @@ private static generateSmartContactInfo(businessInfo: BusinessInfo): string {
   // Máximo 2 items para no saturar el footer
   return contactItems.slice(0, 2).join(' | ');
 }
-  
+  /**
+ * 🐛 DEBUG: Verificar estructura de businessInfo
+ */
+private static debugBusinessInfo(businessInfo: BusinessInfo): void {
+  console.log('🔍 DEBUG - businessInfo completo:', JSON.stringify(businessInfo, null, 2));
+  console.log('🔍 DEBUG - social_media:', businessInfo.social_media);
+  console.log('🔍 DEBUG - whatsapp:', businessInfo.social_media?.whatsapp);
+  console.log('🔍 DEBUG - phone:', businessInfo.phone);
+  console.log('🔍 DEBUG - email:', businessInfo.email);
+}
   // ===== MÉTODOS HEREDADOS (SIN CAMBIOS) =====
   
   private static async checkServiceHealthWithRetry(maxRetries: number = 3): Promise<boolean> {
