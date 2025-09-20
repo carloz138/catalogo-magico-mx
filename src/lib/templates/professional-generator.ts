@@ -26,6 +26,12 @@ interface BusinessInfo {
   website?: string;
   primary_color?: string;
   secondary_color?: string;
+  social_media?: {
+    whatsapp?: string;
+    facebook?: string;
+    instagram?: string;
+    twitter?: string;
+  };
 }
 
 export class ProfessionalTemplateGenerator {
@@ -621,6 +627,7 @@ export class ProfessionalTemplateGenerator {
   private static generateFooter(businessInfo: BusinessInfo, template: EnhancedTemplateConfig): string {
     const contactInfo = [
       businessInfo.phone ? `📞 ${businessInfo.phone}` : '',
+      businessInfo.social_media?.whatsapp ? `📱 ${businessInfo.social_media.whatsapp}` : '',
       businessInfo.email ? `📧 ${businessInfo.email}` : '',
       businessInfo.address ? `📍 ${businessInfo.address}` : ''
     ].filter(Boolean);

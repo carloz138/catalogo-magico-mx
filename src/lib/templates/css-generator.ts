@@ -22,6 +22,12 @@ interface BusinessInfo {
   phone?: string;
   website?: string;
   address?: string;
+  social_media?: {
+    whatsapp?: string;
+    facebook?: string;
+    instagram?: string;
+    twitter?: string;
+  };
 }
 
 export class TemplateGenerator {
@@ -1032,6 +1038,7 @@ export class TemplateGenerator {
   private static generateFooterHTML(businessInfo: BusinessInfo): string {
     const contactItems = [
       businessInfo.phone ? `<span class="contact-item">📞 ${businessInfo.phone}</span>` : '',
+      businessInfo.social_media?.whatsapp ? `<span class="contact-item">📱 ${businessInfo.social_media.whatsapp}</span>` : '',
       businessInfo.email ? `<span class="contact-item">📧 ${businessInfo.email}</span>` : '',
       businessInfo.website ? `<span class="contact-item">🌐 ${businessInfo.website}</span>` : '',
       businessInfo.address ? `<span class="contact-item">📍 ${businessInfo.address}</span>` : ''
