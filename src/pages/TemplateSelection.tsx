@@ -412,6 +412,13 @@ const TemplateSelection = () => {
       console.log('🔍 DEBUG - businessInfo desde useBusinessInfo:', businessInfo);
       console.log('🔍 DEBUG - businessData enviado al generador:', businessData);
       
+      // Validar que social_media esté presente
+      if (!businessInfo.social_media?.whatsapp) {
+        console.warn('⚠️ WhatsApp no encontrado en businessInfo');
+      } else {
+        console.log('✅ WhatsApp encontrado:', businessInfo.social_media.whatsapp);
+      }
+      
       let result;
       
       // Seleccionar método de generación
