@@ -193,6 +193,13 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
   const [showCatalogPreview, setShowCatalogPreview] = useState(false);
   const [catalogTitle, setCatalogTitle] = useState('');
   
+  // Estados para acciones masivas
+  const [showBulkTagsModal, setShowBulkTagsModal] = useState(false);
+  const [showBulkPriceModal, setShowBulkPriceModal] = useState(false);
+  const [bulkTags, setBulkTags] = useState('');
+  const [bulkPriceType, setBulkPriceType] = useState<'retail' | 'wholesale'>('retail');
+  const [bulkPrice, setBulkPrice] = useState('');
+  
   // Estados de filtros
   const [filters, setFilters] = useState<ProductFilters>({
     search: '',
@@ -563,6 +570,106 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
     }
   };
 
+  const bulkUpdateTags = async () => {
+    if (selectedProducts.length === 0 || !bulkTags.trim()) return;
+
+    const tagsArray = parseTags(bulkTags);
+    if (tagsArray.length > MAX_TAGS) {
+      toast({
+        title: "Error",
+        description: `Máximo ${MAX_TAGS} etiquetas permitidas`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('products')
+        .update({ tags: tagsArray })
+        .in('id', selectedProducts)
+        .eq('user_id', user?.id);
+
+      if (error) throw error;
+
+      setProducts(prevProducts => 
+        prevProducts.map(product => 
+          selectedProducts.includes(product.id) 
+            ? { ...product, tags: tagsArray }
+            : product
+        )
+      );
+
+      toast({
+        title: "Etiquetas actualizadas",
+        description: `${selectedProducts.length} producto(s) actualizados con las etiquetas: ${tagsArray.join(', ')}`,
+      });
+
+      setSelectedProducts([]);
+      setShowBulkTagsModal(false);
+      setBulkTags('');
+    } catch (error) {
+      console.error('Error updating tags:', error);
+      toast({
+        title: "Error",
+        description: "No se pudieron actualizar las etiquetas",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const bulkUpdatePrice = async () => {
+    if (selectedProducts.length === 0 || !bulkPrice.trim()) return;
+
+    const numericValue = parseFloat(bulkPrice);
+    if (isNaN(numericValue) || numericValue < 0) {
+      toast({
+        title: "Error",
+        description: "Por favor ingrese un precio válido",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const priceInCents = priceToCents(numericValue);
+    const field = bulkPriceType === 'retail' ? 'price_retail' : 'price_wholesale';
+
+    try {
+      const { error } = await supabase
+        .from('products')
+        .update({ [field]: priceInCents })
+        .in('id', selectedProducts)
+        .eq('user_id', user?.id);
+
+      if (error) throw error;
+
+      setProducts(prevProducts => 
+        prevProducts.map(product => 
+          selectedProducts.includes(product.id) 
+            ? { ...product, [field]: priceInCents }
+            : product
+        )
+      );
+
+      const priceTypeLabel = bulkPriceType === 'retail' ? 'retail' : 'mayoreo';
+      toast({
+        title: "Precios actualizados",
+        description: `${selectedProducts.length} producto(s) actualizados con precio ${priceTypeLabel}: $${centsToPrice(priceInCents)}`,
+      });
+
+      setSelectedProducts([]);
+      setShowBulkPriceModal(false);
+      setBulkPrice('');
+    } catch (error) {
+      console.error('Error updating prices:', error);
+      toast({
+        title: "Error",
+        description: "No se pudieron actualizar los precios",
+        variant: "destructive",
+      });
+    }
+  };
+
   // ==========================================
   // FUNCIONES DE SELECCIÓN
   // ==========================================
@@ -880,6 +987,39 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
             </select>
             <Button 
               size="sm" 
+              variant="outline"
+              onClick={() => setShowBulkTagsModal(true)}
+              className="flex items-center gap-1"
+            >
+              <Tag className="w-4 h-4" />
+              Asignar Etiquetas
+            </Button>
+            <Button 
+              size="sm" 
+              variant="outline"
+              onClick={() => {
+                setBulkPriceType('retail');
+                setShowBulkPriceModal(true);
+              }}
+              className="flex items-center gap-1"
+            >
+              <ShoppingCart className="w-4 h-4" />
+              Precio Retail
+            </Button>
+            <Button 
+              size="sm" 
+              variant="outline"
+              onClick={() => {
+                setBulkPriceType('wholesale');
+                setShowBulkPriceModal(true);
+              }}
+              className="flex items-center gap-1"
+            >
+              <Package className="w-4 h-4" />
+              Precio Mayoreo
+            </Button>
+            <Button 
+              size="sm" 
               variant="destructive"
               onClick={() => deleteProducts(selectedProducts)}
             >
@@ -1021,6 +1161,119 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
               Agregar Producto
             </Button>
           )}
+        </div>
+      )}
+
+      {/* Modal para Etiquetas Masivas */}
+      {showBulkTagsModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl p-6 max-w-md w-full shadow-xl">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold">Asignar Etiquetas</h3>
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => {
+                  setShowBulkTagsModal(false);
+                  setBulkTags('');
+                }}
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+            <p className="text-sm text-gray-600 mb-4">
+              Se asignarán estas etiquetas a {selectedProducts.length} producto(s) seleccionado(s).
+            </p>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="bulk-tags">Etiquetas (separadas por comas)</Label>
+                <Input
+                  id="bulk-tags"
+                  value={bulkTags}
+                  onChange={(e) => setBulkTags(e.target.value)}
+                  placeholder="etiqueta1, etiqueta2, etiqueta3..."
+                  className="mt-1"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Máximo {MAX_TAGS} etiquetas. Las etiquetas existentes serán reemplazadas.
+                </p>
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    setShowBulkTagsModal(false);
+                    setBulkTags('');
+                  }}
+                >
+                  Cancelar
+                </Button>
+                <Button onClick={bulkUpdateTags} disabled={!bulkTags.trim()}>
+                  Asignar Etiquetas
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal para Precios Masivos */}
+      {showBulkPriceModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl p-6 max-w-md w-full shadow-xl">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold">
+                Asignar Precio {bulkPriceType === 'retail' ? 'Retail' : 'Mayoreo'}
+              </h3>
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => {
+                  setShowBulkPriceModal(false);
+                  setBulkPrice('');
+                }}
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+            <p className="text-sm text-gray-600 mb-4">
+              Se asignará el precio {bulkPriceType === 'retail' ? 'retail' : 'mayoreo'} a {selectedProducts.length} producto(s) seleccionado(s).
+            </p>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="bulk-price">
+                  Precio {bulkPriceType === 'retail' ? 'Retail' : 'Mayoreo'} (MXN)
+                </Label>
+                <Input
+                  id="bulk-price"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={bulkPrice}
+                  onChange={(e) => setBulkPrice(e.target.value)}
+                  placeholder="0.00"
+                  className="mt-1"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Los precios existentes serán reemplazados.
+                </p>
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    setShowBulkPriceModal(false);
+                    setBulkPrice('');
+                  }}
+                >
+                  Cancelar
+                </Button>
+                <Button onClick={bulkUpdatePrice} disabled={!bulkPrice.trim()}>
+                  Asignar Precio
+                </Button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
