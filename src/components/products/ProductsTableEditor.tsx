@@ -233,9 +233,11 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
           original_image_url,
           processed_image_url,
           hd_image_url,
-          image_url
+          image_url,
+          deleted_at
         `)
         .eq('user_id', user.id)
+        .is('deleted_at', null) // Solo productos activos (no eliminados)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -472,20 +474,30 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
   };
 
   const confirmDeleteProduct = async () => {
-    if (!productToDelete) return;
+    if (!productToDelete || !user) return;
 
     try {
-      const { error } = await supabase
-        .from('products')
-        .delete()
-        .eq('id', productToDelete.id)
-        .eq('user_id', user?.id);
+      // Usar función de soft delete
+      const { data, error } = await supabase.rpc('soft_delete_product', {
+        product_id: productToDelete.id,
+        requesting_user_id: user.id,
+        reason: 'User deletion'
+      });
 
       if (error) throw error;
 
+      if (!data) {
+        toast({
+          title: "Error",
+          description: "No tienes permisos para eliminar este producto",
+          variant: "destructive",
+        });
+        return;
+      }
+
       toast({
         title: "Producto eliminado",
-        description: `${productToDelete.name} ha sido eliminado correctamente`,
+        description: `${productToDelete.name} se movió a la papelera`,
       });
 
       await fetchProducts();
@@ -508,23 +520,49 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
   };
 
   const confirmDeleteProducts = async () => {
-    if (productsToDelete.length === 0) return;
+    if (productsToDelete.length === 0 || !user) return;
 
     try {
-      const { error } = await supabase
-        .from('products')
-        .delete()
-        .in('id', productsToDelete)
-        .eq('user_id', user?.id);
+      // Eliminar productos usando soft delete iterativo
+      const deletePromises = productsToDelete.map(productId => 
+        supabase.rpc('soft_delete_product', {
+          product_id: productId,
+          requesting_user_id: user.id,
+          reason: 'Bulk deletion'
+        })
+      );
 
-      if (error) throw error;
+      const results = await Promise.all(deletePromises);
+      
+      // Verificar si hubo errores
+      const hasErrors = results.some(result => result.error);
+      if (hasErrors) {
+        console.error('Some products failed to delete');
+        toast({
+          title: "Error parcial",
+          description: "Algunos productos no pudieron eliminarse",
+          variant: "destructive",
+        });
+        return;
+      }
 
-      setProducts(prev => prev.filter(p => !productsToDelete.includes(p.id)));
+      // Verificar permisos
+      const successCount = results.filter(result => result.data === true).length;
+      if (successCount === 0) {
+        toast({
+          title: "Error",
+          description: "No tienes permisos para eliminar estos productos",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      await fetchProducts();
       setSelectedProducts([]);
       
       toast({
         title: "Productos eliminados",
-        description: `${productsToDelete.length} producto(s) eliminado(s)`,
+        description: `${successCount} producto(s) movidos a la papelera`,
       });
       setProductsToDelete([]);
     } catch (error) {
