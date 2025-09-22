@@ -206,6 +206,17 @@ const Index = () => {
               <BarChart3 className="w-4 h-4 mr-2" />
               Analytics
             </Button>
+            {/* ✅ BOTÓN ONBOARDING - Desktop */}
+            {user && (
+              <Button 
+                variant="outline" 
+                className="hidden lg:inline-flex border-green-300 text-green-600 hover:bg-green-50"
+                onClick={() => navigate('/onboarding')}
+              >
+                <Play className="w-4 h-4 mr-2" />
+                Onboarding
+              </Button>
+            )}
             {/* ✅ BOTÓN MI BIBLIOTECA - Desktop (para productos) */}
             {user && (
               <Button 
@@ -278,10 +289,22 @@ const Index = () => {
                   Transforma tus productos ahora
                   <ArrowRight className="ml-2 w-5 h-5" />
                 </Button>
-                <Button variant="outline" size="lg" className="text-lg px-8 py-4">
-                  <Play className="mr-2 w-5 h-5" />
-                  Ver demo
-                </Button>
+                {user ? (
+                  <Button 
+                    variant="outline" 
+                    size="lg" 
+                    className="text-lg px-8 py-4 border-green-300 text-green-600 hover:bg-green-50"
+                    onClick={() => navigate('/onboarding')}
+                  >
+                    <Play className="mr-2 w-5 h-5" />
+                    Prueba con demos
+                  </Button>
+                ) : (
+                  <Button variant="outline" size="lg" className="text-lg px-8 py-4">
+                    <Play className="mr-2 w-5 h-5" />
+                    Ver demo
+                  </Button>
+                )}
               </div>
 
               <p className="text-sm text-neutral/60 mt-4">

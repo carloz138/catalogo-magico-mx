@@ -37,6 +37,7 @@ import {
   FileText,
   ChevronRight,
   Bell,
+  PlayCircle,
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
@@ -58,6 +59,13 @@ interface MenuItem {
 // ==========================================
 
 const menuData: MenuItem[] = [
+  {
+    title: "Onboarding",
+    path: "/onboarding",
+    icon: PlayCircle,
+    badge: "Nuevo",
+    badgeColor: "bg-green-100 text-green-700 border-green-200",
+  },
   {
     title: "Analytics",
     path: "/analytics",

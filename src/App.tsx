@@ -21,6 +21,7 @@ import PaymentInstructions from "./pages/PaymentInstructions";
 import NotFound from "./pages/NotFound";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import BusinessInfoPage from "./pages/BusinessInfoPage";
+import OnboardingPage from "./pages/OnboardingPage";
 import TermsAndConditions from "./pages/TermsAndConditions";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import ResetPassword from "./pages/ResetPassword";
@@ -81,6 +82,11 @@ const App = () => (
             <Route path="/business-info" element={
               <ProtectedRoute>
                 <BusinessInfoPage />
+              </ProtectedRoute>
+            } />
+            <Route path="/onboarding" element={
+              <ProtectedRoute>
+                <OnboardingPage />
               </ProtectedRoute>
             } />
             <Route path="/checkout" element={
