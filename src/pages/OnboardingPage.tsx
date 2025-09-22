@@ -170,7 +170,7 @@ const OnboardingPage = () => {
           <div className="mb-8">
             <div className="text-center mb-6">
               <h1 className="text-4xl font-bold text-gray-900 mb-4">
-                🚀 Bienvenido a <span className="text-blue-600">CatifyPro</span>
+                🚀 Guía De Inicio - <span className="text-blue-600">CatifyPro</span>
               </h1>
               <p className="text-xl text-gray-600 mb-6 max-w-3xl mx-auto">
                 La plataforma que organiza tus productos y <strong>recorta fondos automáticamente</strong> 

@@ -60,7 +60,7 @@ interface MenuItem {
 
 const menuData: MenuItem[] = [
   {
-    title: "Onboarding",
+    title: "Guía De Inicio",
     path: "/onboarding",
     icon: PlayCircle,
     badge: "Nuevo",

@@ -214,7 +214,7 @@ const Index = () => {
                 onClick={() => navigate('/onboarding')}
               >
                 <Play className="w-4 h-4 mr-2" />
-                Onboarding
+                Guía De Inicio
               </Button>
             )}
             {/* ✅ BOTÓN MI BIBLIOTECA - Desktop (para productos) */}
