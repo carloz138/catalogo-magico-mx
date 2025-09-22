@@ -8,14 +8,21 @@ import { useAuth } from '@/contexts/AuthContext';
 import { subscriptionService, UsageValidation } from '@/lib/subscriptionService';
 import { Save, Zap, Loader2, Package, CheckCircle, Palette } from 'lucide-react';
 
-export interface UploadedFile {
-  id: string;
-  file: File;
-  preview: string;
-  url?: string;
-  analysis?: any;
-  productData?: any;
-}
+    export interface UploadedFile {
+      id: string;
+      file: File;
+      preview: string;
+      url?: string;
+      analysis?: any;
+      productData?: any;
+      // 🎯 NUEVO: URLs optimizadas
+      optimizedUrls?: {
+        thumbnail: string;
+        catalog: string;
+        luxury: string;
+        print: string;
+      };
+    }
 
 interface FinalStepProps {
   files: UploadedFile[];
@@ -49,70 +56,85 @@ export const FinalStepComponent = ({ files }: FinalStepProps) => {
     }
   };
 
-  // NUEVA FUNCIÓN: Auto-guardado automático
-  const handleAutoSave = async () => {
-    if (!user || files.length === 0 || autoSaved) return;
+// FUNCIÓN ACTUALIZADA: Auto-guardado con URLs optimizadas
+const handleAutoSave = async () => {
+  if (!user || files.length === 0 || autoSaved) return;
 
-    setAutoSaving(true);
-    try {
-      console.log(`💾 Auto-guardando ${files.length} productos...`);
+  setAutoSaving(true);
+  try {
+    console.log(`💾 Auto-guardando ${files.length} productos con URLs optimizadas...`);
 
-      const savedProductsData = [];
+    const savedProductsData = [];
 
-      for (const file of files) {
-        const productData = file.productData || {};
-        
-        const { data: insertedProduct, error } = await supabase
-          .from('products')
-          .insert({
-            user_id: user.id,
-            name: productData.name || `Producto ${file.id.slice(-6)}`,
-            description: productData.description || '',
-            custom_description: productData.custom_description || '',
-            price_retail: productData.price_retail ? Math.round(productData.price_retail * 100) : null,
-            price_wholesale: productData.price_wholesale ? Math.round(productData.price_wholesale * 100) : null,
-            category: productData.category || '',
-            brand: productData.brand || '',
-            original_image_url: file.url || file.preview,
-            processing_status: 'pending',
-            is_processed: false,
-            has_variants: productData.has_variants || false,
-            variant_count: productData.variant_count || 0,
-          })
-          .select()
-          .single();
+    for (const file of files) {
+      const productData = file.productData || {};
+      
+      // 🎯 NUEVO: Incluir URLs optimizadas
+      console.log(`💾 Guardando producto con URLs:`, {
+        original: file.url,
+        optimized: file.optimizedUrls
+      });
+      
+      const { data: insertedProduct, error } = await supabase
+        .from('products')
+        .insert({
+          user_id: user.id,
+          name: productData.name || `Producto ${file.id.slice(-6)}`,
+          description: productData.description || '',
+          custom_description: productData.custom_description || '',
+          price_retail: productData.price_retail ? Math.round(productData.price_retail * 100) : null,
+          price_wholesale: productData.price_wholesale ? Math.round(productData.price_wholesale * 100) : null,
+          category: productData.category || '',
+          brand: productData.brand || '',
+          // 🎯 URLs ORIGINALES Y OPTIMIZADAS
+          original_image_url: file.url || file.preview,
+          thumbnail_image_url: file.optimizedUrls?.thumbnail || null,
+          catalog_image_url: file.optimizedUrls?.catalog || null,
+          luxury_image_url: file.optimizedUrls?.luxury || null,
+          print_image_url: file.optimizedUrls?.print || null,
+          processing_status: 'pending',
+          is_processed: false,
+          has_variants: productData.has_variants || false,
+          variant_count: productData.variant_count || 0,
+        })
+        .select()
+        .single();
 
-        if (error) {
-          console.error(`Error guardando producto ${file.id}:`, error);
-          throw error;
-        }
-
-        savedProductsData.push({
-          ...insertedProduct,
-          image_url: insertedProduct.original_image_url
-        });
+      if (error) {
+        console.error(`Error guardando producto ${file.id}:`, error);
+        throw error;
       }
 
-      setSavedProducts(savedProductsData);
-      setAutoSaved(true);
-
-      toast({
-        title: "¡Productos guardados!",
-        description: `${files.length} productos agregados a tu biblioteca automáticamente`,
-        variant: "default",
+      // 🎯 ACTUALIZADO: Usar catalog_image_url si existe, sino original
+      savedProductsData.push({
+        ...insertedProduct,
+        image_url: insertedProduct.catalog_image_url || insertedProduct.original_image_url
       });
-
-    } catch (error) {
-      console.error('Error en auto-guardado:', error);
-      toast({
-        title: "Error guardando productos",
-        description: "Hubo un problema al guardar automáticamente. Intenta de nuevo.",
-        variant: "destructive",
-      });
-    } finally {
-      setAutoSaving(false);
     }
-  };
+
+    setSavedProducts(savedProductsData);
+    setAutoSaved(true);
+
+    // 🎯 MENSAJE ACTUALIZADO
+    const optimizedCount = files.filter(f => f.optimizedUrls).length;
+    
+    toast({
+      title: "¡Productos guardados!",
+      description: `${files.length} productos agregados - ${optimizedCount} con versiones optimizadas para PDFs súper ligeros`,
+      variant: "default",
+    });
+
+  } catch (error) {
+    console.error('Error en auto-guardado:', error);
+    toast({
+      title: "Error guardando productos",
+      description: "Hubo un problema al guardar automáticamente. Intenta de nuevo.",
+      variant: "destructive",
+    });
+  } finally {
+    setAutoSaving(false);
+  }
+};
 
   const handleProcessImages = async () => {
     if (!autoSaved || savedProducts.length === 0) {
