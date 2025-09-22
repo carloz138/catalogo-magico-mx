@@ -12,6 +12,31 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "12.2.12 (cd3cf9e)"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       backup_view_definitions: {
@@ -480,6 +505,7 @@ export type Database = {
           ai_description: string | null
           ai_tags: string[] | null
           brand: string | null
+          catalog_image_url: string | null
           category: string | null
           cleanup_grace_period: number | null
           cleanup_scheduled_at: string | null
@@ -498,11 +524,13 @@ export type Database = {
           id: string
           image_url: string | null
           is_processed: boolean | null
+          luxury_image_url: string | null
           model: string | null
           name: string
           original_image_url: string
           price_retail: number | null
           price_wholesale: number | null
+          print_image_url: string | null
           processed_at: string | null
           processed_image_url: string | null
           processed_images: Json | null
@@ -514,6 +542,7 @@ export type Database = {
           smart_analysis: Json | null
           social_media_urls: Json | null
           tags: string[] | null
+          thumbnail_image_url: string | null
           updated_at: string
           user_id: string
           variant_count: number | null
@@ -525,6 +554,7 @@ export type Database = {
           ai_description?: string | null
           ai_tags?: string[] | null
           brand?: string | null
+          catalog_image_url?: string | null
           category?: string | null
           cleanup_grace_period?: number | null
           cleanup_scheduled_at?: string | null
@@ -543,11 +573,13 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_processed?: boolean | null
+          luxury_image_url?: string | null
           model?: string | null
           name: string
           original_image_url: string
           price_retail?: number | null
           price_wholesale?: number | null
+          print_image_url?: string | null
           processed_at?: string | null
           processed_image_url?: string | null
           processed_images?: Json | null
@@ -559,6 +591,7 @@ export type Database = {
           smart_analysis?: Json | null
           social_media_urls?: Json | null
           tags?: string[] | null
+          thumbnail_image_url?: string | null
           updated_at?: string
           user_id: string
           variant_count?: number | null
@@ -570,6 +603,7 @@ export type Database = {
           ai_description?: string | null
           ai_tags?: string[] | null
           brand?: string | null
+          catalog_image_url?: string | null
           category?: string | null
           cleanup_grace_period?: number | null
           cleanup_scheduled_at?: string | null
@@ -588,11 +622,13 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_processed?: boolean | null
+          luxury_image_url?: string | null
           model?: string | null
           name?: string
           original_image_url?: string
           price_retail?: number | null
           price_wholesale?: number | null
+          print_image_url?: string | null
           processed_at?: string | null
           processed_image_url?: string | null
           processed_images?: Json | null
@@ -604,6 +640,7 @@ export type Database = {
           smart_analysis?: Json | null
           social_media_urls?: Json | null
           tags?: string[] | null
+          thumbnail_image_url?: string | null
           updated_at?: string
           user_id?: string
           variant_count?: number | null
@@ -1538,7 +1575,11 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {},
   },
 } as const
+
