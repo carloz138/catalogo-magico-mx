@@ -69,7 +69,7 @@ const OnboardingPage = () => {
       id: 'background-removal',
       title: 'Recortar Productos con IA',
       description: 'Descubre cómo la IA recorta productos automáticamente en segundos',
-      benefit: 'Elimina costos de fotógrafo ($4,000-10,000 MXN por sesión)',
+      benefit: 'Elimina costos de fotógrafo ($1,000-5,000 MXN por sesión)',
       timeEstimate: '30 seg/foto',
       valueProposition: 'Fotos caseras → Productos recortados perfectamente',
       completed: false
@@ -108,7 +108,7 @@ const OnboardingPage = () => {
     <div className="mb-8">
       <div className="text-center mb-6">
         <h1 className="text-4xl font-bold text-gray-900 mb-4">
-          🚀 Bienvenido a <span className="text-blue-600">CatalogoIA</span>
+          🚀 Bienvenido a <span className="text-blue-600">CatifyPro</span>
         </h1>
         <p className="text-xl text-gray-600 mb-6 max-w-3xl mx-auto">
           La plataforma que convierte <strong>fotos caseras en catálogos profesionales</strong> 
@@ -126,7 +126,7 @@ const OnboardingPage = () => {
               <li>• Fotos con mal fondo</li>
               <li>• Catálogos en Word/PowerPoint</li>
               <li>• 2-3 días creando cada catálogo</li>
-              <li>• Diseñador cuesta $4,000-10,000 MXN</li>
+              <li>• Diseñador cuesta $1,000-5,000 MXN</li>
               <li>• Actualizar = empezar de cero</li>
             </ul>
           </CardContent>
@@ -140,7 +140,7 @@ const OnboardingPage = () => {
               <li>• IA recorta productos automático</li>
               <li>• Templates profesionales</li>
               <li>• Catálogo listo en 5 minutos</li>
-              <li>• Costo: $106/mes vs $10,000/catálogo</li>
+              <li>• Costo: $106/mes vs $1,000/catálogo</li>
               <li>• Actualizar = 30 segundos</li>
             </ul>
           </CardContent>
@@ -154,7 +154,7 @@ const OnboardingPage = () => {
               <li>• Ahorro 95% del tiempo</li>
               <li>• Ahorro 90% del costo</li>
               <li>• +65% conversión de ventas</li>
-              <li>• Productos recortados perfectamente</li>
+              <li>• Productos recortados con IA</li>
               <li>• Actualizaciones instantáneas</li>
             </ul>
           </CardContent>
@@ -197,7 +197,7 @@ const OnboardingPage = () => {
         </div>
         <div className="flex items-center gap-2 text-sm">
           <DollarSign className="w-4 h-4 text-green-600" />
-          <span>Ahorro potencial: <strong>$10,000+ MXN por catálogo</strong></span>
+          <span>Ahorro potencial: <strong>$1,000+ MXN por catálogo</strong></span>
         </div>
         <div className="flex items-center gap-2 text-sm">
           <Zap className="w-4 h-4 text-yellow-600" />
