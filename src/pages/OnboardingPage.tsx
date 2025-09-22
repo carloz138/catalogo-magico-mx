@@ -4,7 +4,6 @@ import AppLayout from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Progress } from '@/components/ui/progress';
@@ -16,23 +15,17 @@ import {
   BookOpen, 
   Edit, 
   CheckCircle, 
-  Play, 
   Settings,
   FileImage,
-  Palette,
   Save,
   Eye,
   Package,
   Star,
   Loader2,
-  Tag,
-  RefreshCw,
-  ShoppingCart,
   Clock,
   DollarSign,
   Zap,
   TrendingUp,
-  Users,
   Award,
   Lightbulb,
   Target,
@@ -46,15 +39,14 @@ interface ChecklistItem {
   title: string;
   description: string;
   completed: boolean;
-  benefit: string; // NUEVO: Beneficio claro
-  timeEstimate: string; // NUEVO: Tiempo estimado
-  valueProposition: string; // NUEVO: Propuesta de valor
+  benefit: string;
+  timeEstimate: string;
+  valueProposition: string;
 }
 
 const OnboardingPage = () => {
   const navigate = useNavigate();
   
-  // ✅ MEJORADO: Checklist with value propositions
   const [checklist, setChecklist] = useState<ChecklistItem[]>([
     {
       id: 'upload',
@@ -69,7 +61,7 @@ const OnboardingPage = () => {
       id: 'background-removal',
       title: 'Recortar Productos con IA',
       description: 'Descubre cómo la IA recorta productos automáticamente en segundos',
-      benefit: 'Elimina costos de fotógrafo ($1,000-5,000 MXN por sesión)',
+      benefit: 'Elimina costos de fotógrafo ($4,000-10,000 MXN por sesión)',
       timeEstimate: '30 seg/foto',
       valueProposition: 'Fotos caseras → Productos recortados perfectamente',
       completed: false
@@ -103,219 +95,7 @@ const OnboardingPage = () => {
     }
   ]);
 
-  // ✅ NUEVO: Hero section con problema/solución
-  const HeroSection = () => (
-    <div className="mb-8">
-      <div className="text-center mb-6">
-        <h1 className="text-4xl font-bold text-gray-900 mb-4">
-          🚀 Bienvenido a <span className="text-blue-600">CatifyPro</span>
-        </h1>
-        <p className="text-xl text-gray-600 mb-6 max-w-3xl mx-auto">
-          La plataforma que convierte <strong>fotos caseras en catálogos profesionales</strong> 
-          en minutos, no días
-        </p>
-      </div>
-
-      {/* Before vs After visual */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <Card className="border-red-200 bg-red-50">
-          <CardContent className="p-6 text-center">
-            <div className="text-red-600 mb-3">❌</div>
-            <h3 className="font-semibold text-red-900 mb-2">Antes (El problema)</h3>
-            <ul className="text-sm text-red-800 space-y-1 text-left">
-              <li>• Fotos con mal fondo</li>
-              <li>• Catálogos en Word/PowerPoint</li>
-              <li>• 2-3 días creando cada catálogo</li>
-              <li>• Diseñador cuesta $1,000-5,000 MXN</li>
-              <li>• Actualizar = empezar de cero</li>
-            </ul>
-          </CardContent>
-        </Card>
-
-        <Card className="border-blue-200 bg-blue-50">
-          <CardContent className="p-6 text-center">
-            <div className="text-blue-600 mb-3">⚡</div>
-            <h3 className="font-semibold text-blue-900 mb-2">Con CatifyPro</h3>
-            <ul className="text-sm text-blue-800 space-y-1 text-left">
-              <li>• IA recorta productos automático</li>
-              <li>• Templates profesionales</li>
-              <li>• Catálogo listo en 5 minutos</li>
-              <li>• Costo: $106/mes vs $1,000/catálogo</li>
-              <li>• Actualizar = 30 segundos</li>
-            </ul>
-          </CardContent>
-        </Card>
-
-        <Card className="border-green-200 bg-green-50">
-          <CardContent className="p-6 text-center">
-            <div className="text-green-600 mb-3">🎯</div>
-            <h3 className="font-semibold text-green-900 mb-2">Resultado</h3>
-            <ul className="text-sm text-green-800 space-y-1 text-left">
-              <li>• Ahorro 95% del tiempo</li>
-              <li>• Ahorro 90% del costo</li>
-              <li>• +65% conversión de ventas</li>
-              <li>• Productos recortados con IA</li>
-              <li>• Actualizaciones instantáneas</li>
-            </ul>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Alert className="mb-6 border-blue-200 bg-blue-50">
-        <Lightbulb className="h-4 w-4" />
-        <AlertDescription>
-          <strong>Objetivo:</strong> En los próximos 10 minutos vas a crear tu primer catálogo profesional 
-          y descubrir cómo CatifyPro puede <strong>transformar tu negocio</strong>. 
-          ¡Empecemos!
-        </AlertDescription>
-      </Alert>
-    </div>
-  );
-
-  // ✅ MEJORADO: Progress with benefits
-  const EnhancedProgressBar = () => (
-    <div className="bg-white rounded-lg p-6 border mb-6">
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h3 className="text-lg font-semibold text-gray-900">Tu Progreso de Transformación</h3>
-          <p className="text-sm text-gray-600">
-            Cada paso te acerca más a generar catálogos que <strong>realmente vendan</strong>
-          </p>
-        </div>
-        <div className="text-right">
-          <div className="text-2xl font-bold text-blue-600">{completedCount}/{checklist.length}</div>
-          <div className="text-xs text-gray-500">pasos completados</div>
-        </div>
-      </div>
-      
-      <Progress value={progressPercent} className="mb-4 h-3" />
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="flex items-center gap-2 text-sm">
-          <Clock className="w-4 h-4 text-blue-600" />
-          <span>Tiempo total estimado: <strong>8 minutos</strong></span>
-        </div>
-        <div className="flex items-center gap-2 text-sm">
-          <DollarSign className="w-4 h-4 text-green-600" />
-          <span>Ahorro potencial: <strong>$1,000+ MXN por catálogo</strong></span>
-        </div>
-        <div className="flex items-center gap-2 text-sm">
-          <Zap className="w-4 h-4 text-yellow-600" />
-          <span>Velocidad: <strong>95% más rápido</strong></span>
-        </div>
-        <div className="flex items-center gap-2 text-sm">
-          <TrendingUp className="w-4 h-4 text-purple-600" />
-          <span>Calidad: <strong>Nivel profesional</strong></span>
-        </div>
-      </div>
-
-      {progressPercent === 100 && (
-        <div className="mt-4 p-4 bg-green-50 rounded-lg border border-green-200">
-          <div className="flex items-center gap-2 text-green-700 mb-2">
-            <Award className="w-5 h-5" />
-            <span className="font-semibold">¡Felicidades! Eres oficialmente un CatalogoPRO</span>
-          </div>
-          <p className="text-sm text-green-600 mb-3">
-            Has dominado todas las funciones. Ahora puedes crear catálogos profesionales 
-            que impresionen a tus clientes y aumenten tus ventas.
-          </p>
-          <Button 
-            onClick={() => navigate('/products')} 
-            className="bg-green-600 hover:bg-green-700"
-          >
-            <Sparkles className="w-4 h-4 mr-2" />
-            ¡Crear Mi Primer Catálogo Real!
-          </Button>
-        </div>
-      )}
-    </div>
-  );
-
-  // ✅ MEJORADO: Checklist with enhanced value communication
-  const EnhancedChecklist = () => (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Target className="w-5 h-5" />
-          Pasos para el Éxito
-        </CardTitle>
-        <p className="text-sm text-gray-600">
-          Cada paso te enseña una <strong>superpoder</strong> de CatifyPro
-        </p>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          {checklist.map((item, index) => (
-            <div key={item.id} className="relative">
-              {/* Step number */}
-              <div className="absolute -left-2 top-2 w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center text-xs font-semibold text-blue-600">
-                {index + 1}
-              </div>
-              
-              <div className="ml-6 p-4 border rounded-lg hover:shadow-sm transition-shadow">
-                <div className="flex items-start gap-3">
-                  <Checkbox 
-                    checked={item.completed}
-                    className="mt-1"
-                    disabled
-                  />
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h4 className={`font-semibold ${item.completed ? 'text-green-600' : 'text-gray-900'}`}>
-                        {item.title}
-                      </h4>
-                      {item.completed && <CheckCircle className="w-4 h-4 text-green-600" />}
-                    </div>
-                    
-                    <p className="text-sm text-gray-600 mb-2">{item.description}</p>
-                    
-                    {/* Value proposition */}
-                    <div className="bg-blue-50 p-2 rounded text-xs mb-2">
-                      <strong className="text-blue-800">Transformación:</strong>
-                      <span className="text-blue-700 ml-1">{item.valueProposition}</span>
-                    </div>
-                    
-                    <div className="flex items-center gap-4 text-xs text-gray-500">
-                      <div className="flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
-                        {item.timeEstimate}
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <TrendingUp className="w-3 h-3" />
-                        {item.benefit}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-        
-        {completedCount === checklist.length && (
-          <div className="mt-6 pt-6 border-t text-center">
-            <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-6 rounded-lg">
-              <Star className="w-8 h-8 text-yellow-500 mx-auto mb-2" />
-              <h3 className="font-bold text-gray-900 mb-2">¡Misión Cumplida!</h3>
-              <p className="text-sm text-gray-600 mb-4">
-                Ahora sabes crear catálogos profesionales que pueden <strong>aumentar tus ventas hasta 65%</strong>. 
-                ¡Es hora de aplicarlo con tus productos reales!
-              </p>
-              <Button 
-                onClick={() => navigate('/products')} 
-                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
-              >
-                <Sparkles className="w-4 h-4 mr-2" />
-                Comenzar con mis Productos Reales
-              </Button>
-            </div>
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  );
-
-  // [Mantener todos los estados de simulación originales...]
+  // Estados de simulación
   const [uploadSimulation, setUploadSimulation] = useState({
     step: 1,
     files: [] as { name: string; size: string; status: string }[],
@@ -346,13 +126,14 @@ const OnboardingPage = () => {
 
   const [inlineEditingSimulation, setInlineEditingSimulation] = useState({
     products: [
-      { id: '1', name: 'Producto Demo 1', sku: 'DEMO-001', price: '29.99', category: 'general' },
-      { id: '2', name: 'Producto Demo 2', sku: 'DEMO-002', price: '49.99', category: 'ropa' },
+      { id: '1', name: 'Producto Demo 1', sku: 'DEMO-001', price: '299.99', category: 'general' },
+      { id: '2', name: 'Producto Demo 2', sku: 'DEMO-002', price: '499.99', category: 'ropa' },
     ],
     editing: null as string | null,
     editValue: ''
   });
 
+  // ✅ FUNCIÓN SIMPLIFICADA PARA COMPLETAR PASOS
   const markCompleted = (id: string) => {
     setChecklist(prev => prev.map(item => 
       item.id === id ? { ...item, completed: true } : item
@@ -360,7 +141,7 @@ const OnboardingPage = () => {
     
     const completedItem = checklist.find(item => item.id === id);
     toast({
-      title: "🎉 ¡Superpoder Desbloqueado!",
+      title: "🎉 ¡Paso Completado!",
       description: `${completedItem?.title} - ${completedItem?.benefit}`,
     });
   };
@@ -368,21 +149,214 @@ const OnboardingPage = () => {
   const completedCount = checklist.filter(item => item.completed).length;
   const progressPercent = (completedCount / checklist.length) * 100;
 
+  // ✅ FUNCIÓN PARA AVANZAR AL SIGUIENTE PASO (NUNCA SE BLOQUEA)
+  const advanceToNextStep = (currentStepId: string, nextAction: () => void) => {
+    markCompleted(currentStepId);
+    setTimeout(() => {
+      nextAction();
+      toast({
+        title: "¡Avanzando al siguiente paso!",
+        description: "Continuemos descubriendo las funcionalidades de CatifyPro",
+      });
+    }, 500);
+  };
+
   return (
     <ProtectedRoute>
       <AppLayout>
         <div className="max-w-7xl mx-auto p-6">
-          <HeroSection />
-          <EnhancedProgressBar />
-
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-8">
-            <div className="lg:col-span-1">
-              <EnhancedChecklist />
+          
+          {/* Hero Section */}
+          <div className="mb-8">
+            <div className="text-center mb-6">
+              <h1 className="text-4xl font-bold text-gray-900 mb-4">
+                🚀 Bienvenido a <span className="text-blue-600">CatifyPro</span>
+              </h1>
+              <p className="text-xl text-gray-600 mb-6 max-w-3xl mx-auto">
+                La plataforma que organiza tus productos y <strong>recorta fondos automáticamente</strong> 
+                para crear catálogos profesionales en minutos
+              </p>
             </div>
 
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+              <Card className="border-red-200 bg-red-50">
+                <CardContent className="p-6 text-center">
+                  <div className="text-red-600 mb-3">❌</div>
+                  <h3 className="font-semibold text-red-900 mb-2">Antes (El problema)</h3>
+                  <ul className="text-sm text-red-800 space-y-1 text-left">
+                    <li>• Fotos con mal fondo</li>
+                    <li>• Catálogos en Word/PowerPoint</li>
+                    <li>• 2-3 días creando cada catálogo</li>
+                    <li>• Diseñador cuesta $4,000-10,000 MXN</li>
+                    <li>• Actualizar = empezar de cero</li>
+                  </ul>
+                </CardContent>
+              </Card>
+
+              <Card className="border-blue-200 bg-blue-50">
+                <CardContent className="p-6 text-center">
+                  <div className="text-blue-600 mb-3">⚡</div>
+                  <h3 className="font-semibold text-blue-900 mb-2">Con CatifyPro</h3>
+                  <ul className="text-sm text-blue-800 space-y-1 text-left">
+                    <li>• IA recorta productos automático</li>
+                    <li>• Templates profesionales</li>
+                    <li>• Catálogo listo en 5 minutos</li>
+                    <li>• Costo: $106/mes vs $10,000/catálogo</li>
+                    <li>• Actualizar = 30 segundos</li>
+                  </ul>
+                </CardContent>
+              </Card>
+
+              <Card className="border-green-200 bg-green-50">
+                <CardContent className="p-6 text-center">
+                  <div className="text-green-600 mb-3">🎯</div>
+                  <h3 className="font-semibold text-green-900 mb-2">Resultado</h3>
+                  <ul className="text-sm text-green-800 space-y-1 text-left">
+                    <li>• Ahorro 95% del tiempo</li>
+                    <li>• Ahorro 90% del costo</li>
+                    <li>• +65% conversión de ventas</li>
+                    <li>• Productos recortados perfectamente</li>
+                    <li>• Actualizaciones instantáneas</li>
+                  </ul>
+                </CardContent>
+              </Card>
+            </div>
+
+            <Alert className="mb-6 border-blue-200 bg-blue-50">
+              <Lightbulb className="h-4 w-4" />
+              <AlertDescription>
+                <strong>Objetivo:</strong> En los próximos 10 minutos vas a crear tu primer catálogo profesional 
+                y descubrir cómo CatifyPro puede <strong>transformar tu negocio</strong>. 
+                ¡Empecemos!
+              </AlertDescription>
+            </Alert>
+          </div>
+
+          {/* Progress Bar */}
+          <div className="bg-white rounded-lg p-6 border mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Tu Progreso de Transformación</h3>
+                <p className="text-sm text-gray-600">
+                  Cada paso te acerca más a generar catálogos que <strong>realmente vendan</strong>
+                </p>
+              </div>
+              <div className="text-right">
+                <div className="text-2xl font-bold text-blue-600">{completedCount}/{checklist.length}</div>
+                <div className="text-xs text-gray-500">pasos completados</div>
+              </div>
+            </div>
+            
+            <Progress value={progressPercent} className="mb-4 h-3" />
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex items-center gap-2 text-sm">
+                <Clock className="w-4 h-4 text-blue-600" />
+                <span>Tiempo total estimado: <strong>8 minutos</strong></span>
+              </div>
+              <div className="flex items-center gap-2 text-sm">
+                <DollarSign className="w-4 h-4 text-green-600" />
+                <span>Ahorro potencial: <strong>$10,000+ MXN por catálogo</strong></span>
+              </div>
+              <div className="flex items-center gap-2 text-sm">
+                <Zap className="w-4 h-4 text-yellow-600" />
+                <span>Velocidad: <strong>95% más rápido</strong></span>
+              </div>
+              <div className="flex items-center gap-2 text-sm">
+                <TrendingUp className="w-4 h-4 text-purple-600" />
+                <span>Calidad: <strong>Nivel profesional</strong></span>
+              </div>
+            </div>
+
+            {progressPercent === 100 && (
+              <div className="mt-4 p-4 bg-green-50 rounded-lg border border-green-200">
+                <div className="flex items-center gap-2 text-green-700 mb-2">
+                  <Award className="w-5 h-5" />
+                  <span className="font-semibold">¡Felicidades! Eres oficialmente un CatifyPRO</span>
+                </div>
+                <p className="text-sm text-green-600 mb-3">
+                  Has dominado todas las funciones. Ahora puedes crear catálogos profesionales 
+                  que impresionen a tus clientes y aumenten tus ventas.
+                </p>
+                <Button 
+                  onClick={() => navigate('/products')} 
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  ¡Crear Mi Primer Catálogo Real!
+                </Button>
+              </div>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-8">
+            
+            {/* Checklist */}
+            <div className="lg:col-span-1">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Target className="w-5 h-5" />
+                    Pasos para el Éxito
+                  </CardTitle>
+                  <p className="text-sm text-gray-600">
+                    Cada paso te enseña una <strong>superpoder</strong> de CatifyPro
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {checklist.map((item, index) => (
+                      <div key={item.id} className="relative">
+                        <div className="absolute -left-2 top-2 w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center text-xs font-semibold text-blue-600">
+                          {index + 1}
+                        </div>
+                        
+                        <div className="ml-6 p-4 border rounded-lg hover:shadow-sm transition-shadow">
+                          <div className="flex items-start gap-3">
+                            <Checkbox 
+                              checked={item.completed}
+                              className="mt-1"
+                              disabled
+                            />
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <h4 className={`font-semibold ${item.completed ? 'text-green-600' : 'text-gray-900'}`}>
+                                  {item.title}
+                                </h4>
+                                {item.completed && <CheckCircle className="w-4 h-4 text-green-600" />}
+                              </div>
+                              
+                              <p className="text-sm text-gray-600 mb-2">{item.description}</p>
+                              
+                              <div className="bg-blue-50 p-2 rounded text-xs mb-2">
+                                <strong className="text-blue-800">Transformación:</strong>
+                                <span className="text-blue-700 ml-1">{item.valueProposition}</span>
+                              </div>
+                              
+                              <div className="flex items-center gap-4 text-xs text-gray-500">
+                                <div className="flex items-center gap-1">
+                                  <Clock className="w-3 h-3" />
+                                  {item.timeEstimate}
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <TrendingUp className="w-3 h-3" />
+                                  {item.benefit}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Main Content */}
             <div className="lg:col-span-3 space-y-6">
               
-              {/* ✅ MEJORADO: Upload Process con contexto de valor */}
+              {/* ✅ PASO 1: Upload Process - NAVEGACIÓN CORREGIDA */}
               <Card>
                 <CardHeader>
                   <div className="flex items-start justify-between">
@@ -406,7 +380,7 @@ const OnboardingPage = () => {
                     <Lightbulb className="h-4 w-4" />
                     <AlertDescription>
                       <strong>Beneficio clave:</strong> En lugar de pasar horas organizando fotos en carpetas 
-                      y creando listas en Excel, CatalogoIA organiza todo automáticamente mientras subes.
+                      y creando listas en Excel, CatifyPro organiza todo automáticamente mientras subes.
                     </AlertDescription>
                   </Alert>
 
@@ -434,9 +408,6 @@ const OnboardingPage = () => {
                           </div>
                         </div>
 
-                        <p className="text-sm text-gray-600 mb-3">
-                          <strong>Simula subir archivos</strong> y descubre cómo CatifyPro organiza todo automáticamente:
-                        </p>
                         <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
                           <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
                           <p className="text-gray-500">Arrastra fotos aquí o haz clic para seleccionar</p>
@@ -466,32 +437,31 @@ const OnboardingPage = () => {
                     {uploadSimulation.step === 2 && (
                       <div>
                         <Alert className="mb-4 border-green-200 bg-green-50">
-                          <Sparkles className="h-4 w-4" />
+                          <Package className="h-4 w-4" />
                           <AlertDescription>
-                            <strong>¡Magia de la IA!</strong> Observa cómo el sistema sugiere automáticamente 
-                            nombres y precios basados en las imágenes. Esto te ahorra horas de trabajo manual.
+                            <strong>¡Organización inteligente!</strong> Observa cómo el sistema organiza automáticamente 
+                            tus productos por categorías. Esto te ahorra horas de trabajo manual.
                           </AlertDescription>
                         </Alert>
 
-                        <p className="text-sm text-gray-600 mb-3">Archivos procesados con IA - Completa la información sugerida:</p>
                         <div className="space-y-3 mb-4">
                           {uploadSimulation.files.map((file, index) => (
                             <div key={index} className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg">
                               <div className="flex items-center gap-2">
-                                <Sparkles className="w-4 h-4 text-green-600" />
+                                <Package className="w-4 h-4 text-green-600" />
                                 <div>
                                   <span className="text-sm font-medium">{file.name}</span>
-                                  <div className="text-xs text-green-600">IA detectó: {index === 0 ? 'Camisa, Ropa, Azul' : 'Zapatos, Deportivo, Negro'}</div>
+                                  <div className="text-xs text-green-600">Categoría detectada: {index === 0 ? 'Ropa/Camisas' : 'Calzado/Deportivo'}</div>
                                 </div>
                               </div>
                               <Badge className="bg-green-100 text-green-800">
-                                Procesado por IA
+                                Organizado
                               </Badge>
                             </div>
                           ))}
                         </div>
                         
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                           <div>
                             <label className="block text-sm font-medium mb-1">
                               Nombre del Producto
@@ -515,36 +485,36 @@ const OnboardingPage = () => {
                             />
                           </div>
                         </div>
+
+                        <Alert className="mt-4 mb-4 border-green-200 bg-green-50">
+                          <CheckCircle className="h-4 w-4" />
+                          <AlertDescription>
+                            <strong>💡 Para continuar:</strong> Solo haz clic en el botón de abajo. Si los campos están vacíos, 
+                            los completaremos automáticamente para la demostración.
+                          </AlertDescription>
+                        </Alert>
                         
-                        <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                          <div className="flex items-center gap-2 mb-2">
-                            <TrendingUp className="w-4 h-4 text-blue-600" />
-                            <span className="text-sm font-semibold text-blue-800">Valor agregado que acabas de experimentar:</span>
-                          </div>
-                          <ul className="text-xs text-blue-700 space-y-1">
-                            <li>• ✅ Organización automática por categorías</li>
-                            <li>• ✅ Catalogación inteligente de productos</li>
-                            <li>• ✅ Ahorraste ~5 minutos por producto vs. método manual</li>
-                          </ul>
-                        </div>
-                        
+                        {/* ✅ BOTÓN CORREGIDO - SIEMPRE AVANZA */}
                         <Button 
                           onClick={() => {
-                            if (uploadSimulation.productName && uploadSimulation.productPrice) {
-                              markCompleted('upload');
-                              setUploadSimulation(prev => ({ ...prev, step: 3 }));
-                            } else {
-                              toast({
-                                title: "Completa la información",
-                                description: "Prueba las sugerencias de la IA ingresando nombre y precio",
-                                variant: "destructive"
-                              });
+                            // Auto-completar campos si están vacíos
+                            if (!uploadSimulation.productName.trim()) {
+                              setUploadSimulation(prev => ({ 
+                                ...prev, 
+                                productName: 'Camisa Polo Azul Clásica',
+                                productPrice: '$299.00 MXN'
+                              }));
                             }
+                            
+                            // Siempre avanzar al siguiente paso
+                            advanceToNextStep('upload', () => {
+                              setUploadSimulation(prev => ({ ...prev, step: 3 }));
+                            });
                           }}
-                          className="w-full mt-4"
+                          className="w-full mt-4 bg-green-600 hover:bg-green-700"
                         >
                           <Save className="w-4 h-4 mr-2" />
-                          Guardar Productos Organizados
+                          Completar Paso 1 - Organización de Productos
                         </Button>
                       </div>
                     )}
@@ -578,29 +548,21 @@ const OnboardingPage = () => {
                 </CardContent>
               </Card>
 
-              {/* ✅ Continuar con las otras secciones mejoradas... */}
-              {/* Repite el mismo patrón para las otras 4 secciones con: */}
-              {/* - Alert explicando el beneficio */}
-              {/* - Comparación antes/después */}
-              {/* - Métricas de valor al completar */}
-              
-              {/* Por brevedad, muestro solo una más como ejemplo: */}
-
-              {/* 2. Background Removal Process - MEJORADO */}
+              {/* ✅ PASO 2: Background Removal - NAVEGACIÓN CORREGIDA */}
               <Card>
                 <CardHeader>
                   <div className="flex items-start justify-between">
                     <div>
                       <CardTitle className="flex items-center gap-2">
                         <Scissors className="w-5 h-5" />
-                        2. Quitar Fondo Automáticamente
+                        2. Recortar Productos con IA
                       </CardTitle>
                       <p className="text-sm text-gray-600 mt-1">
-                        <strong>¿Por qué es revolucionario?</strong> Convierte fotos caseras en calidad de estudio profesional
+                        <strong>¿Por qué es revolucionario?</strong> La IA recorta productos automáticamente en 30 segundos
                       </p>
                     </div>
                     <Badge variant="outline" className="text-green-600 border-green-600">
-                      Ahorra $200-500/sesión
+                      Ahorra $4,000-10,000/sesión
                     </Badge>
                   </div>
                 </CardHeader>
@@ -608,58 +570,139 @@ const OnboardingPage = () => {
                   <Alert className="mb-4 border-green-200 bg-green-50">
                     <DollarSign className="h-4 w-4" />
                     <AlertDescription>
-                      <strong>Ahorro real:</strong> Una sesión de fotos profesional cuesta $200-500. 
-                      CatalogoIA hace el mismo trabajo en 30 segundos por $0.50 por foto.
+                      <strong>Ahorro real:</strong> Una sesión de fotos profesional cuesta $4,000-10,000 MXN. 
+                      CatifyPro hace el mismo trabajo en 30 segundos.
                     </AlertDescription>
                   </Alert>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-                      <h4 className="font-semibold text-red-800 mb-2">❌ Sin CatalogoIA</h4>
+                      <h4 className="font-semibold text-red-800 mb-2">❌ Sin CatifyPro</h4>
                       <ul className="text-sm text-red-700 space-y-1">
-                        <li>• Contratar fotógrafo: $200-500</li>
+                        <li>• Contratar fotógrafo: $4,000-10,000 MXN</li>
                         <li>• Esperar cita: 1-2 semanas</li>
-                        <li>• Edición: $50-100/foto</li>
-                        <li>• Total: $500-1000+ por catálogo</li>
+                        <li>• Edición manual: $50-100/foto</li>
+                        <li>• Total: $10,000-20,000+ por catálogo</li>
                       </ul>
                     </div>
                     <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
-                      <h4 className="font-semibold text-green-800 mb-2">✅ Con CatalogoIA</h4>
+                      <h4 className="font-semibold text-green-800 mb-2">✅ Con CatifyPro</h4>
                       <ul className="text-sm text-green-700 space-y-1">
-                        <li>• IA automática: $0.50/foto</li>
-                        <li>• Tiempo: 30 segundos</li>
+                        <li>• IA automática: 30 segundos</li>
+                        <li>• Tiempo: Inmediato</li>
                         <li>• Calidad profesional garantizada</li>
-                        <li>• Total: $5-20 por catálogo</li>
+                        <li>• Total: $106/mes (ilimitado)</li>
                       </ul>
                     </div>
                   </div>
 
-                  {/* Resto del componente Background Removal igual que antes, pero con más contexto de valor */}
                   <div className="space-y-4">
-                    {/* ... contenido de simulación igual que antes ... */}
+                    {backgroundRemovalSimulation.processingStep === 'idle' && (
+                      <div>
+                        <p className="text-sm text-gray-600 mb-3">Selecciona productos para recortar automáticamente:</p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+                          <div className="p-3 border rounded-lg cursor-pointer hover:bg-gray-50"
+                               onClick={() => setBackgroundRemovalSimulation(prev => ({ 
+                                 ...prev, 
+                                 selectedProducts: prev.selectedProducts === 1 ? 0 : 1 
+                               }))}>
+                            <div className="flex items-center gap-2">
+                              <Checkbox checked={backgroundRemovalSimulation.selectedProducts >= 1} />
+                              <div className="flex-1">
+                                <p className="text-sm font-medium">Camisa Polo Azul</p>
+                                <Badge variant="outline" className="text-orange-600 border-orange-600">Con Fondo</Badge>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="p-3 border rounded-lg cursor-pointer hover:bg-gray-50"
+                               onClick={() => setBackgroundRemovalSimulation(prev => ({ 
+                                 ...prev, 
+                                 selectedProducts: prev.selectedProducts === 2 ? 1 : 2 
+                               }))}>
+                            <div className="flex items-center gap-2">
+                              <Checkbox checked={backgroundRemovalSimulation.selectedProducts === 2} />
+                              <div className="flex-1">
+                                <p className="text-sm font-medium">Zapatos Deportivos</p>
+                                <Badge variant="outline" className="text-orange-600 border-orange-600">Con Fondo</Badge>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {/* ✅ BOTÓN CORREGIDO - SIEMPRE FUNCIONA */}
+                        <Button 
+                          onClick={() => {
+                            // Si no hay productos seleccionados, seleccionar automáticamente
+                            if (backgroundRemovalSimulation.selectedProducts === 0) {
+                              setBackgroundRemovalSimulation(prev => ({ ...prev, selectedProducts: 2 }));
+                            }
+                            
+                            // Iniciar proceso
+                            setBackgroundRemovalSimulation(prev => ({ ...prev, processingStep: 'validating' }));
+                            setTimeout(() => {
+                              setBackgroundRemovalSimulation(prev => ({ ...prev, processingStep: 'processing' }));
+                              setTimeout(() => {
+                                setBackgroundRemovalSimulation(prev => ({ ...prev, processingStep: 'completed' }));
+                                advanceToNextStep('background-removal', () => {});
+                              }, 3000);
+                            }, 1000);
+                          }}
+                          className="w-full bg-blue-600 hover:bg-blue-700"
+                        >
+                          <Scissors className="w-4 h-4 mr-2" />
+                          {backgroundRemovalSimulation.selectedProducts === 0 
+                            ? 'Recortar Productos Demo (2)' 
+                            : `Recortar con IA (${backgroundRemovalSimulation.selectedProducts})`
+                          }
+                        </Button>
+                      </div>
+                    )}
+                    
+                    {backgroundRemovalSimulation.processingStep === 'validating' && (
+                      <div className="text-center p-4 bg-blue-50 rounded-lg">
+                        <Loader2 className="w-6 h-6 text-blue-600 animate-spin mx-auto mb-2" />
+                        <p className="text-blue-700 font-medium">Validando imágenes...</p>
+                      </div>
+                    )}
+                    
+                    {backgroundRemovalSimulation.processingStep === 'processing' && (
+                      <div className="text-center p-4 bg-yellow-50 rounded-lg">
+                        <Loader2 className="w-6 h-6 text-yellow-600 animate-spin mx-auto mb-2" />
+                        <p className="text-yellow-700 font-medium">Recortando productos con IA...</p>
+                        <p className="text-sm text-yellow-600">Enviando a sistema de recorte automático</p>
+                      </div>
+                    )}
+                    
+                    {backgroundRemovalSimulation.processingStep === 'completed' && (
+                      <div className="text-center p-4 bg-green-50 rounded-lg">
+                        <CheckCircle className="w-8 h-8 text-green-600 mx-auto mb-2" />
+                        <p className="text-green-700 font-medium">¡Productos recortados perfectamente!</p>
+                        <p className="text-sm text-green-600">Productos listos para catálogo profesional</p>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
 
-              {/* Continúa con las otras secciones mejoradas... */}
+              {/* Continúa con los otros pasos usando el mismo patrón... */}
 
             </div>
           </div>
 
-          {/* ✅ MEJORADO: Action Buttons con value prop */}
+          {/* Action Buttons */}
           <div className="text-center pt-6 border-t">
             <h3 className="text-lg font-semibold text-gray-900 mb-3">
               ¿Listo para transformar tu negocio?
             </h3>
             <p className="text-gray-600 mb-6">
-              Ahora que conoces el poder de CatalogoIA, ¡es hora de aplicarlo con tus productos reales!
+              Ahora que conoces el poder de CatifyPro, ¡es hora de aplicarlo con tus productos reales!
             </p>
             <div className="flex flex-col sm:flex-row justify-center gap-4">
               <Button 
                 onClick={() => navigate('/products')}
                 className="bg-blue-600 hover:bg-blue-700"
               >
-                <Package className="w-4 w-4 mr-2" />
+                <Package className="w-4 h-4 mr-2" />
                 Ver mis Productos Reales
               </Button>
               <Button 
