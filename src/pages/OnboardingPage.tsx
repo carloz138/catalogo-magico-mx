@@ -684,7 +684,454 @@ const OnboardingPage = () => {
                 </CardContent>
               </Card>
 
-              {/* Continúa con los otros pasos usando el mismo patrón... */}
+              {/* ✅ PASO 3: Business Info - NAVEGACIÓN CORREGIDA */}
+              <Card>
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <CardTitle className="flex items-center gap-2">
+                        <Building2 className="w-5 h-5" />
+                        3. Personalizar tu Marca
+                      </CardTitle>
+                      <p className="text-sm text-gray-600 mt-1">
+                        <strong>¿Por qué es crucial?</strong> Una marca profesional aumenta la confianza del cliente en 65%
+                      </p>
+                    </div>
+                    <Badge variant="outline" className="text-purple-600 border-purple-600">
+                      +65% confianza
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <Alert className="mb-4 border-purple-200 bg-purple-50">
+                    <Building2 className="h-4 w-4" />
+                    <AlertDescription>
+                      <strong>Impacto real:</strong> Los catálogos con branding profesional generan 65% más confianza 
+                      y 40% más conversiones que catálogos genéricos.
+                    </AlertDescription>
+                  </Alert>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                      <h4 className="font-semibold text-red-800 mb-2">❌ Sin personalización</h4>
+                      <ul className="text-sm text-red-700 space-y-1">
+                        <li>• Catálogos genéricos</li>
+                        <li>• No hay identidad visual</li>
+                        <li>• Clientes desconfían</li>
+                        <li>• Menor conversión de ventas</li>
+                      </ul>
+                    </div>
+                    <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                      <h4 className="font-semibold text-green-800 mb-2">✅ Con CatifyPro</h4>
+                      <ul className="text-sm text-green-700 space-y-1">
+                        <li>• Marca profesional consistente</li>
+                        <li>• Colores y logo personalizados</li>
+                        <li>• Mayor confianza del cliente</li>
+                        <li>• +65% más conversiones</li>
+                      </ul>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Nombre del Negocio *</label>
+                        <Input 
+                          placeholder="Mi Empresa S.A. de C.V."
+                          value={businessInfoSimulation.businessName}
+                          onChange={(e) => setBusinessInfoSimulation(prev => ({ ...prev, businessName: e.target.value }))}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Teléfono</label>
+                        <Input 
+                          placeholder="+52 555 123 4567"
+                          value={businessInfoSimulation.phone}
+                          onChange={(e) => setBusinessInfoSimulation(prev => ({ ...prev, phone: e.target.value }))}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Email</label>
+                        <Input 
+                          placeholder="contacto@miempresa.com"
+                          value={businessInfoSimulation.email}
+                          onChange={(e) => setBusinessInfoSimulation(prev => ({ ...prev, email: e.target.value }))}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Color de Marca</label>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="color"
+                            value={businessInfoSimulation.primaryColor}
+                            onChange={(e) => setBusinessInfoSimulation(prev => ({ ...prev, primaryColor: e.target.value }))}
+                            className="h-10 w-16 border border-gray-300 rounded cursor-pointer"
+                          />
+                          <Input 
+                            value={businessInfoSimulation.primaryColor}
+                            onChange={(e) => setBusinessInfoSimulation(prev => ({ ...prev, primaryColor: e.target.value }))}
+                            className="flex-1"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="mt-3 p-3 bg-purple-50 rounded-lg border border-purple-200">
+                      <div className="flex items-center gap-2 mb-2">
+                        <TrendingUp className="w-4 h-4 text-purple-600" />
+                        <span className="text-sm font-semibold text-purple-800">Impacto de personalizar tu marca:</span>
+                      </div>
+                      <ul className="text-xs text-purple-700 space-y-1">
+                        <li>• ✅ Clientes perciben 65% más profesionalismo</li>
+                        <li>• ✅ Mayor recordación de marca</li>
+                        <li>• ✅ Diferenciación vs. competencia</li>
+                      </ul>
+                    </div>
+
+                    {/* ✅ BOTÓN CORREGIDO - SIEMPRE FUNCIONA */}
+                    <Button 
+                      onClick={() => {
+                        // Auto-completar si está vacío
+                        if (!businessInfoSimulation.businessName.trim()) {
+                          setBusinessInfoSimulation(prev => ({ 
+                            ...prev, 
+                            businessName: 'Mi Empresa Demo',
+                            phone: '+52 555 123 4567',
+                            email: 'contacto@miempresa.com'
+                          }));
+                        }
+                        
+                        // Siempre avanzar
+                        advanceToNextStep('business-info', () => {
+                          toast({
+                            title: "¡Marca personalizada!",
+                            description: "Tu identidad visual está configurada para catálogos profesionales"
+                          });
+                        });
+                      }}
+                      className="w-full bg-purple-600 hover:bg-purple-700"
+                    >
+                      <Save className="w-4 h-4 mr-2" />
+                      {businessInfoSimulation.businessName.trim() 
+                        ? 'Guardar Información de Marca' 
+                        : 'Completar con Datos Demo'
+                      }
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* ✅ PASO 4: Catalog Creation - NAVEGACIÓN CORREGIDA */}
+              <Card>
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <CardTitle className="flex items-center gap-2">
+                        <BookOpen className="w-5 h-5" />
+                        4. Generar Catálogo Profesional
+                      </CardTitle>
+                      <p className="text-sm text-gray-600 mt-1">
+                        <strong>El momento mágico:</strong> De productos sueltos a catálogo que realmente vende
+                      </p>
+                    </div>
+                    <Badge variant="outline" className="text-green-600 border-green-600">
+                      5 min vs 2-3 días
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <Alert className="mb-4 border-green-200 bg-green-50">
+                    <Sparkles className="h-4 w-4" />
+                    <AlertDescription>
+                      <strong>Transformación final:</strong> En 30 segundos vas a ver cómo productos individuales 
+                      se convierten en un catálogo profesional listo para vender.
+                    </AlertDescription>
+                  </Alert>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                      <h4 className="font-semibold text-red-800 mb-2">❌ Método tradicional</h4>
+                      <ul className="text-sm text-red-700 space-y-1">
+                        <li>• Contratar diseñador: $4,000-10,000 MXN</li>
+                        <li>• Esperar 2-3 días</li>
+                        <li>• Múltiples revisiones</li>
+                        <li>• Cambios cuestan extra</li>
+                      </ul>
+                    </div>
+                    <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                      <h4 className="font-semibold text-green-800 mb-2">✅ Con CatifyPro</h4>
+                      <ul className="text-sm text-green-700 space-y-1">
+                        <li>• Catálogo automático: 30 segundos</li>
+                        <li>• Listo inmediatamente</li>
+                        <li>• Cambios ilimitados</li>
+                        <li>• Costo: $106/mes (ilimitado)</li>
+                      </ul>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    {!catalogSimulation.generating && (
+                      <div>
+                        <p className="text-sm text-gray-600 mb-3">Productos listos para catálogo:</p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+                          <div className="p-3 border rounded-lg cursor-pointer hover:bg-gray-50"
+                               onClick={() => setCatalogSimulation(prev => ({ 
+                                 ...prev, 
+                                 selectedProducts: prev.selectedProducts === 1 ? 0 : 1 
+                               }))}>
+                            <div className="flex items-center gap-2">
+                              <Checkbox checked={catalogSimulation.selectedProducts >= 1} />
+                              <div className="flex-1">
+                                <p className="text-sm font-medium">Camisa Polo Azul</p>
+                                <Badge variant="outline" className="text-green-600 border-green-600">Recortado</Badge>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="p-3 border rounded-lg cursor-pointer hover:bg-gray-50"
+                               onClick={() => setCatalogSimulation(prev => ({ 
+                                 ...prev, 
+                                 selectedProducts: prev.selectedProducts === 2 ? 1 : 2 
+                               }))}>
+                            <div className="flex items-center gap-2">
+                              <Checkbox checked={catalogSimulation.selectedProducts === 2} />
+                              <div className="flex-1">
+                                <p className="text-sm font-medium">Zapatos Deportivos</p>
+                                <Badge variant="outline" className="text-green-600 border-green-600">Recortado</Badge>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="mb-4">
+                          <label className="block text-sm font-medium mb-1">Estilo de Template</label>
+                          <select 
+                            value={catalogSimulation.templateStyle}
+                            onChange={(e) => setCatalogSimulation(prev => ({ ...prev, templateStyle: e.target.value }))}
+                            className="w-full border border-gray-300 rounded-md px-3 py-2"
+                          >
+                            <option value="professional">Profesional</option>
+                            <option value="modern">Moderno</option>
+                            <option value="elegant">Elegante</option>
+                            <option value="minimal">Minimalista</option>
+                          </select>
+                        </div>
+                        
+                        {/* ✅ BOTÓN CORREGIDO - SIEMPRE FUNCIONA */}
+                        <Button 
+                          onClick={() => {
+                            // Auto-seleccionar si no hay productos
+                            if (catalogSimulation.selectedProducts === 0) {
+                              setCatalogSimulation(prev => ({ ...prev, selectedProducts: 2 }));
+                            }
+                            
+                            setCatalogSimulation(prev => ({ ...prev, generating: true }));
+                            setTimeout(() => {
+                              setCatalogSimulation(prev => ({ ...prev, generating: false }));
+                              advanceToNextStep('catalog-creation', () => {});
+                            }, 4000);
+                          }}
+                          className="w-full bg-green-600 hover:bg-green-700"
+                        >
+                          <BookOpen className="w-4 h-4 mr-2" />
+                          {catalogSimulation.selectedProducts === 0 
+                            ? 'Crear Catálogo Demo (2 productos)' 
+                            : `Crear Catálogo Profesional (${catalogSimulation.selectedProducts})`
+                          }
+                        </Button>
+                      </div>
+                    )}
+                    
+                    {catalogSimulation.generating && (
+                      <div className="text-center p-6 bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg border">
+                        <Loader2 className="w-8 h-8 text-purple-600 animate-spin mx-auto mb-3" />
+                        <h4 className="text-lg font-semibold text-purple-900 mb-2">🎨 Creando tu catálogo profesional...</h4>
+                        <p className="text-purple-700 text-sm mb-3">
+                          Template: {catalogSimulation.templateStyle} | Productos recortados | Marca personalizada
+                        </p>
+                        <div className="bg-white p-3 rounded border">
+                          <div className="text-xs text-gray-600 space-y-1">
+                            <p>✅ Aplicando tu marca personalizada...</p>
+                            <p>✅ Organizando productos recortados...</p>
+                            <p>✅ Generando layout profesional...</p>
+                            <p>✅ Optimizando para impresión...</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* ✅ PASO 5: Inline Editing - NAVEGACIÓN CORREGIDA */}
+              <Card>
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <CardTitle className="flex items-center gap-2">
+                        <Edit className="w-5 h-5" />
+                        5. Actualización Rápida de Precios
+                      </CardTitle>
+                      <p className="text-sm text-gray-600 mt-1">
+                        <strong>Poder final:</strong> Actualiza precios masivamente en segundos, no horas
+                      </p>
+                    </div>
+                    <Badge variant="outline" className="text-orange-600 border-orange-600">
+                      10 seg vs 2 horas
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <Alert className="mb-4 border-orange-200 bg-orange-50">
+                    <Clock className="h-4 w-4" />
+                    <AlertDescription>
+                      <strong>Ventaja competitiva:</strong> Mientras tu competencia tarda 2 horas actualizando precios, 
+                      tú lo haces en 10 segundos y ya tienes nuevos catálogos listos.
+                    </AlertDescription>
+                  </Alert>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                      <h4 className="font-semibold text-red-800 mb-2">❌ Sin CatifyPro</h4>
+                      <ul className="text-sm text-red-700 space-y-1">
+                        <li>• Editar precios uno por uno</li>
+                        <li>• Reconstruir catálogo desde cero</li>
+                        <li>• Tiempo: 2-3 horas</li>
+                        <li>• Perder oportunidades de venta</li>
+                      </ul>
+                    </div>
+                    <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                      <h4 className="font-semibold text-green-800 mb-2">✅ Con CatifyPro</h4>
+                      <ul className="text-sm text-green-700 space-y-1">
+                        <li>• Edición masiva inteligente</li>
+                        <li>• Catálogos se actualizan automáticamente</li>
+                        <li>• Tiempo: 10 segundos</li>
+                        <li>• Respuesta inmediata al mercado</li>
+                      </ul>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <p className="text-sm text-gray-600">Haz clic en cualquier precio para editarlo:</p>
+                    
+                    <div className="border rounded-lg overflow-hidden">
+                      <table className="w-full">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="p-3 text-left text-sm font-medium">Producto</th>
+                            <th className="p-3 text-left text-sm font-medium">SKU</th>
+                            <th className="p-3 text-left text-sm font-medium">Precio (MXN)</th>
+                            <th className="p-3 text-left text-sm font-medium">Categoría</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {inlineEditingSimulation.products.map((product) => (
+                            <tr key={product.id} className="border-t">
+                              <td className="p-3">{product.name}</td>
+                              <td className="p-3">{product.sku}</td>
+                              <td className="p-3">
+                                {inlineEditingSimulation.editing === `${product.id}-price` ? (
+                                  <div className="flex items-center gap-2">
+                                    <Input 
+                                      value={inlineEditingSimulation.editValue}
+                                      onChange={(e) => setInlineEditingSimulation(prev => ({ 
+                                        ...prev, 
+                                        editValue: e.target.value 
+                                      }))}
+                                      className="h-8 text-sm w-24"
+                                      autoFocus
+                                    />
+                                    <Button 
+                                      size="sm" 
+                                      onClick={() => {
+                                        const updatedProducts = inlineEditingSimulation.products.map(p => 
+                                          p.id === product.id ? { ...p, price: inlineEditingSimulation.editValue } : p
+                                        );
+                                        setInlineEditingSimulation(prev => ({ 
+                                          ...prev, 
+                                          products: updatedProducts,
+                                          editing: null,
+                                          editValue: ''
+                                        }));
+                                        
+                                        if (!checklist.find(item => item.id === 'inline-editing')?.completed) {
+                                          advanceToNextStep('inline-editing', () => {});
+                                        }
+                                      }}
+                                    >
+                                      <Save className="w-3 h-3" />
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <div 
+                                    className="cursor-pointer hover:bg-gray-50 p-1 rounded text-green-600 font-semibold"
+                                    onClick={() => {
+                                      setInlineEditingSimulation(prev => ({ 
+                                        ...prev, 
+                                        editing: `${product.id}-price`,
+                                        editValue: product.price
+                                      }));
+                                    }}
+                                  >
+                                    ${product.price} MXN
+                                  </div>
+                                )}
+                              </td>
+                              <td className="p-3">
+                                <Badge variant="outline">{product.category}</Badge>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    
+                    <div className="mt-3 p-3 bg-orange-50 rounded-lg border border-orange-200">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Zap className="w-4 h-4 text-orange-600" />
+                        <span className="text-sm font-semibold text-orange-800">Poder de actualización masiva:</span>
+                      </div>
+                      <ul className="text-xs text-orange-700 space-y-1">
+                        <li>• ✅ Actualiza precios de 100+ productos en minutos</li>
+                        <li>• ✅ Catálogos se regeneran automáticamente</li>
+                        <li>• ✅ Siempre tienes los precios más actuales</li>
+                      </ul>
+                    </div>
+
+                    {/* ✅ BOTÓN AUTOMÁTICO PARA COMPLETAR */}
+                    {!checklist.find(item => item.id === 'inline-editing')?.completed && (
+                      <div className="text-center">
+                        <Button 
+                          onClick={() => {
+                            // Simular edición automática
+                            const updatedProducts = inlineEditingSimulation.products.map(p => ({
+                              ...p,
+                              price: p.id === '1' ? '349.99' : '549.99'
+                            }));
+                            
+                            setInlineEditingSimulation(prev => ({ 
+                              ...prev, 
+                              products: updatedProducts
+                            }));
+                            
+                            setTimeout(() => {
+                              advanceToNextStep('inline-editing', () => {});
+                            }, 500);
+                          }}
+                          className="bg-orange-600 hover:bg-orange-700"
+                        >
+                          <Edit className="w-4 h-4 mr-2" />
+                          Simular Actualización Masiva de Precios
+                        </Button>
+                      </div>
+                    )}
+
+                    <p className="text-xs text-gray-500 text-center">
+                      💡 Tip: En el sistema real puedes editar precios, categorías, SKUs y más campos directamente. 
+                      Los catálogos se actualizan automáticamente.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
 
             </div>
           </div>
