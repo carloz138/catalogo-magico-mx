@@ -59,7 +59,7 @@ const OnboardingPage = () => {
     {
       id: 'upload',
       title: 'Subir y Organizar Productos',
-      description: 'Aprende a subir fotos y completar información automáticamente',
+      description: 'Aprende a subir fotos y organizar productos de forma inteligente',
       benefit: 'Ahorra 80% del tiempo vs. crear catálogos manualmente',
       timeEstimate: '2 min',
       valueProposition: 'De fotos desorganizadas a productos catalogados profesionales',
@@ -67,11 +67,11 @@ const OnboardingPage = () => {
     },
     {
       id: 'background-removal',
-      title: 'Quitar Fondos Automáticamente',
-      description: 'Descubre cómo convertir fotos caseras en imágenes profesionales',
-      benefit: 'Elimina costos de fotógrafo ($200-500 por sesión)',
+      title: 'Recortar Productos con IA',
+      description: 'Descubre cómo la IA recorta productos automáticamente en segundos',
+      benefit: 'Elimina costos de fotógrafo ($4,000-10,000 MXN por sesión)',
       timeEstimate: '30 seg/foto',
-      valueProposition: 'Fotos caseras → Calidad de estudio profesional',
+      valueProposition: 'Fotos caseras → Productos recortados perfectamente',
       completed: false
     },
     {
@@ -94,8 +94,8 @@ const OnboardingPage = () => {
     },
     {
       id: 'inline-editing',
-      title: 'Edición Rápida de Precios',
-      description: 'Actualiza precios y datos masivamente sin rehacer todo',
+      title: 'Actualización Rápida de Precios',
+      description: 'Actualiza precios y datos de productos masivamente sin rehacer todo',
       benefit: 'Actualiza catálogos en minutos vs. rehacer desde cero',
       timeEstimate: '10 seg/producto',
       valueProposition: 'De catálogos obsoletos a información siempre actualizada',
@@ -126,7 +126,7 @@ const OnboardingPage = () => {
               <li>• Fotos con mal fondo</li>
               <li>• Catálogos en Word/PowerPoint</li>
               <li>• 2-3 días creando cada catálogo</li>
-              <li>• Diseñador cuesta $200-500</li>
+              <li>• Diseñador cuesta $4,000-10,000 MXN</li>
               <li>• Actualizar = empezar de cero</li>
             </ul>
           </CardContent>
@@ -135,12 +135,12 @@ const OnboardingPage = () => {
         <Card className="border-blue-200 bg-blue-50">
           <CardContent className="p-6 text-center">
             <div className="text-blue-600 mb-3">⚡</div>
-            <h3 className="font-semibold text-blue-900 mb-2">Con CatalogoIA</h3>
+            <h3 className="font-semibold text-blue-900 mb-2">Con CatifyPro</h3>
             <ul className="text-sm text-blue-800 space-y-1 text-left">
-              <li>• IA quita fondos automático</li>
+              <li>• IA recorta productos automático</li>
               <li>• Templates profesionales</li>
               <li>• Catálogo listo en 5 minutos</li>
-              <li>• Costo: $19/mes vs $500/catálogo</li>
+              <li>• Costo: $106/mes vs $10,000/catálogo</li>
               <li>• Actualizar = 30 segundos</li>
             </ul>
           </CardContent>
@@ -154,7 +154,7 @@ const OnboardingPage = () => {
               <li>• Ahorro 95% del tiempo</li>
               <li>• Ahorro 90% del costo</li>
               <li>• +65% conversión de ventas</li>
-              <li>• Marca más profesional</li>
+              <li>• Productos recortados perfectamente</li>
               <li>• Actualizaciones instantáneas</li>
             </ul>
           </CardContent>
@@ -165,7 +165,7 @@ const OnboardingPage = () => {
         <Lightbulb className="h-4 w-4" />
         <AlertDescription>
           <strong>Objetivo:</strong> En los próximos 10 minutos vas a crear tu primer catálogo profesional 
-          y descubrir cómo CatalogoIA puede <strong>transformar tu negocio</strong>. 
+          y descubrir cómo CatifyPro puede <strong>transformar tu negocio</strong>. 
           ¡Empecemos!
         </AlertDescription>
       </Alert>
@@ -197,7 +197,7 @@ const OnboardingPage = () => {
         </div>
         <div className="flex items-center gap-2 text-sm">
           <DollarSign className="w-4 h-4 text-green-600" />
-          <span>Ahorro potencial: <strong>$500+ por catálogo</strong></span>
+          <span>Ahorro potencial: <strong>$10,000+ MXN por catálogo</strong></span>
         </div>
         <div className="flex items-center gap-2 text-sm">
           <Zap className="w-4 h-4 text-yellow-600" />
@@ -240,7 +240,7 @@ const OnboardingPage = () => {
           Pasos para el Éxito
         </CardTitle>
         <p className="text-sm text-gray-600">
-          Cada paso te enseña una <strong>superpoder</strong> de CatalogoIA
+          Cada paso te enseña una <strong>superpoder</strong> de CatifyPro
         </p>
       </CardHeader>
       <CardContent>
@@ -424,24 +424,24 @@ const OnboardingPage = () => {
                             </ul>
                           </div>
                           <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
-                            <h4 className="font-semibold text-green-800 mb-2">✅ Con CatalogoIA</h4>
+                            <h4 className="font-semibold text-green-800 mb-2">✅ Con CatifyPro</h4>
                             <ul className="text-sm text-green-700 space-y-1">
                               <li>• Sube fotos desde cualquier lugar</li>
-                              <li>• Auto-completa información</li>
+                              <li>• Organiza automáticamente</li>
                               <li>• Tiempo: 2-3 minutos</li>
-                              <li>• Detección inteligente de datos</li>
+                              <li>• Sistema inteligente de catalogación</li>
                             </ul>
                           </div>
                         </div>
 
                         <p className="text-sm text-gray-600 mb-3">
-                          <strong>Simula subir archivos</strong> y descubre cómo la IA ayuda a completar la información:
+                          <strong>Simula subir archivos</strong> y descubre cómo CatifyPro organiza todo automáticamente:
                         </p>
                         <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
                           <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
                           <p className="text-gray-500">Arrastra fotos aquí o haz clic para seleccionar</p>
                           <p className="text-xs text-blue-600 mt-1">
-                            💡 En el sistema real: La IA detecta automáticamente tipo de producto, sugiere precios y más
+                            💡 En el sistema real: CatifyPro organiza automáticamente tus productos por categorías
                           </p>
                           <Button 
                             className="mt-3"
@@ -494,8 +494,7 @@ const OnboardingPage = () => {
                         <div className="grid grid-cols-2 gap-4">
                           <div>
                             <label className="block text-sm font-medium mb-1">
-                              Nombre del Producto 
-                              <span className="text-blue-600 text-xs">(Sugerido por IA)</span>
+                              Nombre del Producto
                             </label>
                             <Input 
                               placeholder="Camisa Polo Azul Clásica"
@@ -506,11 +505,10 @@ const OnboardingPage = () => {
                           </div>
                           <div>
                             <label className="block text-sm font-medium mb-1">
-                              Precio 
-                              <span className="text-blue-600 text-xs">(Basado en mercado)</span>
+                              Precio (MXN)
                             </label>
                             <Input 
-                              placeholder="$299.00"
+                              placeholder="$299.00 MXN"
                               value={uploadSimulation.productPrice}
                               onChange={(e) => setUploadSimulation(prev => ({ ...prev, productPrice: e.target.value }))}
                               className="border-blue-200 bg-blue-50"
@@ -524,8 +522,8 @@ const OnboardingPage = () => {
                             <span className="text-sm font-semibold text-blue-800">Valor agregado que acabas de experimentar:</span>
                           </div>
                           <ul className="text-xs text-blue-700 space-y-1">
-                            <li>• ✅ Detección automática de producto (sin escribir manualmente)</li>
-                            <li>• ✅ Sugerencia de precios basada en mercado</li>
+                            <li>• ✅ Organización automática por categorías</li>
+                            <li>• ✅ Catalogación inteligente de productos</li>
                             <li>• ✅ Ahorraste ~5 minutos por producto vs. método manual</li>
                           </ul>
                         </div>
