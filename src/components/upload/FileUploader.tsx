@@ -7,8 +7,9 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
-import { useUploadTracking } from '@/hooks/useUploadTracking'; // ⬅️ NUEVO
+import { useUploadTracking } from '@/hooks/useUploadTracking';
 
+// 🎯 INTERFACE ACTUALIZADO CON URLs OPTIMIZADAS
 interface UploadedFile {
   id: string;
   file: File;
@@ -17,6 +18,13 @@ interface UploadedFile {
   uploading: boolean;
   progress: number;
   error?: string;
+  // 🎯 NUEVO: URLs optimizadas generadas automáticamente
+  optimizedUrls?: {
+    thumbnail: string;
+    catalog: string;
+    luxury: string;
+    print: string;
+  };
 }
 
 interface FileUploaderProps {
@@ -60,23 +68,22 @@ export const FileUploader = ({ onFilesUploaded, maxFiles = MAX_FILES }: FileUplo
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [error, setError] = useState<string>('');
   
-  // ⬅️ NUEVO: Hook para tracking de uploads
   const { validateBeforeUpload, incrementUploadUsage, checkUploadLimits } = useUploadTracking();
   const [uploadLimits, setUploadLimits] = useState<any>(null);
 
-  // ⬅️ NUEVO: Verificar límites al cargar componente
   React.useEffect(() => {
     checkUploadLimits().then(setUploadLimits);
   }, [uploadedFiles]);
 
+  // 🎯 FUNCIÓN onDrop COMPLETAMENTE ACTUALIZADA CON OPTIMIZACIÓN AUTOMÁTICA
   const onDrop = useCallback(async (acceptedFiles: File[], rejectedFiles: any[]) => {
-    // ⬅️ NUEVO: 1. VALIDAR LÍMITES DE PLAN ANTES DE PROCESAR
+    // 1. VALIDAR LÍMITES DE PLAN ANTES DE PROCESAR
     const canUpload = await validateBeforeUpload(acceptedFiles.length);
     if (!canUpload) {
-      return; // El toast ya se mostró en validateBeforeUpload
+      return;
     }
 
-    // Check if too many files were selected (including rejected ones)
+    // Check if too many files were selected
     const totalFiles = acceptedFiles.length + rejectedFiles.length;
     if (totalFiles > MAX_FILES) {
       setError(`Recuerda que la cantidad máxima para subir archivos es de ${MAX_FILES}. Seleccionaste ${totalFiles} archivos.`);
@@ -90,7 +97,6 @@ export const FileUploader = ({ onFilesUploaded, maxFiles = MAX_FILES }: FileUplo
       return;
     }
     
-    // Clear any previous errors
     setError('');
 
     const newFiles = acceptedFiles.slice(0, maxFiles - uploadedFiles.length).map(file => ({
@@ -103,7 +109,7 @@ export const FileUploader = ({ onFilesUploaded, maxFiles = MAX_FILES }: FileUplo
 
     setUploadedFiles(prev => [...prev, ...newFiles]);
 
-    // UPLOAD FILES WITH PNG PRESERVATION
+    // 🎯 NUEVO: UPLOAD CON GENERACIÓN AUTOMÁTICA DE VERSIONES OPTIMIZADAS
     const uploadPromises = newFiles.map(async (uploadFile) => {
       try {
         const fileExt = uploadFile.file.name.split('.').pop()?.toLowerCase();
@@ -111,7 +117,7 @@ export const FileUploader = ({ onFilesUploaded, maxFiles = MAX_FILES }: FileUplo
         const filePath = `${Date.now()}_${fileName}`;
 
         // DETERMINAR CONTENT-TYPE CORRECTO
-        let contentType = 'image/jpeg'; // Default
+        let contentType = 'image/jpeg';
         if (fileExt === 'png') {
           contentType = 'image/png';
         } else if (fileExt === 'webp') {
@@ -120,8 +126,9 @@ export const FileUploader = ({ onFilesUploaded, maxFiles = MAX_FILES }: FileUplo
           contentType = 'image/gif';
         }
 
-        console.log(`📁 Uploading: ${fileName} (${uploadFile.file.type}) as ${contentType}`);
+        console.log(`📁 Uploading original: ${fileName} (${uploadFile.file.type}) as ${contentType}`);
 
+        // PASO 1: SUBIR IMAGEN ORIGINAL
         const { data, error } = await supabase.storage
           .from('product-images')
           .upload(filePath, uploadFile.file, {
@@ -141,15 +148,61 @@ export const FileUploader = ({ onFilesUploaded, maxFiles = MAX_FILES }: FileUplo
           .from('product-images')
           .getPublicUrl(filePath);
 
-        console.log(`✅ Upload successful: ${uploadFile.file.name}`);
-
+        // Actualizar progreso: 30% - imagen original subida
         setUploadedFiles(prev => prev.map(f => 
           f.id === uploadFile.id 
-            ? { ...f, uploading: false, progress: 100, url: urlData.publicUrl }
+            ? { ...f, progress: 30, url: urlData.publicUrl }
             : f
         ));
 
-        return { ...uploadFile, url: urlData.publicUrl, uploading: false, progress: 100 };
+        // 🎯 PASO 2: GENERAR VERSIONES OPTIMIZADAS AUTOMÁTICAMENTE
+        console.log(`🔄 Generating optimized versions for: ${uploadFile.file.name}`);
+        
+        // Actualizar progreso: 50% - iniciando optimización
+        setUploadedFiles(prev => prev.map(f => 
+          f.id === uploadFile.id 
+            ? { ...f, progress: 50 }
+            : f
+        ));
+        
+        // Crear blob de la imagen original
+        const originalBlob = uploadFile.file;
+        
+        // Importar función de imageProcessing
+        const { uploadImageToSupabase } = await import('@/utils/imageProcessing');
+        
+        // Generar versiones optimizadas
+        const optimizedUrls = await uploadImageToSupabase(
+          supabase,
+          uploadFile.id,
+          originalBlob,
+          uploadFile.file.name
+        );
+
+        console.log(`✅ Optimized versions generated:`, optimizedUrls);
+
+        // Actualizar progreso: 100% - versiones optimizadas generadas
+        setUploadedFiles(prev => prev.map(f => 
+          f.id === uploadFile.id 
+            ? { 
+                ...f, 
+                uploading: false, 
+                progress: 100, 
+                url: urlData.publicUrl,
+                // 🎯 NUEVO: Agregar URLs optimizadas al objeto
+                optimizedUrls: optimizedUrls
+              }
+            : f
+        ));
+
+        return { 
+          ...uploadFile, 
+          url: urlData.publicUrl, 
+          uploading: false, 
+          progress: 100,
+          optimizedUrls: optimizedUrls
+        };
+
       } catch (error) {
         console.error(`💥 Upload error for ${uploadFile.file.name}:`, error);
         setUploadedFiles(prev => prev.map(f => 
@@ -170,20 +223,18 @@ export const FileUploader = ({ onFilesUploaded, maxFiles = MAX_FILES }: FileUplo
     const results = await Promise.all(uploadPromises);
     const successfulFiles = results.filter(file => file !== null && file.url);
     
-    // ⬅️ NUEVO: 2. INCREMENTAR CONTADOR SOLO SI UPLOADS FUERON EXITOSOS
+    // 2. INCREMENTAR CONTADOR SOLO SI UPLOADS FUERON EXITOSOS
     if (successfulFiles.length > 0) {
       const trackingResult = await incrementUploadUsage(successfulFiles.length);
       
       if (trackingResult.success) {
         toast({
-          title: "Imágenes subidas",
-          description: `${successfulFiles.length} imagen(es) subida(s) exitosamente`,
+          title: "Imágenes procesadas",
+          description: `${successfulFiles.length} imagen(es) subida(s) y optimizada(s) automáticamente`,
         });
         
-        // Actualizar límites después del upload
         checkUploadLimits().then(setUploadLimits);
       } else {
-        // Si falla el tracking, mostrar advertencia pero no bloquear
         toast({
           title: "Advertencia",
           description: "Imágenes subidas pero no se pudo actualizar el contador",
@@ -192,7 +243,6 @@ export const FileUploader = ({ onFilesUploaded, maxFiles = MAX_FILES }: FileUplo
       }
     }
     
-    // Call onFilesUploaded with all successful files (including previously uploaded ones)
     const allSuccessfulFiles = uploadedFiles.filter(f => f.url && !f.error).concat(successfulFiles);
     onFilesUploaded(allSuccessfulFiles);
   }, [uploadedFiles, maxFiles, onFilesUploaded, validateBeforeUpload, incrementUploadUsage, checkUploadLimits]);
@@ -216,7 +266,6 @@ export const FileUploader = ({ onFilesUploaded, maxFiles = MAX_FILES }: FileUplo
     });
   };
 
-  // ⬅️ NUEVO: Componente para mostrar límites de upload
   const UploadLimitsDisplay = () => {
     if (!uploadLimits || uploadLimits.reason === 'unlimited') return null;
 
@@ -255,7 +304,6 @@ export const FileUploader = ({ onFilesUploaded, maxFiles = MAX_FILES }: FileUplo
 
   return (
     <div className="space-y-4">
-      {/* ⬅️ NUEVO: Mostrar límites de upload */}
       <UploadLimitsDisplay />
 
       {uploadedFiles.length < maxFiles && (
@@ -284,7 +332,7 @@ export const FileUploader = ({ onFilesUploaded, maxFiles = MAX_FILES }: FileUplo
                       Máximo {MAX_FILES} archivos • 10MB por imagen • {Math.round(MAX_TOTAL_SIZE / (1024 * 1024))}MB total
                     </p>
                     <p className="text-xs text-blue-600 font-medium">
-                      ✅ PNG se mantiene para transparencia
+                      ✅ PNG se mantiene para transparencia • 🚀 Optimización automática para PDFs
                     </p>
                   </div>
                 )}
@@ -362,6 +410,15 @@ export const FileUploader = ({ onFilesUploaded, maxFiles = MAX_FILES }: FileUplo
                   </span>
                 </div>
                 
+                {/* 🎯 NUEVO: Mostrar indicador de optimización */}
+                {file.optimizedUrls && (
+                  <div className="absolute top-2 right-8">
+                    <span className="text-xs px-2 py-1 rounded font-medium bg-green-500 text-white">
+                      📐 4 tamaños
+                    </span>
+                  </div>
+                )}
+                
                 <Button
                   variant="ghost"
                   size="icon"
@@ -374,6 +431,12 @@ export const FileUploader = ({ onFilesUploaded, maxFiles = MAX_FILES }: FileUplo
                 {file.uploading && (
                   <div className="absolute bottom-0 left-0 right-0 bg-white/90 p-2">
                     <Progress value={file.progress} className="w-full" />
+                    <div className="text-xs text-center mt-1">
+                      {file.progress < 30 && "Subiendo original..."}
+                      {file.progress >= 30 && file.progress < 50 && "Procesando..."}
+                      {file.progress >= 50 && file.progress < 100 && "Optimizando..."}
+                      {file.progress === 100 && "¡Listo!"}
+                    </div>
                   </div>
                 )}
                 
@@ -383,10 +446,10 @@ export const FileUploader = ({ onFilesUploaded, maxFiles = MAX_FILES }: FileUplo
                   </div>
                 )}
 
-                {file.url && (
+                {file.url && !file.uploading && (
                   <div className="absolute bottom-2 left-2 right-2">
                     <div className="bg-green-500 text-white text-xs px-2 py-1 rounded text-center">
-                      ✅ Subido
+                      ✅ {file.optimizedUrls ? 'Optimizado' : 'Subido'}
                     </div>
                   </div>
                 )}
@@ -397,12 +460,13 @@ export const FileUploader = ({ onFilesUploaded, maxFiles = MAX_FILES }: FileUplo
       )}
 
       <div className="mt-6 bg-blue-50 p-4 rounded-lg border border-blue-200">
-        <h4 className="font-semibold text-blue-800 mb-2">📸 Formatos de imagen:</h4>
+        <h4 className="font-semibold text-blue-800 mb-2">🚀 Optimización automática:</h4>
         <div className="text-blue-700 space-y-2 text-sm">
-          <p>• <strong>PNG:</strong> ✅ Mantiene transparencia - Ideal para productos con fondos complejos</p>
-          <p>• <strong>JPG:</strong> Para fotos normales - Menor tamaño de archivo</p>
-          <p>• <strong>WEBP:</strong> Formato moderno con buena compresión</p>
-          <p>• Procesa en lotes de máximo {MAX_FILES} productos para mejor rendimiento</p>
+          <p>• <strong>Original:</strong> Se mantiene para remove background y descargas</p>
+          <p>• <strong>Catálogo (800x800):</strong> Perfecto para PDFs - reduce peso 90%</p>
+          <p>• <strong>Thumbnail (300x300):</strong> Para vistas previas rápidas</p>
+          <p>• <strong>PNG:</strong> Mantiene transparencia en todos los tamaños</p>
+          <p>• Proceso 100% automático - ¡no necesitas hacer nada!</p>
         </div>
       </div>
 
@@ -412,7 +476,7 @@ export const FileUploader = ({ onFilesUploaded, maxFiles = MAX_FILES }: FileUplo
           <p>• Usa <strong>PNG</strong> si tu producto tiene bordes complejos o transparencias</p>
           <p>• Asegúrate de que el fondo contraste bien con tu producto</p>
           <p>• Evita fondos muy texturizados o con patrones complicados</p>
-          <p>• Guarda cada lote en tu biblioteca y después combínalos en catálogos</p>
+          <p>• Los PDFs ahora usan la versión optimizada automáticamente</p>
         </div>
       </div>
     </div>
