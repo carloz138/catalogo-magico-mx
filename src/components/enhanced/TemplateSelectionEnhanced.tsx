@@ -804,20 +804,34 @@ const TemplateSelectionEnhanced = () => {
           )}
 
           {/* 🆕 SELECTOR DE PREFERENCIA DE FONDO */}
-          {backgroundAnalysis && (
-            <BackgroundSelector
-              products={selectedProducts}
-              backgroundPreference={backgroundPreference}
-              onPreferenceChange={(preference) => {
-                console.log('🔄 CAMBIO DE PREFERENCIA:', { 
-                  anterior: backgroundPreference, 
-                  nueva: preference,
-                  timestamp: new Date().toISOString()
-                });
-                setBackgroundPreference(preference);
-              }}
-            />
-          )}
+          {(() => {
+            console.log('🔍 EVALUANDO BACKGROUND SELECTOR:', {
+              backgroundAnalysis: backgroundAnalysis,
+              hasNoBackgroundOptions: backgroundAnalysis?.hasNoBackgroundOptions,
+              conditionResult: !!(backgroundAnalysis && backgroundAnalysis.hasNoBackgroundOptions),
+              timestamp: new Date().toISOString()
+            });
+            return backgroundAnalysis && backgroundAnalysis.hasNoBackgroundOptions ? (
+              <BackgroundSelector
+                products={selectedProducts}
+                backgroundPreference={backgroundPreference}
+                onPreferenceChange={(preference) => {
+                  console.log('🔄 CAMBIO DE PREFERENCIA:', { 
+                    anterior: backgroundPreference, 
+                    nueva: preference,
+                    timestamp: new Date().toISOString()
+                  });
+                  setBackgroundPreference(preference);
+                }}
+              />
+            ) : (
+              <div className="p-4 bg-blue-50 rounded-lg border">
+                <p className="text-sm text-blue-600">
+                  ℹ️ No hay productos con fondo removido disponibles. Todos los productos usarán sus imágenes originales.
+                </p>
+              </div>
+            );
+          })()}
 
           {/* Selector inteligente de templates */}
           <SmartTemplateSelector
