@@ -179,7 +179,19 @@ export const FileUploader = ({ onFilesUploaded, maxFiles = MAX_FILES }: FileUplo
           uploadFile.file.name
         );
 
-        console.log(`✅ Optimized versions generated:`, optimizedUrls);
+        console.log(`🎯 UPLOAD VALIDATION - ${uploadFile.file.name}:`, {
+          productId: uploadFile.id,
+          originalSize: originalBlob.size,
+          optimizedUrls: {
+            thumbnail: optimizedUrls?.thumbnail ? '✅ Generated' : '❌ Missing',
+            catalog: optimizedUrls?.catalog ? '✅ Generated' : '❌ Missing', 
+            luxury: optimizedUrls?.luxury ? '✅ Generated' : '❌ Missing',
+            print: optimizedUrls?.print ? '✅ Generated' : '❌ Missing'
+          },
+          thumbnailUrl: optimizedUrls?.thumbnail?.substring(0, 80) + '...',
+          catalogUrl: optimizedUrls?.catalog?.substring(0, 80) + '...',
+          urlsComplete: !!(optimizedUrls?.thumbnail && optimizedUrls?.catalog && optimizedUrls?.luxury && optimizedUrls?.print)
+        });
 
         // Actualizar progreso: 100% - versiones optimizadas generadas
         setUploadedFiles(prev => prev.map(f => 

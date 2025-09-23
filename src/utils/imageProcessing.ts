@@ -252,6 +252,15 @@ export const uploadImageToSupabase = async (
   console.log(`   📘 Catalog: ${uploadedUrls.catalog}`);
   console.log(`   💎 Luxury: ${uploadedUrls.luxury}`);
   console.log(`   🖨️ Print: ${uploadedUrls.print}`);
+  
+  // 🎯 LOG CRÍTICO PARA VALIDACIÓN
+  console.log(`🔍 CRITICAL VALIDATION - Product ${productId}:`, {
+    allUrlsGenerated: Object.keys(uploadedUrls).length === 4,
+    catalogUrlLength: uploadedUrls.catalog?.length || 0,
+    catalogUrlContains: uploadedUrls.catalog?.includes('catalog') || false,
+    estimatedCatalogWeight: uploadedUrls.catalog ? 'LIGHT (~100KB)' : 'HEAVY (5MB+)',
+    readyForOptimizedPDF: !!(uploadedUrls.thumbnail && uploadedUrls.catalog && uploadedUrls.luxury && uploadedUrls.print)
+  });
 
   return uploadedUrls;
 };

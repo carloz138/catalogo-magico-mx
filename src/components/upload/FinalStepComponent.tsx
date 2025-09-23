@@ -69,10 +69,16 @@ const handleAutoSave = async () => {
     for (const file of files) {
       const productData = file.productData || {};
       
-      // 🎯 NUEVO: Incluir URLs optimizadas
       console.log(`💾 Guardando producto con URLs:`, {
         original: file.url,
-        optimized: file.optimizedUrls
+        optimized: file.optimizedUrls,
+        hasOptimizedUrls: !!file.optimizedUrls,
+        originalUrl: file.url?.substring(0, 50) + '...',
+        thumbnailUrl: file.optimizedUrls?.thumbnail?.substring(0, 50) + '...',
+        catalogUrl: file.optimizedUrls?.catalog?.substring(0, 50) + '...',
+        luxuryUrl: file.optimizedUrls?.luxury?.substring(0, 50) + '...',
+        printUrl: file.optimizedUrls?.print?.substring(0, 50) + '...',
+        willUseCatalogForPDF: !!file.optimizedUrls?.catalog
       });
       
       const { data: insertedProduct, error } = await supabase
@@ -86,7 +92,7 @@ const handleAutoSave = async () => {
           price_wholesale: productData.price_wholesale ? Math.round(productData.price_wholesale * 100) : null,
           category: productData.category || '',
           brand: productData.brand || '',
-          // 🎯 URLs ORIGINALES Y OPTIMIZADAS
+          // URLs originales y optimizadas
           original_image_url: file.url || file.preview,
           thumbnail_image_url: file.optimizedUrls?.thumbnail || null,
           catalog_image_url: file.optimizedUrls?.catalog || null,
@@ -105,6 +111,17 @@ const handleAutoSave = async () => {
         throw error;
       }
 
+      // 🎯 VALIDACIÓN CRÍTICA POST-GUARDADO
+      console.log(`✅ PRODUCT SAVED SUCCESSFULLY - ${insertedProduct.name}:`, {
+        id: insertedProduct.id,
+        catalog_image_url: insertedProduct.catalog_image_url ? '✅ SAVED' : '❌ NULL',
+        thumbnail_image_url: insertedProduct.thumbnail_image_url ? '✅ SAVED' : '❌ NULL',
+        luxury_image_url: insertedProduct.luxury_image_url ? '✅ SAVED' : '❌ NULL',
+        print_image_url: insertedProduct.print_image_url ? '✅ SAVED' : '❌ NULL',
+        optimizationStatus: insertedProduct.catalog_image_url ? 'READY FOR LIGHT PDF' : 'WILL USE HEAVY IMAGES',
+        estimatedPDFWeight: insertedProduct.catalog_image_url ? '~100KB per product' : '~5MB per product'
+      });
+
       // 🎯 ACTUALIZADO: Usar catalog_image_url si existe, sino original
       savedProductsData.push({
         ...insertedProduct,
@@ -115,8 +132,18 @@ const handleAutoSave = async () => {
     setSavedProducts(savedProductsData);
     setAutoSaved(true);
 
-    // 🎯 MENSAJE ACTUALIZADO
+    // 🎯 RESUMEN FINAL DE OPTIMIZACIÓN
     const optimizedCount = files.filter(f => f.optimizedUrls).length;
+    const totalWithCatalogUrls = savedProductsData.filter(p => p.catalog_image_url).length;
+    
+    console.log(`🎊 AUTO-SAVE COMPLETED:`, {
+      totalProducts: files.length,
+      productsWithOptimizedUrls: optimizedCount,
+      productsWithCatalogUrls: totalWithCatalogUrls,
+      percentageOptimized: `${Math.round((totalWithCatalogUrls / files.length) * 100)}%`,
+      expectedPDFWeight: totalWithCatalogUrls > 0 ? `LIGHT (~${totalWithCatalogUrls * 100}KB)` : `HEAVY (~${files.length * 5}MB)`,
+      optimizationSuccess: totalWithCatalogUrls === files.length
+    });
     
     toast({
       title: "¡Productos guardados!",
