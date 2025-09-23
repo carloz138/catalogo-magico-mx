@@ -538,6 +538,21 @@ const TemplateSelectionEnhanced = () => {
     try {
       console.log('🚀 Iniciando generación con nuevo sistema...');
       
+      // 🔍 DEPURACIÓN CRÍTICA: Verificar URLs ANTES de enviar al generador
+      console.log('🔍🔍🔍 PRODUCTOS ANTES DE ENVIAR AL GENERADOR:', {
+        backgroundPreference,
+        totalProductos: selectedProducts.length,
+        urls: selectedProducts.map(p => ({
+          nombre: p.name,
+          image_url_actual: p.image_url,
+          tiene_processed: !!p.processed_image_url,
+          processed_url: p.processed_image_url,
+          catalog_url: p.catalog_image_url,
+          es_catalog: p.image_url?.includes('_catalog.jpg'),
+          es_processed: p.image_url === p.processed_image_url
+        }))
+      });
+      
       // Usar nuestro nuevo generador unificado
       const result = await generateCatalog(
         selectedProducts,
