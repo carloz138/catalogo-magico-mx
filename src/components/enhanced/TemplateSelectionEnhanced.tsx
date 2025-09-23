@@ -158,17 +158,19 @@ const TemplateSelectionEnhanced = () => {
 
   // 🆕 EFECTO PARA REACCIONAR A CAMBIOS EN PREFERENCIA DE FONDO
   useEffect(() => {
-    console.log('🔥🔥🔥 useEffect ejecutado:', {
+    console.log('🔥🔥🔥 useEffect ejecutado - backgroundPreference cambió:', {
+      backgroundPreference,
       selectedProductsLength: selectedProducts.length,
       backgroundAnalysisExists: !!backgroundAnalysis,
-      backgroundPreference,
       timestamp: new Date().toISOString()
     });
     
+    // Solo procesar si tenemos productos Y análisis ya está listo
     if (selectedProducts.length > 0 && backgroundAnalysis) {
       console.log('🔄 RECALCULANDO URLs por cambio de preferencia:', {
         nuevaPreferencia: backgroundPreference,
         totalProductos: selectedProducts.length,
+        backgroundAnalysis,
         timestamp: new Date().toISOString()
       });
       
@@ -193,7 +195,9 @@ const TemplateSelectionEnhanced = () => {
           preferNoBackground,
           urlAnterior: product.image_url?.substring(0, 60) + '...',
           urlNueva: optimizedImageUrl?.substring(0, 60) + '...',
-          cambio: product.image_url !== optimizedImageUrl ? 'SÍ' : 'NO'
+          cambio: product.image_url !== optimizedImageUrl ? 'SÍ' : 'NO',
+          processed_url_disponible: !!product.processed_image_url,
+          catalog_url_disponible: !!product.catalog_image_url
         });
         
         return {
@@ -202,15 +206,26 @@ const TemplateSelectionEnhanced = () => {
         };
       });
       
+      console.log('✅ PRODUCTOS ACTUALIZADOS - URLs finales:', {
+        totalProductos: updatedProducts.length,
+        urlsFinales: updatedProducts.map(p => ({
+          nombre: p.name,
+          url_final: p.image_url?.substring(0, 80) + '...',
+          es_processed: p.image_url === p.processed_image_url,
+          es_catalog: p.image_url === p.catalog_image_url
+        }))
+      });
+      
       setSelectedProducts(updatedProducts);
     } else {
       console.log('❌ useEffect NO procesó porque:', {
         tieneProductos: selectedProducts.length > 0,
         tieneAnalysis: !!backgroundAnalysis,
-        backgroundAnalysis
+        backgroundAnalysis,
+        razon: !selectedProducts.length ? 'No hay productos' : 'No hay análisis'
       });
     }
-  }, [backgroundPreference, backgroundAnalysis]); // Agregar backgroundAnalysis como dependencia
+  }, [backgroundPreference]); // ✅ SOLO backgroundPreference como dependencia
 
   const initializeComponent = async () => {
     if (!user) return;
