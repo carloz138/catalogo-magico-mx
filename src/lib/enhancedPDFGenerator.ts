@@ -68,11 +68,16 @@ export const downloadEnhancedCatalogPDF = async (
         message: `Optimizando imagen ${index + 1}/${products.length}: ${product.name}`
       });
 
-      // 🔍 Tu lógica actual de selección de imagen
-      let finalImageUrl = product.image_url || product.original_image_url;
-      if (product.processed_url) {
+      // 🎯 CORREGIDO: No sobrescribir image_url si ya viene optimizado
+      let finalImageUrl = product.image_url;
+      
+      // Solo usar processed_url como override si existe y es diferente
+      if (product.processed_url && product.processed_url !== product.image_url) {
+        console.log(`🔄 Override: Usando processed_url para ${product.name}`);
         finalImageUrl = product.processed_url;
       }
+      
+      console.log(`🖼️ URL final para PDF: ${product.name} -> ${finalImageUrl?.substring(0, 100)}...`);
 
       return {
         id: product.id,

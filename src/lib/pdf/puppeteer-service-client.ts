@@ -134,7 +134,14 @@ export class PuppeteerServiceClient {
         products: products.length,
         template: template.id,
         layout: LAYOUT,
-        totalPages: Math.ceil(products.length / PDF_LAYOUT.PRODUCTS_PER_PAGE)
+        totalPages: Math.ceil(products.length / PDF_LAYOUT.PRODUCTS_PER_PAGE),
+        // 🎯 NUEVO: LOG DE URLs DE IMAGEN
+        imageUrls: products.map(p => ({
+          name: p.name,
+          url: p.image_url,
+          urlLength: p.image_url?.length || 0,
+          isOptimized: p.image_url?.includes('catalog') || false
+        }))
       });
       
       if (options.onProgress) options.onProgress(5);

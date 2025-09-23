@@ -176,7 +176,12 @@ const TemplateSelectionEnhanced = () => {
         console.log(`🔄 Producto "${product.name}":`, {
           original: product.original_image_url ? 'Sí' : 'No',
           catalog: product.catalog_image_url ? 'Sí' : 'No',
-          usando: product.catalog_image_url ? 'Catalog (optimizada)' : 'Original'
+          thumbnail: product.thumbnail_image_url ? 'Sí' : 'No',
+          luxury: product.luxury_image_url ? 'Sí' : 'No',
+          print: product.print_image_url ? 'Sí' : 'No',
+          usando: product.catalog_image_url ? 'Catalog (optimizada)' : 'Original',
+          url_final: optimizedImageUrl,
+          tamaño_url: optimizedImageUrl?.length || 0
         });
         
         return {

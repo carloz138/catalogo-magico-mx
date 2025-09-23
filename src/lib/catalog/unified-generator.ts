@@ -1027,6 +1027,26 @@ export const generateCatalog = async (
   userId: string,
   options: GenerationOptions = {}
 ): Promise<GenerationResult> => {
+  
+  // 🎯 LOG CRÍTICO: Verificar URLs de imagen antes de generar PDF
+  console.log('🔍 VERIFICACIÓN CRÍTICA - URLs de imagen antes del PDF:', {
+    totalProductos: products.length,
+    urls: products.map((product, index) => ({
+      nombre: product.name,
+      posicion: index + 1,
+      image_url: product.image_url?.substring(0, 100) + '...',
+      esOptimizada: product.image_url?.includes('catalog') || false,
+      tieneOriginal: !!(product as any).original_image_url,
+      tieneCatalog: !!(product as any).catalog_image_url,
+      urlLength: product.image_url?.length || 0
+    })),
+    resumen: {
+      conURLOptimizada: products.filter(p => p.image_url?.includes('catalog')).length,
+      urlsLargas: products.filter(p => (p.image_url?.length || 0) > 200).length,
+      pesoEstimado: products.filter(p => (p.image_url?.length || 0) > 200).length > 0 ? 'ALTO (>50MB)' : 'BAJO (<5MB)'
+    }
+  });
+  
   return UnifiedCatalogGenerator.generateCatalog(products, businessInfo, templateId, userId, {
     qualityCheck: true,
     autoFix: true,

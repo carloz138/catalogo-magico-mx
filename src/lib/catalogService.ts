@@ -519,7 +519,7 @@ export const generateTemplatePreview = async (
                   background: #f5f5f5;
                 ">
                   <img 
-                    src="${product.image_url || product.original_image_url}" 
+                    src="${product.image_url}" 
                     alt="${product.name}"
                     style="width: 100%; height: 100%; object-fit: cover;"
                   />
