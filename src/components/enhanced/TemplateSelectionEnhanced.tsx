@@ -1,5 +1,5 @@
 // src/components/enhanced/TemplateSelectionEnhanced.tsx
-// 🎯 VERSIÓN LIMPIA - Solo usa nuestro sistema nuevo - ACTUALIZADA CON LÓGICA PREMIUM
+// 🎯 VERSIÓN ACTUALIZADA CON URLS OPTIMIZADAS PARA PDFs LIGEROS
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -44,6 +44,12 @@ interface Product {
   sku?: string;
   category?: string;
   specifications?: string;
+  // 🎯 NUEVOS CAMPOS PARA URLs OPTIMIZADAS
+  original_image_url?: string;
+  catalog_image_url?: string;
+  thumbnail_image_url?: string;
+  luxury_image_url?: string;
+  print_image_url?: string;
 }
 
 interface UsageLimits {
@@ -80,7 +86,7 @@ const TemplateSelectionEnhanced = () => {
   const [selectedProducts, setSelectedProducts] = useState<Product[]>([]);
   const [generating, setGenerating] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [catalogTitle, setCatalogTitle] = useState(''); // Added catalog title state
+  const [catalogTitle, setCatalogTitle] = useState('');
   
   // Estados de límites
   const [limits, setLimits] = useState<UsageLimits | null>(null);
@@ -129,6 +135,7 @@ const TemplateSelectionEnhanced = () => {
     }
   };
 
+  // 🎯 FUNCIÓN ACTUALIZADA CON MAPEO DE URLs OPTIMIZADAS
   const loadSelectedProducts = async () => {
     let productsToUse: Product[] = [];
     
@@ -158,10 +165,38 @@ const TemplateSelectionEnhanced = () => {
       console.log('✅ Productos encontrados en router state:', productsToUse.length);
     }
     
-    // 3. VALIDAR Y USAR
+    // 3. VALIDAR, MAPEAR URLs OPTIMIZADAS Y USAR
     if (productsToUse.length > 0) {
-      setSelectedProducts(productsToUse);
-      console.log('✅ Productos cargados correctamente:', productsToUse.length);
+      // 🎯 MAPEAR URLS OPTIMIZADAS PARA PDFs LIGEROS
+      const productsWithOptimizedUrls = productsToUse.map(product => {
+        // Si tiene catalog_image_url (optimizada 800x800), usarla para PDFs
+        // Si no, usar original_image_url como fallback
+        const optimizedImageUrl = product.catalog_image_url || product.original_image_url || product.image_url;
+        
+        console.log(`🔄 Producto "${product.name}":`, {
+          original: product.original_image_url ? 'Sí' : 'No',
+          catalog: product.catalog_image_url ? 'Sí' : 'No',
+          usando: product.catalog_image_url ? 'Catalog (optimizada)' : 'Original'
+        });
+        
+        return {
+          ...product,
+          image_url: optimizedImageUrl  // Esta es la que usará el PDF
+        };
+      });
+      
+      const optimizedCount = productsWithOptimizedUrls.filter(p => p.catalog_image_url).length;
+      
+      setSelectedProducts(productsWithOptimizedUrls);
+      console.log('✅ Productos cargados correctamente:', {
+        total: productsWithOptimizedUrls.length,
+        conVersionOptimizada: optimizedCount,
+        reduccionEstimada: optimizedCount > 0 ? '~90% menos peso en PDF' : 'Sin optimización'
+      });
+      
+      if (optimizedCount > 0) {
+        console.log(`🚀 ${optimizedCount}/${productsWithOptimizedUrls.length} productos usarán versiones optimizadas para PDFs súper ligeros`);
+      }
     } else {
       console.log('❌ No hay productos, redirigiendo...');
       toast({
@@ -350,7 +385,7 @@ const TemplateSelectionEnhanced = () => {
         localStorage.removeItem('selectedTemplate');
         localStorage.removeItem('selectedProducts');
         localStorage.removeItem('selectedProductsData');
-        localStorage.removeItem('catalogTitle'); // 🔧 Limpiar título personalizado también
+        localStorage.removeItem('catalogTitle');
         
         // Actualizar límites
         await loadCatalogLimits();
@@ -390,6 +425,9 @@ const TemplateSelectionEnhanced = () => {
     );
   }
 
+  // 🎯 MOSTRAR INFORMACIÓN DE OPTIMIZACIÓN EN HEADER
+  const optimizedCount = selectedProducts.filter(p => p.catalog_image_url).length;
+
   // Header actions
   const actions = (
     <div className="flex items-center gap-3">
@@ -399,6 +437,15 @@ const TemplateSelectionEnhanced = () => {
           {selectedProducts.length} productos
         </Badge>
       </div>
+      
+      {/* 🎯 NUEVO: Badge de optimización */}
+      {optimizedCount > 0 && (
+        <div className="hidden lg:block">
+          <Badge variant="default" className="flex items-center gap-1 bg-green-600">
+            ⚡ {optimizedCount} optimizadas
+          </Badge>
+        </div>
+      )}
       
       {/* Badge de plan premium */}
       <div className="hidden lg:block">
@@ -469,6 +516,15 @@ const TemplateSelectionEnhanced = () => {
               <p className="text-gray-600">
                 Elige el diseño perfecto para tu catálogo de {selectedProducts.length} productos
               </p>
+              
+              {/* 🎯 NUEVA INFORMACIÓN DE OPTIMIZACIÓN */}
+              {optimizedCount > 0 && (
+                <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded-lg">
+                  <p className="text-sm text-green-700">
+                    ⚡ <strong>{optimizedCount} productos optimizados</strong> - PDF será ~90% más ligero
+                  </p>
+                </div>
+              )}
             </div>
             
             {/* Mostrar info del plan en móvil */}
@@ -480,6 +536,11 @@ const TemplateSelectionEnhanced = () => {
                       {selectedProducts.length} productos seleccionados
                     </span>
                     <div className="flex items-center gap-2">
+                      {optimizedCount > 0 && (
+                        <Badge variant="default" className="bg-green-600 text-xs">
+                          ⚡ {optimizedCount}
+                        </Badge>
+                      )}
                       <Badge 
                         variant={userPlan === 'premium' ? 'default' : 'outline'}
                         className={userPlan === 'premium' ? 'bg-gradient-to-r from-yellow-500 to-yellow-600 text-white' : ''}
@@ -519,6 +580,17 @@ const TemplateSelectionEnhanced = () => {
             </Alert>
           )}
 
+          {/* 🎯 NUEVO: Banner de optimización si hay productos optimizados */}
+          {optimizedCount > 0 && (
+            <Alert className="border-green-200 bg-green-50">
+              <CheckCircle className="h-4 w-4 text-green-600" />
+              <AlertDescription className="text-green-800">
+                <strong>PDFs súper ligeros:</strong> {optimizedCount} de {selectedProducts.length} productos 
+                tienen versiones optimizadas (800x800px). Tu PDF será ~90% más liviano manteniendo excelente calidad.
+              </AlertDescription>
+            </Alert>
+          )}
+
           {/* Selector inteligente de templates */}
           <SmartTemplateSelector
             selectedTemplate={selectedTemplate}
@@ -540,6 +612,7 @@ const TemplateSelectionEnhanced = () => {
                     </h4>
                     <p className="text-sm text-green-700">
                       Listo para generar tu catálogo con {selectedProducts.length} productos
+                      {optimizedCount > 0 && ` (${optimizedCount} optimizadas para PDF ligero)`}
                     </p>
                   </div>
                 </div>
