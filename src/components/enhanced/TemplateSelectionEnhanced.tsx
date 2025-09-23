@@ -22,6 +22,7 @@ import { initializeOptimizedTemplates } from '@/lib/templates/audited-templates-
 import { SmartTemplateSelector } from '@/components/templates/SmartTemplateSelector';
 import { generateCatalog, checkLimits } from '@/lib/catalog/unified-generator';
 import { IndustryType } from '@/lib/templates/industry-templates';
+import { BackgroundSelector } from './BackgroundSelector';
 
 import { 
   ArrowLeft,
@@ -89,17 +90,30 @@ const TemplateSelectionEnhanced = () => {
   };
   
   const getCatalogImageUrl = (product: Product, preferNoBackground: boolean = false): string => {
+    console.log(`🔍 SELECCIÓN DE IMAGEN para "${product.name}":`, {
+      preferNoBackground,
+      tiene_processed: !!product.processed_image_url,
+      tiene_catalog: !!product.catalog_image_url,
+      processed_url: product.processed_image_url?.substring(0, 60) + '...',
+      catalog_url: product.catalog_image_url?.substring(0, 60) + '...',
+      decision: preferNoBackground && product.processed_image_url ? 'USAR SIN FONDO' : 'USAR CON FONDO'
+    });
+    
     // Si el usuario prefiere sin fondo Y existe processed_image_url
     if (preferNoBackground && product.processed_image_url) {
+      console.log(`✅ USANDO IMAGEN SIN FONDO para "${product.name}": ${product.processed_image_url}`);
       return product.processed_image_url;
     }
     
     // Para catálogos: catalog_image_url (800x800, ~100KB) tiene prioridad
-    return product.catalog_image_url || 
+    const finalUrl = product.catalog_image_url || 
            product.processed_image_url || 
            product.hd_image_url || 
            product.image_url || 
            product.original_image_url;
+    
+    console.log(`📸 USANDO IMAGEN CON FONDO para "${product.name}": ${finalUrl?.substring(0, 60)}...`);
+    return finalUrl;
   };
 
   const analyzeBackgroundStatus = (products: Product[]) => {
@@ -138,6 +152,41 @@ const TemplateSelectionEnhanced = () => {
   useEffect(() => {
     initializeComponent();
   }, [user]);
+
+  // 🆕 EFECTO PARA REACCIONAR A CAMBIOS EN PREFERENCIA DE FONDO
+  useEffect(() => {
+    if (selectedProducts.length > 0 && backgroundAnalysis) {
+      console.log('🔄 RECALCULANDO URLs por cambio de preferencia:', {
+        nuevaPreferencia: backgroundPreference,
+        totalProductos: selectedProducts.length,
+        timestamp: new Date().toISOString()
+      });
+      
+      // Determinar preferencia de sin fondo
+      const preferNoBackground = backgroundPreference === 'without' || 
+                                (backgroundPreference === 'auto' && backgroundAnalysis.allHaveNoBackground);
+      
+      // Actualizar URLs de productos
+      const updatedProducts = selectedProducts.map(product => {
+        const optimizedImageUrl = getCatalogImageUrl(product, preferNoBackground);
+        
+        console.log(`🔄 RECALCULANDO "${product.name}":`, {
+          preferencia: backgroundPreference,
+          preferNoBackground,
+          urlAnterior: product.image_url?.substring(0, 60) + '...',
+          urlNueva: optimizedImageUrl?.substring(0, 60) + '...',
+          cambio: product.image_url !== optimizedImageUrl ? 'SÍ' : 'NO'
+        });
+        
+        return {
+          ...product,
+          image_url: optimizedImageUrl
+        };
+      });
+      
+      setSelectedProducts(updatedProducts);
+    }
+  }, [backgroundPreference]); // Solo escuchar cambios en backgroundPreference
 
   const initializeComponent = async () => {
     if (!user) return;
@@ -258,13 +307,22 @@ const TemplateSelectionEnhanced = () => {
         const preferNoBackground = backgroundPreference === 'without' || 
                                   (backgroundPreference === 'auto' && analysis.allHaveNoBackground);
         
+        console.log(`🎯 MAPEO PRODUCTO "${product.name}":`, {
+          backgroundPreference,
+          analysis_allHaveNoBackground: analysis.allHaveNoBackground,
+          preferNoBackground,
+          razonamiento: backgroundPreference === 'without' ? 'Usuario eligió SIN FONDO' :
+                       backgroundPreference === 'auto' && analysis.allHaveNoBackground ? 'AUTO: Todos tienen sin fondo' :
+                       'Usuario eligió CON FONDO o mixto'
+        });
+        
         // Usar función helper mejorada
         const optimizedImageUrl = getCatalogImageUrl(product, preferNoBackground);
         
         const hasNoBackground = hasBackgroundRemoved(product);
         const willUseNoBackground = preferNoBackground && hasNoBackground;
         
-        console.log(`🔄 Producto "${product.name}":`, {
+        console.log(`🔄 RESULTADO FINAL "${product.name}":`, {
           original: product.original_image_url ? 'Sí' : 'No',
           catalog: product.catalog_image_url ? 'Sí' : 'No',
           processed: product.processed_image_url ? 'Sí' : 'No',
@@ -689,6 +747,22 @@ const TemplateSelectionEnhanced = () => {
                 tienen versiones optimizadas (800x800px). Tu PDF será ~90% más liviano manteniendo excelente calidad.
               </AlertDescription>
             </Alert>
+          )}
+
+          {/* 🆕 SELECTOR DE PREFERENCIA DE FONDO */}
+          {backgroundAnalysis && (
+            <BackgroundSelector
+              products={selectedProducts}
+              backgroundPreference={backgroundPreference}
+              onPreferenceChange={(preference) => {
+                console.log('🔄 CAMBIO DE PREFERENCIA:', { 
+                  anterior: backgroundPreference, 
+                  nueva: preference,
+                  timestamp: new Date().toISOString()
+                });
+                setBackgroundPreference(preference);
+              }}
+            />
           )}
 
           {/* Selector inteligente de templates */}

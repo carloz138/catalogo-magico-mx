@@ -7,7 +7,7 @@ interface Product {
   id: string;
   name: string;
   processed_image_url?: string;
-  original_image_url: string;
+  original_image_url?: string;
 }
 
 interface BackgroundAnalysis {
