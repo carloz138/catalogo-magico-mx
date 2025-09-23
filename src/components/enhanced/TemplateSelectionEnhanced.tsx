@@ -158,6 +158,13 @@ const TemplateSelectionEnhanced = () => {
 
   // 🆕 EFECTO PARA REACCIONAR A CAMBIOS EN PREFERENCIA DE FONDO
   useEffect(() => {
+    console.log('🔥🔥🔥 useEffect ejecutado:', {
+      selectedProductsLength: selectedProducts.length,
+      backgroundAnalysisExists: !!backgroundAnalysis,
+      backgroundPreference,
+      timestamp: new Date().toISOString()
+    });
+    
     if (selectedProducts.length > 0 && backgroundAnalysis) {
       console.log('🔄 RECALCULANDO URLs por cambio de preferencia:', {
         nuevaPreferencia: backgroundPreference,
@@ -196,8 +203,14 @@ const TemplateSelectionEnhanced = () => {
       });
       
       setSelectedProducts(updatedProducts);
+    } else {
+      console.log('❌ useEffect NO procesó porque:', {
+        tieneProductos: selectedProducts.length > 0,
+        tieneAnalysis: !!backgroundAnalysis,
+        backgroundAnalysis
+      });
     }
-  }, [backgroundPreference]); // Solo escuchar cambios en backgroundPreference
+  }, [backgroundPreference, backgroundAnalysis]); // Agregar backgroundAnalysis como dependencia
 
   const initializeComponent = async () => {
     if (!user) return;
