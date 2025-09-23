@@ -11,7 +11,7 @@ import {
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
-import { Product, getDisplayImageUrl, getProcessingStatus } from '@/types/products';
+import { Product, getDisplayImageUrl, getCatalogImageUrl, getProcessingStatus } from '@/types/products';
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 
 // ==========================================
@@ -435,8 +435,8 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
           description: product.description || product.custom_description,
           category: product.category,
           price_retail: product.price_retail || 0,
-          // Usar la función helper para obtener la mejor URL
-          image_url: getDisplayImageUrl(product),
+          // 🎯 USAR URL OPTIMIZADA PARA CATÁLOGOS (catalog_image_url priorizada)
+          image_url: getCatalogImageUrl(product),
           original_image_url: product.original_image_url,
           processed_image_url: product.processed_image_url,
           hd_image_url: product.hd_image_url,

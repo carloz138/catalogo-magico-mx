@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/components/ui/use-toast';
 import { processImagesOnly } from '@/lib/catalogService';
-import { Product, getDisplayImageUrl, getProcessingStatus } from '@/types/products';
+import { Product, getDisplayImageUrl, getCatalogImageUrl, getProcessingStatus } from '@/types/products';
 
 export const useProductsLogic = () => {
   const { user } = useAuth();
@@ -321,7 +321,7 @@ export const useProductsLogic = () => {
           wholesale_min_qty: product.wholesale_min_qty,
           features: product.features,
           tags: product.tags,
-          image_url: getDisplayImageUrl(product),
+          image_url: getCatalogImageUrl(product), // 🎯 USAR URL OPTIMIZADA PARA CATÁLOGOS
           original_image_url: product.original_image_url,
           processed_image_url: product.processed_image_url,
           hd_image_url: product.hd_image_url,

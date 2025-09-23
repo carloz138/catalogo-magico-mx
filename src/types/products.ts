@@ -23,6 +23,13 @@ export interface Product {
   processed_image_url?: string;
   hd_image_url?: string;
   image_url?: string; // Imagen actual mostrada
+  
+  // 🎯 URLS OPTIMIZADAS PARA DIFERENTES USOS
+  thumbnail_image_url?: string;   // 300x300px para previsualizaciones
+  catalog_image_url?: string;     // 800x800px para PDFs ligeros (~100KB)
+  luxury_image_url?: string;      // 1200x1200px para catálogos premium
+  print_image_url?: string;       // 2400x2400px para impresión
+  
   video_url?: string;
   social_media_urls?: any;
   
@@ -141,6 +148,16 @@ export const productToProcessedImage = (product: Product): ProcessedImageForUI =
 export const getDisplayImageUrl = (product: Product): string => {
   // Prioridad: processed_image_url > hd_image_url > image_url > original_image_url
   return product.processed_image_url || 
+         product.hd_image_url || 
+         product.image_url || 
+         product.original_image_url;
+};
+
+// 🎯 NUEVA FUNCIÓN: Obtener URL optimizada para PDFs (catálogos)
+export const getCatalogImageUrl = (product: Product): string => {
+  // Para catálogos: catalog_image_url (800x800, ~100KB) tiene prioridad
+  return product.catalog_image_url || 
+         product.processed_image_url || 
          product.hd_image_url || 
          product.image_url || 
          product.original_image_url;
