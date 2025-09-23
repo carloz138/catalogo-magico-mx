@@ -90,19 +90,21 @@ const TemplateSelectionEnhanced = () => {
   };
   
   const getCatalogImageUrl = (product: Product, preferNoBackground: boolean = false): string => {
-    console.log(`🔍 SELECCIÓN DE IMAGEN para "${product.name}":`, {
+    console.log(`🔍🔍🔍 SELECCIÓN DE IMAGEN para "${product.name}":`, {
       preferNoBackground,
       backgroundPreference_actual: backgroundPreference,
       tiene_processed: !!product.processed_image_url,
       tiene_catalog: !!product.catalog_image_url,
       processed_url: product.processed_image_url?.substring(0, 60) + '...',
       catalog_url: product.catalog_image_url?.substring(0, 60) + '...',
+      processed_full: product.processed_image_url,
+      catalog_full: product.catalog_image_url,
       decision: preferNoBackground && product.processed_image_url ? 'USAR SIN FONDO' : 'USAR CON FONDO'
     });
     
     // Si el usuario prefiere sin fondo Y existe processed_image_url
     if (preferNoBackground && product.processed_image_url) {
-      console.log(`✅ USANDO IMAGEN SIN FONDO para "${product.name}": ${product.processed_image_url}`);
+      console.log(`✅✅✅ USANDO IMAGEN SIN FONDO para "${product.name}": ${product.processed_image_url}`);
       return product.processed_image_url;
     }
     
@@ -113,7 +115,7 @@ const TemplateSelectionEnhanced = () => {
            product.image_url || 
            product.original_image_url;
     
-    console.log(`📸 USANDO IMAGEN CON FONDO para "${product.name}": ${finalUrl?.substring(0, 60)}...`);
+    console.log(`📸📸📸 USANDO IMAGEN CON FONDO para "${product.name}": ${finalUrl?.substring(0, 60)}...`);
     return finalUrl;
   };
 
