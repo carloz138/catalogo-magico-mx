@@ -50,6 +50,8 @@ interface Product {
   thumbnail_image_url?: string;
   luxury_image_url?: string;
   print_image_url?: string;
+  processed_image_url?: string;
+  hd_image_url?: string;
 }
 
 interface UsageLimits {
@@ -261,27 +263,6 @@ const TemplateSelectionEnhanced = () => {
         
         const hasNoBackground = hasBackgroundRemoved(product);
         const willUseNoBackground = preferNoBackground && hasNoBackground;
-        
-        console.log(`🔄 Producto "${product.name}":`, {
-          original: product.original_image_url ? 'Sí' : 'No',
-          catalog: product.catalog_image_url ? 'Sí' : 'No',
-          processed: product.processed_image_url ? 'Sí' : 'No',
-          thumbnail: product.thumbnail_image_url ? 'Sí' : 'No',
-          luxury: product.luxury_image_url ? 'Sí' : 'No',
-          print: product.print_image_url ? 'Sí' : 'No',
-          tiene_fondo_removido: hasNoBackground,
-          preferencia_usuario: backgroundPreference,
-          usara_sin_fondo: willUseNoBackground,
-          usando: willUseNoBackground ? 'Processed (sin fondo)' : 'Catalog (optimizada con fondo)',
-          url_final: optimizedImageUrl,
-          tamaño_url: optimizedImageUrl?.length || 0
-        });
-        
-        return {
-          ...product,
-          image_url: optimizedImageUrl  // Esta es la que usará el PDF
-        };
-      });
         
         console.log(`🔄 Producto "${product.name}":`, {
           original: product.original_image_url ? 'Sí' : 'No',
