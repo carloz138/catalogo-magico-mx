@@ -90,6 +90,27 @@ export class UnifiedCatalogGenerator {
     console.log('🔍 DEBUG - catalogTitle en options:', options.catalogTitle);
     console.log('🔍 DEBUG - generateCatalog businessInfo recibido:', JSON.stringify(businessInfo, null, 2));
     
+    // 🔍 LOG CRÍTICO: Verificar URLs de imagen que llegan al generador
+    console.log('🔍 DEBUG - URLs DE IMAGEN RECIBIDAS EN GENERATOR:', {
+      totalProductos: products.length,
+      productos: products.map((p, index) => ({
+        posicion: index + 1,
+        nombre: p.name,
+        image_url: p.image_url,
+        es_processed: p.image_url?.includes('processed-images') && p.image_url?.includes('_catalog.jpg') ? 'NO (es catalog)' : 
+                     p.image_url?.includes('processed-images') && !p.image_url?.includes('_catalog.jpg') ? 'SÍ (sin fondo)' : 'NO',
+        url_tipo: p.image_url?.includes('_catalog.jpg') ? 'CATALOG (con fondo optimizada)' : 
+                  p.image_url?.includes('processed-images') ? 'PROCESSED (sin fondo)' : 
+                  'ORIGINAL u OTRA',
+        urlLength: p.image_url?.length || 0
+      })),
+      resumen: {
+        conImagenesSinFondo: products.filter(p => p.image_url?.includes('processed-images') && !p.image_url?.includes('_catalog.jpg')).length,
+        conImagenesOptimizadas: products.filter(p => p.image_url?.includes('_catalog.jpg')).length,
+        conImagenesOriginales: products.filter(p => !p.image_url?.includes('processed-images')).length
+      }
+    });
+    
     const startTime = Date.now();
     const warnings: string[] = [];
     
@@ -1035,13 +1056,23 @@ export const generateCatalog = async (
       nombre: product.name,
       posicion: index + 1,
       image_url: product.image_url?.substring(0, 100) + '...',
+      
+      // Detección mejorada del tipo de imagen
+      tipoImagen: product.image_url?.includes('processed-images') && product.image_url?.includes('_catalog.jpg') ? 'OPTIMIZADA_CON_FONDO' :
+                  product.image_url?.includes('processed-images') && !product.image_url?.includes('_catalog.jpg') ? 'SIN_FONDO' :
+                  product.image_url?.includes('product-images') ? 'ORIGINAL' : 'OTRO_TIPO',
+      
       esOptimizada: product.image_url?.includes('catalog') || false,
+      esSinFondo: product.image_url?.includes('processed-images') && !product.image_url?.includes('_catalog.jpg'),
       tieneOriginal: !!(product as any).original_image_url,
       tieneCatalog: !!(product as any).catalog_image_url,
+      tieneProcessed: !!(product as any).processed_image_url,
       urlLength: product.image_url?.length || 0
     })),
     resumen: {
-      conURLOptimizada: products.filter(p => p.image_url?.includes('catalog')).length,
+      conURLOptimizada: products.filter(p => p.image_url?.includes('_catalog.jpg')).length,
+      conImagenSinFondo: products.filter(p => p.image_url?.includes('processed-images') && !p.image_url?.includes('_catalog.jpg')).length,
+      conImagenOriginal: products.filter(p => p.image_url?.includes('product-images')).length,
       urlsLargas: products.filter(p => (p.image_url?.length || 0) > 200).length,
       pesoEstimado: products.filter(p => (p.image_url?.length || 0) > 200).length > 0 ? 'ALTO (>50MB)' : 'BAJO (<5MB)'
     }
