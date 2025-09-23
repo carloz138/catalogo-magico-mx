@@ -68,7 +68,14 @@ export const BackgroundSelector: React.FC<BackgroundSelectorProps> = ({
           : `${analysis.withoutBackground} productos tienen el fondo removido.`
         }
       </p>
-      <Select value={backgroundPreference} onValueChange={onPreferenceChange}>
+      <Select value={backgroundPreference} onValueChange={(value) => {
+        console.log('🎯 BACKGROUND SELECTOR - Cambio de preferencia:', {
+          anterior: backgroundPreference,
+          nuevo: value,
+          timestamp: new Date().toISOString()
+        });
+        onPreferenceChange(value as 'with' | 'without' | 'auto');
+      }}>
         <SelectTrigger>
           <SelectValue />
         </SelectTrigger>

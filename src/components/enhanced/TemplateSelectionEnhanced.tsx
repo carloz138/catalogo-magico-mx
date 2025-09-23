@@ -92,6 +92,7 @@ const TemplateSelectionEnhanced = () => {
   const getCatalogImageUrl = (product: Product, preferNoBackground: boolean = false): string => {
     console.log(`🔍 SELECCIÓN DE IMAGEN para "${product.name}":`, {
       preferNoBackground,
+      backgroundPreference_actual: backgroundPreference,
       tiene_processed: !!product.processed_image_url,
       tiene_catalog: !!product.catalog_image_url,
       processed_url: product.processed_image_url?.substring(0, 60) + '...',
@@ -165,6 +166,14 @@ const TemplateSelectionEnhanced = () => {
       // Determinar preferencia de sin fondo
       const preferNoBackground = backgroundPreference === 'without' || 
                                 (backgroundPreference === 'auto' && backgroundAnalysis.allHaveNoBackground);
+      
+      console.log('🎯 CÁLCULO PREFERENCIA SIN FONDO:', {
+        backgroundPreference,
+        allHaveNoBackground: backgroundAnalysis.allHaveNoBackground,
+        preferNoBackground,
+        condicion1: backgroundPreference === 'without',
+        condicion2: backgroundPreference === 'auto' && backgroundAnalysis.allHaveNoBackground
+      });
       
       // Actualizar URLs de productos
       const updatedProducts = selectedProducts.map(product => {
