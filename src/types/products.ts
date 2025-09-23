@@ -154,13 +154,38 @@ export const getDisplayImageUrl = (product: Product): string => {
 };
 
 // 🎯 NUEVA FUNCIÓN: Obtener URL optimizada para PDFs (catálogos)
-export const getCatalogImageUrl = (product: Product): string => {
+export const getCatalogImageUrl = (product: Product, preferNoBackground: boolean = false): string => {
+  // Si el usuario prefiere sin fondo Y existe processed_image_url
+  if (preferNoBackground && product.processed_image_url) {
+    return product.processed_image_url;
+  }
+  
   // Para catálogos: catalog_image_url (800x800, ~100KB) tiene prioridad
   return product.catalog_image_url || 
          product.processed_image_url || 
          product.hd_image_url || 
          product.image_url || 
          product.original_image_url;
+};
+
+// 🆕 FUNCIÓN: Detectar si el producto tiene imagen sin fondo
+export const hasBackgroundRemoved = (product: Product): boolean => {
+  return !!(product.processed_image_url && product.processed_image_url !== product.original_image_url);
+};
+
+// 🆕 FUNCIÓN: Contar productos con/sin fondo en una lista
+export const analyzeBackgroundStatus = (products: Product[]) => {
+  const withBackground = products.filter(p => !hasBackgroundRemoved(p)).length;
+  const withoutBackground = products.filter(p => hasBackgroundRemoved(p)).length;
+  
+  return {
+    total: products.length,
+    withBackground,
+    withoutBackground,
+    hasNoBackgroundOptions: withoutBackground > 0,
+    allHaveNoBackground: withoutBackground === products.length,
+    mixed: withBackground > 0 && withoutBackground > 0
+  };
 };
 
 // ✅ FUNCIÓN HELPER: Determinar estado de procesamiento

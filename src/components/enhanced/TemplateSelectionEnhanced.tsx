@@ -81,12 +81,45 @@ const TemplateSelectionEnhanced = () => {
   const navigate = useNavigate();
   const location = useLocation();
   
+  // Helper functions
+  const hasBackgroundRemoved = (product: Product): boolean => {
+    return !!(product.processed_image_url && product.processed_image_url !== product.original_image_url);
+  };
+  
+  const getCatalogImageUrl = (product: Product, preferNoBackground: boolean = false): string => {
+    // Si el usuario prefiere sin fondo Y existe processed_image_url
+    if (preferNoBackground && product.processed_image_url) {
+      return product.processed_image_url;
+    }
+    
+    // Para catálogos: catalog_image_url (800x800, ~100KB) tiene prioridad
+    return product.catalog_image_url || 
+           product.processed_image_url || 
+           product.hd_image_url || 
+           product.image_url || 
+           product.original_image_url;
+  };
+
+  const analyzeBackgroundStatus = (products: Product[]) => {
+    const withoutBackground = products.filter(p => hasBackgroundRemoved(p)).length;
+    const withBackground = products.length - withoutBackground;
+    
+    return {
+      total: products.length,
+      withBackground,
+      withoutBackground,
+      hasNoBackgroundOptions: withoutBackground > 0,
+      allHaveNoBackground: withoutBackground === products.length,
+      mixed: withBackground > 0 && withoutBackground > 0
+    };
+  };
+  
   // Estados principales
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
   const [selectedProducts, setSelectedProducts] = useState<Product[]>([]);
   const [generating, setGenerating] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [catalogTitle, setCatalogTitle] = useState('');
+  const [catalogTitle, setCatalogTitle] = useState(''); 
   
   // Estados de límites
   const [limits, setLimits] = useState<UsageLimits | null>(null);
@@ -95,6 +128,8 @@ const TemplateSelectionEnhanced = () => {
   const [userIndustry, setUserIndustry] = useState<IndustryType | undefined>();
   const [userPlan, setUserPlan] = useState<'basic' | 'premium'>('basic');
   const [subscriptionData, setSubscriptionData] = useState<SubscriptionData | null>(null);
+  const [backgroundPreference, setBackgroundPreference] = useState<'with' | 'without' | 'auto'>('auto');
+  const [backgroundAnalysis, setBackgroundAnalysis] = useState<any>(null);
 
   const state = location.state as LocationState;
 
@@ -168,31 +203,97 @@ const TemplateSelectionEnhanced = () => {
     // 3. VALIDAR, MAPEAR URLs OPTIMIZADAS Y USAR
     if (productsToUse.length > 0) {
       
+      // 🆕 ANÁLISIS DE FONDOS
+      const withoutBackground = productsToUse.filter(p => p.processed_image_url && p.processed_image_url !== p.original_image_url).length;
+      const withBackground = productsToUse.length - withoutBackground;
+      const analysis = {
+        total: productsToUse.length,
+        withBackground,
+        withoutBackground,
+        hasNoBackgroundOptions: withoutBackground > 0,
+        allHaveNoBackground: withoutBackground === productsToUse.length,
+        mixed: withBackground > 0 && withoutBackground > 0
+      };
+      setBackgroundAnalysis(analysis);
+      
+      console.log('🔍 ANÁLISIS DE FONDOS:', analysis);
+      
       // 🎯 LOG DE DEPURACIÓN: Verificar que lleguen las URLs optimizadas
       console.log('🔍 PRODUCTOS RECIBIDOS EN TEMPLATE SELECTION:', {
         totalProductos: productsToUse.length,
         productosConCatalogUrl: productsToUse.filter(p => p.catalog_image_url).length,
+        productosConFondoRemovido: productsToUse.filter(p => p.processed_image_url && p.processed_image_url !== p.original_image_url).length,
         detalleProductos: productsToUse.map(p => ({
           nombre: p.name,
           tiene_catalog_image_url: !!p.catalog_image_url,
+          tiene_processed_image_url: !!p.processed_image_url,
+          fondo_removido: !!(p.processed_image_url && p.processed_image_url !== p.original_image_url),
           catalog_url: p.catalog_image_url?.substring(0, 60) + '...',
+          processed_url: p.processed_image_url?.substring(0, 60) + '...',
           original_url: p.original_image_url?.substring(0, 60) + '...'
         }))
       });
       
-      // 🎯 MAPEAR URLS OPTIMIZADAS PARA PDFs LIGEROS
+      // 🔍 LOG DE DEPURACIÓN: Verificar que lleguen las URLs optimizadas
+      console.log('🔍 PRODUCTOS RECIBIDOS EN TEMPLATE SELECTION:', {
+        totalProductos: productsToUse.length,
+        productosConCatalogUrl: productsToUse.filter(p => p.catalog_image_url).length,
+        productosConFondoRemovido: productsToUse.filter(p => p.processed_image_url && p.processed_image_url !== p.original_image_url).length,
+        detalleProductos: productsToUse.map(p => ({
+          nombre: p.name,
+          tiene_catalog_image_url: !!p.catalog_image_url,
+          tiene_processed_image_url: !!p.processed_image_url,
+          fondo_removido: !!(p.processed_image_url && p.processed_image_url !== p.original_image_url),
+          catalog_url: p.catalog_image_url?.substring(0, 60) + '...',
+          processed_url: p.processed_image_url?.substring(0, 60) + '...',
+          original_url: p.original_image_url?.substring(0, 60) + '...'
+        }))
+      });
+      
+      // 🎯 MAPEAR URLS SEGÚN PREFERENCIA DE FONDO
       const productsWithOptimizedUrls = productsToUse.map(product => {
-        // Si tiene catalog_image_url (optimizada 800x800), usarla para PDFs
-        // Si no, usar original_image_url como fallback
-        const optimizedImageUrl = product.catalog_image_url || product.original_image_url || product.image_url;
+        // Determinar preferencia de sin fondo
+        const preferNoBackground = backgroundPreference === 'without' || 
+                                  (backgroundPreference === 'auto' && analysis.allHaveNoBackground);
+        
+        // Usar función helper mejorada
+        const optimizedImageUrl = getCatalogImageUrl(product, preferNoBackground);
+        
+        const hasNoBackground = hasBackgroundRemoved(product);
+        const willUseNoBackground = preferNoBackground && hasNoBackground;
         
         console.log(`🔄 Producto "${product.name}":`, {
           original: product.original_image_url ? 'Sí' : 'No',
           catalog: product.catalog_image_url ? 'Sí' : 'No',
+          processed: product.processed_image_url ? 'Sí' : 'No',
           thumbnail: product.thumbnail_image_url ? 'Sí' : 'No',
           luxury: product.luxury_image_url ? 'Sí' : 'No',
           print: product.print_image_url ? 'Sí' : 'No',
-          usando: product.catalog_image_url ? 'Catalog (optimizada)' : 'Original',
+          tiene_fondo_removido: hasNoBackground,
+          preferencia_usuario: backgroundPreference,
+          usara_sin_fondo: willUseNoBackground,
+          usando: willUseNoBackground ? 'Processed (sin fondo)' : 'Catalog (optimizada con fondo)',
+          url_final: optimizedImageUrl,
+          tamaño_url: optimizedImageUrl?.length || 0
+        });
+        
+        return {
+          ...product,
+          image_url: optimizedImageUrl  // Esta es la que usará el PDF
+        };
+      });
+        
+        console.log(`🔄 Producto "${product.name}":`, {
+          original: product.original_image_url ? 'Sí' : 'No',
+          catalog: product.catalog_image_url ? 'Sí' : 'No',
+          processed: product.processed_image_url ? 'Sí' : 'No',
+          thumbnail: product.thumbnail_image_url ? 'Sí' : 'No',
+          luxury: product.luxury_image_url ? 'Sí' : 'No',
+          print: product.print_image_url ? 'Sí' : 'No',
+          tiene_fondo_removido: hasNoBackground,
+          preferencia_usuario: backgroundPreference,
+          usara_sin_fondo: willUseNoBackground,
+          usando: willUseNoBackground ? 'Processed (sin fondo)' : 'Catalog (optimizada con fondo)',
           url_final: optimizedImageUrl,
           tamaño_url: optimizedImageUrl?.length || 0
         });
