@@ -167,6 +167,19 @@ const TemplateSelectionEnhanced = () => {
     
     // 3. VALIDAR, MAPEAR URLs OPTIMIZADAS Y USAR
     if (productsToUse.length > 0) {
+      
+      // 🎯 LOG DE DEPURACIÓN: Verificar que lleguen las URLs optimizadas
+      console.log('🔍 PRODUCTOS RECIBIDOS EN TEMPLATE SELECTION:', {
+        totalProductos: productsToUse.length,
+        productosConCatalogUrl: productsToUse.filter(p => p.catalog_image_url).length,
+        detalleProductos: productsToUse.map(p => ({
+          nombre: p.name,
+          tiene_catalog_image_url: !!p.catalog_image_url,
+          catalog_url: p.catalog_image_url?.substring(0, 60) + '...',
+          original_url: p.original_image_url?.substring(0, 60) + '...'
+        }))
+      });
+      
       // 🎯 MAPEAR URLS OPTIMIZADAS PARA PDFs LIGEROS
       const productsWithOptimizedUrls = productsToUse.map(product => {
         // Si tiene catalog_image_url (optimizada 800x800), usarla para PDFs

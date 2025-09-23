@@ -440,6 +440,11 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
           original_image_url: product.original_image_url,
           processed_image_url: product.processed_image_url,
           hd_image_url: product.hd_image_url,
+          // 🎯 INCLUIR TODAS LAS URLs OPTIMIZADAS
+          catalog_image_url: product.catalog_image_url,
+          thumbnail_image_url: product.thumbnail_image_url,
+          luxury_image_url: product.luxury_image_url,
+          print_image_url: product.print_image_url,
           created_at: product.created_at
         }));
 
