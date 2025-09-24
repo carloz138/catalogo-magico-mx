@@ -108,10 +108,11 @@ const CatalogCard = ({ catalog }: { catalog: Catalog }) => {
                 <Download className="w-4 h-4 mr-1" />
                 Descargar
               </Button>
-              <Button size="sm" variant="outline">
-                <Share2 className="w-4 h-4" />
-              </Button>
-              <Button size="sm" variant="outline">
+              <Button 
+                size="sm" 
+                variant="outline"
+                onClick={() => window.open(catalog.pdf_url!, '_blank')}
+              >
                 <Eye className="w-4 h-4" />
               </Button>
             </>
