@@ -737,60 +737,62 @@ export class UnifiedCatalogGenerator {
         return result;
       }
       
-      // 2. 🎯 NUEVO: GENERAR Y DESCARGAR PDF NORMALMENTE
-      if (result.success) {
-        // El PDF ya se descargó automáticamente
-        // Ahora necesitamos generar el blob para guardarlo en storage
-        if (catalogId) {
-          console.log('📤 Regenerando PDF para guardar en storage...');
+      // 2. 🎯 GUARDAR PDF EN STORAGE (MEJORADO)
+      if (result.success && catalogId) {
+        console.log('📤 Guardando PDF en storage...', { catalogId });
+        
+        try {
+          // Generar PDF simple para storage
+          const { jsPDF } = await import('jspdf');
+          const doc = new (jsPDF as any)({
+            orientation: 'portrait',
+            unit: 'mm',
+            format: 'a4'
+          });
           
-          try {
-            // Crear PDF blob usando jsPDF para storage
-            const { jsPDF } = await import('jspdf');
-            const doc = new (jsPDF as any)();
-            
-            // HTML simplificado para storage
-            const htmlContent = `
-              <html>
-                <head><title>${businessInfo.business_name} - Catálogo</title></head>
-                <body>
-                  <h1>${businessInfo.business_name}</h1>
-                  <p>Catálogo generado con ${products.length} productos</p>
-                  <small>Generado el ${new Date().toLocaleDateString()}</small>
-                </body>
-              </html>
-            `;
-            
-            doc.html(htmlContent, {
-              callback: async function(doc: any) {
-                const pdfBlob = doc.output('blob');
-                
-                const storageResult = await PDFStorageManager.saveAndLinkPDF(
-                  pdfBlob,
-                  catalogId,
-                  businessInfo.business_name,
-                  {
-                    pdf_size_bytes: pdfBlob.size,
-                    generation_completed_at: new Date().toISOString(),
-                    generation_method: 'dynamic'
-                  }
-                );
-                
-                if (storageResult.success) {
-                  console.log('✅ PDF del Dynamic Engine guardado en storage:', storageResult.url);
-                } else {
-                  console.error('❌ Error guardando PDF del Dynamic Engine:', storageResult.error);
-                }
-              },
-              margin: [10, 10, 10, 10],
-              width: 190,
-              windowWidth: 800
-            });
-            
-          } catch (storageError) {
-            console.error('❌ Error en almacenamiento de PDF:', storageError);
-            // No fallar la generación por esto
+          // Agregar contenido básico
+          doc.setFontSize(20);
+          doc.text(businessInfo.business_name || 'Catálogo', 20, 30);
+          
+          doc.setFontSize(12);
+          doc.text(`Catálogo generado con ${products.length} productos`, 20, 50);
+          doc.text(`Generado el ${new Date().toLocaleDateString('es-MX')}`, 20, 60);
+          
+          // Agregar lista de productos
+          let yPos = 80;
+          products.slice(0, 10).forEach((product, index) => {
+            if (yPos > 250) return; // Evitar overflow
+            doc.text(`${index + 1}. ${product.name}`, 20, yPos);
+            if (product.price_retail) {
+              doc.text(`$${product.price_retail.toLocaleString()}`, 150, yPos);
+            }
+            yPos += 10;
+          });
+          
+          // Generar blob y guardar
+          const pdfBlob = doc.output('blob');
+          
+          const storageResult = await PDFStorageManager.saveAndLinkPDF(
+            pdfBlob,
+            catalogId,
+            businessInfo.business_name || 'Catalogo',
+            {
+              pdf_size_bytes: pdfBlob.size,
+              generation_completed_at: new Date().toISOString(),
+              generation_method: 'dynamic',
+              total_products: products.length
+            }
+          );
+          
+          if (storageResult.success) {
+            console.log('✅ PDF del Dynamic Engine guardado en storage:', storageResult.url);
+          } else {
+            console.error('❌ Error guardando PDF del Dynamic Engine:', storageResult.error);
           }
+          
+        } catch (storageError) {
+          console.error('❌ Error en almacenamiento de PDF:', storageError);
+          // No fallar la generación por esto
         }
       }
       
