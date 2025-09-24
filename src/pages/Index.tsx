@@ -629,12 +629,12 @@ const Index = () => {
                 <Card 
                   key={index} 
                   className={`relative transition-all duration-300 hover:scale-105 ${
-                    plan.popular 
+                    plan.is_popular 
                       ? 'border-2 border-purple-400 shadow-2xl bg-gradient-to-b from-white to-purple-50' 
                       : 'border border-gray-200 shadow-lg bg-white'
                   }`}
                 >
-                  {plan.popular && (
+                  {plan.is_popular && (
                     <Badge className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-purple-600 to-blue-600 text-white px-6 py-1">
                       POPULAR
                     </Badge>
@@ -647,10 +647,10 @@ const Index = () => {
                       
                       <div className="mb-4">
                         <div className="flex items-baseline justify-center">
-                          <span className="text-3xl font-bold text-gray-900">${plan.price}</span>
+                          <span className="text-3xl font-bold text-gray-900">${plan.price_mxn}</span>
                           <span className="text-lg text-gray-500 ml-1">/mes</span>
                         </div>
-                        {plan.credits && (
+                        {plan.credits && plan.credits > 0 && (
                           <p className="text-sm text-purple-600 font-semibold">
                             + {plan.credits} créditos incluidos
                           </p>
@@ -659,7 +659,7 @@ const Index = () => {
                     </div>
 
                     <ul className="space-y-3 mb-6">
-                      {plan.features.map((feature, featureIndex) => (
+                      {getPackageFeatures(plan).map((feature, featureIndex) => (
                         <li key={featureIndex} className="flex items-start space-x-2">
                           <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
                           <span className="text-sm text-gray-700">{feature}</span>
@@ -669,11 +669,11 @@ const Index = () => {
 
                     <Button 
                       className={`w-full ${
-                        plan.popular 
+                        plan.is_popular 
                           ? 'bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700' 
                           : 'bg-gray-900 hover:bg-gray-800'
                       }`}
-                      onClick={handleMainCTA}
+                      onClick={() => handlePurchasePackage(plan.id, plan.name)}
                     >
                       Comenzar ahora
                     </Button>
@@ -689,14 +689,14 @@ const Index = () => {
             <p className="text-gray-600 text-center mb-8">Compra créditos adicionales cuando los necesites</p>
             
             <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
-              {creditPackages.map((pkg, index) => (
+              {creditPacks.map((pkg, index) => (
                 <Card 
                   key={index}
-                  className={`transition-all duration-300 hover:scale-105 ${
-                    pkg.popular ? 'border-2 border-green-400 bg-gradient-to-b from-white to-green-50' : 'border border-gray-200 bg-white'
+                  className={`transition-all duration-300 hover:scale-105 relative ${
+                    pkg.is_popular ? 'border-2 border-green-400 bg-gradient-to-b from-white to-green-50' : 'border border-gray-200 bg-white'
                   }`}
                 >
-                  {pkg.popular && (
+                  {pkg.is_popular && (
                     <Badge className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-green-600 text-white px-4 py-1">
                       MÁS ELEGIDO
                     </Badge>
@@ -708,17 +708,17 @@ const Index = () => {
                     <p className="text-gray-600 text-sm mb-4">créditos únicos</p>
                     
                     <div className="mb-6">
-                      <div className="text-2xl font-bold text-purple-600">${pkg.price}</div>
-                      <div className="text-sm text-gray-500">${pkg.pricePerCredit} por crédito</div>
+                      <div className="text-2xl font-bold text-purple-600">${pkg.price_mxn}</div>
+                      <div className="text-sm text-gray-500">${Math.round(pkg.price_mxn / pkg.credits)} por crédito</div>
                     </div>
 
                     <Button 
                       className={`w-full ${
-                        pkg.popular 
+                        pkg.is_popular 
                           ? 'bg-green-600 hover:bg-green-700' 
                           : 'bg-purple-600 hover:bg-purple-700'
                       }`}
-                      onClick={handleMainCTA}
+                      onClick={() => handlePurchasePackage(pkg.id, pkg.name)}
                     >
                       Comprar créditos
                     </Button>
