@@ -106,44 +106,54 @@ const Index = () => {
     {
       name: "Starter",
       description: "Para crear catálogos sin procesamiento IA",
-      price: 106,
+      price: 100, // ~$5 USD
+      priceUSD: 5,
       popular: false,
+      credits: 5,
+      maxCatalogs: 5,
+      maxUploads: 50,
       features: [
-        "Catálogos PDF ilimitados",
-        "Sistema de etiquetas básico", 
-        "3 templates profesionales",
-        "Biblioteca de productos",
-        "Inline editing básico",
+        "5 catálogos PDF por mes",
+        "50 productos subidos por mes", 
+        "5 créditos de remoción incluidos",
+        "Templates básicos",
+        "Sistema de etiquetas básico",
         "Soporte por email"
       ]
     },
     {
       name: "Básico",
       description: "Ideal para pequeños negocios",
-      price: 261,
+      price: 200, // ~$10 USD
+      priceUSD: 10,
       popular: false,
-      credits: 10,
+      credits: 15,
+      maxCatalogs: 15,
+      maxUploads: 150,
       features: [
-        "Todo el plan Starter",
-        "10 créditos de remoción incluidos",
+        "15 catálogos PDF por mes",
+        "150 productos subidos por mes",
+        "15 créditos de remoción incluidos",
+        "Templates premium",
         "Sistema de etiquetas avanzado",
-        "8 templates premium",
-        "Inline editing completo",
         "Soporte prioritario"
       ]
     },
     {
       name: "Profesional",
       description: "Perfecto para empresas en crecimiento",
-      price: 520,
+      price: 500, // ~$25 USD
+      priceUSD: 25,
       popular: true,
-      credits: 25,
+      credits: 40,
+      maxCatalogs: 40,
+      maxUploads: 400,
       features: [
-        "Todo el plan Básico",
-        "25 créditos de remoción incluidos",
+        "40 catálogos PDF por mes",
+        "400 productos subidos por mes",
+        "40 créditos de remoción incluidos",
+        "Todos los templates premium",
         "Etiquetas y segmentación ilimitada",
-        "15+ templates premium",
-        "Procesamiento masivo",
         "Análisis de rendimiento",
         "Soporte WhatsApp"
       ]
@@ -151,12 +161,16 @@ const Index = () => {
     {
       name: "Empresarial",
       description: "Para grandes volúmenes de productos",
-      price: 935,
+      price: 900, // ~$45 USD
+      priceUSD: 45,
       popular: false,
-      credits: 50,
+      credits: 75,
+      maxCatalogs: 75,
+      maxUploads: 750,
       features: [
-        "Todo el plan Profesional",
-        "50 créditos de remoción incluidos",
+        "75 catálogos PDF por mes",
+        "750 productos subidos por mes",
+        "75 créditos de remoción incluidos",
         "Templates personalizados",
         "Multi-usuario y permisos",
         "API para integraciones",
@@ -168,23 +182,33 @@ const Index = () => {
 
   const creditPackages = [
     {
-      name: "Starter",
-      credits: 10,
-      price: 74.48,
-      pricePerCredit: 7.45
+      name: "Básico",
+      credits: 5,
+      price: 20, // ~$1 USD
+      priceUSD: 1,
+      pricePerCredit: 4
     },
     {
       name: "Popular", 
       credits: 25,
-      price: 167.72,
-      pricePerCredit: 6.71,
+      price: 100, // ~$5 USD
+      priceUSD: 5,
+      pricePerCredit: 4,
       popular: true
     },
     {
-      name: "Business",
+      name: "Avanzado",
       credits: 50, 
-      price: 302.40,
-      pricePerCredit: 6.05
+      price: 200, // ~$10 USD
+      priceUSD: 10,
+      pricePerCredit: 4
+    },
+    {
+      name: "Premium",
+      credits: 100,
+      price: 400, // ~$20 USD
+      priceUSD: 20,
+      pricePerCredit: 4
     }
   ];
 
@@ -325,7 +349,7 @@ const Index = () => {
                 </div>
                 <div className="flex items-center">
                   <CheckCircle2 className="w-4 h-4 text-green-500 mr-2" />
-                  Desde $106 MXN/mes
+                  Desde $100 MXN/mes
                 </div>
                 <div className="flex items-center">
                   <CheckCircle2 className="w-4 h-4 text-green-500 mr-2" />
@@ -398,7 +422,7 @@ const Index = () => {
               <h3 className="text-xl font-bold text-gray-900 mb-4">90% más barato</h3>
               <p className="text-gray-600 mb-4">
                 Servicios externos: $1,000+ MXN por catálogo.
-                CatifyPro: desde $106 MXN mensual ilimitado.
+                CatifyPro: desde $100 MXN mensual con límites generosos.
               </p>
               <div className="bg-green-50 p-4 rounded-lg">
                 <p className="text-sm font-semibold text-green-800">
@@ -611,7 +635,7 @@ const Index = () => {
             <h3 className="text-2xl font-bold text-gray-900 text-center mb-4">Créditos para Remoción de Fondos</h3>
             <p className="text-gray-600 text-center mb-8">Compra créditos adicionales cuando los necesites</p>
             
-            <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+            <div className="grid md:grid-cols-3 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
               {creditPackages.map((pkg, index) => (
                 <Card 
                   key={index}
@@ -631,8 +655,9 @@ const Index = () => {
                     <p className="text-gray-600 text-sm mb-4">créditos únicos</p>
                     
                     <div className="mb-6">
-                      <div className="text-2xl font-bold text-purple-600">${pkg.price}</div>
-                      <div className="text-sm text-gray-500">${pkg.pricePerCredit} por crédito</div>
+                      <div className="text-2xl font-bold text-purple-600">${pkg.price} MXN</div>
+                      <div className="text-sm text-gray-500">${pkg.priceUSD} USD</div>
+                      <div className="text-xs text-gray-400">${pkg.pricePerCredit} MXN por crédito</div>
                     </div>
 
                     <Button 
@@ -695,10 +720,10 @@ const Index = () => {
               <CheckCircle2 className="w-4 h-4 mr-2" />
               Setup en 5 minutos
             </div>
-            <div className="flex items-center">
-              <CheckCircle2 className="w-4 h-4 mr-2" />
-              Desde $106 MXN/mes
-            </div>
+              <div className="flex items-center">
+                <CheckCircle2 className="w-4 h-4 mr-2" />
+                Desde $100 MXN/mes
+              </div>
             <div className="flex items-center">
               <CheckCircle2 className="w-4 h-4 mr-2" />
               Soporte en español 24/7
