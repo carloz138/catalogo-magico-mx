@@ -400,7 +400,7 @@ export class UnifiedCatalogGenerator {
         templateQuality,
         issues: warnings,
         completed_at: new Date().toISOString(),
-        ...generationStats
+        ...(generationStats && typeof generationStats === 'object' ? generationStats : {})
       });
       
       if (!finalUpdateResult.success) {
@@ -838,7 +838,7 @@ export class UnifiedCatalogGenerator {
           estimated_pages: Math.ceil(products.length / template.productsPerPage),
           products_sorted_alphabetically: true,
           status: metadata.status || 'generating',
-          ...metadata
+          ...(metadata && typeof metadata === 'object' ? metadata : {})
         }
       };
       
@@ -886,7 +886,7 @@ export class UnifiedCatalogGenerator {
       const updateData = {
         generation_metadata: {
           ...(currentCatalog?.generation_metadata || {}),
-          ...metadata,
+          ...(metadata && typeof metadata === 'object' ? metadata : {}),
           status,
           updated_at: new Date().toISOString()
         },
@@ -1166,7 +1166,7 @@ export const generateCatalog = async (
   return UnifiedCatalogGenerator.generateCatalog(products, businessInfo, templateId, userId, {
     qualityCheck: true,
     autoFix: true,
-    ...options
+    ...(options && typeof options === 'object' ? options : {})
   });
 };
 
