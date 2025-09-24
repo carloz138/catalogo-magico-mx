@@ -52,6 +52,7 @@ interface PuppeteerServiceOptions {
   margin?: { top: string; right: string; bottom: string; left: string; };
   quality?: 'low' | 'medium' | 'high';
   catalogTitle?: string;
+  catalogId?: string;
 }
 
 interface PuppeteerResult {
