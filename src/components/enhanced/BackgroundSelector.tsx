@@ -83,7 +83,7 @@ export const BackgroundSelector: React.FC<BackgroundSelectorProps> = ({
           <SelectItem value="auto">
             <div className="flex items-center gap-2">
               <Sparkles className="h-3 w-3" />
-              Automático ({analysis.allHaveNoBackground ? 'sin fondo' : 'con fondo'})
+              Automático ({analysis.hasNoBackgroundOptions ? 'sin fondo' : 'con fondo'})
             </div>
           </SelectItem>
           <SelectItem value="without">
