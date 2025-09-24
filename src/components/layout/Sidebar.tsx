@@ -220,7 +220,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
               <Crown className="w-5 h-5 text-white" />
             </div>
             <div className="ml-3">
-              <h1 className="text-lg font-bold text-gray-900">CatalogPro</h1>
+              <h1 className="text-lg font-bold text-gray-900">CatifyPro</h1>
             </div>
           </div>
           <button
