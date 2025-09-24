@@ -1,5 +1,5 @@
 // src/lib/catalog/unified-generator.ts
-// 🚀 GENERADOR UNIFICADO ACTUALIZADO - CON ORDENAMIENTO ALFABÉTICO
+// 🚀 GENERADOR UNIFICADO COMPLETAMENTE CORREGIDO - FLUJO CORRECTO
 
 import { supabase } from '@/integrations/supabase/client';
 import { IndustryTemplate, getTemplateById } from '@/lib/templates/industry-templates';
@@ -76,7 +76,7 @@ interface GenerationOptions {
 export class UnifiedCatalogGenerator {
   
   /**
-   * 🎯 FUNCIÓN PRINCIPAL MEJORADA CON AUDITORÍA DE CALIDAD Y ORDENAMIENTO ALFABÉTICO
+   * 🎯 FUNCIÓN PRINCIPAL CORREGIDA - FLUJO: CREAR REGISTRO → GENERAR PDF → ACTUALIZAR
    */
   static async generateCatalog(
     products: Product[],
@@ -115,7 +115,7 @@ export class UnifiedCatalogGenerator {
     const warnings: string[] = [];
     
     try {
-      console.log('🚀 Iniciando generación con sistema mejorado:', { 
+      console.log('🚀 Iniciando generación con flujo corregido:', { 
         templateId, 
         productCount: products.length,
         qualityCheck: options.qualityCheck !== false,
@@ -155,7 +155,7 @@ export class UnifiedCatalogGenerator {
         console.log(`⚠️ Template encontrado en sistema legacy: ${template.displayName}`);
       }
       
-      // 3. AUDITORÍA DE CALIDAD DEL TEMPLATE (NUEVA)
+      // 3. AUDITORÍA DE CALIDAD DEL TEMPLATE
       let templateQuality = 100;
       if (options.qualityCheck !== false && !options.skipAudit) {
         console.log('🔍 Auditando calidad del template...');
@@ -195,7 +195,7 @@ export class UnifiedCatalogGenerator {
       
       if (options.onProgress) options.onProgress(20);
       
-      // 📋 ORDENAMIENTO ALFABÉTICO DE PRODUCTOS (NUEVO)
+      // 📋 ORDENAMIENTO ALFABÉTICO DE PRODUCTOS
       console.log('📋 Ordenando productos alfabéticamente...');
       const originalOrder = products.map(p => p.name).slice(0, 3);
       products.sort((a, b) => {
@@ -252,18 +252,51 @@ export class UnifiedCatalogGenerator {
       
       if (options.onProgress) options.onProgress(30);
       
+      // 🎯 NUEVO FLUJO CORREGIDO: CREAR REGISTRO PRIMERO
+      console.log('💾 Creando registro de catálogo inicial...');
+      const catalogRecord = await this.saveCatalogRecord(
+        userId,
+        templateId,
+        products,
+        businessInfo,
+        template,
+        options.catalogTitle || `Catálogo ${template.displayName} - ${new Date().toLocaleDateString('es-MX')}`,
+        { 
+          generationMethod: 'pending', 
+          pdfSuccess: false,
+          templateQuality,
+          issues: warnings,
+          status: 'generating'
+        }
+      );
+      
+      if (!catalogRecord.success || !catalogRecord.catalogId) {
+        return {
+          success: false,
+          error: 'DATABASE_ERROR',
+          message: 'Error creando registro inicial de catálogo'
+        };
+      }
+      
+      const catalogId = catalogRecord.catalogId;
+      console.log('✅ Registro inicial creado con ID:', catalogId);
+      
+      if (options.onProgress) options.onProgress(35);
+      
+      // 7. GENERAR PDF CON CATALOG ID DISPONIBLE
       let htmlContent = '';
       let pdfGenerationSuccess = false;
       let finalMethod = generationMethod;
       let generationStats: any = {};
       
-      // 7. GENERAR CONTENIDO SEGÚN MÉTODO CON FALLBACKS MEJORADOS
       try {
         if (generationMethod === 'puppeteer') {
+          console.log('🚀 Generando con Puppeteer + Storage...');
           const result = await this.generateWithPuppeteerService(
             products, 
             businessInfo, 
-            template,
+            template, 
+            catalogId, // 🎯 AHORA TENEMOS EL ID
             options
           );
           
@@ -272,9 +305,12 @@ export class UnifiedCatalogGenerator {
             finalMethod = 'puppeteer';
             generationStats = result.stats || {};
             htmlContent = TemplateGenerator.generateCatalogHTML(products, businessInfo, template);
+            
+            console.log('✅ PDF generado y subido a storage exitosamente');
           } else {
             console.warn('⚠️ Puppeteer falló, usando fallback dinámico');
             warnings.push('Servicio Puppeteer no disponible, usando método alternativo');
+            
             const fallbackResult = await this.generateWithDynamicEngine(
               products, 
               businessInfo, 
@@ -301,18 +337,37 @@ export class UnifiedCatalogGenerator {
           } else {
             console.warn('⚠️ Dynamic engine falló, usando fallback clásico');
             warnings.push('Motor dinámico no disponible, usando método clásico');
+            
             const fallbackResult = await this.generateWithClassicEngine(products, businessInfo, template, userId, options);
+            
+            // Actualizar registro con resultado del fallback
+            await this.updateCatalogStatus(catalogId, 'completed', {
+              generationMethod: 'classic',
+              pdfSuccess: false,
+              fallback_used: true
+            });
+            
             return { 
               ...fallbackResult, 
+              catalogId,
               generationMethod: 'classic',
               warnings: [...warnings, ...(fallbackResult.warnings || [])]
             };
           }
           
         } else {
+          // Classic method
           const result = await this.generateWithClassicEngine(products, businessInfo, template, userId, options);
+          
+          await this.updateCatalogStatus(catalogId, 'completed', {
+            generationMethod: 'classic',
+            pdfSuccess: false,
+            html_generated: true
+          });
+          
           return { 
             ...result, 
+            catalogId,
             generationMethod: 'classic',
             warnings: [...warnings, ...(result.warnings || [])]
           };
@@ -321,43 +376,35 @@ export class UnifiedCatalogGenerator {
       } catch (generationError) {
         console.error('❌ Error en generación primaria:', generationError);
         
-        console.log('🔄 Usando fallback final (clásico)...');
-        warnings.push('Error en método primario, usando fallback clásico');
+        // Marcar catálogo como fallido
+        await this.updateCatalogStatus(catalogId, 'failed', {
+          error: generationError instanceof Error ? generationError.message : 'Error desconocido',
+          failed_at: new Date().toISOString()
+        });
         
-        const fallbackResult = await this.generateWithClassicEngine(products, businessInfo, template, userId, options);
-        return { 
-          ...fallbackResult, 
-          generationMethod: 'classic',
-          warnings: [...warnings, ...(fallbackResult.warnings || [])]
+        return {
+          success: false,
+          error: 'GENERATION_ERROR',
+          message: generationError instanceof Error ? generationError.message : 'Error en generación',
+          catalogId,
+          warnings
         };
       }
       
-      if (options.onProgress) options.onProgress(70);
+      if (options.onProgress) options.onProgress(90);
       
-      // 8. GUARDAR EN BASE DE DATOS CON METADATA MEJORADA
-      console.log('🔍 DEBUG - Guardando catálogo con título:', options.catalogTitle);
-      const catalogRecord = await this.saveCatalogRecord(
-        userId,
-        templateId,
-        products,
-        businessInfo,
-        template,
-        options.catalogTitle || `Catálogo ${template.displayName} - ${new Date().toLocaleDateString('es-MX')}`,
-        { 
-          generationMethod: finalMethod, 
-          pdfSuccess: pdfGenerationSuccess,
-          templateQuality,
-          issues: warnings,
-          ...generationStats
-        }
-      );
+      // 8. ACTUALIZAR REGISTRO CON RESULTADO FINAL
+      const finalUpdateResult = await this.updateCatalogStatus(catalogId, 'completed', {
+        generationMethod: finalMethod,
+        pdfSuccess: pdfGenerationSuccess,
+        templateQuality,
+        issues: warnings,
+        completed_at: new Date().toISOString(),
+        ...generationStats
+      });
       
-      if (!catalogRecord.success) {
-        return {
-          success: false,
-          error: 'DATABASE_ERROR',
-          message: 'Error guardando catálogo en base de datos'
-        };
+      if (!finalUpdateResult.success) {
+        console.warn('⚠️ PDF generado pero falló actualización final del registro');
       }
       
       // 9. ACTUALIZAR CONTADOR DE USO
@@ -368,7 +415,7 @@ export class UnifiedCatalogGenerator {
       const generationTime = Date.now() - startTime;
       
       console.log('✅ Catálogo generado exitosamente:', {
-        catalogId: catalogRecord.catalogId,
+        catalogId,
         method: finalMethod,
         time: generationTime,
         quality: templateQuality,
@@ -377,7 +424,7 @@ export class UnifiedCatalogGenerator {
       
       return {
         success: true,
-        catalogId: catalogRecord.catalogId,
+        catalogId,
         htmlContent,
         generationMethod: finalMethod,
         message: `Catálogo ${template.displayName} generado exitosamente`,
@@ -549,18 +596,18 @@ export class UnifiedCatalogGenerator {
   }
   
   /**
-   * 🚀 GENERACIÓN CON PUPPETEER SERVICE MEJORADA
+   * 🚀 GENERACIÓN CON PUPPETEER SERVICE CORREGIDA - CON CATALOG ID
    */
   private static async generateWithPuppeteerService(
     products: Product[],
     businessInfo: BusinessInfo,
     template: IndustryTemplate,
-    catalogId: string,
+    catalogId: string, // 🎯 PARÁMETRO CORRECTO
     options: GenerationOptions
   ): Promise<{ success: boolean; error?: string; stats?: any }> {
     
     try {
-      console.log('🚀 Generando con Puppeteer Service (mejorado)...');
+      console.log('🚀 Generando con Puppeteer Service + Storage...', { catalogId });
       console.log('🔍 DEBUG - UnifiedGenerator businessInfo antes de PuppeteerServiceClient:', businessInfo);
       
       const templateConfig = {
@@ -584,7 +631,7 @@ export class UnifiedCatalogGenerator {
       
       const puppeteerOptions = {
         onProgress: options.onProgress,
-        catalogId,
+        catalogId, // 🎯 PASAR EL CATALOG ID
         format: 'A4' as const,
         margin: {
           top: '12mm',
@@ -629,7 +676,7 @@ export class UnifiedCatalogGenerator {
   }
   
   /**
-   * 🚀 GENERACIÓN CON DYNAMIC ENGINE (MEJORADA)
+   * 🚀 GENERACIÓN CON DYNAMIC ENGINE (SIN CAMBIOS)
    */
   private static async generateWithDynamicEngine(
     products: Product[],
@@ -693,7 +740,7 @@ export class UnifiedCatalogGenerator {
   }
   
   /**
-   * 🎨 GENERACIÓN CON CLASSIC ENGINE (MEJORADA)
+   * 🎨 GENERACIÓN CON CLASSIC ENGINE (SIN CAMBIOS)
    */
   private static async generateWithClassicEngine(
     products: Product[],
@@ -716,31 +763,14 @@ export class UnifiedCatalogGenerator {
       
       if (options.onProgress) options.onProgress(60);
       
-      const catalogRecord = await this.saveCatalogRecord(
-        userId, 
-        template.id, 
-        products, 
-        businessInfo, 
-        template,
-        options.catalogTitle || `Catálogo ${template.displayName} - ${new Date().toLocaleDateString('es-MX')}`,
-        { generationMethod: 'classic', pdfSuccess: false, templateQuality: 80 }
-      );
-      
-      if (!catalogRecord.success) {
-        throw new Error('Error guardando catálogo en base de datos');
-      }
-      
       if (typeof window !== 'undefined') {
         await this.downloadCatalogAsHTMLWithStyles(htmlContent, businessInfo.business_name);
       }
-      
-      await this.updateCatalogUsage(userId);
       
       if (options.onProgress) options.onProgress(100);
       
       return {
         success: true,
-        catalogId: catalogRecord.catalogId,
         htmlContent,
         generationMethod: 'classic',
         message: `Catálogo ${template.displayName} generado con engine clásico mejorado`,
@@ -758,7 +788,7 @@ export class UnifiedCatalogGenerator {
   }
   
   /**
-   * 💾 GUARDAR REGISTRO CON METADATA MEJORADA
+   * 💾 GUARDAR REGISTRO INICIAL (SIN PDF_URL)
    */
   private static async saveCatalogRecord(
     userId: string,
@@ -768,7 +798,7 @@ export class UnifiedCatalogGenerator {
     template: IndustryTemplate,
     catalogTitle: string,
     metadata: {
-      generationMethod: 'puppeteer' | 'dynamic' | 'classic';
+      generationMethod: string;
       pdfSuccess: boolean;
       templateQuality: number;
       issues?: string[];
@@ -777,7 +807,7 @@ export class UnifiedCatalogGenerator {
   ): Promise<{ success: boolean; catalogId?: string }> {
     
     try {
-      console.log('🔍 DEBUG - Guardando en BD con título:', catalogTitle);
+      console.log('🔍 DEBUG - Guardando registro inicial con título:', catalogTitle);
       const catalogData = {
         user_id: userId,
         name: catalogTitle || `Catálogo ${template.displayName} - ${new Date().toLocaleDateString('es-MX')}`,
@@ -793,6 +823,7 @@ export class UnifiedCatalogGenerator {
         total_products: products.length,
         credits_used: 0,
         currency: 'MXN',
+        pdf_url: null, // Se actualizará cuando el PDF esté listo
         generation_metadata: {
           engine: metadata.generationMethod,
           pdf_success: metadata.pdfSuccess,
@@ -806,6 +837,7 @@ export class UnifiedCatalogGenerator {
           generation_warnings: metadata.issues?.length || 0,
           estimated_pages: Math.ceil(products.length / template.productsPerPage),
           products_sorted_alphabetically: true,
+          status: metadata.status || 'generating',
           ...metadata
         }
       };
@@ -821,6 +853,7 @@ export class UnifiedCatalogGenerator {
         return { success: false };
       }
       
+      console.log('✅ Registro inicial guardado con ID:', data.id);
       return { 
         success: true, 
         catalogId: data.id 
@@ -829,6 +862,56 @@ export class UnifiedCatalogGenerator {
     } catch (error) {
       console.error('Error in saveCatalogRecord:', error);
       return { success: false };
+    }
+  }
+
+  /**
+   * 🔄 ACTUALIZAR STATUS DEL CATÁLOGO
+   */
+  private static async updateCatalogStatus(
+    catalogId: string,
+    status: 'generating' | 'completed' | 'failed',
+    metadata: any
+  ): Promise<{ success: boolean; error?: string }> {
+    
+    try {
+      console.log('🔄 Actualizando status del catálogo:', { catalogId, status });
+      
+      const { data: currentCatalog } = await supabase
+        .from('catalogs')
+        .select('generation_metadata')
+        .eq('id', catalogId)
+        .single();
+      
+      const updateData = {
+        generation_metadata: {
+          ...(currentCatalog?.generation_metadata || {}),
+          ...metadata,
+          status,
+          updated_at: new Date().toISOString()
+        },
+        updated_at: new Date().toISOString()
+      };
+      
+      const { error } = await supabase
+        .from('catalogs')
+        .update(updateData)
+        .eq('id', catalogId);
+      
+      if (error) {
+        console.error('❌ Error actualizando status:', error);
+        return { success: false, error: error.message };
+      }
+      
+      console.log('✅ Status actualizado correctamente');
+      return { success: true };
+      
+    } catch (error) {
+      console.error('❌ Error en updateCatalogStatus:', error);
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Error actualizando status' 
+      };
     }
   }
   
