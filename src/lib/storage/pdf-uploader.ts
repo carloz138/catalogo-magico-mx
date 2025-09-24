@@ -68,19 +68,32 @@ export class PDFStorageManager {
     try {
       console.log('🔄 Actualizando catálogo con PDF URL:', { catalogId, pdfUrl });
       
+      // Preparar datos de actualización principales
       const updateData: any = {
         pdf_url: pdfUrl,
         updated_at: new Date().toISOString()
       };
       
-      // Agregar metadata adicional si existe
+      // Si tenemos metadata adicional, combinarla
       if (additionalMetadata) {
+        console.log('📊 Agregando metadata adicional:', additionalMetadata);
+        
+        // Obtener metadata existente
         const { data: currentCatalog } = await supabase
           .from('catalogs')
-          .select('generation_metadata')
+          .select('generation_metadata, total_pages, file_size_bytes')
           .eq('id', catalogId)
           .single();
         
+        // Actualizar campos principales si están en metadata
+        if (additionalMetadata.pdf_size_bytes) {
+          updateData.file_size_bytes = additionalMetadata.pdf_size_bytes;
+        }
+        if (additionalMetadata.total_pages) {
+          updateData.total_pages = additionalMetadata.total_pages;
+        }
+        
+        // Combinar metadata
         updateData.generation_metadata = {
           ...(currentCatalog?.generation_metadata as object || {}),
           ...additionalMetadata,
@@ -89,17 +102,20 @@ export class PDFStorageManager {
         };
       }
       
-      const { error } = await supabase
+      console.log('💾 Datos de actualización:', updateData);
+      
+      const { data, error } = await supabase
         .from('catalogs')
         .update(updateData)
-        .eq('id', catalogId);
+        .eq('id', catalogId)
+        .select('id, pdf_url, file_size_bytes');
       
       if (error) {
         console.error('❌ Error actualizando catálogo:', error);
         return { success: false, error: error.message };
       }
       
-      console.log('✅ Catálogo actualizado con PDF URL');
+      console.log('✅ Catálogo actualizado exitosamente:', data);
       return { success: true };
       
     } catch (error) {

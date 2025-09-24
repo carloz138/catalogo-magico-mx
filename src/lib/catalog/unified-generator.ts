@@ -739,7 +739,7 @@ export class UnifiedCatalogGenerator {
       
       // 2. 🎯 GUARDAR PDF EN STORAGE (MEJORADO)
       if (result.success && catalogId) {
-        console.log('📤 Guardando PDF en storage...', { catalogId });
+        console.log('📤 INICIANDO guardado de PDF en storage...', { catalogId });
         
         try {
           // Generar PDF simple para storage
@@ -771,7 +771,9 @@ export class UnifiedCatalogGenerator {
           
           // Generar blob y guardar
           const pdfBlob = doc.output('blob');
+          console.log('📄 PDF blob generado, tamaño:', pdfBlob.size, 'bytes');
           
+          console.log('💾 Llamando a PDFStorageManager.saveAndLinkPDF...');
           const storageResult = await PDFStorageManager.saveAndLinkPDF(
             pdfBlob,
             catalogId,
@@ -784,8 +786,20 @@ export class UnifiedCatalogGenerator {
             }
           );
           
+          console.log('🔍 Resultado del storage:', storageResult);
+          
           if (storageResult.success) {
             console.log('✅ PDF del Dynamic Engine guardado en storage:', storageResult.url);
+            
+            // Verificar que se guardó correctamente
+            console.log('🔄 Verificando actualización en BD...');
+            const { data: verificacion } = await supabase
+              .from('catalogs')
+              .select('pdf_url, generation_metadata')
+              .eq('id', catalogId)
+              .single();
+            console.log('📊 Estado del catálogo después del guardado:', verificacion);
+            
           } else {
             console.error('❌ Error guardando PDF del Dynamic Engine:', storageResult.error);
           }
