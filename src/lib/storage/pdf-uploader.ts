@@ -57,7 +57,7 @@ export class PDFStorageManager {
   }
   
   /**
-   * 🔄 ACTUALIZAR REGISTRO CON URL DEL PDF
+   * 🔄 ACTUALIZAR REGISTRO CON URL DEL PDF (SIMPLIFICADO)
    */
   static async updateCatalogWithPDFUrl(
     catalogId: string, 
@@ -65,61 +65,60 @@ export class PDFStorageManager {
     additionalMetadata?: any
   ): Promise<{ success: boolean; error?: string }> {
     
+    console.log('🔄 [CRITICO] Actualizando catálogo con PDF URL:', { 
+      catalogId, 
+      pdfUrl: pdfUrl.substring(0, 50) + '...',
+      hasMetadata: !!additionalMetadata 
+    });
+    
     try {
-      console.log('🔄 Actualizando catálogo con PDF URL:', { catalogId, pdfUrl });
-      
-      // Preparar datos de actualización principales
+      // Preparar datos de actualización de forma más directa
       const updateData: any = {
         pdf_url: pdfUrl,
-        updated_at: new Date().toISOString()
+        file_size_bytes: additionalMetadata?.pdf_size_bytes || null,
+        total_pages: additionalMetadata?.total_pages || 1,
+        generation_metadata: {
+          pdf_uploaded_at: new Date().toISOString(),
+          pdf_upload_success: true,
+          generation_method: additionalMetadata?.generation_method || 'fallback',
+          ...additionalMetadata
+        }
       };
       
-      // Si tenemos metadata adicional, combinarla
-      if (additionalMetadata) {
-        console.log('📊 Agregando metadata adicional:', additionalMetadata);
-        
-        // Obtener metadata existente
-        const { data: currentCatalog } = await supabase
-          .from('catalogs')
-          .select('generation_metadata, total_pages, file_size_bytes')
-          .eq('id', catalogId)
-          .single();
-        
-        // Actualizar campos principales si están en metadata
-        if (additionalMetadata.pdf_size_bytes) {
-          updateData.file_size_bytes = additionalMetadata.pdf_size_bytes;
-        }
-        if (additionalMetadata.total_pages) {
-          updateData.total_pages = additionalMetadata.total_pages;
-        }
-        
-        // Combinar metadata
-        updateData.generation_metadata = {
-          ...(currentCatalog?.generation_metadata as object || {}),
-          ...additionalMetadata,
-          pdf_uploaded_at: new Date().toISOString(),
-          pdf_upload_success: true
-        };
-      }
+      console.log('💾 [CRITICO] Ejecutando UPDATE con datos:', {
+        catalogId,
+        pdf_url_set: !!updateData.pdf_url,
+        file_size: updateData.file_size_bytes,
+        total_pages: updateData.total_pages
+      });
       
-      console.log('💾 Datos de actualización:', updateData);
-      
+      // Actualización directa más simple
       const { data, error } = await supabase
         .from('catalogs')
         .update(updateData)
         .eq('id', catalogId)
-        .select('id, pdf_url, file_size_bytes');
+        .select();
       
       if (error) {
-        console.error('❌ Error actualizando catálogo:', error);
+        console.error('❌ [CRITICO] Error en UPDATE Supabase:', error);
         return { success: false, error: error.message };
       }
       
-      console.log('✅ Catálogo actualizado exitosamente:', data);
+      if (!data || data.length === 0) {
+        console.error('❌ [CRITICO] No se encontró el catálogo para actualizar:', catalogId);
+        return { success: false, error: 'Catálogo no encontrado' };
+      }
+      
+      console.log('✅ [CRITICO] Catálogo actualizado exitosamente:', {
+        id: data[0].id,
+        pdf_url_updated: !!data[0].pdf_url,
+        pdf_url_preview: data[0].pdf_url?.substring(0, 50) + '...'
+      });
+      
       return { success: true };
       
     } catch (error) {
-      console.error('❌ Error en updateCatalogWithPDFUrl:', error);
+      console.error('❌ [CRITICO] Exception en updateCatalogWithPDFUrl:', error);
       return { 
         success: false, 
         error: error instanceof Error ? error.message : 'Error actualizando catálogo' 

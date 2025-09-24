@@ -382,7 +382,7 @@ export class UnifiedCatalogGenerator {
         console.error('❌ Error en generación primaria:', generationError);
         
         // Intentar generar un PDF básico como fallback
-        console.log('🚨 Intentando fallback básico para completar el catálogo...');
+        console.log('🚨 [CRITICO] Iniciando fallback para completar catálogo...');
         try {
           const { jsPDF } = await import('jspdf');
           const doc = new (jsPDF as any)();
@@ -395,26 +395,36 @@ export class UnifiedCatalogGenerator {
           
           const pdfBlob = doc.output('blob');
           
-          // Guardar PDF básico
+          console.log('📁 [CRITICO] PDF fallback creado, subiendo a storage...', {
+            size: pdfBlob.size,
+            catalogId
+          });
+          
+          // Subir y vincular PDF básico - MÁS ROBUSTO
           const storageResult = await PDFStorageManager.saveAndLinkPDF(
             pdfBlob,
             catalogId,
             businessInfo.business_name || 'Catalogo',
             {
               pdf_size_bytes: pdfBlob.size,
+              total_pages: 1,
               generation_method: 'fallback',
               error_recovery: true,
               original_error: generationError instanceof Error ? generationError.message : 'Error desconocido'
             }
           );
           
-          if (storageResult.success) {
-            console.log('✅ Fallback PDF guardado correctamente');
+          console.log('📊 [CRITICO] Resultado storage fallback:', storageResult);
+          
+          if (storageResult.success && storageResult.url) {
+            console.log('✅ [CRITICO] Fallback PDF vinculado exitosamente:', storageResult.url);
             pdfGenerationSuccess = true;
             finalMethod = 'fallback' as any;
+          } else {
+            console.error('❌ [CRITICO] Falló vinculación del fallback PDF:', storageResult.error);
           }
         } catch (fallbackError) {
-          console.error('❌ Error en fallback también:', fallbackError);
+          console.error('❌ [CRITICO] Error en fallback completo:', fallbackError);
         }
         
         // Si el fallback falló, marcar como fallido
