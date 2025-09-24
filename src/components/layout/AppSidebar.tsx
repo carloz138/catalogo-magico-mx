@@ -3,6 +3,7 @@
 import React from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useBusinessInfo } from "@/hooks/useBusinessInfo";
 import {
   Sidebar,
   SidebarContent,
@@ -38,6 +39,7 @@ import {
   ChevronRight,
   Bell,
   PlayCircle,
+  AlertTriangle,
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
@@ -134,8 +136,23 @@ const menuData: MenuItem[] = [
 
 export function AppSidebar() {
   const { user, signOut } = useAuth();
+  const { businessInfo, hasBusinessInfo } = useBusinessInfo();
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Verificar si falta información importante del negocio
+  const isBusinessInfoIncomplete = () => {
+    if (!businessInfo) return true;
+    
+    const requiredFields = [
+      businessInfo.business_name,
+      businessInfo.phone,
+      businessInfo.email,
+      businessInfo.address
+    ];
+    
+    return requiredFields.some(field => !field || field.trim() === '');
+  };
 
   // ==========================================
   // HANDLERS
@@ -270,9 +287,25 @@ export function AppSidebar() {
                 Plan Profesional
               </p>
             </div>
-            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-slate-100">
-              <Bell className="w-4 h-4 text-slate-400" />
-            </Button>
+            <div className="flex items-center space-x-1">
+              {isBusinessInfoIncomplete() && (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-8 w-8 p-0 hover:bg-orange-100 relative"
+                  onClick={() => navigate('/business-info')}
+                  title="Completar información del negocio"
+                >
+                  <AlertTriangle className="w-4 h-4 text-orange-500" />
+                  <Badge className="absolute -top-1 -right-1 h-2 w-2 p-0 bg-red-500 border-white">
+                    <span className="sr-only">Información incompleta</span>
+                  </Badge>
+                </Button>
+              )}
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-slate-100">
+                <Bell className="w-4 h-4 text-slate-400" />
+              </Button>
+            </div>
           </div>
         </SidebarGroupContent>
       </SidebarGroup>
