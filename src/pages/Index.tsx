@@ -647,7 +647,7 @@ const Index = () => {
                       
                       <div className="mb-4">
                         <div className="flex items-baseline justify-center">
-                          <span className="text-3xl font-bold text-gray-900">${plan.price_mxn}</span>
+                          <span className="text-3xl font-bold text-gray-900">${plan.price_mxn / 100}</span>
                           <span className="text-lg text-gray-500 ml-1">/mes</span>
                         </div>
                         {plan.credits && plan.credits > 0 && (
@@ -708,8 +708,8 @@ const Index = () => {
                     <p className="text-gray-600 text-sm mb-4">créditos únicos</p>
                     
                     <div className="mb-6">
-                      <div className="text-2xl font-bold text-purple-600">${pkg.price_mxn}</div>
-                      <div className="text-sm text-gray-500">${Math.round(pkg.price_mxn / pkg.credits)} por crédito</div>
+                      <div className="text-2xl font-bold text-purple-600">${pkg.price_mxn / 100}</div>
+                      <div className="text-sm text-gray-500">${Math.round((pkg.price_mxn / 100) / pkg.credits)} por crédito</div>
                     </div>
 
                     <Button 
