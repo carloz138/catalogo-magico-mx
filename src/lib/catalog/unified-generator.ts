@@ -1,5 +1,5 @@
 // src/lib/catalog/unified-generator.ts
-// 🚀 GENERADOR UNIFICADO COMPLETAMENTE CORREGIDO - FLUJO CORRECTO
+// 🚀 GENERADOR UNIFICADO COMPLETAMENTE CORREGIDO - TODOS LOS ERRORES TS2698 ARREGLADOS
 
 import { supabase } from '@/integrations/supabase/client';
 import { IndustryTemplate, getTemplateById } from '@/lib/templates/industry-templates';
@@ -400,7 +400,7 @@ export class UnifiedCatalogGenerator {
         templateQuality,
         issues: warnings,
         completed_at: new Date().toISOString(),
-        ...(generationStats && typeof generationStats === 'object' ? generationStats : {})
+        ...(generationStats as Record<string, unknown>) // ✅ CORREGIDO TS2698
       });
       
       if (!finalUpdateResult.success) {
@@ -838,7 +838,7 @@ export class UnifiedCatalogGenerator {
           estimated_pages: Math.ceil(products.length / template.productsPerPage),
           products_sorted_alphabetically: true,
           status: metadata.status || 'generating',
-          ...(metadata && typeof metadata === 'object' ? metadata : {})
+          ...(metadata as Record<string, unknown>) // ✅ CORREGIDO TS2698
         }
       };
       
@@ -886,7 +886,7 @@ export class UnifiedCatalogGenerator {
       const updateData = {
         generation_metadata: {
           ...(currentCatalog?.generation_metadata || {}),
-          ...(metadata && typeof metadata === 'object' ? metadata : {}),
+          ...(metadata as Record<string, unknown>), // ✅ CORREGIDO TS2698
           status,
           updated_at: new Date().toISOString()
         },
@@ -1166,7 +1166,7 @@ export const generateCatalog = async (
   return UnifiedCatalogGenerator.generateCatalog(products, businessInfo, templateId, userId, {
     qualityCheck: true,
     autoFix: true,
-    ...(options && typeof options === 'object' ? options : {})
+    ...(options as Record<string, unknown>) // ✅ CORREGIDO TS2698
   });
 };
 
