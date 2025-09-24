@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { IndustryTemplate, getTemplateById } from '@/lib/templates/industry-templates';
 import { AuditedTemplate, AuditedTemplateManager } from '@/lib/templates/audited-templates-v2';
 import { TemplateGenerator } from '@/lib/templates/css-generator';
+import { PDFStorageManager } from '@/lib/storage/pdf-uploader';
 import { PuppeteerServiceClient } from '@/lib/pdf/puppeteer-service-client';
 import { generateBrowserCompatiblePDF } from '@/lib/pdf/browser-pdf-generator';
 import { TemplateAuditSystem } from '@/lib/templates/template-audit-system';
@@ -315,7 +316,8 @@ export class UnifiedCatalogGenerator {
               products, 
               businessInfo, 
               templateId, 
-              options
+              options,
+              catalogId // 🎯 PASAR CATALOG ID
             );
             pdfGenerationSuccess = fallbackResult.success;
             finalMethod = 'dynamic';
@@ -327,7 +329,8 @@ export class UnifiedCatalogGenerator {
             products, 
             businessInfo, 
             templateId, 
-            options
+            options,
+            catalogId // 🎯 PASAR CATALOG ID
           );
           
           if (result.success) {
@@ -676,17 +679,18 @@ export class UnifiedCatalogGenerator {
   }
   
   /**
-   * 🚀 GENERACIÓN CON DYNAMIC ENGINE (SIN CAMBIOS)
+   * 🚀 GENERACIÓN CON DYNAMIC ENGINE (CON STORAGE)
    */
   private static async generateWithDynamicEngine(
     products: Product[],
     businessInfo: BusinessInfo,
     templateId: string,
-    options: GenerationOptions
+    options: GenerationOptions,
+    catalogId?: string // 🎯 NUEVO PARÁMETRO
   ): Promise<{ success: boolean; error?: string }> {
     
     try {
-      console.log('🚀 Generando con Dynamic Engine (mejorado)...');
+      console.log('🚀 Generando con Dynamic Engine + Storage...', { catalogId });
       
       const template = getTemplateById(templateId);
       if (!template) {
@@ -717,6 +721,7 @@ export class UnifiedCatalogGenerator {
         quality: template.isPremium ? 'high' : 'medium'
       };
       
+      // 1. GENERAR PDF CON BROWSER ENGINE
       const result = await generateBrowserCompatiblePDF(
         products,
         businessInfo,
@@ -727,6 +732,67 @@ export class UnifiedCatalogGenerator {
           quality: dynamicTemplate.quality as "low" | "medium" | "high"
         }
       );
+      
+      if (!result.success) {
+        return result;
+      }
+      
+      // 2. 🎯 NUEVO: GENERAR Y DESCARGAR PDF NORMALMENTE
+      if (result.success) {
+        // El PDF ya se descargó automáticamente
+        // Ahora necesitamos generar el blob para guardarlo en storage
+        if (catalogId) {
+          console.log('📤 Regenerando PDF para guardar en storage...');
+          
+          try {
+            // Crear PDF blob usando jsPDF para storage
+            const { jsPDF } = await import('jspdf');
+            const doc = new (jsPDF as any)();
+            
+            // HTML simplificado para storage
+            const htmlContent = `
+              <html>
+                <head><title>${businessInfo.business_name} - Catálogo</title></head>
+                <body>
+                  <h1>${businessInfo.business_name}</h1>
+                  <p>Catálogo generado con ${products.length} productos</p>
+                  <small>Generado el ${new Date().toLocaleDateString()}</small>
+                </body>
+              </html>
+            `;
+            
+            doc.html(htmlContent, {
+              callback: async function(doc: any) {
+                const pdfBlob = doc.output('blob');
+                
+                const storageResult = await PDFStorageManager.saveAndLinkPDF(
+                  pdfBlob,
+                  catalogId,
+                  businessInfo.business_name,
+                  {
+                    pdf_size_bytes: pdfBlob.size,
+                    generation_completed_at: new Date().toISOString(),
+                    generation_method: 'dynamic'
+                  }
+                );
+                
+                if (storageResult.success) {
+                  console.log('✅ PDF del Dynamic Engine guardado en storage:', storageResult.url);
+                } else {
+                  console.error('❌ Error guardando PDF del Dynamic Engine:', storageResult.error);
+                }
+              },
+              margin: [10, 10, 10, 10],
+              width: 190,
+              windowWidth: 800
+            });
+            
+          } catch (storageError) {
+            console.error('❌ Error en almacenamiento de PDF:', storageError);
+            // No fallar la generación por esto
+          }
+        }
+      }
       
       return result;
       
