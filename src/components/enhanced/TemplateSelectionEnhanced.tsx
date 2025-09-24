@@ -147,7 +147,7 @@ const TemplateSelectionEnhanced = () => {
   const [userIndustry, setUserIndustry] = useState<IndustryType | undefined>();
   const [userPlan, setUserPlan] = useState<'basic' | 'premium'>('basic');
   const [subscriptionData, setSubscriptionData] = useState<SubscriptionData | null>(null);
-  const [backgroundPreference, setBackgroundPreference] = useState<'with' | 'without' | 'auto'>('auto');
+  const [backgroundPreference, setBackgroundPreference] = useState<'with' | 'without'>('without');
   const [backgroundAnalysis, setBackgroundAnalysis] = useState<any>(null);
 
   const state = location.state as LocationState;
@@ -175,15 +175,12 @@ const TemplateSelectionEnhanced = () => {
       });
       
       // Determinar preferencia de sin fondo
-      const preferNoBackground = backgroundPreference === 'without' || 
-                                (backgroundPreference === 'auto' && backgroundAnalysis.allHaveNoBackground);
+      const preferNoBackground = backgroundPreference === 'without';
       
       console.log('🎯 CÁLCULO PREFERENCIA SIN FONDO:', {
         backgroundPreference,
-        allHaveNoBackground: backgroundAnalysis.allHaveNoBackground,
         preferNoBackground,
-        condicion1: backgroundPreference === 'without',
-        condicion2: backgroundPreference === 'auto' && backgroundAnalysis.allHaveNoBackground
+        condicion: backgroundPreference === 'without' ? 'SIN FONDO elegido' : 'CON FONDO elegido'
       });
       
       // Actualizar URLs de productos
@@ -343,16 +340,12 @@ const TemplateSelectionEnhanced = () => {
       // 🎯 MAPEAR URLS SEGÚN PREFERENCIA DE FONDO
       const productsWithOptimizedUrls = productsToUse.map(product => {
         // Determinar preferencia de sin fondo
-        const preferNoBackground = backgroundPreference === 'without' || 
-                                  (backgroundPreference === 'auto' && analysis.allHaveNoBackground);
+        const preferNoBackground = backgroundPreference === 'without';
         
         console.log(`🎯 MAPEO PRODUCTO "${product.name}":`, {
           backgroundPreference,
-          analysis_allHaveNoBackground: analysis.allHaveNoBackground,
           preferNoBackground,
-          razonamiento: backgroundPreference === 'without' ? 'Usuario eligió SIN FONDO' :
-                       backgroundPreference === 'auto' && analysis.allHaveNoBackground ? 'AUTO: Todos tienen sin fondo' :
-                       'Usuario eligió CON FONDO o mixto'
+          razonamiento: backgroundPreference === 'without' ? 'Usuario eligió SIN FONDO' : 'Usuario eligió CON FONDO'
         });
         
         // Usar función helper mejorada

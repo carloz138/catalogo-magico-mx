@@ -21,8 +21,8 @@ interface BackgroundAnalysis {
 
 interface BackgroundSelectorProps {
   products: Product[];
-  backgroundPreference: 'with' | 'without' | 'auto';
-  onPreferenceChange: (preference: 'with' | 'without' | 'auto') => void;
+  backgroundPreference: 'with' | 'without';
+  onPreferenceChange: (preference: 'with' | 'without') => void;
 }
 
 export const BackgroundSelector: React.FC<BackgroundSelectorProps> = ({
@@ -74,18 +74,12 @@ export const BackgroundSelector: React.FC<BackgroundSelectorProps> = ({
           nuevo: value,
           timestamp: new Date().toISOString()
         });
-        onPreferenceChange(value as 'with' | 'without' | 'auto');
+        onPreferenceChange(value as 'with' | 'without');
       }}>
         <SelectTrigger>
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="auto">
-            <div className="flex items-center gap-2">
-              <Sparkles className="h-3 w-3" />
-              Automático ({analysis.hasNoBackgroundOptions ? 'sin fondo' : 'con fondo'})
-            </div>
-          </SelectItem>
           <SelectItem value="without">
             <div className="flex items-center gap-2">
               <Scissors className="h-3 w-3" />
