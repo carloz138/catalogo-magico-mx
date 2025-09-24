@@ -10,6 +10,7 @@ export interface CatalogCreationRequest {
   catalog_id: string;
   user_id: string;
   user_plan: string;
+  callback_url?: string;
   business_info: {
     business_name: string;
     logo_url?: string;
@@ -236,10 +237,15 @@ export const createCatalog = async (
       estimated_total_cost: selectedProducts.reduce((sum, p) => sum + (p.estimated_cost_mxn || 0.20), 0)
     };
 
+    // Agregar información del callback endpoint para actualizar PDF
+    const callbackUrl = `https://ikbexcebcpmomfxraflz.supabase.co/functions/v1/update-catalog-pdf`;
+    webhookPayload.callback_url = callbackUrl;
+    
     console.log('Enviando payload a n8n:', {
       catalog_id: webhookPayload.catalog_id,
       template: templateStyle,
-      products_count: webhookPayload.products.length
+      products_count: webhookPayload.products.length,
+      callback_url: callbackUrl
     });
 
     let webhookResponse;

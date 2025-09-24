@@ -2,3 +2,6 @@ project_id = "ikbexcebcpmomfxraflz"
 
 [functions.create-payment-intent]
 verify_jwt = true
+
+[functions.update-catalog-pdf]
+verify_jwt = false
