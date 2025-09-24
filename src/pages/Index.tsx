@@ -1,16 +1,177 @@
 import { useState, useEffect } from "react";
-import { ChevronDown, Star, Check, Play, ArrowRight, Zap, Clock, DollarSign, Shield, Users, TrendingUp, Tag, Edit3, FileImage, Layers, Target, Sparkles, BarChart3, Crown, CheckCircle2, Upload, MousePointer, Download } from "lucide-react";
+import { ChevronDown, Star, Check, Play, ArrowRight, Zap, Clock, DollarSign, Shield, Users, TrendingUp, Tag, Edit3, FileImage, Layers, Target, Sparkles, BarChart3, Crown, CheckCircle2, Upload, MousePointer, Download, Package, Coins, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { LoginModal } from "@/components/auth/LoginModal";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+
+// Interface que coincide con la BD (igual que checkout)
+interface CreditPackage {
+  id: string;
+  name: string;
+  credits: number;
+  price_mxn: number;
+  price_usd: number;
+  discount_percentage: number | null;
+  is_popular: boolean | null;
+  is_active: boolean | null;
+  description: string | null;
+  created_at: string;
+  package_type: string;
+  max_uploads: number | null;
+  max_catalogs: number | null;
+  duration_months: number | null;
+}
 
 const Index = () => {
   const [loginModalOpen, setLoginModalOpen] = useState(false);
+  const [monthlyPlans, setMonthlyPlans] = useState<CreditPackage[]>([]);
+  const [creditPacks, setCreditPacks] = useState<CreditPackage[]>([]);
+  const [loadingPlans, setLoadingPlans] = useState(true);
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
+
+  // Cargar planes dinámicamente desde Supabase (igual que checkout)
+  useEffect(() => {
+    fetchAllPackages();
+  }, []);
+
+  const fetchAllPackages = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('credit_packages')
+        .select('*')
+        .eq('is_active', true)
+        .order('price_mxn');
+
+      if (error) throw error;
+      
+      if (!data) {
+        setMonthlyPlans([]);
+        setCreditPacks([]);
+        return;
+      }
+
+      // Mapeo manual para garantizar compatibilidad de tipos (igual que checkout)
+      const mappedPackages: CreditPackage[] = (data as any[]).map((pkg: any) => ({
+        id: pkg.id,
+        name: pkg.name,
+        credits: pkg.credits,
+        price_mxn: pkg.price_mxn,
+        price_usd: pkg.price_usd,
+        discount_percentage: pkg.discount_percentage,
+        is_popular: pkg.is_popular,
+        is_active: pkg.is_active,
+        description: pkg.description,
+        created_at: pkg.created_at,
+        package_type: pkg.package_type || (pkg.name.toLowerCase().includes('plan') ? 'monthly_plan' : 'addon'),
+        max_uploads: pkg.max_uploads,
+        max_catalogs: pkg.max_catalogs,
+        duration_months: pkg.duration_months
+      }));
+
+      // Separar por tipo usando el campo real package_type (igual que checkout)
+      const monthly = mappedPackages.filter(pkg => pkg.package_type === 'monthly_plan');
+      const credits = mappedPackages.filter(pkg => pkg.package_type === 'addon');
+      
+      setMonthlyPlans(monthly);
+      setCreditPacks(credits);
+      
+    } catch (error) {
+      console.error('Error fetching packages:', error);
+      toast({
+        title: "Error",
+        description: "No se pudieron cargar los paquetes",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingPlans(false);
+    }
+  };
+
+  // Funciones helper idénticas a checkout
+  const getPackageIcon = (packageName: string, packageType: string) => {
+    if (packageType === 'monthly_plan') {
+      if (packageName.includes('Starter')) return <Package className="w-5 h-5" />;
+      if (packageName.includes('Básico')) return <Zap className="w-5 h-5" />;
+      if (packageName.includes('Profesional')) return <Star className="w-5 h-5" />;
+      if (packageName.includes('Empresarial')) return <Crown className="w-5 h-5" />;
+      return <RefreshCw className="w-5 h-5" />;
+    }
+    
+    if (packageName.includes('Starter')) return <Zap className="w-5 h-5" />;
+    if (packageName.includes('Popular')) return <TrendingUp className="w-5 h-5" />;
+    if (packageName.includes('Business')) return <Users className="w-5 h-5" />;
+    return <Coins className="w-5 h-5" />;
+  };
+
+  const getPackageColor = (packageName: string, packageType: string) => {
+    if (packageType === 'monthly_plan') {
+      if (packageName.includes('Starter')) return 'from-gray-500 to-gray-700';
+      if (packageName.includes('Básico')) return 'from-blue-500 to-blue-700';
+      if (packageName.includes('Profesional')) return 'from-purple-500 to-purple-700';
+      if (packageName.includes('Empresarial')) return 'from-yellow-500 to-yellow-700';
+    }
+    
+    if (packageName.includes('Starter')) return 'from-blue-500 to-blue-700';
+    if (packageName.includes('Popular')) return 'from-green-500 to-green-700';
+    if (packageName.includes('Business')) return 'from-purple-500 to-purple-700';
+    return 'from-gray-500 to-gray-700';
+  };
+
+  const getPackageFeatures = (pkg: CreditPackage) => {
+    const features = [];
+    
+    if (pkg.package_type === 'monthly_plan') {
+      // Suscripciones mensuales
+      if (pkg.credits > 0) {
+        features.push(`${pkg.credits} créditos mensuales incluidos`);
+      } else {
+        features.push('Sin procesamiento IA');
+      }
+      
+      if (pkg.max_catalogs !== undefined && pkg.max_catalogs !== null) {
+        if (pkg.max_catalogs === 0) {
+          features.push('Catálogos PDF ilimitados');
+        } else {
+          features.push(`${pkg.max_catalogs} catálogos/mes`);
+        }
+      }
+      
+      if (pkg.max_uploads) {
+        features.push(`${pkg.max_uploads} uploads/mes`);
+      }
+      
+      features.push('Se renueva automáticamente');
+      features.push('Cancela cuando quieras');
+    } else {
+      // Packs únicos  
+      features.push(`${pkg.credits} créditos únicos`);
+      features.push('Válidos por 12 meses');
+      features.push('Sin renovación automática');
+      features.push('Úsalos cuando quieras');
+    }
+    
+    features.push('Sistema de etiquetas avanzado');
+    features.push('Inline editing completo');
+    features.push('Templates profesionales');
+    features.push('Soporte por WhatsApp');
+    
+    return features;
+  };
+
+  const handlePurchasePackage = (packageId: string, packageName: string) => {
+    if (user) {
+      navigate('/checkout', { state: { selectedPackageName: packageName } });
+    } else {
+      setLoginModalOpen(true);
+    }
+  };
 
   const handleMainCTA = () => {
     if (user) {
@@ -106,54 +267,44 @@ const Index = () => {
     {
       name: "Starter",
       description: "Para crear catálogos sin procesamiento IA",
-      price: 100, // ~$5 USD
-      priceUSD: 5,
+      price: 106,
       popular: false,
-      credits: 5,
-      maxCatalogs: 5,
-      maxUploads: 50,
       features: [
-        "5 catálogos PDF por mes",
-        "50 productos subidos por mes", 
-        "5 créditos de remoción incluidos",
-        "Templates básicos",
-        "Sistema de etiquetas básico",
+        "Catálogos PDF ilimitados",
+        "Sistema de etiquetas básico", 
+        "3 templates profesionales",
+        "Biblioteca de productos",
+        "Inline editing básico",
         "Soporte por email"
       ]
     },
     {
       name: "Básico",
       description: "Ideal para pequeños negocios",
-      price: 200, // ~$10 USD
-      priceUSD: 10,
+      price: 261,
       popular: false,
-      credits: 15,
-      maxCatalogs: 15,
-      maxUploads: 150,
+      credits: 10,
       features: [
-        "15 catálogos PDF por mes",
-        "150 productos subidos por mes",
-        "15 créditos de remoción incluidos",
-        "Templates premium",
+        "Todo el plan Starter",
+        "10 créditos de remoción incluidos",
         "Sistema de etiquetas avanzado",
+        "8 templates premium",
+        "Inline editing completo",
         "Soporte prioritario"
       ]
     },
     {
       name: "Profesional",
       description: "Perfecto para empresas en crecimiento",
-      price: 500, // ~$25 USD
-      priceUSD: 25,
+      price: 520,
       popular: true,
-      credits: 40,
-      maxCatalogs: 40,
-      maxUploads: 400,
+      credits: 25,
       features: [
-        "40 catálogos PDF por mes",
-        "400 productos subidos por mes",
-        "40 créditos de remoción incluidos",
-        "Todos los templates premium",
+        "Todo el plan Básico",
+        "25 créditos de remoción incluidos",
         "Etiquetas y segmentación ilimitada",
+        "15+ templates premium",
+        "Procesamiento masivo",
         "Análisis de rendimiento",
         "Soporte WhatsApp"
       ]
@@ -161,16 +312,12 @@ const Index = () => {
     {
       name: "Empresarial",
       description: "Para grandes volúmenes de productos",
-      price: 900, // ~$45 USD
-      priceUSD: 45,
+      price: 935,
       popular: false,
-      credits: 75,
-      maxCatalogs: 75,
-      maxUploads: 750,
+      credits: 50,
       features: [
-        "75 catálogos PDF por mes",
-        "750 productos subidos por mes",
-        "75 créditos de remoción incluidos",
+        "Todo el plan Profesional",
+        "50 créditos de remoción incluidos",
         "Templates personalizados",
         "Multi-usuario y permisos",
         "API para integraciones",
@@ -182,33 +329,23 @@ const Index = () => {
 
   const creditPackages = [
     {
-      name: "Básico",
-      credits: 5,
-      price: 20, // ~$1 USD
-      priceUSD: 1,
-      pricePerCredit: 4
+      name: "Starter",
+      credits: 10,
+      price: 74.48,
+      pricePerCredit: 7.45
     },
     {
       name: "Popular", 
       credits: 25,
-      price: 100, // ~$5 USD
-      priceUSD: 5,
-      pricePerCredit: 4,
+      price: 167.72,
+      pricePerCredit: 6.71,
       popular: true
     },
     {
-      name: "Avanzado",
+      name: "Business",
       credits: 50, 
-      price: 200, // ~$10 USD
-      priceUSD: 10,
-      pricePerCredit: 4
-    },
-    {
-      name: "Premium",
-      credits: 100,
-      price: 400, // ~$20 USD
-      priceUSD: 20,
-      pricePerCredit: 4
+      price: 302.40,
+      pricePerCredit: 6.05
     }
   ];
 
@@ -349,7 +486,7 @@ const Index = () => {
                 </div>
                 <div className="flex items-center">
                   <CheckCircle2 className="w-4 h-4 text-green-500 mr-2" />
-                  Desde $100 MXN/mes
+                  Desde $106 MXN/mes
                 </div>
                 <div className="flex items-center">
                   <CheckCircle2 className="w-4 h-4 text-green-500 mr-2" />
@@ -422,7 +559,7 @@ const Index = () => {
               <h3 className="text-xl font-bold text-gray-900 mb-4">90% más barato</h3>
               <p className="text-gray-600 mb-4">
                 Servicios externos: $1,000+ MXN por catálogo.
-                CatifyPro: desde $100 MXN mensual con límites generosos.
+                CatifyPro: desde $106 MXN mensual ilimitado.
               </p>
               <div className="bg-green-50 p-4 rounded-lg">
                 <p className="text-sm font-semibold text-green-800">
@@ -635,7 +772,7 @@ const Index = () => {
             <h3 className="text-2xl font-bold text-gray-900 text-center mb-4">Créditos para Remoción de Fondos</h3>
             <p className="text-gray-600 text-center mb-8">Compra créditos adicionales cuando los necesites</p>
             
-            <div className="grid md:grid-cols-3 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
+            <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
               {creditPackages.map((pkg, index) => (
                 <Card 
                   key={index}
@@ -655,9 +792,8 @@ const Index = () => {
                     <p className="text-gray-600 text-sm mb-4">créditos únicos</p>
                     
                     <div className="mb-6">
-                      <div className="text-2xl font-bold text-purple-600">${pkg.price} MXN</div>
-                      <div className="text-sm text-gray-500">${pkg.priceUSD} USD</div>
-                      <div className="text-xs text-gray-400">${pkg.pricePerCredit} MXN por crédito</div>
+                      <div className="text-2xl font-bold text-purple-600">${pkg.price}</div>
+                      <div className="text-sm text-gray-500">${pkg.pricePerCredit} por crédito</div>
                     </div>
 
                     <Button 
@@ -720,10 +856,10 @@ const Index = () => {
               <CheckCircle2 className="w-4 h-4 mr-2" />
               Setup en 5 minutos
             </div>
-              <div className="flex items-center">
-                <CheckCircle2 className="w-4 h-4 mr-2" />
-                Desde $100 MXN/mes
-              </div>
+            <div className="flex items-center">
+              <CheckCircle2 className="w-4 h-4 mr-2" />
+              Desde $106 MXN/mes
+            </div>
             <div className="flex items-center">
               <CheckCircle2 className="w-4 h-4 mr-2" />
               Soporte en español 24/7
