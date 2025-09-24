@@ -400,7 +400,7 @@ export class UnifiedCatalogGenerator {
         templateQuality,
         issues: warnings,
         completed_at: new Date().toISOString(),
-        ...(generationStats as Record<string, unknown>) // ✅ CORREGIDO TS2698
+        ...(generationStats && typeof generationStats === 'object' ? generationStats : {})
       });
       
       if (!finalUpdateResult.success) {
@@ -885,8 +885,8 @@ export class UnifiedCatalogGenerator {
       
       const updateData = {
         generation_metadata: {
-          ...(currentCatalog?.generation_metadata || {}),
-          ...(metadata as Record<string, unknown>), // ✅ CORREGIDO TS2698
+          ...(currentCatalog?.generation_metadata as Record<string, unknown> || {}),
+          ...(metadata && typeof metadata === 'object' ? metadata as Record<string, unknown> : {}),
           status,
           updated_at: new Date().toISOString()
         },

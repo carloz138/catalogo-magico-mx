@@ -1,5 +1,7 @@
 // src/lib/pdf/puppeteer-service-client.ts
-// 🎯 VERSIÓN COMPLETAMENTE CORREGIDA - GRID 3x2 (6 PRODUCTOS) + HEADER/FOOTER DINÁMICOS
+// 🎯 VERSIÓN COMPLETAMENTE CORREGIDA - GRID 3x2 (6 PRODUCTOS) + HEADER/FOOTER DINÁMICOS + STORAGE
+
+import { PDFStorageManager } from '@/lib/storage/pdf-uploader';
 
 interface Product {
   id: string;
@@ -145,6 +147,9 @@ export class PuppeteerServiceClient {
         }))
       });
       
+      const totalPages = Math.ceil(products.length / PDF_LAYOUT.PRODUCTS_PER_PAGE);
+      const generationTime = Date.now() - startTime;
+      
       if (options.onProgress) options.onProgress(5);
       
       const isHealthy = await this.checkServiceHealthWithRetry();
@@ -164,26 +169,56 @@ export class PuppeteerServiceClient {
       
       if (options.onProgress) options.onProgress(90);
       
-      await this.downloadPDF(pdfBlob, businessInfo.business_name);
+      // 🎯 NUEVO: INTEGRACIÓN CON STORAGE
+      if (options.catalogId) {
+        console.log('📤 Subiendo PDF a storage con catalogId:', options.catalogId);
+        
+        const storageResult = await PDFStorageManager.saveAndLinkPDF(
+          pdfBlob,
+          options.catalogId,
+          businessInfo.business_name,
+          {
+            pdf_size_bytes: pdfBlob.size,
+            generation_completed_at: new Date().toISOString(),
+            generation_method: 'puppeteer'
+          }
+        );
+        
+        if (storageResult.success) {
+          console.log('✅ PDF guardado en storage:', storageResult.url);
+          
+          // También descargar localmente
+          await this.downloadPDF(pdfBlob, businessInfo.business_name);
+          
+          if (options.onProgress) options.onProgress(100);
+          
+          return {
+            success: true,
+            downloadUrl: storageResult.url,
+            stats: {
+              totalProducts: products.length,
+              totalPages,
+              generationTime: Date.now() - startTime
+            }
+          };
+        } else {
+          console.error('❌ Error guardando PDF en storage:', storageResult.error);
+          // Fallback: solo descarga local
+          await this.downloadPDF(pdfBlob, businessInfo.business_name);
+        }
+      } else {
+        // Si no hay catalogId, solo descarga local
+        await this.downloadPDF(pdfBlob, businessInfo.business_name);
+      }
       
       if (options.onProgress) options.onProgress(100);
-      
-      const generationTime = Date.now() - startTime;
-      const totalPages = Math.ceil(products.length / PDF_LAYOUT.PRODUCTS_PER_PAGE);
-      
-      console.log('✅ PDF GRID 3x2 generado correctamente:', {
-        time: generationTime,
-        size: pdfBlob.size,
-        totalPages,
-        cardDimensions: `${LAYOUT.cardWidth}x${LAYOUT.cardHeight}mm`
-      });
       
       return {
         success: true,
         stats: {
           totalProducts: products.length,
           totalPages,
-          generationTime
+          generationTime: Date.now() - startTime
         }
       };
       
