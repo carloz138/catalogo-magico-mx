@@ -5,7 +5,7 @@ import AppLayout from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Download, Share2, Eye, FileText, Clock, CheckCircle, AlertCircle, Plus } from 'lucide-react';
+import { Download, Share2, Eye, FileText, Clock, CheckCircle, AlertCircle, Plus, RefreshCw } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -137,13 +137,27 @@ const Catalogs = () => {
   const navigate = useNavigate();
   const [catalogs, setCatalogs] = useState<Catalog[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     fetchCatalogs();
   }, [user]);
 
-  const fetchCatalogs = async () => {
+  // Auto-refresh cada 30 segundos para detectar catálogos completados
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (catalogs.some(c => !c.pdf_url)) {
+        fetchCatalogs();
+      }
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [catalogs]);
+
+  const fetchCatalogs = async (showRefreshing = false) => {
     if (!user) return;
+
+    if (showRefreshing) setRefreshing(true);
 
     try {
       const { data, error } = await supabase
@@ -153,6 +167,14 @@ const Catalogs = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
+      
+      console.log('📋 Catálogos obtenidos:', data?.map(c => ({
+        id: c.id,
+        name: c.name,
+        has_pdf: !!c.pdf_url,
+        pdf_url: c.pdf_url
+      })));
+      
       setCatalogs(data || []);
     } catch (error) {
       console.error('Error fetching catalogs:', error);
@@ -163,14 +185,33 @@ const Catalogs = () => {
       });
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
+  const handleRefresh = () => {
+    fetchCatalogs(true);
+    toast({
+      title: "Actualizando",
+      description: "Refrescando catálogos..."
+    });
+  };
+
   const actions = (
-    <Button onClick={() => navigate('/products')}>
-      <Plus className="w-4 h-4 mr-2" />
-      Crear nuevo catálogo
-    </Button>
+    <div className="flex gap-2">
+      <Button 
+        variant="outline" 
+        onClick={handleRefresh}
+        disabled={refreshing}
+      >
+        <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+        Actualizar
+      </Button>
+      <Button onClick={() => navigate('/products')}>
+        <Plus className="w-4 h-4 mr-2" />
+        Crear nuevo catálogo
+      </Button>
+    </div>
   );
 
   if (loading) {
