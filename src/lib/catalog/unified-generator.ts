@@ -263,7 +263,7 @@ export class UnifiedCatalogGenerator {
           const result = await this.generateWithPuppeteerService(
             products, 
             businessInfo, 
-            template, 
+            template,
             options
           );
           
@@ -555,6 +555,7 @@ export class UnifiedCatalogGenerator {
     products: Product[],
     businessInfo: BusinessInfo,
     template: IndustryTemplate,
+    catalogId: string,
     options: GenerationOptions
   ): Promise<{ success: boolean; error?: string; stats?: any }> {
     
@@ -583,6 +584,7 @@ export class UnifiedCatalogGenerator {
       
       const puppeteerOptions = {
         onProgress: options.onProgress,
+        catalogId,
         format: 'A4' as const,
         margin: {
           top: '12mm',
