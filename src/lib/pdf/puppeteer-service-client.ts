@@ -86,6 +86,7 @@ const PDF_LAYOUT = {
   HEADER_TO_CONTENT_GAP: 8, // 8mm entre header y contenido
   GRID_GAP: 5, // 5mm entre tarjetas (antes era 3mm)
   CONTENT_PADDING: 6, // 6mm padding interno (antes era 4mm)
+  CARD_INTERNAL_PADDING: 4, // 4mm padding interno de tarjetas
 };
 
 // ✅ CÁLCULOS CON MEJOR ESPACIADO
