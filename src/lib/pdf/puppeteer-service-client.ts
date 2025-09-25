@@ -1,5 +1,5 @@
 // src/lib/pdf/puppeteer-service-client.ts
-// 🎯 SOLUCIÓN FINAL: SIN PÁGINAS EN BLANCO + MÚLTIPLES PÁGINAS CORRECTAS
+// 🎯 SOLUCIÓN FINAL: MÚLTIPLES PÁGINAS + ESPACIADO PERFECTO
 
 import { PDFStorageManager } from '@/lib/storage/pdf-uploader';
 
@@ -68,12 +68,11 @@ interface PuppeteerResult {
   };
 }
 
-// ✅ MANTENER DELTA DE PRECISIÓN (evita páginas en blanco extra)
+// ✅ MANTENER DELTA DE PRECISIÓN (funciona)
 const PRECISION_DELTA = 0.5;
 
-// ✅ CONFIGURACIÓN PARA MÚLTIPLES PÁGINAS (SIN height/width fijas problemáticas)
+// ✅ CONFIGURACIÓN CON MEJOR ESPACIADO
 const PDF_LAYOUT = {
-  // ❌ NO especificar PAGE_WIDTH/HEIGHT fijas (CAUSA 1 PÁGINA)
   HEADER_MARGIN: 15, // Mantener header/footer intactos
   FOOTER_MARGIN: 12,
   SIDE_MARGIN: 10,
@@ -81,22 +80,26 @@ const PDF_LAYOUT = {
   FOOTER_HEIGHT: 6,
   COLUMNS: 3,
   ROWS: 2,
-  PRODUCTS_PER_PAGE: 6
+  PRODUCTS_PER_PAGE: 6,
+  
+  // 🎯 NUEVOS: Espaciados mejorados
+  HEADER_TO_CONTENT_GAP: 8, // 8mm entre header y contenido
+  GRID_GAP: 5, // 5mm entre tarjetas (antes era 3mm)
+  CONTENT_PADDING: 6, // 6mm padding interno (antes era 4mm)
 };
 
-// ✅ CÁLCULOS FLEXIBLES (sin restricciones de altura máxima)
-const calculateFlexibleDimensions = () => {
-  // ✅ Usar dimensiones A4 estándar sin restricciones
+// ✅ CÁLCULOS CON MEJOR ESPACIADO
+const calculateOptimizedDimensions = () => {
   const contentWidth = 210 - (PDF_LAYOUT.SIDE_MARGIN * 2) - PRECISION_DELTA;
   
-  const gap = 3;
-  const padding = 4;
+  const gap = PDF_LAYOUT.GRID_GAP;
+  const padding = PDF_LAYOUT.CONTENT_PADDING;
   const usableWidth = contentWidth - (padding * 2);
   
   const cardWidth = (usableWidth - (gap * (PDF_LAYOUT.COLUMNS - 1))) / PDF_LAYOUT.COLUMNS;
   
-  // ✅ CRÍTICO: Altura flexible basada en contenido, NO fija
-  const baseCardHeight = cardWidth + 18; // Proporción natural
+  // ✅ Altura de card optimizada para mejor distribución
+  const baseCardHeight = cardWidth + 22; // +4mm más altura para mejor proporción
   
   return {
     contentWidth: Math.floor(contentWidth * 100) / 100,
@@ -110,7 +113,7 @@ const calculateFlexibleDimensions = () => {
   };
 };
 
-const LAYOUT = calculateFlexibleDimensions();
+const LAYOUT = calculateOptimizedDimensions();
 
 export class PuppeteerServiceClient {
   private static readonly SERVICE_URL = 'https://min8n-puppeteer-pdf.fqr2ax.easypanel.host';
@@ -126,11 +129,15 @@ export class PuppeteerServiceClient {
     const startTime = Date.now();
     
     try {
-      console.log('🚀 Generando PDF MULTIPÁGINA sin blanks...', {
+      console.log('🚀 Generando PDF con espaciado optimizado...', {
         products: products.length,
         expectedPages: Math.ceil(products.length / PDF_LAYOUT.PRODUCTS_PER_PAGE),
         layout: LAYOUT,
-        fix: 'Sin height fijas + overflow permitido'
+        spacing: {
+          headerGap: PDF_LAYOUT.HEADER_TO_CONTENT_GAP,
+          gridGap: PDF_LAYOUT.GRID_GAP,
+          contentPadding: PDF_LAYOUT.CONTENT_PADDING
+        }
       });
       
       const totalPages = Math.ceil(products.length / PDF_LAYOUT.PRODUCTS_PER_PAGE);
@@ -144,12 +151,12 @@ export class PuppeteerServiceClient {
       
       if (options.onProgress) options.onProgress(15);
       
-      // ✅ HTML MULTIPÁGINA (sin restricciones de altura)
-      const htmlContent = this.generateMultipageHTML(products, businessInfo, template, options.quality || 'medium', options);
+      // ✅ HTML con espaciado mejorado
+      const htmlContent = this.generateOptimizedSpacingHTML(products, businessInfo, template, options.quality || 'medium', options);
       
       if (options.onProgress) options.onProgress(30);
       
-      // ✅ CRÍTICO: PDF Options SIN height/width fijas
+      // ✅ PDF Options sin cambios (funciona para múltiples páginas)
       const pdfOptions = this.getMultipagePDFOptions(options, businessInfo, template);
       
       const pdfBlob = await this.generatePDFWithRetry(htmlContent, pdfOptions, businessInfo, options.onProgress);
@@ -200,7 +207,7 @@ export class PuppeteerServiceClient {
       };
       
     } catch (error) {
-      console.error('❌ Error en PDF multipágina:', error);
+      console.error('❌ Error en PDF con espaciado optimizado:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Error desconocido'
@@ -208,8 +215,8 @@ export class PuppeteerServiceClient {
     }
   }
   
-  // ✅ HTML MULTIPÁGINA - SIN RESTRICCIONES DE ALTURA
-  private static generateMultipageHTML(
+  // ✅ HTML CON ESPACIADO OPTIMIZADO
+  private static generateOptimizedSpacingHTML(
     products: Product[],
     businessInfo: BusinessInfo,
     template: TemplateConfig,
@@ -217,7 +224,7 @@ export class PuppeteerServiceClient {
     options: PuppeteerServiceOptions = {}
   ): string {
     
-    const pagesHTML = this.generateNaturalPages(products, businessInfo, template, quality);
+    const pagesHTML = this.generateWellSpacedPages(products, businessInfo, template, quality);
     const pageTitle = options.catalogTitle || `Catálogo ${businessInfo.business_name}`;
     
     return `<!DOCTYPE html>
@@ -228,17 +235,17 @@ export class PuppeteerServiceClient {
   <meta name="format-detection" content="telephone=no">
   <title>${pageTitle}</title>
   <style>
-    ${this.generateMultipageCSS(template, quality)}
+    ${this.generateOptimizedSpacingCSS(template, quality)}
   </style>
 </head>
-<body class="multipage-body">
+<body class="optimized-spacing-body">
   ${pagesHTML}
 </body>
 </html>`;
   }
   
-  // ✅ CSS MULTIPÁGINA - PERMITE CRECIMIENTO VERTICAL NATURAL
-  private static generateMultipageCSS(template: TemplateConfig, quality: 'low' | 'medium' | 'high'): string {
+  // ✅ CSS CON ESPACIADO OPTIMIZADO
+  private static generateOptimizedSpacingCSS(template: TemplateConfig, quality: 'low' | 'medium' | 'high'): string {
     const qualityConfig = {
       low: { fontSize: 9, priceSize: 10, nameSize: 9 },
       medium: { fontSize: 10, priceSize: 11, nameSize: 10 },
@@ -248,7 +255,7 @@ export class PuppeteerServiceClient {
     const config = qualityConfig[quality];
     
     return `
-      /* ✅ RESET ABSOLUTO (mantener lo que funciona) */
+      /* ✅ RESET ABSOLUTO (mantener) */
       *, *::before, *::after {
         margin: 0 !important;
         padding: 0 !important;
@@ -258,17 +265,16 @@ export class PuppeteerServiceClient {
         color-adjust: exact !important;
       }
       
-      /* ✅ @PAGE SIN DIMENSIONES FIJAS (CRÍTICO PARA MÚLTIPLES PÁGINAS) */
+      /* ✅ @PAGE (sin cambios - funciona para múltiples páginas) */
       @page {
         size: A4 portrait;
         margin: 0 !important;
         padding: 0 !important;
         border: none !important;
         outline: none !important;
-        /* ❌ NO especificar width/height aquí */
       }
       
-      /* ✅ HTML NATURAL (sin height fijas) */
+      /* ✅ HTML NATURAL (sin cambios) */
       html {
         font-size: ${config.fontSize}pt !important;
         font-family: 'Arial', 'Helvetica', sans-serif !important;
@@ -276,13 +282,11 @@ export class PuppeteerServiceClient {
         print-color-adjust: exact !important;
         margin: 0 !important;
         padding: 0 !important;
-        /* ✅ CRÍTICO: Sin overflow hidden en HTML */
         overflow: visible !important;
-        /* ❌ NO especificar width/height fijas */
       }
       
-      /* ✅ BODY NATURAL (permite múltiples páginas) */
-      body.multipage-body {
+      /* ✅ BODY NATURAL (sin cambios) */
+      body.optimized-spacing-body {
         margin: 0 !important;
         padding: 0 !important;
         font-family: 'Arial', 'Helvetica', sans-serif !important;
@@ -291,135 +295,127 @@ export class PuppeteerServiceClient {
         background: ${template.colors.background} !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
-        
-        /* ✅ CRÍTICO: Permitir crecimiento vertical */
         overflow: visible !important;
         height: auto !important;
         min-height: 100vh !important;
-        /* ❌ NO max-height que limite páginas */
-        
-        /* ✅ CRÍTICO: Sin elementos flotantes problemáticos */
         clear: both !important;
         float: none !important;
         display: block !important;
       }
       
-      /* ✅ PÁGINA INDIVIDUAL MULTIPÁGINA (INVESTIGACIÓN: Raphael Stäbler pattern) */
-      .page-container-multipage {
-        /* ✅ CRÍTICO: Sin dimensiones fijas - dejar que fluya naturalmente */
+      /* ✅ PÁGINA INDIVIDUAL CON ESPACIADO MEJORADO */
+      .page-container-optimized {
         width: 100% !important;
         margin: 0 !important;
         padding: ${PDF_LAYOUT.HEADER_MARGIN}mm ${PDF_LAYOUT.SIDE_MARGIN}mm ${PDF_LAYOUT.FOOTER_MARGIN}mm ${PDF_LAYOUT.SIDE_MARGIN}mm !important;
         background: ${template.colors.background} !important;
         position: relative !important;
-        
-        /* ✅ CRÍTICO: Overflow visible para múltiples páginas */
         overflow: visible !important;
         height: auto !important;
         min-height: auto !important;
-        /* ❌ NO max-height */
+        display: block !important;
         
-        display: block !important; /* ✅ Block en lugar de flex para paginación natural */
-        
-        /* ✅ CRÍTICO: Page breaks restaurados para múltiples páginas */
+        /* ✅ Page breaks (mantener funcionalidad multipágina) */
         page-break-inside: auto !important;
         break-inside: auto !important;
       }
       
-      /* ✅ FORZAR NUEVA PÁGINA (INVESTIGACIÓN: Issues #50, page-break-after pattern) */
-      .page-container-multipage:not(:first-child) {
+      .page-container-optimized:not(:first-child) {
         page-break-before: always !important;
         break-before: page !important;
       }
       
-      /* ✅ EVITAR PAGE-BREAK EN ÚLTIMA PÁGINA (mantener lo que funciona) */
-      .page-container-multipage:last-child {
+      .page-container-optimized:last-child {
         page-break-after: avoid !important;
         break-after: avoid !important;
       }
       
-      /* ✅ CONTENIDO PRINCIPAL FLEXIBLE */
-      .page-content-multipage {
+      /* 🎯 CONTENIDO PRINCIPAL CON ESPACIADO OPTIMIZADO */
+      .page-content-optimized {
         width: 100% !important;
         padding: ${LAYOUT.padding}mm !important;
         background: ${template.colors.background} !important;
         position: relative !important;
-        
-        /* ✅ CRÍTICO: Permitir crecimiento vertical */
         overflow: visible !important;
         height: auto !important;
         min-height: auto !important;
-        /* ❌ NO max-height que corte contenido */
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: flex-start !important;
         
-        display: block !important;
+        /* 🎯 CRÍTICO: Espacio entre header y contenido */
+        margin-top: ${PDF_LAYOUT.HEADER_TO_CONTENT_GAP}mm !important;
+        
+        /* 🎯 CRÍTICO: Espacio antes del footer */
+        margin-bottom: ${PDF_LAYOUT.HEADER_TO_CONTENT_GAP}mm !important;
       }
       
-      /* ✅ GRID FLEXIBLE (cambio de flexbox a CSS Grid más estable) */
-      .products-grid-multipage {
+      /* 🎯 GRID CON GAP MEJORADO */
+      .products-grid-optimized {
         width: 100% !important;
         display: grid !important;
         grid-template-columns: repeat(${PDF_LAYOUT.COLUMNS}, 1fr) !important;
-        gap: ${LAYOUT.gap}mm !important;
+        
+        /* 🎯 CRÍTICO: Gap aumentado entre tarjetas */
+        gap: ${LAYOUT.gap}mm !important; /* 5mm en lugar de 3mm */
+        
         justify-items: center !important;
         align-items: start !important;
-        
-        /* ✅ CRÍTICO: Grid que permite crecimiento vertical */
         grid-auto-rows: minmax(${LAYOUT.cardHeight}mm, auto) !important;
-        
-        /* ✅ CRÍTICO: Sin restricciones de altura */
         height: auto !important;
         min-height: auto !important;
-        /* ❌ NO max-height */
-        
-        /* ✅ CRÍTICO: Overflow visible */
         overflow: visible !important;
-        
-        /* ✅ CRÍTICO: Page breaks controlados en grid */
         page-break-inside: auto !important;
         break-inside: auto !important;
+        
+        /* 🎯 PADDING ADICIONAL PARA MEJOR DISTRIBUCIÓN */
+        padding: ${LAYOUT.gap / 2}mm 0 !important;
       }
       
-      /* ✅ PRODUCT CARDS OPTIMIZADAS */
-      .product-card-multipage {
+      /* ✅ PRODUCT CARDS CON ALTURA OPTIMIZADA */
+      .product-card-optimized {
         width: 100% !important;
+        
+        /* 🎯 CRÍTICO: Altura aumentada para mejor proporción */
         height: ${LAYOUT.cardHeight}mm !important;
         min-height: ${LAYOUT.cardHeight}mm !important;
-        max-height: ${LAYOUT.cardHeight}mm !important; /* ✅ Cards sí pueden tener altura fija */
+        max-height: ${LAYOUT.cardHeight}mm !important;
         
         background: white !important;
         border: 0.5pt solid ${template.colors.accent}60 !important;
-        border-radius: 4px !important;
+        border-radius: 6px !important; /* Ligeramente más redondeado */
         overflow: hidden !important;
-        box-shadow: 0 1pt 3pt rgba(0,0,0,0.1) !important;
+        box-shadow: 0 2pt 4pt rgba(0,0,0,0.12) !important; /* Sombra ligeramente más prominente */
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
         display: flex !important;
         flex-direction: column !important;
         position: relative !important;
-        
-        /* ✅ CRÍTICO: Cards evitan page-breaks internos */
         page-break-inside: avoid !important;
         break-inside: avoid !important;
         page-break-before: auto !important;
         page-break-after: auto !important;
         break-before: auto !important;
         break-after: auto !important;
+        
+        /* 🎯 TRANSICIÓN SUAVE PARA MEJOR APARIENCIA */
+        transition: box-shadow 0.2s ease !important;
       }
       
-      .card-decoration-multipage {
+      .card-decoration-optimized {
         position: absolute !important;
         top: 0 !important;
         left: 0 !important;
         right: 0 !important;
-        height: 2pt !important;
+        height: 3pt !important; /* Ligeramente más prominente */
         background: ${template.colors.primary} !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
         z-index: 1 !important;
       }
       
-      /* ✅ IMAGEN CONTAINER FLEXIBLE */
-      .image-container-multipage {
+      /* 🎯 IMAGEN CONTAINER CON MEJOR PROPORCIÓN */
+      .image-container-optimized {
         flex: 1 1 ${LAYOUT.imageHeight}mm !important;
         height: ${LAYOUT.imageHeight}mm !important;
         min-height: ${LAYOUT.imageHeight}mm !important;
@@ -428,13 +424,17 @@ export class PuppeteerServiceClient {
         align-items: center !important;
         justify-content: center !important;
         background: #f8f9fa !important;
-        padding: 2mm !important;
+        
+        /* 🎯 PADDING MEJORADO */
+        padding: 3mm !important; /* Aumentado de 2mm a 3mm */
+        
         overflow: hidden !important;
         position: relative !important;
+        border-radius: 0 0 3px 3px !important; /* Bordes redondeados solo abajo */
       }
       
-      /* ✅ IMAGEN OPTIMIZADA */
-      .product-image-multipage {
+      /* ✅ IMAGEN OPTIMIZADA (sin cambios) */
+      .product-image-optimized {
         max-width: 100% !important;
         max-height: 100% !important;
         width: auto !important;
@@ -444,8 +444,6 @@ export class PuppeteerServiceClient {
         display: block !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
-        
-        /* ✅ Optimizaciones de imagen para PDF */
         image-rendering: -webkit-optimize-contrast !important;
         image-rendering: crisp-edges !important;
         transform: translateZ(0) !important;
@@ -453,9 +451,9 @@ export class PuppeteerServiceClient {
         will-change: auto !important;
       }
       
-      .image-placeholder-multipage {
-        width: ${LAYOUT.imageHeight - 6}mm !important;
-        height: ${LAYOUT.imageHeight - 6}mm !important;
+      .image-placeholder-optimized {
+        width: ${LAYOUT.imageHeight - 8}mm !important; /* Ajustado por padding mayor */
+        height: ${LAYOUT.imageHeight - 8}mm !important;
         background: repeating-conic-gradient(from 0deg at 50% 50%, #f0f0f0 0deg 90deg, transparent 90deg 180deg) !important;
         background-size: 6px 6px !important;
         border: 1pt dashed #ccc !important;
@@ -467,20 +465,23 @@ export class PuppeteerServiceClient {
         overflow: hidden !important;
       }
       
-      .placeholder-content-multipage {
+      .placeholder-content-optimized {
         color: #999 !important;
         font-size: 8pt !important;
         text-align: center !important;
         line-height: 1.2 !important;
       }
       
-      /* ✅ ÁREA DE TEXTO */
-      .text-area-multipage {
+      /* 🎯 ÁREA DE TEXTO CON MEJOR ESPACIADO */
+      .text-area-optimized {
         flex: 0 0 ${LAYOUT.textHeight}mm !important;
         height: ${LAYOUT.textHeight}mm !important;
         min-height: ${LAYOUT.textHeight}mm !important;
         max-height: ${LAYOUT.textHeight}mm !important;
-        padding: 2mm !important;
+        
+        /* 🎯 PADDING MEJORADO */
+        padding: 3mm !important; /* Aumentado de 2mm a 3mm */
+        
         display: flex !important;
         flex-direction: column !important;
         justify-content: center !important;
@@ -488,56 +489,66 @@ export class PuppeteerServiceClient {
         text-align: center !important;
         overflow: hidden !important;
         position: relative !important;
+        background: white !important; /* Asegurar fondo blanco */
       }
       
-      .product-name-multipage {
+      .product-name-optimized {
         font-size: ${config.nameSize}pt !important;
         font-weight: 600 !important;
         color: ${template.colors.primary} !important;
-        margin-bottom: 1.5mm !important;
+        
+        /* 🎯 MARGEN MEJORADO */
+        margin-bottom: 2mm !important; /* Aumentado de 1.5mm a 2mm */
+        
         display: -webkit-box !important;
         -webkit-line-clamp: 2 !important;
         -webkit-box-orient: vertical !important;
         overflow: hidden !important;
         word-wrap: break-word !important;
         text-align: center !important;
-        line-height: 1.2 !important;
+        line-height: 1.3 !important; /* Mejorado line-height */
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
         flex-shrink: 0 !important;
       }
       
-      .product-pricing-multipage {
+      .product-pricing-optimized {
         display: flex !important;
         flex-direction: column !important;
         align-items: center !important;
-        gap: 1mm !important;
+        
+        /* 🎯 GAP MEJORADO */
+        gap: 1.5mm !important; /* Aumentado de 1mm a 1.5mm */
+        
         width: 100% !important;
         flex-grow: 1 !important;
         justify-content: center !important;
       }
       
-      .product-price-retail-multipage {
+      .product-price-retail-optimized {
         font-size: ${config.priceSize}pt !important;
         font-weight: 700 !important;
         color: white !important;
         background: ${template.colors.secondary} !important;
         background-image: linear-gradient(135deg, ${template.colors.secondary}, ${template.colors.primary}) !important;
-        padding: 1mm 2mm !important;
-        border-radius: 6px !important;
+        
+        /* 🎯 PADDING MEJORADO */
+        padding: 1.5mm 3mm !important;
+        
+        border-radius: 8px !important; /* Más redondeado */
         display: inline-block !important;
         text-align: center !important;
         white-space: nowrap !important;
         max-width: 95% !important;
         overflow: hidden !important;
         text-overflow: ellipsis !important;
-        box-shadow: 0 1pt 2pt rgba(0,0,0,0.15) !important;
+        box-shadow: 0 1pt 3pt rgba(0,0,0,0.2) !important; /* Sombra mejorada */
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
         flex-shrink: 0 !important;
       }
       
-      .product-price-wholesale-multipage {
+      .product-price-wholesale-optimized {
         display: flex !important;
         flex-direction: column !important;
         align-items: center !important;
@@ -545,8 +556,11 @@ export class PuppeteerServiceClient {
         font-size: ${Math.max(config.priceSize - 2, 6)}pt !important;
         color: ${template.colors.text} !important;
         background: rgba(0,0,0,0.05) !important;
-        padding: 0.5mm 1mm !important;
-        border-radius: 3px !important;
+        
+        /* 🎯 PADDING MEJORADO */
+        padding: 1mm 2mm !important; /* Aumentado */
+        
+        border-radius: 4px !important;
         border: 0.25pt solid ${template.colors.accent}50 !important;
         text-align: center !important;
         -webkit-print-color-adjust: exact !important;
@@ -554,25 +568,25 @@ export class PuppeteerServiceClient {
         flex-shrink: 0 !important;
       }
       
-      .wholesale-label-multipage {
+      .wholesale-label-optimized {
         font-size: ${Math.max(config.priceSize - 3, 5)}pt !important;
         font-weight: 500 !important;
         color: ${template.colors.text}80 !important;
         text-transform: uppercase !important;
         letter-spacing: 0.1pt !important;
         line-height: 1 !important;
-        margin-bottom: 0.2mm !important;
+        margin-bottom: 0.5mm !important; /* Ligeramente aumentado */
       }
       
-      .wholesale-price-multipage {
+      .wholesale-price-optimized {
         font-weight: 700 !important;
         color: ${template.colors.primary} !important;
         font-size: ${Math.max(config.priceSize - 1, 7)}pt !important;
         line-height: 1 !important;
-        margin-bottom: 0.2mm !important;
+        margin-bottom: 0.3mm !important;
       }
       
-      .wholesale-min-multipage {
+      .wholesale-min-optimized {
         font-size: ${Math.max(config.priceSize - 4, 5)}pt !important;
         color: ${template.colors.text}60 !important;
         font-weight: 400 !important;
@@ -580,7 +594,7 @@ export class PuppeteerServiceClient {
         line-height: 1 !important;
       }
       
-      /* ✅ MEDIA PRINT MULTIPÁGINA */
+      /* ✅ MEDIA PRINT (sin cambios - funciona) */
       @media print {
         * {
           -webkit-print-color-adjust: exact !important;
@@ -591,66 +605,61 @@ export class PuppeteerServiceClient {
         html, body {
           margin: 0 !important;
           padding: 0 !important;
-          /* ✅ CRÍTICO: Overflow visible para múltiples páginas */
           overflow: visible !important;
           width: auto !important;
           height: auto !important;
         }
         
-        /* ✅ CRÍTICO: Contenedores principales con overflow visible */
-        .page-container-multipage,
-        .page-content-multipage,
-        .products-grid-multipage {
+        .page-container-optimized,
+        .page-content-optimized,
+        .products-grid-optimized {
           overflow: visible !important;
           position: relative !important;
           height: auto !important;
-          /* ❌ NO max-height en print */
         }
         
-        /* ✅ CRÍTICO: Page breaks en print mode */
-        .page-container-multipage {
+        .page-container-optimized {
           page-break-inside: auto !important;
           break-inside: auto !important;
         }
         
-        .page-container-multipage:not(:first-child) {
+        .page-container-optimized:not(:first-child) {
           page-break-before: always !important;
           break-before: page !important;
         }
         
-        .page-container-multipage:last-child {
+        .page-container-optimized:last-child {
           page-break-after: avoid !important;
           break-after: avoid !important;
         }
         
-        .product-card-multipage {
+        .product-card-optimized {
           page-break-inside: avoid !important;
           break-inside: avoid !important;
         }
         
-        /* ✅ Imágenes optimizadas para print */
-        .product-image-multipage {
+        .product-image-optimized {
           -webkit-print-color-adjust: exact !important;
           print-color-adjust: exact !important;
           color-adjust: exact !important;
         }
       }
       
-      /* ✅ CRÍTICO: Eliminar pseudoelementos problemáticos (mantener lo que funciona) */
-      .page-container-multipage *::before,
-      .page-container-multipage *::after,
-      .page-content-multipage *::before,
-      .page-content-multipage *::after,
-      .products-grid-multipage *::before,
-      .products-grid-multipage *::after {
+      /* ✅ CRÍTICO: Eliminar pseudoelementos problemáticos (mantener) */
+      .page-container-optimized *::before,
+      .page-container-optimized *::after,
+      .page-content-optimized *::before,
+      .page-content-optimized *::after,
+      .products-grid-optimized *::before,
+      .products-grid-optimized *::after {
         display: none !important;
         content: none !important;
       }
     `;
   }
   
-  // ✅ GENERACIÓN DE PÁGINAS NATURALES (sin restricciones de altura)
-  private static generateNaturalPages(
+  // ✅ GENERACIÓN DE PÁGINAS CON ESPACIADO MEJORADO
+  private static generateWellSpacedPages(
     products: Product[],
     businessInfo: BusinessInfo,
     template: TemplateConfig,
@@ -665,13 +674,12 @@ export class PuppeteerServiceClient {
       const endIndex = Math.min(startIndex + PDF_LAYOUT.PRODUCTS_PER_PAGE, products.length);
       const pageProducts = products.slice(startIndex, endIndex);
       
-      // ✅ Solo generar páginas con contenido real
       if (pageProducts.length === 0) continue;
       
       pagesHTML += `
-        <div class="page-container-multipage">
-          <div class="page-content-multipage">
-            ${this.generateNaturalGrid(pageProducts)}
+        <div class="page-container-optimized">
+          <div class="page-content-optimized">
+            ${this.generateOptimizedGrid(pageProducts)}
           </div>
         </div>
       `;
@@ -680,21 +688,20 @@ export class PuppeteerServiceClient {
     return pagesHTML;
   }
   
-  // ✅ GRID NATURAL (CSS Grid en lugar de flexbox)
-  private static generateNaturalGrid(products: Product[]): string {
-    let gridHTML = '<div class="products-grid-multipage">';
+  // ✅ GRID CON ESPACIADO OPTIMIZADO
+  private static generateOptimizedGrid(products: Product[]): string {
+    let gridHTML = '<div class="products-grid-optimized">';
     
-    // ✅ Generar todos los productos sin filas artificiales
     products.forEach(product => {
-      gridHTML += this.generateNaturalProductCard(product);
+      gridHTML += this.generateOptimizedProductCard(product);
     });
     
     gridHTML += '</div>';
     return gridHTML;
   }
   
-  // ✅ PRODUCTO CARD NATURAL
-  private static generateNaturalProductCard(product: Product): string {
+  // ✅ PRODUCTO CARD OPTIMIZADA
+  private static generateOptimizedProductCard(product: Product): string {
     const productName = product.name || 'Producto';
     const productPrice = typeof product.price_retail === 'number' ? product.price_retail : 0;
     const productImage = product.image_url || '';
@@ -703,44 +710,44 @@ export class PuppeteerServiceClient {
       `<img 
          src="${productImage}" 
          alt="${productName}"
-         class="product-image-multipage" 
+         class="product-image-optimized" 
          loading="eager" 
          crossorigin="anonymous"
          onload="this.style.opacity=1"
          onerror="this.style.display='none'"
        />` :
-      `<div class="image-placeholder-multipage">
-         <div class="placeholder-content-multipage">
+      `<div class="image-placeholder-optimized">
+         <div class="placeholder-content-optimized">
            <div style="font-size: 12pt; margin-bottom: 1mm;">📷</div>
            <div>Sin imagen</div>
          </div>
        </div>`;
     
     const wholesalePriceHTML = product.price_wholesale ? `
-      <div class="product-price-wholesale-multipage">
-        <span class="wholesale-label-multipage">Mayoreo:</span>
-        <span class="wholesale-price-multipage">$${(product.price_wholesale / 100).toLocaleString('es-MX', { 
+      <div class="product-price-wholesale-optimized">
+        <span class="wholesale-label-optimized">Mayoreo:</span>
+        <span class="wholesale-price-optimized">$${(product.price_wholesale / 100).toLocaleString('es-MX', { 
           minimumFractionDigits: 2,
           maximumFractionDigits: 2
         })}</span>
         ${product.wholesale_min_qty ? `
-          <span class="wholesale-min-multipage">Min. ${product.wholesale_min_qty}</span>
+          <span class="wholesale-min-optimized">Min. ${product.wholesale_min_qty}</span>
         ` : ''}
       </div>
     ` : '';
     
     return `
-      <div class="product-card-multipage">
-        <div class="card-decoration-multipage"></div>
+      <div class="product-card-optimized">
+        <div class="card-decoration-optimized"></div>
         
-        <div class="image-container-multipage">
+        <div class="image-container-optimized">
           ${imageHTML}
         </div>
         
-        <div class="text-area-multipage">
-          <div class="product-name-multipage">${productName}</div>
-          <div class="product-pricing-multipage">
-            <div class="product-price-retail-multipage">$${(productPrice / 100).toLocaleString('es-MX', { 
+        <div class="text-area-optimized">
+          <div class="product-name-optimized">${productName}</div>
+          <div class="product-pricing-optimized">
+            <div class="product-price-retail-optimized">$${(productPrice / 100).toLocaleString('es-MX', { 
               minimumFractionDigits: 2,
               maximumFractionDigits: 2
             })}</div>
@@ -751,7 +758,7 @@ export class PuppeteerServiceClient {
     `;
   }
   
-  // ✅ PDF OPTIONS MULTIPÁGINA - SIN height/width FIJAS (INVESTIGACIÓN: Issues #3285, #5590)
+  // ✅ PDF OPTIONS (sin cambios - funciona para múltiples páginas)
   private static getMultipagePDFOptions(
     options: PuppeteerServiceOptions, 
     businessInfo: BusinessInfo, 
@@ -764,27 +771,15 @@ export class PuppeteerServiceClient {
     const catalogTitle = options.catalogTitle || 'Catálogo de Productos';
     
     return {
-      // ✅ CRÍTICO: Solo format, NO width/height específicas (CAUSA #1 PRINCIPAL)
       format: options.format || 'A4',
-      
-      // ✅ MANTENER MÁRGENES PARA HEADER/FOOTER (funcionan bien)
       margin: {
         top: `${PDF_LAYOUT.HEADER_MARGIN}mm`,
         right: `${PDF_LAYOUT.SIDE_MARGIN}mm`,
         bottom: `${PDF_LAYOUT.FOOTER_MARGIN}mm`,
         left: `${PDF_LAYOUT.SIDE_MARGIN}mm`
       },
-      
-      // ❌ NO especificar width/height (permite múltiples páginas naturales)
-      // width: `${PDF_LAYOUT.PAGE_WIDTH}mm`,  // ✅ REMOVIDO
-      // height: `${PDF_LAYOUT.PAGE_HEIGHT}mm`, // ✅ REMOVIDO
-      
       printBackground: true,
-      
-      // ✅ CRÍTICO: preferCSSPageSize true para respetar paginación CSS
-      preferCSSPageSize: true, // ✅ CAMBIADO de false a true
-      
-      // ✅ MANTENER HEADER/FOOTER (funcionan perfectamente)
+      preferCSSPageSize: true,
       displayHeaderFooter: true,
       waitUntil: 'networkidle0',
       timeout: 30000,
@@ -792,17 +787,13 @@ export class PuppeteerServiceClient {
       scale: 1.0,
       quality: options.quality === 'high' ? 100 : options.quality === 'low' ? 80 : 90,
       
-      // ✅ MANTENER TEMPLATES HEADER/FOOTER INTACTOS
+      // ✅ MANTENER HEADER/FOOTER TEMPLATES INTACTOS
       headerTemplate: `<div style="font-size: 12px !important; width: 100% !important; height: ${PDF_LAYOUT.HEADER_HEIGHT}mm !important; text-align: center !important; background: ${primaryColor} !important; background-image: linear-gradient(135deg, ${primaryColor}, ${secondaryColor}) !important; color: white !important; padding: 2mm !important; margin: 0 !important; border-radius: 4px !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; display: table !important; table-layout: fixed !important;"><div style="display: table-cell; vertical-align: middle; text-align: center;"><strong style="color: white !important; font-size: 14px !important;">${businessInfo.business_name || 'Mi Negocio'}</strong><br><span style="color: rgba(255,255,255,0.9) !important; font-size: 10px !important;">${catalogTitle}</span></div></div>`,
       
       footerTemplate: `<div style="font-size: 9px !important; width: 100% !important; height: ${PDF_LAYOUT.FOOTER_HEIGHT}mm !important; text-align: center !important; background: ${secondaryColor} !important; color: white !important; padding: 1mm !important; margin: 0 !important; border-radius: 4px !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; display: table !important; table-layout: fixed !important;"><div style="display: table-cell; vertical-align: middle; text-align: center;">${contactInfo ? `<div style="color: white !important; font-size: 8px !important; margin-bottom: 1mm !important;">${contactInfo}</div>` : ''}<div style="color: rgba(255,255,255,0.8) !important; font-size: 7px !important;">Generado con CatifyPro - <span class="pageNumber"></span> de <span class="totalPages"></span></div></div></div>`,
       
-      // ❌ NO pageRanges (puede limitar páginas)
-      // pageRanges: '', // ✅ REMOVIDO
-      
       landscape: false,
       
-      // ✅ Chrome args para estabilidad (mantener)
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
@@ -886,11 +877,10 @@ export class PuppeteerServiceClient {
             ...pdfOptions,
             emulateMediaType: 'screen',
             setViewport: {
-              // ✅ Viewport natural (no fijo que cause una sola página)
               width: 1024,
               height: 768
             },
-            waitForSelector: '.page-container-multipage',
+            waitForSelector: '.page-container-optimized',
             waitForFunction: 'document.readyState === "complete"',
           },
           filename: `catalogo-${businessInfo.business_name.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`,
@@ -928,7 +918,7 @@ export class PuppeteerServiceClient {
           console.warn('⚠️ Tipo de archivo inesperado:', blob.type);
         }
         
-        console.log(`✅ PDF MULTIPÁGINA generado en intento ${attempt}/${maxRetries}, tamaño: ${blob.size} bytes`);
+        console.log(`✅ PDF con espaciado optimizado generado en intento ${attempt}/${maxRetries}, tamaño: ${blob.size} bytes`);
         return blob;
         
       } catch (error) {
@@ -979,7 +969,7 @@ export class PuppeteerServiceClient {
       }
       
       const blob = await response.blob();
-      await this.downloadPDF(blob, 'test-multipage');
+      await this.downloadPDF(blob, 'test-optimized-spacing');
       
       return { 
         success: true,
