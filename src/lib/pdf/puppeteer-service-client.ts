@@ -1,5 +1,5 @@
 // src/lib/pdf/puppeteer-service-client.ts
-// 🎯 VERSIÓN FINAL: ELIMINACIÓN COMPLETA DEL RECUADRO BLANCO
+// 🎯 CORRECCIÓN QUIRÚRGICA: ELIMINAR SOLO EL RECUADRO BLANCO, MANTENER TODO LO DEMÁS
 
 import { PDFStorageManager } from '@/lib/storage/pdf-uploader';
 
@@ -71,7 +71,7 @@ interface PuppeteerResult {
 // ✅ MANTENER DELTA DE PRECISIÓN
 const PRECISION_DELTA = 0.5;
 
-// 🚀 CONFIGURACIÓN FINAL LIMPIA
+// 🚀 CONFIGURACIÓN ESTABLE Y FUNCIONAL
 const PDF_LAYOUT = {
   // 🚨 MANTENER INTACTOS - NO CAMBIAR (funcionan bien con header/footer)
   HEADER_MARGIN: 15, // NO CAMBIAR
@@ -85,14 +85,14 @@ const PDF_LAYOUT = {
   ROWS: 2,
   PRODUCTS_PER_PAGE: 6,
   
-  // 🔧 OPTIMIZACIONES FINALES
+  // 🔧 OPTIMIZACIONES PROBADAS
   HEADER_TO_CONTENT_GAP: 8,
   GRID_GAP: 5,
   CONTENT_PADDING: 4,
   CARD_INTERNAL_PADDING: 4,
 };
 
-// 🔧 CÁLCULOS FINALES LIMPIOS
+// 🔧 CÁLCULOS ESTABLES
 const calculateOptimizedDimensions = () => {
   const contentWidth = 210 - (PDF_LAYOUT.SIDE_MARGIN * 2) - PRECISION_DELTA;
   
@@ -102,7 +102,7 @@ const calculateOptimizedDimensions = () => {
   
   const cardWidth = (usableWidth - (gap * (PDF_LAYOUT.COLUMNS - 1))) / PDF_LAYOUT.COLUMNS;
   
-  // 🚀 ALTURA OPTIMIZADA FINAL
+  // 🚀 ALTURA OPTIMIZADA PROBADA
   const baseCardHeight = cardWidth + 35;
   
   return {
@@ -133,7 +133,7 @@ export class PuppeteerServiceClient {
     const startTime = Date.now();
     
     try {
-      console.log('🚀 Generando PDF con layout FINAL LIMPIO (sin recuadro blanco)...', {
+      console.log('🚀 Generando PDF con corrección quirúrgica...', {
         products: products.length,
         expectedPages: Math.ceil(products.length / PDF_LAYOUT.PRODUCTS_PER_PAGE),
         layout: LAYOUT
@@ -150,8 +150,8 @@ export class PuppeteerServiceClient {
       
       if (options.onProgress) options.onProgress(15);
       
-      // ✅ HTML con layout FINAL LIMPIO
-      const htmlContent = this.generateCleanHTML(products, businessInfo, template, options.quality || 'medium', options);
+      // ✅ HTML con corrección quirúrgica
+      const htmlContent = this.generateSurgicalHTML(products, businessInfo, template, options.quality || 'medium', options);
       
       if (options.onProgress) options.onProgress(30);
       
@@ -171,7 +171,7 @@ export class PuppeteerServiceClient {
           {
             pdf_size_bytes: pdfBlob.size,
             generation_completed_at: new Date().toISOString(),
-            generation_method: 'puppeteer_final_clean'
+            generation_method: 'puppeteer_surgical'
           }
         );
         
@@ -206,7 +206,7 @@ export class PuppeteerServiceClient {
       };
       
     } catch (error) {
-      console.error('❌ Error en PDF final limpio:', error);
+      console.error('❌ Error en PDF quirúrgico:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Error desconocido'
@@ -214,8 +214,8 @@ export class PuppeteerServiceClient {
     }
   }
   
-  // 🔧 HTML CON LAYOUT FINAL LIMPIO (SIN RECUADRO BLANCO)
-  private static generateCleanHTML(
+  // 🔧 HTML CON CORRECCIÓN QUIRÚRGICA
+  private static generateSurgicalHTML(
     products: Product[],
     businessInfo: BusinessInfo,
     template: TemplateConfig,
@@ -223,7 +223,7 @@ export class PuppeteerServiceClient {
     options: PuppeteerServiceOptions = {}
   ): string {
     
-    const pagesHTML = this.generateCleanPages(products, businessInfo, template, quality);
+    const pagesHTML = this.generateSurgicalPages(products, businessInfo, template, quality);
     const pageTitle = options.catalogTitle || `Catálogo ${businessInfo.business_name}`;
     
     return `<!DOCTYPE html>
@@ -234,17 +234,17 @@ export class PuppeteerServiceClient {
   <meta name="format-detection" content="telephone=no">
   <title>${pageTitle}</title>
   <style>
-    ${this.generateCleanCSS(template, quality)}
+    ${this.generateSurgicalCSS(template, quality)}
   </style>
 </head>
-<body class="clean-layout-body">
+<body class="surgical-body">
   ${pagesHTML}
 </body>
 </html>`;
   }
   
-  // 🚀 CSS COMPLETAMENTE LIMPIO (ELIMINACIÓN TOTAL DEL RECUADRO BLANCO)
-  private static generateCleanCSS(template: TemplateConfig, quality: 'low' | 'medium' | 'high'): string {
+  // 🔧 CSS CON CORRECCIÓN QUIRÚRGICA (ELIMINAR SOLO EL PROBLEMA)
+  private static generateSurgicalCSS(template: TemplateConfig, quality: 'low' | 'medium' | 'high'): string {
     const qualityConfig = {
       low: { fontSize: 9, priceSize: 10, nameSize: 9 },
       medium: { fontSize: 10, priceSize: 11, nameSize: 10 },
@@ -254,7 +254,7 @@ export class PuppeteerServiceClient {
     const config = qualityConfig[quality];
     
     return `
-      /* 🚀 RESET ABSOLUTO COMPLETO + ELIMINACIÓN DE RECUADRO BLANCO */
+      /* 🔧 RESET NORMAL (SIN ELIMINAR TODO) */
       *, *::before, *::after {
         margin: 0 !important;
         padding: 0 !important;
@@ -262,44 +262,6 @@ export class PuppeteerServiceClient {
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
         color-adjust: exact !important;
-        /* 🔧 ELIMINACIÓN COMPLETA DE PSEUDO-ELEMENTOS */
-        content: none !important;
-        display: none !important;
-      }
-      
-      /* 🔧 REACTIVAR SOLO ELEMENTOS NECESARIOS */
-      .page-container-clean,
-      .page-content-clean, 
-      .products-grid-clean,
-      .product-card-clean,
-      .image-container-clean,
-      .product-image-clean,
-      .image-placeholder-clean,
-      .placeholder-content-clean,
-      .text-area-clean,
-      .product-name-clean,
-      .product-pricing-clean,
-      .product-price-retail-clean,
-      .product-price-wholesale-clean,
-      .wholesale-label-clean,
-      .wholesale-price-clean,
-      .wholesale-min-clean {
-        display: block !important;
-      }
-      
-      .products-grid-clean {
-        display: grid !important;
-      }
-      
-      .product-card-clean,
-      .text-area-clean,
-      .product-pricing-clean,
-      .product-price-wholesale-clean {
-        display: flex !important;
-      }
-      
-      .product-price-retail-clean {
-        display: inline-block !important;
       }
       
       /* 🚨 @PAGE (MANTENER EXACTAMENTE IGUAL) */
@@ -311,7 +273,7 @@ export class PuppeteerServiceClient {
         outline: none !important;
       }
       
-      /* 🔧 HTML LIMPIO (ELIMINACIÓN COMPLETA DE MARGINS) */
+      /* 🔧 HTML ESTABLE */
       html {
         font-size: ${config.fontSize}pt !important;
         font-family: 'Arial', 'Helvetica', sans-serif !important;
@@ -320,33 +282,28 @@ export class PuppeteerServiceClient {
         margin: 0 !important;
         padding: 0 !important;
         overflow: visible !important;
-        background: ${template.colors.background} !important;
       }
       
-      /* 🚀 BODY COMPLETAMENTE LIMPIO (SIN MARGINS QUE CAUSAN RECUADRO BLANCO) */
-      body.clean-layout-body {
+      /* 🔧 BODY ESTABLE */
+      body.surgical-body {
         margin: 0 !important;
         padding: 0 !important;
-        border: none !important;
-        outline: none !important;
-        background: ${template.colors.background} !important;
         font-family: 'Arial', 'Helvetica', sans-serif !important;
         font-size: ${config.fontSize}pt !important;
         color: ${template.colors.text} !important;
+        background: ${template.colors.background} !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
         overflow: visible !important;
         height: auto !important;
         min-height: 100vh !important;
-        width: 100% !important;
-        box-sizing: border-box !important;
+        clear: both !important;
+        float: none !important;
         display: block !important;
-        position: relative !important;
-        z-index: 1 !important;
       }
       
       /* 🚨 PÁGINA INDIVIDUAL (MANTENER MÁRGENES ORIGINALES) */
-      .page-container-clean {
+      .page-container-surgical {
         width: 100% !important;
         margin: 0 !important;
         padding: ${PDF_LAYOUT.HEADER_MARGIN}mm ${PDF_LAYOUT.SIDE_MARGIN}mm ${PDF_LAYOUT.FOOTER_MARGIN}mm ${PDF_LAYOUT.SIDE_MARGIN}mm !important;
@@ -355,26 +312,23 @@ export class PuppeteerServiceClient {
         overflow: visible !important;
         height: auto !important;
         min-height: auto !important;
-        border: none !important;
-        outline: none !important;
-        box-sizing: border-box !important;
-        page-break-inside: avoid !important;
-        break-inside: avoid !important;
-        z-index: 2 !important;
+        display: block !important;
+        page-break-inside: auto !important;
+        break-inside: auto !important;
       }
       
-      .page-container-clean:not(:first-child) {
+      .page-container-surgical:not(:first-child) {
         page-break-before: always !important;
         break-before: page !important;
       }
       
-      .page-container-clean:last-child {
+      .page-container-surgical:last-child {
         page-break-after: avoid !important;
         break-after: avoid !important;
       }
       
-      /* 🔧 CONTENIDO PRINCIPAL LIMPIO */
-      .page-content-clean {
+      /* 🔧 CONTENIDO PRINCIPAL ESTABLE */
+      .page-content-surgical {
         width: 100% !important;
         padding: ${LAYOUT.padding}mm !important;
         background: ${template.colors.background} !important;
@@ -382,16 +336,15 @@ export class PuppeteerServiceClient {
         overflow: visible !important;
         height: auto !important;
         min-height: auto !important;
-        border: none !important;
-        outline: none !important;
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: flex-start !important;
         margin-top: ${PDF_LAYOUT.HEADER_TO_CONTENT_GAP}mm !important;
         margin-bottom: ${PDF_LAYOUT.HEADER_TO_CONTENT_GAP}mm !important;
-        box-sizing: border-box !important;
-        z-index: 3 !important;
       }
       
-      /* 🔧 GRID LIMPIO */
-      .products-grid-clean {
+      /* 🔧 GRID ESTABLE */
+      .products-grid-surgical {
         width: 100% !important;
         display: grid !important;
         grid-template-columns: repeat(${PDF_LAYOUT.COLUMNS}, 1fr) !important;
@@ -402,19 +355,13 @@ export class PuppeteerServiceClient {
         height: auto !important;
         min-height: auto !important;
         overflow: visible !important;
-        page-break-inside: avoid !important;
-        break-inside: avoid !important;
+        page-break-inside: auto !important;
+        break-inside: auto !important;
         padding: 1mm 0 !important;
-        margin: 0 !important;
-        border: none !important;
-        outline: none !important;
-        background: transparent !important;
-        box-sizing: border-box !important;
-        z-index: 4 !important;
       }
       
-      /* 🚀 PRODUCT CARDS COMPLETAMENTE LIMPIAS (SIN DECORACIONES) */
-      .product-card-clean {
+      /* 🚀 PRODUCT CARDS SIN LA DECORACIÓN PROBLEMÁTICA */
+      .product-card-surgical {
         width: 100% !important;
         height: ${LAYOUT.cardHeight}mm !important;
         min-height: ${LAYOUT.cardHeight}mm !important;
@@ -431,21 +378,21 @@ export class PuppeteerServiceClient {
         position: relative !important;
         page-break-inside: avoid !important;
         break-inside: avoid !important;
+        page-break-before: auto !important;
+        page-break-after: auto !important;
+        break-before: auto !important;
+        break-after: auto !important;
         
-        /* 🔧 PADDING LIMPIO */
+        /* 🔧 PADDING OPTIMIZADO */
         padding: ${PDF_LAYOUT.CARD_INTERNAL_PADDING}mm !important;
         gap: 2mm !important;
-        margin: 0 !important;
-        outline: none !important;
-        box-sizing: border-box !important;
-        z-index: 5 !important;
       }
       
-      /* 🚀 ELIMINACIÓN COMPLETA DE CARD DECORATION (CAUSA DEL RECUADRO BLANCO) */
-      /* NO AGREGAMOS .card-decoration - COMPLETAMENTE ELIMINADA */
+      /* 🚀 ELIMINAMOS COMPLETAMENTE LA CARD DECORATION - ESTA ERA LA CAUSA DEL RECUADRO BLANCO */
+      /* NO AGREGAMOS .card-decoration-surgical */
       
-      /* 🔧 IMAGEN CONTAINER LIMPIO */
-      .image-container-clean {
+      /* 🔧 IMAGEN CONTAINER ESTABLE */
+      .image-container-surgical {
         flex: 0 0 ${LAYOUT.imageHeight}mm !important;
         height: ${LAYOUT.imageHeight}mm !important;
         min-height: ${LAYOUT.imageHeight}mm !important;
@@ -458,15 +405,10 @@ export class PuppeteerServiceClient {
         overflow: hidden !important;
         position: relative !important;
         border-radius: 3px !important;
-        border: none !important;
-        outline: none !important;
-        margin: 0 !important;
-        box-sizing: border-box !important;
-        z-index: 6 !important;
       }
       
-      /* 🔧 IMAGEN LIMPIA */
-      .product-image-clean {
+      /* 🔧 IMAGEN ESTABLE */
+      .product-image-surgical {
         max-width: 100% !important;
         max-height: 100% !important;
         width: auto !important;
@@ -481,15 +423,9 @@ export class PuppeteerServiceClient {
         transform: translateZ(0) !important;
         backface-visibility: hidden !important;
         will-change: auto !important;
-        border: none !important;
-        outline: none !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        background: transparent !important;
-        box-sizing: border-box !important;
       }
       
-      .image-placeholder-clean {
+      .image-placeholder-surgical {
         width: ${LAYOUT.imageHeight - 6}mm !important;
         height: ${LAYOUT.imageHeight - 6}mm !important;
         background: repeating-conic-gradient(from 0deg at 50% 50%, #f0f0f0 0deg 90deg, transparent 90deg 180deg) !important;
@@ -501,24 +437,17 @@ export class PuppeteerServiceClient {
         justify-content: center !important;
         flex-direction: column !important;
         overflow: hidden !important;
-        margin: 0 !important;
-        padding: 1mm !important;
-        box-sizing: border-box !important;
       }
       
-      .placeholder-content-clean {
+      .placeholder-content-surgical {
         color: #999 !important;
         font-size: 8pt !important;
         text-align: center !important;
         line-height: 1.2 !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        border: none !important;
-        background: transparent !important;
       }
       
-      /* 🚀 ÁREA DE TEXTO COMPLETAMENTE LIMPIA */
-      .text-area-clean {
+      /* 🚀 ÁREA DE TEXTO OPTIMIZADA */
+      .text-area-surgical {
         flex: 1 1 auto !important;
         min-height: ${LAYOUT.textHeight}mm !important;
         height: auto !important;
@@ -531,60 +460,43 @@ export class PuppeteerServiceClient {
         text-align: center !important;
         overflow: visible !important;
         position: relative !important;
-        background: transparent !important;
+        background: white !important;
         gap: 1.5mm !important;
-        margin: 0 !important;
-        border: none !important;
-        outline: none !important;
-        box-sizing: border-box !important;
-        z-index: 7 !important;
       }
       
-      .product-name-clean {
+      .product-name-surgical {
         font-size: ${config.nameSize}pt !important;
         font-weight: 600 !important;
         color: ${template.colors.primary} !important;
-        margin: 0 !important;
-        padding: 0 !important;
+        margin-bottom: 0 !important;
         display: -webkit-box !important;
         -webkit-line-clamp: 2 !important;
         -webkit-box-orient: vertical !important;
         overflow: hidden !important;
         word-wrap: break-word !important;
         text-align: center !important;
-        line-height: 1.2 !important;
+        line-height: 1.3 !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
         flex-shrink: 0 !important;
-        border: none !important;
-        outline: none !important;
-        background: transparent !important;
-        box-sizing: border-box !important;
       }
       
-      /* 🚀 SISTEMA DE PRECIOS COMPLETAMENTE LIMPIO */
-      .product-pricing-clean {
+      /* 🚀 SISTEMA DE PRECIOS OPTIMIZADO */
+      .product-pricing-surgical {
         display: flex !important;
         flex-direction: column !important;
         align-items: center !important;
         gap: 2mm !important;
         margin: 0 !important;
-        padding: 0 !important;
         width: 100% !important;
         flex-grow: 1 !important;
         justify-content: flex-start !important;
         overflow: visible !important;
         min-height: 0 !important;
-        border: none !important;
-        outline: none !important;
-        background: transparent !important;
-        box-sizing: border-box !important;
-        position: relative !important;
-        z-index: 8 !important;
       }
 
-      /* 🔧 PRECIO RETAIL LIMPIO */
-      .product-price-retail-clean {
+      /* 🔧 PRECIO RETAIL ESTABLE */
+      .product-price-retail-surgical {
         font-size: ${config.priceSize}pt !important;
         font-weight: 700 !important;
         color: white !important;
@@ -602,16 +514,10 @@ export class PuppeteerServiceClient {
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
         flex-shrink: 0 !important;
-        margin: 0 !important;
-        border: none !important;
-        outline: none !important;
-        position: relative !important;
-        z-index: 9 !important;
-        box-sizing: border-box !important;
       }
 
-      /* 🚀 PRECIO MAYOREO COMPLETAMENTE LIMPIO */
-      .product-price-wholesale-clean {
+      /* 🚀 PRECIO MAYOREO OPTIMIZADO */
+      .product-price-wholesale-surgical {
         display: flex !important;
         flex-direction: column !important;
         align-items: center !important;
@@ -628,14 +534,11 @@ export class PuppeteerServiceClient {
         flex-shrink: 0 !important;
         gap: 0.5mm !important;
         min-height: 8mm !important;
-        margin: 0 !important;
-        outline: none !important;
         position: relative !important;
-        z-index: 10 !important;
-        box-sizing: border-box !important;
+        z-index: 2 !important;
       }
       
-      .wholesale-label-clean {
+      .wholesale-label-surgical {
         font-size: ${Math.max(config.priceSize - 3, 5)}pt !important;
         font-weight: 500 !important;
         color: ${template.colors.text}80 !important;
@@ -644,26 +547,18 @@ export class PuppeteerServiceClient {
         line-height: 1 !important;
         margin: 0 !important;
         padding: 0 !important;
-        border: none !important;
-        outline: none !important;
-        background: transparent !important;
-        display: block !important;
       }
       
-      .wholesale-price-clean {
+      .wholesale-price-surgical {
         font-weight: 700 !important;
         color: ${template.colors.primary} !important;
         font-size: ${Math.max(config.priceSize - 1, 7)}pt !important;
         line-height: 1.1 !important;
         margin: 0 !important;
         padding: 0 !important;
-        border: none !important;
-        outline: none !important;
-        background: transparent !important;
-        display: block !important;
       }
       
-      .wholesale-min-clean {
+      .wholesale-min-surgical {
         font-size: ${Math.max(config.priceSize - 4, 5)}pt !important;
         color: ${template.colors.text}60 !important;
         font-weight: 400 !important;
@@ -671,13 +566,9 @@ export class PuppeteerServiceClient {
         line-height: 1 !important;
         margin: 0 !important;
         padding: 0 !important;
-        border: none !important;
-        outline: none !important;
-        background: transparent !important;
-        display: block !important;
       }
       
-      /* 🚀 MEDIA PRINT COMPLETAMENTE LIMPIO */
+      /* 🚀 MEDIA PRINT OPTIMIZADO */
       @media print {
         * {
           -webkit-print-color-adjust: exact !important;
@@ -691,126 +582,84 @@ export class PuppeteerServiceClient {
           overflow: visible !important;
           width: auto !important;
           height: auto !important;
-          background: ${template.colors.background} !important;
-          border: none !important;
-          outline: none !important;
         }
         
-        .page-container-clean,
-        .page-content-clean,
-        .products-grid-clean {
+        .page-container-surgical,
+        .page-content-surgical,
+        .products-grid-surgical {
           overflow: visible !important;
           position: relative !important;
           height: auto !important;
-          background: ${template.colors.background} !important;
-          border: none !important;
-          outline: none !important;
         }
         
-        .page-container-clean {
-          page-break-inside: avoid !important;
-          break-inside: avoid !important;
+        .page-container-surgical {
+          page-break-inside: auto !important;
+          break-inside: auto !important;
         }
         
-        .page-container-clean:not(:first-child) {
+        .page-container-surgical:not(:first-child) {
           page-break-before: always !important;
           break-before: page !important;
         }
         
-        .page-container-clean:last-child {
+        .page-container-surgical:last-child {
           page-break-after: avoid !important;
           break-after: avoid !important;
         }
         
-        .product-card-clean {
+        .product-card-surgical {
           page-break-inside: avoid !important;
           break-inside: avoid !important;
           overflow: visible !important;
           max-height: none !important;
           min-height: calc(${LAYOUT.cardHeight}mm + 5mm) !important;
-          background: white !important;
-          border: 0.5pt solid ${template.colors.accent}60 !important;
-          outline: none !important;
         }
         
-        .product-image-clean {
+        .product-image-surgical {
           -webkit-print-color-adjust: exact !important;
           print-color-adjust: exact !important;
           color-adjust: exact !important;
-          border: none !important;
-          outline: none !important;
         }
         
-        /* 🚀 FIXES FINALES PARA PRINT */
-        .text-area-clean {
+        /* 🚀 FIXES PARA PRINT */
+        .text-area-surgical {
           overflow: visible !important;
           height: auto !important;
           min-height: calc(${LAYOUT.textHeight}mm + 5mm) !important;
-          background: transparent !important;
-          border: none !important;
-          outline: none !important;
         }
         
-        .product-pricing-clean {
+        .product-pricing-surgical {
           overflow: visible !important;
           height: auto !important;
           gap: 2.5mm !important;
           min-height: 15mm !important;
-          background: transparent !important;
-          border: none !important;
-          outline: none !important;
         }
         
-        .product-price-wholesale-clean {
+        .product-price-wholesale-surgical {
           overflow: visible !important;
           min-height: 10mm !important;
           padding: 2.5mm !important;
           margin-top: 1mm !important;
-          background: rgba(0,0,0,0.05) !important;
-          border: 0.25pt solid ${template.colors.accent}50 !important;
-          outline: none !important;
+          position: relative !important;
+          z-index: 10 !important;
         }
         
-        /* 🚀 ALTURA ADICIONAL PARA CARDS EN PRINT */
-        .products-grid-clean {
+        .products-grid-surgical {
           grid-auto-rows: calc(${LAYOUT.cardHeight}mm + 5mm) !important;
-          background: ${template.colors.background} !important;
-          border: none !important;
-          outline: none !important;
         }
       }
       
-      /* 🚀 ELIMINACIÓN TOTAL DE PSEUDO-ELEMENTOS (CRÍTICO) */
-      .page-container-clean *::before,
-      .page-container-clean *::after,
-      .page-content-clean *::before,
-      .page-content-clean *::after,
-      .products-grid-clean *::before,
-      .products-grid-clean *::after,
-      .product-card-clean *::before,
-      .product-card-clean *::after,
-      .text-area-clean *::before,
-      .text-area-clean *::after,
-      .product-pricing-clean *::before,
-      .product-pricing-clean *::after {
+      /* 🚀 ELIMINACIÓN QUIRÚRGICA SOLO DE PSEUDO-ELEMENTOS PROBLEMÁTICOS */
+      .product-card-surgical::before,
+      .product-card-surgical::after {
         display: none !important;
         content: none !important;
-        visibility: hidden !important;
-        opacity: 0 !important;
-        width: 0 !important;
-        height: 0 !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        border: none !important;
-        background: none !important;
-        position: absolute !important;
-        z-index: -1 !important;
       }
     `;
   }
   
-  // 🔧 GENERACIÓN DE PÁGINAS LIMPIAS
-  private static generateCleanPages(
+  // 🔧 GENERACIÓN DE PÁGINAS ESTABLE
+  private static generateSurgicalPages(
     products: Product[],
     businessInfo: BusinessInfo,
     template: TemplateConfig,
@@ -828,9 +677,9 @@ export class PuppeteerServiceClient {
       if (pageProducts.length === 0) continue;
       
       pagesHTML += `
-        <div class="page-container-clean">
-          <div class="page-content-clean">
-            ${this.generateCleanGrid(pageProducts)}
+        <div class="page-container-surgical">
+          <div class="page-content-surgical">
+            ${this.generateSurgicalGrid(pageProducts)}
           </div>
         </div>
       `;
@@ -839,20 +688,20 @@ export class PuppeteerServiceClient {
     return pagesHTML;
   }
   
-  // 🔧 GRID LIMPIO
-  private static generateCleanGrid(products: Product[]): string {
-    let gridHTML = '<div class="products-grid-clean">';
+  // 🔧 GRID ESTABLE
+  private static generateSurgicalGrid(products: Product[]): string {
+    let gridHTML = '<div class="products-grid-surgical">';
     
     products.forEach(product => {
-      gridHTML += this.generateCleanProductCard(product);
+      gridHTML += this.generateSurgicalProductCard(product);
     });
     
     gridHTML += '</div>';
     return gridHTML;
   }
   
-  // 🚀 PRODUCTO CARD COMPLETAMENTE LIMPIO (SIN DECORACIONES)
-  private static generateCleanProductCard(product: Product): string {
+  // 🚀 PRODUCTO CARD SIN DECORACIÓN PROBLEMÁTICA
+  private static generateSurgicalProductCard(product: Product): string {
     const productName = product.name || 'Producto';
     const productPrice = typeof product.price_retail === 'number' ? product.price_retail : 0;
     const productImage = product.image_url || '';
@@ -861,42 +710,42 @@ export class PuppeteerServiceClient {
       `<img 
          src="${productImage}" 
          alt="${productName}"
-         class="product-image-clean" 
+         class="product-image-surgical" 
          loading="eager" 
          crossorigin="anonymous"
          onload="this.style.opacity=1"
          onerror="this.style.display='none'"
        />` :
-      `<div class="image-placeholder-clean">
-         <div class="placeholder-content-clean">
+      `<div class="image-placeholder-surgical">
+         <div class="placeholder-content-surgical">
            <div style="font-size: 12pt; margin-bottom: 1mm;">📷</div>
            <div>Sin imagen</div>
          </div>
        </div>`;
     
     const wholesalePriceHTML = product.price_wholesale ? `
-      <div class="product-price-wholesale-clean">
-        <span class="wholesale-label-clean">Mayoreo:</span>
-        <span class="wholesale-price-clean">$${(product.price_wholesale / 100).toLocaleString('es-MX', { 
+      <div class="product-price-wholesale-surgical">
+        <span class="wholesale-label-surgical">Mayoreo:</span>
+        <span class="wholesale-price-surgical">$${(product.price_wholesale / 100).toLocaleString('es-MX', { 
           minimumFractionDigits: 2,
           maximumFractionDigits: 2
         })}</span>
         ${product.wholesale_min_qty ? `
-          <span class="wholesale-min-clean">Min. ${product.wholesale_min_qty}</span>
+          <span class="wholesale-min-surgical">Min. ${product.wholesale_min_qty}</span>
         ` : ''}
       </div>
     ` : '';
     
     return `
-      <div class="product-card-clean">
-        <div class="image-container-clean">
+      <div class="product-card-surgical">
+        <div class="image-container-surgical">
           ${imageHTML}
         </div>
         
-        <div class="text-area-clean">
-          <div class="product-name-clean">${productName}</div>
-          <div class="product-pricing-clean">
-            <div class="product-price-retail-clean">$${(productPrice / 100).toLocaleString('es-MX', { 
+        <div class="text-area-surgical">
+          <div class="product-name-surgical">${productName}</div>
+          <div class="product-pricing-surgical">
+            <div class="product-price-retail-surgical">$${(productPrice / 100).toLocaleString('es-MX', { 
               minimumFractionDigits: 2,
               maximumFractionDigits: 2
             })}</div>
@@ -907,7 +756,7 @@ export class PuppeteerServiceClient {
     `;
   }
   
-  // 🚨 PDF OPTIONS (MANTENER EXACTAMENTE IGUALES - NO TOCAR)
+  // 🚨 PDF OPTIONS (MANTENER EXACTAMENTE IGUALES)
   private static getMultipagePDFOptions(
     options: PuppeteerServiceOptions, 
     businessInfo: BusinessInfo, 
@@ -922,10 +771,10 @@ export class PuppeteerServiceClient {
     return {
       format: options.format || 'A4',
       margin: {
-        top: `${PDF_LAYOUT.HEADER_MARGIN}mm`,    // MANTENER: 15mm
-        right: `${PDF_LAYOUT.SIDE_MARGIN}mm`,    // MANTENER: 10mm
-        bottom: `${PDF_LAYOUT.FOOTER_MARGIN}mm`, // MANTENER: 12mm
-        left: `${PDF_LAYOUT.SIDE_MARGIN}mm`      // MANTENER: 10mm
+        top: `${PDF_LAYOUT.HEADER_MARGIN}mm`,
+        right: `${PDF_LAYOUT.SIDE_MARGIN}mm`,
+        bottom: `${PDF_LAYOUT.FOOTER_MARGIN}mm`,
+        left: `${PDF_LAYOUT.SIDE_MARGIN}mm`
       },
       printBackground: true,
       preferCSSPageSize: true,
@@ -936,7 +785,6 @@ export class PuppeteerServiceClient {
       scale: 1.0,
       quality: options.quality === 'high' ? 100 : options.quality === 'low' ? 80 : 90,
       
-      // 🚨 MANTENER HEADER/FOOTER TEMPLATES EXACTAMENTE IGUALES
       headerTemplate: `<div style="font-size: 12px !important; width: 100% !important; height: ${PDF_LAYOUT.HEADER_HEIGHT}mm !important; text-align: center !important; background: ${primaryColor} !important; background-image: linear-gradient(135deg, ${primaryColor}, ${secondaryColor}) !important; color: white !important; padding: 2mm !important; margin: 0 !important; border-radius: 4px !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; display: table !important; table-layout: fixed !important;"><div style="display: table-cell; vertical-align: middle; text-align: center;"><strong style="color: white !important; font-size: 14px !important;">${businessInfo.business_name || 'Mi Negocio'}</strong><br><span style="color: rgba(255,255,255,0.9) !important; font-size: 10px !important;">${catalogTitle}</span></div></div>`,
       
       footerTemplate: `<div style="font-size: 9px !important; width: 100% !important; height: ${PDF_LAYOUT.FOOTER_HEIGHT}mm !important; text-align: center !important; background: ${secondaryColor} !important; color: white !important; padding: 1mm !important; margin: 0 !important; border-radius: 4px !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; display: table !important; table-layout: fixed !important;"><div style="display: table-cell; vertical-align: middle; text-align: center;">${contactInfo ? `<div style="color: white !important; font-size: 8px !important; margin-bottom: 1mm !important;">${contactInfo}</div>` : ''}<div style="color: rgba(255,255,255,0.8) !important; font-size: 7px !important;">Generado con CatifyPro - <span class="pageNumber"></span> de <span class="totalPages"></span></div></div></div>`,
@@ -1029,7 +877,7 @@ export class PuppeteerServiceClient {
               width: 1024,
               height: 768
             },
-            waitForSelector: '.page-container-clean',
+            waitForSelector: '.page-container-surgical',
             waitForFunction: 'document.readyState === "complete"',
           },
           filename: `catalogo-${businessInfo.business_name.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`,
@@ -1042,7 +890,7 @@ export class PuppeteerServiceClient {
           headers: {
             'Content-Type': 'application/json',
             'Accept': 'application/pdf',
-            'User-Agent': 'CatifyPro-PDF-Generator/2.0-FinalClean'
+            'User-Agent': 'CatifyPro-PDF-Generator/2.0-Surgical'
           },
           body: JSON.stringify(requestPayload),
           signal: controller.signal
@@ -1063,7 +911,7 @@ export class PuppeteerServiceClient {
           throw new Error('PDF vacío recibido del servicio');
         }
         
-        console.log(`✅ PDF FINAL LIMPIO generado en intento ${attempt}/${maxRetries}, tamaño: ${blob.size} bytes`);
+        console.log(`✅ PDF quirúrgico generado en intento ${attempt}/${maxRetries}, tamaño: ${blob.size} bytes`);
         return blob;
         
       } catch (error) {
@@ -1083,7 +931,7 @@ export class PuppeteerServiceClient {
   private static async downloadPDF(blob: Blob, businessName: string): Promise<void> {
     try {
       const downloadUrl = URL.createObjectURL(blob);
-      const filename = `catalogo-limpio-${businessName.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
+      const filename = `catalogo-${businessName.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
       
       const link = document.createElement('a');
       link.href = downloadUrl;
@@ -1114,7 +962,7 @@ export class PuppeteerServiceClient {
       }
       
       const blob = await response.blob();
-      await this.downloadPDF(blob, 'test-final-clean');
+      await this.downloadPDF(blob, 'test-surgical');
       
       return { 
         success: true,
