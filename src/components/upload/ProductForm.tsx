@@ -84,7 +84,11 @@ export const ProductForm = ({ product, imageUrl, onUpdate, priceDisplayMode }: P
                 onChange={(e) => handleInputChange('name', e.target.value)}
                 placeholder="Ej: iPhone 15 Pro Max"
                 className="w-full"
+                maxLength={32}
               />
+              <div className="text-xs text-muted-foreground text-right">
+                {product.name.length}/32 caracteres
+              </div>
             </div>
 
             <div className="space-y-2">

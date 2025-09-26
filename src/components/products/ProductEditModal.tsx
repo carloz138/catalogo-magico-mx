@@ -209,7 +209,11 @@ export const ProductEditModal = ({ product, isOpen, onClose, onProductUpdate }: 
                 value={formData.name}
                 onChange={(e) => handleInputChange('name', e.target.value)}
                 placeholder="Ej: iPhone 15 Pro Max"
+                maxLength={32}
               />
+              <div className="text-xs text-muted-foreground text-right">
+                {formData.name.length}/32 caracteres
+              </div>
             </div>
 
             <div className="space-y-2">
