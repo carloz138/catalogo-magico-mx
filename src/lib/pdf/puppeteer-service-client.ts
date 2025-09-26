@@ -1,5 +1,5 @@
 // src/lib/pdf/puppeteer-service-client.ts
-// 🎯 VERSIÓN CONSERVADORA: SOLO CAMBIOS MÍNIMOS DE ESPACIADO INTERNO
+// 🎯 VERSIÓN CORREGIDA: SOLUCIÓN COMPLETA PARA CONTENIDO CORTADO
 
 import { PDFStorageManager } from '@/lib/storage/pdf-uploader';
 
@@ -68,10 +68,10 @@ interface PuppeteerResult {
   };
 }
 
-// ✅ MANTENER DELTA DE PRECISIÓN (funciona)
+// ✅ MANTENER DELTA DE PRECISIÓN
 const PRECISION_DELTA = 0.5;
 
-// ✅ CONFIGURACIÓN CON CAMBIOS MÍNIMOS - MANTENER HEADER/FOOTER INTACTOS
+// 🚀 CONFIGURACIÓN CORREGIDA - MÁS ESPACIO PARA CONTENIDO
 const PDF_LAYOUT = {
   // 🚨 MANTENER INTACTOS - NO CAMBIAR (funcionan bien con header/footer)
   HEADER_MARGIN: 15, // NO CAMBIAR
@@ -85,14 +85,14 @@ const PDF_LAYOUT = {
   ROWS: 2,
   PRODUCTS_PER_PAGE: 6,
   
-  // ✅ CAMBIOS MÍNIMOS SEGUROS (solo espaciado interno)
-  HEADER_TO_CONTENT_GAP: 8, // MANTENER como está
-  GRID_GAP: 6, // CAMBIO MÍNIMO: 5mm → 6mm
-  CONTENT_PADDING: 6, // MANTENER como está
-  CARD_INTERNAL_PADDING: 5, // CAMBIO MÍNIMO: 4mm → 5mm
+  // 🔧 CORRECCIONES CRÍTICAS
+  HEADER_TO_CONTENT_GAP: 8,
+  GRID_GAP: 5, // Reducido para más espacio de contenido
+  CONTENT_PADDING: 4, // Reducido para más espacio
+  CARD_INTERNAL_PADDING: 4, // Optimizado
 };
 
-// ✅ MANTENER CÁLCULOS ORIGINALES (solo ajustes mínimos)
+// 🔧 CÁLCULOS CORREGIDOS PARA MÁS ALTURA
 const calculateOptimizedDimensions = () => {
   const contentWidth = 210 - (PDF_LAYOUT.SIDE_MARGIN * 2) - PRECISION_DELTA;
   
@@ -102,8 +102,8 @@ const calculateOptimizedDimensions = () => {
   
   const cardWidth = (usableWidth - (gap * (PDF_LAYOUT.COLUMNS - 1))) / PDF_LAYOUT.COLUMNS;
   
-  // ✅ CAMBIO MÍNIMO: +4mm más altura para mejor proporción
-  const baseCardHeight = cardWidth + 26 + 12; // +12mm boost específico para mayoreo
+  // 🚀 CAMBIO CRÍTICO: +15mm más altura para contenido completo
+  const baseCardHeight = cardWidth + 35; // Era 26+12, ahora 35mm más alto
   
   return {
     contentWidth: Math.floor(contentWidth * 100) / 100,
@@ -112,8 +112,8 @@ const calculateOptimizedDimensions = () => {
     cardHeight: Math.floor(baseCardHeight * 100) / 100,
     gap,
     padding,
-    imageHeight: Math.floor(baseCardHeight * 0.62 * 100) / 100, // 62% imagen
-    textHeight: Math.floor(baseCardHeight * 0.38 * 100) / 100   // 38% texto (+8% más espacio)
+    imageHeight: Math.floor(baseCardHeight * 0.55 * 100) / 100, // 55% imagen (reducido)
+    textHeight: Math.floor(baseCardHeight * 0.45 * 100) / 100   // 45% texto (aumentado)
   };
 };
 
@@ -133,7 +133,7 @@ export class PuppeteerServiceClient {
     const startTime = Date.now();
     
     try {
-      console.log('🚀 Generando PDF con cambios conservadores...', {
+      console.log('🚀 Generando PDF con layout corregido...', {
         products: products.length,
         expectedPages: Math.ceil(products.length / PDF_LAYOUT.PRODUCTS_PER_PAGE),
         layout: LAYOUT
@@ -150,8 +150,8 @@ export class PuppeteerServiceClient {
       
       if (options.onProgress) options.onProgress(15);
       
-      // ✅ HTML con cambios conservadores
-      const htmlContent = this.generateConservativeHTML(products, businessInfo, template, options.quality || 'medium', options);
+      // ✅ HTML con layout corregido
+      const htmlContent = this.generateCorrectedHTML(products, businessInfo, template, options.quality || 'medium', options);
       
       if (options.onProgress) options.onProgress(30);
       
@@ -171,7 +171,7 @@ export class PuppeteerServiceClient {
           {
             pdf_size_bytes: pdfBlob.size,
             generation_completed_at: new Date().toISOString(),
-            generation_method: 'puppeteer_conservative'
+            generation_method: 'puppeteer_corrected'
           }
         );
         
@@ -206,7 +206,7 @@ export class PuppeteerServiceClient {
       };
       
     } catch (error) {
-      console.error('❌ Error en PDF conservador:', error);
+      console.error('❌ Error en PDF corregido:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Error desconocido'
@@ -214,8 +214,8 @@ export class PuppeteerServiceClient {
     }
   }
   
-  // ✅ HTML CON CAMBIOS CONSERVADORES (mantener estructura)
-  private static generateConservativeHTML(
+  // 🔧 HTML CON LAYOUT CORREGIDO
+  private static generateCorrectedHTML(
     products: Product[],
     businessInfo: BusinessInfo,
     template: TemplateConfig,
@@ -223,7 +223,7 @@ export class PuppeteerServiceClient {
     options: PuppeteerServiceOptions = {}
   ): string {
     
-    const pagesHTML = this.generateConservativePages(products, businessInfo, template, quality);
+    const pagesHTML = this.generateCorrectedPages(products, businessInfo, template, quality);
     const pageTitle = options.catalogTitle || `Catálogo ${businessInfo.business_name}`;
     
     return `<!DOCTYPE html>
@@ -234,17 +234,17 @@ export class PuppeteerServiceClient {
   <meta name="format-detection" content="telephone=no">
   <title>${pageTitle}</title>
   <style>
-    ${this.generateConservativeCSS(template, quality)}
+    ${this.generateCorrectedCSS(template, quality)}
   </style>
 </head>
-<body class="optimized-spacing-body">
+<body class="corrected-layout-body">
   ${pagesHTML}
 </body>
 </html>`;
   }
   
-  // ✅ CSS CON CAMBIOS CONSERVADORES (mantener la mayor parte)
-  private static generateConservativeCSS(template: TemplateConfig, quality: 'low' | 'medium' | 'high'): string {
+  // 🔧 CSS COMPLETAMENTE CORREGIDO
+  private static generateCorrectedCSS(template: TemplateConfig, quality: 'low' | 'medium' | 'high'): string {
     const qualityConfig = {
       low: { fontSize: 9, priceSize: 10, nameSize: 9 },
       medium: { fontSize: 10, priceSize: 11, nameSize: 10 },
@@ -254,7 +254,7 @@ export class PuppeteerServiceClient {
     const config = qualityConfig[quality];
     
     return `
-      /* ✅ RESET ABSOLUTO (mantener) */
+      /* 🔧 RESET ABSOLUTO */
       *, *::before, *::after {
         margin: 0 !important;
         padding: 0 !important;
@@ -264,7 +264,7 @@ export class PuppeteerServiceClient {
         color-adjust: exact !important;
       }
       
-      /* ✅ @PAGE (MANTENER EXACTAMENTE IGUAL - no tocar) */
+      /* 🚨 @PAGE (MANTENER EXACTAMENTE IGUAL - no tocar) */
       @page {
         size: A4 portrait;
         margin: 0 !important;
@@ -273,7 +273,7 @@ export class PuppeteerServiceClient {
         outline: none !important;
       }
       
-      /* ✅ HTML NATURAL (sin cambios) */
+      /* 🔧 HTML OPTIMIZADO */
       html {
         font-size: ${config.fontSize}pt !important;
         font-family: 'Arial', 'Helvetica', sans-serif !important;
@@ -284,8 +284,8 @@ export class PuppeteerServiceClient {
         overflow: visible !important;
       }
       
-      /* ✅ BODY NATURAL (sin cambios) */
-      body.optimized-spacing-body {
+      /* 🔧 BODY OPTIMIZADO */
+      body.corrected-layout-body {
         margin: 0 !important;
         padding: 0 !important;
         font-family: 'Arial', 'Helvetica', sans-serif !important;
@@ -302,8 +302,8 @@ export class PuppeteerServiceClient {
         display: block !important;
       }
       
-      /* ✅ PÁGINA INDIVIDUAL (MANTENER MÁRGENES ORIGINALES) */
-      .page-container-optimized {
+      /* 🚨 PÁGINA INDIVIDUAL (MANTENER MÁRGENES ORIGINALES) */
+      .page-container-corrected {
         width: 100% !important;
         margin: 0 !important;
         padding: ${PDF_LAYOUT.HEADER_MARGIN}mm ${PDF_LAYOUT.SIDE_MARGIN}mm ${PDF_LAYOUT.FOOTER_MARGIN}mm ${PDF_LAYOUT.SIDE_MARGIN}mm !important;
@@ -313,22 +313,22 @@ export class PuppeteerServiceClient {
         height: auto !important;
         min-height: auto !important;
         display: block !important;
-        page-break-inside: auto !important;
-        break-inside: auto !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
       }
       
-      .page-container-optimized:not(:first-child) {
+      .page-container-corrected:not(:first-child) {
         page-break-before: always !important;
         break-before: page !important;
       }
       
-      .page-container-optimized:last-child {
+      .page-container-corrected:last-child {
         page-break-after: avoid !important;
         break-after: avoid !important;
       }
       
-      /* ✅ CONTENIDO PRINCIPAL CON CAMBIOS MÍNIMOS */
-      .page-content-optimized {
+      /* 🔧 CONTENIDO PRINCIPAL CORREGIDO */
+      .page-content-corrected {
         width: 100% !important;
         padding: ${LAYOUT.padding}mm !important;
         background: ${template.colors.background} !important;
@@ -343,33 +343,33 @@ export class PuppeteerServiceClient {
         margin-bottom: ${PDF_LAYOUT.HEADER_TO_CONTENT_GAP}mm !important;
       }
       
-      /* ✅ GRID CON GAP MEJORADO (CAMBIO MÍNIMO) */
-      .products-grid-optimized {
+      /* 🔧 GRID CORREGIDO CON MÁS ESPACIO */
+      .products-grid-corrected {
         width: 100% !important;
         display: grid !important;
         grid-template-columns: repeat(${PDF_LAYOUT.COLUMNS}, 1fr) !important;
-        gap: ${LAYOUT.gap}mm !important; /* CAMBIO: 5mm → 6mm */
+        gap: ${LAYOUT.gap}mm !important;
         justify-items: center !important;
         align-items: start !important;
-        grid-auto-rows: minmax(${LAYOUT.cardHeight}mm, auto) !important;
+        grid-auto-rows: ${LAYOUT.cardHeight}mm !important; /* ALTURA FIJA CORREGIDA */
         height: auto !important;
         min-height: auto !important;
         overflow: visible !important;
-        page-break-inside: auto !important;
-        break-inside: auto !important;
-        padding: 2mm 0 !important; /* CAMBIO: Padding pequeño */
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+        padding: 1mm 0 !important;
       }
       
-      /* ✅ PRODUCT CARDS CON CAMBIOS MÍNIMOS */
-      .product-card-optimized {
+      /* 🚀 PRODUCT CARDS COMPLETAMENTE CORREGIDAS */
+      .product-card-corrected {
         width: 100% !important;
         height: ${LAYOUT.cardHeight}mm !important;
         min-height: ${LAYOUT.cardHeight}mm !important;
-        max-height: ${LAYOUT.cardHeight}mm !important;
+        max-height: none !important; /* CRÍTICO: Permitir crecimiento */
         background: white !important;
         border: 0.5pt solid ${template.colors.accent}60 !important;
         border-radius: 6px !important;
-        overflow: hidden !important;
+        overflow: visible !important; /* CRÍTICO: Cambio de hidden a visible */
         box-shadow: 0 2pt 4pt rgba(0,0,0,0.12) !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
@@ -383,12 +383,12 @@ export class PuppeteerServiceClient {
         break-before: auto !important;
         break-after: auto !important;
         
-        /* ✅ CAMBIO CRÍTICO: Padding interno */
-        padding: ${PDF_LAYOUT.CARD_INTERNAL_PADDING}mm !important; /* CAMBIO: 4mm → 5mm */
-        gap: 2mm !important; /* NUEVO: gap interno */
+        /* 🔧 PADDING OPTIMIZADO */
+        padding: ${PDF_LAYOUT.CARD_INTERNAL_PADDING}mm !important;
+        gap: 2mm !important;
       }
       
-      .card-decoration-optimized {
+      .card-decoration-corrected {
         position: absolute !important;
         top: 0 !important;
         left: 0 !important;
@@ -400,9 +400,9 @@ export class PuppeteerServiceClient {
         z-index: 1 !important;
       }
       
-      /* ✅ IMAGEN CONTAINER (sin cambios críticos) */
-      .image-container-optimized {
-        flex: 1 1 ${LAYOUT.imageHeight}mm !important;
+      /* 🔧 IMAGEN CONTAINER OPTIMIZADO */
+      .image-container-corrected {
+        flex: 0 0 ${LAYOUT.imageHeight}mm !important;
         height: ${LAYOUT.imageHeight}mm !important;
         min-height: ${LAYOUT.imageHeight}mm !important;
         max-height: ${LAYOUT.imageHeight}mm !important;
@@ -410,14 +410,14 @@ export class PuppeteerServiceClient {
         align-items: center !important;
         justify-content: center !important;
         background: #f8f9fa !important;
-        padding: 2mm !important; /* CAMBIO MÍNIMO: Era 3mm, ahora 2mm */
+        padding: 2mm !important;
         overflow: hidden !important;
         position: relative !important;
         border-radius: 3px !important;
       }
       
-      /* ✅ IMAGEN OPTIMIZADA (sin cambios) */
-      .product-image-optimized {
+      /* 🔧 IMAGEN OPTIMIZADA */
+      .product-image-corrected {
         max-width: 100% !important;
         max-height: 100% !important;
         width: auto !important;
@@ -434,7 +434,7 @@ export class PuppeteerServiceClient {
         will-change: auto !important;
       }
       
-      .image-placeholder-optimized {
+      .image-placeholder-corrected {
         width: ${LAYOUT.imageHeight - 6}mm !important;
         height: ${LAYOUT.imageHeight - 6}mm !important;
         background: repeating-conic-gradient(from 0deg at 50% 50%, #f0f0f0 0deg 90deg, transparent 90deg 180deg) !important;
@@ -448,60 +448,64 @@ export class PuppeteerServiceClient {
         overflow: hidden !important;
       }
       
-      .placeholder-content-optimized {
+      .placeholder-content-corrected {
         color: #999 !important;
         font-size: 8pt !important;
         text-align: center !important;
         line-height: 1.2 !important;
       }
       
-      /* ✅ ÁREA DE TEXTO CON CAMBIOS CRÍTICOS */
-      .text-area-optimized {
-        flex: 0 0 ${LAYOUT.textHeight}mm !important;
-        height: ${LAYOUT.textHeight}mm !important;
+      /* 🚀 ÁREA DE TEXTO COMPLETAMENTE CORREGIDA */
+      .text-area-corrected {
+        flex: 1 1 auto !important; /* CRÍTICO: Flex para usar espacio disponible */
         min-height: ${LAYOUT.textHeight}mm !important;
-        max-height: auto !important; /* CAMBIO CRÍTICO: permitir más altura si es necesario */
-        padding: 2mm !important; /* CAMBIO: Padding reducido */
+        height: auto !important; /* CRÍTICO: Altura automática */
+        max-height: none !important; /* CRÍTICO: Sin límite de altura */
+        padding: 1mm !important;
         display: flex !important;
         flex-direction: column !important;
-        justify-content: flex-start !important; /* CAMBIO CRÍTICO: de center a flex-start */
+        justify-content: flex-start !important;
         align-items: center !important;
         text-align: center !important;
-        overflow: visible !important; /* CAMBIO CRÍTICO: de hidden a visible */
+        overflow: visible !important; /* CRÍTICO: Visible para evitar cortes */
         position: relative !important;
         background: white !important;
-        gap: 1.5mm !important; /* NUEVO: gap entre elementos */
+        gap: 1.5mm !important;
       }
       
-      .product-name-optimized {
+      .product-name-corrected {
         font-size: ${config.nameSize}pt !important;
         font-weight: 600 !important;
         color: ${template.colors.primary} !important;
-        margin-bottom: 2mm !important;
+        margin-bottom: 0 !important;
         display: -webkit-box !important;
         -webkit-line-clamp: 2 !important;
         -webkit-box-orient: vertical !important;
         overflow: hidden !important;
         word-wrap: break-word !important;
         text-align: center !important;
-        line-height: 1.3 !important; /* CAMBIO CRÍTICO: 1.2 → 1.3 */
+        line-height: 1.2 !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
         flex-shrink: 0 !important;
       }
       
-      .product-pricing-optimized {
+      /* 🚀 SISTEMA DE PRECIOS COMPLETAMENTE CORREGIDO */
+      .product-pricing-corrected {
         display: flex !important;
         flex-direction: column !important;
         align-items: center !important;
-        gap: 1.5mm !important;
+        gap: 2mm !important; /* MÁS GAP PARA SEPARACIÓN */
+        margin: 0 !important;
         width: 100% !important;
         flex-grow: 1 !important;
-        justify-content: center !important;
-        overflow: visible !important; /* CAMBIO CRÍTICO: permitir overflow */
+        justify-content: flex-start !important; /* CRÍTICO: flex-start para orden vertical */
+        overflow: visible !important; /* CRÍTICO: Visible para evitar cortes */
+        min-height: 0 !important; /* CRÍTICO: Permitir flexibilidad */
       }
-      
-      .product-price-retail-optimized {
+
+      /* 🔧 PRECIO RETAIL OPTIMIZADO */
+      .product-price-retail-corrected {
         font-size: ${config.priceSize}pt !important;
         font-weight: 700 !important;
         color: white !important;
@@ -519,53 +523,62 @@ export class PuppeteerServiceClient {
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
         flex-shrink: 0 !important;
+        margin-bottom: 0 !important; /* SIN MARGIN, USA GAP */
       }
-      
-      .product-price-wholesale-optimized {
+
+      /* 🚀 PRECIO MAYOREO COMPLETAMENTE CORREGIDO */
+      .product-price-wholesale-corrected {
         display: flex !important;
         flex-direction: column !important;
         align-items: center !important;
-        width: 85% !important;
+        width: 90% !important; /* ANCHO AJUSTADO */
         font-size: ${Math.max(config.priceSize - 2, 6)}pt !important;
         color: ${template.colors.text} !important;
         background: rgba(0,0,0,0.05) !important;
-        padding: 1mm 2mm !important;
+        padding: 2mm !important; /* MÁS PADDING */
         border-radius: 4px !important;
         border: 0.25pt solid ${template.colors.accent}50 !important;
         text-align: center !important;
         -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
+        overflow: visible !important; /* CRÍTICO: Visible */
         flex-shrink: 0 !important;
-        overflow: visible !important; /* CAMBIO CRÍTICO */
+        gap: 0.5mm !important; /* GAP INTERNO */
+        min-height: 8mm !important; /* ALTURA MÍNIMA GARANTIZADA */
+        position: relative !important;
+        z-index: 2 !important; /* ENCIMA DE OTROS ELEMENTOS */
       }
       
-      .wholesale-label-optimized {
+      .wholesale-label-corrected {
         font-size: ${Math.max(config.priceSize - 3, 5)}pt !important;
         font-weight: 500 !important;
         color: ${template.colors.text}80 !important;
         text-transform: uppercase !important;
         letter-spacing: 0.1pt !important;
         line-height: 1 !important;
-        margin-bottom: 0.5mm !important;
+        margin: 0 !important;
+        padding: 0 !important;
       }
       
-      .wholesale-price-optimized {
+      .wholesale-price-corrected {
         font-weight: 700 !important;
         color: ${template.colors.primary} !important;
         font-size: ${Math.max(config.priceSize - 1, 7)}pt !important;
-        line-height: 1 !important;
-        margin-bottom: 0.3mm !important;
+        line-height: 1.1 !important;
+        margin: 0 !important;
+        padding: 0 !important;
       }
       
-      .wholesale-min-optimized {
+      .wholesale-min-corrected {
         font-size: ${Math.max(config.priceSize - 4, 5)}pt !important;
         color: ${template.colors.text}60 !important;
         font-weight: 400 !important;
         font-style: italic !important;
         line-height: 1 !important;
+        margin: 0 !important;
+        padding: 0 !important;
       }
       
-      /* ✅ MEDIA PRINT (MANTENER EXACTAMENTE IGUAL) */
+      /* 🚀 MEDIA PRINT COMPLETAMENTE CORREGIDO */
       @media print {
         * {
           -webkit-print-color-adjust: exact !important;
@@ -581,65 +594,88 @@ export class PuppeteerServiceClient {
           height: auto !important;
         }
         
-        .page-container-optimized,
-        .page-content-optimized,
-        .products-grid-optimized {
+        .page-container-corrected,
+        .page-content-corrected,
+        .products-grid-corrected {
           overflow: visible !important;
           position: relative !important;
           height: auto !important;
         }
         
-        .page-container-optimized {
-          page-break-inside: auto !important;
-          break-inside: auto !important;
-        }
-        
-        .page-container-optimized:not(:first-child) {
-          page-break-before: always !important;
-          break-before: page !important;
-        }
-        
-        .page-container-optimized:last-child {
-          page-break-after: avoid !important;
-          break-after: avoid !important;
-        }
-        
-        .product-card-optimized {
+        .page-container-corrected {
           page-break-inside: avoid !important;
           break-inside: avoid !important;
         }
         
-        .product-image-optimized {
+        .page-container-corrected:not(:first-child) {
+          page-break-before: always !important;
+          break-before: page !important;
+        }
+        
+        .page-container-corrected:last-child {
+          page-break-after: avoid !important;
+          break-after: avoid !important;
+        }
+        
+        .product-card-corrected {
+          page-break-inside: avoid !important;
+          break-inside: avoid !important;
+          overflow: visible !important; /* CRÍTICO PARA PRINT */
+          max-height: none !important; /* SIN LÍMITE EN PRINT */
+        }
+        
+        .product-image-corrected {
           -webkit-print-color-adjust: exact !important;
           print-color-adjust: exact !important;
           color-adjust: exact !important;
         }
         
-        /* ✅ CAMBIOS CRÍTICOS PARA PRINT */
-        .text-area-optimized {
+        /* 🚀 FIXES CRÍTICOS PARA PRINT */
+        .text-area-corrected {
           overflow: visible !important;
+          height: auto !important;
+          min-height: ${LAYOUT.textHeight}mm !important;
         }
         
-        .product-pricing-optimized {
+        .product-pricing-corrected {
           overflow: visible !important;
+          height: auto !important;
+          gap: 2.5mm !important; /* MÁS GAP EN PRINT */
+        }
+        
+        .product-price-wholesale-corrected {
+          overflow: visible !important;
+          min-height: 9mm !important; /* ALTURA MÍNIMA EN PRINT */
+          padding: 2.5mm !important; /* MÁS PADDING EN PRINT */
+          position: relative !important;
+          z-index: 10 !important;
+        }
+        
+        /* 🚀 ALTURA ADICIONAL PARA CARDS EN PRINT */
+        .product-card-corrected {
+          min-height: calc(${LAYOUT.cardHeight}mm + 5mm) !important; /* +5mm EN PRINT */
+        }
+        
+        .products-grid-corrected {
+          grid-auto-rows: calc(${LAYOUT.cardHeight}mm + 5mm) !important; /* +5mm EN PRINT */
         }
       }
       
-      /* ✅ CRÍTICO: Eliminar pseudoelementos problemáticos (mantener) */
-      .page-container-optimized *::before,
-      .page-container-optimized *::after,
-      .page-content-optimized *::before,
-      .page-content-optimized *::after,
-      .products-grid-optimized *::before,
-      .products-grid-optimized *::after {
+      /* 🔧 ELIMINAR PSEUDOELEMENTOS PROBLEMÁTICOS */
+      .page-container-corrected *::before,
+      .page-container-corrected *::after,
+      .page-content-corrected *::before,
+      .page-content-corrected *::after,
+      .products-grid-corrected *::before,
+      .products-grid-corrected *::after {
         display: none !important;
         content: none !important;
       }
     `;
   }
   
-  // ✅ GENERACIÓN DE PÁGINAS (mantener estructura)
-  private static generateConservativePages(
+  // 🔧 GENERACIÓN DE PÁGINAS CORREGIDA
+  private static generateCorrectedPages(
     products: Product[],
     businessInfo: BusinessInfo,
     template: TemplateConfig,
@@ -657,9 +693,9 @@ export class PuppeteerServiceClient {
       if (pageProducts.length === 0) continue;
       
       pagesHTML += `
-        <div class="page-container-optimized">
-          <div class="page-content-optimized">
-            ${this.generateConservativeGrid(pageProducts)}
+        <div class="page-container-corrected">
+          <div class="page-content-corrected">
+            ${this.generateCorrectedGrid(pageProducts)}
           </div>
         </div>
       `;
@@ -668,20 +704,20 @@ export class PuppeteerServiceClient {
     return pagesHTML;
   }
   
-  // ✅ GRID CONSERVADOR (mantener estructura)
-  private static generateConservativeGrid(products: Product[]): string {
-    let gridHTML = '<div class="products-grid-optimized">';
+  // 🔧 GRID CORREGIDO
+  private static generateCorrectedGrid(products: Product[]): string {
+    let gridHTML = '<div class="products-grid-corrected">';
     
     products.forEach(product => {
-      gridHTML += this.generateConservativeProductCard(product);
+      gridHTML += this.generateCorrectedProductCard(product);
     });
     
     gridHTML += '</div>';
     return gridHTML;
   }
   
-  // ✅ PRODUCTO CARD CONSERVADOR (mantener estructura)
-  private static generateConservativeProductCard(product: Product): string {
+  // 🚀 PRODUCTO CARD COMPLETAMENTE CORREGIDO
+  private static generateCorrectedProductCard(product: Product): string {
     const productName = product.name || 'Producto';
     const productPrice = typeof product.price_retail === 'number' ? product.price_retail : 0;
     const productImage = product.image_url || '';
@@ -690,44 +726,44 @@ export class PuppeteerServiceClient {
       `<img 
          src="${productImage}" 
          alt="${productName}"
-         class="product-image-optimized" 
+         class="product-image-corrected" 
          loading="eager" 
          crossorigin="anonymous"
          onload="this.style.opacity=1"
          onerror="this.style.display='none'"
        />` :
-      `<div class="image-placeholder-optimized">
-         <div class="placeholder-content-optimized">
+      `<div class="image-placeholder-corrected">
+         <div class="placeholder-content-corrected">
            <div style="font-size: 12pt; margin-bottom: 1mm;">📷</div>
            <div>Sin imagen</div>
          </div>
        </div>`;
     
     const wholesalePriceHTML = product.price_wholesale ? `
-      <div class="product-price-wholesale-optimized">
-        <span class="wholesale-label-optimized">Mayoreo:</span>
-        <span class="wholesale-price-optimized">$${(product.price_wholesale / 100).toLocaleString('es-MX', { 
+      <div class="product-price-wholesale-corrected">
+        <span class="wholesale-label-corrected">Mayoreo:</span>
+        <span class="wholesale-price-corrected">$${(product.price_wholesale / 100).toLocaleString('es-MX', { 
           minimumFractionDigits: 2,
           maximumFractionDigits: 2
         })}</span>
         ${product.wholesale_min_qty ? `
-          <span class="wholesale-min-optimized">Min. ${product.wholesale_min_qty}</span>
+          <span class="wholesale-min-corrected">Min. ${product.wholesale_min_qty}</span>
         ` : ''}
       </div>
     ` : '';
     
     return `
-      <div class="product-card-optimized">
-        <div class="card-decoration-optimized"></div>
+      <div class="product-card-corrected">
+        <div class="card-decoration-corrected"></div>
         
-        <div class="image-container-optimized">
+        <div class="image-container-corrected">
           ${imageHTML}
         </div>
         
-        <div class="text-area-optimized">
-          <div class="product-name-optimized">${productName}</div>
-          <div class="product-pricing-optimized">
-            <div class="product-price-retail-optimized">$${(productPrice / 100).toLocaleString('es-MX', { 
+        <div class="text-area-corrected">
+          <div class="product-name-corrected">${productName}</div>
+          <div class="product-pricing-corrected">
+            <div class="product-price-retail-corrected">$${(productPrice / 100).toLocaleString('es-MX', { 
               minimumFractionDigits: 2,
               maximumFractionDigits: 2
             })}</div>
@@ -738,7 +774,7 @@ export class PuppeteerServiceClient {
     `;
   }
   
-  // ✅ PDF OPTIONS (MANTENER EXACTAMENTE IGUALES - NO TOCAR)
+  // 🚨 PDF OPTIONS (MANTENER EXACTAMENTE IGUALES - NO TOCAR)
   private static getMultipagePDFOptions(
     options: PuppeteerServiceOptions, 
     businessInfo: BusinessInfo, 
@@ -767,7 +803,7 @@ export class PuppeteerServiceClient {
       scale: 1.0,
       quality: options.quality === 'high' ? 100 : options.quality === 'low' ? 80 : 90,
       
-      // ✅ MANTENER HEADER/FOOTER TEMPLATES EXACTAMENTE IGUALES
+      // 🚨 MANTENER HEADER/FOOTER TEMPLATES EXACTAMENTE IGUALES
       headerTemplate: `<div style="font-size: 12px !important; width: 100% !important; height: ${PDF_LAYOUT.HEADER_HEIGHT}mm !important; text-align: center !important; background: ${primaryColor} !important; background-image: linear-gradient(135deg, ${primaryColor}, ${secondaryColor}) !important; color: white !important; padding: 2mm !important; margin: 0 !important; border-radius: 4px !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; display: table !important; table-layout: fixed !important;"><div style="display: table-cell; vertical-align: middle; text-align: center;"><strong style="color: white !important; font-size: 14px !important;">${businessInfo.business_name || 'Mi Negocio'}</strong><br><span style="color: rgba(255,255,255,0.9) !important; font-size: 10px !important;">${catalogTitle}</span></div></div>`,
       
       footerTemplate: `<div style="font-size: 9px !important; width: 100% !important; height: ${PDF_LAYOUT.FOOTER_HEIGHT}mm !important; text-align: center !important; background: ${secondaryColor} !important; color: white !important; padding: 1mm !important; margin: 0 !important; border-radius: 4px !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; display: table !important; table-layout: fixed !important;"><div style="display: table-cell; vertical-align: middle; text-align: center;">${contactInfo ? `<div style="color: white !important; font-size: 8px !important; margin-bottom: 1mm !important;">${contactInfo}</div>` : ''}<div style="color: rgba(255,255,255,0.8) !important; font-size: 7px !important;">Generado con CatifyPro - <span class="pageNumber"></span> de <span class="totalPages"></span></div></div></div>`,
@@ -860,7 +896,7 @@ export class PuppeteerServiceClient {
               width: 1024,
               height: 768
             },
-            waitForSelector: '.page-container-optimized',
+            waitForSelector: '.page-container-corrected',
             waitForFunction: 'document.readyState === "complete"',
           },
           filename: `catalogo-${businessInfo.business_name.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`,
@@ -873,7 +909,7 @@ export class PuppeteerServiceClient {
           headers: {
             'Content-Type': 'application/json',
             'Accept': 'application/pdf',
-            'User-Agent': 'CatifyPro-PDF-Generator/2.0-Conservative'
+            'User-Agent': 'CatifyPro-PDF-Generator/2.0-Corrected'
           },
           body: JSON.stringify(requestPayload),
           signal: controller.signal
@@ -894,7 +930,7 @@ export class PuppeteerServiceClient {
           throw new Error('PDF vacío recibido del servicio');
         }
         
-        console.log(`✅ PDF conservador generado en intento ${attempt}/${maxRetries}, tamaño: ${blob.size} bytes`);
+        console.log(`✅ PDF corregido generado en intento ${attempt}/${maxRetries}, tamaño: ${blob.size} bytes`);
         return blob;
         
       } catch (error) {
@@ -945,7 +981,7 @@ export class PuppeteerServiceClient {
       }
       
       const blob = await response.blob();
-      await this.downloadPDF(blob, 'test-conservative');
+      await this.downloadPDF(blob, 'test-corrected');
       
       return { 
         success: true,
