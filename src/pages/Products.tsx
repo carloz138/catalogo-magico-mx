@@ -380,26 +380,33 @@ const Products = () => {
                   </Card>
                 ) : (
                   <>
-                    <Card className="hidden md:block bg-orange-50 border-orange-200">
+                    <Card className="bg-orange-50 border-orange-200">
                       <CardContent className="p-4">
                         <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-4">
-                            <Checkbox
-                              checked={filteredProducts.length > 0 && selectedProducts.filter(id => filteredProducts.map(p => p.id).includes(id)).length === filteredProducts.length}
-                              onCheckedChange={selectAllProducts}
+                          <div className="flex items-center gap-2 md:gap-4">
+                            <Button
+                              variant={filteredProducts.length > 0 && selectedProducts.filter(id => filteredProducts.map(p => p.id).includes(id)).length === filteredProducts.length ? "default" : "outline"}
+                              size="sm"
+                              onClick={selectAllProducts}
                               disabled={processing}
-                            />
+                              className="bg-orange-600 hover:bg-orange-700 text-white border-orange-600"
+                            >
+                              <CheckCircle className="w-4 h-4 mr-2" />
+                              {filteredProducts.length > 0 && selectedProducts.filter(id => filteredProducts.map(p => p.id).includes(id)).length === filteredProducts.length
+                                ? 'Deseleccionar Todo'
+                                : 'Seleccionar Todo'
+                              }
+                            </Button>
                             <div className="flex items-center gap-2">
                               <ImageIcon className="w-4 h-4 text-orange-600" />
                               <span className="text-sm text-gray-700">
                                 <span className="font-semibold text-orange-700">
-                                  {selectedProducts.length} total seleccionados
+                                  {selectedProducts.filter(id => filteredProducts.map(p => p.id).includes(id)).length} de {filteredProducts.length} seleccionados
                                 </span>
-                                {' '} | {selectedProducts.filter(id => filteredProducts.map(p => p.id).includes(id)).length} de {filteredProducts.length} con fondo
                               </span>
                             </div>
                           </div>
-                          <div className="flex items-center gap-2 text-xs text-gray-500">
+                          <div className="hidden md:flex items-center gap-2 text-xs text-gray-500">
                             <HelpCircle className="w-3 h-3" />
                             <span>Productos con imagen original</span>
                           </div>
@@ -487,17 +494,35 @@ const Products = () => {
                   </Card>
                 ) : (
                   <>
-                    <Card className="border-green-200 bg-green-50">
-                      <CardContent className="p-3 md:p-4">
-                        <div className="flex items-center gap-3">
-                          <Sparkles className="h-4 w-4 md:h-5 md:w-5 text-green-600" />
-                          <div>
-                            <h4 className="font-semibold text-green-900 text-sm md:text-base">
-                              {stats.noBackground} productos sin fondo
-                            </h4>
-                            <p className="text-xs md:text-sm text-green-700">
-                              Perfectos para crear catálogos profesionales
-                            </p>
+                    <Card className="bg-green-50 border-green-200">
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2 md:gap-4">
+                            <Button
+                              variant={filteredProducts.length > 0 && selectedProducts.filter(id => filteredProducts.map(p => p.id).includes(id)).length === filteredProducts.length ? "default" : "outline"}
+                              size="sm"
+                              onClick={selectAllProducts}
+                              disabled={processing}
+                              className="bg-green-600 hover:bg-green-700 text-white border-green-600"
+                            >
+                              <CheckCircle className="w-4 h-4 mr-2" />
+                              {filteredProducts.length > 0 && selectedProducts.filter(id => filteredProducts.map(p => p.id).includes(id)).length === filteredProducts.length
+                                ? 'Deseleccionar Todo'
+                                : 'Seleccionar Todo'
+                              }
+                            </Button>
+                            <div className="flex items-center gap-2">
+                              <Sparkles className="w-4 h-4 text-green-600" />
+                              <span className="text-sm text-gray-700">
+                                <span className="font-semibold text-green-700">
+                                  {selectedProducts.filter(id => filteredProducts.map(p => p.id).includes(id)).length} de {filteredProducts.length} seleccionados
+                                </span>
+                              </span>
+                            </div>
+                          </div>
+                          <div className="hidden md:flex items-center gap-2 text-xs text-gray-500">
+                            <HelpCircle className="w-3 h-3" />
+                            <span>Perfectos para crear catálogos profesionales</span>
                           </div>
                         </div>
                       </CardContent>
