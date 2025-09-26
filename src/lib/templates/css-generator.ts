@@ -1,5 +1,4 @@
-// src/lib/templates/css-generator.ts - VERSIÓN CORREGIDA COMPLETA
-// 🚀 SOLUCIÓN DEFINITIVA PARA CONTENIDO CORTADO EN TARJETAS
+// src/lib/templates/css-generator.ts - VERSIÓN CON PRODUCTOS POR PÁGINA DINÁMICOS
 
 import { IndustryTemplate } from './industry-templates';
 
@@ -30,20 +29,44 @@ interface BusinessInfo {
   };
 }
 
+// 🆕 NUEVA INTERFACE PARA CONFIGURACIÓN DINÁMICA
+interface DynamicLayoutConfig {
+  productsPerPage: 4 | 6 | 9;
+  columns: number;
+  rows: number;
+}
+
 export class TemplateGenerator {
   
   /**
-   * 🎨 CSS GENERATOR COMPLETAMENTE CORREGIDO
+   * 🎯 NUEVA FUNCIÓN: Calcular configuración de layout dinámico
    */
-  static generateTemplateCSS(template: IndustryTemplate): string {
-    const dimensions = this.calculateCorrectedDimensions(template);
+  private static calculateDynamicLayout(productsPerPage: 4 | 6 | 9): DynamicLayoutConfig {
+    const layoutConfigs = {
+      4: { productsPerPage: 4 as const, columns: 2, rows: 2 },
+      6: { productsPerPage: 6 as const, columns: 3, rows: 2 },
+      9: { productsPerPage: 9 as const, columns: 3, rows: 3 }
+    };
+    
+    return layoutConfigs[productsPerPage];
+  }
+  
+  /**
+   * 🔧 FUNCIÓN MODIFICADA: Generar CSS con productos por página dinámicos
+   */
+  static generateTemplateCSS(
+    template: IndustryTemplate, 
+    productsPerPage: 4 | 6 | 9 = 6
+  ): string {
+    const layoutConfig = this.calculateDynamicLayout(productsPerPage);
+    const dimensions = this.calculateCorrectedDimensions(template, layoutConfig);
     const colors = this.generateColorScheme(template);
-    const typography = this.calculateTypography(template);
+    const typography = this.calculateTypography(template, layoutConfig);
     
     return `
-      /* ===== TEMPLATE: ${template.displayName.toUpperCase()} - VERSIÓN CORREGIDA ===== */
+      /* ===== TEMPLATE: ${template.displayName.toUpperCase()} - ${productsPerPage} PRODUCTOS/PÁGINA ===== */
       
-      /* ===== VARIABLES CSS CORREGIDAS ===== */
+      /* ===== VARIABLES CSS DINÁMICAS ===== */
       :root {
         --primary: ${colors.primary};
         --secondary: ${colors.secondary};
@@ -54,27 +77,33 @@ export class TemplateGenerator {
         --text-light: ${colors.textSecondary};
         --border: ${colors.borderColor};
         
-        /* DIMENSIONES CORREGIDAS */
+        /* DIMENSIONES DINÁMICAS BASADAS EN ${productsPerPage} PRODUCTOS */
         --page-width: 210mm;
         --page-height: 297mm;
         --margin: ${dimensions.margin}mm;
         --content-width: ${dimensions.contentWidth}mm;
         --content-height: ${dimensions.contentHeight}mm;
         
-        /* GRID DIMENSIONS CORREGIDAS PARA MÁS ESPACIO */
+        /* GRID DINÁMICO */
         --columns: ${dimensions.columns};
+        --rows: ${layoutConfig.rows};
         --card-width: ${dimensions.cardWidth}mm;
-        --card-height: ${dimensions.cardHeight}mm; /* AUMENTADO */
+        --card-height: ${dimensions.cardHeight}mm;
         --gap: ${dimensions.gap}mm;
         --image-height: ${dimensions.imageHeight}mm;
-        --text-area-height: ${dimensions.textAreaHeight}mm; /* AUMENTADO SIGNIFICATIVAMENTE */
+        --text-area-height: ${dimensions.textAreaHeight}mm;
         
-        /* TIPOGRAFÍA OPTIMIZADA */
+        /* TIPOGRAFÍA ESCALADA */
         --header-size: ${typography.headerSize}pt;
         --title-size: ${typography.titleSize}pt;
         --price-size: ${typography.priceSize}pt;
         --desc-size: ${typography.descSize}pt;
         --info-size: ${typography.infoSize}pt;
+        
+        /* CONFIGURACIÓN ESPECÍFICA POR LAYOUT */
+        --layout-scale: ${this.getLayoutScale(productsPerPage)};
+        --padding-scale: ${this.getPaddingScale(productsPerPage)};
+        --border-radius-scale: ${this.getBorderRadiusScale(productsPerPage)};
       }
       
       /* ===== RESET ABSOLUTO ===== */
@@ -101,7 +130,7 @@ export class TemplateGenerator {
       html {
         width: var(--page-width);
         height: auto;
-        font-size: 12pt;
+        font-size: calc(12pt * var(--layout-scale));
         line-height: 1.3;
         margin: 0;
         padding: 0;
@@ -115,7 +144,7 @@ export class TemplateGenerator {
         min-height: 100vh !important;
         margin: 0 auto !important;
         padding: var(--margin) !important;
-        font-size: 12pt;
+        font-size: calc(12pt * var(--layout-scale));
         position: relative;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
@@ -141,16 +170,16 @@ export class TemplateGenerator {
         padding-bottom: 0 !important;
       }
       
-      /* ===== HEADER ===== */
+      /* ===== HEADER DINÁMICO ===== */
       .catalog-header {
         width: 100%;
         background: var(--primary) !important;
         background-image: linear-gradient(135deg, var(--primary), var(--secondary)) !important;
         color: white !important;
         text-align: center;
-        padding: 8mm;
-        margin-bottom: 6mm;
-        border-radius: ${Math.min(template.design?.borderRadius || 8, 12)}px;
+        padding: calc(8mm * var(--padding-scale));
+        margin-bottom: calc(6mm * var(--padding-scale));
+        border-radius: calc(${Math.min(template.design?.borderRadius || 8, 12)}px * var(--border-radius-scale));
         page-break-inside: avoid !important;
         break-inside: avoid !important;
         -webkit-print-color-adjust: exact !important;
@@ -161,7 +190,7 @@ export class TemplateGenerator {
       .business-name {
         font-size: var(--header-size);
         font-weight: 700;
-        margin-bottom: 2mm !important;
+        margin-bottom: calc(2mm * var(--padding-scale)) !important;
         text-transform: uppercase;
         letter-spacing: 0.5pt;
         color: white !important;
@@ -176,7 +205,7 @@ export class TemplateGenerator {
         font-weight: 300;
         opacity: 0.95;
         color: white !important;
-        margin-top: 1mm !important;
+        margin-top: calc(1mm * var(--padding-scale)) !important;
         -webkit-print-color-adjust: exact !important;
       }
       
@@ -193,20 +222,20 @@ export class TemplateGenerator {
         min-height: 0;
       }
       
-      /* ===== PRODUCTS PAGE ===== */
       .products-page {
         width: 100%;
-        margin-bottom: 8mm;
+        margin-bottom: calc(8mm * var(--padding-scale));
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
       }
       
-      /* 🚀 GRID SYSTEM COMPLETAMENTE CORREGIDO */
+      /* 🚀 GRID SYSTEM COMPLETAMENTE DINÁMICO */
       .products-grid {
         display: grid !important;
         grid-template-columns: repeat(var(--columns), 1fr) !important;
+        grid-template-rows: repeat(var(--rows), auto) !important;
         gap: var(--gap) !important;
         width: 100% !important;
         max-width: var(--content-width) !important;
@@ -216,25 +245,25 @@ export class TemplateGenerator {
         align-items: stretch !important;
         justify-content: center !important;
         place-content: center stretch !important;
-        /* 🔧 ALTURA CORREGIDA PARA ACOMODAR CONTENIDO */
         grid-auto-rows: var(--card-height) !important;
+        
+        /* CLASES ESPECÍFICAS POR LAYOUT */
+        ${this.generateGridSpecificCSS(productsPerPage)}
       }
       
-      /* 🚀 PRODUCT CARDS COMPLETAMENTE CORREGIDAS */
+      /* 🚀 PRODUCT CARDS ESCALADAS DINÁMICAMENTE */
       .product-card {
         display: flex !important;
         flex-direction: column !important;
         width: 100% !important;
-        /* 🔧 ALTURA CORREGIDA PARA MÁS ESPACIO */
         height: var(--card-height) !important;
         min-height: var(--card-height) !important;
-        max-height: none !important; /* CRÍTICO: Permitir crecimiento */
+        max-height: none !important;
         
         background: var(--card-bg) !important;
-        border: 0.5pt solid var(--border) !important;
-        border-radius: ${Math.min(template.design?.borderRadius || 8, 15)}px !important;
-        /* 🔧 OVERFLOW CORREGIDO */
-        overflow: visible !important; /* CAMBIO CRÍTICO: de hidden a visible */
+        border: calc(0.5pt * var(--layout-scale)) solid var(--border) !important;
+        border-radius: calc(${Math.min(template.design?.borderRadius || 8, 15)}px * var(--border-radius-scale)) !important;
+        overflow: visible !important;
         position: relative !important;
         
         page-break-inside: avoid !important;
@@ -244,57 +273,58 @@ export class TemplateGenerator {
         align-self: stretch !important;
         justify-self: center !important;
         
-        /* 🔧 PADDING OPTIMIZADO */
-        padding: 3mm !important;
-        gap: 2mm !important; /* GAP INTERNO PARA SEPARACIÓN */
+        padding: calc(3mm * var(--padding-scale)) !important;
+        gap: calc(2mm * var(--padding-scale)) !important;
         
-        ${template.design.shadows ? 'box-shadow: 0 1mm 3mm rgba(0, 0, 0, 0.08);' : ''}
+        ${template.design.shadows ? `box-shadow: 0 calc(1mm * var(--layout-scale)) calc(3mm * var(--layout-scale)) rgba(0, 0, 0, 0.08);` : ''}
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
+        
+        /* OPTIMIZACIONES ESPECÍFICAS POR LAYOUT */
+        ${this.generateCardSpecificCSS(productsPerPage, template)}
       }
       
-      /* ===== CONTENIDO INTERNO CORREGIDO ===== */
+      /* ===== CONTENIDO INTERNO ESCALADO ===== */
       .product-card-inner {
         display: flex !important;
         flex-direction: column !important;
         height: 100% !important;
         width: 100% !important;
-        padding: 0 !important; /* SIN PADDING DUPLICADO */
-        gap: 2mm !important; /* GAP ENTRE ELEMENTOS */
+        padding: 0 !important;
+        gap: calc(2mm * var(--padding-scale)) !important;
         box-sizing: border-box !important;
       }
       
-      /* ===== IMAGEN CONTAINER OPTIMIZADO ===== */
+      /* ===== IMAGEN CONTAINER DINÁMICO ===== */
       .product-image-container {
         width: 100% !important;
-        /* 🔧 ALTURA DE IMAGEN OPTIMIZADA */
         height: var(--image-height) !important;
         min-height: var(--image-height) !important;
         max-height: var(--image-height) !important;
         background: #f8f9fa !important;
-        border-radius: ${Math.max(Math.min(template.design?.borderRadius || 8, 15) - 2, 2)}px !important;
+        border-radius: calc(${Math.max(Math.min(template.design?.borderRadius || 8, 15) - 2, 2)}px * var(--border-radius-scale)) !important;
         overflow: hidden !important;
         position: relative !important;
         flex-shrink: 0 !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
-        border: 0.25pt solid var(--border) !important;
-        margin-bottom: 0 !important; /* SIN MARGIN, USA GAP */
+        border: calc(0.25pt * var(--layout-scale)) solid var(--border) !important;
+        margin-bottom: 0 !important;
         -webkit-print-color-adjust: exact !important;
         aspect-ratio: 1 / 1 !important;
-        padding: 2mm !important;
+        padding: calc(2mm * var(--padding-scale)) !important;
       }
       
-      /* ===== IMAGEN ===== */
+      /* ===== IMAGEN OPTIMIZADA POR LAYOUT ===== */
       .product-image {
         width: 100% !important;
         height: 100% !important;
-        object-fit: cover !important;
+        object-fit: ${this.getImageObjectFit(productsPerPage)} !important;
         object-position: center !important;
         display: block !important;
         margin: 0 !important;
-        border-radius: 2px !important;
+        border-radius: calc(2px * var(--border-radius-scale)) !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
         image-rendering: -webkit-optimize-contrast !important;
@@ -303,20 +333,7 @@ export class TemplateGenerator {
         backface-visibility: hidden !important;
       }
       
-      /* ===== ESTRATEGIAS POR ORIENTACIÓN ===== */
-      .product-image.cover-mode {
-        object-fit: cover !important;
-        object-position: center !important;
-      }
-
-      .product-image.contain-mode {
-        object-fit: contain !important;
-        object-position: center !important;
-        padding: 2px !important;
-        background: #fafafa !important;
-      }
-      
-      /* ===== PLACEHOLDER ===== */
+      /* ===== PLACEHOLDER ESCALADO ===== */
       .product-image-placeholder {
         width: 90% !important;
         height: 90% !important;
@@ -324,51 +341,46 @@ export class TemplateGenerator {
           repeating-conic-gradient(from 0deg at 50% 50%, 
             #f0f0f0 0deg 90deg, 
             transparent 90deg 180deg) !important;
-        background-size: 8px 8px !important;
-        border: 1pt dashed #ccc !important;
-        border-radius: 3px !important;
+        background-size: calc(8px * var(--layout-scale)) calc(8px * var(--layout-scale)) !important;
+        border: calc(1pt * var(--layout-scale)) dashed #ccc !important;
+        border-radius: calc(3px * var(--border-radius-scale)) !important;
         display: flex !important;
         flex-direction: column !important;
         align-items: center !important;
         justify-content: center !important;
         color: #999 !important;
-        font-size: 8pt !important;
+        font-size: calc(8pt * var(--layout-scale)) !important;
         text-align: center !important;
         -webkit-print-color-adjust: exact !important;
       }
       
-      /* 🚀 INFORMACIÓN COMPLETAMENTE CORREGIDA */
+      /* 🚀 INFORMACIÓN ESCALADA DINÁMICAMENTE */
       .product-info {
-        /* 🔧 FLEX CORREGIDO PARA MÁS ESPACIO */
-        flex: 1 1 auto !important; /* CAMBIO CRÍTICO: flex-grow para usar espacio disponible */
+        flex: 1 1 auto !important;
         display: flex !important;
         flex-direction: column !important;
-        justify-content: flex-start !important; /* CAMBIO CRÍTICO: desde arriba */
-        /* 🔧 ALTURA CORREGIDA */
+        justify-content: flex-start !important;
         min-height: var(--text-area-height) !important;
-        height: auto !important; /* CRÍTICO: altura automática */
+        height: auto !important;
         text-align: center !important;
-        /* 🔧 OVERFLOW CORREGIDO */
-        overflow: visible !important; /* CAMBIO CRÍTICO: de hidden a visible */
-        
-        /* 🔧 GAP Y PADDING OPTIMIZADOS */
-        gap: 2mm !important; /* GAP AUMENTADO */
-        padding: 1mm 0 !important;
+        overflow: visible !important;
+        gap: calc(2mm * var(--padding-scale)) !important;
+        padding: calc(1mm * var(--padding-scale)) 0 !important;
       }
       
-      /* 🚀 NOMBRE DEL PRODUCTO CORREGIDO */
+      /* ===== NOMBRE ESCALADO ===== */
       .product-name {
         font-size: var(--title-size) !important;
         font-weight: 600 !important;
         color: var(--primary) !important;
         line-height: 1.3 !important;
-        margin-bottom: 0 !important; /* USA GAP EN VEZ DE MARGIN */
+        margin-bottom: 0 !important;
         word-wrap: break-word !important;
         overflow-wrap: break-word !important;
         hyphens: auto !important;
         
         display: -webkit-box !important;
-        -webkit-line-clamp: ${this.getNameLines(template.density)} !important;
+        -webkit-line-clamp: ${this.getNameLines(template.density, productsPerPage)} !important;
         -webkit-box-orient: vertical !important;
         overflow: hidden !important;
         
@@ -378,67 +390,64 @@ export class TemplateGenerator {
         flex-shrink: 0 !important;
       }
       
-      /* 🚀 SISTEMA DE PRECIOS COMPLETAMENTE CORREGIDO */
+      /* ===== SISTEMA DE PRECIOS ESCALADO ===== */
       .product-pricing {
         display: flex !important;
         flex-direction: column !important;
         align-items: center !important;
-        gap: 2.5mm !important; /* GAP AUMENTADO PARA MEJOR SEPARACIÓN */
-        margin: 0 !important; /* SIN MARGIN, USA GAP */
+        gap: calc(2.5mm * var(--padding-scale)) !important;
+        margin: 0 !important;
         width: 100% !important;
         flex-grow: 1 !important;
-        justify-content: flex-start !important; /* CRÍTICO: desde arriba */
-        /* 🔧 OVERFLOW CORREGIDO */
-        overflow: visible !important; /* CAMBIO CRÍTICO: permitir overflow */
-        min-height: 0 !important; /* PERMITIR FLEXIBILIDAD */
+        justify-content: flex-start !important;
+        overflow: visible !important;
+        min-height: 0 !important;
       }
 
-      /* ===== PRECIO RETAIL OPTIMIZADO ===== */
+      /* ===== PRECIO RETAIL ESCALADO ===== */
       .product-price-retail {
         font-size: var(--price-size) !important;
         font-weight: 700 !important;
         color: white !important;
         background: var(--secondary) !important;
         background-image: linear-gradient(135deg, var(--secondary), var(--primary)) !important;
-        padding: 1.5mm 3mm !important;
-        border-radius: 12px !important;
+        padding: calc(1.5mm * var(--padding-scale)) calc(3mm * var(--padding-scale)) !important;
+        border-radius: calc(12px * var(--border-radius-scale)) !important;
         display: inline-block !important;
         text-align: center !important;
         white-space: nowrap !important;
         max-width: 95% !important;
         overflow: hidden !important;
         text-overflow: ellipsis !important;
-        box-shadow: 0 1pt 2pt rgba(0,0,0,0.15) !important;
+        box-shadow: 0 calc(1pt * var(--layout-scale)) calc(2pt * var(--layout-scale)) rgba(0,0,0,0.15) !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
         flex-shrink: 0 !important;
         line-height: 1.2 !important;
-        margin: 0 !important; /* SIN MARGIN, USA GAP */
+        margin: 0 !important;
       }
 
-      /* 🚀 PRECIO MAYOREO COMPLETAMENTE CORREGIDO */
+      /* ===== PRECIO MAYOREO ESCALADO ===== */
       .product-price-wholesale {
         display: flex !important;
         flex-direction: column !important;
         align-items: center !important;
-        gap: 1mm !important; /* GAP INTERNO */
-        /* 🔧 TAMAÑO Y ESPACIADO CORREGIDOS */
+        gap: calc(1mm * var(--padding-scale)) !important;
         font-size: calc(var(--price-size) * 0.75) !important;
         color: var(--text) !important;
         background: rgba(0,0,0,0.05) !important;
-        padding: 2mm !important; /* PADDING AUMENTADO */
-        border-radius: 6px !important;
-        border: 0.5pt solid var(--border) !important;
-        width: 90% !important; /* ANCHO AUMENTADO */
+        padding: calc(2mm * var(--padding-scale)) !important;
+        border-radius: calc(6px * var(--border-radius-scale)) !important;
+        border: calc(0.5pt * var(--layout-scale)) solid var(--border) !important;
+        width: 90% !important;
         text-align: center !important;
         -webkit-print-color-adjust: exact !important;
-        /* 🔧 OVERFLOW Y ALTURA CORREGIDOS */
-        overflow: visible !important; /* CAMBIO CRÍTICO */
+        overflow: visible !important;
         flex-shrink: 0 !important;
-        min-height: 8mm !important; /* ALTURA MÍNIMA GARANTIZADA */
+        min-height: calc(8mm * var(--padding-scale)) !important;
         position: relative !important;
         z-index: 2 !important;
-        margin: 0 !important; /* SIN MARGIN, USA GAP */
+        margin: 0 !important;
       }
 
       .wholesale-label {
@@ -471,7 +480,7 @@ export class TemplateGenerator {
         line-height: 1.1 !important;
       }
       
-      /* ===== ELEMENTOS CONDICIONALES ===== */
+      /* ===== ELEMENTOS CONDICIONALES ESCALADOS ===== */
       
       ${template.showInfo.category ? `
       .product-category {
@@ -480,10 +489,10 @@ export class TemplateGenerator {
         font-weight: 600 !important;
         text-transform: uppercase !important;
         background: ${this.hexToRgba(template.colors.accent, 0.15)} !important;
-        padding: 0.5mm 2mm !important;
-        border-radius: 6px !important;
+        padding: calc(0.5mm * var(--padding-scale)) calc(2mm * var(--padding-scale)) !important;
+        border-radius: calc(6px * var(--border-radius-scale)) !important;
         display: inline-block !important;
-        margin: 0 !important; /* USA GAP */
+        margin: 0 !important;
         max-width: 100% !important;
         overflow: hidden !important;
         text-overflow: ellipsis !important;
@@ -497,10 +506,10 @@ export class TemplateGenerator {
         font-size: var(--desc-size) !important;
         color: var(--text-light) !important;
         line-height: 1.3 !important;
-        margin: 0 !important; /* USA GAP */
+        margin: 0 !important;
         
         display: -webkit-box !important;
-        -webkit-line-clamp: ${this.getDescLines(template.density)} !important;
+        -webkit-line-clamp: ${this.getDescLines(template.density, productsPerPage)} !important;
         -webkit-box-orient: vertical !important;
         overflow: hidden !important;
         word-wrap: break-word !important;
@@ -510,96 +519,52 @@ export class TemplateGenerator {
       }
       ` : `.product-description { display: none !important; }`}
       
-      ${template.showInfo.sku ? `
-      .product-sku {
-        font-size: calc(var(--info-size) * 0.9) !important;
-        color: var(--text-light) !important;
-        font-family: 'Courier New', monospace !important;
-        background: rgba(0, 0, 0, 0.05) !important;
-        padding: 0.5mm 1.5mm !important;
-        border-radius: 3px !important;
-        display: inline-block !important;
-        margin: 0 !important; /* USA GAP */
-        border: 0.25pt solid var(--border) !important;
-        max-width: 100% !important;
-        overflow: hidden !important;
-        text-overflow: ellipsis !important;
-        white-space: nowrap !important;
-        -webkit-print-color-adjust: exact !important;
-      }
-      ` : `.product-sku { display: none !important; }`}
-      
-      ${template.showInfo.specifications ? `
-      .product-specifications {
-        font-size: calc(var(--info-size) * 0.85) !important;
-        color: var(--text-light) !important;
-        border-top: 0.25pt solid var(--border) !important;
-        padding-top: 1mm !important;
-        margin-top: 1mm !important;
-        line-height: 1.3 !important;
-        
-        max-height: ${this.getSpecsHeight(template.density)}mm !important;
-        overflow: hidden !important;
-        text-overflow: ellipsis !important;
-        
-        -webkit-print-color-adjust: exact !important;
-      }
-      ` : `.product-specifications { display: none !important; }`}
-      
-      /* ===== FOOTER ===== */
+      /* ===== FOOTER ESCALADO ===== */
       .catalog-footer {
         position: static !important;
         width: 100% !important;
         max-width: 100% !important;
         background: var(--secondary) !important;
         color: ${this.getContrastColor(template.colors.secondary || template.colors.primary)} !important;
-        padding: 5mm 8mm !important;
+        padding: calc(5mm * var(--padding-scale)) calc(8mm * var(--padding-scale)) !important;
         text-align: center !important;
-        border-top: 1pt solid var(--border) !important;
-        border-radius: ${Math.min(template.design?.borderRadius || 8, 12)}px ${Math.min(template.design?.borderRadius || 8, 12)}px 0 0 !important;
+        border-top: calc(1pt * var(--layout-scale)) solid var(--border) !important;
+        border-radius: calc(${Math.min(template.design?.borderRadius || 8, 12)}px * var(--border-radius-scale)) calc(${Math.min(template.design?.borderRadius || 8, 12)}px * var(--border-radius-scale)) 0 0 !important;
         page-break-inside: avoid !important;
         break-inside: avoid !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
         box-sizing: border-box !important;
-        margin: 8mm auto 0 auto !important;
+        margin: calc(8mm * var(--padding-scale)) auto 0 auto !important;
         transform: none !important;
         left: auto !important;
         bottom: auto !important;
       }
       
       .business-contact {
-        font-size: 9pt !important;
+        font-size: calc(9pt * var(--layout-scale)) !important;
         line-height: 1.4 !important;
-        margin-bottom: 3mm !important;
+        margin-bottom: calc(3mm * var(--padding-scale)) !important;
         font-weight: 600 !important;
         word-wrap: break-word !important;
         display: flex !important;
         flex-wrap: wrap !important;
         justify-content: center !important;
         align-items: center !important;
-        gap: 3mm !important;
+        gap: calc(3mm * var(--padding-scale)) !important;
         width: 100% !important;
       }
       
       .contact-item {
         display: inline-block !important;
-        padding: 1.5mm 3mm !important;
+        padding: calc(1.5mm * var(--padding-scale)) calc(3mm * var(--padding-scale)) !important;
         background: rgba(255, 255, 255, 0.2) !important;
-        border-radius: 8px !important;
+        border-radius: calc(8px * var(--border-radius-scale)) !important;
         font-weight: 600 !important;
         white-space: nowrap !important;
         -webkit-print-color-adjust: exact !important;
-        font-size: 8pt !important;
-        border: 0.5pt solid rgba(255, 255, 255, 0.1) !important;
-      }
-      
-      .footer-branding {
-        margin-top: 3mm !important;
-        font-size: 7pt !important;
-        opacity: 0.9 !important;
-        font-weight: 300 !important;
-        color: rgba(255, 255, 255, 0.8) !important;
+        font-size: calc(8pt * var(--layout-scale)) !important;
+        border: calc(0.5pt * var(--layout-scale)) solid rgba(255, 255, 255, 0.1) !important;
       }
       
       /* ===== PAGINACIÓN ===== */
@@ -630,77 +595,7 @@ export class TemplateGenerator {
         box-shadow: none !important;
       }
       
-      /* ===== OPTIMIZACIONES POR INDUSTRIA ===== */
-      
-      .template-joyeria-elegante .product-image,
-      .template-joyeria-luxury .product-image {
-        object-fit: contain !important;
-        background: linear-gradient(45deg, #fff8f0, #ffffff) !important;
-        padding: 3px !important;
-      }
-      
-      .template-joyeria-elegante .product-image-container,
-      .template-joyeria-luxury .product-image-container {
-        background: linear-gradient(45deg, #fff8f0, #ffffff) !important;
-        border: 0.5pt solid ${template.colors.accent}50 !important;
-      }
-      
-      .template-moda-boutique .product-image,
-      .template-moda-urban .product-image {
-        object-fit: cover !important;
-        object-position: center top !important;
-      }
-      
-      .template-electronica-tech .product-image,
-      .template-electronica-gaming .product-image {
-        object-fit: contain !important;
-        padding: 4px !important;
-      }
-      
-      .template-electronica-tech .product-image-container,
-      .template-electronica-gaming .product-image-container {
-        background: linear-gradient(135deg, #f1f3f4, #ffffff) !important;
-        border: 0.5pt solid #e0e0e0 !important;
-      }
-      
-      .template-cosmeticos-beauty .product-image {
-        object-fit: contain !important;
-        padding: 2px !important;
-      }
-      
-      .template-ferreteria-pro .product-image {
-        object-fit: contain !important;
-        padding: 3px !important;
-      }
-      
-      .template-floreria-natural .product-image,
-      .template-floreria-boda .product-image {
-        object-fit: cover !important;
-        object-position: center !important;
-      }
-      
-      .template-muebles-hogar .product-image {
-        object-fit: contain !important;
-        padding: 4px !important;
-      }
-      
-      /* ===== RESPONSIVE ===== */
-      @media screen and (max-width: 768px) {
-        :root {
-          --columns: 1;
-          --gap: 3mm;
-        }
-        
-        .products-grid {
-          grid-template-columns: 1fr !important;
-        }
-        
-        .product-card {
-          max-width: none !important;
-        }
-      }
-      
-      /* 🚀 MEDIA PRINT COMPLETAMENTE CORREGIDO */
+      /* ===== MEDIA PRINT DINÁMICO ===== */
       @media print {
         * {
           -webkit-print-color-adjust: exact !important;
@@ -708,79 +603,38 @@ export class TemplateGenerator {
           print-color-adjust: exact !important;
         }
         
-        html, body {
-          background: white !important;
-          -webkit-print-color-adjust: exact !important;
-        }
-        
-        .catalog-container {
-          width: 100% !important;
-          max-width: none !important;
-        }
-        
         .product-card {
           page-break-inside: avoid !important;
           break-inside: avoid !important;
-          /* 🔧 OVERFLOW Y ALTURA CORREGIDOS PARA PRINT */
           overflow: visible !important;
           max-height: none !important;
-          /* 🚀 ALTURA ADICIONAL EN PRINT */
-          min-height: calc(var(--card-height) + 8mm) !important;
-        }
-        
-        .product-image {
-          -webkit-print-color-adjust: exact !important;
-          print-color-adjust: exact !important;
-          color-adjust: exact !important;
-          image-rendering: -webkit-optimize-contrast !important;
-          transform: translateZ(0) !important;
+          min-height: calc(var(--card-height) + calc(8mm * var(--padding-scale))) !important;
         }
         
         .products-grid {
           page-break-inside: auto !important;
-          /* 🚀 ALTURA ADICIONAL EN GRID PARA PRINT */
-          grid-auto-rows: calc(var(--card-height) + 8mm) !important;
+          grid-auto-rows: calc(var(--card-height) + calc(8mm * var(--padding-scale))) !important;
         }
         
-        /* 🚀 FIXES CRÍTICOS PARA PRINT */
         .product-info {
           overflow: visible !important;
           height: auto !important;
-          min-height: calc(var(--text-area-height) + 5mm) !important;
-        }
-        
-        .product-pricing {
-          overflow: visible !important;
-          gap: 3mm !important; /* MÁS GAP EN PRINT */
-          min-height: 15mm !important; /* ALTURA MÍNIMA EN PRINT */
-        }
-        
-        .product-price-wholesale {
-          overflow: visible !important;
-          min-height: 10mm !important; /* ALTURA MÍNIMA EN PRINT */
-          padding: 2.5mm !important; /* MÁS PADDING EN PRINT */
-          position: relative !important;
-          z-index: 10 !important;
-          margin-top: 1mm !important; /* SEPARACIÓN EN PRINT */
-        }
-        
-        /* 🚀 TEXTO AREA EXPANDIDA PARA PRINT */
-        .text-area-corrected {
-          min-height: calc(var(--text-area-height) + 8mm) !important;
-          height: auto !important;
-          gap: 2.5mm !important;
+          min-height: calc(var(--text-area-height) + calc(5mm * var(--padding-scale))) !important;
         }
       }
       
-      /* ===== OPTIMIZACIONES POR DENSIDAD ===== */
-      ${this.generateDensitySpecificCSS(template)}
+      /* ===== OPTIMIZACIONES POR DENSIDAD Y LAYOUT ===== */
+      ${this.generateDensitySpecificCSS(template, productsPerPage)}
     `;
   }
   
   /**
-   * 📐 DIMENSIONES CORREGIDAS PARA MÁS ESPACIO DE CONTENIDO
+   * 🔧 FUNCIÓN MODIFICADA: Dimensiones dinámicas
    */
-  private static calculateCorrectedDimensions(template: IndustryTemplate) {
+  private static calculateCorrectedDimensions(
+    template: IndustryTemplate, 
+    layoutConfig: DynamicLayoutConfig
+  ) {
     const pageWidth = 210;
     const pageHeight = 297;
     
@@ -794,42 +648,47 @@ export class TemplateGenerator {
     const contentWidth = pageWidth - (margin * 2);
     const contentHeight = pageHeight - (margin * 2);
     
-    const columns = template.gridColumns;
+    const { columns, productsPerPage } = layoutConfig;
     
-    // 🔧 GAP OPTIMIZADO
+    // Gap dinámico basado en productos por página
     const gapMap = { 
-      alta: Math.max(3, contentWidth * 0.01),
-      media: Math.max(4, contentWidth * 0.015),
-      baja: Math.max(5, contentWidth * 0.02)
+      4: Math.max(5, contentWidth * 0.025), // Más gap para 4 productos
+      6: Math.max(4, contentWidth * 0.015), // Gap estándar
+      9: Math.max(3, contentWidth * 0.01)   // Menos gap para 9 productos
     };
-    const gap = gapMap[template.density as keyof typeof gapMap] || 4;
+    const gap = gapMap[productsPerPage] || 4;
     
     const totalGapWidth = (columns - 1) * gap;
     const availableWidth = contentWidth - totalGapWidth;
     const cardWidth = availableWidth / columns;
     
-    // 🚀 ALTURA CORREGIDA PARA MÁS CONTENIDO
+    // 🚀 ALTURA DINÁMICA BASADA EN PRODUCTOS POR PÁGINA
     let cardHeight;
     
-    if (columns === 3) {
-      cardHeight = cardWidth + 30; // Era 22, ahora 30 (+8mm más)
-    } else if (columns === 2) {
-      cardHeight = cardWidth + 37; // Era 29, ahora 37 (+8mm más)
-    } else if (columns === 4) {
-      cardHeight = cardWidth + 27; // Era 19, ahora 27 (+8mm más)
-    } else if (columns >= 5) {
-      cardHeight = cardWidth + 24; // Era 16, ahora 24 (+8mm más)
+    if (productsPerPage === 4) {
+      // 4 productos: más grandes
+      cardHeight = cardWidth + 45; // Mucho más grandes
+    } else if (productsPerPage === 6) {
+      // 6 productos: tamaño estándar
+      cardHeight = cardWidth + 30; // Tamaño medio
+    } else if (productsPerPage === 9) {
+      // 9 productos: más compactos
+      cardHeight = cardWidth + 20; // Más compactos
     } else {
-      cardHeight = cardWidth * 0.6 + 32; // Era 24, ahora 32 (+8mm más)
+      cardHeight = cardWidth + 30;
     }
     
-    // 🔧 RATIO CORREGIDO PARA MÁS ESPACIO DE TEXTO
-    const imageHeightRatio = columns <= 2 ? 0.60 : columns === 3 ? 0.55 : 0.50; // Reducido para más texto
-    const imageHeight = cardHeight * imageHeightRatio;
-    const textAreaHeight = cardHeight - imageHeight; // Más espacio para texto
+    // Ratio dinámico de imagen basado en productos por página
+    const imageHeightRatio = productsPerPage === 4 ? 0.65 : // Más imagen para 4
+                            productsPerPage === 6 ? 0.55 : // Estándar para 6
+                            0.50; // Menos imagen para 9
     
-    const minCardHeight = 40; // Aumentado de 35
-    const maxCardHeight = 100; // Aumentado de 90
+    const imageHeight = cardHeight * imageHeightRatio;
+    const textAreaHeight = cardHeight - imageHeight;
+    
+    // Límites dinámicos
+    const minCardHeight = productsPerPage === 4 ? 50 : productsPerPage === 6 ? 40 : 35;
+    const maxCardHeight = productsPerPage === 4 ? 120 : productsPerPage === 6 ? 100 : 80;
     
     const finalCardHeight = Math.max(minCardHeight, Math.min(maxCardHeight, cardHeight));
     const finalImageHeight = finalCardHeight * imageHeightRatio;
@@ -851,60 +710,140 @@ export class TemplateGenerator {
   }
   
   /**
-   * 🎯 TIPOGRAFÍA OPTIMIZADA
+   * 🎯 TIPOGRAFÍA DINÁMICA
    */
-  private static calculateTypography(template: IndustryTemplate) {
-    const densityMap = {
+  private static calculateTypography(
+    template: IndustryTemplate, 
+    layoutConfig: DynamicLayoutConfig
+  ) {
+    const { productsPerPage } = layoutConfig;
+    
+    // Escalas por productos por página
+    const scaleMap = {
+      4: 1.3,  // Más grande para 4 productos
+      6: 1.0,  // Estándar para 6 productos
+      9: 0.8   // Más pequeño para 9 productos
+    };
+    
+    const scale = scaleMap[productsPerPage] || 1.0;
+    
+    const baseSizes = {
       alta: { header: 14, title: 8, price: 9, desc: 6, info: 5 },
       media: { header: 18, title: 10, price: 11, desc: 7, info: 6 },
       baja: { header: 22, title: 12, price: 13, desc: 8, info: 7 }
     };
     
-    const sizes = densityMap[template.density as keyof typeof densityMap] || densityMap.media;
+    const sizes = baseSizes[template.density as keyof typeof baseSizes] || baseSizes.media;
     
     return {
-      headerSize: sizes.header,
-      titleSize: sizes.title,
-      priceSize: sizes.price,
-      descSize: sizes.desc,
-      infoSize: sizes.info
+      headerSize: Math.round(sizes.header * scale),
+      titleSize: Math.round(sizes.title * scale),
+      priceSize: Math.round(sizes.price * scale),
+      descSize: Math.round(sizes.desc * scale),
+      infoSize: Math.round(sizes.info * scale)
     };
   }
   
   /**
-   * 🎨 GENERAR ESQUEMA DE COLORES
+   * 🎛️ ESCALAS ESPECÍFICAS
    */
-  private static generateColorScheme(template: IndustryTemplate) {
-    const primary = template.colors.primary;
-    const secondary = template.colors.secondary || template.colors.primary;
-    const accent = template.colors.accent || this.adjustColor(primary, 30);
-    const background = template.colors.background || '#ffffff';
-    
-    const isLight = this.isLightColor(background);
-    
-    return {
-      primary,
-      secondary,
-      accent,
-      background,
-      cardBackground: template.colors.cardBackground || (isLight ? '#ffffff' : '#f8f9fa'),
-      textPrimary: isLight ? '#2c3e50' : '#ffffff',
-      textSecondary: isLight ? '#7f8c8d' : '#bdc3c7',
-      borderColor: isLight ? '#e9ecef' : '#34495e'
-    };
+  private static getLayoutScale(productsPerPage: 4 | 6 | 9): number {
+    const scales = { 4: 1.2, 6: 1.0, 9: 0.85 };
+    return scales[productsPerPage];
+  }
+  
+  private static getPaddingScale(productsPerPage: 4 | 6 | 9): number {
+    const scales = { 4: 1.3, 6: 1.0, 9: 0.8 };
+    return scales[productsPerPage];
+  }
+  
+  private static getBorderRadiusScale(productsPerPage: 4 | 6 | 9): number {
+    const scales = { 4: 1.5, 6: 1.0, 9: 0.7 };
+    return scales[productsPerPage];
+  }
+  
+  private static getImageObjectFit(productsPerPage: 4 | 6 | 9): string {
+    return productsPerPage === 9 ? 'cover' : 'contain';
   }
   
   /**
-   * 🏗️ GENERAR HTML CORREGIDO
+   * 🎯 CSS ESPECÍFICO POR GRID
+   */
+  private static generateGridSpecificCSS(productsPerPage: 4 | 6 | 9): string {
+    if (productsPerPage === 4) {
+      return `
+        /* GRID 4 PRODUCTOS - 2x2 */
+        justify-items: center;
+        align-items: center;
+      `;
+    } else if (productsPerPage === 9) {
+      return `
+        /* GRID 9 PRODUCTOS - 3x3 */
+        justify-items: stretch;
+        align-items: stretch;
+      `;
+    }
+    return '';
+  }
+  
+  /**
+   * 🎯 CSS ESPECÍFICO POR CARD
+   */
+  private static generateCardSpecificCSS(
+    productsPerPage: 4 | 6 | 9, 
+    template: IndustryTemplate
+  ): string {
+    if (productsPerPage === 4) {
+      return `
+        /* CARDS GRANDES - 4 PRODUCTOS */
+        justify-self: center;
+        max-width: 95%;
+      `;
+    } else if (productsPerPage === 9) {
+      return `
+        /* CARDS COMPACTAS - 9 PRODUCTOS */
+        justify-self: stretch;
+        max-width: 100%;
+      `;
+    }
+    return '';
+  }
+  
+  /**
+   * 🔧 LÍNEAS DINÁMICAS
+   */
+  private static getNameLines(density: string, productsPerPage: 4 | 6 | 9): number {
+    const lineMap = {
+      4: { alta: 3, media: 3, baja: 4 }, // Más líneas para 4 productos
+      6: { alta: 2, media: 2, baja: 3 }, // Estándar
+      9: { alta: 1, media: 2, baja: 2 }  // Menos líneas para 9 productos
+    };
+    
+    return lineMap[productsPerPage]?.[density as keyof typeof lineMap[4]] || 2;
+  }
+  
+  private static getDescLines(density: string, productsPerPage: 4 | 6 | 9): number {
+    const lineMap = {
+      4: { alta: 2, media: 3, baja: 4 }, // Más descripción para 4
+      6: { alta: 1, media: 2, baja: 3 }, // Estándar
+      9: { alta: 1, media: 1, baja: 2 }  // Menos para 9
+    };
+    
+    return lineMap[productsPerPage]?.[density as keyof typeof lineMap[4]] || 2;
+  }
+  
+  /**
+   * 🔧 FUNCIÓN MODIFICADA: Generar HTML con productos por página dinámicos
    */
   static generateCatalogHTML(
     products: Product[],
     businessInfo: BusinessInfo,
-    template: IndustryTemplate
+    template: IndustryTemplate,
+    productsPerPage: 4 | 6 | 9 = 6
   ): string {
     
-    const css = this.generateTemplateCSS(template);
-    const productsHTML = this.generateProductsHTMLGrid(products, template);
+    const css = this.generateTemplateCSS(template, productsPerPage);
+    const productsHTML = this.generateProductsHTMLGrid(products, template, productsPerPage);
     const footerHTML = this.generateFooterHTML(businessInfo);
     
     const businessName = businessInfo.business_name || 'Mi Negocio';
@@ -914,7 +853,8 @@ export class TemplateGenerator {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=210mm, initial-scale=1.0">
-    <title>Catálogo - ${businessName}</title>
+    <title>Catálogo - ${businessName} (${productsPerPage} productos/página)</title>
+    <meta name="products-per-page" content="${productsPerPage}">
     <style>
         ${css}
     </style>
@@ -923,7 +863,7 @@ export class TemplateGenerator {
     <div class="catalog-container">
         <header class="catalog-header page-break-avoid">
             <h1 class="business-name">${businessName}</h1>
-            <p class="catalog-subtitle">Catálogo de Productos</p>
+            <p class="catalog-subtitle">Catálogo de Productos (${productsPerPage} por página)</p>
         </header>
         
         <main class="products-section">
@@ -937,11 +877,13 @@ export class TemplateGenerator {
   }
   
   /**
-   * 🛍️ GENERAR HTML CON GRID
+   * 🔧 FUNCIÓN MODIFICADA: Grid con productos por página dinámicos
    */
-  private static generateProductsHTMLGrid(products: Product[], template: IndustryTemplate): string {
-    const productsPerPage = template.productsPerPage;
-    const columns = template.gridColumns;
+  private static generateProductsHTMLGrid(
+    products: Product[], 
+    template: IndustryTemplate, 
+    productsPerPage: 4 | 6 | 9 = 6
+  ): string {
     const totalPages = Math.ceil(products.length / productsPerPage);
     
     let htmlPages = '';
@@ -974,9 +916,28 @@ export class TemplateGenerator {
     return htmlPages;
   }
   
-  /**
-   * 🚀 GENERAR TARJETA DE PRODUCTO CORREGIDA
-   */
+  // ===== RESTO DE FUNCIONES SIN CAMBIOS =====
+  
+  private static generateColorScheme(template: IndustryTemplate) {
+    const primary = template.colors.primary;
+    const secondary = template.colors.secondary || template.colors.primary;
+    const accent = template.colors.accent || this.adjustColor(primary, 30);
+    const background = template.colors.background || '#ffffff';
+    
+    const isLight = this.isLightColor(background);
+    
+    return {
+      primary,
+      secondary,
+      accent,
+      background,
+      cardBackground: template.colors.cardBackground || (isLight ? '#ffffff' : '#f8f9fa'),
+      textPrimary: isLight ? '#2c3e50' : '#ffffff',
+      textSecondary: isLight ? '#7f8c8d' : '#bdc3c7',
+      borderColor: isLight ? '#e9ecef' : '#34495e'
+    };
+  }
+  
   private static generateProductCard(product: Product, template: IndustryTemplate): string {
     const productName = product.name || 'Producto';
     const productPrice = typeof product.price_retail === 'number' ? product.price_retail : 0;
@@ -1044,16 +1005,10 @@ export class TemplateGenerator {
     `;
   }
   
-  /**
-   * ⬜ CARD VACÍA
-   */
   private static generateEmptyCard(): string {
     return `<div class="product-card empty-card"></div>`;
   }
   
-  /**
-   * 📄 GENERAR FOOTER
-   */
   private static generateFooterHTML(businessInfo: BusinessInfo): string {
     const contactItems = [
       businessInfo.phone ? `<span class="contact-item">📞 ${businessInfo.phone}</span>` : '',
@@ -1085,25 +1040,14 @@ export class TemplateGenerator {
     `;
   }
   
-  // ===== UTILITY FUNCTIONS =====
-  
-  private static getNameLines(density: string): number {
-    return { alta: 2, media: 2, baja: 3 }[density as keyof typeof density] || 2;
-  }
-  
-  private static getDescLines(density: string): number {
-    return { alta: 1, media: 2, baja: 3 }[density as keyof typeof density] || 2;
-  }
-  
-  private static getSpecsHeight(density: string): number {
-    return { alta: 6, media: 8, baja: 12 }[density as keyof typeof density] || 8;
-  }
-  
-  private static generateDensitySpecificCSS(template: IndustryTemplate): string {
+  private static generateDensitySpecificCSS(
+    template: IndustryTemplate, 
+    productsPerPage: 4 | 6 | 9 = 6
+  ): string {
     if (template.density === 'alta') {
       return `
         .template-${template.id} .product-card {
-          border-width: 0.25pt !important;
+          border-width: calc(0.25pt * var(--layout-scale)) !important;
         }
       `;
     }
@@ -1111,13 +1055,15 @@ export class TemplateGenerator {
     if (template.density === 'baja') {
       return `
         .template-${template.id} .product-card {
-          border-width: 1pt !important;
+          border-width: calc(1pt * var(--layout-scale)) !important;
         }
       `;
     }
     
     return '';
   }
+  
+  // ===== UTILITY FUNCTIONS ===== 
   
   private static isLightColor(hexColor: string): boolean {
     const hex = hexColor.replace('#', '');
