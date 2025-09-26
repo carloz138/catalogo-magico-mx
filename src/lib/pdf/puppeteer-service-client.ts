@@ -1,5 +1,5 @@
 // src/lib/pdf/puppeteer-service-client.ts
-// 🎯 CORRECCIÓN QUIRÚRGICA: ELIMINAR SOLO EL RECUADRO BLANCO, MANTENER TODO LO DEMÁS
+// 🎯 VERSIÓN ACTUALIZADA CON PRODUCTOS POR PÁGINA DINÁMICOS
 
 import { PDFStorageManager } from '@/lib/storage/pdf-uploader';
 
@@ -55,6 +55,8 @@ interface PuppeteerServiceOptions {
   quality?: 'low' | 'medium' | 'high';
   catalogTitle?: string;
   catalogId?: string;
+  // 🆕 NUEVA OPCIÓN: Productos por página dinámicos
+  productsPerPage?: 4 | 6 | 9;
 }
 
 interface PuppeteerResult {
@@ -71,29 +73,62 @@ interface PuppeteerResult {
 // ✅ MANTENER DELTA DE PRECISIÓN
 const PRECISION_DELTA = 0.5;
 
-// 🚀 CONFIGURACIÓN ESTABLE Y FUNCIONAL
-const PDF_LAYOUT = {
-  // 🚨 MANTENER INTACTOS - NO CAMBIAR (funcionan bien con header/footer)
-  HEADER_MARGIN: 15, // NO CAMBIAR
-  FOOTER_MARGIN: 12, // NO CAMBIAR
-  SIDE_MARGIN: 10,   // NO CAMBIAR
-  HEADER_HEIGHT: 10, // NO CAMBIAR
-  FOOTER_HEIGHT: 6,  // NO CAMBIAR
+// 🚀 CONFIGURACIÓN DINÁMICA BASADA EN PRODUCTOS POR PÁGINA
+const getDynamicPDFLayout = (productsPerPage: 4 | 6 | 9 = 6) => {
+  const layoutConfigs = {
+    4: {
+      // 4 PRODUCTOS: Layout más espacioso
+      HEADER_MARGIN: 15,
+      FOOTER_MARGIN: 12,
+      SIDE_MARGIN: 12, // Más margen lateral
+      HEADER_HEIGHT: 12,
+      FOOTER_HEIGHT: 8,
+      COLUMNS: 2,
+      ROWS: 2,
+      PRODUCTS_PER_PAGE: 4,
+      HEADER_TO_CONTENT_GAP: 10, // Más gap
+      GRID_GAP: 8, // Más gap entre productos
+      CONTENT_PADDING: 6, // Más padding
+      CARD_INTERNAL_PADDING: 6, // Más padding interno
+    },
+    6: {
+      // 6 PRODUCTOS: Layout estándar (actual)
+      HEADER_MARGIN: 15,
+      FOOTER_MARGIN: 12,
+      SIDE_MARGIN: 10,
+      HEADER_HEIGHT: 10,
+      FOOTER_HEIGHT: 6,
+      COLUMNS: 3,
+      ROWS: 2,
+      PRODUCTS_PER_PAGE: 6,
+      HEADER_TO_CONTENT_GAP: 8,
+      GRID_GAP: 5,
+      CONTENT_PADDING: 4,
+      CARD_INTERNAL_PADDING: 4,
+    },
+    9: {
+      // 9 PRODUCTOS: Layout compacto
+      HEADER_MARGIN: 12, // Menos margen
+      FOOTER_MARGIN: 10,
+      SIDE_MARGIN: 8,
+      HEADER_HEIGHT: 8,
+      FOOTER_HEIGHT: 5,
+      COLUMNS: 3,
+      ROWS: 3,
+      PRODUCTS_PER_PAGE: 9,
+      HEADER_TO_CONTENT_GAP: 6, // Menos gap
+      GRID_GAP: 3, // Menos gap entre productos
+      CONTENT_PADDING: 3, // Menos padding
+      CARD_INTERNAL_PADDING: 3, // Menos padding interno
+    }
+  };
   
-  // 🚨 MANTENER INTACTOS
-  COLUMNS: 3,
-  ROWS: 2,
-  PRODUCTS_PER_PAGE: 6,
-  
-  // 🔧 OPTIMIZACIONES PROBADAS
-  HEADER_TO_CONTENT_GAP: 8,
-  GRID_GAP: 5,
-  CONTENT_PADDING: 4,
-  CARD_INTERNAL_PADDING: 4,
+  return layoutConfigs[productsPerPage];
 };
 
-// 🔧 CÁLCULOS ESTABLES
-const calculateOptimizedDimensions = () => {
+// 🔧 CÁLCULOS DINÁMICOS BASADOS EN PRODUCTOS POR PÁGINA
+const calculateDynamicDimensions = (productsPerPage: 4 | 6 | 9 = 6) => {
+  const PDF_LAYOUT = getDynamicPDFLayout(productsPerPage);
   const contentWidth = 210 - (PDF_LAYOUT.SIDE_MARGIN * 2) - PRECISION_DELTA;
   
   const gap = PDF_LAYOUT.GRID_GAP;
@@ -102,10 +137,21 @@ const calculateOptimizedDimensions = () => {
   
   const cardWidth = (usableWidth - (gap * (PDF_LAYOUT.COLUMNS - 1))) / PDF_LAYOUT.COLUMNS;
   
-  // 🚀 ALTURA OPTIMIZADA PROBADA
-  const baseCardHeight = cardWidth + 35;
+  // 🚀 ALTURA DINÁMICA BASADA EN PRODUCTOS POR PÁGINA
+  let baseCardHeight;
+  
+  if (productsPerPage === 4) {
+    baseCardHeight = cardWidth + 50; // Mucho más alto para 4 productos
+  } else if (productsPerPage === 6) {
+    baseCardHeight = cardWidth + 35; // Altura estándar
+  } else if (productsPerPage === 9) {
+    baseCardHeight = cardWidth + 25; // Más compacto para 9 productos
+  } else {
+    baseCardHeight = cardWidth + 35;
+  }
   
   return {
+    PDF_LAYOUT,
     contentWidth: Math.floor(contentWidth * 100) / 100,
     usableWidth: Math.floor(usableWidth * 100) / 100,
     cardWidth: Math.floor(cardWidth * 100) / 100,
@@ -116,8 +162,6 @@ const calculateOptimizedDimensions = () => {
     textHeight: Math.floor(baseCardHeight * 0.45 * 100) / 100
   };
 };
-
-const LAYOUT = calculateOptimizedDimensions();
 
 export class PuppeteerServiceClient {
   private static readonly SERVICE_URL = 'https://min8n-puppeteer-pdf.fqr2ax.easypanel.host';
@@ -132,14 +176,20 @@ export class PuppeteerServiceClient {
     
     const startTime = Date.now();
     
+    // 🆕 OBTENER PRODUCTOS POR PÁGINA DINÁMICOS
+    const productsPerPage = options.productsPerPage || 6;
+    
     try {
-      console.log('🚀 Generando PDF con corrección quirúrgica...', {
+      console.log('🚀 Generando PDF con layout dinámico...', {
         products: products.length,
-        expectedPages: Math.ceil(products.length / PDF_LAYOUT.PRODUCTS_PER_PAGE),
-        layout: LAYOUT
+        productsPerPage,
+        expectedPages: Math.ceil(products.length / productsPerPage),
+        layout: 'dynamic'
       });
       
-      const totalPages = Math.ceil(products.length / PDF_LAYOUT.PRODUCTS_PER_PAGE);
+      // 🔧 CALCULAR DIMENSIONES DINÁMICAS
+      const LAYOUT = calculateDynamicDimensions(productsPerPage);
+      const totalPages = Math.ceil(products.length / productsPerPage);
       
       if (options.onProgress) options.onProgress(5);
       
@@ -150,13 +200,20 @@ export class PuppeteerServiceClient {
       
       if (options.onProgress) options.onProgress(15);
       
-      // ✅ HTML con corrección quirúrgica
-      const htmlContent = this.generateSurgicalHTML(products, businessInfo, template, options.quality || 'medium', options);
+      // ✅ HTML con layout dinámico
+      const htmlContent = this.generateDynamicHTML(
+        products, 
+        businessInfo, 
+        template, 
+        options.quality || 'medium', 
+        options,
+        productsPerPage
+      );
       
       if (options.onProgress) options.onProgress(30);
       
-      // ✅ MANTENER PDF Options EXACTAMENTE IGUALES
-      const pdfOptions = this.getMultipagePDFOptions(options, businessInfo, template);
+      // ✅ PDF Options dinámicos
+      const pdfOptions = this.getDynamicPDFOptions(options, businessInfo, template, productsPerPage);
       
       const pdfBlob = await this.generatePDFWithRetry(htmlContent, pdfOptions, businessInfo, options.onProgress);
       
@@ -171,7 +228,9 @@ export class PuppeteerServiceClient {
           {
             pdf_size_bytes: pdfBlob.size,
             generation_completed_at: new Date().toISOString(),
-            generation_method: 'puppeteer_surgical'
+            generation_method: 'puppeteer_dynamic',
+            products_per_page: productsPerPage,
+            layout_config: LAYOUT.PDF_LAYOUT
           }
         );
         
@@ -206,7 +265,7 @@ export class PuppeteerServiceClient {
       };
       
     } catch (error) {
-      console.error('❌ Error en PDF quirúrgico:', error);
+      console.error('❌ Error en PDF dinámico:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Error desconocido'
@@ -214,16 +273,17 @@ export class PuppeteerServiceClient {
     }
   }
   
-  // 🔧 HTML CON CORRECCIÓN QUIRÚRGICA
-  private static generateSurgicalHTML(
+  // 🔧 HTML CON LAYOUT DINÁMICO
+  private static generateDynamicHTML(
     products: Product[],
     businessInfo: BusinessInfo,
     template: TemplateConfig,
     quality: 'low' | 'medium' | 'high',
-    options: PuppeteerServiceOptions = {}
+    options: PuppeteerServiceOptions = {},
+    productsPerPage: 4 | 6 | 9 = 6
   ): string {
     
-    const pagesHTML = this.generateSurgicalPages(products, businessInfo, template, quality);
+    const pagesHTML = this.generateDynamicPages(products, businessInfo, template, quality, productsPerPage);
     const pageTitle = options.catalogTitle || `Catálogo ${businessInfo.business_name}`;
     
     return `<!DOCTYPE html>
@@ -232,19 +292,24 @@ export class PuppeteerServiceClient {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="format-detection" content="telephone=no">
+  <meta name="products-per-page" content="${productsPerPage}">
   <title>${pageTitle}</title>
   <style>
-    ${this.generateSurgicalCSS(template, quality)}
+    ${this.generateDynamicCSS(template, quality, productsPerPage)}
   </style>
 </head>
-<body class="surgical-body">
+<body class="dynamic-body">
   ${pagesHTML}
 </body>
 </html>`;
   }
   
-  // 🔧 CSS CON CORRECCIÓN QUIRÚRGICA (ELIMINAR SOLO EL PROBLEMA)
-  private static generateSurgicalCSS(template: TemplateConfig, quality: 'low' | 'medium' | 'high'): string {
+  // 🔧 CSS CON LAYOUT DINÁMICO
+  private static generateDynamicCSS(
+    template: TemplateConfig, 
+    quality: 'low' | 'medium' | 'high',
+    productsPerPage: 4 | 6 | 9 = 6
+  ): string {
     const qualityConfig = {
       low: { fontSize: 9, priceSize: 10, nameSize: 9 },
       medium: { fontSize: 10, priceSize: 11, nameSize: 10 },
@@ -252,9 +317,22 @@ export class PuppeteerServiceClient {
     };
     
     const config = qualityConfig[quality];
+    const LAYOUT = calculateDynamicDimensions(productsPerPage);
+    const PDF_LAYOUT = LAYOUT.PDF_LAYOUT;
+    
+    // 🎯 ESCALAS DINÁMICAS
+    const scaleMap = {
+      4: { layout: 1.3, font: 1.2, padding: 1.4 }, // Más grande para 4
+      6: { layout: 1.0, font: 1.0, padding: 1.0 }, // Estándar para 6
+      9: { layout: 0.8, font: 0.85, padding: 0.7 }  // Más pequeño para 9
+    };
+    
+    const scale = scaleMap[productsPerPage];
     
     return `
-      /* 🔧 RESET NORMAL (SIN ELIMINAR TODO) */
+      /* 🔧 CSS DINÁMICO PARA ${productsPerPage} PRODUCTOS POR PÁGINA */
+      
+      /* RESET NORMAL */
       *, *::before, *::after {
         margin: 0 !important;
         padding: 0 !important;
@@ -264,7 +342,7 @@ export class PuppeteerServiceClient {
         color-adjust: exact !important;
       }
       
-      /* 🚨 @PAGE (MANTENER EXACTAMENTE IGUAL) */
+      /* @PAGE DINÁMICO */
       @page {
         size: A4 portrait;
         margin: 0 !important;
@@ -273,9 +351,9 @@ export class PuppeteerServiceClient {
         outline: none !important;
       }
       
-      /* 🔧 HTML ESTABLE */
+      /* HTML ESCALADO */
       html {
-        font-size: ${config.fontSize}pt !important;
+        font-size: ${Math.round(config.fontSize * scale.font)}pt !important;
         font-family: 'Arial', 'Helvetica', sans-serif !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
@@ -284,12 +362,12 @@ export class PuppeteerServiceClient {
         overflow: visible !important;
       }
       
-      /* 🔧 BODY ESTABLE */
-      body.surgical-body {
+      /* BODY ESCALADO */
+      body.dynamic-body {
         margin: 0 !important;
         padding: 0 !important;
         font-family: 'Arial', 'Helvetica', sans-serif !important;
-        font-size: ${config.fontSize}pt !important;
+        font-size: ${Math.round(config.fontSize * scale.font)}pt !important;
         color: ${template.colors.text} !important;
         background: ${template.colors.background} !important;
         -webkit-print-color-adjust: exact !important;
@@ -302,8 +380,8 @@ export class PuppeteerServiceClient {
         display: block !important;
       }
       
-      /* 🚨 PÁGINA INDIVIDUAL (MANTENER MÁRGENES ORIGINALES) */
-      .page-container-surgical {
+      /* PÁGINA INDIVIDUAL DINÁMICA */
+      .page-container-dynamic {
         width: 100% !important;
         margin: 0 !important;
         padding: ${PDF_LAYOUT.HEADER_MARGIN}mm ${PDF_LAYOUT.SIDE_MARGIN}mm ${PDF_LAYOUT.FOOTER_MARGIN}mm ${PDF_LAYOUT.SIDE_MARGIN}mm !important;
@@ -317,20 +395,20 @@ export class PuppeteerServiceClient {
         break-inside: auto !important;
       }
       
-      .page-container-surgical:not(:first-child) {
+      .page-container-dynamic:not(:first-child) {
         page-break-before: always !important;
         break-before: page !important;
       }
       
-      .page-container-surgical:last-child {
+      .page-container-dynamic:last-child {
         page-break-after: avoid !important;
         break-after: avoid !important;
       }
       
-      /* 🔧 CONTENIDO PRINCIPAL ESTABLE */
-      .page-content-surgical {
+      /* CONTENIDO PRINCIPAL DINÁMICO */
+      .page-content-dynamic {
         width: 100% !important;
-        padding: ${LAYOUT.padding}mm !important;
+        padding: ${Math.round(LAYOUT.padding * scale.padding)}mm !important;
         background: ${template.colors.background} !important;
         position: relative !important;
         overflow: visible !important;
@@ -339,38 +417,39 @@ export class PuppeteerServiceClient {
         display: flex !important;
         flex-direction: column !important;
         justify-content: flex-start !important;
-        margin-top: ${PDF_LAYOUT.HEADER_TO_CONTENT_GAP}mm !important;
-        margin-bottom: ${PDF_LAYOUT.HEADER_TO_CONTENT_GAP}mm !important;
+        margin-top: ${Math.round(PDF_LAYOUT.HEADER_TO_CONTENT_GAP * scale.padding)}mm !important;
+        margin-bottom: ${Math.round(PDF_LAYOUT.HEADER_TO_CONTENT_GAP * scale.padding)}mm !important;
       }
       
-      /* 🔧 GRID ESTABLE */
-      .products-grid-surgical {
+      /* GRID DINÁMICO */
+      .products-grid-dynamic {
         width: 100% !important;
         display: grid !important;
         grid-template-columns: repeat(${PDF_LAYOUT.COLUMNS}, 1fr) !important;
-        gap: ${LAYOUT.gap}mm !important;
+        grid-template-rows: repeat(${PDF_LAYOUT.ROWS}, auto) !important;
+        gap: ${Math.round(LAYOUT.gap * scale.padding)}mm !important;
         justify-items: center !important;
         align-items: start !important;
-        grid-auto-rows: ${LAYOUT.cardHeight}mm !important;
+        grid-auto-rows: ${Math.round(LAYOUT.cardHeight * scale.layout)}mm !important;
         height: auto !important;
         min-height: auto !important;
         overflow: visible !important;
         page-break-inside: auto !important;
         break-inside: auto !important;
-        padding: 1mm 0 !important;
+        padding: ${Math.round(1 * scale.padding)}mm 0 !important;
       }
       
-      /* 🚀 PRODUCT CARDS SIN LA DECORACIÓN PROBLEMÁTICA */
-      .product-card-surgical {
+      /* PRODUCT CARDS DINÁMICAS */
+      .product-card-dynamic {
         width: 100% !important;
-        height: ${LAYOUT.cardHeight}mm !important;
-        min-height: ${LAYOUT.cardHeight}mm !important;
+        height: ${Math.round(LAYOUT.cardHeight * scale.layout)}mm !important;
+        min-height: ${Math.round(LAYOUT.cardHeight * scale.layout)}mm !important;
         max-height: none !important;
         background: white !important;
-        border: 0.5pt solid ${template.colors.accent}60 !important;
-        border-radius: 6px !important;
+        border: ${Math.round(0.5 * scale.layout)}pt solid ${template.colors.accent}60 !important;
+        border-radius: ${Math.round(6 * scale.layout)}px !important;
         overflow: visible !important;
-        box-shadow: 0 2pt 4pt rgba(0,0,0,0.12) !important;
+        box-shadow: 0 ${Math.round(2 * scale.layout)}pt ${Math.round(4 * scale.layout)}pt rgba(0,0,0,0.12) !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
         display: flex !important;
@@ -383,37 +462,36 @@ export class PuppeteerServiceClient {
         break-before: auto !important;
         break-after: auto !important;
         
-        /* 🔧 PADDING OPTIMIZADO */
-        padding: ${PDF_LAYOUT.CARD_INTERNAL_PADDING}mm !important;
-        gap: 2mm !important;
+        padding: ${Math.round(PDF_LAYOUT.CARD_INTERNAL_PADDING * scale.padding)}mm !important;
+        gap: ${Math.round(2 * scale.padding)}mm !important;
+        
+        /* OPTIMIZACIONES ESPECÍFICAS POR LAYOUT */
+        ${this.getCardOptimizations(productsPerPage)}
       }
       
-      /* 🚀 ELIMINAMOS COMPLETAMENTE LA CARD DECORATION - ESTA ERA LA CAUSA DEL RECUADRO BLANCO */
-      /* NO AGREGAMOS .card-decoration-surgical */
-      
-      /* 🔧 IMAGEN CONTAINER ESTABLE */
-      .image-container-surgical {
-        flex: 0 0 ${LAYOUT.imageHeight}mm !important;
-        height: ${LAYOUT.imageHeight}mm !important;
-        min-height: ${LAYOUT.imageHeight}mm !important;
-        max-height: ${LAYOUT.imageHeight}mm !important;
+      /* IMAGEN CONTAINER DINÁMICO */
+      .image-container-dynamic {
+        flex: 0 0 ${Math.round(LAYOUT.imageHeight * scale.layout)}mm !important;
+        height: ${Math.round(LAYOUT.imageHeight * scale.layout)}mm !important;
+        min-height: ${Math.round(LAYOUT.imageHeight * scale.layout)}mm !important;
+        max-height: ${Math.round(LAYOUT.imageHeight * scale.layout)}mm !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
         background: #f8f9fa !important;
-        padding: 2mm !important;
+        padding: ${Math.round(2 * scale.padding)}mm !important;
         overflow: hidden !important;
         position: relative !important;
-        border-radius: 3px !important;
+        border-radius: ${Math.round(3 * scale.layout)}px !important;
       }
       
-      /* 🔧 IMAGEN ESTABLE */
-      .product-image-surgical {
+      /* IMAGEN DINÁMICA */
+      .product-image-dynamic {
         max-width: 100% !important;
         max-height: 100% !important;
         width: auto !important;
         height: auto !important;
-        object-fit: contain !important;
+        object-fit: ${productsPerPage === 9 ? 'cover' : 'contain'} !important;
         object-position: center !important;
         display: block !important;
         -webkit-print-color-adjust: exact !important;
@@ -425,13 +503,13 @@ export class PuppeteerServiceClient {
         will-change: auto !important;
       }
       
-      .image-placeholder-surgical {
-        width: ${LAYOUT.imageHeight - 6}mm !important;
-        height: ${LAYOUT.imageHeight - 6}mm !important;
+      .image-placeholder-dynamic {
+        width: ${Math.round((LAYOUT.imageHeight - 6) * scale.layout)}mm !important;
+        height: ${Math.round((LAYOUT.imageHeight - 6) * scale.layout)}mm !important;
         background: repeating-conic-gradient(from 0deg at 50% 50%, #f0f0f0 0deg 90deg, transparent 90deg 180deg) !important;
-        background-size: 6px 6px !important;
-        border: 1pt dashed #ccc !important;
-        border-radius: 3px !important;
+        background-size: ${Math.round(6 * scale.layout)}px ${Math.round(6 * scale.layout)}px !important;
+        border: ${Math.round(1 * scale.layout)}pt dashed #ccc !important;
+        border-radius: ${Math.round(3 * scale.layout)}px !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
@@ -439,20 +517,20 @@ export class PuppeteerServiceClient {
         overflow: hidden !important;
       }
       
-      .placeholder-content-surgical {
+      .placeholder-content-dynamic {
         color: #999 !important;
-        font-size: 8pt !important;
+        font-size: ${Math.round(8 * scale.font)}pt !important;
         text-align: center !important;
         line-height: 1.2 !important;
       }
       
-      /* 🚀 ÁREA DE TEXTO OPTIMIZADA */
-      .text-area-surgical {
+      /* ÁREA DE TEXTO DINÁMICA */
+      .text-area-dynamic {
         flex: 1 1 auto !important;
-        min-height: ${LAYOUT.textHeight}mm !important;
+        min-height: ${Math.round(LAYOUT.textHeight * scale.layout)}mm !important;
         height: auto !important;
         max-height: none !important;
-        padding: 1mm !important;
+        padding: ${Math.round(1 * scale.padding)}mm !important;
         display: flex !important;
         flex-direction: column !important;
         justify-content: flex-start !important;
@@ -461,16 +539,16 @@ export class PuppeteerServiceClient {
         overflow: visible !important;
         position: relative !important;
         background: white !important;
-        gap: 1.5mm !important;
+        gap: ${Math.round(1.5 * scale.padding)}mm !important;
       }
       
-      .product-name-surgical {
-        font-size: ${config.nameSize}pt !important;
+      .product-name-dynamic {
+        font-size: ${Math.round(config.nameSize * scale.font)}pt !important;
         font-weight: 600 !important;
         color: ${template.colors.primary} !important;
         margin-bottom: 0 !important;
         display: -webkit-box !important;
-        -webkit-line-clamp: 2 !important;
+        -webkit-line-clamp: ${this.getNameLinesForLayout(productsPerPage)} !important;
         -webkit-box-orient: vertical !important;
         overflow: hidden !important;
         word-wrap: break-word !important;
@@ -481,12 +559,12 @@ export class PuppeteerServiceClient {
         flex-shrink: 0 !important;
       }
       
-      /* 🚀 SISTEMA DE PRECIOS OPTIMIZADO */
-      .product-pricing-surgical {
+      /* SISTEMA DE PRECIOS DINÁMICO */
+      .product-pricing-dynamic {
         display: flex !important;
         flex-direction: column !important;
         align-items: center !important;
-        gap: 2mm !important;
+        gap: ${Math.round(2 * scale.padding)}mm !important;
         margin: 0 !important;
         width: 100% !important;
         flex-grow: 1 !important;
@@ -495,51 +573,51 @@ export class PuppeteerServiceClient {
         min-height: 0 !important;
       }
 
-      /* 🔧 PRECIO RETAIL ESTABLE */
-      .product-price-retail-surgical {
-        font-size: ${config.priceSize}pt !important;
+      /* PRECIO RETAIL DINÁMICO */
+      .product-price-retail-dynamic {
+        font-size: ${Math.round(config.priceSize * scale.font)}pt !important;
         font-weight: 700 !important;
         color: white !important;
         background: ${template.colors.secondary} !important;
         background-image: linear-gradient(135deg, ${template.colors.secondary}, ${template.colors.primary}) !important;
-        padding: 1.5mm 3mm !important;
-        border-radius: 8px !important;
+        padding: ${Math.round(1.5 * scale.padding)}mm ${Math.round(3 * scale.padding)}mm !important;
+        border-radius: ${Math.round(8 * scale.layout)}px !important;
         display: inline-block !important;
         text-align: center !important;
         white-space: nowrap !important;
         max-width: 95% !important;
         overflow: hidden !important;
         text-overflow: ellipsis !important;
-        box-shadow: 0 1pt 3pt rgba(0,0,0,0.2) !important;
+        box-shadow: 0 ${Math.round(1 * scale.layout)}pt ${Math.round(3 * scale.layout)}pt rgba(0,0,0,0.2) !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
         flex-shrink: 0 !important;
       }
 
-      /* 🚀 PRECIO MAYOREO OPTIMIZADO */
-      .product-price-wholesale-surgical {
+      /* PRECIO MAYOREO DINÁMICO */
+      .product-price-wholesale-dynamic {
         display: flex !important;
         flex-direction: column !important;
         align-items: center !important;
         width: 90% !important;
-        font-size: ${Math.max(config.priceSize - 2, 6)}pt !important;
+        font-size: ${Math.round(Math.max(config.priceSize - 2, 6) * scale.font)}pt !important;
         color: ${template.colors.text} !important;
         background: rgba(0,0,0,0.05) !important;
-        padding: 2mm !important;
-        border-radius: 4px !important;
-        border: 0.25pt solid ${template.colors.accent}50 !important;
+        padding: ${Math.round(2 * scale.padding)}mm !important;
+        border-radius: ${Math.round(4 * scale.layout)}px !important;
+        border: ${Math.round(0.25 * scale.layout)}pt solid ${template.colors.accent}50 !important;
         text-align: center !important;
         -webkit-print-color-adjust: exact !important;
         overflow: visible !important;
         flex-shrink: 0 !important;
-        gap: 0.5mm !important;
-        min-height: 8mm !important;
+        gap: ${Math.round(0.5 * scale.padding)}mm !important;
+        min-height: ${Math.round(8 * scale.layout)}mm !important;
         position: relative !important;
         z-index: 2 !important;
       }
       
-      .wholesale-label-surgical {
-        font-size: ${Math.max(config.priceSize - 3, 5)}pt !important;
+      .wholesale-label-dynamic {
+        font-size: ${Math.round(Math.max(config.priceSize - 3, 5) * scale.font)}pt !important;
         font-weight: 500 !important;
         color: ${template.colors.text}80 !important;
         text-transform: uppercase !important;
@@ -549,17 +627,17 @@ export class PuppeteerServiceClient {
         padding: 0 !important;
       }
       
-      .wholesale-price-surgical {
+      .wholesale-price-dynamic {
         font-weight: 700 !important;
         color: ${template.colors.primary} !important;
-        font-size: ${Math.max(config.priceSize - 1, 7)}pt !important;
+        font-size: ${Math.round(Math.max(config.priceSize - 1, 7) * scale.font)}pt !important;
         line-height: 1.1 !important;
         margin: 0 !important;
         padding: 0 !important;
       }
       
-      .wholesale-min-surgical {
-        font-size: ${Math.max(config.priceSize - 4, 5)}pt !important;
+      .wholesale-min-dynamic {
+        font-size: ${Math.round(Math.max(config.priceSize - 4, 5) * scale.font)}pt !important;
         color: ${template.colors.text}60 !important;
         font-weight: 400 !important;
         font-style: italic !important;
@@ -568,7 +646,7 @@ export class PuppeteerServiceClient {
         padding: 0 !important;
       }
       
-      /* 🚀 MEDIA PRINT OPTIMIZADO */
+      /* MEDIA PRINT DINÁMICO */
       @media print {
         * {
           -webkit-print-color-adjust: exact !important;
@@ -584,102 +662,163 @@ export class PuppeteerServiceClient {
           height: auto !important;
         }
         
-        .page-container-surgical,
-        .page-content-surgical,
-        .products-grid-surgical {
+        .page-container-dynamic,
+        .page-content-dynamic,
+        .products-grid-dynamic {
           overflow: visible !important;
           position: relative !important;
           height: auto !important;
         }
         
-        .page-container-surgical {
+        .page-container-dynamic {
           page-break-inside: auto !important;
           break-inside: auto !important;
         }
         
-        .page-container-surgical:not(:first-child) {
+        .page-container-dynamic:not(:first-child) {
           page-break-before: always !important;
           break-before: page !important;
         }
         
-        .page-container-surgical:last-child {
+        .page-container-dynamic:last-child {
           page-break-after: avoid !important;
           break-after: avoid !important;
         }
         
-        .product-card-surgical {
+        .product-card-dynamic {
           page-break-inside: avoid !important;
           break-inside: avoid !important;
           overflow: visible !important;
           max-height: none !important;
-          min-height: calc(${LAYOUT.cardHeight}mm + 5mm) !important;
+          min-height: calc(${Math.round(LAYOUT.cardHeight * scale.layout)}mm + ${Math.round(5 * scale.padding)}mm) !important;
         }
         
-        .product-image-surgical {
+        .product-image-dynamic {
           -webkit-print-color-adjust: exact !important;
           print-color-adjust: exact !important;
           color-adjust: exact !important;
         }
         
-        /* 🚀 FIXES PARA PRINT */
-        .text-area-surgical {
+        .text-area-dynamic {
           overflow: visible !important;
           height: auto !important;
-          min-height: calc(${LAYOUT.textHeight}mm + 5mm) !important;
+          min-height: calc(${Math.round(LAYOUT.textHeight * scale.layout)}mm + ${Math.round(5 * scale.padding)}mm) !important;
         }
         
-        .product-pricing-surgical {
+        .product-pricing-dynamic {
           overflow: visible !important;
           height: auto !important;
-          gap: 2.5mm !important;
-          min-height: 15mm !important;
+          gap: ${Math.round(2.5 * scale.padding)}mm !important;
+          min-height: ${Math.round(15 * scale.layout)}mm !important;
         }
         
-        .product-price-wholesale-surgical {
+        .product-price-wholesale-dynamic {
           overflow: visible !important;
-          min-height: 10mm !important;
-          padding: 2.5mm !important;
-          margin-top: 1mm !important;
+          min-height: ${Math.round(10 * scale.layout)}mm !important;
+          padding: ${Math.round(2.5 * scale.padding)}mm !important;
+          margin-top: ${Math.round(1 * scale.padding)}mm !important;
           position: relative !important;
           z-index: 10 !important;
         }
         
-        .products-grid-surgical {
-          grid-auto-rows: calc(${LAYOUT.cardHeight}mm + 5mm) !important;
+        .products-grid-dynamic {
+          grid-auto-rows: calc(${Math.round(LAYOUT.cardHeight * scale.layout)}mm + ${Math.round(5 * scale.padding)}mm) !important;
         }
       }
       
-      /* 🚀 ELIMINACIÓN QUIRÚRGICA SOLO DE PSEUDO-ELEMENTOS PROBLEMÁTICOS */
-      .product-card-surgical::before,
-      .product-card-surgical::after {
+      /* ELIMINACIÓN DE PSEUDO-ELEMENTOS PROBLEMÁTICOS */
+      .product-card-dynamic::before,
+      .product-card-dynamic::after {
         display: none !important;
         content: none !important;
       }
+      
+      /* OPTIMIZACIONES ESPECÍFICAS POR PRODUCTOS POR PÁGINA */
+      ${this.getLayoutSpecificCSS(productsPerPage, template)}
     `;
   }
   
-  // 🔧 GENERACIÓN DE PÁGINAS ESTABLE
-  private static generateSurgicalPages(
+  // 🎯 OPTIMIZACIONES POR CARD
+  private static getCardOptimizations(productsPerPage: 4 | 6 | 9): string {
+    if (productsPerPage === 4) {
+      return `
+        justify-self: center;
+        max-width: 95%;
+      `;
+    } else if (productsPerPage === 9) {
+      return `
+        justify-self: stretch;
+        max-width: 100%;
+      `;
+    }
+    return '';
+  }
+  
+  // 🎯 LÍNEAS DE NOMBRE POR LAYOUT
+  private static getNameLinesForLayout(productsPerPage: 4 | 6 | 9): number {
+    const lineMap = { 4: 3, 6: 2, 9: 2 };
+    return lineMap[productsPerPage];
+  }
+  
+  // 🎯 CSS ESPECÍFICO POR LAYOUT
+  private static getLayoutSpecificCSS(productsPerPage: 4 | 6 | 9, template: TemplateConfig): string {
+    if (productsPerPage === 4) {
+      return `
+        /* OPTIMIZACIONES PARA 4 PRODUCTOS - LAYOUT ESPACIOSO */
+        .products-grid-dynamic {
+          justify-items: center;
+          align-items: center;
+          place-content: center;
+        }
+        
+        .product-card-dynamic {
+          transform: scale(1.0);
+        }
+      `;
+    } else if (productsPerPage === 9) {
+      return `
+        /* OPTIMIZACIONES PARA 9 PRODUCTOS - LAYOUT COMPACTO */
+        .products-grid-dynamic {
+          justify-items: stretch;
+          align-items: stretch;
+          place-content: stretch;
+        }
+        
+        .product-card-dynamic {
+          border-width: 0.25pt !important;
+        }
+        
+        .product-image-dynamic {
+          object-fit: cover !important;
+        }
+      `;
+    }
+    return '';
+  }
+  
+  // 🔧 GENERACIÓN DE PÁGINAS DINÁMICAS
+  private static generateDynamicPages(
     products: Product[],
     businessInfo: BusinessInfo,
     template: TemplateConfig,
-    quality: string
+    quality: string,
+    productsPerPage: 4 | 6 | 9 = 6
   ): string {
     
-    const totalPages = Math.ceil(products.length / PDF_LAYOUT.PRODUCTS_PER_PAGE);
+    const totalPages = Math.ceil(products.length / productsPerPage);
     let pagesHTML = '';
     
     for (let pageIndex = 0; pageIndex < totalPages; pageIndex++) {
-      const startIndex = pageIndex * PDF_LAYOUT.PRODUCTS_PER_PAGE;
-      const endIndex = Math.min(startIndex + PDF_LAYOUT.PRODUCTS_PER_PAGE, products.length);
+      const startIndex = pageIndex * productsPerPage;
+      const endIndex = Math.min(startIndex + productsPerPage, products.length);
       const pageProducts = products.slice(startIndex, endIndex);
       
       if (pageProducts.length === 0) continue;
       
       pagesHTML += `
-        <div class="page-container-surgical">
-          <div class="page-content-surgical">
-            ${this.generateSurgicalGrid(pageProducts)}
+        <div class="page-container-dynamic">
+          <div class="page-content-dynamic">
+            ${this.generateDynamicGrid(pageProducts, productsPerPage)}
           </div>
         </div>
       `;
@@ -688,20 +827,27 @@ export class PuppeteerServiceClient {
     return pagesHTML;
   }
   
-  // 🔧 GRID ESTABLE
-  private static generateSurgicalGrid(products: Product[]): string {
-    let gridHTML = '<div class="products-grid-surgical">';
+  // 🔧 GRID DINÁMICO
+  private static generateDynamicGrid(products: Product[], productsPerPage: 4 | 6 | 9): string {
+    let gridHTML = '<div class="products-grid-dynamic">';
     
+    // Rellenar con productos
     products.forEach(product => {
-      gridHTML += this.generateSurgicalProductCard(product);
+      gridHTML += this.generateDynamicProductCard(product);
     });
+    
+    // Rellenar con cards vacías si es necesario
+    const emptyCardsNeeded = productsPerPage - products.length;
+    for (let i = 0; i < emptyCardsNeeded; i++) {
+      gridHTML += '<div class="product-card-dynamic" style="visibility: hidden;"></div>';
+    }
     
     gridHTML += '</div>';
     return gridHTML;
   }
   
-  // 🚀 PRODUCTO CARD SIN DECORACIÓN PROBLEMÁTICA
-  private static generateSurgicalProductCard(product: Product): string {
+  // 🚀 PRODUCTO CARD DINÁMICO
+  private static generateDynamicProductCard(product: Product): string {
     const productName = product.name || 'Producto';
     const productPrice = typeof product.price_retail === 'number' ? product.price_retail : 0;
     const productImage = product.image_url || '';
@@ -710,42 +856,42 @@ export class PuppeteerServiceClient {
       `<img 
          src="${productImage}" 
          alt="${productName}"
-         class="product-image-surgical" 
+         class="product-image-dynamic" 
          loading="eager" 
          crossorigin="anonymous"
          onload="this.style.opacity=1"
          onerror="this.style.display='none'"
        />` :
-      `<div class="image-placeholder-surgical">
-         <div class="placeholder-content-surgical">
+      `<div class="image-placeholder-dynamic">
+         <div class="placeholder-content-dynamic">
            <div style="font-size: 12pt; margin-bottom: 1mm;">📷</div>
            <div>Sin imagen</div>
          </div>
        </div>`;
     
     const wholesalePriceHTML = product.price_wholesale ? `
-      <div class="product-price-wholesale-surgical">
-        <span class="wholesale-label-surgical">Mayoreo:</span>
-        <span class="wholesale-price-surgical">$${(product.price_wholesale / 100).toLocaleString('es-MX', { 
+      <div class="product-price-wholesale-dynamic">
+        <span class="wholesale-label-dynamic">Mayoreo:</span>
+        <span class="wholesale-price-dynamic">$${(product.price_wholesale / 100).toLocaleString('es-MX', { 
           minimumFractionDigits: 2,
           maximumFractionDigits: 2
         })}</span>
         ${product.wholesale_min_qty ? `
-          <span class="wholesale-min-surgical">Min. ${product.wholesale_min_qty}</span>
+          <span class="wholesale-min-dynamic">Min. ${product.wholesale_min_qty}</span>
         ` : ''}
       </div>
     ` : '';
     
     return `
-      <div class="product-card-surgical">
-        <div class="image-container-surgical">
+      <div class="product-card-dynamic">
+        <div class="image-container-dynamic">
           ${imageHTML}
         </div>
         
-        <div class="text-area-surgical">
-          <div class="product-name-surgical">${productName}</div>
-          <div class="product-pricing-surgical">
-            <div class="product-price-retail-surgical">$${(productPrice / 100).toLocaleString('es-MX', { 
+        <div class="text-area-dynamic">
+          <div class="product-name-dynamic">${productName}</div>
+          <div class="product-pricing-dynamic">
+            <div class="product-price-retail-dynamic">$${(productPrice / 100).toLocaleString('es-MX', { 
               minimumFractionDigits: 2,
               maximumFractionDigits: 2
             })}</div>
@@ -756,13 +902,15 @@ export class PuppeteerServiceClient {
     `;
   }
   
-  // 🚨 PDF OPTIONS (MANTENER EXACTAMENTE IGUALES)
-  private static getMultipagePDFOptions(
+  // 🚨 PDF OPTIONS DINÁMICOS
+  private static getDynamicPDFOptions(
     options: PuppeteerServiceOptions, 
     businessInfo: BusinessInfo, 
-    template?: TemplateConfig
+    template?: TemplateConfig,
+    productsPerPage: 4 | 6 | 9 = 6
   ): any {
     
+    const PDF_LAYOUT = getDynamicPDFLayout(productsPerPage);
     const primaryColor = template?.colors?.primary || '#007BFF';
     const secondaryColor = template?.colors?.secondary || '#0056B3';
     const contactInfo = this.generateSmartContactInfo(businessInfo);
@@ -785,9 +933,9 @@ export class PuppeteerServiceClient {
       scale: 1.0,
       quality: options.quality === 'high' ? 100 : options.quality === 'low' ? 80 : 90,
       
-      headerTemplate: `<div style="font-size: 12px !important; width: 100% !important; height: ${PDF_LAYOUT.HEADER_HEIGHT}mm !important; text-align: center !important; background: ${primaryColor} !important; background-image: linear-gradient(135deg, ${primaryColor}, ${secondaryColor}) !important; color: white !important; padding: 2mm !important; margin: 0 !important; border-radius: 4px !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; display: table !important; table-layout: fixed !important;"><div style="display: table-cell; vertical-align: middle; text-align: center;"><strong style="color: white !important; font-size: 14px !important;">${businessInfo.business_name || 'Mi Negocio'}</strong><br><span style="color: rgba(255,255,255,0.9) !important; font-size: 10px !important;">${catalogTitle}</span></div></div>`,
+      headerTemplate: `<div style="font-size: 12px !important; width: 100% !important; height: ${PDF_LAYOUT.HEADER_HEIGHT}mm !important; text-align: center !important; background: ${primaryColor} !important; background-image: linear-gradient(135deg, ${primaryColor}, ${secondaryColor}) !important; color: white !important; padding: 2mm !important; margin: 0 !important; border-radius: 4px !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; display: table !important; table-layout: fixed !important;"><div style="display: table-cell; vertical-align: middle; text-align: center;"><strong style="color: white !important; font-size: 14px !important;">${businessInfo.business_name || 'Mi Negocio'}</strong><br><span style="color: rgba(255,255,255,0.9) !important; font-size: 10px !important;">${catalogTitle} (${productsPerPage}/página)</span></div></div>`,
       
-      footerTemplate: `<div style="font-size: 9px !important; width: 100% !important; height: ${PDF_LAYOUT.FOOTER_HEIGHT}mm !important; text-align: center !important; background: ${secondaryColor} !important; color: white !important; padding: 1mm !important; margin: 0 !important; border-radius: 4px !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; display: table !important; table-layout: fixed !important;"><div style="display: table-cell; vertical-align: middle; text-align: center;">${contactInfo ? `<div style="color: white !important; font-size: 8px !important; margin-bottom: 1mm !important;">${contactInfo}</div>` : ''}<div style="color: rgba(255,255,255,0.8) !important; font-size: 7px !important;">Generado con CatifyPro - <span class="pageNumber"></span> de <span class="totalPages"></span></div></div></div>`,
+      footerTemplate: `<div style="font-size: 9px !important; width: 100% !important; height: ${PDF_LAYOUT.FOOTER_HEIGHT}mm !important; text-align: center !important; background: ${secondaryColor} !important; color: white !important; padding: 1mm !important; margin: 0 !important; border-radius: 4px !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; display: table !important; table-layout: fixed !important;"><div style="display: table-cell; vertical-align: middle; text-align: center;">${contactInfo ? `<div style="color: white !important; font-size: 8px !important; margin-bottom: 1mm !important;">${contactInfo}</div>` : ''}<div style="color: rgba(255,255,255,0.8) !important; font-size: 7px !important;">CatifyPro (${productsPerPage}/pág) - <span class="pageNumber"></span> de <span class="totalPages"></span></div></div></div>`,
       
       landscape: false,
       
@@ -877,7 +1025,7 @@ export class PuppeteerServiceClient {
               width: 1024,
               height: 768
             },
-            waitForSelector: '.page-container-surgical',
+            waitForSelector: '.page-container-dynamic',
             waitForFunction: 'document.readyState === "complete"',
           },
           filename: `catalogo-${businessInfo.business_name.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`,
@@ -890,7 +1038,7 @@ export class PuppeteerServiceClient {
           headers: {
             'Content-Type': 'application/json',
             'Accept': 'application/pdf',
-            'User-Agent': 'CatifyPro-PDF-Generator/2.0-Surgical'
+            'User-Agent': 'CatifyPro-PDF-Generator/2.0-Dynamic'
           },
           body: JSON.stringify(requestPayload),
           signal: controller.signal
@@ -911,7 +1059,7 @@ export class PuppeteerServiceClient {
           throw new Error('PDF vacío recibido del servicio');
         }
         
-        console.log(`✅ PDF quirúrgico generado en intento ${attempt}/${maxRetries}, tamaño: ${blob.size} bytes`);
+        console.log(`✅ PDF dinámico generado en intento ${attempt}/${maxRetries}, tamaño: ${blob.size} bytes`);
         return blob;
         
       } catch (error) {
@@ -962,7 +1110,7 @@ export class PuppeteerServiceClient {
       }
       
       const blob = await response.blob();
-      await this.downloadPDF(blob, 'test-surgical');
+      await this.downloadPDF(blob, 'test-dynamic');
       
       return { 
         success: true,
@@ -979,6 +1127,7 @@ export class PuppeteerServiceClient {
   }
 }
 
+// 🚀 FUNCIÓN EXPORTADA CON PRODUCTOS POR PÁGINA DINÁMICOS
 export const generatePDFWithPuppeteer = async (
   products: Product[],
   businessInfo: BusinessInfo,
