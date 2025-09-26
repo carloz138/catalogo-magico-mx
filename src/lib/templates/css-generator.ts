@@ -729,6 +729,37 @@ export class TemplateGenerator {
         .product-price-wholesale {
           overflow: visible !important;
         }
+                /* FIX CRÍTICO: Tarjetas más altas */
+        .product-card {
+          height: calc(var(--card-height) + 8mm) !important; /* +8mm más altura */
+          min-height: calc(var(--card-height) + 8mm) !important;
+          max-height: none !important;
+        }
+        
+        /* FIX CRÍTICO: Área de texto expandida */
+        .text-area-optimized {
+          min-height: calc(var(--text-area-height) + 8mm) !important;
+          height: auto !important;
+          gap: 2mm !important;
+        }
+        
+        /* FIX CRÍTICO: Contenedor de precios con altura garantizada */
+        .product-pricing {
+          min-height: 15mm !important; /* Altura mínima fija para mayoreo */
+          justify-content: flex-start !important;
+          gap: 2mm !important;
+        }
+        
+        /* FIX CRÍTICO: Cuadro de mayoreo con espacio garantizado */
+        .product-price-wholesale {
+          min-height: 8mm !important; /* Altura mínima garantizada */
+          min-width: 70% !important;
+          padding: 2mm 3mm !important;
+          margin-top: 1mm !important;
+          white-space: normal !important;
+          position: relative !important;
+          z-index: 1 !important;
+        }
       }
       
       /* ===== OPTIMIZACIONES POR DENSIDAD (MANTENER) ===== */
@@ -1106,36 +1137,4 @@ export class TemplateGenerator {
     const b = parseInt(hex.slice(5, 7), 16);
     return `rgba(${r}, ${g}, ${b}, ${alpha})`;
   }
-
-  /* FIX CRÍTICO: Tarjetas más altas */
-.product-card {
-  height: calc(var(--card-height) + 8mm) !important; /* +8mm más altura */
-  min-height: calc(var(--card-height) + 8mm) !important;
-  max-height: none !important;
-}
-
-/* FIX CRÍTICO: Área de texto expandida */
-.text-area-optimized {
-  min-height: calc(var(--text-area-height) + 8mm) !important;
-  height: auto !important;
-  gap: 2mm !important;
-}
-
-/* FIX CRÍTICO: Contenedor de precios con altura garantizada */
-.product-pricing {
-  min-height: 15mm !important; /* Altura mínima fija para mayoreo */
-  justify-content: flex-start !important;
-  gap: 2mm !important;
-}
-
-/* FIX CRÍTICO: Cuadro de mayoreo con espacio garantizado */
-.product-price-wholesale {
-  min-height: 8mm !important; /* Altura mínima garantizada */
-  min-width: 70% !important;
-  padding: 2mm 3mm !important;
-  margin-top: 1mm !important;
-  white-space: normal !important;
-  position: relative !important;
-  z-index: 1 !important;
-}
 }
