@@ -1,5 +1,5 @@
-// src/lib/templates/css-generator.ts - VERSIÓN CONSERVADORA
-// 🎯 CAMBIOS MÍNIMOS: Solo corregir espaciado interno y texto cortado
+// src/lib/templates/css-generator.ts - VERSIÓN CORREGIDA COMPLETA
+// 🚀 SOLUCIÓN DEFINITIVA PARA CONTENIDO CORTADO EN TARJETAS
 
 import { IndustryTemplate } from './industry-templates';
 
@@ -33,17 +33,17 @@ interface BusinessInfo {
 export class TemplateGenerator {
   
   /**
-   * 🎨 CSS GENERATOR CONSERVADOR - MANTENER MAYOR PARTE, CAMBIOS MÍNIMOS
+   * 🎨 CSS GENERATOR COMPLETAMENTE CORREGIDO
    */
   static generateTemplateCSS(template: IndustryTemplate): string {
-    const dimensions = this.calculateConservativeDimensions(template);
+    const dimensions = this.calculateCorrectedDimensions(template);
     const colors = this.generateColorScheme(template);
     const typography = this.calculateTypography(template);
     
     return `
-      /* ===== TEMPLATE: ${template.displayName.toUpperCase()} - CAMBIOS CONSERVADORES ===== */
+      /* ===== TEMPLATE: ${template.displayName.toUpperCase()} - VERSIÓN CORREGIDA ===== */
       
-      /* ===== VARIABLES CSS (MANTENER MAYORÍA) ===== */
+      /* ===== VARIABLES CSS CORREGIDAS ===== */
       :root {
         --primary: ${colors.primary};
         --secondary: ${colors.secondary};
@@ -54,22 +54,22 @@ export class TemplateGenerator {
         --text-light: ${colors.textSecondary};
         --border: ${colors.borderColor};
         
-        /* DIMENSIONES (MANTENER MAYORÍA) */
+        /* DIMENSIONES CORREGIDAS */
         --page-width: 210mm;
         --page-height: 297mm;
         --margin: ${dimensions.margin}mm;
         --content-width: ${dimensions.contentWidth}mm;
         --content-height: ${dimensions.contentHeight}mm;
         
-        /* GRID DIMENSIONS - CAMBIOS MÍNIMOS */
+        /* GRID DIMENSIONS CORREGIDAS PARA MÁS ESPACIO */
         --columns: ${dimensions.columns};
         --card-width: ${dimensions.cardWidth}mm;
-        --card-height: ${dimensions.cardHeight}mm;
-        --gap: ${dimensions.gap}mm; /* CAMBIO: +1mm */
+        --card-height: ${dimensions.cardHeight}mm; /* AUMENTADO */
+        --gap: ${dimensions.gap}mm;
         --image-height: ${dimensions.imageHeight}mm;
-        --text-area-height: ${dimensions.textAreaHeight}mm; /* CAMBIO: +3mm más espacio */
+        --text-area-height: ${dimensions.textAreaHeight}mm; /* AUMENTADO SIGNIFICATIVAMENTE */
         
-        /* TIPOGRAFÍA MEJORADA */
+        /* TIPOGRAFÍA OPTIMIZADA */
         --header-size: ${typography.headerSize}pt;
         --title-size: ${typography.titleSize}pt;
         --price-size: ${typography.priceSize}pt;
@@ -77,7 +77,7 @@ export class TemplateGenerator {
         --info-size: ${typography.infoSize}pt;
       }
       
-      /* ===== RESET ABSOLUTO (SIN CAMBIOS) ===== */
+      /* ===== RESET ABSOLUTO ===== */
       *, *::before, *::after {
         margin: 0 !important;
         padding: 0 !important;
@@ -87,7 +87,7 @@ export class TemplateGenerator {
         color-adjust: exact !important;
       }
       
-      /* ===== PÁGINA PDF (SIN CAMBIOS) ===== */
+      /* ===== PÁGINA PDF ===== */
       @page {
         size: A4 portrait;
         margin: var(--margin);
@@ -97,7 +97,7 @@ export class TemplateGenerator {
         widows: 1;
       }
       
-      /* ===== HTML Y BODY (SIN CAMBIOS) ===== */
+      /* ===== HTML Y BODY ===== */
       html {
         width: var(--page-width);
         height: auto;
@@ -125,7 +125,7 @@ export class TemplateGenerator {
         align-items: center !important;
       }
       
-      /* ===== CONTAINER PRINCIPAL (SIN CAMBIOS) ===== */
+      /* ===== CONTAINER PRINCIPAL ===== */
       .catalog-container {
         width: var(--content-width) !important;
         max-width: var(--content-width) !important;
@@ -141,7 +141,7 @@ export class TemplateGenerator {
         padding-bottom: 0 !important;
       }
       
-      /* ===== HEADER (SIN CAMBIOS) ===== */
+      /* ===== HEADER ===== */
       .catalog-header {
         width: 100%;
         background: var(--primary) !important;
@@ -180,7 +180,7 @@ export class TemplateGenerator {
         -webkit-print-color-adjust: exact !important;
       }
       
-      /* ===== PRODUCTS SECTION (SIN CAMBIOS) ===== */
+      /* ===== PRODUCTS SECTION ===== */
       .products-section {
         width: 100%;
         flex-grow: 1;
@@ -193,7 +193,7 @@ export class TemplateGenerator {
         min-height: 0;
       }
       
-      /* ===== PRODUCTS PAGE (SIN CAMBIOS) ===== */
+      /* ===== PRODUCTS PAGE ===== */
       .products-page {
         width: 100%;
         margin-bottom: 8mm;
@@ -203,11 +203,11 @@ export class TemplateGenerator {
         justify-content: center;
       }
       
-      /* ✅ GRID SYSTEM CON CAMBIO MÍNIMO (GAP MEJORADO) */
+      /* 🚀 GRID SYSTEM COMPLETAMENTE CORREGIDO */
       .products-grid {
         display: grid !important;
         grid-template-columns: repeat(var(--columns), 1fr) !important;
-        gap: var(--gap) !important; /* CAMBIO: +1mm más gap */
+        gap: var(--gap) !important;
         width: 100% !important;
         max-width: var(--content-width) !important;
         margin: 0 auto !important;
@@ -216,21 +216,24 @@ export class TemplateGenerator {
         align-items: stretch !important;
         justify-content: center !important;
         place-content: center stretch !important;
-        grid-auto-rows: minmax(var(--card-height), auto) !important;
+        /* 🔧 ALTURA CORREGIDA PARA ACOMODAR CONTENIDO */
+        grid-auto-rows: var(--card-height) !important;
       }
       
-      /* ✅ PRODUCT CARDS CON CAMBIOS MÍNIMOS CRÍTICOS */
+      /* 🚀 PRODUCT CARDS COMPLETAMENTE CORREGIDAS */
       .product-card {
         display: flex !important;
         flex-direction: column !important;
         width: 100% !important;
+        /* 🔧 ALTURA CORREGIDA PARA MÁS ESPACIO */
         height: var(--card-height) !important;
         min-height: var(--card-height) !important;
-        max-height: auto !important; /* CAMBIO CRÍTICO: permitir crecimiento si es necesario */
+        max-height: none !important; /* CRÍTICO: Permitir crecimiento */
         
         background: var(--card-bg) !important;
         border: 0.5pt solid var(--border) !important;
         border-radius: ${Math.min(template.design?.borderRadius || 8, 15)}px !important;
+        /* 🔧 OVERFLOW CORREGIDO */
         overflow: visible !important; /* CAMBIO CRÍTICO: de hidden a visible */
         position: relative !important;
         
@@ -241,30 +244,30 @@ export class TemplateGenerator {
         align-self: stretch !important;
         justify-self: center !important;
         
-        /* ✅ CAMBIO CRÍTICO: Padding interno */
-        padding: 3mm !important; /* NUEVO: padding interno */
-        gap: 1.5mm !important; /* NUEVO: gap entre elementos internos */
+        /* 🔧 PADDING OPTIMIZADO */
+        padding: 3mm !important;
+        gap: 2mm !important; /* GAP INTERNO PARA SEPARACIÓN */
         
         ${template.design.shadows ? 'box-shadow: 0 1mm 3mm rgba(0, 0, 0, 0.08);' : ''}
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
       }
       
-      /* ===== CONTENIDO INTERNO CON GAP ===== */
+      /* ===== CONTENIDO INTERNO CORREGIDO ===== */
       .product-card-inner {
         display: flex !important;
         flex-direction: column !important;
         height: 100% !important;
         width: 100% !important;
-        /* ✅ CAMBIO: Eliminar padding duplicado y agregar gap */
-        padding: 0 !important; /* Era 3mm */
-        gap: 1.5mm !important; /* NUEVO: gap entre secciones */
+        padding: 0 !important; /* SIN PADDING DUPLICADO */
+        gap: 2mm !important; /* GAP ENTRE ELEMENTOS */
         box-sizing: border-box !important;
       }
       
-      /* ===== IMAGEN CONTAINER (SIN CAMBIOS MAYORES) ===== */
+      /* ===== IMAGEN CONTAINER OPTIMIZADO ===== */
       .product-image-container {
         width: 100% !important;
+        /* 🔧 ALTURA DE IMAGEN OPTIMIZADA */
         height: var(--image-height) !important;
         min-height: var(--image-height) !important;
         max-height: var(--image-height) !important;
@@ -277,15 +280,13 @@ export class TemplateGenerator {
         align-items: center !important;
         justify-content: center !important;
         border: 0.25pt solid var(--border) !important;
-        margin-bottom: 0 !important; /* CAMBIO: Era 2mm, ahora 0 (gap lo maneja) */
+        margin-bottom: 0 !important; /* SIN MARGIN, USA GAP */
         -webkit-print-color-adjust: exact !important;
         aspect-ratio: 1 / 1 !important;
-        
-        /* Padding interno reducido */
-        padding: 2mm !important; /* MANTENER padding interno pequeño */
+        padding: 2mm !important;
       }
       
-      /* ===== IMAGEN (SIN CAMBIOS) ===== */
+      /* ===== IMAGEN ===== */
       .product-image {
         width: 100% !important;
         height: 100% !important;
@@ -302,7 +303,7 @@ export class TemplateGenerator {
         backface-visibility: hidden !important;
       }
       
-      /* ===== ESTRATEGIAS POR ORIENTACIÓN (MANTENER) ===== */
+      /* ===== ESTRATEGIAS POR ORIENTACIÓN ===== */
       .product-image.cover-mode {
         object-fit: cover !important;
         object-position: center !important;
@@ -315,7 +316,7 @@ export class TemplateGenerator {
         background: #fafafa !important;
       }
       
-      /* ===== PLACEHOLDER (SIN CAMBIOS) ===== */
+      /* ===== PLACEHOLDER ===== */
       .product-image-placeholder {
         width: 90% !important;
         height: 90% !important;
@@ -336,29 +337,32 @@ export class TemplateGenerator {
         -webkit-print-color-adjust: exact !important;
       }
       
-      /* ✅ INFORMACIÓN CON CAMBIOS CRÍTICOS */
+      /* 🚀 INFORMACIÓN COMPLETAMENTE CORREGIDA */
       .product-info {
-        flex-grow: 1 !important;
+        /* 🔧 FLEX CORREGIDO PARA MÁS ESPACIO */
+        flex: 1 1 auto !important; /* CAMBIO CRÍTICO: flex-grow para usar espacio disponible */
         display: flex !important;
         flex-direction: column !important;
-        justify-content: flex-start !important; /* CAMBIO CRÍTICO: de space-between a flex-start */
-        height: var(--text-area-height) !important;
+        justify-content: flex-start !important; /* CAMBIO CRÍTICO: desde arriba */
+        /* 🔧 ALTURA CORREGIDA */
         min-height: var(--text-area-height) !important;
+        height: auto !important; /* CRÍTICO: altura automática */
         text-align: center !important;
+        /* 🔧 OVERFLOW CORREGIDO */
         overflow: visible !important; /* CAMBIO CRÍTICO: de hidden a visible */
         
-        /* ✅ CAMBIOS CRÍTICOS: Gap y padding mejorados */
-        gap: 1.5mm !important; /* NUEVO: gap entre elementos de texto */
-        padding: 1mm 0 !important; /* NUEVO: padding vertical pequeño */
+        /* 🔧 GAP Y PADDING OPTIMIZADOS */
+        gap: 2mm !important; /* GAP AUMENTADO */
+        padding: 1mm 0 !important;
       }
       
-      /* ✅ NOMBRE DEL PRODUCTO CON CAMBIOS CRÍTICOS */
+      /* 🚀 NOMBRE DEL PRODUCTO CORREGIDO */
       .product-name {
         font-size: var(--title-size) !important;
         font-weight: 600 !important;
         color: var(--primary) !important;
-        line-height: 1.3 !important; /* CAMBIO CRÍTICO: 1.2 → 1.3 */
-        margin-bottom: 0 !important; /* CAMBIO: Era 1mm, ahora 0 (gap lo maneja) */
+        line-height: 1.3 !important;
+        margin-bottom: 0 !important; /* USA GAP EN VEZ DE MARGIN */
         word-wrap: break-word !important;
         overflow-wrap: break-word !important;
         hyphens: auto !important;
@@ -371,25 +375,25 @@ export class TemplateGenerator {
         -webkit-print-color-adjust: exact !important;
         text-align: center !important;
         width: 100% !important;
-        
-        /* ✅ ALTURA MÍNIMA para evitar colapso */
-        min-height: calc(var(--title-size) * 1.3 * ${this.getNameLines(template.density)}) !important;
+        flex-shrink: 0 !important;
       }
       
-      /* ✅ SISTEMA DE PRECIOS CON CAMBIOS MÍNIMOS */
+      /* 🚀 SISTEMA DE PRECIOS COMPLETAMENTE CORREGIDO */
       .product-pricing {
         display: flex !important;
         flex-direction: column !important;
         align-items: center !important;
-        gap: 1.5mm !important; /* CAMBIO: gap aumentado */
-        margin: 0 !important; /* CAMBIO: Era 1mm auto, ahora 0 (gap lo maneja) */
+        gap: 2.5mm !important; /* GAP AUMENTADO PARA MEJOR SEPARACIÓN */
+        margin: 0 !important; /* SIN MARGIN, USA GAP */
         width: 100% !important;
         flex-grow: 1 !important;
-        justify-content: center !important;
+        justify-content: flex-start !important; /* CRÍTICO: desde arriba */
+        /* 🔧 OVERFLOW CORREGIDO */
         overflow: visible !important; /* CAMBIO CRÍTICO: permitir overflow */
+        min-height: 0 !important; /* PERMITIR FLEXIBILIDAD */
       }
 
-      /* ===== PRECIO RETAIL (CAMBIOS MÍNIMOS) ===== */
+      /* ===== PRECIO RETAIL OPTIMIZADO ===== */
       .product-price-retail {
         font-size: var(--price-size) !important;
         font-weight: 700 !important;
@@ -409,25 +413,32 @@ export class TemplateGenerator {
         print-color-adjust: exact !important;
         flex-shrink: 0 !important;
         line-height: 1.2 !important;
+        margin: 0 !important; /* SIN MARGIN, USA GAP */
       }
 
-      /* ===== PRECIO MAYOREO CON CAMBIOS MÍNIMOS ===== */
+      /* 🚀 PRECIO MAYOREO COMPLETAMENTE CORREGIDO */
       .product-price-wholesale {
         display: flex !important;
         flex-direction: column !important;
         align-items: center !important;
-        gap: 0.5mm !important;
+        gap: 1mm !important; /* GAP INTERNO */
+        /* 🔧 TAMAÑO Y ESPACIADO CORREGIDOS */
         font-size: calc(var(--price-size) * 0.75) !important;
         color: var(--text) !important;
         background: rgba(0,0,0,0.05) !important;
-        padding: 1mm 2mm !important;
+        padding: 2mm !important; /* PADDING AUMENTADO */
         border-radius: 6px !important;
         border: 0.5pt solid var(--border) !important;
-        max-width: 95% !important;
+        width: 90% !important; /* ANCHO AUMENTADO */
         text-align: center !important;
         -webkit-print-color-adjust: exact !important;
+        /* 🔧 OVERFLOW Y ALTURA CORREGIDOS */
         overflow: visible !important; /* CAMBIO CRÍTICO */
         flex-shrink: 0 !important;
+        min-height: 8mm !important; /* ALTURA MÍNIMA GARANTIZADA */
+        position: relative !important;
+        z-index: 2 !important;
+        margin: 0 !important; /* SIN MARGIN, USA GAP */
       }
 
       .wholesale-label {
@@ -436,24 +447,31 @@ export class TemplateGenerator {
         color: var(--text-light) !important;
         text-transform: uppercase !important;
         letter-spacing: 0.3pt !important;
-        margin-bottom: 0.5mm !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        line-height: 1.1 !important;
       }
 
       .wholesale-price {
         font-weight: 700 !important;
         color: var(--primary) !important;
         font-size: calc(var(--price-size) * 0.8) !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        line-height: 1.1 !important;
       }
 
       .wholesale-min {
         font-size: calc(var(--info-size) * 0.8) !important;
         color: var(--text-light) !important;
         font-weight: 400 !important;
-        margin-top: 0.5mm !important;
         font-style: italic !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        line-height: 1.1 !important;
       }
       
-      /* ===== ELEMENTOS CONDICIONALES (MANTENER) ===== */
+      /* ===== ELEMENTOS CONDICIONALES ===== */
       
       ${template.showInfo.category ? `
       .product-category {
@@ -465,7 +483,7 @@ export class TemplateGenerator {
         padding: 0.5mm 2mm !important;
         border-radius: 6px !important;
         display: inline-block !important;
-        margin-bottom: 0 !important; /* CAMBIO: gap lo maneja */
+        margin: 0 !important; /* USA GAP */
         max-width: 100% !important;
         overflow: hidden !important;
         text-overflow: ellipsis !important;
@@ -479,7 +497,7 @@ export class TemplateGenerator {
         font-size: var(--desc-size) !important;
         color: var(--text-light) !important;
         line-height: 1.3 !important;
-        margin: 0 !important; /* CAMBIO: gap lo maneja */
+        margin: 0 !important; /* USA GAP */
         
         display: -webkit-box !important;
         -webkit-line-clamp: ${this.getDescLines(template.density)} !important;
@@ -501,7 +519,7 @@ export class TemplateGenerator {
         padding: 0.5mm 1.5mm !important;
         border-radius: 3px !important;
         display: inline-block !important;
-        margin: 0 !important; /* CAMBIO: gap lo maneja */
+        margin: 0 !important; /* USA GAP */
         border: 0.25pt solid var(--border) !important;
         max-width: 100% !important;
         overflow: hidden !important;
@@ -528,7 +546,7 @@ export class TemplateGenerator {
       }
       ` : `.product-specifications { display: none !important; }`}
       
-      /* ===== FOOTER (SIN CAMBIOS) ===== */
+      /* ===== FOOTER ===== */
       .catalog-footer {
         position: static !important;
         width: 100% !important;
@@ -584,7 +602,7 @@ export class TemplateGenerator {
         color: rgba(255, 255, 255, 0.8) !important;
       }
       
-      /* ===== PAGINACIÓN (SIN CAMBIOS) ===== */
+      /* ===== PAGINACIÓN ===== */
       .page-break-before {
         page-break-before: always !important;
         break-before: page !important;
@@ -602,7 +620,7 @@ export class TemplateGenerator {
         page-break-after: avoid !important;
       }
       
-      /* ===== CARDS VACÍAS (SIN CAMBIOS) ===== */
+      /* ===== CARDS VACÍAS ===== */
       .product-card.empty-card {
         visibility: hidden !important;
         height: var(--card-height) !important;
@@ -612,7 +630,7 @@ export class TemplateGenerator {
         box-shadow: none !important;
       }
       
-      /* ===== OPTIMIZACIONES POR INDUSTRIA (MANTENER) ===== */
+      /* ===== OPTIMIZACIONES POR INDUSTRIA ===== */
       
       .template-joyeria-elegante .product-image,
       .template-joyeria-luxury .product-image {
@@ -666,7 +684,7 @@ export class TemplateGenerator {
         padding: 4px !important;
       }
       
-      /* ===== RESPONSIVE (SIN CAMBIOS) ===== */
+      /* ===== RESPONSIVE ===== */
       @media screen and (max-width: 768px) {
         :root {
           --columns: 1;
@@ -682,7 +700,7 @@ export class TemplateGenerator {
         }
       }
       
-      /* ✅ MEDIA PRINT CON CAMBIOS CRÍTICOS */
+      /* 🚀 MEDIA PRINT COMPLETAMENTE CORREGIDO */
       @media print {
         * {
           -webkit-print-color-adjust: exact !important;
@@ -703,6 +721,11 @@ export class TemplateGenerator {
         .product-card {
           page-break-inside: avoid !important;
           break-inside: avoid !important;
+          /* 🔧 OVERFLOW Y ALTURA CORREGIDOS PARA PRINT */
+          overflow: visible !important;
+          max-height: none !important;
+          /* 🚀 ALTURA ADICIONAL EN PRINT */
+          min-height: calc(var(--card-height) + 8mm) !important;
         }
         
         .product-image {
@@ -715,62 +738,49 @@ export class TemplateGenerator {
         
         .products-grid {
           page-break-inside: auto !important;
+          /* 🚀 ALTURA ADICIONAL EN GRID PARA PRINT */
+          grid-auto-rows: calc(var(--card-height) + 8mm) !important;
         }
         
-        /* ✅ CAMBIOS CRÍTICOS PARA PRINT */
+        /* 🚀 FIXES CRÍTICOS PARA PRINT */
         .product-info {
           overflow: visible !important;
+          height: auto !important;
+          min-height: calc(var(--text-area-height) + 5mm) !important;
         }
         
         .product-pricing {
           overflow: visible !important;
+          gap: 3mm !important; /* MÁS GAP EN PRINT */
+          min-height: 15mm !important; /* ALTURA MÍNIMA EN PRINT */
         }
         
         .product-price-wholesale {
           overflow: visible !important;
-        }
-                /* FIX CRÍTICO: Tarjetas más altas */
-        .product-card {
-          height: calc(var(--card-height) + 8mm) !important; /* +8mm más altura */
-          min-height: calc(var(--card-height) + 8mm) !important;
-          max-height: none !important;
+          min-height: 10mm !important; /* ALTURA MÍNIMA EN PRINT */
+          padding: 2.5mm !important; /* MÁS PADDING EN PRINT */
+          position: relative !important;
+          z-index: 10 !important;
+          margin-top: 1mm !important; /* SEPARACIÓN EN PRINT */
         }
         
-        /* FIX CRÍTICO: Área de texto expandida */
-        .text-area-optimized {
+        /* 🚀 TEXTO AREA EXPANDIDA PARA PRINT */
+        .text-area-corrected {
           min-height: calc(var(--text-area-height) + 8mm) !important;
           height: auto !important;
-          gap: 2mm !important;
-        }
-        
-        /* FIX CRÍTICO: Contenedor de precios con altura garantizada */
-        .product-pricing {
-          min-height: 15mm !important; /* Altura mínima fija para mayoreo */
-          justify-content: flex-start !important;
-          gap: 2mm !important;
-        }
-        
-        /* FIX CRÍTICO: Cuadro de mayoreo con espacio garantizado */
-        .product-price-wholesale {
-          min-height: 8mm !important; /* Altura mínima garantizada */
-          min-width: 70% !important;
-          padding: 2mm 3mm !important;
-          margin-top: 1mm !important;
-          white-space: normal !important;
-          position: relative !important;
-          z-index: 1 !important;
+          gap: 2.5mm !important;
         }
       }
       
-      /* ===== OPTIMIZACIONES POR DENSIDAD (MANTENER) ===== */
+      /* ===== OPTIMIZACIONES POR DENSIDAD ===== */
       ${this.generateDensitySpecificCSS(template)}
     `;
   }
   
   /**
-   * 📐 DIMENSIONES CON CAMBIOS MÍNIMOS
+   * 📐 DIMENSIONES CORREGIDAS PARA MÁS ESPACIO DE CONTENIDO
    */
-  private static calculateConservativeDimensions(template: IndustryTemplate) {
+  private static calculateCorrectedDimensions(template: IndustryTemplate) {
     const pageWidth = 210;
     const pageHeight = 297;
     
@@ -786,11 +796,11 @@ export class TemplateGenerator {
     
     const columns = template.gridColumns;
     
-    // ✅ CAMBIO MÍNIMO: +1mm más gap
+    // 🔧 GAP OPTIMIZADO
     const gapMap = { 
-      alta: Math.max(3, contentWidth * 0.012), // Era 0.01, ahora 0.012
-      media: Math.max(4, contentWidth * 0.018), // Era 0.015, ahora 0.018
-      baja: Math.max(5, contentWidth * 0.022)   // Era 0.02, ahora 0.022
+      alta: Math.max(3, contentWidth * 0.01),
+      media: Math.max(4, contentWidth * 0.015),
+      baja: Math.max(5, contentWidth * 0.02)
     };
     const gap = gapMap[template.density as keyof typeof gapMap] || 4;
     
@@ -798,28 +808,28 @@ export class TemplateGenerator {
     const availableWidth = contentWidth - totalGapWidth;
     const cardWidth = availableWidth / columns;
     
-    // ✅ CAMBIO MÍNIMO: +4mm más altura
+    // 🚀 ALTURA CORREGIDA PARA MÁS CONTENIDO
     let cardHeight;
     
     if (columns === 3) {
-      cardHeight = cardWidth + 22; // Era 18, ahora 22 (+4mm)
+      cardHeight = cardWidth + 30; // Era 22, ahora 30 (+8mm más)
     } else if (columns === 2) {
-      cardHeight = cardWidth + 29; // Era 25, ahora 29 (+4mm)
+      cardHeight = cardWidth + 37; // Era 29, ahora 37 (+8mm más)
     } else if (columns === 4) {
-      cardHeight = cardWidth + 19; // Era 15, ahora 19 (+4mm)
+      cardHeight = cardWidth + 27; // Era 19, ahora 27 (+8mm más)
     } else if (columns >= 5) {
-      cardHeight = cardWidth + 16; // Era 12, ahora 16 (+4mm)
+      cardHeight = cardWidth + 24; // Era 16, ahora 24 (+8mm más)
     } else {
-      cardHeight = cardWidth * 0.6 + 24; // Era 20, ahora 24 (+4mm)
+      cardHeight = cardWidth * 0.6 + 32; // Era 24, ahora 32 (+8mm más)
     }
     
-    // ✅ CAMBIO: Ratio ligeramente ajustado para más espacio de texto
-    const imageHeightRatio = columns <= 2 ? 0.68 : columns === 3 ? 0.62 : 0.58; // Reducido ligeramente
+    // 🔧 RATIO CORREGIDO PARA MÁS ESPACIO DE TEXTO
+    const imageHeightRatio = columns <= 2 ? 0.60 : columns === 3 ? 0.55 : 0.50; // Reducido para más texto
     const imageHeight = cardHeight * imageHeightRatio;
     const textAreaHeight = cardHeight - imageHeight; // Más espacio para texto
     
-    const minCardHeight = 35;
-    const maxCardHeight = 90;
+    const minCardHeight = 40; // Aumentado de 35
+    const maxCardHeight = 100; // Aumentado de 90
     
     const finalCardHeight = Math.max(minCardHeight, Math.min(maxCardHeight, cardHeight));
     const finalImageHeight = finalCardHeight * imageHeightRatio;
@@ -841,7 +851,7 @@ export class TemplateGenerator {
   }
   
   /**
-   * 🎯 TIPOGRAFÍA (SIN CAMBIOS MAYORES)
+   * 🎯 TIPOGRAFÍA OPTIMIZADA
    */
   private static calculateTypography(template: IndustryTemplate) {
     const densityMap = {
@@ -862,7 +872,7 @@ export class TemplateGenerator {
   }
   
   /**
-   * 🎨 GENERAR ESQUEMA DE COLORES (SIN CAMBIOS)
+   * 🎨 GENERAR ESQUEMA DE COLORES
    */
   private static generateColorScheme(template: IndustryTemplate) {
     const primary = template.colors.primary;
@@ -885,7 +895,7 @@ export class TemplateGenerator {
   }
   
   /**
-   * 🏗️ GENERAR HTML (SIN CAMBIOS ESTRUCTURALES)
+   * 🏗️ GENERAR HTML CORREGIDO
    */
   static generateCatalogHTML(
     products: Product[],
@@ -927,7 +937,7 @@ export class TemplateGenerator {
   }
   
   /**
-   * 🛍️ GENERAR HTML CON GRID (SIN CAMBIOS ESTRUCTURALES)
+   * 🛍️ GENERAR HTML CON GRID
    */
   private static generateProductsHTMLGrid(products: Product[], template: IndustryTemplate): string {
     const productsPerPage = template.productsPerPage;
@@ -965,7 +975,7 @@ export class TemplateGenerator {
   }
   
   /**
-   * 🎴 GENERAR TARJETA DE PRODUCTO (CAMBIOS MÍNIMOS)
+   * 🚀 GENERAR TARJETA DE PRODUCTO CORREGIDA
    */
   private static generateProductCard(product: Product, template: IndustryTemplate): string {
     const productName = product.name || 'Producto';
@@ -1035,14 +1045,14 @@ export class TemplateGenerator {
   }
   
   /**
-   * ⬜ CARD VACÍA (SIN CAMBIOS)
+   * ⬜ CARD VACÍA
    */
   private static generateEmptyCard(): string {
     return `<div class="product-card empty-card"></div>`;
   }
   
   /**
-   * 📄 GENERAR FOOTER (SIN CAMBIOS)
+   * 📄 GENERAR FOOTER
    */
   private static generateFooterHTML(businessInfo: BusinessInfo): string {
     const contactItems = [
@@ -1075,7 +1085,7 @@ export class TemplateGenerator {
     `;
   }
   
-  // ===== UTILITY FUNCTIONS (SIN CAMBIOS) =====
+  // ===== UTILITY FUNCTIONS =====
   
   private static getNameLines(density: string): number {
     return { alta: 2, media: 2, baja: 3 }[density as keyof typeof density] || 2;
