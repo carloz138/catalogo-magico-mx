@@ -1,5 +1,5 @@
 // src/components/enhanced/TemplateSelectionEnhanced.tsx
-// 🎯 VERSIÓN ACTUALIZADA CON URLS OPTIMIZADAS PARA PDFs LIGEROS
+// 🎯 VERSIÓN ACTUALIZADA CON PRODUCTOS POR PÁGINA DINÁMICOS
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -24,6 +24,9 @@ import { generateCatalog, checkLimits } from '@/lib/catalog/unified-generator';
 import { IndustryType } from '@/lib/templates/industry-templates';
 import { BackgroundSelector } from './BackgroundSelector';
 
+// 🆕 IMPORTAR SELECTOR DE PRODUCTOS POR PÁGINA
+import { ProductsPerPageSelector } from '@/components/templates/ProductsPerPageSelector';
+
 import { 
   ArrowLeft,
   ArrowRight,
@@ -33,7 +36,9 @@ import {
   CheckCircle,
   Sparkles,
   Package,
-  Crown
+  Crown,
+  Settings,
+  Grid3X3
 } from 'lucide-react';
 
 interface Product {
@@ -45,7 +50,7 @@ interface Product {
   sku?: string;
   category?: string;
   specifications?: string;
-  // 🎯 NUEVOS CAMPOS PARA URLs OPTIMIZADAS
+  // 🎯 CAMPOS PARA URLs OPTIMIZADAS
   original_image_url?: string;
   catalog_image_url?: string;
   thumbnail_image_url?: string;
@@ -90,32 +95,26 @@ const TemplateSelectionEnhanced = () => {
   };
   
   const getCatalogImageUrl = (product: Product, preferNoBackground: boolean = false): string => {
-    console.log(`🔍🔍🔍 SELECCIÓN DE IMAGEN para "${product.name}":`, {
+    console.log(`🔍 SELECCIÓN DE IMAGEN para "${product.name}":`, {
       preferNoBackground,
       backgroundPreference_actual: backgroundPreference,
       tiene_processed: !!product.processed_image_url,
       tiene_catalog: !!product.catalog_image_url,
-      processed_url: product.processed_image_url?.substring(0, 60) + '...',
-      catalog_url: product.catalog_image_url?.substring(0, 60) + '...',
-      processed_full: product.processed_image_url,
-      catalog_full: product.catalog_image_url,
       decision: preferNoBackground && product.processed_image_url ? 'USAR SIN FONDO' : 'USAR CON FONDO'
     });
     
-    // Si el usuario prefiere sin fondo Y existe processed_image_url
     if (preferNoBackground && product.processed_image_url) {
-      console.log(`✅✅✅ USANDO IMAGEN SIN FONDO para "${product.name}": ${product.processed_image_url}`);
+      console.log(`✅ USANDO IMAGEN SIN FONDO para "${product.name}": ${product.processed_image_url}`);
       return product.processed_image_url;
     }
     
-    // Para catálogos: catalog_image_url (800x800, ~100KB) tiene prioridad
     const finalUrl = product.catalog_image_url || 
            product.processed_image_url || 
            product.hd_image_url || 
            product.image_url || 
            product.original_image_url;
     
-    console.log(`📸📸📸 USANDO IMAGEN CON FONDO para "${product.name}": ${finalUrl?.substring(0, 60)}...`);
+    console.log(`📸 USANDO IMAGEN CON FONDO para "${product.name}": ${finalUrl?.substring(0, 60)}...`);
     return finalUrl;
   };
 
@@ -140,6 +139,9 @@ const TemplateSelectionEnhanced = () => {
   const [loading, setLoading] = useState(true);
   const [catalogTitle, setCatalogTitle] = useState(''); 
   
+  // 🆕 ESTADO PARA PRODUCTOS POR PÁGINA
+  const [productsPerPage, setProductsPerPage] = useState<4 | 6 | 9>(6);
+  
   // Estados de límites
   const [limits, setLimits] = useState<UsageLimits | null>(null);
   
@@ -156,16 +158,14 @@ const TemplateSelectionEnhanced = () => {
     initializeComponent();
   }, [user]);
 
-  // 🆕 EFECTO PARA REACCIONAR A CAMBIOS EN PREFERENCIA DE FONDO
   useEffect(() => {
-    console.log('🔥🔥🔥 useEffect ejecutado - backgroundPreference cambió:', {
+    console.log('🔥 useEffect ejecutado - backgroundPreference cambió:', {
       backgroundPreference,
       selectedProductsLength: selectedProducts.length,
       backgroundAnalysisExists: !!backgroundAnalysis,
       timestamp: new Date().toISOString()
     });
     
-    // Solo procesar si tenemos productos Y análisis ya está listo
     if (selectedProducts.length > 0 && backgroundAnalysis) {
       console.log('🔄 RECALCULANDO URLs por cambio de preferencia:', {
         nuevaPreferencia: backgroundPreference,
@@ -174,16 +174,8 @@ const TemplateSelectionEnhanced = () => {
         timestamp: new Date().toISOString()
       });
       
-      // Determinar preferencia de sin fondo
       const preferNoBackground = backgroundPreference === 'without';
       
-      console.log('🎯 CÁLCULO PREFERENCIA SIN FONDO:', {
-        backgroundPreference,
-        preferNoBackground,
-        condicion: backgroundPreference === 'without' ? 'SIN FONDO elegido' : 'CON FONDO elegido'
-      });
-      
-      // Actualizar URLs de productos
       const updatedProducts = selectedProducts.map(product => {
         const optimizedImageUrl = getCatalogImageUrl(product, preferNoBackground);
         
@@ -192,9 +184,7 @@ const TemplateSelectionEnhanced = () => {
           preferNoBackground,
           urlAnterior: product.image_url?.substring(0, 60) + '...',
           urlNueva: optimizedImageUrl?.substring(0, 60) + '...',
-          cambio: product.image_url !== optimizedImageUrl ? 'SÍ' : 'NO',
-          processed_url_disponible: !!product.processed_image_url,
-          catalog_url_disponible: !!product.catalog_image_url
+          cambio: product.image_url !== optimizedImageUrl ? 'SÍ' : 'NO'
         });
         
         return {
@@ -203,26 +193,9 @@ const TemplateSelectionEnhanced = () => {
         };
       });
       
-      console.log('✅ PRODUCTOS ACTUALIZADOS - URLs finales:', {
-        totalProductos: updatedProducts.length,
-        urlsFinales: updatedProducts.map(p => ({
-          nombre: p.name,
-          url_final: p.image_url?.substring(0, 80) + '...',
-          es_processed: p.image_url === p.processed_image_url,
-          es_catalog: p.image_url === p.catalog_image_url
-        }))
-      });
-      
       setSelectedProducts(updatedProducts);
-    } else {
-      console.log('❌ useEffect NO procesó porque:', {
-        tieneProductos: selectedProducts.length > 0,
-        tieneAnalysis: !!backgroundAnalysis,
-        backgroundAnalysis,
-        razon: !selectedProducts.length ? 'No hay productos' : 'No hay análisis'
-      });
     }
-  }, [backgroundPreference]); // ✅ SOLO backgroundPreference como dependencia
+  }, [backgroundPreference]);
 
   const initializeComponent = async () => {
     if (!user) return;
@@ -233,16 +206,9 @@ const TemplateSelectionEnhanced = () => {
 
       await initializeOptimizedTemplates();
       
-      // 1. Cargar productos seleccionados desde localStorage
       await loadSelectedProducts();
-      
-      // 2. Detectar industria del usuario (si es posible)
       await detectUserIndustry();
-      
-      // 3. Verificar plan del usuario
       await loadUserPlan();
-      
-      // 4. Verificar límites de catálogos
       await loadCatalogLimits();
       
     } catch (error) {
@@ -257,11 +223,9 @@ const TemplateSelectionEnhanced = () => {
     }
   };
 
-  // 🎯 FUNCIÓN ACTUALIZADA CON MAPEO DE URLs OPTIMIZADAS
   const loadSelectedProducts = async () => {
     let productsToUse: Product[] = [];
     
-    // 1. PRIORIDAD: Buscar en localStorage (desde Products)
     try {
       const storedProducts = localStorage.getItem('selectedProductsData');
       if (storedProducts) {
@@ -269,28 +233,22 @@ const TemplateSelectionEnhanced = () => {
         console.log('✅ Productos encontrados en localStorage:', productsToUse.length);
       }
       
-      // 🔧 CRÍTICO: Cargar título personalizado desde localStorage
       const catalogTitleFromStorage = localStorage.getItem('catalogTitle');
       if (catalogTitleFromStorage) {
         console.log('🔍 DEBUG - Título cargado del localStorage:', catalogTitleFromStorage);
         setCatalogTitle(catalogTitleFromStorage);
-      } else {
-        console.log('🔍 DEBUG - No hay título en localStorage');
       }
     } catch (error) {
       console.error('Error leyendo localStorage:', error);
     }
     
-    // 2. FALLBACK: Buscar en router state
     if (productsToUse.length === 0 && state?.products && state.products.length > 0) {
       productsToUse = state.products;
       console.log('✅ Productos encontrados en router state:', productsToUse.length);
     }
     
-    // 3. VALIDAR, MAPEAR URLs OPTIMIZADAS Y USAR
     if (productsToUse.length > 0) {
       
-      // 🆕 ANÁLISIS DE FONDOS
       const withoutBackground = productsToUse.filter(p => p.processed_image_url && p.processed_image_url !== p.original_image_url).length;
       const withBackground = productsToUse.length - withoutBackground;
       const analysis = {
@@ -305,73 +263,25 @@ const TemplateSelectionEnhanced = () => {
       
       console.log('🔍 ANÁLISIS DE FONDOS:', analysis);
       
-      // 🎯 LOG DE DEPURACIÓN: Verificar que lleguen las URLs optimizadas
-      console.log('🔍 PRODUCTOS RECIBIDOS EN TEMPLATE SELECTION:', {
-        totalProductos: productsToUse.length,
-        productosConCatalogUrl: productsToUse.filter(p => p.catalog_image_url).length,
-        productosConFondoRemovido: productsToUse.filter(p => p.processed_image_url && p.processed_image_url !== p.original_image_url).length,
-        detalleProductos: productsToUse.map(p => ({
-          nombre: p.name,
-          tiene_catalog_image_url: !!p.catalog_image_url,
-          tiene_processed_image_url: !!p.processed_image_url,
-          fondo_removido: !!(p.processed_image_url && p.processed_image_url !== p.original_image_url),
-          catalog_url: p.catalog_image_url?.substring(0, 60) + '...',
-          processed_url: p.processed_image_url?.substring(0, 60) + '...',
-          original_url: p.original_image_url?.substring(0, 60) + '...'
-        }))
-      });
+      // 🆕 SUGERIR PRODUCTOS POR PÁGINA BASADO EN CANTIDAD
+      if (productsToUse.length <= 12) {
+        setProductsPerPage(4); // Pocos productos, usar layout grande
+        console.log('🎯 Sugerencia automática: 4 productos/página (pocos productos)');
+      } else if (productsToUse.length >= 60) {
+        setProductsPerPage(9); // Muchos productos, usar layout compacto
+        console.log('🎯 Sugerencia automática: 9 productos/página (muchos productos)');
+      } else {
+        setProductsPerPage(6); // Cantidad media, usar layout estándar
+        console.log('🎯 Sugerencia automática: 6 productos/página (cantidad estándar)');
+      }
       
-      // 🔍 LOG DE DEPURACIÓN: Verificar que lleguen las URLs optimizadas
-      console.log('🔍 PRODUCTOS RECIBIDOS EN TEMPLATE SELECTION:', {
-        totalProductos: productsToUse.length,
-        productosConCatalogUrl: productsToUse.filter(p => p.catalog_image_url).length,
-        productosConFondoRemovido: productsToUse.filter(p => p.processed_image_url && p.processed_image_url !== p.original_image_url).length,
-        detalleProductos: productsToUse.map(p => ({
-          nombre: p.name,
-          tiene_catalog_image_url: !!p.catalog_image_url,
-          tiene_processed_image_url: !!p.processed_image_url,
-          fondo_removido: !!(p.processed_image_url && p.processed_image_url !== p.original_image_url),
-          catalog_url: p.catalog_image_url?.substring(0, 60) + '...',
-          processed_url: p.processed_image_url?.substring(0, 60) + '...',
-          original_url: p.original_image_url?.substring(0, 60) + '...'
-        }))
-      });
-      
-      // 🎯 MAPEAR URLS SEGÚN PREFERENCIA DE FONDO
       const productsWithOptimizedUrls = productsToUse.map(product => {
-        // Determinar preferencia de sin fondo
         const preferNoBackground = backgroundPreference === 'without';
-        
-        console.log(`🎯 MAPEO PRODUCTO "${product.name}":`, {
-          backgroundPreference,
-          preferNoBackground,
-          razonamiento: backgroundPreference === 'without' ? 'Usuario eligió SIN FONDO' : 'Usuario eligió CON FONDO'
-        });
-        
-        // Usar función helper mejorada
         const optimizedImageUrl = getCatalogImageUrl(product, preferNoBackground);
-        
-        const hasNoBackground = hasBackgroundRemoved(product);
-        const willUseNoBackground = preferNoBackground && hasNoBackground;
-        
-        console.log(`🔄 RESULTADO FINAL "${product.name}":`, {
-          original: product.original_image_url ? 'Sí' : 'No',
-          catalog: product.catalog_image_url ? 'Sí' : 'No',
-          processed: product.processed_image_url ? 'Sí' : 'No',
-          thumbnail: product.thumbnail_image_url ? 'Sí' : 'No',
-          luxury: product.luxury_image_url ? 'Sí' : 'No',
-          print: product.print_image_url ? 'Sí' : 'No',
-          tiene_fondo_removido: hasNoBackground,
-          preferencia_usuario: backgroundPreference,
-          usara_sin_fondo: willUseNoBackground,
-          usando: willUseNoBackground ? 'Processed (sin fondo)' : 'Catalog (optimizada con fondo)',
-          url_final: optimizedImageUrl,
-          tamaño_url: optimizedImageUrl?.length || 0
-        });
         
         return {
           ...product,
-          image_url: optimizedImageUrl  // Esta es la que usará el PDF
+          image_url: optimizedImageUrl
         };
       });
       
@@ -381,12 +291,9 @@ const TemplateSelectionEnhanced = () => {
       console.log('✅ Productos cargados correctamente:', {
         total: productsWithOptimizedUrls.length,
         conVersionOptimizada: optimizedCount,
-        reduccionEstimada: optimizedCount > 0 ? '~90% menos peso en PDF' : 'Sin optimización'
+        productsPerPageSugerido: productsToUse.length <= 12 ? 4 : productsToUse.length >= 60 ? 9 : 6
       });
       
-      if (optimizedCount > 0) {
-        console.log(`🚀 ${optimizedCount}/${productsWithOptimizedUrls.length} productos usarán versiones optimizadas para PDFs súper ligeros`);
-      }
     } else {
       console.log('❌ No hay productos, redirigiendo...');
       toast({
@@ -400,57 +307,42 @@ const TemplateSelectionEnhanced = () => {
   };
 
   const detectUserIndustry = async () => {
-    // Intentar detectar industria desde las categorías de productos
     if (selectedProducts.length > 0) {
       const categories = selectedProducts
         .map(p => p.category?.toLowerCase())
         .filter(Boolean);
       
-      // Lógica simple de detección por categorías de productos
-      if (categories.some(c => c?.includes('joyeria') || c?.includes('jewelry') || c?.includes('anillo') || c?.includes('collar'))) {
-        setUserIndustry('joyeria');
-      } else if (categories.some(c => c?.includes('ropa') || c?.includes('clothing') || c?.includes('vestido') || c?.includes('blusa'))) {
-        setUserIndustry('moda');
-      } else if (categories.some(c => c?.includes('electronico') || c?.includes('electronic') || c?.includes('smartphone') || c?.includes('laptop'))) {
-        setUserIndustry('electronica');
-      } else if (categories.some(c => c?.includes('ferreteria') || c?.includes('hardware') || c?.includes('herramienta') || c?.includes('tool'))) {
-        setUserIndustry('ferreteria');
-      } else if (categories.some(c => c?.includes('flor') || c?.includes('flower') || c?.includes('planta') || c?.includes('plant'))) {
-        setUserIndustry('floreria');
-      } else if (categories.some(c => c?.includes('cosmetico') || c?.includes('cosmetic') || c?.includes('maquillaje') || c?.includes('makeup'))) {
-        setUserIndustry('cosmeticos');
-      } else if (categories.some(c => c?.includes('decoracion') || c?.includes('decoration') || c?.includes('hogar') || c?.includes('home'))) {
-        setUserIndustry('decoracion');
-      } else if (categories.some(c => c?.includes('mueble') || c?.includes('furniture') || c?.includes('silla') || c?.includes('mesa'))) {
-        setUserIndustry('muebles');
+      const industryKeywords = {
+        joyeria: ['joyeria', 'jewelry', 'anillo', 'collar', 'pulsera', 'oro', 'plata'],
+        moda: ['ropa', 'clothing', 'vestido', 'blusa', 'pantalon', 'fashion'],
+        electronica: ['electronico', 'electronic', 'smartphone', 'laptop', 'tech'],
+        ferreteria: ['ferreteria', 'hardware', 'herramienta', 'tool', 'tornillo'],
+        floreria: ['flor', 'flower', 'planta', 'plant', 'jardin', 'ramo'],
+        cosmeticos: ['cosmetico', 'cosmetic', 'maquillaje', 'makeup', 'belleza'],
+        decoracion: ['decoracion', 'decoration', 'hogar', 'home', 'mueble'],
+        muebles: ['mueble', 'furniture', 'silla', 'mesa', 'sofa']
+      };
+
+      for (const [industry, keywords] of Object.entries(industryKeywords)) {
+        if (categories.some(c => keywords.some(k => c?.includes(k)))) {
+          setUserIndustry(industry as IndustryType);
+          break;
+        }
       }
     }
     
-    // También podríamos detectar desde el nombre del negocio
     if (!userIndustry && businessInfo?.business_name) {
       const businessName = businessInfo.business_name.toLowerCase();
       
       if (businessName.includes('joyeria') || businessName.includes('jewelry')) {
         setUserIndustry('joyeria');
-      } else if (businessName.includes('moda') || businessName.includes('fashion') || businessName.includes('boutique')) {
+      } else if (businessName.includes('moda') || businessName.includes('fashion')) {
         setUserIndustry('moda');
-      } else if (businessName.includes('electronico') || businessName.includes('tech') || businessName.includes('digital')) {
-        setUserIndustry('electronica');
-      } else if (businessName.includes('ferreteria') || businessName.includes('hardware') || businessName.includes('construccion')) {
-        setUserIndustry('ferreteria');
-      } else if (businessName.includes('flor') || businessName.includes('flower') || businessName.includes('jardin')) {
-        setUserIndustry('floreria');
-      } else if (businessName.includes('beauty') || businessName.includes('belleza') || businessName.includes('cosmeticos')) {
-        setUserIndustry('cosmeticos');
-      } else if (businessName.includes('decoracion') || businessName.includes('hogar') || businessName.includes('home')) {
-        setUserIndustry('decoracion');
-      } else if (businessName.includes('muebles') || businessName.includes('furniture')) {
-        setUserIndustry('muebles');
       }
     }
   };
 
-  // 🚀 FUNCIÓN loadUserPlan ACTUALIZADA CON NUEVA LÓGICA PREMIUM
+  // 🚀 FUNCIÓN loadUserPlan ACTUALIZADA
   const loadUserPlan = async () => {
     if (!user) return;
     
@@ -481,7 +373,6 @@ const TemplateSelectionEnhanced = () => {
         const packageData = subscription.credit_packages;
         setSubscriptionData(subscription as SubscriptionData);
         
-        // 🎯 NUEVA LÓGICA PREMIUM
         const isPremium = isPremiumPlan(packageData);
         const planLevel = getPlanLevel(packageData);
         const permissions = getPlanPermissions(packageData);
@@ -522,6 +413,20 @@ const TemplateSelectionEnhanced = () => {
     console.log('🎨 Template seleccionado:', templateId);
   };
 
+  // 🆕 FUNCIÓN: Manejar cambio de productos por página
+  const handleProductsPerPageChange = (count: 4 | 6 | 9) => {
+    setProductsPerPage(count);
+    console.log(`📋 Productos por página cambiado a: ${count}`);
+    
+    const pages = Math.ceil(selectedProducts.length / count);
+    const layoutName = count === 4 ? 'Cards Grandes' : count === 6 ? 'Balanceado' : 'Compacto';
+    
+    toast({
+      title: `Layout actualizado: ${layoutName}`,
+      description: `${count} productos/página = ${pages} página${pages !== 1 ? 's' : ''} totales`,
+    });
+  };
+
   const handleGenerateCatalog = async () => {
     if (!selectedTemplate || !user || !businessInfo) {
       toast({
@@ -544,12 +449,13 @@ const TemplateSelectionEnhanced = () => {
     setGenerating(true);
     
     try {
-      console.log('🚀 Iniciando generación con nuevo sistema...');
+      console.log(`🚀 Iniciando generación con sistema mejorado (${productsPerPage}/página)...`);
       
-      // 🔍 DEPURACIÓN CRÍTICA: Verificar URLs ANTES de enviar al generador
-      console.log('🔍🔍🔍 PRODUCTOS ANTES DE ENVIAR AL GENERADOR:', {
+      console.log('🔍 PRODUCTOS ANTES DE ENVIAR AL GENERADOR:', {
         backgroundPreference,
+        productsPerPage,
         totalProductos: selectedProducts.length,
+        expectedPages: Math.ceil(selectedProducts.length / productsPerPage),
         urls: selectedProducts.map(p => ({
           nombre: p.name,
           image_url_actual: p.image_url,
@@ -561,7 +467,7 @@ const TemplateSelectionEnhanced = () => {
         }))
       });
       
-      // Usar nuestro nuevo generador unificado
+      // 🆕 USAR NUESTRO GENERADOR UNIFICADO CON PRODUCTOS POR PÁGINA
       const result = await generateCatalog(
         selectedProducts,
         {
@@ -569,43 +475,81 @@ const TemplateSelectionEnhanced = () => {
           email: businessInfo.email,
           phone: businessInfo.phone,
           website: businessInfo.website,
-          address: businessInfo.address
+          address: businessInfo.address,
+          social_media: businessInfo.social_media
         },
         selectedTemplate,
         user.id,
         {
           catalogTitle: catalogTitle,
           qualityCheck: true,
-          autoFix: true
+          autoFix: true,
+          productsPerPage: productsPerPage // 🔧 PASAR PRODUCTOS POR PÁGINA
         }
       );
       
       if (result.success) {
+        const layoutEmoji = productsPerPage === 4 ? '🔳' : productsPerPage === 6 ? '📋' : '🗃️';
+        const layoutName = productsPerPage === 4 ? 'Layout Grande' : productsPerPage === 6 ? 'Layout Balanceado' : 'Layout Compacto';
+        
         toast({
-          title: "🎉 ¡Catálogo generado exitosamente!",
-          description: result.message,
+          title: `${layoutEmoji} ¡Catálogo generado exitosamente!`,
+          description: `${result.message} (${layoutName}: ${productsPerPage}/página, ${result.stats?.totalPages} páginas)`,
         });
 
-        // Limpiar localStorage
+        if (result.warnings && result.warnings.length > 0) {
+          toast({
+            title: "Generación completada con advertencias",
+            description: `${result.warnings.length} advertencia(s) detectada(s) para layout ${productsPerPage}/página.`,
+            variant: "default",
+          });
+        }
+
+        console.log(`Estadísticas de generación (${productsPerPage}/página):`, {
+          productos: result.stats?.totalProducts,
+          páginas: result.stats?.totalPages,
+          método: result.generationMethod,
+          tiempo: result.stats?.generationTime,
+          calidad: result.stats?.templateQuality,
+          productsPerPage: result.stats?.productsPerPage,
+          layoutOptimization: result.stats?.layoutOptimization
+        });
+
         localStorage.removeItem('selectedTemplate');
         localStorage.removeItem('selectedProducts');
         localStorage.removeItem('selectedProductsData');
         localStorage.removeItem('catalogTitle');
         
-        // Actualizar límites
         await loadCatalogLimits();
-        
-        // Redirigir a catálogos
         navigate('/catalogs');
         
       } else {
-        throw new Error(result.message || 'Error desconocido');
+        const errorMessages = {
+          'LIMIT_EXCEEDED': 'Has alcanzado tu límite de catálogos',
+          'PREMIUM_REQUIRED': 'Este template requiere plan Premium',
+          'TEMPLATE_NOT_FOUND': 'Template no encontrado',
+          'TEMPLATE_BROKEN': 'Template tiene errores críticos',
+          'GENERATION_ERROR': 'Error durante la generación',
+          'DATABASE_ERROR': 'Error guardando en base de datos',
+          'CLASSIC_ENGINE_ERROR': 'Error en engine clásico',
+          'INVALID_PRODUCT_DATA': 'Datos de productos inválidos'
+        };
+        
+        const userMessage = errorMessages[result.error as keyof typeof errorMessages] || 
+                           result.message || 
+                           'Error desconocido';
+        
+        toast({
+          title: "Error al generar catálogo",
+          description: userMessage,
+          variant: "destructive",
+        });
       }
 
     } catch (error) {
       console.error('❌ Error generando catálogo:', error);
       toast({
-        title: "Error al generar catálogo",
+        title: "Error inesperado",
         description: error instanceof Error ? error.message : "Error desconocido",
         variant: "destructive",
       });
@@ -614,7 +558,6 @@ const TemplateSelectionEnhanced = () => {
     }
   };
 
-  // Estados de carga
   if (loading) {
     return (
       <ProtectedRoute>
@@ -630,10 +573,9 @@ const TemplateSelectionEnhanced = () => {
     );
   }
 
-  // 🎯 MOSTRAR INFORMACIÓN DE OPTIMIZACIÓN EN HEADER
   const optimizedCount = selectedProducts.filter(p => p.catalog_image_url).length;
 
-  // Header actions
+  // Header actions mejoradas
   const actions = (
     <div className="flex items-center gap-3">
       <div className="hidden md:block">
@@ -643,7 +585,14 @@ const TemplateSelectionEnhanced = () => {
         </Badge>
       </div>
       
-      {/* 🎯 NUEVO: Badge de optimización */}
+      {/* 🆕 BADGE DE PRODUCTOS POR PÁGINA */}
+      <div className="hidden lg:block">
+        <Badge variant="default" className="flex items-center gap-1 bg-blue-600">
+          <Grid3X3 className="w-3 h-3" />
+          {productsPerPage}/página
+        </Badge>
+      </div>
+      
       {optimizedCount > 0 && (
         <div className="hidden lg:block">
           <Badge variant="default" className="flex items-center gap-1 bg-green-600">
@@ -652,7 +601,6 @@ const TemplateSelectionEnhanced = () => {
         </div>
       )}
       
-      {/* Badge de plan premium */}
       <div className="hidden lg:block">
         <Badge 
           variant={userPlan === 'premium' ? 'default' : 'outline'} 
@@ -699,7 +647,7 @@ const TemplateSelectionEnhanced = () => {
     <ProtectedRoute>
       <AppLayout actions={actions}>
         <div className="space-y-6">
-          {/* Header con información */}
+          {/* Header con información mejorada */}
           <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
             <div>
               <div className="flex items-center gap-3 mb-2">
@@ -712,6 +660,9 @@ const TemplateSelectionEnhanced = () => {
                   <ArrowLeft className="w-4 h-4" />
                   Volver a Productos
                 </Button>
+                <Badge variant="secondary" className="text-xs">
+                  Sistema v2.0 - Layouts Dinámicos
+                </Badge>
               </div>
               
               <h1 className="text-2xl font-bold text-gray-900">
@@ -720,9 +671,9 @@ const TemplateSelectionEnhanced = () => {
               </h1>
               <p className="text-gray-600">
                 Elige el diseño perfecto para tu catálogo de {selectedProducts.length} productos
+                ({Math.ceil(selectedProducts.length / productsPerPage)} página{Math.ceil(selectedProducts.length / productsPerPage) !== 1 ? 's' : ''} con {productsPerPage}/página)
               </p>
               
-              {/* 🎯 NUEVA INFORMACIÓN DE OPTIMIZACIÓN */}
               {optimizedCount > 0 && (
                 <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded-lg">
                   <p className="text-sm text-green-700">
@@ -741,6 +692,9 @@ const TemplateSelectionEnhanced = () => {
                       {selectedProducts.length} productos seleccionados
                     </span>
                     <div className="flex items-center gap-2">
+                      <Badge variant="default" className="bg-blue-600 text-xs">
+                        {productsPerPage}/pág
+                      </Badge>
                       {optimizedCount > 0 && (
                         <Badge variant="default" className="bg-green-600 text-xs">
                           ⚡ {optimizedCount}
@@ -785,7 +739,15 @@ const TemplateSelectionEnhanced = () => {
             </Alert>
           )}
 
-          {/* 🎯 NUEVO: Banner de optimización si hay productos optimizados */}
+          {/* 🆕 SELECTOR DE PRODUCTOS POR PÁGINA */}
+          <ProductsPerPageSelector
+            selectedCount={productsPerPage}
+            onCountChange={handleProductsPerPageChange}
+            totalProducts={selectedProducts.length}
+            disabled={generating}
+          />
+
+          {/* 🆕 BANNER DE OPTIMIZACIÓN si hay productos optimizados */}
           {optimizedCount > 0 && (
             <Alert className="border-green-200 bg-green-50">
               <CheckCircle className="h-4 w-4 text-green-600" />
@@ -796,7 +758,7 @@ const TemplateSelectionEnhanced = () => {
             </Alert>
           )}
 
-          {/* 🆕 SELECTOR DE PREFERENCIA DE FONDO */}
+          {/* SELECTOR DE PREFERENCIA DE FONDO */}
           {(() => {
             console.log('🔍 EVALUANDO BACKGROUND SELECTOR:', {
               backgroundAnalysis: backgroundAnalysis,
@@ -847,6 +809,7 @@ const TemplateSelectionEnhanced = () => {
                     </h4>
                     <p className="text-sm text-green-700">
                       Listo para generar tu catálogo con {selectedProducts.length} productos
+                      ({Math.ceil(selectedProducts.length / productsPerPage)} páginas con {productsPerPage}/página)
                       {optimizedCount > 0 && ` (${optimizedCount} optimizadas para PDF ligero)`}
                     </p>
                   </div>
@@ -863,10 +826,31 @@ const TemplateSelectionEnhanced = () => {
                     onChange={(e) => setCatalogTitle(e.target.value)}
                     placeholder="Ej: Catálogo Primavera 2024, Productos Nuevos..."
                     className="bg-white border-green-300 focus:border-green-500"
+                    disabled={generating}
                   />
                   <p className="text-xs text-green-600">
                     Si no especificas un nombre, se generará automáticamente
                   </p>
+                </div>
+
+                {/* 🆕 INFORMACIÓN DE LAYOUT */}
+                <div className="bg-white p-3 rounded border border-green-200">
+                  <div className="flex items-center justify-between text-sm">
+                    <div className="flex items-center gap-2">
+                      <Settings className="w-4 h-4 text-green-600" />
+                      <span className="font-medium text-green-800">
+                        Layout configurado:
+                      </span>
+                      <Badge variant="outline" className="border-green-300 text-green-700">
+                        {productsPerPage === 4 ? '2×2 Cards Grandes' : 
+                         productsPerPage === 6 ? '3×2 Balanceado' : 
+                         '3×3 Compacto'}
+                      </Badge>
+                    </div>
+                    <div className="text-green-700">
+                      {Math.ceil(selectedProducts.length / productsPerPage)} página{Math.ceil(selectedProducts.length / productsPerPage) !== 1 ? 's' : ''}
+                    </div>
+                  </div>
                 </div>
 
                 <div className="flex justify-end">
