@@ -103,7 +103,7 @@ const calculateOptimizedDimensions = () => {
   const cardWidth = (usableWidth - (gap * (PDF_LAYOUT.COLUMNS - 1))) / PDF_LAYOUT.COLUMNS;
   
   // ✅ CAMBIO MÍNIMO: +4mm más altura para mejor proporción
-  const baseCardHeight = cardWidth + 26; // Era 22mm, ahora 26mm (+4mm)
+  const baseCardHeight = cardWidth + 26 + 12; // +12mm boost específico para mayoreo
   
   return {
     contentWidth: Math.floor(contentWidth * 100) / 100,
