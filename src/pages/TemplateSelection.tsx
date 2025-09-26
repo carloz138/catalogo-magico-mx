@@ -1,5 +1,5 @@
 // src/pages/TemplateSelection.tsx
-// TEMPLATE SELECTION ACTUALIZADO - INTEGRA SISTEMA SIN CORTES V2.0
+// TEMPLATE SELECTION CON PRODUCTOS POR PÁGINA DINÁMICOS
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -10,6 +10,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { toast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { useBusinessInfo } from '@/hooks/useBusinessInfo';
@@ -31,6 +33,9 @@ import { TemplateGenerator } from '@/lib/templates/css-generator';
 import { TemplateAuditSystem } from '@/lib/templates/template-audit-system';
 import { IndustryType } from '@/lib/templates/industry-templates';
 
+// 🆕 IMPORTAR SELECTOR DE PRODUCTOS POR PÁGINA
+import { ProductsPerPageSelector } from '@/components/templates/ProductsPerPageSelector';
+
 import { 
   ArrowLeft,
   ArrowRight,
@@ -47,7 +52,8 @@ import {
   Eye,
   Shield,
   Star,
-  AlertCircle
+  AlertCircle,
+  Settings
 } from 'lucide-react';
 
 interface Product {
@@ -112,6 +118,9 @@ const TemplateSelection = () => {
   const [generationProgress, setGenerationProgress] = useState(0);
   const [generationMethod, setGenerationMethod] = useState<GenerationMethod>('auto');
   
+  // 🆕 ESTADO PARA PRODUCTOS POR PÁGINA
+  const [productsPerPage, setProductsPerPage] = useState<4 | 6 | 9>(6);
+  
   // Estados de límites y calidad
   const [limits, setLimits] = useState<UsageLimits | null>(null);
   const [templateQuality, setTemplateQuality] = useState<TemplateQuality | null>(null);
@@ -163,18 +172,25 @@ const TemplateSelection = () => {
     const productsIds = localStorage.getItem('selectedProducts');
     const catalogTitleFromStorage = localStorage.getItem('catalogTitle');
     
-    // Cargar título personalizado si existe
     if (catalogTitleFromStorage) {
       console.log('🔍 DEBUG - Título cargado del localStorage:', catalogTitleFromStorage);
       setCatalogTitle(catalogTitleFromStorage);
-    } else {
-      console.log('🔍 DEBUG - No hay título en localStorage');
     }
     
     if (productsData) {
       const products = JSON.parse(productsData);
       setSelectedProducts(products);
       console.log('Productos cargados:', products.length);
+      
+      // 🆕 SUGERIR PRODUCTOS POR PÁGINA BASADO EN CANTIDAD
+      if (products.length <= 12) {
+        setProductsPerPage(4); // Pocos productos, usar layout grande
+      } else if (products.length >= 50) {
+        setProductsPerPage(9); // Muchos productos, usar layout compacto
+      } else {
+        setProductsPerPage(6); // Cantidad media, usar layout estándar
+      }
+      
     } else if (productsIds) {
       const ids = JSON.parse(productsIds);
       console.log('Solo IDs disponibles, redirigiendo a productos');
@@ -203,7 +219,6 @@ const TemplateSelection = () => {
         .map(p => p.category?.toLowerCase())
         .filter(Boolean);
       
-      // Lógica de detección de industria mejorada
       const industryKeywords = {
         joyeria: ['joyeria', 'jewelry', 'anillo', 'collar', 'pulsera', 'oro', 'plata'],
         moda: ['ropa', 'clothing', 'vestido', 'blusa', 'pantalon', 'fashion'],
@@ -223,7 +238,6 @@ const TemplateSelection = () => {
       }
     }
     
-    // Detectar por nombre del negocio si no se detectó por productos
     if (!userIndustry && businessInfo?.business_name) {
       const businessName = businessInfo.business_name.toLowerCase();
       
@@ -231,7 +245,7 @@ const TemplateSelection = () => {
         setUserIndustry('joyeria');
       } else if (businessName.includes('moda') || businessName.includes('fashion')) {
         setUserIndustry('moda');
-      } // ... más detecciones
+      }
     }
   };
 
@@ -281,7 +295,6 @@ const TemplateSelection = () => {
     
     console.log('Template seleccionado:', templateId);
     
-    // Auditar calidad del template
     try {
       const template = getTemplateById(templateId);
       if (template) {
@@ -295,7 +308,6 @@ const TemplateSelection = () => {
           recommendations: auditResult.recommendations
         });
         
-        // Mostrar advertencia si hay problemas críticos
         if (auditResult.status === 'broken') {
           toast({
             title: "Template con problemas críticos",
@@ -315,6 +327,19 @@ const TemplateSelection = () => {
     }
   }, []);
 
+  // 🆕 FUNCIÓN: Manejar cambio de productos por página
+  const handleProductsPerPageChange = (count: 4 | 6 | 9) => {
+    setProductsPerPage(count);
+    console.log(`📋 Productos por página cambiado a: ${count}`);
+    
+    // Mostrar información útil
+    const pages = Math.ceil(selectedProducts.length / count);
+    toast({
+      title: `Layout actualizado: ${count} productos/página`,
+      description: `Tu catálogo tendrá ${pages} página${pages !== 1 ? 's' : ''} con este layout`,
+    });
+  };
+
   // FUNCIÓN MEJORADA: Generar preview HTML
   const handlePreviewCatalog = async () => {
     if (!selectedTemplate || !user || !businessInfo) {
@@ -329,7 +354,7 @@ const TemplateSelection = () => {
     setPreviewLoading(true);
     
     try {
-      console.log('Generando preview HTML mejorado...');
+      console.log(`Generando preview HTML con ${productsPerPage} productos/página...`);
       
       const businessData = {
         business_name: businessInfo.business_name,
@@ -343,24 +368,23 @@ const TemplateSelection = () => {
         secondary_color: businessInfo.secondary_color
       };
       
-      console.log('🔍 DEBUG - businessData PREVIEW enviado:', businessData);
-      
       const template = getTemplateById(selectedTemplate);
       if (!template) {
         throw new Error(`Template ${selectedTemplate} no encontrado`);
       }
       
-      // Generar HTML con nuevo sistema robusto
+      // 🆕 GENERAR HTML CON PRODUCTOS POR PÁGINA DINÁMICOS
       const htmlContent = TemplateGenerator.generateCatalogHTML(
         selectedProducts,
         businessData,
-        template
+        template,
+        productsPerPage // 🔧 PASAR PRODUCTOS POR PÁGINA
       );
       
       setPreviewHTML(htmlContent);
       setShowPreview(true);
       
-      console.log('Preview HTML generado:', htmlContent.length, 'caracteres');
+      console.log(`Preview HTML generado con ${productsPerPage} productos/página:`, htmlContent.length, 'caracteres');
       
     } catch (error) {
       console.error('Error generando preview:', error);
@@ -374,7 +398,7 @@ const TemplateSelection = () => {
     }
   };
 
-  // FUNCIÓN MEJORADA: Generar catálogo con nuevo sistema
+  // FUNCIÓN MEJORADA: Generar catálogo con productos por página dinámicos
   const handleGenerateCatalog = async () => {
     if (!selectedTemplate || !user || !businessInfo) {
       toast({
@@ -398,7 +422,7 @@ const TemplateSelection = () => {
     setGenerationProgress(0);
     
     try {
-      console.log('Iniciando generación con sistema v2.0...');
+      console.log(`🚀 Iniciando generación con ${productsPerPage} productos/página...`);
       
       const onProgress = (progress: number) => {
         setGenerationProgress(progress);
@@ -417,7 +441,6 @@ const TemplateSelection = () => {
         secondary_color: businessInfo.secondary_color
       };
       
-      // Si no hay businessInfo, usar datos por defecto de CatifyPro
       if (!businessInfo || !businessInfo.business_name) {
         console.warn('⚠️ No hay business_info, usando datos por defecto de CatifyPro');
         businessData.business_name = "CatifyPro";
@@ -426,59 +449,52 @@ const TemplateSelection = () => {
         businessData.social_media = { whatsapp: "+1-800-CATIFY" };
       }
       
-      console.log('🔍 DEBUG - businessData FINAL enviado:', businessData);
-      
-      // Validar que social_media esté presente
-      if (!businessData.social_media?.whatsapp) {
-        console.warn('⚠️ WhatsApp no encontrado en businessData final');
-      } else {
-        console.log('✅ WhatsApp encontrado en businessData final:', businessData.social_media.whatsapp);
-      }
-      
       let result;
       
-      // Seleccionar método de generación
+      // 🆕 SELECCIONAR MÉTODO DE GENERACIÓN CON PRODUCTOS POR PÁGINA
       switch (generationMethod) {
         case 'puppeteer':
-      console.log('🔍 DEBUG - Título desde TemplateSelection:', catalogTitle);
-      console.log('Usando Puppeteer Service (mejor calidad)');
-           result = await generatePuppeteerCatalog(
-        selectedProducts,
-        businessData,
-        selectedTemplate,
-        user.id,
-        onProgress,
-        catalogTitle
-      );
+          console.log(`🚀 Usando Puppeteer Service (${productsPerPage}/página)`);
+          result = await generatePuppeteerCatalog(
+            selectedProducts,
+            businessData,
+            selectedTemplate,
+            user.id,
+            onProgress,
+            catalogTitle,
+            productsPerPage // 🔧 PASAR PRODUCTOS POR PÁGINA
+          );
           break;
           
         case 'dynamic':
-          console.log('Usando Dynamic Engine');
+          console.log(`⚡ Usando Dynamic Engine (${productsPerPage}/página)`);
           result = await generateDynamicCatalog(
             selectedProducts,
             businessData,
             selectedTemplate,
             user.id,
             onProgress,
-            catalogTitle
+            catalogTitle,
+            productsPerPage // 🔧 PASAR PRODUCTOS POR PÁGINA
           );
           break;
           
         case 'classic':
-          console.log('Usando Classic Engine');
+          console.log(`🎨 Usando Classic Engine (${productsPerPage}/página)`);
           result = await generateClassicCatalog(
             selectedProducts,
             businessData,
             selectedTemplate,
             user.id,
             onProgress,
-            catalogTitle
+            catalogTitle,
+            productsPerPage // 🔧 PASAR PRODUCTOS POR PÁGINA
           );
           break;
           
         case 'auto':
         default:
-          console.log('Usando selección automática inteligente');
+          console.log(`🧠 Usando selección automática inteligente (${productsPerPage}/página)`);
           result = await generateCatalog(
             selectedProducts,
             businessData,
@@ -491,14 +507,14 @@ const TemplateSelection = () => {
               onProgress,
               qualityCheck: true,
               autoFix: true,
-              catalogTitle: catalogTitle // Use the custom title from state
+              catalogTitle: catalogTitle,
+              productsPerPage: productsPerPage // 🔧 PASAR PRODUCTOS POR PÁGINA
             }
           );
           break;
       }
       
       if (result.success) {
-        // Toast de éxito mejorado
         const methodEmoji = {
           puppeteer: '🚀',
           dynamic: '⚡',
@@ -515,10 +531,9 @@ const TemplateSelection = () => {
         
         toast({
           title: `${methodEmoji} ¡Catálogo generado exitosamente!`,
-          description: `${result.message || 'Completado'} (${result.stats?.generationTime}ms con ${methodName})`,
+          description: `${result.message || 'Completado'} (${result.stats?.generationTime}ms con ${methodName}, ${productsPerPage}/página)`,
         });
 
-        // Mostrar advertencias si las hay
         if (result.warnings && result.warnings.length > 0) {
           toast({
             title: "Generación completada con advertencias",
@@ -527,15 +542,15 @@ const TemplateSelection = () => {
           });
         }
 
-        console.log('Estadísticas de generación:', {
+        console.log(`Estadísticas de generación (${productsPerPage}/página):`, {
           productos: result.stats?.totalProducts,
           páginas: result.stats?.totalPages,
           método: result.generationMethod,
           tiempo: result.stats?.generationTime,
-          calidad: result.stats?.templateQuality
+          calidad: result.stats?.templateQuality,
+          productsPerPage: result.stats?.productsPerPage
         });
 
-        // Limpiar datos
         localStorage.removeItem('selectedTemplate');
         localStorage.removeItem('selectedProducts');
         localStorage.removeItem('selectedProductsData');
@@ -545,7 +560,6 @@ const TemplateSelection = () => {
         navigate('/catalogs');
         
       } else {
-        // Manejo de errores mejorado
         const errorMessages = {
           'LIMIT_EXCEEDED': 'Has alcanzado tu límite de catálogos',
           'PREMIUM_REQUIRED': 'Este template requiere plan Premium',
@@ -611,16 +625,17 @@ const TemplateSelection = () => {
     const productCount = selectedProducts.length;
     const templateScore = templateQuality?.score || 100;
     
-    // Si hay problemas críticos en el template, usar clásico
     if (templateScore < 60) return 'classic';
     
-    // Para alta calidad y volúmenes grandes, Puppeteer
-    if (productCount > 50 || templateScore >= 90) return 'puppeteer';
+    // 🆕 CONSIDERAR PRODUCTOS POR PÁGINA EN LA RECOMENDACIÓN
+    if (productsPerPage === 4 || productsPerPage === 9) {
+      return 'puppeteer'; // Layouts especiales son mejores con Puppeteer
+    }
     
-    // Para volúmenes medianos, dinámico
+    if (productCount > 50 || templateScore >= 90) return 'puppeteer';
     if (productCount >= 10 && productCount <= 50) return 'dynamic';
     
-    return 'auto'; // Híbrido para casos generales
+    return 'auto';
   };
 
   if (loading) {
@@ -645,6 +660,14 @@ const TemplateSelection = () => {
         <Badge variant="outline" className="flex items-center gap-1">
           <Package className="w-3 h-3" />
           {selectedProducts.length} productos
+        </Badge>
+      </div>
+      
+      {/* 🆕 BADGE DE PRODUCTOS POR PÁGINA */}
+      <div className="hidden lg:block">
+        <Badge variant="default" className="flex items-center gap-1 bg-blue-600">
+          <Settings className="w-3 h-3" />
+          {productsPerPage}/página
         </Badge>
       </div>
       
@@ -736,7 +759,7 @@ const TemplateSelection = () => {
                   Volver a Productos
                 </Button>
                 <Badge variant="secondary" className="text-xs">
-                  Sistema v2.0 - Sin Cortes
+                  Sistema v2.0 - Layouts Dinámicos
                 </Badge>
               </div>
               
@@ -745,7 +768,8 @@ const TemplateSelection = () => {
                 <Shield className="w-5 h-5 text-green-500" />
               </h1>
               <p className="text-gray-600">
-                Elige el diseño perfecto para tu catálogo de {selectedProducts.length} productos
+                Elige el diseño perfecto para tu catálogo de {selectedProducts.length} productos 
+                ({Math.ceil(selectedProducts.length / productsPerPage)} página{Math.ceil(selectedProducts.length / productsPerPage) !== 1 ? 's' : ''} con {productsPerPage}/página)
               </p>
             </div>
             
@@ -757,14 +781,19 @@ const TemplateSelection = () => {
                     <span className="text-gray-600">
                       {selectedProducts.length} productos seleccionados
                     </span>
-                    {limits && (
-                      <Badge variant="outline">
-                        {limits.catalogsLimit === 'unlimited' 
-                          ? 'Ilimitados' 
-                          : `${limits.remainingCatalogs} restantes`
-                        }
+                    <div className="flex items-center gap-2">
+                      <Badge variant="default" className="bg-blue-600">
+                        {productsPerPage}/pág
                       </Badge>
-                    )}
+                      {limits && (
+                        <Badge variant="outline">
+                          {limits.catalogsLimit === 'unlimited' 
+                            ? 'Ilimitados' 
+                            : `${limits.remainingCatalogs} restantes`
+                          }
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -788,6 +817,14 @@ const TemplateSelection = () => {
             </Alert>
           )}
 
+          {/* 🆕 SELECTOR DE PRODUCTOS POR PÁGINA */}
+          <ProductsPerPageSelector
+            selectedCount={productsPerPage}
+            onCountChange={handleProductsPerPageChange}
+            totalProducts={selectedProducts.length}
+            disabled={generating || previewLoading}
+          />
+
           {/* Progress Bar mejorada */}
           {generating && (
             <Card className="border-blue-200 bg-blue-50">
@@ -803,6 +840,7 @@ const TemplateSelection = () => {
                               generationMethod === 'puppeteer' ? '🚀 Puppeteer Service' :
                               generationMethod === 'dynamic' ? '⚡ Dynamic Engine' : 
                               '🎨 Classic Engine'} | 
+                      Layout: {productsPerPage} productos/página | 
                       Auto-corrección: {autoFix ? 'Activa' : 'Inactiva'}
                     </p>
                   </div>
@@ -810,7 +848,7 @@ const TemplateSelection = () => {
                 <Progress value={generationProgress} className="h-2" />
                 <div className="flex justify-between text-xs text-blue-600 mt-1">
                   <span>{generationProgress}% completado</span>
-                  <span>{selectedProducts.length} productos | 0% cortes garantizado</span>
+                  <span>{selectedProducts.length} productos | {Math.ceil(selectedProducts.length / productsPerPage)} páginas | Layout {productsPerPage}/página</span>
                 </div>
               </CardContent>
             </Card>
@@ -859,8 +897,9 @@ const TemplateSelection = () => {
                       templateQuality?.status === 'needs_fix' ? 'text-yellow-700' :
                       'text-green-700'
                     }`}>
-                      {getTemplateInfo(selectedTemplate).recommendedFor} • 
-                      {getTemplateInfo(selectedTemplate).productsPerPage} productos/página
+                      Layout actual: {productsPerPage} productos/página • 
+                      {Math.ceil(selectedProducts.length / productsPerPage)} páginas totales •
+                      {getTemplateInfo(selectedTemplate).recommendedFor}
                       {templateQuality && templateQuality.status === 'broken' && (
                         <span className="font-semibold"> • REQUIERE CORRECCIÓN</span>
                       )}
@@ -937,9 +976,11 @@ const TemplateSelection = () => {
                       </div>
                       
                       <div>
-                        <label className="text-xs font-medium text-gray-800">Layout</label>
+                        <label className="text-xs font-medium text-gray-800">Layout Dinámico</label>
                         <div className="text-sm text-gray-700 mt-1">
-                          {getTemplateInfo(selectedTemplate).layout} • {getTemplateInfo(selectedTemplate).spacing}
+                          {productsPerPage === 4 ? '2×2 - Cards Grandes' :
+                           productsPerPage === 6 ? '3×2 - Balanceado' :
+                           '3×3 - Compacto'} • {getTemplateInfo(selectedTemplate).spacing}
                         </div>
                       </div>
                       
@@ -963,11 +1004,30 @@ const TemplateSelection = () => {
                   </div>
                 )}
 
+                {/* Campo para el título del catálogo */}
+                <div className="mt-4 space-y-2">
+                  <Label htmlFor="catalogTitle" className="text-sm font-medium text-gray-800">
+                    Nombre del catálogo (opcional)
+                  </Label>
+                  <Input
+                    id="catalogTitle"
+                    value={catalogTitle}
+                    onChange={(e) => setCatalogTitle(e.target.value)}
+                    placeholder="Ej: Catálogo Primavera 2024, Productos Nuevos..."
+                    className="bg-white border-gray-300 focus:border-green-500"
+                    disabled={generating || previewLoading}
+                  />
+                  <p className="text-xs text-gray-600">
+                    Si no especificas un nombre, se generará automáticamente
+                  </p>
+                </div>
+
                 {/* Botones de acción */}
                 {limits?.canGenerate && templateQuality?.status !== 'broken' && (
                   <div className="flex items-center justify-between mt-4">
                     <div className="text-sm text-gray-700">
                       Listo para generar {selectedProducts.length} productos
+                      ({Math.ceil(selectedProducts.length / productsPerPage)} páginas con {productsPerPage}/página)
                       {templateQuality && autoFix && templateQuality.status === 'needs_fix' && (
                         <span className="text-blue-600"> • Con auto-corrección</span>
                       )}
