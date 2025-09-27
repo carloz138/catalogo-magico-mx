@@ -758,7 +758,7 @@ export class TemplateGenerator {
     
     if (productsPerPage === 4) {
       // 🔧 CORREGIDO: Reducir altura para evitar productos alargados
-      cardHeight = cardWidth + 35; // AUMENTADO de 25 a 35 (+40% más espacio)
+      cardHeight = cardWidth + 45; // AUMENTADO de 35 a 45 (+29% más espacio)
     } else if (productsPerPage === 6) {
       // 6 productos: tamaño estándar (SIN CAMBIOS)
       cardHeight = cardWidth + 30;
@@ -770,7 +770,7 @@ export class TemplateGenerator {
     }
     
     // 🔧 RATIO DINÁMICO DE IMAGEN CORREGIDO
-    const imageHeightRatio = productsPerPage === 4 ? 0.68 : // AUMENTADO de 0.60 a 0.68 (+13% más grande)
+    const imageHeightRatio = productsPerPage === 4 ? 0.63 : // REDUCIDO de 0.68 a 0.63 (más espacio para texto)
                             productsPerPage === 6 ? 0.55 : // SIN CAMBIOS
                             0.52; // AUMENTADO de 0.50 a 0.52 para 9 productos
     
@@ -782,7 +782,7 @@ export class TemplateGenerator {
                          productsPerPage === 6 ? 40 : // SIN CAMBIOS  
                          38; // AUMENTADO de 35 para 9 productos
                          
-    const maxCardHeight = productsPerPage === 4 ? 110 : // AUMENTADO de 85 a 110
+    const maxCardHeight = productsPerPage === 4 ? 125 : // AUMENTADO de 110 a 125
                          productsPerPage === 6 ? 100 : // SIN CAMBIOS
                          75; // REDUCIDO de 80 para 9 productos
     
@@ -853,7 +853,7 @@ export class TemplateGenerator {
   
   // Altura mínima del wholesale
   private static getWholesaleMinHeight(productsPerPage: 4 | 6 | 9): number {
-    const heights = { 4: 10, 6: 8, 9: 9 }; // 9: Más altura
+    const heights = { 4: 12, 6: 8, 9: 9 }; // AUMENTADO de 10 a 12 para evitar overflow
     return heights[productsPerPage];
   }
   
@@ -886,6 +886,10 @@ export class TemplateGenerator {
         .product-card {
           justify-self: center !important;
           align-self: start !important;
+        }
+        
+        .product-price-wholesale {
+          min-height: 12mm !important; /* ASEGURAR ALTURA MÍNIMA */
         }
       `;
     } else if (productsPerPage === 9) {
@@ -989,7 +993,7 @@ export class TemplateGenerator {
         /* 🚀 GRID 4 PRODUCTOS - 2x2 CORREGIDO + FORZADO */
         justify-items: center;
         align-items: start;
-        grid-template-rows: repeat(2, 1fr) !important;
+        grid-template-rows: repeat(2, minmax(0, 1fr)) !important;
         grid-template-columns: repeat(2, 1fr) !important;
         place-content: start center !important;
         
