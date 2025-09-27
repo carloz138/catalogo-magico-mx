@@ -445,7 +445,7 @@ export class PuppeteerServiceClient {
         
         /* 🔧 FIX CRÍTICO: Altura fija para 2x2, auto para otros */
         ${productsPerPage === 4 ? 
-          `grid-template-rows: repeat(${PDF_LAYOUT.ROWS}, ${Math.round(LAYOUT.cardHeight * scale.layout)}mm) !important;
+          `grid-template-rows: auto auto !important;
            height: ${Math.round(LAYOUT.cardHeight * scale.layout * 2 + LAYOUT.gap * scale.padding)}mm !important;
            min-height: ${Math.round(LAYOUT.cardHeight * scale.layout * 2 + LAYOUT.gap * scale.padding)}mm !important;` :
           `grid-template-rows: repeat(${PDF_LAYOUT.ROWS}, auto) !important;`
@@ -462,7 +462,7 @@ export class PuppeteerServiceClient {
            align-items: start !important;`
         }
         
-        grid-auto-rows: ${Math.round(LAYOUT.cardHeight * scale.layout)}mm !important;
+        grid-auto-rows: auto !important;
         height: auto !important;
         min-height: auto !important;
         overflow: visible !important;
@@ -507,6 +507,13 @@ export class PuppeteerServiceClient {
         
         padding: ${Math.round(PDF_LAYOUT.CARD_INTERNAL_PADDING * scale.padding)}mm !important;
         gap: ${Math.round(this.getCardGap(productsPerPage) * scale.padding)}mm !important;
+        
+        /* 🚀 OVERFLOW FIXES PARA 2x2 */
+        ${productsPerPage === 4 ? `
+          overflow: visible !important;
+          position: static !important;
+          float: none !important;
+        ` : ''}
         
         /* 🔧 POSICIONAMIENTO ESPECÍFICO POR LAYOUT CORREGIDAS */
         ${productsPerPage === 4 ? 
@@ -607,6 +614,7 @@ export class PuppeteerServiceClient {
         position: relative !important;
         background: white !important;
         gap: ${Math.round(this.getTextGap(productsPerPage) * scale.padding)}mm !important;
+        ${productsPerPage === 4 ? 'display: block !important;' : ''}
       }
       
       .product-name-dynamic {
@@ -638,6 +646,7 @@ export class PuppeteerServiceClient {
         justify-content: flex-start !important;
         overflow: visible !important;
         min-height: 0 !important;
+        ${productsPerPage === 4 ? 'display: block !important;' : ''}
       }
 
       /* PRECIO RETAIL DINÁMICO CORREGIDO */
@@ -679,6 +688,8 @@ export class PuppeteerServiceClient {
         text-align: center !important;
         -webkit-print-color-adjust: exact !important;
         overflow: visible !important;
+        position: static !important;
+        ${productsPerPage === 4 ? 'display: block !important; margin: 2mm 0 !important;' : ''}
         flex-shrink: 0 !important;
         min-height: ${Math.round(this.getWholesaleMinHeight(productsPerPage) * scale.layout)}mm !important;
         position: relative !important;
@@ -754,32 +765,49 @@ export class PuppeteerServiceClient {
           break-after: avoid !important;
         }
         
-        /* 🔧 FIX PRINT ESPECÍFICO PARA 2x2 */
+        /* 🚀 PRINT FIXES COMPLETOS PARA 2x2 */
         ${productsPerPage === 4 ? `
-          .products-grid-dynamic {
-            /* Forzar altura en print para 2x2 */
-            height: ${Math.round(LAYOUT.cardHeight * scale.layout * 2 + LAYOUT.gap * scale.padding + 10)}mm !important;
-            min-height: ${Math.round(LAYOUT.cardHeight * scale.layout * 2 + LAYOUT.gap * scale.padding + 10)}mm !important;
-            
-            /* Grid explícito en print */
-            grid-template-rows: ${Math.round(LAYOUT.cardHeight * scale.layout)}mm ${Math.round(LAYOUT.cardHeight * scale.layout)}mm !important;
-            
-            /* Prevenir page breaks */
-            page-break-inside: avoid !important;
-            break-inside: avoid !important;
+          * {
             overflow: visible !important;
-            position: relative !important;
+            position: static !important;
+            float: none !important;
+          }
+          
+          .products-grid-dynamic {
+            height: auto !important;
+            min-height: auto !important;
+            max-height: none !important;
+            
+            grid-template-rows: auto auto !important;
+            grid-auto-rows: auto !important;
+            
+            overflow: visible !important;
+            page-break-inside: auto !important;
+            break-inside: auto !important;
           }
           
           .product-card-dynamic {
+            display: block !important;
+            overflow: visible !important;
+            height: auto !important;
+            min-height: auto !important;
+            max-height: none !important;
+            
             page-break-inside: avoid !important;
             break-inside: avoid !important;
             
-            /* Altura fija en print */
-            height: ${Math.round(LAYOUT.cardHeight * scale.layout)}mm !important;
-            min-height: ${Math.round(LAYOUT.cardHeight * scale.layout)}mm !important;
-            max-height: ${Math.round(LAYOUT.cardHeight * scale.layout)}mm !important;
+            margin-bottom: 8mm !important;
+            padding-bottom: 3mm !important;
+          }
+          
+          .text-area-dynamic,
+          .product-pricing-dynamic,
+          .product-price-wholesale-dynamic {
+            display: block !important;
             overflow: visible !important;
+            height: auto !important;
+            max-height: none !important;
+            position: static !important;
           }
         ` : `
           /* Print normal para 3x2 y 3x3 (SIN CAMBIOS) */

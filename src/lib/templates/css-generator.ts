@@ -650,6 +650,41 @@ export class TemplateGenerator {
         }
       }
       
+      /* 🚀 PRE-PRINT FIXES ESPECÍFICOS PARA 2x2 */
+      ${productsPerPage === 4 ? `
+        .products-grid {
+          grid-template-rows: minmax(0, 1fr) minmax(0, 1fr) !important;
+          grid-auto-rows: auto !important;
+          overflow: visible !important;
+        }
+        
+        .product-card {
+          overflow: visible !important;
+          position: static !important;
+          float: none !important;
+          break-inside: avoid !important;
+          page-break-inside: avoid !important;
+        }
+        
+        .product-info {
+          overflow: visible !important;
+          height: auto !important;
+          min-height: auto !important;
+          max-height: none !important;
+        }
+        
+        .product-pricing {
+          overflow: visible !important;
+          display: block !important;
+        }
+        
+        .product-price-wholesale {
+          overflow: visible !important;
+          position: static !important;
+          margin-bottom: 3mm !important;
+        }
+      ` : ''}
+
       /* ===== MEDIA PRINT DINÁMICO CORREGIDO + FIX 2x2 ===== */
       @media print {
         * {
@@ -658,36 +693,63 @@ export class TemplateGenerator {
           print-color-adjust: exact !important;
         }
         
-        /* 🔧 FIX PRINT ESPECÍFICO PARA 2x2 */
+        /* 🚀 PRINT FIXES COMPLETOS PARA 2x2 */
         ${productsPerPage === 4 ? `
           .products-grid {
-            /* Forzar altura en print para 2x2 */
-            height: calc(var(--grid-total-height) + 10mm) !important;
-            min-height: calc(var(--grid-total-height) + 10mm) !important;
+            height: auto !important;
+            min-height: auto !important;
+            max-height: none !important;
+            overflow: visible !important;
             
-            /* Grid explícito en print */
-            grid-template-rows: var(--card-height) var(--card-height) !important;
+            grid-template-rows: auto auto !important;
+            grid-auto-rows: auto !important;
             
-            /* Prevenir page breaks */
-            page-break-inside: avoid !important;
-            break-inside: avoid !important;
+            page-break-inside: auto !important;
+            break-inside: auto !important;
+            
+            position: static !important;
+            float: none !important;
           }
           
           .product-card {
+            overflow: visible !important;
+            height: auto !important;
+            min-height: calc(var(--card-height) - 5mm) !important;
+            max-height: none !important;
+            
+            display: block !important;
+            position: static !important;
+            float: none !important;
+            
             page-break-inside: avoid !important;
             break-inside: avoid !important;
             
-            /* Altura fija en print */
-            height: var(--card-height) !important;
-            min-height: var(--card-height) !important;
-            max-height: var(--card-height) !important;
-            overflow: visible !important;
+            margin-bottom: 5mm !important;
           }
           
-          .product-card:nth-child(1) { grid-area: 1 / 1 / 2 / 2 !important; }
-          .product-card:nth-child(2) { grid-area: 1 / 2 / 2 / 3 !important; }
-          .product-card:nth-child(3) { grid-area: 2 / 1 / 3 / 2 !important; }
-          .product-card:nth-child(4) { grid-area: 2 / 2 / 3 / 3 !important; }
+          .product-info {
+            overflow: visible !important;
+            height: auto !important;
+            max-height: none !important;
+            display: block !important;
+          }
+          
+          .product-pricing {
+            overflow: visible !important;
+            display: block !important;
+            height: auto !important;
+            max-height: none !important;
+          }
+          
+          .product-price-wholesale {
+            overflow: visible !important;
+            display: block !important;
+            position: static !important;
+            margin-top: 3mm !important;
+            margin-bottom: 3mm !important;
+            min-height: auto !important;
+            height: auto !important;
+          }
         ` : `
           /* Print normal para 3x2 y 3x3 (SIN CAMBIOS) */
           .product-card {
@@ -1030,8 +1092,8 @@ export class TemplateGenerator {
       return `
         /* CARDS GRANDES - 4 PRODUCTOS CORREGIDO */
         justify-self: center;
-        max-width: 95%;
-        min-width: 85%;
+        max-width: 98%; /* AUMENTADO de 95% a 98% */
+        min-width: 92%; /* AUMENTADO de 85% a 92% */
       `;
     } else if (productsPerPage === 9) {
       return `
