@@ -1080,21 +1080,34 @@ export class PuppeteerServiceClient {
   
   // ===== MÉTODOS SIN CAMBIOS =====
   
-  private static generateSmartContactInfo(businessInfo: BusinessInfo): string {
+private static generateSmartContactInfo(businessInfo: BusinessInfo): string {
     const contactItems: string[] = [];
     
+    // Agregar teléfono (priorizar WhatsApp si existe)
     if (businessInfo.social_media?.whatsapp) {
-      contactItems.push(`📱 ${businessInfo.social_media.whatsapp}`);
+      contactItems.push(businessInfo.social_media.whatsapp);
     } else if (businessInfo.phone) {
-      contactItems.push(`📞 ${businessInfo.phone}`);
+      contactItems.push(businessInfo.phone);
     }
     
-    if (businessInfo.email && businessInfo.email.length <= 25) {
-      contactItems.push(`📧 ${businessInfo.email}`);
+    // Agregar email sin restricción de longitud
+    if (businessInfo.email) {
+      contactItems.push(businessInfo.email);
     }
     
-    return contactItems.slice(0, 2).join(' | ');
-  }
+    // Agregar website si existe
+    if (businessInfo.website) {
+      contactItems.push(businessInfo.website);
+    }
+    
+    // Agregar dirección si existe y no es muy larga
+    if (businessInfo.address && businessInfo.address.length <= 50) {
+      contactItems.push(businessInfo.address);
+    }
+    
+    // Mostrar hasta 4 elementos separados por ' | '
+    return contactItems.slice(0, 4).join(' | ');
+}
   
   private static async checkServiceHealthWithRetry(maxRetries: number = 3): Promise<boolean> {
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
