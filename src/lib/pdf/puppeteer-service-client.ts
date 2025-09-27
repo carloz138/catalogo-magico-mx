@@ -141,7 +141,7 @@ const calculateDynamicDimensions = (productsPerPage: 4 | 6 | 9 = 6) => {
   
   if (productsPerPage === 4) {
     // 🔧 CORREGIDO: Reducir altura para evitar productos alargados
-    baseCardHeight = cardWidth + 30; // REDUCIDO de 50
+     baseCardHeight = Math.min(cardWidth + 12, 40); // REDUCIDO DRÁSTICAMENTE
   } else if (productsPerPage === 6) {
     // 6 productos: altura estándar (SIN CAMBIOS)
     baseCardHeight = cardWidth + 35;
