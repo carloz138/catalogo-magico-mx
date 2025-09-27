@@ -306,7 +306,7 @@ export class UnifiedCatalogGenerator {
           if (result.success) {
             pdfGenerationSuccess = true;
             finalMethod = 'puppeteer';
-            generationStats = { ...result.stats, grid2x2Fixed: isGrid2x2 } || { grid2x2Fixed: isGrid2x2 };
+            generationStats = { ...(result.stats || {}), grid2x2Fixed: isGrid2x2 };
             htmlContent = TemplateGenerator.generateCatalogHTML(products, businessInfo, template, productsPerPage);
             
             console.log(`✅ PDF generado CORREGIDO + FIX 2x2 y subido con ${productsPerPage} productos/página ${isGrid2x2 ? 'GRID 2x2 CONFIRMADO' : ''}`);
