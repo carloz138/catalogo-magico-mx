@@ -586,7 +586,7 @@ export class PuppeteerServiceClient {
         color: white !important;
         background: ${template.colors.secondary} !important;
         background-image: linear-gradient(135deg, ${template.colors.secondary}, ${template.colors.primary}) !important;
-        padding: ${Math.round(this.getRetailPricePadding(productsPerPage) * scale.padding)}mm !important;
+        padding: ${Math.round(this.getRetailPricePadding(productsPerPage) * scale.padding)}mm ${Math.round(this.getRetailPricePaddingHorizontal(productsPerPage) * scale.padding)}mm !important;
         border-radius: ${Math.round(8 * scale.layout)}px !important;
         display: inline-block !important;
         text-align: center !important;
@@ -789,12 +789,14 @@ export class PuppeteerServiceClient {
   }
   
   // Padding del precio retail
-  private static getRetailPricePadding(productsPerPage: 4 | 6 | 9): string {
-    const paddings = { 
-      4: '2mm 4mm', 
-      6: '1.5mm 3mm', 
-      9: '1.8mm 3.5mm' // 9: Más padding
-    };
+  private static getRetailPricePadding(productsPerPage: 4 | 6 | 9): number {
+    const paddings = { 4: 2, 6: 1.5, 9: 1.8 }; // Solo el valor vertical
+    return paddings[productsPerPage];
+  }
+  
+  // Padding horizontal del precio retail
+  private static getRetailPricePaddingHorizontal(productsPerPage: 4 | 6 | 9): number {
+    const paddings = { 4: 4, 6: 3, 9: 3.5 };
     return paddings[productsPerPage];
   }
   
