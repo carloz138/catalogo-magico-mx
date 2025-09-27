@@ -246,7 +246,7 @@ export class UnifiedCatalogGenerator {
         businessInfo,
         template,
         productsPerPage,
-        options.catalogTitle || `Catálogo ${template.displayName} (${productsPerPage}/pág) CORREGIDO - ${new Date().toLocaleDateString('es-MX')}`,
+        options.catalogTitle || `Catálogo ${template.displayName} (${productsPerPage}/pág) - ${new Date().toLocaleDateString('es-MX')}`,
         { 
           generationMethod: 'pending', 
           pdfSuccess: false,
@@ -409,10 +409,9 @@ export class UnifiedCatalogGenerator {
           doc.setFontSize(16);
           doc.text(businessInfo.business_name || 'Catálogo', 20, 30);
           doc.setFontSize(12);
-          doc.text(`Catálogo CORREGIDO con ${products.length} productos (${productsPerPage}/página)`, 20, 50);
+          doc.text(`Catálogo con ${products.length} productos (${productsPerPage}/página)`, 20, 50);
           doc.text('Generado el ' + new Date().toLocaleDateString('es-MX'), 20, 60);
-          doc.text(`LAYOUT CORREGIDO: ${this.getLayoutOptimizationFixed(productsPerPage)}`, 20, 70);
-          doc.text('Errores de 4 y 9 productos SOLUCIONADOS', 20, 80);
+          doc.text(`LAYOUT: ${this.getLayoutOptimizationFixed(productsPerPage)}`, 20, 70);
           
           const pdfBlob = doc.output('blob');
           
@@ -507,7 +506,7 @@ export class UnifiedCatalogGenerator {
         catalogId,
         htmlContent,
         generationMethod: finalMethod,
-        message: `Catálogo ${template.displayName} generado exitosamente CORREGIDO (${productsPerPage} productos/página)`,
+        message: `Catálogo ${template.displayName} generado exitosamente (${productsPerPage} productos/página)`,
         warnings: warnings.length > 0 ? warnings : undefined,
         stats: {
           totalProducts: products.length,
@@ -1202,7 +1201,7 @@ export class UnifiedCatalogGenerator {
       const blob = new Blob([enhancedHTML], { type: 'text/html;charset=utf-8' });
       const url = URL.createObjectURL(blob);
       
-      const filename = `catalogo-dinamico-CORREGIDO-${productsPerPage}pp-${businessName.replace(/[^a-zA-Z0-9]/g, '_')}.html`;
+      const filename = `catalogo-dinamico-${productsPerPage}pp-${businessName.replace(/[^a-zA-Z0-9]/g, '_')}.html`;
       
       const link = document.createElement('a');
       link.href = url;
