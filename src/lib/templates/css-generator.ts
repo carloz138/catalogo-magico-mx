@@ -743,7 +743,7 @@ export class TemplateGenerator {
     
     // 🔧 GAP DINÁMICO CORREGIDO BASADO EN PRODUCTOS POR PÁGINA
     const gapMap = { 
-      4: Math.max(8, contentWidth * 0.035),  // MÁS GAP para 4 productos (era 5)
+      4: Math.max(6, contentWidth * 0.025),  // REDUCIDO de 0.035 a 0.025
       6: Math.max(5, contentWidth * 0.020),  // Gap estándar (era 4)
       9: Math.max(6, contentWidth * 0.025)   // MÁS GAP para 9 productos (era 3)
     };
@@ -758,7 +758,7 @@ export class TemplateGenerator {
     
     if (productsPerPage === 4) {
       // 🔧 CORREGIDO: Reducir altura para evitar productos alargados
-      cardHeight = cardWidth + 25; // REDUCIDO de 45 a 25
+      cardHeight = cardWidth + 35; // AUMENTADO de 25 a 35 (+40% más espacio)
     } else if (productsPerPage === 6) {
       // 6 productos: tamaño estándar (SIN CAMBIOS)
       cardHeight = cardWidth + 30;
@@ -770,7 +770,7 @@ export class TemplateGenerator {
     }
     
     // 🔧 RATIO DINÁMICO DE IMAGEN CORREGIDO
-    const imageHeightRatio = productsPerPage === 4 ? 0.60 : // REDUCIDO de 0.65 a 0.60
+    const imageHeightRatio = productsPerPage === 4 ? 0.68 : // AUMENTADO de 0.60 a 0.68 (+13% más grande)
                             productsPerPage === 6 ? 0.55 : // SIN CAMBIOS
                             0.52; // AUMENTADO de 0.50 a 0.52 para 9 productos
     
@@ -778,11 +778,11 @@ export class TemplateGenerator {
     const textAreaHeight = cardHeight - imageHeight;
     
     // 🔧 LÍMITES DINÁMICOS CORREGIDOS
-    const minCardHeight = productsPerPage === 4 ? 45 : // REDUCIDO de 50
+    const minCardHeight = productsPerPage === 4 ? 55 : // AUMENTADO de 45 a 55
                          productsPerPage === 6 ? 40 : // SIN CAMBIOS  
                          38; // AUMENTADO de 35 para 9 productos
                          
-    const maxCardHeight = productsPerPage === 4 ? 85 : // REDUCIDO de 120
+    const maxCardHeight = productsPerPage === 4 ? 110 : // AUMENTADO de 85 a 110
                          productsPerPage === 6 ? 100 : // SIN CAMBIOS
                          75; // REDUCIDO de 80 para 9 productos
     

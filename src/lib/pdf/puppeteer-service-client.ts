@@ -77,16 +77,16 @@ const getDynamicPDFLayout = (productsPerPage: 4 | 6 | 9 = 6) => {
   const layoutConfigs = {
     4: {
       // 🔧 4 PRODUCTOS: Layout CORREGIDO para evitar productos alargados
-      HEADER_MARGIN: 12,     // REDUCIDO de 15
-      FOOTER_MARGIN: 10,     // REDUCIDO de 12
-      SIDE_MARGIN: 10,       // REDUCIDO de 12
+      HEADER_MARGIN: 10,     // REDUCIDO de 12 para más espacio
+      FOOTER_MARGIN: 8,      // REDUCIDO de 10 para más espacio
+      SIDE_MARGIN: 8,        // REDUCIDO de 10 para más ancho
       HEADER_HEIGHT: 10,     // REDUCIDO de 12
       FOOTER_HEIGHT: 6,      // REDUCIDO de 8
       COLUMNS: 2,
       ROWS: 2,
       PRODUCTS_PER_PAGE: 4,
       HEADER_TO_CONTENT_GAP: 8,  // REDUCIDO de 10
-      GRID_GAP: 10,             // AUMENTADO de 8
+      GRID_GAP: 8,              // REDUCIDO de 10 para mayor uso del espacio
       CONTENT_PADDING: 5,       // REDUCIDO de 6
       CARD_INTERNAL_PADDING: 4, // REDUCIDO de 6
     },
@@ -141,7 +141,7 @@ const calculateDynamicDimensions = (productsPerPage: 4 | 6 | 9 = 6) => {
   
   if (productsPerPage === 4) {
     // 🔧 CORREGIDO: Reducir altura para evitar productos alargados
-     baseCardHeight = Math.min(cardWidth + 12, 40); // REDUCIDO DRÁSTICAMENTE
+     baseCardHeight = Math.min(cardWidth + 40, 65); // AUMENTADO de +12,40 a +40,65
   } else if (productsPerPage === 6) {
     // 6 productos: altura estándar (SIN CAMBIOS)
     baseCardHeight = cardWidth + 35;
@@ -160,7 +160,7 @@ const calculateDynamicDimensions = (productsPerPage: 4 | 6 | 9 = 6) => {
     cardHeight: Math.floor(baseCardHeight * 100) / 100,
     gap,
     padding,
-    imageHeight: Math.floor(baseCardHeight * 0.55 * 100) / 100,
+    imageHeight: Math.floor(baseCardHeight * 0.68 * 100) / 100, // AUMENTADO de 0.55 a 0.68 para imágenes más grandes
     textHeight: Math.floor(baseCardHeight * 0.45 * 100) / 100
   };
 };
@@ -952,8 +952,8 @@ export class PuppeteerServiceClient {
     if (productsPerPage === 4) {
       return `
         justify-self: center;
-        max-width: 95%;
-        min-width: 85%;
+        max-width: 98%; /* AUMENTADO de 95% a 98% */
+        min-width: 92%; /* AUMENTADO de 85% a 92% */
       `;
     } else if (productsPerPage === 9) {
       return `
