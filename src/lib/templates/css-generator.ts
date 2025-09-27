@@ -1,4 +1,4 @@
-// src/lib/templates/css-generator.ts - VERSIÓN CORREGIDA PARA 4 Y 9 PRODUCTOS
+// src/lib/templates/css-generator.ts - VERSIÓN CORREGIDA PARA 4 Y 9 PRODUCTOS + FIX 2x2
 
 import { IndustryTemplate } from './industry-templates';
 
@@ -39,7 +39,7 @@ interface DynamicLayoutConfig {
 export class TemplateGenerator {
   
   /**
-   * 🎯 FUNCIÓN PRINCIPAL CON PRODUCTOS POR PÁGINA DINÁMICOS - CORREGIDA
+   * 🎯 FUNCIÓN PRINCIPAL CON PRODUCTOS POR PÁGINA DINÁMICOS - CORREGIDA + FIX 2x2
    */
   static generateTemplateCSS(
     template: IndustryTemplate, 
@@ -51,7 +51,7 @@ export class TemplateGenerator {
     const typography = this.calculateTypography(template, layoutConfig);
     
     return `
-      /* ===== TEMPLATE: ${template.displayName.toUpperCase()} - ${productsPerPage} PRODUCTOS/PÁGINA - CORREGIDO ===== */
+      /* ===== TEMPLATE: ${template.displayName.toUpperCase()} - ${productsPerPage} PRODUCTOS/PÁGINA - CORREGIDO + FIX 2x2 ===== */
       
       /* ===== VARIABLES CSS DINÁMICAS CORREGIDAS ===== */
       :root {
@@ -96,6 +96,14 @@ export class TemplateGenerator {
         --header-margin: ${this.getHeaderMargin(productsPerPage)}mm;
         --content-top-margin: ${this.getContentTopMargin(productsPerPage)}mm;
         --footer-margin: ${this.getFooterMargin(productsPerPage)}mm;
+        
+        /* 🚀 VARIABLES ESPECÍFICAS PARA FIX 2x2 */
+        ${productsPerPage === 4 ? `
+          --grid-total-height: ${dimensions.cardHeight * 2 + dimensions.gap}mm;
+          --grid-2x2-mode: 1;
+        ` : `
+          --grid-2x2-mode: 0;
+        `}
       }
       
       /* ===== RESET ABSOLUTO ===== */
@@ -223,34 +231,56 @@ export class TemplateGenerator {
         justify-content: center;
       }
       
-      /* 🚀 GRID SYSTEM COMPLETAMENTE DINÁMICO CORREGIDO */
+      /* 🚀 GRID SYSTEM COMPLETAMENTE DINÁMICO CORREGIDO + FIX CRÍTICO 2x2 */
       .products-grid {
         display: grid !important;
         grid-template-columns: repeat(var(--columns), 1fr) !important;
-        grid-template-rows: repeat(var(--rows), auto) !important;
+        
+        /* 🔧 FIX CRÍTICO PARA 2x2: Altura fija vs auto */
+        ${productsPerPage === 4 ? 
+          `grid-template-rows: repeat(var(--rows), var(--card-height)) !important;
+           height: var(--grid-total-height) !important;
+           min-height: var(--grid-total-height) !important;` :
+          `grid-template-rows: repeat(var(--rows), auto) !important;`
+        }
+        
         gap: var(--gap) !important;
         width: 100% !important;
         max-width: var(--content-width) !important;
         margin: 0 auto !important;
         padding: 0 !important;
         page-break-inside: avoid;
-        align-items: stretch !important;
-        justify-content: center !important;
-        place-content: center stretch !important;
+        
+        /* 🔧 Place items específico para cada layout */
+        ${productsPerPage === 4 ? 
+          `place-items: start center !important;
+           place-content: start center !important;` :
+          `align-items: stretch !important;
+           justify-content: center !important;
+           place-content: center stretch !important;`
+        }
+        
         grid-auto-rows: var(--card-height) !important;
         
         /* 🔧 CLASES ESPECÍFICAS POR LAYOUT CORREGIDAS */
         ${this.generateGridSpecificCSS(productsPerPage)}
       }
       
-      /* 🚀 PRODUCT CARDS ESCALADAS DINÁMICAMENTE - CORREGIDAS */
+      /* 🚀 PRODUCT CARDS ESCALADAS DINÁMICAMENTE - CORREGIDAS + FIX 2x2 */
       .product-card {
         display: flex !important;
         flex-direction: column !important;
         width: 100% !important;
-        height: var(--card-height) !important;
-        min-height: var(--card-height) !important;
-        max-height: none !important;
+        
+        /* 🔧 FIX ALTURA ESPECÍFICA PARA 2x2 */
+        ${productsPerPage === 4 ? 
+          `height: var(--card-height) !important;
+           min-height: var(--card-height) !important;
+           max-height: var(--card-height) !important;` :
+          `height: var(--card-height) !important;
+           min-height: var(--card-height) !important;
+           max-height: none !important;`
+        }
         
         background: var(--card-bg) !important;
         border: calc(0.5pt * var(--layout-scale)) solid var(--border) !important;
@@ -262,8 +292,13 @@ export class TemplateGenerator {
         break-inside: avoid !important;
         box-sizing: border-box !important;
         
-        align-self: stretch !important;
-        justify-self: center !important;
+        /* 🔧 POSICIONAMIENTO ESPECÍFICO PARA 2x2 */
+        ${productsPerPage === 4 ? 
+          `align-self: start !important;
+           justify-self: center !important;` :
+          `align-self: stretch !important;
+           justify-self: center !important;`
+        }
         
         padding: calc(var(--padding-scale) * ${this.getCardPadding(productsPerPage)}mm) !important;
         gap: calc(2mm * var(--padding-scale)) !important;
@@ -275,6 +310,25 @@ export class TemplateGenerator {
         /* 🔧 OPTIMIZACIONES ESPECÍFICAS POR LAYOUT CORREGIDAS */
         ${this.generateCardSpecificCSS(productsPerPage, template)}
       }
+      
+      /* 🔧 FIX POSICIONAMIENTO EXPLÍCITO PARA 2x2 */
+      ${productsPerPage === 4 ? `
+        .product-card:nth-child(1) { grid-area: 1 / 1 / 2 / 2 !important; }
+        .product-card:nth-child(2) { grid-area: 1 / 2 / 2 / 3 !important; }
+        .product-card:nth-child(3) { grid-area: 2 / 1 / 3 / 2 !important; }
+        .product-card:nth-child(4) { grid-area: 2 / 2 / 3 / 3 !important; }
+        
+        /* Cards vacías también ocupan espacio */
+        .product-card.empty-card {
+          visibility: hidden !important;
+          height: var(--card-height) !important;
+          min-height: var(--card-height) !important;
+          max-height: var(--card-height) !important;
+          border: none !important;
+          background: transparent !important;
+          box-shadow: none !important;
+        }
+      ` : ''}
       
       /* ===== CONTENIDO INTERNO ESCALADO ===== */
       .product-card-inner {
@@ -577,17 +631,26 @@ export class TemplateGenerator {
         page-break-after: avoid !important;
       }
       
-      /* ===== CARDS VACÍAS ===== */
+      /* ===== CARDS VACÍAS CORREGIDAS PARA 2x2 ===== */
       .product-card.empty-card {
-        visibility: hidden !important;
-        height: var(--card-height) !important;
-        min-height: var(--card-height) !important;
-        border: none !important;
-        background: transparent !important;
-        box-shadow: none !important;
+        ${productsPerPage === 4 ? 
+          `visibility: hidden !important;
+           height: var(--card-height) !important;
+           min-height: var(--card-height) !important;
+           max-height: var(--card-height) !important;
+           border: none !important;
+           background: transparent !important;
+           box-shadow: none !important;` :
+          `visibility: hidden !important;
+           height: var(--card-height) !important;
+           min-height: var(--card-height) !important;
+           border: none !important;
+           background: transparent !important;
+           box-shadow: none !important;`
+        }
       }
       
-      /* ===== MEDIA PRINT DINÁMICO CORREGIDO ===== */
+      /* ===== MEDIA PRINT DINÁMICO CORREGIDO + FIX 2x2 ===== */
       @media print {
         * {
           -webkit-print-color-adjust: exact !important;
@@ -595,18 +658,51 @@ export class TemplateGenerator {
           print-color-adjust: exact !important;
         }
         
-        .product-card {
-          page-break-inside: avoid !important;
-          break-inside: avoid !important;
-          overflow: visible !important;
-          max-height: none !important;
-          min-height: calc(var(--card-height) + calc(${this.getPrintExtraHeight(productsPerPage)}mm * var(--padding-scale))) !important;
-        }
-        
-        .products-grid {
-          page-break-inside: auto !important;
-          grid-auto-rows: calc(var(--card-height) + calc(${this.getPrintExtraHeight(productsPerPage)}mm * var(--padding-scale))) !important;
-        }
+        /* 🔧 FIX PRINT ESPECÍFICO PARA 2x2 */
+        ${productsPerPage === 4 ? `
+          .products-grid {
+            /* Forzar altura en print para 2x2 */
+            height: calc(var(--grid-total-height) + 10mm) !important;
+            min-height: calc(var(--grid-total-height) + 10mm) !important;
+            
+            /* Grid explícito en print */
+            grid-template-rows: var(--card-height) var(--card-height) !important;
+            
+            /* Prevenir page breaks */
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+          }
+          
+          .product-card {
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+            
+            /* Altura fija en print */
+            height: var(--card-height) !important;
+            min-height: var(--card-height) !important;
+            max-height: var(--card-height) !important;
+            overflow: visible !important;
+          }
+          
+          .product-card:nth-child(1) { grid-area: 1 / 1 / 2 / 2 !important; }
+          .product-card:nth-child(2) { grid-area: 1 / 2 / 2 / 3 !important; }
+          .product-card:nth-child(3) { grid-area: 2 / 1 / 3 / 2 !important; }
+          .product-card:nth-child(4) { grid-area: 2 / 2 / 3 / 3 !important; }
+        ` : `
+          /* Print normal para 3x2 y 3x3 (SIN CAMBIOS) */
+          .product-card {
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+            overflow: visible !important;
+            max-height: none !important;
+            min-height: calc(var(--card-height) + calc(${this.getPrintExtraHeight(productsPerPage)}mm * var(--padding-scale))) !important;
+          }
+          
+          .products-grid {
+            page-break-inside: auto !important;
+            grid-auto-rows: calc(var(--card-height) + calc(${this.getPrintExtraHeight(productsPerPage)}mm * var(--padding-scale))) !important;
+          }
+        `}
         
         .product-info {
           overflow: visible !important;
@@ -624,7 +720,7 @@ export class TemplateGenerator {
   }
   
   /**
-   * 🔧 DIMENSIONES DINÁMICAS CORREGIDAS
+   * 🔧 DIMENSIONES DINÁMICAS CORREGIDAS + FIX 2x2
    */
   private static calculateCorrectedDimensions(
     template: IndustryTemplate, 
@@ -657,7 +753,7 @@ export class TemplateGenerator {
     const availableWidth = contentWidth - totalGapWidth;
     const cardWidth = availableWidth / columns;
     
-    // 🚀 ALTURA DINÁMICA CORREGIDA BASADA EN PRODUCTOS POR PÁGINA
+    // 🚀 ALTURA DINÁMICA CORREGIDA BASADA EN PRODUCTOS POR PÁGINA + FIX 2x2
     let cardHeight;
     
     if (productsPerPage === 4) {
@@ -710,7 +806,7 @@ export class TemplateGenerator {
   }
   
   /**
-   * 🔧 NUEVAS FUNCIONES PARA CORREGIR PROBLEMAS DE SPACING
+   * 🔧 NUEVAS FUNCIONES PARA CORREGIR PROBLEMAS DE SPACING + FIX 2x2
    */
   
   // Márgenes de header específicos
@@ -774,19 +870,22 @@ export class TemplateGenerator {
   }
   
   /**
-   * 🔧 CSS ESPECÍFICO PARA PRINT CORREGIDO
+   * 🔧 CSS ESPECÍFICO PARA PRINT CORREGIDO + FIX 2x2
    */
   private static generatePrintSpecificCSS(productsPerPage: 4 | 6 | 9): string {
     if (productsPerPage === 4) {
       return `
-        /* PRINT OPTIMIZATIONS PARA 4 PRODUCTOS */
+        /* PRINT OPTIMIZATIONS PARA 4 PRODUCTOS - 2x2 FORZADO */
         .products-grid {
-          grid-template-rows: repeat(2, auto) !important;
+          grid-template-rows: repeat(2, var(--card-height)) !important;
           grid-template-columns: repeat(2, 1fr) !important;
+          height: calc(var(--card-height) * 2 + var(--gap)) !important;
+          min-height: calc(var(--card-height) * 2 + var(--gap)) !important;
         }
         
         .product-card {
           justify-self: center !important;
+          align-self: start !important;
         }
       `;
     } else if (productsPerPage === 9) {
@@ -882,16 +981,23 @@ export class TemplateGenerator {
   }
   
   /**
-   * 🎯 CSS ESPECÍFICO POR GRID CORREGIDO
+   * 🎯 CSS ESPECÍFICO POR GRID CORREGIDO + FIX 2x2
    */
   private static generateGridSpecificCSS(productsPerPage: 4 | 6 | 9): string {
     if (productsPerPage === 4) {
       return `
-        /* GRID 4 PRODUCTOS - 2x2 CORREGIDO */
+        /* 🚀 GRID 4 PRODUCTOS - 2x2 CORREGIDO + FORZADO */
         justify-items: center;
-        align-items: center;
+        align-items: start;
         grid-template-rows: repeat(2, 1fr) !important;
         grid-template-columns: repeat(2, 1fr) !important;
+        place-content: start center !important;
+        
+        /* Forzar posicionamiento explícito */
+        grid-auto-flow: row !important;
+        
+        /* Debug visual (descomentar para debug) */
+        /* border: 2px solid red !important; */
       `;
     } else if (productsPerPage === 9) {
       return `
@@ -910,7 +1016,7 @@ export class TemplateGenerator {
   }
   
   /**
-   * 🎯 CSS ESPECÍFICO POR CARD CORREGIDO
+   * 🎯 CSS ESPECÍFICO POR CARD CORREGIDO + FIX 2x2
    */
   private static generateCardSpecificCSS(
     productsPerPage: 4 | 6 | 9, 
@@ -963,6 +1069,9 @@ export class TemplateGenerator {
   
   // ===== RESTO DE FUNCIONES HELPER SIN CAMBIOS =====
   
+  /**
+   * 🎯 FUNCIÓN PRINCIPAL DE GENERACIÓN HTML CON FIX 2x2
+   */
   static generateCatalogHTML(
     products: Product[],
     businessInfo: BusinessInfo,
@@ -981,8 +1090,9 @@ export class TemplateGenerator {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=210mm, initial-scale=1.0">
-    <title>Catálogo - ${businessName} (${productsPerPage} productos/página)</title>
+    <title>Catálogo - ${businessName} (${productsPerPage} productos/página)${productsPerPage === 4 ? ' - 2x2 Fixed' : ''}</title>
     <meta name="products-per-page" content="${productsPerPage}">
+    <meta name="grid-fix" content="${productsPerPage === 4 ? '2x2-fixed' : 'original'}">
     <style>
         ${css}
     </style>
@@ -991,7 +1101,7 @@ export class TemplateGenerator {
     <div class="catalog-container">
         <header class="catalog-header page-break-avoid">
             <h1 class="business-name">${businessName}</h1>
-            <p class="catalog-subtitle">Catálogo de Productos (${productsPerPage} por página)</p>
+            <p class="catalog-subtitle">Catálogo de Productos (${productsPerPage} por página)${productsPerPage === 4 ? ' - Grid 2x2 Corregido' : ''}</p>
         </header>
         
         <main class="products-section">
@@ -1004,6 +1114,9 @@ export class TemplateGenerator {
 </html>`;
   }
   
+  /**
+   * 🔧 GENERACIÓN DE GRID HTML CORREGIDA PARA 2x2
+   */
   private static generateProductsHTMLGrid(
     products: Product[], 
     template: IndustryTemplate, 
@@ -1018,11 +1131,28 @@ export class TemplateGenerator {
       const endIndex = Math.min(startIndex + productsPerPage, products.length);
       const pageProducts = products.slice(startIndex, endIndex);
       
-      const emptyCardsNeeded = productsPerPage - pageProducts.length;
-      const totalCards = [...pageProducts];
+      // 🚀 FIX CRÍTICO: Para 2x2, siempre generar exactamente 4 slots
+      let totalCards: (Product | null)[] = [];
       
-      for (let i = 0; i < emptyCardsNeeded; i++) {
-        totalCards.push(null as any);
+      if (productsPerPage === 4) {
+        console.log(`🔧 Generando página ${page + 1} con grid 2x2, productos: ${pageProducts.length}`);
+        
+        // Rellenar con productos reales
+        for (let i = 0; i < 4; i++) {
+          if (i < pageProducts.length) {
+            totalCards.push(pageProducts[i]);
+          } else {
+            totalCards.push(null); // Card vacía
+          }
+        }
+      } else {
+        // Lógica original para 3x2 y 3x3 (SIN CAMBIOS)
+        totalCards = [...pageProducts];
+        const emptyCardsNeeded = productsPerPage - pageProducts.length;
+        
+        for (let i = 0; i < emptyCardsNeeded; i++) {
+          totalCards.push(null);
+        }
       }
       
       const pageBreakClass = page > 0 ? 'page-break-before' : '';
@@ -1145,7 +1275,7 @@ export class TemplateGenerator {
       return `
         <footer class="catalog-footer page-break-avoid">
           <div class="footer-branding">
-            Generado con CatifyPro v2.0
+            Generado con CatifyPro v2.0 - Grid 2x2 Corregido
           </div>
         </footer>
       `;
@@ -1157,7 +1287,7 @@ export class TemplateGenerator {
           ${contactItems.join('')}
         </div>
         <div class="footer-branding">
-          Generado con CatifyPro v2.0
+          Generado con CatifyPro v2.0 - Grid 2x2 Corregido
         </div>
       </footer>
     `;
