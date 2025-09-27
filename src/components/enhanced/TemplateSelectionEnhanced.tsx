@@ -739,13 +739,13 @@ const TemplateSelectionEnhanced = () => {
             </Alert>
           )}
 
-          {/* 🆕 SELECTOR DE PRODUCTOS POR PÁGINA - TEMPORALMENTE OCULTO */}
-          {/* <ProductsPerPageSelector
+          {/* 🆕 SELECTOR DE PRODUCTOS POR PÁGINA */}
+          <ProductsPerPageSelector
             selectedCount={productsPerPage}
             onCountChange={handleProductsPerPageChange}
             totalProducts={selectedProducts.length}
             disabled={generating}
-          /> */}
+          />
 
           {/* 🆕 BANNER DE OPTIMIZACIÓN si hay productos optimizados */}
           {optimizedCount > 0 && (

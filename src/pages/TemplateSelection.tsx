@@ -817,13 +817,13 @@ const TemplateSelection = () => {
             </Alert>
           )}
 
-          {/* 🆕 SELECTOR DE PRODUCTOS POR PÁGINA - TEMPORALMENTE OCULTO */}
-          {/* <ProductsPerPageSelector
+          {/* 🆕 SELECTOR DE PRODUCTOS POR PÁGINA */}
+          <ProductsPerPageSelector
             selectedCount={productsPerPage}
             onCountChange={handleProductsPerPageChange}
             totalProducts={selectedProducts.length}
             disabled={generating || previewLoading}
-          /> */}
+          />
 
           {/* Progress Bar mejorada */}
           {generating && (
