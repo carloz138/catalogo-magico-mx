@@ -141,7 +141,7 @@ const calculateDynamicDimensions = (productsPerPage: 4 | 6 | 9 = 6) => {
   
   if (productsPerPage === 4) {
     // 🔧 CORREGIDO: Reducir altura para evitar productos alargados
-     baseCardHeight = Math.min(cardWidth + 35, 60); // REDUCIDO de +45,75 a +35,60
+    baseCardHeight = Math.min(cardWidth + 35, 60); // REDUCIDO de +45,75 a +35,60
   } else if (productsPerPage === 6) {
     // 6 productos: altura estándar (SIN CAMBIOS)
     baseCardHeight = cardWidth + 35;
@@ -458,25 +458,20 @@ export class PuppeteerServiceClient {
           `justify-items: center !important;
            align-items: start !important;
            place-content: start center !important;` :
-          `justify-items: ${this.getGridJustifyItems(productsPerPage)} !important;
+          `justify-items: center !important;
            align-items: start !important;`
         }
         
         grid-auto-rows: auto !important;
-        height: auto !important;
-        min-height: auto !important;
         overflow: visible !important;
         page-break-inside: auto !important;
         break-inside: auto !important;
         padding: ${Math.round(2 * scale.padding)}mm 0 !important;
-        
-        /* 🔧 CORRECCIONES ESPECÍFICAS POR LAYOUT */
-        ${this.getGridSpecificCorrections(productsPerPage)}
       }
       
       /* 🚀 PRODUCT CARDS DINÁMICAS CORREGIDAS + FIX 2x2 */
       .product-card-dynamic {
-        width: ${this.getCardWidth(productsPerPage)} !important;
+        width: 100% !important;
         
         /* 🔧 FIX ALTURA ESPECÍFICA PARA 2x2 */
         ${productsPerPage === 4 ? 
@@ -506,14 +501,7 @@ export class PuppeteerServiceClient {
         break-after: auto !important;
         
         padding: ${Math.round(PDF_LAYOUT.CARD_INTERNAL_PADDING * scale.padding)}mm !important;
-        gap: ${Math.round(this.getCardGap(productsPerPage) * scale.padding)}mm !important;
-        
-        /* 🚀 OVERFLOW FIXES PARA 2x2 */
-        ${productsPerPage === 4 ? `
-          overflow: visible !important;
-          position: static !important;
-          float: none !important;
-        ` : ''}
+        gap: ${Math.round(2 * scale.padding)}mm !important;
         
         /* 🔧 POSICIONAMIENTO ESPECÍFICO POR LAYOUT CORREGIDAS */
         ${productsPerPage === 4 ? 
@@ -522,26 +510,7 @@ export class PuppeteerServiceClient {
           `align-self: stretch !important;
            justify-self: center !important;`
         }
-        
-        /* 🔧 OPTIMIZACIONES ESPECÍFICAS POR CARD CORREGIDAS */
-        ${this.getCardOptimizations(productsPerPage)}
       }
-      
-      /* 🔧 FIX POSICIONAMIENTO EXPLÍCITO PARA 2x2 */
-      ${productsPerPage === 4 ? `
-        .product-card-dynamic:nth-child(1) { grid-area: 1 / 1 / 2 / 2 !important; }
-        .product-card-dynamic:nth-child(2) { grid-area: 1 / 2 / 2 / 3 !important; }
-        .product-card-dynamic:nth-child(3) { grid-area: 2 / 1 / 3 / 2 !important; }
-        .product-card-dynamic:nth-child(4) { grid-area: 2 / 2 / 3 / 3 !important; }
-        
-        /* Cards vacías también ocupan espacio */
-        .product-card-dynamic[style*="visibility: hidden"] {
-          visibility: hidden !important;
-          height: ${Math.round(LAYOUT.cardHeight * scale.layout)}mm !important;
-          min-height: ${Math.round(LAYOUT.cardHeight * scale.layout)}mm !important;
-          max-height: ${Math.round(LAYOUT.cardHeight * scale.layout)}mm !important;
-        }
-      ` : ''}
       
       /* IMAGEN CONTAINER DINÁMICO CORREGIDO */
       .image-container-dynamic {
@@ -553,7 +522,7 @@ export class PuppeteerServiceClient {
         align-items: center !important;
         justify-content: center !important;
         background: #f8f9fa !important;
-        padding: ${Math.round(this.getImagePadding(productsPerPage) * scale.padding)}mm !important;
+        padding: ${Math.round(2 * scale.padding)}mm !important;
         overflow: hidden !important;
         position: relative !important;
         border-radius: ${Math.round(3 * scale.layout)}px !important;
@@ -565,7 +534,7 @@ export class PuppeteerServiceClient {
         max-height: 100% !important;
         width: auto !important;
         height: auto !important;
-        object-fit: ${this.getImageObjectFit(productsPerPage)} !important;
+        object-fit: cover !important;
         object-position: center !important;
         display: block !important;
         -webkit-print-color-adjust: exact !important;
@@ -604,7 +573,7 @@ export class PuppeteerServiceClient {
         min-height: ${Math.round(LAYOUT.textHeight * scale.layout)}mm !important;
         height: auto !important;
         max-height: none !important;
-        padding: ${Math.round(this.getTextPadding(productsPerPage) * scale.padding)}mm !important;
+        padding: ${Math.round(2 * scale.padding)}mm !important;
         display: flex !important;
         flex-direction: column !important;
         justify-content: flex-start !important;
@@ -613,8 +582,7 @@ export class PuppeteerServiceClient {
         overflow: visible !important;
         position: relative !important;
         background: white !important;
-        gap: ${Math.round(this.getTextGap(productsPerPage) * scale.padding)}mm !important;
-        ${productsPerPage === 4 ? 'display: block !important;' : ''}
+        gap: ${Math.round(1 * scale.padding)}mm !important;
       }
       
       .product-name-dynamic {
@@ -623,7 +591,7 @@ export class PuppeteerServiceClient {
         color: ${template.colors.primary} !important;
         margin-bottom: 0 !important;
         display: -webkit-box !important;
-        -webkit-line-clamp: ${this.getNameLinesForLayout(productsPerPage)} !important;
+        -webkit-line-clamp: 2 !important;
         -webkit-box-orient: vertical !important;
         overflow: hidden !important;
         word-wrap: break-word !important;
@@ -639,14 +607,13 @@ export class PuppeteerServiceClient {
         display: flex !important;
         flex-direction: column !important;
         align-items: center !important;
-        gap: ${Math.round(this.getPricingGap(productsPerPage) * scale.padding)}mm !important;
+        gap: ${Math.round(1 * scale.padding)}mm !important;
         margin: 0 !important;
         width: 100% !important;
         flex-grow: 1 !important;
         justify-content: flex-start !important;
         overflow: visible !important;
         min-height: 0 !important;
-        ${productsPerPage === 4 ? 'display: block !important;' : ''}
       }
 
       /* PRECIO RETAIL DINÁMICO CORREGIDO */
@@ -656,7 +623,7 @@ export class PuppeteerServiceClient {
         color: white !important;
         background: ${template.colors.secondary} !important;
         background-image: linear-gradient(135deg, ${template.colors.secondary}, ${template.colors.primary}) !important;
-        padding: ${Math.round(this.getRetailPricePadding(productsPerPage) * scale.padding)}mm ${Math.round(this.getRetailPricePaddingHorizontal(productsPerPage) * scale.padding)}mm !important;
+        padding: ${Math.round(1.5 * scale.padding)}mm ${Math.round(3 * scale.padding)}mm !important;
         border-radius: ${Math.round(8 * scale.layout)}px !important;
         display: inline-block !important;
         text-align: center !important;
@@ -681,7 +648,7 @@ export class PuppeteerServiceClient {
         font-size: ${Math.round(Math.max(config.priceSize - 2, 6) * scale.font)}pt !important;
         color: ${template.colors.text} !important;
         background: rgba(0,0,0,0.05) !important;
-        padding: ${Math.round(this.getWholesalePadding(productsPerPage) * scale.padding)}mm !important;
+        padding: ${Math.round(2 * scale.padding)}mm !important;
         border-radius: ${Math.round(4 * scale.layout)}px !important;
         border: ${Math.round(0.25 * scale.layout)}pt solid ${template.colors.accent}50 !important;
         width: 90% !important;
@@ -689,9 +656,8 @@ export class PuppeteerServiceClient {
         -webkit-print-color-adjust: exact !important;
         overflow: visible !important;
         position: static !important;
-        ${productsPerPage === 4 ? 'display: block !important; margin: 2mm 0 !important;' : ''}
         flex-shrink: 0 !important;
-        min-height: ${Math.round(this.getWholesaleMinHeight(productsPerPage) * scale.layout)}mm !important;
+        min-height: ${Math.round(8 * scale.layout)}mm !important;
         position: relative !important;
         z-index: 2 !important;
         margin: 0 !important;
@@ -699,22 +665,20 @@ export class PuppeteerServiceClient {
       
       .wholesale-label-dynamic {
         font-size: ${Math.round(Math.max(config.priceSize - 3, 5) * scale.font)}pt !important;
-        font-weight: 500 !important;
-        color: ${template.colors.text}80 !important;
-        text-transform: uppercase !important;
-        letter-spacing: 0.1pt !important;
-        line-height: 1 !important;
+        font-weight: 600 !important;
+        color: ${template.colors.primary} !important;
         margin: 0 !important;
-        padding: 0 !important;
+        line-height: 1 !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.3pt !important;
       }
       
       .wholesale-price-dynamic {
-        font-weight: 700 !important;
-        color: ${template.colors.primary} !important;
         font-size: ${Math.round(Math.max(config.priceSize - 1, 7) * scale.font)}pt !important;
-        line-height: 1.1 !important;
+        font-weight: 700 !important;
+        color: ${template.colors.secondary} !important;
         margin: 0 !important;
-        padding: 0 !important;
+        line-height: 1.1 !important;
       }
       
       .wholesale-min-dynamic {
@@ -830,49 +794,6 @@ export class PuppeteerServiceClient {
             max-height: none !important;
             position: static !important;
           }
-        ` : ''}
-          * {
-            overflow: visible !important;
-            position: static !important;
-            float: none !important;
-          }
-          
-          .products-grid-dynamic {
-            height: auto !important;
-            min-height: auto !important;
-            max-height: none !important;
-            
-            grid-template-rows: auto auto !important;
-            grid-auto-rows: auto !important;
-            
-            overflow: visible !important;
-            page-break-inside: auto !important;
-            break-inside: auto !important;
-          }
-          
-          .product-card-dynamic {
-            display: block !important;
-            overflow: visible !important;
-            height: auto !important;
-            min-height: auto !important;
-            max-height: none !important;
-            
-            page-break-inside: avoid !important;
-            break-inside: avoid !important;
-            
-            margin-bottom: 8mm !important;
-            padding-bottom: 3mm !important;
-          }
-          
-          .text-area-dynamic,
-          .product-pricing-dynamic,
-          .product-price-wholesale-dynamic {
-            display: block !important;
-            overflow: visible !important;
-            height: auto !important;
-            max-height: none !important;
-            position: static !important;
-          }
         ` : `
           /* Print normal para 3x2 y 3x3 (SIN CAMBIOS) */
           .products-grid-dynamic {
@@ -880,7 +801,7 @@ export class PuppeteerServiceClient {
             position: relative !important;
             height: auto !important;
             page-break-inside: auto !important;
-            grid-auto-rows: calc(${Math.round(LAYOUT.cardHeight * scale.layout)}mm + ${Math.round(this.getPrintExtraHeight(productsPerPage) * scale.padding)}mm) !important;
+            grid-auto-rows: calc(${Math.round(LAYOUT.cardHeight * scale.layout)}mm + 5mm) !important;
           }
           
           .product-card-dynamic {
@@ -888,27 +809,27 @@ export class PuppeteerServiceClient {
             break-inside: avoid !important;
             overflow: visible !important;
             max-height: none !important;
-            min-height: calc(${Math.round(LAYOUT.cardHeight * scale.layout)}mm + ${Math.round(this.getPrintExtraHeight(productsPerPage) * scale.padding)}mm) !important;
+            min-height: calc(${Math.round(LAYOUT.cardHeight * scale.layout)}mm + 3mm) !important;
           }
         `}
         
         .text-area-dynamic {
           overflow: visible !important;
           height: auto !important;
-          min-height: calc(${Math.round(LAYOUT.textHeight * scale.layout)}mm + ${Math.round(this.getPrintTextExtraHeight(productsPerPage) * scale.padding)}mm) !important;
+          min-height: calc(${Math.round(LAYOUT.textHeight * scale.layout)}mm + 3mm) !important;
         }
         
         .product-pricing-dynamic {
           overflow: visible !important;
           height: auto !important;
-          gap: ${Math.round(this.getPricingGap(productsPerPage) + 1 * scale.padding)}mm !important;
+          gap: ${Math.round(2 * scale.padding)}mm !important;
           min-height: ${Math.round(15 * scale.layout)}mm !important;
         }
         
         .product-price-wholesale-dynamic {
           overflow: visible !important;
-          min-height: ${Math.round(this.getWholesaleMinHeight(productsPerPage) + 2 * scale.layout)}mm !important;
-          padding: ${Math.round(this.getWholesalePadding(productsPerPage) + 0.5 * scale.padding)}mm !important;
+          min-height: ${Math.round(10 * scale.layout)}mm !important;
+          padding: ${Math.round(2 * scale.padding)}mm !important;
           margin-top: ${Math.round(1 * scale.padding)}mm !important;
           position: relative !important;
           z-index: 10 !important;
@@ -933,205 +854,74 @@ export class PuppeteerServiceClient {
     `;
   }
   
-  // 🔧 NUEVAS FUNCIONES PARA CORREGIR PROBLEMAS ESPECÍFICOS + FIX 2x2
-  
-  // Grid justify items específico por layout
-  private static getGridJustifyItems(productsPerPage: 4 | 6 | 9): string {
-    const justifyMap = { 4: 'center', 6: 'center', 9: 'stretch' };
-    return justifyMap[productsPerPage];
-  }
-  
-  // Ancho de card específico
-  private static getCardWidth(productsPerPage: 4 | 6 | 9): string {
-    const widthMap = { 4: '100%', 6: '100%', 9: '100%' };
-    return widthMap[productsPerPage];
-  }
-  
-  // Gap interno de card
-  private static getCardGap(productsPerPage: 4 | 6 | 9): number {
-    const gaps = { 4: 3, 6: 2, 9: 2.5 }; // 9: Más gap interno
-    return gaps[productsPerPage];
-  }
-  
-  // Padding de imagen
-  private static getImagePadding(productsPerPage: 4 | 6 | 9): number {
-    const paddings = { 4: 2.5, 6: 2, 9: 2.2 }; // 9: Más padding
-    return paddings[productsPerPage];
-  }
-  
-  // Padding de texto
-  private static getTextPadding(productsPerPage: 4 | 6 | 9): number {
-    const paddings = { 4: 2, 6: 1, 9: 1.5 }; // 9: Más padding de texto
-    return paddings[productsPerPage];
-  }
-  
-  // Gap entre texto
-  private static getTextGap(productsPerPage: 4 | 6 | 9): number {
-    const gaps = { 4: 2.5, 6: 1.5, 9: 2 }; // 9: Más gap entre texto
-    return gaps[productsPerPage];
-  }
-  
-  // Gap entre precios
-  private static getPricingGap(productsPerPage: 4 | 6 | 9): number {
-    const gaps = { 4: 3, 6: 2.5, 9: 2.8 }; // 9: Más gap entre precios
-    return gaps[productsPerPage];
-  }
-  
-  // Padding del precio retail
-  private static getRetailPricePadding(productsPerPage: 4 | 6 | 9): number {
-    const paddings = { 4: 2, 6: 1.5, 9: 1.8 }; // Solo el valor vertical
-    return paddings[productsPerPage];
-  }
-  
-  // Padding horizontal del precio retail
-  private static getRetailPricePaddingHorizontal(productsPerPage: 4 | 6 | 9): number {
-    const paddings = { 4: 4, 6: 3, 9: 3.5 };
-    return paddings[productsPerPage];
-  }
-  
-  // Padding del precio wholesale
-  private static getWholesalePadding(productsPerPage: 4 | 6 | 9): number {
-    const paddings = { 4: 2.5, 6: 2, 9: 2.5 }; // 9: Más padding
-    return paddings[productsPerPage];
-  }
-  
-  // Altura mínima del wholesale
-  private static getWholesaleMinHeight(productsPerPage: 4 | 6 | 9): number {
-    const heights = { 4: 12, 6: 8, 9: 10 }; // 9: Más altura
-    return heights[productsPerPage];
-  }
-  
-  // Extra height para print
-  private static getPrintExtraHeight(productsPerPage: 4 | 6 | 9): number {
-    const extras = { 4: 8, 6: 8, 9: 12 }; // 9: Más altura extra en print
-    return extras[productsPerPage];
-  }
-  
-  // Extra height para texto en print  
-  private static getPrintTextExtraHeight(productsPerPage: 4 | 6 | 9): number {
-    const extras = { 4: 6, 6: 5, 9: 8 }; // 9: Más altura de texto en print
-    return extras[productsPerPage];
-  }
-  
-  // 🎯 CORRECCIONES ESPECÍFICAS POR GRID + FIX 2x2
-  private static getGridSpecificCorrections(productsPerPage: 4 | 6 | 9): string {
-    if (productsPerPage === 4) {
-      return `
-        /* 🚀 CORRECCIONES PARA 4 PRODUCTOS - 2x2 FORZADO */
-        grid-template-rows: repeat(2, 1fr) !important;
-        grid-template-columns: repeat(2, 1fr) !important;
-        place-items: start center !important;
-        place-content: start center !important;
-        
-        /* Forzar posicionamiento explícito */
-        grid-auto-flow: row !important;
-        
-        /* Debug visual (comentar en producción) */
-        /* border: 2px solid red !important; */
-      `;
-    } else if (productsPerPage === 9) {
-      return `
-        /* CORRECCIONES PARA 9 PRODUCTOS - 3x3 */
-        grid-template-rows: repeat(3, 1fr) !important;
-        place-items: stretch !important;
-      `;
-    }
-    return '';
-  }
-  
-  // 🎯 OPTIMIZACIONES POR CARD CORREGIDAS
-  private static getCardOptimizations(productsPerPage: 4 | 6 | 9): string {
-    if (productsPerPage === 4) {
-      return `
-        justify-self: center;
-        max-width: 98%; /* AUMENTADO de 95% a 98% */
-        min-width: 92%; /* AUMENTADO de 85% a 92% */
-      `;
-    } else if (productsPerPage === 9) {
-      return `
-        justify-self: stretch;
-        max-width: 100%;
-        min-width: 100%;
-      `;
-    }
-    return `
-      justify-self: center;
-      max-width: 100%;
-    `;
-  }
-  
-  // 🎯 LÍNEAS DE NOMBRE POR LAYOUT CORREGIDAS
-  private static getNameLinesForLayout(productsPerPage: 4 | 6 | 9): number {
-    const lineMap = { 4: 3, 6: 2, 9: 2 }; // 9: Permitir 2 líneas
-    return lineMap[productsPerPage];
-  }
-  
-  // 🎯 OBJECT FIT POR LAYOUT
-  private static getImageObjectFit(productsPerPage: 4 | 6 | 9): string {
-    return productsPerPage === 9 ? 'cover' : 'contain';
-  }
-  
-  // 🎯 CSS ESPECÍFICO POR LAYOUT CORREGIDO
   private static getLayoutSpecificCSS(productsPerPage: 4 | 6 | 9, template: TemplateConfig): string {
-    if (productsPerPage === 4) {
-      return `
-        /* OPTIMIZACIONES PARA 4 PRODUCTOS - LAYOUT ESPACIOSO CORREGIDO */
-        .products-grid-dynamic {
-          justify-items: center;
-          align-items: start;
-          place-content: start center;
-          grid-template-rows: repeat(2, 1fr) !important;
-          grid-template-columns: repeat(2, 1fr) !important;
-        }
-        
-        .product-card-dynamic {
-          transform: scale(1.0);
-          justify-self: center !important;
-          align-self: start !important;
-        }
-      `;
-    } else if (productsPerPage === 9) {
-      return `
-        /* OPTIMIZACIONES PARA 9 PRODUCTOS - LAYOUT COMPACTO CORREGIDO */
-        .products-grid-dynamic {
-          justify-items: stretch;
-          align-items: stretch;
-          place-content: stretch;
-          grid-template-rows: repeat(3, 1fr) !important;
-          grid-template-columns: repeat(3, 1fr) !important;
-        }
-        
-        .product-card-dynamic {
-          border-width: 0.25pt !important;
-          justify-self: stretch !important;
-        }
-        
-        .product-image-dynamic {
-          object-fit: cover !important;
-        }
-        
-        .text-area-dynamic {
-          gap: 2.5mm !important;
-        }
-        
-        .product-pricing-dynamic {
-          gap: 3mm !important;
-        }
-      `;
+    switch (productsPerPage) {
+      case 4:
+        return `
+          /* Optimizaciones específicas para 2x2 */
+          .products-grid-dynamic {
+            justify-content: center !important;
+            align-content: start !important;
+          }
+          
+          .product-card-dynamic {
+            max-width: 45% !important;
+          }
+        `;
+      case 9:
+        return `
+          /* Optimizaciones específicas para 3x3 */
+          .product-name-dynamic {
+            -webkit-line-clamp: 1 !important;
+          }
+          
+          .product-pricing-dynamic {
+            gap: 1mm !important;
+          }
+        `;
+      default:
+        return '';
     }
-    return '';
   }
   
-  // ===== RESTO DE FUNCIONES SIN CAMBIOS CRÍTICOS =====
+  private static async checkServiceHealthWithRetry(): Promise<boolean> {
+    const maxRetries = 3;
+    let retries = 0;
+    
+    while (retries < maxRetries) {
+      try {
+        const response = await fetch(`${this.SERVICE_URL}/health`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          signal: AbortSignal.timeout(5000)
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          return data.status === 'healthy';
+        }
+      } catch (error) {
+        console.warn(`Health check attempt ${retries + 1} failed:`, error);
+      }
+      
+      retries++;
+      if (retries < maxRetries) {
+        await new Promise(resolve => setTimeout(resolve, 1000 * retries));
+      }
+    }
+    
+    return false;
+  }
   
   private static generateDynamicPages(
     products: Product[],
     businessInfo: BusinessInfo,
     template: TemplateConfig,
-    quality: string,
-    productsPerPage: 4 | 6 | 9 = 6
+    quality: 'low' | 'medium' | 'high',
+    productsPerPage: 4 | 6 | 9
   ): string {
-    
     const totalPages = Math.ceil(products.length / productsPerPage);
     let pagesHTML = '';
     
@@ -1140,12 +930,14 @@ export class PuppeteerServiceClient {
       const endIndex = Math.min(startIndex + productsPerPage, products.length);
       const pageProducts = products.slice(startIndex, endIndex);
       
-      if (pageProducts.length === 0) continue;
+      const productsHTML = pageProducts.map(product => this.generateProductCard(product, template, quality)).join('');
       
       pagesHTML += `
         <div class="page-container-dynamic">
           <div class="page-content-dynamic">
-            ${this.generateDynamicGrid(pageProducts, productsPerPage)}
+            <div class="products-grid-dynamic">
+              ${productsHTML}
+            </div>
           </div>
         </div>
       `;
@@ -1154,72 +946,18 @@ export class PuppeteerServiceClient {
     return pagesHTML;
   }
   
-  // 🔧 GENERACIÓN DE GRID CORREGIDA PARA 2x2
-  private static generateDynamicGrid(products: Product[], productsPerPage: 4 | 6 | 9): string {
-    let gridHTML = '<div class="products-grid-dynamic">';
-    
-    // 🚀 FIX CRÍTICO: Para 2x2, siempre generar exactamente 4 slots
-    if (productsPerPage === 4) {
-      console.log(`🔧 Generando grid 2x2 con ${products.length} productos, completando a 4 slots`);
-      
-      // Rellenar con productos reales
-      for (let i = 0; i < 4; i++) {
-        if (i < products.length) {
-          gridHTML += this.generateDynamicProductCard(products[i]);
-        } else {
-          // 🔧 FIX: Cards vacías con altura específica para mantener grid
-          const LAYOUT = calculateDynamicDimensions(4);
-          gridHTML += `<div class="product-card-dynamic" style="visibility: hidden; height: ${Math.round(LAYOUT.cardHeight)}mm; min-height: ${Math.round(LAYOUT.cardHeight)}mm; max-height: ${Math.round(LAYOUT.cardHeight)}mm;"></div>`;
-        }
-      }
-    } else {
-      // Lógica original para 3x2 y 3x3 (SIN CAMBIOS)
-      products.forEach(product => {
-        gridHTML += this.generateDynamicProductCard(product);
-      });
-      
-      const emptyCardsNeeded = productsPerPage - products.length;
-      for (let i = 0; i < emptyCardsNeeded; i++) {
-        gridHTML += '<div class="product-card-dynamic" style="visibility: hidden;"></div>';
-      }
-    }
-    
-    gridHTML += '</div>';
-    return gridHTML;
-  }
-  
-  private static generateDynamicProductCard(product: Product): string {
-    const productName = product.name || 'Producto';
-    const productPrice = typeof product.price_retail === 'number' ? product.price_retail : 0;
-    const productImage = product.image_url || '';
-    
-    const imageHTML = productImage ? 
-      `<img 
-         src="${productImage}" 
-         alt="${productName}"
-         class="product-image-dynamic" 
-         loading="eager" 
-         crossorigin="anonymous"
-         onload="this.style.opacity=1"
-         onerror="this.style.display='none'"
-       />` :
+  private static generateProductCard(product: Product, template: TemplateConfig, quality: 'low' | 'medium' | 'high'): string {
+    const imageHTML = product.image_url ? 
+      `<img src="${product.image_url}" alt="${product.name}" class="product-image-dynamic" loading="eager">` :
       `<div class="image-placeholder-dynamic">
-         <div class="placeholder-content-dynamic">
-           <div style="font-size: 12pt; margin-bottom: 1mm;">📷</div>
-           <div>Sin imagen</div>
-         </div>
+         <div class="placeholder-content-dynamic">Sin imagen</div>
        </div>`;
     
-    const wholesalePriceHTML = product.price_wholesale ? `
+    const wholesalePriceHTML = product.price_wholesale && product.wholesale_min_qty ? `
       <div class="product-price-wholesale-dynamic">
-        <span class="wholesale-label-dynamic">Mayoreo:</span>
-        <span class="wholesale-price-dynamic">$${(product.price_wholesale / 100).toLocaleString('es-MX', { 
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2
-        })}</span>
-        ${product.wholesale_min_qty ? `
-          <span class="wholesale-min-dynamic">Min. ${product.wholesale_min_qty}</span>
-        ` : ''}
+        <div class="wholesale-label-dynamic">Mayoreo</div>
+        <div class="wholesale-price-dynamic">$${product.price_wholesale.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</div>
+        <div class="wholesale-min-dynamic">Mín. ${product.wholesale_min_qty} pzs</div>
       </div>
     ` : '';
     
@@ -1228,14 +966,12 @@ export class PuppeteerServiceClient {
         <div class="image-container-dynamic">
           ${imageHTML}
         </div>
-        
         <div class="text-area-dynamic">
-          <div class="product-name-dynamic">${productName}</div>
+          <h3 class="product-name-dynamic">${product.name}</h3>
           <div class="product-pricing-dynamic">
-            <div class="product-price-retail-dynamic">$${(productPrice / 100).toLocaleString('es-MX', { 
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 2
-            })}</div>
+            <div class="product-price-retail-dynamic">
+              $${product.price_retail.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+            </div>
             ${wholesalePriceHTML}
           </div>
         </div>
@@ -1244,247 +980,104 @@ export class PuppeteerServiceClient {
   }
   
   private static getDynamicPDFOptions(
-    options: PuppeteerServiceOptions, 
-    businessInfo: BusinessInfo, 
-    template?: TemplateConfig,
-    productsPerPage: 4 | 6 | 9 = 6
-  ): any {
-    
-    const PDF_LAYOUT = getDynamicPDFLayout(productsPerPage);
-    const primaryColor = template?.colors?.primary || '#007BFF';
-    const secondaryColor = template?.colors?.secondary || '#0056B3';
-    const contactInfo = this.generateSmartContactInfo(businessInfo);
-    const catalogTitle = options.catalogTitle || 'Catálogo de Productos';
+    options: PuppeteerServiceOptions,
+    businessInfo: BusinessInfo,
+    template: TemplateConfig,
+    productsPerPage: 4 | 6 | 9
+  ) {
+    const LAYOUT = calculateDynamicDimensions(productsPerPage);
     
     return {
       format: options.format || 'A4',
-      margin: {
-        top: `${PDF_LAYOUT.HEADER_MARGIN}mm`,
-        right: `${PDF_LAYOUT.SIDE_MARGIN}mm`,
-        bottom: `${PDF_LAYOUT.FOOTER_MARGIN}mm`,
-        left: `${PDF_LAYOUT.SIDE_MARGIN}mm`
-      },
       printBackground: true,
       preferCSSPageSize: true,
-      displayHeaderFooter: true,
+      displayHeaderFooter: false,
+      margin: options.margin || {
+        top: `${LAYOUT.PDF_LAYOUT.HEADER_MARGIN}mm`,
+        right: `${LAYOUT.PDF_LAYOUT.SIDE_MARGIN}mm`,
+        bottom: `${LAYOUT.PDF_LAYOUT.FOOTER_MARGIN}mm`,
+        left: `${LAYOUT.PDF_LAYOUT.SIDE_MARGIN}mm`
+      },
+      width: '210mm',
+      height: '297mm',
+      timeout: this.TIMEOUT,
       waitUntil: 'networkidle0',
-      timeout: 30000,
       omitBackground: false,
-      scale: 1.0,
-      quality: options.quality === 'high' ? 100 : options.quality === 'low' ? 80 : 90,
-      
-      headerTemplate: `<div style="font-size: 12px !important; width: 100% !important; height: ${PDF_LAYOUT.HEADER_HEIGHT}mm !important; text-align: center !important; background: ${primaryColor} !important; background-image: linear-gradient(135deg, ${primaryColor}, ${secondaryColor}) !important; color: white !important; padding: 2mm !important; margin: 0 !important; border-radius: 4px !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; display: table !important; table-layout: fixed !important;"><div style="display: table-cell; vertical-align: middle; text-align: center;"><strong style="color: white !important; font-size: 14px !important;">${businessInfo.business_name || 'Mi Negocio'}</strong><br><span style="color: rgba(255,255,255,0.9) !important; font-size: 10px !important;">${catalogTitle} ${productsPerPage === 4 ? '(2x2 Grid)' : ''}</span></div></div>`,
-
-      footerTemplate: `<div style="font-size: 9px !important; width: 100% !important; height: ${PDF_LAYOUT.FOOTER_HEIGHT}mm !important; text-align: center !important; background: ${secondaryColor} !important; color: white !important; padding: 1mm !important; margin: 0 !important; border-radius: 4px !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; display: table !important; table-layout: fixed !important;"><div style="display: table-cell; vertical-align: middle; text-align: center;">${contactInfo ? `<div style="color: white !important; font-size: 8px !important; margin-bottom: 1mm !important;">${contactInfo}</div>` : ''}</div></div>`,
-      landscape: false,
-      
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-background-timer-throttling',
-        '--disable-backgrounding-occluded-windows',
-        '--disable-renderer-backgrounding',
-        '--disable-web-security',
-        '--disable-features=TranslateUI',
-        '--disable-ipc-flooding-protection'
-      ]
+      quality: options.quality || 'medium'
     };
-  }
-  
-  // ===== MÉTODOS SIN CAMBIOS =====
-  
-  private static generateSmartContactInfo(businessInfo: BusinessInfo): string {
-    const contactItems: string[] = [];
-    
-    // Agregar teléfono (priorizar WhatsApp si existe)
-    if (businessInfo.social_media?.whatsapp) {
-      contactItems.push(businessInfo.social_media.whatsapp);
-    } else if (businessInfo.phone) {
-      contactItems.push(businessInfo.phone);
-    }
-    
-    // Agregar email sin restricción de longitud
-    if (businessInfo.email) {
-      contactItems.push(businessInfo.email);
-    }
-    
-    // Agregar website si existe
-    if (businessInfo.website) {
-      contactItems.push(businessInfo.website);
-    }
-    
-    // Agregar dirección si existe y no es muy larga
-    if (businessInfo.address && businessInfo.address.length <= 50) {
-      contactItems.push(businessInfo.address);
-    }
-    
-    // Mostrar hasta 4 elementos separados por ' | '
-    return contactItems.slice(0, 4).join(' | ');
-  }
-  
-  private static async checkServiceHealthWithRetry(maxRetries: number = 3): Promise<boolean> {
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000);
-        
-        const response = await fetch(`${this.SERVICE_URL}/health`, {
-          method: 'GET',
-          signal: controller.signal
-        });
-        
-        clearTimeout(timeoutId);
-        
-        if (response.ok) {
-          console.log(`✅ Puppeteer Service healthy (attempt ${attempt}/${maxRetries})`);
-          return true;
-        }
-        
-      } catch (error) {
-        console.warn(`⚠️ Health check attempt ${attempt}/${maxRetries} failed:`, error);
-        
-        if (attempt < maxRetries) {
-          await new Promise(resolve => setTimeout(resolve, attempt * 1000));
-        }
-      }
-    }
-    
-    return false;
   }
   
   private static async generatePDFWithRetry(
     htmlContent: string,
     pdfOptions: any,
     businessInfo: BusinessInfo,
-    onProgress?: (progress: number) => void,
-    maxRetries: number = 2
+    onProgress?: (progress: number) => void
   ): Promise<Blob> {
+    const maxRetries = 3;
+    let retries = 0;
     
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    while (retries < maxRetries) {
       try {
-        if (onProgress) onProgress(30 + (attempt - 1) * 10);
-        
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), this.TIMEOUT);
-        
-        const requestPayload = {
-          html: htmlContent,
-          options: {
-            ...pdfOptions,
-            emulateMediaType: 'screen',
-            setViewport: {
-              width: 1024,
-              height: 768
-            },
-            waitForSelector: '.page-container-dynamic',
-            waitForFunction: 'document.readyState === "complete"',
-          },
-          filename: `catalogo-corrected-${businessInfo.business_name.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`,
-          debug: process.env.NODE_ENV === 'development',
-          retryOnFailure: attempt < maxRetries
-        };
+        if (onProgress) onProgress(40 + (retries * 10));
         
         const response = await fetch(`${this.SERVICE_URL}/generate-pdf`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Accept': 'application/pdf',
-            'User-Agent': 'CatifyPro-PDF-Generator/2.0-Dynamic-Corrected-2x2-Fixed'
           },
-          body: JSON.stringify(requestPayload),
-          signal: controller.signal
+          body: JSON.stringify({
+            html: htmlContent,
+            options: pdfOptions,
+            businessInfo: {
+              name: businessInfo.business_name,
+              email: businessInfo.email,
+              phone: businessInfo.phone
+            }
+          }),
+          signal: AbortSignal.timeout(this.TIMEOUT)
         });
         
-        clearTimeout(timeoutId);
-        
         if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(`Error HTTP ${response.status}: ${response.statusText} - ${errorText}`);
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
         
-        if (onProgress) onProgress(70 + attempt * 10);
+        const pdfBlob = await response.blob();
         
-        const blob = await response.blob();
-        
-        if (blob.size === 0) {
-          throw new Error('PDF vacío recibido del servicio');
+        if (pdfBlob.size === 0) {
+          throw new Error('PDF generado está vacío');
         }
         
-        console.log(`✅ PDF dinámico CORREGIDO generado en intento ${attempt}/${maxRetries}, tamaño: ${blob.size} bytes`);
-        return blob;
+        if (onProgress) onProgress(80);
+        return pdfBlob;
         
       } catch (error) {
-        console.warn(`⚠️ Intento ${attempt}/${maxRetries} falló:`, error);
+        console.error(`PDF generation attempt ${retries + 1} failed:`, error);
+        retries++;
         
-        if (attempt === maxRetries) {
-          throw error;
+        if (retries >= maxRetries) {
+          throw new Error(`Failed to generate PDF after ${maxRetries} attempts: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
         
-        await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
+        await new Promise(resolve => setTimeout(resolve, 2000 * retries));
       }
     }
     
-    throw new Error('Todos los intentos de generación fallaron');
+    throw new Error('PDF generation failed');
   }
   
-  private static async downloadPDF(blob: Blob, businessName: string): Promise<void> {
+  private static async downloadPDF(pdfBlob: Blob, businessName: string): Promise<void> {
     try {
-      const downloadUrl = URL.createObjectURL(blob);
-      const filename = `catalogo-corrected-${businessName.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
-      
+      const url = URL.createObjectURL(pdfBlob);
       const link = document.createElement('a');
-      link.href = downloadUrl;
-      link.download = filename;
-      link.style.display = 'none';
-      
+      link.href = url;
+      link.download = `catalogo-${businessName.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}.pdf`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      
-      setTimeout(() => URL.revokeObjectURL(downloadUrl), 5000);
-      
+      URL.revokeObjectURL(url);
     } catch (error) {
-      console.error('Error descargando PDF:', error);
-      throw new Error('Error descargando el PDF generado');
-    }
-  }
-  
-  static async testService(): Promise<PuppeteerResult> {
-    try {
-      const response = await fetch(`${this.SERVICE_URL}/test-pdf`, {
-        method: 'GET',
-        timeout: this.TIMEOUT
-      } as RequestInit);
-      
-      if (!response.ok) {
-        throw new Error(`Test failed: ${response.status} ${response.statusText}`);
-      }
-      
-      const blob = await response.blob();
-      await this.downloadPDF(blob, 'test-dynamic-corrected');
-      
-      return { 
-        success: true,
-        stats: { totalProducts: 0, totalPages: 1, generationTime: 0 }
-      };
-      
-    } catch (error) {
-      console.error('Test service error:', error);
-      return { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Error en test de servicio' 
-      };
+      console.error('Error downloading PDF:', error);
+      throw new Error('Error al descargar el PDF');
     }
   }
 }
-
-// 🚀 FUNCIÓN EXPORTADA CON PRODUCTOS POR PÁGINA DINÁMICOS CORREGIDA
-export const generatePDFWithPuppeteer = async (
-  products: Product[],
-  businessInfo: BusinessInfo,
-  template: TemplateConfig,
-  options?: PuppeteerServiceOptions
-): Promise<PuppeteerResult> => {
-  return PuppeteerServiceClient.generatePDF(products, businessInfo, template, options);
-};
