@@ -77,15 +77,15 @@ const getDynamicPDFLayout = (productsPerPage: 4 | 6 | 9 = 6) => {
   const layoutConfigs = {
     4: {
       // 🔧 4 PRODUCTOS: Layout CORREGIDO para evitar productos alargados
-      HEADER_MARGIN: 10,     // REDUCIDO de 12 para más espacio
-      FOOTER_MARGIN: 8,      // REDUCIDO de 10 para más espacio
+      HEADER_MARGIN: 8,     // REDUCIDO más para evitar overlap
+      FOOTER_MARGIN: 6,      // REDUCIDO más
       SIDE_MARGIN: 8,        // REDUCIDO de 10 para más ancho
       HEADER_HEIGHT: 10,     // REDUCIDO de 12
       FOOTER_HEIGHT: 6,      // REDUCIDO de 8
       COLUMNS: 2,
       ROWS: 2,
       PRODUCTS_PER_PAGE: 4,
-      HEADER_TO_CONTENT_GAP: 8,  // REDUCIDO de 10
+      HEADER_TO_CONTENT_GAP: 12,  // AUMENTADO para evitar overlap
       GRID_GAP: 8,              // REDUCIDO de 10 para mayor uso del espacio
       CONTENT_PADDING: 5,       // REDUCIDO de 6
       CARD_INTERNAL_PADDING: 4, // REDUCIDO de 6
@@ -141,7 +141,7 @@ const calculateDynamicDimensions = (productsPerPage: 4 | 6 | 9 = 6) => {
   
   if (productsPerPage === 4) {
     // 🔧 CORREGIDO: Reducir altura para evitar productos alargados
-     baseCardHeight = Math.min(cardWidth + 45, 75); // AUMENTADO de +40,65 a +45,75
+     baseCardHeight = Math.min(cardWidth + 35, 60); // REDUCIDO de +45,75 a +35,60
   } else if (productsPerPage === 6) {
     // 6 productos: altura estándar (SIN CAMBIOS)
     baseCardHeight = cardWidth + 35;
@@ -433,7 +433,7 @@ export class PuppeteerServiceClient {
         display: flex !important;
         flex-direction: column !important;
         justify-content: flex-start !important;
-        margin-top: ${Math.round(PDF_LAYOUT.HEADER_TO_CONTENT_GAP * scale.padding)}mm !important;
+        margin-top: ${productsPerPage === 4 ? 20 : Math.round(PDF_LAYOUT.HEADER_TO_CONTENT_GAP * scale.padding)}mm !important;
         margin-bottom: ${Math.round(PDF_LAYOUT.HEADER_TO_CONTENT_GAP * scale.padding)}mm !important;
       }
       
@@ -447,7 +447,10 @@ export class PuppeteerServiceClient {
         ${productsPerPage === 4 ? 
           `grid-template-rows: auto auto !important;
            height: ${Math.round(LAYOUT.cardHeight * scale.layout * 2 + LAYOUT.gap * scale.padding)}mm !important;
-           min-height: ${Math.round(LAYOUT.cardHeight * scale.layout * 2 + LAYOUT.gap * scale.padding)}mm !important;` :
+           min-height: ${Math.round(LAYOUT.cardHeight * scale.layout * 2 + LAYOUT.gap * scale.padding)}mm !important;
+           /* 🚀 CONTROL DE ALTURA PARA EVITAR PÁGINAS EN BLANCO */
+           height: calc(${Math.round(LAYOUT.cardHeight * scale.layout * 2 + LAYOUT.gap * scale.padding)}mm + 10mm) !important;
+           max-height: calc(${Math.round(LAYOUT.cardHeight * scale.layout * 2 + LAYOUT.gap * scale.padding)}mm + 15mm) !important;` :
           `grid-template-rows: repeat(${PDF_LAYOUT.ROWS}, auto) !important;`
         }
         
@@ -482,7 +485,11 @@ export class PuppeteerServiceClient {
         ${productsPerPage === 4 ? 
           `height: ${Math.round(LAYOUT.cardHeight * scale.layout)}mm !important;
            min-height: ${Math.round(LAYOUT.cardHeight * scale.layout)}mm !important;
-           max-height: ${Math.round(LAYOUT.cardHeight * scale.layout)}mm !important;` :
+           max-height: ${Math.round(LAYOUT.cardHeight * scale.layout)}mm !important;
+           /* 🚀 OVERFLOW FIXES PARA 2x2 */
+           overflow: visible !important;
+           position: static !important;
+           float: none !important;` :
           `height: ${Math.round(LAYOUT.cardHeight * scale.layout)}mm !important;
            min-height: ${Math.round(LAYOUT.cardHeight * scale.layout)}mm !important;
            max-height: none !important;`
@@ -609,6 +616,8 @@ export class PuppeteerServiceClient {
         flex-direction: column !important;
         justify-content: flex-start !important;
         align-items: center !important;
+        overflow: visible !important;
+        ${productsPerPage === 4 ? 'display: block !important;' : ''}
         text-align: center !important;
         overflow: visible !important;
         position: relative !important;
@@ -645,6 +654,7 @@ export class PuppeteerServiceClient {
         flex-grow: 1 !important;
         justify-content: flex-start !important;
         overflow: visible !important;
+        ${productsPerPage === 4 ? 'display: block !important;' : ''}
         min-height: 0 !important;
         ${productsPerPage === 4 ? 'display: block !important;' : ''}
       }
@@ -689,7 +699,7 @@ export class PuppeteerServiceClient {
         -webkit-print-color-adjust: exact !important;
         overflow: visible !important;
         position: static !important;
-        ${productsPerPage === 4 ? 'display: block !important; margin: 2mm 0 !important;' : ''}
+        ${productsPerPage === 4 ? 'display: block !important; margin: 2mm 0 !important; position: static !important;' : ''}
         flex-shrink: 0 !important;
         min-height: ${Math.round(this.getWholesaleMinHeight(productsPerPage) * scale.layout)}mm !important;
         position: relative !important;
