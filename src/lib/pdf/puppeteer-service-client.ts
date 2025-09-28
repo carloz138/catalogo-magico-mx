@@ -346,114 +346,109 @@ export class PuppeteerServiceClient {
     const scale = scaleMap[productsPerPage];
     
     return `
-      ${productsPerPage === 6 ? `
-        /* 🚨 FIX CRÍTICO PARA GRID 3x2 - TEXT OVERFLOW COMPLETO */
-        
-        /* 1. MIN-WIDTH FIX PARA GRID ITEMS (CRÍTICO) */
-        .products-grid-dynamic {
-          min-width: 0 !important;
-          min-height: 0 !important;
-        }
-        
-        .product-card-dynamic {
-          min-width: 0 !important;
-          min-height: 0 !important;
-          display: block !important; /* CAMBIAR DE FLEX A BLOCK */
-          overflow: hidden !important;
-          box-sizing: border-box !important;
-        }
-        
-        /* 2. TEXT AREA CONTAINER FIXES */
-        .text-area-dynamic {
-          min-width: 0 !important;
-          min-height: 0 !important;
-          display: block !important; /* CAMBIAR DE FLEX A BLOCK */
-          overflow: hidden !important;
-          height: auto !important;
-          max-height: ${Math.round(LAYOUT.textHeight * scale.layout * 0.8)}mm !important;
-        }
-        
-        /* 3. PRODUCT NAME - TEXT TRUNCATION COMPLETO */
-        .product-name-dynamic {
-          display: block !important; /* NO FLEX, NO GRID */
-          white-space: nowrap !important;
-          overflow: hidden !important;
-          text-overflow: ellipsis !important;
-          width: 100% !important;
-          max-width: 100% !important;
-          min-width: 0 !important;
-          font-size: ${Math.round(config.nameSize * scale.font * 0.85)}pt !important;
-          line-height: 1.2 !important;
-          height: auto !important;
-          max-height: 1.5em !important;
-          margin: 0 !important;
-          padding: 0 !important;
-        }
-        
-        /* 4. PRICING CONTAINER FIXES */
-        .product-pricing-dynamic {
-          display: block !important; /* CAMBIAR DE FLEX A BLOCK */
-          min-width: 0 !important;
-          overflow: hidden !important;
-          gap: ${Math.round(this.getPricingGap(6) * 0.7 * scale.padding)}mm !important;
-          height: auto !important;
-          max-height: ${Math.round(25 * scale.layout)}mm !important;
-        }
-        
-        /* 5. RETAIL PRICE - TEXT TRUNCATION */
-        .product-price-retail-dynamic {
-          display: inline-block !important;
-          white-space: nowrap !important;
-          overflow: hidden !important;
-          text-overflow: ellipsis !important;
-          max-width: 95% !important;
-          min-width: 0 !important;
-          font-size: ${Math.round(config.priceSize * scale.font * 0.9)}pt !important;
-          padding: ${Math.round(1.2 * scale.padding)}mm ${Math.round(2.5 * scale.padding)}mm !important;
-          margin: 0 auto 2mm auto !important;
-        }
-        
-        /* 6. WHOLESALE PRICE - COMPACT & TRUNCATED */
-        .product-price-wholesale-dynamic {
-          display: block !important; /* CAMBIAR DE FLEX A BLOCK */
-          min-width: 0 !important;
-          overflow: hidden !important;
-          max-height: 7mm !important;
-          padding: ${Math.round(1.5 * scale.padding)}mm !important;
-          margin: 1mm auto 0 auto !important;
-          width: 90% !important;
-          max-width: 90% !important;
-          font-size: ${Math.round(config.priceSize * scale.font * 0.75)}pt !important;
-        }
-        
-        /* 7. WHOLESALE LABELS - ALL TRUNCATED */
-        .wholesale-label-dynamic,
-        .wholesale-price-dynamic,
-        .wholesale-min-dynamic {
-          display: block !important;
-          white-space: nowrap !important;
-          overflow: hidden !important;
-          text-overflow: ellipsis !important;
-          width: 100% !important;
-          max-width: 100% !important;
-          min-width: 0 !important;
-          line-height: 1.1 !important;
-          margin: 0 !important;
-          padding: 0 !important;
-        }
-        
-        .wholesale-label-dynamic {
-          font-size: ${Math.round(config.priceSize * scale.font * 0.65)}pt !important;
-        }
-        
-        .wholesale-price-dynamic {
-          font-size: ${Math.round(config.priceSize * scale.font * 0.7)}pt !important;
-        }
-        
-        .wholesale-min-dynamic {
-          font-size: ${Math.round(config.priceSize * scale.font * 0.6)}pt !important;
-        }
-      ` : ''}
+${productsPerPage === 6 ? `
+  /* 🧠 TRUNCATION INTELIGENTE PARA 3x2 - INFORMACIÓN CRÍTICA PRESERVADA */
+  
+  /* CONTAINERS - Min-width fix (mantener) */
+  .products-grid-dynamic,
+  .product-card-dynamic,
+  .text-area-dynamic {
+    min-width: 0 !important;
+    min-height: 0 !important;
+  }
+  
+  /* 1. NOMBRES DE PRODUCTOS - MULTILINE CLAMP (2 líneas) */
+  .product-name-dynamic {
+    display: -webkit-box !important;
+    -webkit-box-orient: vertical !important;
+    -webkit-line-clamp: 2 !important;
+    overflow: hidden !important;
+    /* NO white-space: nowrap para permitir 2 líneas */
+    font-size: ${Math.round(config.nameSize * scale.font * 0.9)}pt !important;
+    line-height: 1.3 !important;
+    max-height: 2.6em !important; /* Altura para 2 líneas */
+    margin-bottom: 2mm !important;
+    word-wrap: break-word !important;
+    hyphens: auto !important;
+  }
+  
+  /* 2. PRECIO RETAIL - NO TRUNCAR (CRÍTICO) */
+  .product-price-retail-dynamic {
+    /* NO truncation - información crítica */
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: unset !important;
+    font-size: ${Math.round(config.priceSize * scale.font * 0.95)}pt !important;
+    padding: ${Math.round(1.5 * scale.padding)}mm ${Math.round(3 * scale.padding)}mm !important;
+    margin: 0 auto 3mm auto !important;
+    max-width: 98% !important;
+    word-wrap: break-word !important;
+    text-align: center !important;
+  }
+  
+  /* 3. WHOLESALE CONTAINER - MÁS ESPACIO, NO TRUNCAR ETIQUETAS */
+  .product-price-wholesale-dynamic {
+    display: block !important;
+    overflow: visible !important; /* NO truncar el container */
+    font-size: ${Math.round(config.priceSize * scale.font * 0.8)}pt !important;
+    padding: ${Math.round(2 * scale.padding)}mm !important;
+    margin: 2mm auto 0 auto !important;
+    width: 95% !important;
+    max-height: 12mm !important;
+    min-height: 8mm !important;
+    line-height: 1.3 !important;
+  }
+  
+  /* 4. ETIQUETA "MAYOREO:" - NUNCA TRUNCAR (CRÍTICA) */
+  .wholesale-label-dynamic {
+    display: inline-block !important;
+    white-space: nowrap !important; /* Mantener "MAYOREO:" completo */
+    overflow: visible !important;
+    text-overflow: unset !important;
+    font-size: ${Math.round(config.priceSize * scale.font * 0.75)}pt !important;
+    font-weight: 600 !important;
+    margin-right: 2mm !important;
+  }
+  
+  /* 5. PRECIO WHOLESALE - NO TRUNCAR (CRÍTICO) */
+  .wholesale-price-dynamic {
+    display: inline-block !important;
+    white-space: nowrap !important; /* Mantener precio completo */
+    overflow: visible !important;
+    text-overflow: unset !important;
+    font-size: ${Math.round(config.priceSize * scale.font * 0.8)}pt !important;
+    font-weight: 700 !important;
+  }
+  
+  /* 6. CANTIDAD MÍNIMA - PUEDE TRUNCARSE (OPCIONAL) */
+  .wholesale-min-dynamic {
+    display: block !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    max-width: 100% !important;
+    font-size: ${Math.round(config.priceSize * scale.font * 0.65)}pt !important;
+    margin-top: 1mm !important;
+    opacity: 0.8 !important;
+  }
+  
+  /* 7. PRICING CONTAINER - MÁS ESPACIO VERTICAL */
+  .product-pricing-dynamic {
+    display: block !important;
+    overflow: visible !important;
+    margin: 2mm 0 !important;
+    padding: 0 !important;
+    min-height: 18mm !important; /* Más altura para wholesale */
+  }
+  
+  /* 8. TEXT AREA - MÁS ESPACIO PARA CONTENIDO */
+  .text-area-dynamic {
+    display: block !important;
+    overflow: visible !important;
+    padding: ${Math.round(1.5 * scale.padding)}mm 0 !important;
+    min-height: ${Math.round(LAYOUT.textHeight * scale.layout * 0.9)}mm !important;
+  }
+` : ''}
 
       /* 🔧 CSS DINÁMICO CORREGIDO PARA ${productsPerPage} PRODUCTOS POR PÁGINA + FIX 2x2 */
       

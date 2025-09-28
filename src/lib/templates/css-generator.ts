@@ -431,21 +431,18 @@ export class TemplateGenerator {
       /* ===== NOMBRE ESCALADO CORREGIDO ===== */
       .product-name {
         ${productsPerPage === 6 ? `
-          /* TEXT TRUNCATION COMPLETO PARA 6 PRODUCTOS */
-          display: block !important;
-          white-space: nowrap !important;
+          /* MULTILINE CLAMP PARA NOMBRES (2 LÍNEAS) */
+          display: -webkit-box !important;
+          -webkit-box-orient: vertical !important;
+          -webkit-line-clamp: 2 !important;
           overflow: hidden !important;
-          text-overflow: ellipsis !important;
-          width: 100% !important;
-          max-width: 100% !important;
-          min-width: 0 !important;
-          font-size: calc(var(--title-size) * 0.85) !important;
-          line-height: 1.2 !important;
-          height: auto !important;
-          max-height: 1.5em !important;
-          margin: 0 !important;
-          padding: 0 !important;
-          box-sizing: border-box !important;
+          font-size: calc(var(--title-size) * 0.9) !important;
+          line-height: 1.3 !important;
+          max-height: 2.6em !important;
+          margin-bottom: calc(2mm * var(--padding-scale)) !important;
+          word-wrap: break-word !important;
+          hyphens: auto !important;
+          text-align: center !important;
         ` : `
           font-size: var(--title-size) !important;
           font-weight: 600 !important;
@@ -472,15 +469,13 @@ export class TemplateGenerator {
       /* ===== SISTEMA DE PRECIOS ESCALADO CORREGIDO ===== */
       .product-pricing {
         ${productsPerPage === 6 ? `
-          /* PRICING CONTAINER PARA 6 PRODUCTOS */
-          display: block !important; /* CAMBIAR DE FLEX A BLOCK */
-          min-width: 0 !important;
-          overflow: hidden !important;
-          height: auto !important;
-          max-height: calc(20mm * var(--padding-scale)) !important;
-          margin: calc(1mm * var(--padding-scale)) 0 !important;
+          /* PRICING CONTAINER - MÁS ESPACIO PARA WHOLESALE */
+          display: block !important;
+          overflow: visible !important;
+          margin: calc(2mm * var(--padding-scale)) 0 !important;
           padding: 0 !important;
-          width: 100% !important;
+          min-height: calc(18mm * var(--padding-scale)) !important;
+          text-align: center !important;
         ` : `
           display: flex !important;
           flex-direction: column !important;
@@ -498,17 +493,16 @@ export class TemplateGenerator {
       /* ===== PRECIO RETAIL ESCALADO CORREGIDO ===== */
       .product-price-retail {
         ${productsPerPage === 6 ? `
-          /* RETAIL PRICE TRUNCATION PARA 6 PRODUCTOS */
-          display: inline-block !important;
-          white-space: nowrap !important;
-          overflow: hidden !important;
-          text-overflow: ellipsis !important;
-          max-width: 95% !important;
-          min-width: 0 !important;
-          font-size: calc(var(--price-size) * 0.9) !important;
-          padding: calc(1.2mm * var(--padding-scale)) calc(2.5mm * var(--padding-scale)) !important;
-          margin: 0 auto 2mm auto !important;
-          box-sizing: border-box !important;
+          /* PRECIO RETAIL - NO TRUNCAR (CRÍTICO) */
+          font-size: calc(var(--price-size) * 0.95) !important;
+          white-space: normal !important;
+          overflow: visible !important;
+          text-overflow: unset !important;
+          padding: calc(1.5mm * var(--padding-scale)) calc(3mm * var(--padding-scale)) !important;
+          margin: 0 auto calc(3mm * var(--padding-scale)) auto !important;
+          max-width: 98% !important;
+          word-wrap: break-word !important;
+          text-align: center !important;
         ` : `
           font-size: var(--price-size) !important;
           padding: calc(1.5mm * var(--padding-scale)) calc(3mm * var(--padding-scale)) !important;
@@ -535,18 +529,17 @@ export class TemplateGenerator {
       /* ===== PRECIO MAYOREO ESCALADO CORREGIDO ===== */
       .product-price-wholesale {
         ${productsPerPage === 6 ? `
-          /* WHOLESALE PRICE COMPACT PARA 6 PRODUCTOS */
-          display: block !important; /* CAMBIAR DE FLEX A BLOCK */
-          min-width: 0 !important;
-          overflow: hidden !important;
-          font-size: calc(var(--price-size) * 0.7) !important;
-          padding: calc(1.5mm * var(--padding-scale)) !important;
-          margin: 1mm auto 0 auto !important;
-          width: 90% !important;
-          max-width: 90% !important;
-          max-height: calc(7mm * var(--padding-scale)) !important;
-          border-radius: calc(4px * var(--border-radius-scale)) !important;
-          box-sizing: border-box !important;
+          /* WHOLESALE - MÁS ESPACIO, NO TRUNCAR INFORMACIÓN CRÍTICA */
+          display: block !important;
+          overflow: visible !important;
+          font-size: calc(var(--price-size) * 0.8) !important;
+          padding: calc(2mm * var(--padding-scale)) !important;
+          margin: calc(2mm * var(--padding-scale)) auto 0 auto !important;
+          width: 95% !important;
+          max-height: calc(12mm * var(--padding-scale)) !important;
+          min-height: calc(8mm * var(--padding-scale)) !important;
+          line-height: 1.3 !important;
+          text-align: center !important;
         ` : `
           display: flex !important;
           flex-direction: column !important;
@@ -603,47 +596,35 @@ export class TemplateGenerator {
       }
       
       ${productsPerPage === 6 ? `
-        /* CLASES ESPECÍFICAS PARA TEXT TRUNCATION EN 6 PRODUCTOS */
+        /* ETIQUETAS WHOLESALE - SELECTIVO */
         .wholesale-label {
-          display: block !important;
-          white-space: nowrap !important;
-          overflow: hidden !important;
-          text-overflow: ellipsis !important;
-          width: 100% !important;
-          max-width: 100% !important;
-          min-width: 0 !important;
-          font-size: calc(var(--info-size) * 0.8) !important;
-          line-height: 1.1 !important;
-          margin: 0 !important;
-          padding: 0 !important;
+          display: inline-block !important;
+          white-space: nowrap !important; /* "MAYOREO:" siempre completo */
+          overflow: visible !important;
+          text-overflow: unset !important;
+          font-size: calc(var(--info-size) * 0.9) !important;
+          font-weight: 600 !important;
+          margin-right: calc(2mm * var(--padding-scale)) !important;
         }
 
         .wholesale-price {
-          display: block !important;
-          white-space: nowrap !important;
-          overflow: hidden !important;
-          text-overflow: ellipsis !important;
-          width: 100% !important;
-          max-width: 100% !important;
-          min-width: 0 !important;
-          font-size: calc(var(--price-size) * 0.75) !important;
-          line-height: 1.1 !important;
-          margin: 0 !important;
-          padding: 0 !important;
+          display: inline-block !important;
+          white-space: nowrap !important; /* Precio siempre completo */
+          overflow: visible !important;
+          text-overflow: unset !important;
+          font-size: calc(var(--price-size) * 0.8) !important;
+          font-weight: 700 !important;
         }
 
         .wholesale-min {
           display: block !important;
           white-space: nowrap !important;
           overflow: hidden !important;
-          text-overflow: ellipsis !important;
-          width: 100% !important;
+          text-overflow: ellipsis !important; /* Solo cantidad puede truncarse */
           max-width: 100% !important;
-          min-width: 0 !important;
-          font-size: calc(var(--info-size) * 0.75) !important;
-          line-height: 1.1 !important;
-          margin: 0 !important;
-          padding: 0 !important;
+          font-size: calc(var(--info-size) * 0.8) !important;
+          margin-top: calc(1mm * var(--padding-scale)) !important;
+          opacity: 0.8 !important;
         }
       ` : ''}
       
@@ -903,6 +884,39 @@ export class TemplateGenerator {
       }
       
       /* ===== OPTIMIZACIONES POR DENSIDAD Y LAYOUT CORREGIDAS ===== */
+      ${productsPerPage === 6 ? `
+        @media print {
+          /* PRINT PRESERVANDO INFORMACIÓN CRÍTICA */
+          .product-name {
+            display: -webkit-box !important;
+            -webkit-box-orient: vertical !important;
+            -webkit-line-clamp: 2 !important;
+            overflow: hidden !important;
+            height: auto !important;
+            max-height: 2.6em !important;
+          }
+          
+          .product-price-retail {
+            white-space: normal !important;
+            overflow: visible !important;
+            text-overflow: unset !important;
+            word-wrap: break-word !important;
+          }
+          
+          .product-price-wholesale {
+            overflow: visible !important;
+            height: auto !important;
+            min-height: 8mm !important;
+          }
+          
+          .wholesale-label,
+          .wholesale-price {
+            overflow: visible !important;
+            white-space: nowrap !important;
+            text-overflow: unset !important;
+          }
+        }
+      ` : ''}
       ${this.generateDensitySpecificCSS(template, productsPerPage)}
     `;
   }
@@ -948,7 +962,7 @@ export class TemplateGenerator {
       // 🔧 CORREGIDO: Reducir altura para evitar productos alargados
       cardHeight = cardWidth + 45; // AUMENTADO de 35 a 45 (+29% más espacio)
     } else if (productsPerPage === 6) {
-      cardHeight = cardWidth + 22; // 🔧 REDUCIDO de 30 a 22 para forzar más compacto
+      cardHeight = cardWidth + 28; // 🔧 AUMENTADO de 22 a 28 para dar más espacio
     } else if (productsPerPage === 9) {
       // 🔧 CORREGIDO: Más altura para dar más espacio al contenido
       cardHeight = cardWidth + 35; // AUMENTADO de 20 a 35
