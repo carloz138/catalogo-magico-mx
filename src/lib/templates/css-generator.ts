@@ -402,10 +402,24 @@ export class TemplateGenerator {
       
       /* 🚀 INFORMACIÓN ESCALADA DINÁMICAMENTE - CORREGIDA */
       .product-info {
-        flex: 1 1 auto !important;
-        display: flex !important;
-        flex-direction: column !important;
-        justify-content: flex-start !important;
+        ${productsPerPage === 6 ? `
+          /* CONTAINER FIXES PARA 6 PRODUCTOS */
+          display: block !important; /* CAMBIAR DE FLEX A BLOCK */
+          min-width: 0 !important;
+          min-height: 0 !important;
+          overflow: hidden !important;
+          height: auto !important;
+          max-height: calc(var(--text-area-height) * 0.9) !important;
+          padding: calc(0.8mm * var(--padding-scale)) 0 !important;
+          gap: calc(1.5mm * var(--padding-scale)) !important;
+        ` : `
+          flex: 1 1 auto !important;
+          display: flex !important;
+          flex-direction: column !important;
+          justify-content: flex-start !important;
+          min-height: var(--text-area-height) !important;
+          text-align: center !important;
+        `}
         min-height: var(--text-area-height) !important;
         height: auto !important;
         text-align: center !important;
@@ -417,17 +431,25 @@ export class TemplateGenerator {
       /* ===== NOMBRE ESCALADO CORREGIDO ===== */
       .product-name {
         ${productsPerPage === 6 ? `
-          font-size: calc(var(--title-size) * 0.9) !important;
-          line-height: 1.2 !important;
-          max-height: 2.4em !important;
+          /* TEXT TRUNCATION COMPLETO PARA 6 PRODUCTOS */
+          display: block !important;
+          white-space: nowrap !important;
           overflow: hidden !important;
           text-overflow: ellipsis !important;
-          white-space: nowrap !important;
-          -webkit-line-clamp: 2 !important;
-          -webkit-box-orient: vertical !important;
-          display: -webkit-box !important;
+          width: 100% !important;
+          max-width: 100% !important;
+          min-width: 0 !important;
+          font-size: calc(var(--title-size) * 0.85) !important;
+          line-height: 1.2 !important;
+          height: auto !important;
+          max-height: 1.5em !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          box-sizing: border-box !important;
         ` : `
           font-size: var(--title-size) !important;
+          font-weight: 600 !important;
+          color: var(--primary) !important;
           line-height: 1.3 !important;
           display: -webkit-box !important;
           -webkit-line-clamp: ${this.getNameLines(template.density, productsPerPage)} !important;
@@ -449,10 +471,22 @@ export class TemplateGenerator {
       
       /* ===== SISTEMA DE PRECIOS ESCALADO CORREGIDO ===== */
       .product-pricing {
-        display: flex !important;
-        flex-direction: column !important;
-        align-items: center !important;
-        gap: calc(${this.getPricingGap(productsPerPage)}mm * var(--padding-scale)) !important;
+        ${productsPerPage === 6 ? `
+          /* PRICING CONTAINER PARA 6 PRODUCTOS */
+          display: block !important; /* CAMBIAR DE FLEX A BLOCK */
+          min-width: 0 !important;
+          overflow: hidden !important;
+          height: auto !important;
+          max-height: calc(20mm * var(--padding-scale)) !important;
+          margin: calc(1mm * var(--padding-scale)) 0 !important;
+          padding: 0 !important;
+          width: 100% !important;
+        ` : `
+          display: flex !important;
+          flex-direction: column !important;
+          align-items: center !important;
+          gap: calc(${this.getPricingGap(productsPerPage)}mm * var(--padding-scale)) !important;
+        `}
         margin: 0 !important;
         width: 100% !important;
         flex-grow: 1 !important;
@@ -464,12 +498,17 @@ export class TemplateGenerator {
       /* ===== PRECIO RETAIL ESCALADO CORREGIDO ===== */
       .product-price-retail {
         ${productsPerPage === 6 ? `
-          font-size: calc(var(--price-size) * 0.95) !important;
-          padding: calc(1.2mm * var(--padding-scale)) calc(2.5mm * var(--padding-scale)) !important;
+          /* RETAIL PRICE TRUNCATION PARA 6 PRODUCTOS */
+          display: inline-block !important;
+          white-space: nowrap !important;
           overflow: hidden !important;
           text-overflow: ellipsis !important;
-          white-space: nowrap !important;
           max-width: 95% !important;
+          min-width: 0 !important;
+          font-size: calc(var(--price-size) * 0.9) !important;
+          padding: calc(1.2mm * var(--padding-scale)) calc(2.5mm * var(--padding-scale)) !important;
+          margin: 0 auto 2mm auto !important;
+          box-sizing: border-box !important;
         ` : `
           font-size: var(--price-size) !important;
           padding: calc(1.5mm * var(--padding-scale)) calc(3mm * var(--padding-scale)) !important;
@@ -496,16 +535,24 @@ export class TemplateGenerator {
       /* ===== PRECIO MAYOREO ESCALADO CORREGIDO ===== */
       .product-price-wholesale {
         ${productsPerPage === 6 ? `
+          /* WHOLESALE PRICE COMPACT PARA 6 PRODUCTOS */
+          display: block !important; /* CAMBIAR DE FLEX A BLOCK */
+          min-width: 0 !important;
+          overflow: hidden !important;
           font-size: calc(var(--price-size) * 0.7) !important;
           padding: calc(1.5mm * var(--padding-scale)) !important;
-          min-height: calc(6mm * var(--padding-scale)) !important;
-          max-height: calc(8mm * var(--padding-scale)) !important;
-          overflow: hidden !important;
-          gap: calc(0.8mm * var(--padding-scale)) !important;
+          margin: 1mm auto 0 auto !important;
+          width: 90% !important;
+          max-width: 90% !important;
+          max-height: calc(7mm * var(--padding-scale)) !important;
+          border-radius: calc(4px * var(--border-radius-scale)) !important;
+          box-sizing: border-box !important;
         ` : `
+          display: flex !important;
+          flex-direction: column !important;
+          align-items: center !important;
           font-size: calc(var(--price-size) * 0.75) !important;
           padding: calc(${this.getWholesalePadding(productsPerPage)}mm * var(--padding-scale)) !important;
-          min-height: calc(${this.getWholesaleMinHeight(productsPerPage)}mm * var(--padding-scale)) !important;
         `}
         display: flex !important;
         flex-direction: column !important;
@@ -556,25 +603,47 @@ export class TemplateGenerator {
       }
       
       ${productsPerPage === 6 ? `
+        /* CLASES ESPECÍFICAS PARA TEXT TRUNCATION EN 6 PRODUCTOS */
         .wholesale-label {
+          display: block !important;
+          white-space: nowrap !important;
+          overflow: hidden !important;
+          text-overflow: ellipsis !important;
+          width: 100% !important;
+          max-width: 100% !important;
+          min-width: 0 !important;
           font-size: calc(var(--info-size) * 0.8) !important;
-          overflow: hidden !important;
-          text-overflow: ellipsis !important;
-          white-space: nowrap !important;
+          line-height: 1.1 !important;
+          margin: 0 !important;
+          padding: 0 !important;
         }
-        
+
         .wholesale-price {
+          display: block !important;
+          white-space: nowrap !important;
+          overflow: hidden !important;
+          text-overflow: ellipsis !important;
+          width: 100% !important;
+          max-width: 100% !important;
+          min-width: 0 !important;
           font-size: calc(var(--price-size) * 0.75) !important;
-          overflow: hidden !important;
-          text-overflow: ellipsis !important;
-          white-space: nowrap !important;
+          line-height: 1.1 !important;
+          margin: 0 !important;
+          padding: 0 !important;
         }
-        
+
         .wholesale-min {
-          font-size: calc(var(--info-size) * 0.7) !important;
+          display: block !important;
+          white-space: nowrap !important;
           overflow: hidden !important;
           text-overflow: ellipsis !important;
-          white-space: nowrap !important;
+          width: 100% !important;
+          max-width: 100% !important;
+          min-width: 0 !important;
+          font-size: calc(var(--info-size) * 0.75) !important;
+          line-height: 1.1 !important;
+          margin: 0 !important;
+          padding: 0 !important;
         }
       ` : ''}
       
@@ -879,7 +948,7 @@ export class TemplateGenerator {
       // 🔧 CORREGIDO: Reducir altura para evitar productos alargados
       cardHeight = cardWidth + 45; // AUMENTADO de 35 a 45 (+29% más espacio)
     } else if (productsPerPage === 6) {
-      cardHeight = cardWidth + 25; // 🔧 REDUCIDO de 30 a 25 para dar menos altura
+      cardHeight = cardWidth + 22; // 🔧 REDUCIDO de 30 a 22 para forzar más compacto
     } else if (productsPerPage === 9) {
       // 🔧 CORREGIDO: Más altura para dar más espacio al contenido
       cardHeight = cardWidth + 35; // AUMENTADO de 20 a 35
