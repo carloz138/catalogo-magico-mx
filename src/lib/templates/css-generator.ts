@@ -650,38 +650,43 @@ export class TemplateGenerator {
         }
       }
       
-      /* 🚀 PRE-PRINT FIXES ESPECÍFICOS PARA 2x2 */
+      /* 🚀 PRE-PRINT FIXES CORREGIDOS PARA 2x2 */
       ${productsPerPage === 4 ? `
         .products-grid {
           grid-template-rows: minmax(0, 1fr) minmax(0, 1fr) !important;
-          grid-auto-rows: auto !important;
+          height: auto !important;
+          min-height: calc(var(--card-height) * 2 + var(--gap)) !important;
+          max-height: calc(var(--card-height) * 2 + var(--gap) + 20mm) !important;
+          margin-top: 15mm !important;
+          margin-bottom: 10mm !important;
           overflow: visible !important;
         }
         
         .product-card {
+          height: calc(var(--card-height) - 5mm) !important;
+          min-height: calc(var(--card-height) - 5mm) !important;
+          max-height: calc(var(--card-height) - 5mm) !important;
           overflow: visible !important;
-          position: static !important;
-          float: none !important;
           break-inside: avoid !important;
           page-break-inside: avoid !important;
         }
         
         .product-info {
-          overflow: visible !important;
           height: auto !important;
-          min-height: auto !important;
-          max-height: none !important;
+          max-height: calc(var(--text-area-height) - 3mm) !important;
+          overflow: visible !important;
         }
         
         .product-pricing {
           overflow: visible !important;
-          display: block !important;
+          height: auto !important;
+          max-height: 15mm !important;
         }
         
         .product-price-wholesale {
           overflow: visible !important;
-          position: static !important;
-          margin-bottom: 3mm !important;
+          max-height: 8mm !important;
+          line-height: 1.1 !important;
         }
       ` : ''}
 
@@ -693,8 +698,71 @@ export class TemplateGenerator {
           print-color-adjust: exact !important;
         }
         
-        /* 🚀 PRINT FIXES COMPLETOS PARA 2x2 */
+        /* 🚀 PRINT FIXES CORREGIDOS PARA 2x2 */
         ${productsPerPage === 4 ? `
+          html, body {
+            height: auto !important;
+            min-height: auto !important;
+            overflow: visible !important;
+          }
+          
+          .catalog-container {
+            margin-top: 0 !important;
+            padding-top: 0 !important;
+          }
+          
+          .products-section {
+            margin-top: 20mm !important;
+            margin-bottom: 15mm !important;
+          }
+          
+          .products-grid {
+            height: auto !important;
+            min-height: calc(var(--card-height) * 2 + var(--gap)) !important;
+            max-height: calc(var(--card-height) * 2 + var(--gap) + 15mm) !important;
+            
+            grid-template-rows: auto auto !important;
+            grid-auto-rows: auto !important;
+            
+            overflow: visible !important;
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+            
+            margin: 0 auto !important;
+            padding: 0 !important;
+          }
+          
+          .product-card {
+            overflow: visible !important;
+            height: calc(var(--card-height) - 8mm) !important;
+            min-height: calc(var(--card-height) - 8mm) !important;
+            max-height: calc(var(--card-height) - 8mm) !important;
+            
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+          }
+          
+          .product-info {
+            overflow: visible !important;
+            height: auto !important;
+            max-height: calc(var(--text-area-height) - 5mm) !important;
+          }
+          
+          .product-pricing {
+            overflow: visible !important;
+            height: auto !important;
+            max-height: 12mm !important;
+          }
+          
+          .product-price-wholesale {
+            overflow: visible !important;
+            height: auto !important;
+            max-height: 6mm !important;
+            font-size: calc(var(--info-size) * 0.85) !important;
+            line-height: 1.0 !important;
+            padding: 1mm 2mm !important;
+          }
+        ` : `
           .products-grid {
             height: auto !important;
             min-height: auto !important;
