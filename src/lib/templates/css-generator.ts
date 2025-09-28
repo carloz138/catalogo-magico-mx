@@ -431,18 +431,19 @@ export class TemplateGenerator {
       /* ===== NOMBRE ESCALADO CORREGIDO ===== */
       .product-name {
         ${productsPerPage === 6 ? `
-          /* MULTILINE CLAMP PARA NOMBRES (2 LÍNEAS) */
+          /* MULTILINE CLAMP PARA NOMBRES (3 LÍNEAS) */
           display: -webkit-box !important;
           -webkit-box-orient: vertical !important;
-          -webkit-line-clamp: 2 !important;
+          -webkit-line-clamp: 3 !important;
           overflow: hidden !important;
-          font-size: calc(var(--title-size) * 0.9) !important;
-          line-height: 1.3 !important;
-          max-height: 2.6em !important;
-          margin-bottom: calc(2mm * var(--padding-scale)) !important;
+          font-size: calc(var(--title-size) * 0.95) !important;
+          line-height: 1.25 !important;
+          max-height: 3.75em !important;
+          margin-bottom: calc(3mm * var(--padding-scale)) !important;
           word-wrap: break-word !important;
           hyphens: auto !important;
           text-align: center !important;
+          padding: 0 calc(1mm * var(--padding-scale)) !important;
         ` : `
           font-size: var(--title-size) !important;
           font-weight: 600 !important;
@@ -890,10 +891,11 @@ export class TemplateGenerator {
           .product-name {
             display: -webkit-box !important;
             -webkit-box-orient: vertical !important;
-            -webkit-line-clamp: 2 !important;
+            -webkit-line-clamp: 3 !important;
             overflow: hidden !important;
             height: auto !important;
-            max-height: 2.6em !important;
+            max-height: 3.75em !important;
+            line-height: 1.25 !important;
           }
           
           .product-price-retail {
@@ -962,7 +964,7 @@ export class TemplateGenerator {
       // 🔧 CORREGIDO: Reducir altura para evitar productos alargados
       cardHeight = cardWidth + 45; // AUMENTADO de 35 a 45 (+29% más espacio)
     } else if (productsPerPage === 6) {
-      cardHeight = cardWidth + 28; // 🔧 AUMENTADO de 22 a 28 para dar más espacio
+      cardHeight = cardWidth + 32; // 🔧 AUMENTADO de 28 a 32 para dar más espacio
     } else if (productsPerPage === 9) {
       // 🔧 CORREGIDO: Más altura para dar más espacio al contenido
       cardHeight = cardWidth + 35; // AUMENTADO de 20 a 35
