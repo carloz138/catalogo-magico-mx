@@ -416,19 +416,30 @@ export class TemplateGenerator {
       
       /* ===== NOMBRE ESCALADO CORREGIDO ===== */
       .product-name {
-        font-size: var(--title-size) !important;
+        ${productsPerPage === 6 ? `
+          font-size: calc(var(--title-size) * 0.9) !important;
+          line-height: 1.2 !important;
+          max-height: 2.4em !important;
+          overflow: hidden !important;
+          text-overflow: ellipsis !important;
+          white-space: nowrap !important;
+          -webkit-line-clamp: 2 !important;
+          -webkit-box-orient: vertical !important;
+          display: -webkit-box !important;
+        ` : `
+          font-size: var(--title-size) !important;
+          line-height: 1.3 !important;
+          display: -webkit-box !important;
+          -webkit-line-clamp: ${this.getNameLines(template.density, productsPerPage)} !important;
+          -webkit-box-orient: vertical !important;
+          overflow: hidden !important;
+        `}
         font-weight: 600 !important;
         color: var(--primary) !important;
-        line-height: 1.3 !important;
         margin-bottom: 0 !important;
         word-wrap: break-word !important;
         overflow-wrap: break-word !important;
         hyphens: auto !important;
-        
-        display: -webkit-box !important;
-        -webkit-line-clamp: ${this.getNameLines(template.density, productsPerPage)} !important;
-        -webkit-box-orient: vertical !important;
-        overflow: hidden !important;
         
         -webkit-print-color-adjust: exact !important;
         text-align: center !important;
@@ -452,12 +463,21 @@ export class TemplateGenerator {
 
       /* ===== PRECIO RETAIL ESCALADO CORREGIDO ===== */
       .product-price-retail {
-        font-size: var(--price-size) !important;
+        ${productsPerPage === 6 ? `
+          font-size: calc(var(--price-size) * 0.95) !important;
+          padding: calc(1.2mm * var(--padding-scale)) calc(2.5mm * var(--padding-scale)) !important;
+          overflow: hidden !important;
+          text-overflow: ellipsis !important;
+          white-space: nowrap !important;
+          max-width: 95% !important;
+        ` : `
+          font-size: var(--price-size) !important;
+          padding: calc(1.5mm * var(--padding-scale)) calc(3mm * var(--padding-scale)) !important;
+        `}
         font-weight: 700 !important;
         color: white !important;
         background: var(--secondary) !important;
         background-image: linear-gradient(135deg, var(--secondary), var(--primary)) !important;
-        padding: calc(1.5mm * var(--padding-scale)) calc(3mm * var(--padding-scale)) !important;
         border-radius: calc(12px * var(--border-radius-scale)) !important;
         display: inline-block !important;
         text-align: center !important;
@@ -475,14 +495,24 @@ export class TemplateGenerator {
 
       /* ===== PRECIO MAYOREO ESCALADO CORREGIDO ===== */
       .product-price-wholesale {
+        ${productsPerPage === 6 ? `
+          font-size: calc(var(--price-size) * 0.7) !important;
+          padding: calc(1.5mm * var(--padding-scale)) !important;
+          min-height: calc(6mm * var(--padding-scale)) !important;
+          max-height: calc(8mm * var(--padding-scale)) !important;
+          overflow: hidden !important;
+          gap: calc(0.8mm * var(--padding-scale)) !important;
+        ` : `
+          font-size: calc(var(--price-size) * 0.75) !important;
+          padding: calc(${this.getWholesalePadding(productsPerPage)}mm * var(--padding-scale)) !important;
+          min-height: calc(${this.getWholesaleMinHeight(productsPerPage)}mm * var(--padding-scale)) !important;
+        `}
         display: flex !important;
         flex-direction: column !important;
         align-items: center !important;
         gap: calc(1mm * var(--padding-scale)) !important;
-        font-size: calc(var(--price-size) * 0.75) !important;
         color: var(--text) !important;
         background: rgba(0,0,0,0.05) !important;
-        padding: calc(${this.getWholesalePadding(productsPerPage)}mm * var(--padding-scale)) !important;
         border-radius: calc(6px * var(--border-radius-scale)) !important;
         border: calc(0.5pt * var(--layout-scale)) solid var(--border) !important;
         width: 90% !important;
@@ -490,7 +520,6 @@ export class TemplateGenerator {
         -webkit-print-color-adjust: exact !important;
         overflow: visible !important;
         flex-shrink: 0 !important;
-        min-height: calc(${this.getWholesaleMinHeight(productsPerPage)}mm * var(--padding-scale)) !important;
         position: relative !important;
         z-index: 2 !important;
         margin: 0 !important;
@@ -525,6 +554,29 @@ export class TemplateGenerator {
         padding: 0 !important;
         line-height: 1.1 !important;
       }
+      
+      ${productsPerPage === 6 ? `
+        .wholesale-label {
+          font-size: calc(var(--info-size) * 0.8) !important;
+          overflow: hidden !important;
+          text-overflow: ellipsis !important;
+          white-space: nowrap !important;
+        }
+        
+        .wholesale-price {
+          font-size: calc(var(--price-size) * 0.75) !important;
+          overflow: hidden !important;
+          text-overflow: ellipsis !important;
+          white-space: nowrap !important;
+        }
+        
+        .wholesale-min {
+          font-size: calc(var(--info-size) * 0.7) !important;
+          overflow: hidden !important;
+          text-overflow: ellipsis !important;
+          white-space: nowrap !important;
+        }
+      ` : ''}
       
       /* ===== ELEMENTOS CONDICIONALES ESCALADOS ===== */
       
@@ -827,8 +879,7 @@ export class TemplateGenerator {
       // 🔧 CORREGIDO: Reducir altura para evitar productos alargados
       cardHeight = cardWidth + 45; // AUMENTADO de 35 a 45 (+29% más espacio)
     } else if (productsPerPage === 6) {
-      // 6 productos: tamaño estándar (SIN CAMBIOS)
-      cardHeight = cardWidth + 30;
+      cardHeight = cardWidth + 25; // 🔧 REDUCIDO de 30 a 25 para dar menos altura
     } else if (productsPerPage === 9) {
       // 🔧 CORREGIDO: Más altura para dar más espacio al contenido
       cardHeight = cardWidth + 35; // AUMENTADO de 20 a 35
@@ -902,13 +953,13 @@ export class TemplateGenerator {
   
   // Gap entre elementos de texto
   private static getTextGap(productsPerPage: 4 | 6 | 9): number {
-    const gaps = { 4: 3, 6: 2.5, 9: 3 }; // 9: MÁS gap para que no se amontone
+    const gaps = { 4: 3, 6: 2, 9: 3 }; // 🔧 REDUCIDO de 2.5 a 2 para 6 productos
     return gaps[productsPerPage];
   }
   
   // Gap entre precios
   private static getPricingGap(productsPerPage: 4 | 6 | 9): number {
-    const gaps = { 4: 3, 6: 2.5, 9: 2.8 }; // 9: Más gap entre precios
+    const gaps = { 4: 3, 6: 2, 9: 2.8 }; // 🔧 REDUCIDO de 2.5 a 2 para 6 productos  
     return gaps[productsPerPage];
   }
   
@@ -1006,7 +1057,7 @@ export class TemplateGenerator {
     // Escalas por productos por página
     const scaleMap = {
       4: 1.3,  // Más grande para 4 productos
-      6: 1.0,  // Estándar para 6 productos
+      6: 0.85, // 🔧 REDUCIDO de 1.0 a 0.85 para 6 productos
       9: 0.8   // Más pequeño para 9 productos
     };
     
