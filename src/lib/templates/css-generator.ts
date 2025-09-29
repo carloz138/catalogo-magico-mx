@@ -431,20 +431,40 @@ export class TemplateGenerator {
       /* ===== NOMBRE ESCALADO CORREGIDO ===== */
       .product-name {
         ${productsPerPage === 6 ? `
-          /* MULTILINE CLAMP PARA NOMBRES (2 LÍNEAS) */
+          /* WEBKIT-BOX CON TODAS LAS PROPIEDADES NECESARIAS */
           display: -webkit-box !important;
           -webkit-box-orient: vertical !important;
           -webkit-line-clamp: 2 !important;
-          overflow: hidden !important;
-          font-size: calc(var(--title-size) * 0.88) !important;
-          line-height: 1.2 !important;
-          max-height: 2.4em !important;
-          min-height: 2.4em !important;
-          margin-bottom: calc(2mm * var(--padding-scale)) !important;
+          
+          /* WORD-BREAK CRÍTICO */
+          word-break: break-word !important;
           word-wrap: break-word !important;
-          hyphens: auto !important;
+          
+          /* WIDTH EXPLÍCITO */
+          width: 100% !important;
+          max-width: 100% !important;
+          
+          /* OVERFLOW */
+          overflow: hidden !important;
+          max-height: none !important;
+          min-height: auto !important;
+          
+          /* TIPOGRAFÍA */
+          font-size: calc(var(--title-size) * 0.92) !important;
+          line-height: 1.3 !important;
+          font-weight: 600 !important;
+          color: var(--primary) !important;
+          
+          /* SPACING MÍNIMO */
+          margin: 0 0 calc(2mm * var(--padding-scale)) 0 !important;
+          padding: 0 !important;
+          
+          /* ALINEACIÓN */
           text-align: center !important;
-          padding: 0 calc(2mm * var(--padding-scale)) !important;
+          
+          /* HYPHENATION */
+          hyphens: auto !important;
+          -webkit-hyphens: auto !important;
         ` : `
           font-size: var(--title-size) !important;
           font-weight: 600 !important;
@@ -893,10 +913,12 @@ export class TemplateGenerator {
             display: -webkit-box !important;
             -webkit-box-orient: vertical !important;
             -webkit-line-clamp: 2 !important;
+            word-break: break-word !important;
+            word-wrap: break-word !important;
+            width: 100% !important;
             overflow: hidden !important;
-            max-height: 2.4em !important;
-            min-height: 2.4em !important;
-            line-height: 1.2 !important;
+            max-height: none !important;
+            line-height: 1.3 !important;
           }
           
           .product-price-retail {
@@ -965,7 +987,7 @@ export class TemplateGenerator {
       // 🔧 CORREGIDO: Reducir altura para evitar productos alargados
       cardHeight = cardWidth + 45; // AUMENTADO de 35 a 45 (+29% más espacio)
     } else if (productsPerPage === 6) {
-      cardHeight = cardWidth + 30; // 🔧 AJUSTADO de 32 a 30
+      cardHeight = cardWidth + 35; // 🔧 AUMENTADO de 30 a 35
     } else if (productsPerPage === 9) {
       // 🔧 CORREGIDO: Más altura para dar más espacio al contenido
       cardHeight = cardWidth + 35; // AUMENTADO de 20 a 35
@@ -975,7 +997,7 @@ export class TemplateGenerator {
     
     // 🔧 RATIO DINÁMICO DE IMAGEN CORREGIDO
     const imageHeightRatio = productsPerPage === 4 ? 0.63 : // REDUCIDO de 0.68 a 0.63 (más espacio para texto)
-                            productsPerPage === 6 ? 0.50 : // REDUCIDO de 0.55 a 0.50
+                            productsPerPage === 6 ? 0.48 : // REDUCIDO de 0.50 a 0.48
                             0.52; // AUMENTADO de 0.50 a 0.52 para 9 productos
     
     const imageHeight = cardHeight * imageHeightRatio;

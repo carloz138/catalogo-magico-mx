@@ -359,19 +359,38 @@ ${productsPerPage === 6 ? `
   
   /* 1. NOMBRES DE PRODUCTOS - MULTILINE CLAMP (2 líneas) */
   .product-name-dynamic {
+    /* DISPLAY WEBKIT-BOX REQUERIDO */
     display: -webkit-box !important;
     -webkit-box-orient: vertical !important;
     -webkit-line-clamp: 2 !important;
-    overflow: hidden !important;
-    font-size: ${Math.round(config.nameSize * scale.font * 0.88)}pt !important;
-    line-height: 1.2 !important;
-    max-height: 2.4em !important;
-    min-height: 2.4em !important;
-    margin-bottom: 2mm !important;
+    
+    /* WORD-BREAK CRÍTICO PARA LINE-CLAMP */
+    word-break: break-word !important;
     word-wrap: break-word !important;
-    hyphens: auto !important;
+    
+    /* WIDTH EXPLÍCITO REQUERIDO */
+    width: 100% !important;
+    max-width: 100% !important;
+    
+    /* OVERFLOW Y HEIGHT */
+    overflow: hidden !important;
+    max-height: none !important;
+    min-height: auto !important;
+    
+    /* TIPOGRAFÍA OPTIMIZADA */
+    font-size: ${Math.round(config.nameSize * scale.font * 0.92)}pt !important;
+    line-height: 1.3 !important;
+    
+    /* SPACING MÍNIMO */
+    margin: 0 0 2mm 0 !important;
+    padding: 0 !important;
+    
+    /* ALINEACIÓN */
     text-align: center !important;
-    padding: 0 2mm !important;
+    
+    /* HYPHENATION */
+    hyphens: auto !important;
+    -webkit-hyphens: auto !important;
   }
   
   /* 2. PRECIO RETAIL - NO TRUNCAR (CRÍTICO) */
