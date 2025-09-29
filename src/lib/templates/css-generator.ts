@@ -997,7 +997,7 @@ export class TemplateGenerator {
     
     if (productsPerPage === 4) {
       // 🔧 BALANCEADO: Aumenta imagen sin romper grid 2x2
-      cardHeight = cardWidth + 50; // BALANCEADO a +50 para mantener grid 2x2 funcional
+      cardHeight = cardWidth + 45; // BALANCEADO a +45 para mantener grid 2x2 funcional
     } else if (productsPerPage === 6) {
       cardHeight = cardWidth + 48;
     } else if (productsPerPage === 9) {
@@ -1008,7 +1008,7 @@ export class TemplateGenerator {
     }
     
     // 🔧 RATIO DINÁMICO DE IMAGEN BALANCEADO
-    const imageHeightRatio = productsPerPage === 4 ? 0.66 :
+    const imageHeightRatio = productsPerPage === 4 ? 0.64 :
                             productsPerPage === 6 ? 0.48 :
                             0.62;
     
@@ -1016,11 +1016,11 @@ export class TemplateGenerator {
     const textAreaHeight = cardHeight - imageHeight;
     
     // 🔧 LÍMITES DINÁMICOS BALANCEADOS
-    const minCardHeight = productsPerPage === 4 ? 58 : // BALANCEADO para grid 2x2
+    const minCardHeight = productsPerPage === 4 ? 55 : // BALANCEADO para grid 2x2
                          productsPerPage === 6 ? 40 : // SIN CAMBIOS  
                          38; // AUMENTADO de 35 para 9 productos
                          
-    const maxCardHeight = productsPerPage === 4 ? 110 : // BALANCEADO para grid 2x2
+    const maxCardHeight = productsPerPage === 4 ? 105 : // BALANCEADO para grid 2x2
                          productsPerPage === 6 ? 100 : // SIN CAMBIOS
                          75; // REDUCIDO de 80 para 9 productos
     
@@ -1055,7 +1055,7 @@ export class TemplateGenerator {
   
   // Margen superior del contenido (separación del header)
   private static getContentTopMargin(productsPerPage: 4 | 6 | 9): number {
-    const margins = { 4: 6, 6: 8, 9: 12 }; // 4: REDUCIDO para evitar overflow
+    const margins = { 4: 5, 6: 8, 9: 12 }; // 4: REDUCIDO para evitar overflow
     return margins[productsPerPage];
   }
   
@@ -1214,12 +1214,12 @@ export class TemplateGenerator {
    * 🎛️ ESCALAS ESPECÍFICAS
    */
   private static getLayoutScale(productsPerPage: 4 | 6 | 9): number {
-    const scales = { 4: 1.2, 6: 1.0, 9: 0.85 };
+    const scales = { 4: 1.08, 6: 1.0, 9: 0.85 };
     return scales[productsPerPage];
   }
   
   private static getPaddingScale(productsPerPage: 4 | 6 | 9): number {
-    const scales = { 4: 1.3, 6: 1.0, 9: 0.8 };
+    const scales = { 4: 1.2, 6: 1.0, 9: 0.8 };
     return scales[productsPerPage];
   }
   
