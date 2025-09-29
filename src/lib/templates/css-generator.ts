@@ -431,10 +431,10 @@ export class TemplateGenerator {
       /* ===== NOMBRE ESCALADO CORREGIDO ===== */
       .product-name {
         ${productsPerPage === 6 ? `
-          /* WEBKIT-BOX CON TODAS LAS PROPIEDADES NECESARIAS */
+          /* NOMBRE DE PRODUCTO - 3 LÍNEAS PARA TÍTULOS LARGOS */
           display: -webkit-box !important;
           -webkit-box-orient: vertical !important;
-          -webkit-line-clamp: 2 !important;
+          -webkit-line-clamp: 3 !important;
           
           /* WORD-BREAK CRÍTICO */
           word-break: break-word !important;
