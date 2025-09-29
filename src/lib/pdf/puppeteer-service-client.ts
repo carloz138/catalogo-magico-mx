@@ -357,12 +357,12 @@ ${productsPerPage === 6 ? `
     min-height: 0 !important;
   }
   
-  /* 1. NOMBRES DE PRODUCTOS - MULTILINE CLAMP (2 líneas) */
+  /* 1. NOMBRES DE PRODUCTOS - MULTILINE CLAMP (3 líneas) */
   .product-name-dynamic {
     /* DISPLAY WEBKIT-BOX REQUERIDO */
     display: -webkit-box !important;
     -webkit-box-orient: vertical !important;
-    -webkit-line-clamp: 2 !important;
+    -webkit-line-clamp: 3 !important;
     
     /* WORD-BREAK CRÍTICO PARA LINE-CLAMP */
     word-break: break-word !important;
