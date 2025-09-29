@@ -393,15 +393,15 @@ ${productsPerPage === 6 ? `
     -webkit-hyphens: auto !important;
   }
   
-  /* 2. PRECIO RETAIL - NO TRUNCAR (CRÍTICO) */
+  /* 2. PRECIO RETAIL - ESPACIADO OPTIMIZADO */
   .product-price-retail-dynamic {
     /* NO truncation - información crítica */
     white-space: normal !important;
     overflow: visible !important;
     text-overflow: unset !important;
     font-size: ${Math.round(config.priceSize * scale.font * 0.95)}pt !important;
-    padding: ${Math.round(1.5 * scale.padding)}mm ${Math.round(3 * scale.padding)}mm !important;
-    margin: 0 auto 3mm auto !important;
+    padding: ${Math.round(1.1 * scale.padding)}mm ${Math.round(2.5 * scale.padding)}mm !important;
+    margin: 0 auto 1.5mm auto !important;
     max-width: 98% !important;
     word-wrap: break-word !important;
     text-align: center !important;
