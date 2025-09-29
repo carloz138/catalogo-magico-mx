@@ -563,7 +563,7 @@ ${productsPerPage === 6 ? `
         display: flex !important;
         flex-direction: column !important;
         justify-content: flex-start !important;
-        margin-top: ${productsPerPage === 4 ? 20 : productsPerPage === 9 ? 5 : Math.round(PDF_LAYOUT.HEADER_TO_CONTENT_GAP * scale.padding)}mm !important;
+        margin-top: ${productsPerPage === 4 ? 20 : productsPerPage === 9 ? 15 : Math.round(PDF_LAYOUT.HEADER_TO_CONTENT_GAP * scale.padding)}mm !important;
         margin-bottom: ${Math.round(PDF_LAYOUT.HEADER_TO_CONTENT_GAP * scale.padding)}mm !important;
       }
       
