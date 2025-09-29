@@ -913,18 +913,24 @@ export class TemplateGenerator {
       /* ===== OPTIMIZACIONES POR DENSIDAD Y LAYOUT CORREGIDAS ===== */
       ${productsPerPage === 6 ? `
         @media print {
-          /* PRINT PRESERVANDO INFORMACIÓN CRÍTICA */
+          /* PRINT PRESERVANDO INFORMACIÓN CRÍTICA - FIX DEFINITIVO */
           .product-name {
             display: -webkit-box !important;
             -webkit-box-orient: vertical !important;
             -webkit-line-clamp: 3 !important;
             word-break: break-word !important;
             word-wrap: break-word !important;
+            overflow-wrap: break-word !important;
             width: 100% !important;
+            min-width: 0 !important;
+            max-width: 100% !important;
             overflow: hidden !important;
             max-height: none !important;
-            line-height: 1.3 !important;
+            line-height: 1.35 !important;
             white-space: normal !important;
+            text-overflow: clip !important;
+            hyphens: auto !important;
+            -webkit-hyphens: auto !important;
           }
           
           .product-price-retail {
@@ -993,7 +999,7 @@ export class TemplateGenerator {
       // 🔧 CORREGIDO: Reducir altura para evitar productos alargados
       cardHeight = cardWidth + 45; // AUMENTADO de 35 a 45 (+29% más espacio)
     } else if (productsPerPage === 6) {
-      cardHeight = cardWidth + 35; // 🔧 AUMENTADO de 30 a 35
+      cardHeight = cardWidth + 48;
     } else if (productsPerPage === 9) {
       // 🔧 CORREGIDO: Más altura para dar más espacio al contenido
       cardHeight = cardWidth + 35; // AUMENTADO de 20 a 35
@@ -1003,7 +1009,7 @@ export class TemplateGenerator {
     
     // 🔧 RATIO DINÁMICO DE IMAGEN CORREGIDO
     const imageHeightRatio = productsPerPage === 4 ? 0.63 :
-                            productsPerPage === 6 ? 0.52 :
+                            productsPerPage === 6 ? 0.48 :
                             0.52;
     
     const imageHeight = cardHeight * imageHeightRatio;
@@ -1067,7 +1073,7 @@ export class TemplateGenerator {
   
   // Gap entre elementos de texto
   private static getTextGap(productsPerPage: 4 | 6 | 9): number {
-    const gaps = { 4: 3, 6: 2, 9: 3 };
+    const gaps = { 4: 3, 6: 2.5, 9: 3 };
     return gaps[productsPerPage];
   }
   

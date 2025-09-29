@@ -144,7 +144,7 @@ const calculateDynamicDimensions = (productsPerPage: 4 | 6 | 9 = 6) => {
      baseCardHeight = Math.min(cardWidth + 35, 60); // REDUCIDO de +45,75 a +35,60
   } else if (productsPerPage === 6) {
     // 6 productos: altura estándar (SIN CAMBIOS)
-    baseCardHeight = cardWidth + 40;
+    baseCardHeight = cardWidth + 45;
   } else if (productsPerPage === 9) {
     // 🔧 CORREGIDO: Aumentar altura para dar más espacio
     baseCardHeight = cardWidth + 40; // AUMENTADO de 25
@@ -160,7 +160,7 @@ const calculateDynamicDimensions = (productsPerPage: 4 | 6 | 9 = 6) => {
     cardHeight: Math.floor(baseCardHeight * 100) / 100,
     gap,
     padding,
-    imageHeight: Math.floor(baseCardHeight * 0.58 * 100) / 100, // REDUCIDO a 0.58 (más espacio para texto)
+    imageHeight: Math.floor(baseCardHeight * 0.50 * 100) / 100, // REDUCIDO a 0.50 (más espacio para texto)
     textHeight: Math.floor(baseCardHeight * 0.45 * 100) / 100
   };
 };
@@ -982,10 +982,12 @@ ${productsPerPage === 6 ? `
           }
           
           .product-name-dynamic {
-            display: block !important;
+            display: -webkit-box !important;
+            -webkit-box-orient: vertical !important;
+            -webkit-line-clamp: 3 !important;
             overflow: visible !important;
-            white-space: nowrap !important;
-            text-overflow: ellipsis !important;
+            white-space: normal !important;
+            text-overflow: clip !important;
             min-width: 0 !important;
             max-width: 100% !important;
           }
