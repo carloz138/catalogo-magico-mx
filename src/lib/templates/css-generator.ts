@@ -997,7 +997,7 @@ export class TemplateGenerator {
     
     if (productsPerPage === 4) {
       // 🔧 REDUCIDO: Altura compacta para mantener grid 2x2 funcional
-      cardHeight = cardWidth + 38; // REDUCIDO a +38 para grid 2x2 sin overflow
+      cardHeight = cardWidth + 30; // REDUCIDO a +30 para grid 2x2 sin overflow
     } else if (productsPerPage === 6) {
       cardHeight = cardWidth + 48;
     } else if (productsPerPage === 9) {
@@ -1008,7 +1008,7 @@ export class TemplateGenerator {
     }
     
     // 🔧 RATIO DINÁMICO DE IMAGEN REDUCIDO PARA 4
-    const imageHeightRatio = productsPerPage === 4 ? 0.60 :
+    const imageHeightRatio = productsPerPage === 4 ? 0.56 :
                             productsPerPage === 6 ? 0.48 :
                             0.62;
     
@@ -1016,11 +1016,11 @@ export class TemplateGenerator {
     const textAreaHeight = cardHeight - imageHeight;
     
     // 🔧 LÍMITES DINÁMICOS REDUCIDOS PARA 4
-    const minCardHeight = productsPerPage === 4 ? 50 : // REDUCIDO para grid 2x2
+    const minCardHeight = productsPerPage === 4 ? 45 : // REDUCIDO para grid 2x2
                          productsPerPage === 6 ? 40 : // SIN CAMBIOS  
                          38; // AUMENTADO de 35 para 9 productos
                          
-    const maxCardHeight = productsPerPage === 4 ? 95 : // REDUCIDO para grid 2x2
+    const maxCardHeight = productsPerPage === 4 ? 85 : // REDUCIDO para grid 2x2
                          productsPerPage === 6 ? 100 : // SIN CAMBIOS
                          75; // REDUCIDO de 80 para 9 productos
     
@@ -1186,7 +1186,7 @@ export class TemplateGenerator {
     
     // Escalas por productos por página - REDUCIDO PARA 4
     const scaleMap = {
-      4: 1.15,  // REDUCIDO de 1.3 a 1.15 para 4 productos
+      4: 1.05,  // REDUCIDO de 1.15 a 1.05 para 4 productos
       6: 0.85, // 🔧 REDUCIDO de 1.0 a 0.85 para 6 productos
       9: 0.8   // Más pequeño para 9 productos
     };

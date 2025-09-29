@@ -77,18 +77,18 @@ const getDynamicPDFLayout = (productsPerPage: 4 | 6 | 9 = 6) => {
   const layoutConfigs = {
     4: {
       // 🔧 4 PRODUCTOS: Layout ULTRA COMPACTO para grid 2x2 sin overflow
-      HEADER_MARGIN: 6,      // MÍNIMO para más espacio
-      FOOTER_MARGIN: 6,      // MÍNIMO
+      HEADER_MARGIN: 5,      // MÍNIMO para más espacio
+      FOOTER_MARGIN: 5,      // MÍNIMO
       SIDE_MARGIN: 10,       // MANTENIDO
-      HEADER_HEIGHT: 6,      // MÍNIMO para más espacio
-      FOOTER_HEIGHT: 5,      // MÍNIMO
+      HEADER_HEIGHT: 5,      // MÍNIMO para más espacio
+      FOOTER_HEIGHT: 4,      // MÍNIMO
       COLUMNS: 2,
       ROWS: 2,
       PRODUCTS_PER_PAGE: 4,
-      HEADER_TO_CONTENT_GAP: 5,   // MÍNIMO para evitar overflow
-      GRID_GAP: 4,                // MÍNIMO para mayor uso del espacio
-      CONTENT_PADDING: 2,         // MÍNIMO
-      CARD_INTERNAL_PADDING: 2.5, // MÍNIMO
+      HEADER_TO_CONTENT_GAP: 3,   // MÍNIMO para evitar overflow
+      GRID_GAP: 3,                // MÍNIMO para mayor uso del espacio
+      CONTENT_PADDING: 1,         // MÍNIMO
+      CARD_INTERNAL_PADDING: 2,   // MÍNIMO
     },
     6: {
       // 6 PRODUCTOS: Layout estándar (SIN CAMBIOS CRÍTICOS)
@@ -141,7 +141,7 @@ const calculateDynamicDimensions = (productsPerPage: 4 | 6 | 9 = 6) => {
   
   if (productsPerPage === 4) {
     // 🔧 REDUCIDO: Altura compacta para mantener grid 2x2 funcional
-     baseCardHeight = cardWidth + 32; // REDUCIDO a +32 para grid 2x2 sin overflow
+     baseCardHeight = cardWidth + 25; // REDUCIDO a +25 para grid 2x2 sin overflow
   } else if (productsPerPage === 6) {
     // 6 productos: altura estándar (SIN CAMBIOS)
     baseCardHeight = cardWidth + 45;
@@ -160,7 +160,7 @@ const calculateDynamicDimensions = (productsPerPage: 4 | 6 | 9 = 6) => {
     cardHeight: Math.floor(baseCardHeight * 100) / 100,
     gap,
     padding,
-    imageHeight: Math.floor(baseCardHeight * (productsPerPage === 4 ? 0.62 : productsPerPage === 9 ? 0.65 : 0.58) * 100) / 100, // REDUCIDO ratio para grid 2x2
+    imageHeight: Math.floor(baseCardHeight * (productsPerPage === 4 ? 0.58 : productsPerPage === 9 ? 0.65 : 0.58) * 100) / 100, // REDUCIDO ratio para grid 2x2
     textHeight: Math.floor(baseCardHeight * 0.45 * 100) / 100
   };
 };
@@ -563,7 +563,7 @@ ${productsPerPage === 6 ? `
         display: flex !important;
         flex-direction: column !important;
         justify-content: flex-start !important;
-        margin-top: ${productsPerPage === 4 ? 5 : productsPerPage === 9 ? 15 : Math.round(PDF_LAYOUT.HEADER_TO_CONTENT_GAP * scale.padding)}mm !important;
+        margin-top: ${productsPerPage === 4 ? 3 : productsPerPage === 9 ? 15 : Math.round(PDF_LAYOUT.HEADER_TO_CONTENT_GAP * scale.padding)}mm !important;
         margin-bottom: ${Math.round(PDF_LAYOUT.HEADER_TO_CONTENT_GAP * scale.padding)}mm !important;
       }
       
@@ -578,8 +578,8 @@ ${productsPerPage === 6 ? `
           `grid-template-rows: repeat(2, minmax(0, 1fr)) !important;
            grid-auto-rows: minmax(0, 1fr) !important;
            height: auto !important;
-           min-height: 180mm !important;
-           max-height: 250mm !important;` :
+           min-height: 160mm !important;
+           max-height: 260mm !important;` :
           `grid-template-rows: repeat(${PDF_LAYOUT.ROWS}, auto) !important;`
         }
         
@@ -612,9 +612,9 @@ ${productsPerPage === 6 ? `
         
         /* 🔧 FIX ALTURA ESPECÍFICA PARA 2x2 */
         ${productsPerPage === 4 ? 
-          `height: ${Math.round(LAYOUT.cardHeight * scale.layout)}mm !important;
-           min-height: ${Math.round(LAYOUT.cardHeight * scale.layout)}mm !important;
-           max-height: ${Math.round(LAYOUT.cardHeight * scale.layout + 5)}mm !important;
+          `height: ${Math.round(LAYOUT.cardHeight * scale.layout * 0.95)}mm !important;
+           min-height: ${Math.round(LAYOUT.cardHeight * scale.layout * 0.95)}mm !important;
+           max-height: ${Math.round(LAYOUT.cardHeight * scale.layout * 0.95)}mm !important;
            /* 🚀 OVERFLOW FIXES PARA 2x2 */
            overflow: visible !important;
            position: static !important;
