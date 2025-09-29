@@ -820,7 +820,7 @@ ${productsPerPage === 6 ? `
         gap: ${Math.round(1 * scale.padding)}mm !important;
         font-size: ${Math.round(Math.max(config.priceSize - 2, 6) * scale.font)}pt !important;
         color: ${template.colors.text} !important;
-        background: rgba(0,0,0,0.05) !important;
+        background: rgba(0,0,0,0.12) !important;
         padding: ${Math.round(this.getWholesalePadding(productsPerPage) * scale.padding)}mm !important;
         border-radius: ${Math.round(4 * scale.layout)}px !important;
         border: ${Math.round(0.25 * scale.layout)}pt solid ${template.colors.accent}50 !important;
@@ -839,8 +839,8 @@ ${productsPerPage === 6 ? `
       
       .wholesale-label-dynamic {
         font-size: ${Math.round(Math.max(config.priceSize - 3, 5) * scale.font)}pt !important;
-        font-weight: 500 !important;
-        color: ${template.colors.text}80 !important;
+        font-weight: 600 !important;
+        color: ${template.colors.text} !important;
         text-transform: uppercase !important;
         letter-spacing: 0.1pt !important;
         line-height: 1 !important;

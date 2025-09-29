@@ -579,7 +579,7 @@ export class TemplateGenerator {
         align-items: center !important;
         gap: calc(1mm * var(--padding-scale)) !important;
         color: var(--text) !important;
-        background: rgba(0,0,0,0.05) !important;
+        background: rgba(0,0,0,0.12) !important;
         border-radius: calc(6px * var(--border-radius-scale)) !important;
         border: calc(0.5pt * var(--layout-scale)) solid var(--border) !important;
         width: 90% !important;
@@ -594,8 +594,8 @@ export class TemplateGenerator {
 
       .wholesale-label {
         font-size: calc(var(--info-size) * 0.9) !important;
-        font-weight: 500 !important;
-        color: var(--text-light) !important;
+        font-weight: 600 !important;
+        color: var(--text) !important;
         text-transform: uppercase !important;
         letter-spacing: 0.3pt !important;
         margin: 0 !important;
