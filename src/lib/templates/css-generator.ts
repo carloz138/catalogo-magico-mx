@@ -1002,7 +1002,7 @@ export class TemplateGenerator {
       cardHeight = cardWidth + 48;
     } else if (productsPerPage === 9) {
       // 🔧 CORREGIDO: Más altura para dar más espacio al contenido
-      cardHeight = cardWidth + 35; // AUMENTADO de 20 a 35
+      cardHeight = cardWidth + 20; // REDUCIDO para grid 3x3 compacto
     } else {
       cardHeight = cardWidth + 30;
     }
@@ -1010,7 +1010,7 @@ export class TemplateGenerator {
     // 🔧 RATIO DINÁMICO DE IMAGEN CORREGIDO
     const imageHeightRatio = productsPerPage === 4 ? 0.63 :
                             productsPerPage === 6 ? 0.48 :
-                            0.52;
+                            0.62;
     
     const imageHeight = cardHeight * imageHeightRatio;
     const textAreaHeight = cardHeight - imageHeight;
@@ -1130,11 +1130,21 @@ export class TemplateGenerator {
           min-height: 12mm !important; /* ASEGURAR ALTURA MÍNIMA */
         }
       `;
-    } else if (productsPerPage === 9) {
+      } else if (productsPerPage === 9) {
       return `
-        /* PRINT OPTIMIZATIONS PARA 9 PRODUCTOS */
+        /* PRINT OPTIMIZATIONS PARA 9 PRODUCTOS - COMPACTO */
         .products-grid {
-          gap: calc(var(--gap) + 2mm) !important;
+          gap: var(--gap) !important;
+          height: auto !important;
+          max-height: 250mm !important;
+          grid-template-rows: repeat(3, minmax(0, 1fr)) !important;
+          align-content: start !important;
+        }
+        
+        .product-card {
+          height: auto !important;
+          max-height: calc(var(--card-height) - 3mm) !important;
+          padding: 2mm !important;
         }
         
         .product-pricing {

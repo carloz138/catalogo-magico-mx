@@ -106,17 +106,17 @@ const getDynamicPDFLayout = (productsPerPage: 4 | 6 | 9 = 6) => {
       CARD_INTERNAL_PADDING: 4,
     },
     9: {
-      // 🔧 9 PRODUCTOS: Layout CORREGIDO para evitar amontonamiento
-      HEADER_MARGIN: 10,     // REDUCIDO de 12
-      FOOTER_MARGIN: 8,      // REDUCIDO de 10
+      // 🔧 9 PRODUCTOS: Layout ULTRA COMPACTO para grid 3x3
+      HEADER_MARGIN: 6,      // REDUCIDO para más espacio
+      FOOTER_MARGIN: 6,      // REDUCIDO para más espacio
       SIDE_MARGIN: 8,        // SIN CAMBIOS
-      HEADER_HEIGHT: 8,      // SIN CAMBIOS
+      HEADER_HEIGHT: 6,      // REDUCIDO para más espacio
       FOOTER_HEIGHT: 5,      // SIN CAMBIOS
       COLUMNS: 3,
       ROWS: 3,
       PRODUCTS_PER_PAGE: 9,
-      HEADER_TO_CONTENT_GAP: 10, // AUMENTADO de 6
-      GRID_GAP: 8,               // AUMENTADO de 3
+      HEADER_TO_CONTENT_GAP: 6, // REDUCIDO para más espacio
+      GRID_GAP: 4,              // REDUCIDO para compactar
       CONTENT_PADDING: 4,        // AUMENTADO de 3
       CARD_INTERNAL_PADDING: 5,  // AUMENTADO de 3
     }
@@ -147,7 +147,7 @@ const calculateDynamicDimensions = (productsPerPage: 4 | 6 | 9 = 6) => {
     baseCardHeight = cardWidth + 45;
   } else if (productsPerPage === 9) {
     // 🔧 CORREGIDO: Aumentar altura para dar más espacio
-    baseCardHeight = cardWidth + 40; // AUMENTADO de 25
+    baseCardHeight = cardWidth + 22; // REDUCIDO para grid 3x3
   } else {
     baseCardHeight = cardWidth + 35;
   }
@@ -160,7 +160,7 @@ const calculateDynamicDimensions = (productsPerPage: 4 | 6 | 9 = 6) => {
     cardHeight: Math.floor(baseCardHeight * 100) / 100,
     gap,
     padding,
-    imageHeight: Math.floor(baseCardHeight * 0.50 * 100) / 100, // REDUCIDO a 0.50 (más espacio para texto)
+    imageHeight: Math.floor(baseCardHeight * (productsPerPage === 9 ? 0.65 : 0.50) * 100) / 100, // AJUSTADO por layout
     textHeight: Math.floor(baseCardHeight * 0.45 * 100) / 100
   };
 };
@@ -563,7 +563,7 @@ ${productsPerPage === 6 ? `
         display: flex !important;
         flex-direction: column !important;
         justify-content: flex-start !important;
-        margin-top: ${productsPerPage === 4 ? 20 : Math.round(PDF_LAYOUT.HEADER_TO_CONTENT_GAP * scale.padding)}mm !important;
+        margin-top: ${productsPerPage === 4 ? 20 : productsPerPage === 9 ? 5 : Math.round(PDF_LAYOUT.HEADER_TO_CONTENT_GAP * scale.padding)}mm !important;
         margin-bottom: ${Math.round(PDF_LAYOUT.HEADER_TO_CONTENT_GAP * scale.padding)}mm !important;
       }
       
@@ -1100,13 +1100,13 @@ ${productsPerPage === 6 ? `
   
   // Gap entre texto
   private static getTextGap(productsPerPage: 4 | 6 | 9): number {
-    const gaps = { 4: 2.5, 6: 1.5, 9: 2 }; // 9: Más gap entre texto
+    const gaps = { 4: 2.5, 6: 1.5, 9: 1 }; // 9: Ultra compacto
     return gaps[productsPerPage];
   }
   
   // Gap entre precios
   private static getPricingGap(productsPerPage: 4 | 6 | 9): number {
-    const gaps = { 4: 3, 6: 2.5, 9: 2.8 }; // 9: Más gap entre precios
+    const gaps = { 4: 3, 6: 2.5, 9: 1.5 }; // 9: Ultra compacto
     return gaps[productsPerPage];
   }
   
@@ -1234,30 +1234,59 @@ ${productsPerPage === 6 ? `
       `;
     } else if (productsPerPage === 9) {
       return `
-        /* OPTIMIZACIONES PARA 9 PRODUCTOS - LAYOUT COMPACTO CORREGIDO */
+        /* OPTIMIZACIONES PARA 9 PRODUCTOS - ULTRA COMPACTO */
         .products-grid-dynamic {
           justify-items: stretch;
-          align-items: stretch;
-          place-content: stretch;
-          grid-template-rows: repeat(3, 1fr) !important;
+          align-items: start;
+          place-content: start stretch;
+          grid-template-rows: repeat(3, minmax(0, 1fr)) !important;
           grid-template-columns: repeat(3, 1fr) !important;
+          align-content: start !important;
         }
         
         .product-card-dynamic {
           border-width: 0.25pt !important;
           justify-self: stretch !important;
+          align-self: start !important;
+          padding: 2mm !important;
         }
         
         .product-image-dynamic {
           object-fit: cover !important;
         }
         
+        .image-container-dynamic {
+          flex: 0 0 auto !important;
+        }
+        
         .text-area-dynamic {
-          gap: 2.5mm !important;
+          gap: 1mm !important;
+          padding: 1mm 0 !important;
+          flex: 1 1 auto !important;
+          min-height: 0 !important;
+        }
+        
+        .product-name-dynamic {
+          font-size: 7pt !important;
+          line-height: 1.2 !important;
+          margin-bottom: 1mm !important;
+          -webkit-line-clamp: 2 !important;
         }
         
         .product-pricing-dynamic {
-          gap: 3mm !important;
+          gap: 1mm !important;
+          margin: 0 !important;
+        }
+        
+        .product-price-retail-dynamic {
+          font-size: 8pt !important;
+          padding: 1mm 2mm !important;
+        }
+        
+        .product-price-wholesale-dynamic {
+          font-size: 6pt !important;
+          padding: 1mm !important;
+          min-height: 6mm !important;
         }
       `;
     }
