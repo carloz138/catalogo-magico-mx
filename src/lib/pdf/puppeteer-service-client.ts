@@ -357,20 +357,21 @@ ${productsPerPage === 6 ? `
     min-height: 0 !important;
   }
   
-  /* 1. NOMBRES DE PRODUCTOS - MULTILINE CLAMP (3 líneas) */
+  /* 1. NOMBRES DE PRODUCTOS - MULTILINE CLAMP (2 líneas) */
   .product-name-dynamic {
     display: -webkit-box !important;
     -webkit-box-orient: vertical !important;
-    -webkit-line-clamp: 3 !important;
+    -webkit-line-clamp: 2 !important;
     overflow: hidden !important;
-    font-size: ${Math.round(config.nameSize * scale.font * 0.95)}pt !important;
-    line-height: 1.25 !important;
-    max-height: 3.75em !important;
-    margin-bottom: 3mm !important;
+    font-size: ${Math.round(config.nameSize * scale.font * 0.88)}pt !important;
+    line-height: 1.2 !important;
+    max-height: 2.4em !important;
+    min-height: 2.4em !important;
+    margin-bottom: 2mm !important;
     word-wrap: break-word !important;
     hyphens: auto !important;
     text-align: center !important;
-    padding: 0 1mm !important;
+    padding: 0 2mm !important;
   }
   
   /* 2. PRECIO RETAIL - NO TRUNCAR (CRÍTICO) */

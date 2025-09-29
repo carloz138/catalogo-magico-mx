@@ -431,19 +431,20 @@ export class TemplateGenerator {
       /* ===== NOMBRE ESCALADO CORREGIDO ===== */
       .product-name {
         ${productsPerPage === 6 ? `
-          /* MULTILINE CLAMP PARA NOMBRES (3 LÍNEAS) */
+          /* MULTILINE CLAMP PARA NOMBRES (2 LÍNEAS) */
           display: -webkit-box !important;
           -webkit-box-orient: vertical !important;
-          -webkit-line-clamp: 3 !important;
+          -webkit-line-clamp: 2 !important;
           overflow: hidden !important;
-          font-size: calc(var(--title-size) * 0.95) !important;
-          line-height: 1.25 !important;
-          max-height: 3.75em !important;
-          margin-bottom: calc(3mm * var(--padding-scale)) !important;
+          font-size: calc(var(--title-size) * 0.88) !important;
+          line-height: 1.2 !important;
+          max-height: 2.4em !important;
+          min-height: 2.4em !important;
+          margin-bottom: calc(2mm * var(--padding-scale)) !important;
           word-wrap: break-word !important;
           hyphens: auto !important;
           text-align: center !important;
-          padding: 0 calc(1mm * var(--padding-scale)) !important;
+          padding: 0 calc(2mm * var(--padding-scale)) !important;
         ` : `
           font-size: var(--title-size) !important;
           font-weight: 600 !important;
@@ -891,11 +892,11 @@ export class TemplateGenerator {
           .product-name {
             display: -webkit-box !important;
             -webkit-box-orient: vertical !important;
-            -webkit-line-clamp: 3 !important;
+            -webkit-line-clamp: 2 !important;
             overflow: hidden !important;
-            height: auto !important;
-            max-height: 3.75em !important;
-            line-height: 1.25 !important;
+            max-height: 2.4em !important;
+            min-height: 2.4em !important;
+            line-height: 1.2 !important;
           }
           
           .product-price-retail {
@@ -964,7 +965,7 @@ export class TemplateGenerator {
       // 🔧 CORREGIDO: Reducir altura para evitar productos alargados
       cardHeight = cardWidth + 45; // AUMENTADO de 35 a 45 (+29% más espacio)
     } else if (productsPerPage === 6) {
-      cardHeight = cardWidth + 32; // 🔧 AUMENTADO de 28 a 32 para dar más espacio
+      cardHeight = cardWidth + 30; // 🔧 AJUSTADO de 32 a 30
     } else if (productsPerPage === 9) {
       // 🔧 CORREGIDO: Más altura para dar más espacio al contenido
       cardHeight = cardWidth + 35; // AUMENTADO de 20 a 35
@@ -974,7 +975,7 @@ export class TemplateGenerator {
     
     // 🔧 RATIO DINÁMICO DE IMAGEN CORREGIDO
     const imageHeightRatio = productsPerPage === 4 ? 0.63 : // REDUCIDO de 0.68 a 0.63 (más espacio para texto)
-                            productsPerPage === 6 ? 0.55 : // SIN CAMBIOS
+                            productsPerPage === 6 ? 0.50 : // REDUCIDO de 0.55 a 0.50
                             0.52; // AUMENTADO de 0.50 a 0.52 para 9 productos
     
     const imageHeight = cardHeight * imageHeightRatio;
