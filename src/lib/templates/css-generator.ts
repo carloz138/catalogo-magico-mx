@@ -996,8 +996,8 @@ export class TemplateGenerator {
     let cardHeight;
     
     if (productsPerPage === 4) {
-      // 🔧 CORREGIDO: Aumentar altura para imágenes más grandes
-      cardHeight = cardWidth + 58; // AUMENTADO de 45 a 58 (+29% más espacio)
+      // 🔧 BALANCEADO: Aumenta imagen sin romper grid 2x2
+      cardHeight = cardWidth + 50; // BALANCEADO a +50 para mantener grid 2x2 funcional
     } else if (productsPerPage === 6) {
       cardHeight = cardWidth + 48;
     } else if (productsPerPage === 9) {
@@ -1007,20 +1007,20 @@ export class TemplateGenerator {
       cardHeight = cardWidth + 30;
     }
     
-    // 🔧 RATIO DINÁMICO DE IMAGEN CORREGIDO
-    const imageHeightRatio = productsPerPage === 4 ? 0.68 :
+    // 🔧 RATIO DINÁMICO DE IMAGEN BALANCEADO
+    const imageHeightRatio = productsPerPage === 4 ? 0.66 :
                             productsPerPage === 6 ? 0.48 :
                             0.62;
     
     const imageHeight = cardHeight * imageHeightRatio;
     const textAreaHeight = cardHeight - imageHeight;
     
-    // 🔧 LÍMITES DINÁMICOS CORREGIDOS
-    const minCardHeight = productsPerPage === 4 ? 65 : // AUMENTADO de 55 a 65
+    // 🔧 LÍMITES DINÁMICOS BALANCEADOS
+    const minCardHeight = productsPerPage === 4 ? 58 : // BALANCEADO para grid 2x2
                          productsPerPage === 6 ? 40 : // SIN CAMBIOS  
                          38; // AUMENTADO de 35 para 9 productos
                          
-    const maxCardHeight = productsPerPage === 4 ? 140 : // AUMENTADO de 125 a 140
+    const maxCardHeight = productsPerPage === 4 ? 110 : // BALANCEADO para grid 2x2
                          productsPerPage === 6 ? 100 : // SIN CAMBIOS
                          75; // REDUCIDO de 80 para 9 productos
     
@@ -1055,7 +1055,7 @@ export class TemplateGenerator {
   
   // Margen superior del contenido (separación del header)
   private static getContentTopMargin(productsPerPage: 4 | 6 | 9): number {
-    const margins = { 4: 10, 6: 8, 9: 12 }; // 9: MÁS margen para separar del header
+    const margins = { 4: 6, 6: 8, 9: 12 }; // 4: REDUCIDO para evitar overflow
     return margins[productsPerPage];
   }
   
