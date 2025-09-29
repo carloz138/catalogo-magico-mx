@@ -403,15 +403,16 @@ export class TemplateGenerator {
       /* 🚀 INFORMACIÓN ESCALADA DINÁMICAMENTE - CORREGIDA */
       .product-info {
         ${productsPerPage === 6 ? `
-          /* CONTAINER FIXES PARA 6 PRODUCTOS */
-          display: block !important; /* CAMBIAR DE FLEX A BLOCK */
+          /* CONTAINER OPTIMIZADO - MÁS ESPACIO VERTICAL */
+          display: flex !important;
+          flex-direction: column !important;
           min-width: 0 !important;
           min-height: 0 !important;
-          overflow: hidden !important;
+          overflow: visible !important;
           height: auto !important;
-          max-height: calc(var(--text-area-height) * 0.9) !important;
+          max-height: calc(var(--text-area-height) * 1.1) !important;
           padding: calc(0.8mm * var(--padding-scale)) 0 !important;
-          gap: calc(1.5mm * var(--padding-scale)) !important;
+          gap: calc(1.2mm * var(--padding-scale)) !important;
         ` : `
           flex: 1 1 auto !important;
           display: flex !important;
