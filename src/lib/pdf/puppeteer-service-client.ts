@@ -140,8 +140,8 @@ const calculateDynamicDimensions = (productsPerPage: 4 | 6 | 9 = 6) => {
   let baseCardHeight;
   
   if (productsPerPage === 4) {
-    // 🔧 REDUCIDO: Altura compacta para mantener grid 2x2 funcional
-     baseCardHeight = cardWidth + 25; // REDUCIDO a +25 para grid 2x2 sin overflow
+    // 🔧 REDUCIDO: Altura ultra compacta para grid 2x2 sin overflow
+     baseCardHeight = cardWidth + 22; // REDUCIDO a +22 para grid 2x2 sin overflow
   } else if (productsPerPage === 6) {
     // 6 productos: altura estándar (SIN CAMBIOS)
     baseCardHeight = cardWidth + 45;
@@ -619,7 +619,7 @@ ${productsPerPage === 6 ? `
            min-height: ${Math.round(LAYOUT.cardHeight * scale.layout * 0.95)}mm !important;
            max-height: ${Math.round(LAYOUT.cardHeight * scale.layout * 0.95)}mm !important;
            /* 🚀 OVERFLOW FIXES PARA 2x2 */
-           overflow: visible !important;
+           overflow: hidden !important;
            position: static !important;
            float: none !important;` :
           `height: ${Math.round(LAYOUT.cardHeight * scale.layout)}mm !important;
@@ -630,7 +630,7 @@ ${productsPerPage === 6 ? `
         background: white !important;
         border: ${Math.round(0.5 * scale.layout)}pt solid ${template.colors.accent}60 !important;
         border-radius: ${Math.round(6 * scale.layout)}px !important;
-        overflow: visible !important;
+        overflow: ${productsPerPage === 4 ? 'hidden' : 'visible'} !important;
         box-shadow: 0 ${Math.round(2 * scale.layout)}pt ${Math.round(4 * scale.layout)}pt rgba(0,0,0,0.12) !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
@@ -649,7 +649,7 @@ ${productsPerPage === 6 ? `
         
         /* 🚀 OVERFLOW FIXES PARA 2x2 */
         ${productsPerPage === 4 ? `
-          overflow: visible !important;
+          overflow: hidden !important;
           position: static !important;
           float: none !important;
         ` : ''}
@@ -696,6 +696,7 @@ ${productsPerPage === 6 ? `
         overflow: hidden !important;
         position: relative !important;
         border-radius: ${Math.round(3 * scale.layout)}px !important;
+        ${productsPerPage === 4 ? 'aspect-ratio: unset !important;' : ''}
       }
       
       /* IMAGEN DINÁMICA CORREGIDA */
@@ -751,14 +752,12 @@ ${productsPerPage === 6 ? `
         flex-direction: column !important;
         justify-content: flex-start !important;
         align-items: center !important;
-        overflow: visible !important;
+        ${productsPerPage === 4 ? 'overflow: hidden !important;' : 'overflow: visible !important;'}
         ${productsPerPage === 4 ? 'display: block !important;' : ''}
         text-align: center !important;
-        overflow: visible !important;
         position: relative !important;
         background: white !important;
         gap: ${Math.round(this.getTextGap(productsPerPage) * scale.padding)}mm !important;
-        ${productsPerPage === 4 ? 'display: block !important;' : ''}
       }
       
       .product-name-dynamic {
@@ -772,7 +771,7 @@ ${productsPerPage === 6 ? `
         overflow: hidden !important;
         word-wrap: break-word !important;
         text-align: center !important;
-        line-height: 1.3 !important;
+        line-height: ${productsPerPage === 4 ? '1.1' : '1.3'} !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
         flex-shrink: 0 !important;
@@ -813,42 +812,43 @@ ${productsPerPage === 6 ? `
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
         flex-shrink: 0 !important;
-        line-height: 1.2 !important;
+        line-height: ${productsPerPage === 4 ? '1' : '1.2'} !important;
         margin: 0 !important;
       }
 
       /* PRECIO MAYOREO DINÁMICO CORREGIDO */
       .product-price-wholesale-dynamic {
-        display: flex !important;
-        flex-direction: column !important;
-        align-items: center !important;
-        gap: ${Math.round(1 * scale.padding)}mm !important;
+        display: ${productsPerPage === 4 ? 'block' : 'flex'} !important;
+        ${productsPerPage === 4 ? '' : 'flex-direction: column !important;'}
+        ${productsPerPage === 4 ? '' : 'align-items: center !important;'}
+        gap: ${productsPerPage === 4 ? '0' : `${Math.round(1 * scale.padding)}mm`} !important;
         font-size: ${Math.round(Math.max(config.priceSize - 2, 6) * scale.font)}pt !important;
         color: ${template.colors.text} !important;
         background: rgba(0,0,0,0.12) !important;
-        padding: ${Math.round(this.getWholesalePadding(productsPerPage) * scale.padding)}mm !important;
+        padding: ${productsPerPage === 4 ? '1mm' : `${Math.round(this.getWholesalePadding(productsPerPage) * scale.padding)}mm`} !important;
         border-radius: ${Math.round(4 * scale.layout)}px !important;
         border: ${Math.round(0.25 * scale.layout)}pt solid ${template.colors.accent}50 !important;
         width: 90% !important;
         text-align: center !important;
         -webkit-print-color-adjust: exact !important;
-        overflow: visible !important;
+        overflow: hidden !important;
         position: static !important;
-        ${productsPerPage === 4 ? 'display: block !important; margin: 2mm 0 !important; position: static !important;' : ''}
         flex-shrink: 0 !important;
-        min-height: ${Math.round(this.getWholesaleMinHeight(productsPerPage) * scale.layout)}mm !important;
+        ${productsPerPage === 4 ? `min-height: auto !important;
+        max-height: 10mm !important;
+        line-height: 1 !important;` : `min-height: ${Math.round(this.getWholesaleMinHeight(productsPerPage) * scale.layout)}mm !important;`}
+        margin: ${productsPerPage === 4 ? '0.5mm 0' : '0'} !important;
         position: relative !important;
         z-index: 2 !important;
-        margin: 0 !important;
       }
       
       .wholesale-label-dynamic {
-        font-size: ${Math.round(Math.max(config.priceSize - 3, 5) * scale.font)}pt !important;
+        font-size: ${Math.round(Math.max(config.priceSize - 3, 5) * scale.font * (productsPerPage === 4 ? 0.9 : 1))}pt !important;
         font-weight: 600 !important;
         color: ${template.colors.text} !important;
         text-transform: uppercase !important;
         letter-spacing: 0.1pt !important;
-        line-height: 1 !important;
+        line-height: ${productsPerPage === 4 ? '0.95' : '1'} !important;
         margin: 0 !important;
         padding: 0 !important;
       }
@@ -856,18 +856,18 @@ ${productsPerPage === 6 ? `
       .wholesale-price-dynamic {
         font-weight: 700 !important;
         color: ${template.colors.primary} !important;
-        font-size: ${Math.round(Math.max(config.priceSize - 1, 7) * scale.font)}pt !important;
-        line-height: 1.1 !important;
+        font-size: ${Math.round(Math.max(config.priceSize - 1, 7) * scale.font * (productsPerPage === 4 ? 0.9 : 1))}pt !important;
+        line-height: ${productsPerPage === 4 ? '0.95' : '1.1'} !important;
         margin: 0 !important;
         padding: 0 !important;
       }
       
       .wholesale-min-dynamic {
-        font-size: ${Math.round(Math.max(config.priceSize - 4, 5) * scale.font)}pt !important;
+        font-size: ${Math.round(Math.max(config.priceSize - 4, 5) * scale.font * (productsPerPage === 4 ? 0.85 : 1))}pt !important;
         color: ${template.colors.text}60 !important;
         font-weight: 400 !important;
         font-style: italic !important;
-        line-height: 1 !important;
+        line-height: ${productsPerPage === 4 ? '0.9' : '1'} !important;
         margin: 0 !important;
         padding: 0 !important;
       }
@@ -934,7 +934,8 @@ ${productsPerPage === 6 ? `
           .product-card-dynamic {
             display: flex !important;
             flex-direction: column !important;
-            overflow: visible !important;
+            overflow: hidden !important;
+            contain: layout size !important;
             height: auto !important;
             min-height: ${Math.round(LAYOUT.cardHeight * scale.layout * 0.85)}mm !important;
             max-height: ${Math.round(LAYOUT.cardHeight * scale.layout * 0.90)}mm !important;
@@ -1118,7 +1119,7 @@ ${productsPerPage === 6 ? `
   
   // Padding del precio retail
   private static getRetailPricePadding(productsPerPage: 4 | 6 | 9): number {
-    const paddings = { 4: 2, 6: 1.5, 9: 1.8 }; // Solo el valor vertical
+    const paddings = { 4: 1.2, 6: 1.5, 9: 1.8 }; // 4: Reducido para grid 2x2
     return paddings[productsPerPage];
   }
   
@@ -1130,13 +1131,13 @@ ${productsPerPage === 6 ? `
   
   // Padding del precio wholesale
   private static getWholesalePadding(productsPerPage: 4 | 6 | 9): number {
-    const paddings = { 4: 2.5, 6: 2, 9: 2.5 }; // 9: Más padding
+    const paddings = { 4: 1, 6: 2, 9: 2.5 }; // 4: Mínimo para grid 2x2
     return paddings[productsPerPage];
   }
   
   // Altura mínima del wholesale
   private static getWholesaleMinHeight(productsPerPage: 4 | 6 | 9): number {
-    const heights = { 4: 12, 6: 8, 9: 10 }; // 9: Más altura
+    const heights = { 4: 0, 6: 8, 9: 10 }; // 4: Sin min-height para grid 2x2
     return heights[productsPerPage];
   }
   
