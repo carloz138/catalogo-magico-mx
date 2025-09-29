@@ -1221,49 +1221,11 @@ ${productsPerPage === 6 ? `
       `;
     } else if (productsPerPage === 6) {
       return `
-        /* 🚨 TEXT OVERFLOW FIXES ESPECÍFICOS PARA 3x2 (6 PRODUCTOS) */
-        .product-card-dynamic .product-name-dynamic {
-          max-height: 2.4em !important;
-          line-height: 1.2 !important;
-          overflow: hidden !important;
-          text-overflow: ellipsis !important;
-          white-space: nowrap !important;
-          display: block !important;
-          font-size: ${Math.round(12 * 0.9)}pt !important;
-        }
-        
-        .product-card-dynamic .product-price-retail-dynamic {
-          overflow: hidden !important;
-          text-overflow: ellipsis !important;
-          white-space: nowrap !important;
-          max-width: 100% !important;
-          font-size: ${Math.round(11 * 0.95)}pt !important;
-        }
-        
-        .product-card-dynamic .product-price-wholesale-dynamic {
-          overflow: hidden !important;
-          max-height: 8mm !important;
-          min-height: 6mm !important;
-          padding: ${Math.round(2 * 0.8)}mm !important;
-        }
-        
-        .product-card-dynamic .wholesale-label-dynamic,
-        .product-card-dynamic .wholesale-price-dynamic,
-        .product-card-dynamic .wholesale-min-dynamic {
-          overflow: hidden !important;
-          text-overflow: ellipsis !important;
-          white-space: nowrap !important;
-          line-height: 1.1 !important;
-        }
-        
-        .product-card-dynamic .text-area-dynamic {
-          gap: ${Math.round(2 * 0.8)}mm !important;
-          overflow: hidden !important;
-        }
-        
-        .product-card-dynamic .product-pricing-dynamic {
-          gap: ${Math.round(2.5 * 0.8)}mm !important;
-          overflow: hidden !important;
+        /* LAYOUT OPTIMIZADO PARA 6 PRODUCTOS */
+        .products-grid-dynamic {
+          justify-items: center;
+          align-items: start;
+          place-content: start center;
         }
       `;
     } else if (productsPerPage === 9) {

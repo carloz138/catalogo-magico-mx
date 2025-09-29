@@ -922,6 +922,7 @@ export class TemplateGenerator {
             overflow: hidden !important;
             max-height: none !important;
             line-height: 1.3 !important;
+            white-space: normal !important;
           }
           
           .product-price-retail {
