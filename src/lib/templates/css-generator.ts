@@ -996,8 +996,8 @@ export class TemplateGenerator {
     let cardHeight;
     
     if (productsPerPage === 4) {
-      // 🔧 CORREGIDO: Reducir altura para evitar productos alargados
-      cardHeight = cardWidth + 45; // AUMENTADO de 35 a 45 (+29% más espacio)
+      // 🔧 CORREGIDO: Aumentar altura para imágenes más grandes
+      cardHeight = cardWidth + 58; // AUMENTADO de 45 a 58 (+29% más espacio)
     } else if (productsPerPage === 6) {
       cardHeight = cardWidth + 48;
     } else if (productsPerPage === 9) {
@@ -1008,7 +1008,7 @@ export class TemplateGenerator {
     }
     
     // 🔧 RATIO DINÁMICO DE IMAGEN CORREGIDO
-    const imageHeightRatio = productsPerPage === 4 ? 0.63 :
+    const imageHeightRatio = productsPerPage === 4 ? 0.68 :
                             productsPerPage === 6 ? 0.48 :
                             0.62;
     
@@ -1016,11 +1016,11 @@ export class TemplateGenerator {
     const textAreaHeight = cardHeight - imageHeight;
     
     // 🔧 LÍMITES DINÁMICOS CORREGIDOS
-    const minCardHeight = productsPerPage === 4 ? 55 : // AUMENTADO de 45 a 55
+    const minCardHeight = productsPerPage === 4 ? 65 : // AUMENTADO de 55 a 65
                          productsPerPage === 6 ? 40 : // SIN CAMBIOS  
                          38; // AUMENTADO de 35 para 9 productos
                          
-    const maxCardHeight = productsPerPage === 4 ? 125 : // AUMENTADO de 110 a 125
+    const maxCardHeight = productsPerPage === 4 ? 140 : // AUMENTADO de 125 a 140
                          productsPerPage === 6 ? 100 : // SIN CAMBIOS
                          75; // REDUCIDO de 80 para 9 productos
     

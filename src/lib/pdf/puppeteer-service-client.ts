@@ -140,8 +140,8 @@ const calculateDynamicDimensions = (productsPerPage: 4 | 6 | 9 = 6) => {
   let baseCardHeight;
   
   if (productsPerPage === 4) {
-    // 🔧 CORREGIDO: Reducir altura para evitar productos alargados
-     baseCardHeight = Math.min(cardWidth + 35, 60); // REDUCIDO de +45,75 a +35,60
+    // 🔧 CORREGIDO: Aumentar altura para imágenes más grandes
+     baseCardHeight = Math.min(cardWidth + 50, 80); // AUMENTADO de +35,60 a +50,80
   } else if (productsPerPage === 6) {
     // 6 productos: altura estándar (SIN CAMBIOS)
     baseCardHeight = cardWidth + 45;
@@ -160,7 +160,7 @@ const calculateDynamicDimensions = (productsPerPage: 4 | 6 | 9 = 6) => {
     cardHeight: Math.floor(baseCardHeight * 100) / 100,
     gap,
     padding,
-    imageHeight: Math.floor(baseCardHeight * (productsPerPage === 9 ? 0.65 : 0.50) * 100) / 100, // AJUSTADO por layout
+    imageHeight: Math.floor(baseCardHeight * (productsPerPage === 4 ? 0.70 : productsPerPage === 9 ? 0.65 : 0.58) * 100) / 100, // AJUSTADO por layout
     textHeight: Math.floor(baseCardHeight * 0.45 * 100) / 100
   };
 };
