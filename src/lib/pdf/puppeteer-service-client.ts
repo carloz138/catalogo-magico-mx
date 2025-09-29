@@ -85,7 +85,7 @@ const getDynamicPDFLayout = (productsPerPage: 4 | 6 | 9 = 6) => {
       COLUMNS: 2,
       ROWS: 2,
       PRODUCTS_PER_PAGE: 4,
-      HEADER_TO_CONTENT_GAP: 3,   // MÍNIMO para evitar overflow
+      HEADER_TO_CONTENT_GAP: 1,   // MÍNIMO para evitar overflow y página en blanco
       GRID_GAP: 3,                // MÍNIMO para mayor uso del espacio
       CONTENT_PADDING: 1,         // MÍNIMO
       CARD_INTERNAL_PADDING: 2,   // MÍNIMO
@@ -510,7 +510,8 @@ ${productsPerPage === 6 ? `
       
       /* BODY ESCALADO */
       body.dynamic-body {
-        margin: 0 !important;
+        ${productsPerPage === 4 ? 'margin-top: -3mm !important;' : 'margin: 0 !important;'}
+        ${productsPerPage === 4 ? 'margin-bottom: 0 !important; margin-left: 0 !important; margin-right: 0 !important;' : ''}
         padding: 0 !important;
         font-family: 'Arial', 'Helvetica', sans-serif !important;
         font-size: ${Math.round(config.fontSize * scale.font)}pt !important;
@@ -529,7 +530,7 @@ ${productsPerPage === 6 ? `
       /* PÁGINA INDIVIDUAL DINÁMICA CORREGIDA */
       .page-container-dynamic {
         width: 100% !important;
-        margin: 0 !important;
+        ${productsPerPage === 4 ? 'margin: -2mm 0 0 0 !important;' : 'margin: 0 !important;'}
         padding: ${PDF_LAYOUT.HEADER_MARGIN}mm ${PDF_LAYOUT.SIDE_MARGIN}mm ${PDF_LAYOUT.FOOTER_MARGIN}mm ${PDF_LAYOUT.SIDE_MARGIN}mm !important;
         background: ${template.colors.background} !important;
         position: relative !important;
@@ -554,7 +555,9 @@ ${productsPerPage === 6 ? `
       /* CONTENIDO PRINCIPAL DINÁMICO CORREGIDO */
       .page-content-dynamic {
         width: 100% !important;
-        padding: ${Math.round(LAYOUT.padding * scale.padding)}mm !important;
+        ${productsPerPage === 4 ? 
+          `padding: 0mm ${Math.round(LAYOUT.padding * scale.padding)}mm ${Math.round(LAYOUT.padding * scale.padding)}mm ${Math.round(LAYOUT.padding * scale.padding)}mm !important;` : 
+          `padding: ${Math.round(LAYOUT.padding * scale.padding)}mm !important;`}
         background: ${template.colors.background} !important;
         position: relative !important;
         overflow: visible !important;
@@ -563,7 +566,7 @@ ${productsPerPage === 6 ? `
         display: flex !important;
         flex-direction: column !important;
         justify-content: flex-start !important;
-        margin-top: ${productsPerPage === 4 ? 3 : productsPerPage === 9 ? 15 : Math.round(PDF_LAYOUT.HEADER_TO_CONTENT_GAP * scale.padding)}mm !important;
+        margin-top: ${productsPerPage === 4 ? 0 : productsPerPage === 9 ? 15 : Math.round(PDF_LAYOUT.HEADER_TO_CONTENT_GAP * scale.padding)}mm !important;
         margin-bottom: ${Math.round(PDF_LAYOUT.HEADER_TO_CONTENT_GAP * scale.padding)}mm !important;
       }
       
@@ -642,7 +645,7 @@ ${productsPerPage === 6 ? `
         break-after: auto !important;
         
         padding: ${Math.round(PDF_LAYOUT.CARD_INTERNAL_PADDING * scale.padding)}mm !important;
-        gap: ${Math.round(this.getCardGap(productsPerPage) * scale.padding)}mm !important;
+        gap: ${productsPerPage === 4 ? '1mm' : `${Math.round(this.getCardGap(productsPerPage) * scale.padding)}mm`} !important;
         
         /* 🚀 OVERFLOW FIXES PARA 2x2 */
         ${productsPerPage === 4 ? `
@@ -736,10 +739,13 @@ ${productsPerPage === 6 ? `
       
       /* ÁREA DE TEXTO DINÁMICA CORREGIDA */
       .text-area-dynamic {
-        flex: 1 1 auto !important;
-        min-height: ${Math.round(LAYOUT.textHeight * scale.layout)}mm !important;
+        ${productsPerPage === 4 ? 'flex: 0 1 auto !important;' : 'flex: 1 1 auto !important;'}
+        ${productsPerPage === 4 ? `min-height: auto !important;
         height: auto !important;
-        max-height: none !important;
+        max-height: ${Math.round(LAYOUT.textHeight * scale.layout)}mm !important;` : 
+        `min-height: ${Math.round(LAYOUT.textHeight * scale.layout)}mm !important;
+        height: auto !important;
+        max-height: none !important;`}
         padding: ${Math.round(this.getTextPadding(productsPerPage) * scale.padding)}mm !important;
         display: flex !important;
         flex-direction: column !important;
@@ -780,7 +786,7 @@ ${productsPerPage === 6 ? `
         gap: ${Math.round(this.getPricingGap(productsPerPage) * scale.padding)}mm !important;
         margin: 0 !important;
         width: 100% !important;
-        flex-grow: 1 !important;
+        ${productsPerPage === 4 ? 'flex-grow: 0 !important;' : 'flex-grow: 1 !important;'}
         justify-content: flex-start !important;
         overflow: visible !important;
         ${productsPerPage === 4 ? 'display: block !important;' : ''}
@@ -926,11 +932,12 @@ ${productsPerPage === 6 ? `
           }
           
           .product-card-dynamic {
-            display: block !important;
+            display: flex !important;
+            flex-direction: column !important;
             overflow: visible !important;
             height: auto !important;
-            min-height: auto !important;
-            max-height: none !important;
+            min-height: ${Math.round(LAYOUT.cardHeight * scale.layout * 0.85)}mm !important;
+            max-height: ${Math.round(LAYOUT.cardHeight * scale.layout * 0.90)}mm !important;
             
             page-break-inside: avoid !important;
             break-inside: avoid !important;
@@ -1093,19 +1100,19 @@ ${productsPerPage === 6 ? `
   
   // Padding de texto
   private static getTextPadding(productsPerPage: 4 | 6 | 9): number {
-    const paddings = { 4: 2, 6: 1, 9: 1.5 }; // 9: Más padding de texto
+    const paddings = { 4: 0.5, 6: 1, 9: 1.5 }; // 4: Mínimo para grid 2x2
     return paddings[productsPerPage];
   }
   
   // Gap entre texto
   private static getTextGap(productsPerPage: 4 | 6 | 9): number {
-    const gaps = { 4: 2.5, 6: 1.5, 9: 1 }; // 9: Ultra compacto
+    const gaps = { 4: 1, 6: 1.5, 9: 1 }; // 4: Compacto para grid 2x2
     return gaps[productsPerPage];
   }
   
   // Gap entre precios
   private static getPricingGap(productsPerPage: 4 | 6 | 9): number {
-    const gaps = { 4: 3, 6: 2.5, 9: 1.5 }; // 9: Ultra compacto
+    const gaps = { 4: 1.5, 6: 2.5, 9: 1.5 }; // 4: Compacto para grid 2x2
     return gaps[productsPerPage];
   }
   
