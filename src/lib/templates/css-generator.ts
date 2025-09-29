@@ -1064,7 +1064,7 @@ export class TemplateGenerator {
   
   // Gap entre elementos de texto
   private static getTextGap(productsPerPage: 4 | 6 | 9): number {
-    const gaps = { 4: 3, 6: 2, 9: 3 }; // 🔧 REDUCIDO de 2.5 a 2 para 6 productos
+    const gaps = { 4: 3, 6: 1.3, 9: 3 }; // OPTIMIZADO a 1.3 para mejor aprovechamiento
     return gaps[productsPerPage];
   }
   
