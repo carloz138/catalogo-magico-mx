@@ -76,19 +76,19 @@ const PRECISION_DELTA = 0.5;
 const getDynamicPDFLayout = (productsPerPage: 4 | 6 | 9 = 6) => {
   const layoutConfigs = {
     4: {
-      // 🔧 4 PRODUCTOS: Layout BALANCEADO para grid 2x2 funcional
-      HEADER_MARGIN: 8,      // OPTIMIZADO para evitar overflow
-      FOOTER_MARGIN: 8,      // OPTIMIZADO
-      SIDE_MARGIN: 10,       // OPTIMIZADO
-      HEADER_HEIGHT: 8,      // REDUCIDO para más espacio
-      FOOTER_HEIGHT: 6,      // REDUCIDO
+      // 🔧 4 PRODUCTOS: Layout ULTRA COMPACTO para grid 2x2 sin overflow
+      HEADER_MARGIN: 6,      // MÍNIMO para más espacio
+      FOOTER_MARGIN: 6,      // MÍNIMO
+      SIDE_MARGIN: 10,       // MANTENIDO
+      HEADER_HEIGHT: 6,      // MÍNIMO para más espacio
+      FOOTER_HEIGHT: 5,      // MÍNIMO
       COLUMNS: 2,
       ROWS: 2,
       PRODUCTS_PER_PAGE: 4,
-      HEADER_TO_CONTENT_GAP: 6,   // REDUCIDO para evitar overflow
-      GRID_GAP: 5,                // REDUCIDO para mayor uso del espacio
-      CONTENT_PADDING: 3,         // REDUCIDO
-      CARD_INTERNAL_PADDING: 3,   // REDUCIDO
+      HEADER_TO_CONTENT_GAP: 5,   // MÍNIMO para evitar overflow
+      GRID_GAP: 4,                // MÍNIMO para mayor uso del espacio
+      CONTENT_PADDING: 2,         // MÍNIMO
+      CARD_INTERNAL_PADDING: 2.5, // MÍNIMO
     },
     6: {
       // 6 PRODUCTOS: Layout estándar (SIN CAMBIOS CRÍTICOS)
@@ -140,8 +140,8 @@ const calculateDynamicDimensions = (productsPerPage: 4 | 6 | 9 = 6) => {
   let baseCardHeight;
   
   if (productsPerPage === 4) {
-    // 🔧 BALANCEADO: Aumenta imagen sin romper grid 2x2
-     baseCardHeight = cardWidth + 38; // BALANCEADO a +38 para mantener grid 2x2 funcional
+    // 🔧 REDUCIDO: Altura compacta para mantener grid 2x2 funcional
+     baseCardHeight = cardWidth + 32; // REDUCIDO a +32 para grid 2x2 sin overflow
   } else if (productsPerPage === 6) {
     // 6 productos: altura estándar (SIN CAMBIOS)
     baseCardHeight = cardWidth + 45;
@@ -160,7 +160,7 @@ const calculateDynamicDimensions = (productsPerPage: 4 | 6 | 9 = 6) => {
     cardHeight: Math.floor(baseCardHeight * 100) / 100,
     gap,
     padding,
-    imageHeight: Math.floor(baseCardHeight * (productsPerPage === 4 ? 0.65 : productsPerPage === 9 ? 0.65 : 0.58) * 100) / 100, // BALANCEADO para grid 2x2
+    imageHeight: Math.floor(baseCardHeight * (productsPerPage === 4 ? 0.62 : productsPerPage === 9 ? 0.65 : 0.58) * 100) / 100, // REDUCIDO ratio para grid 2x2
     textHeight: Math.floor(baseCardHeight * 0.45 * 100) / 100
   };
 };
@@ -336,9 +336,9 @@ export class PuppeteerServiceClient {
     const LAYOUT = calculateDynamicDimensions(productsPerPage);
     const PDF_LAYOUT = LAYOUT.PDF_LAYOUT;
     
-    // 🎯 ESCALAS DINÁMICAS CORREGIDAS
+    // 🎯 ESCALAS DINÁMICAS SIN MULTIPLICACIÓN PARA 4
     const scaleMap = {
-      4: { layout: 1.08, font: 1.1, padding: 1.1 }, // AJUSTADO para 4
+      4: { layout: 1.0, font: 1.05, padding: 1.0 }, // SIN scale para 4
       6: { layout: 1.0, font: 1.0, padding: 1.0 }, // Estándar para 6
       9: { layout: 0.85, font: 0.9, padding: 0.85 }  // AJUSTADO para 9
     };
@@ -563,7 +563,7 @@ ${productsPerPage === 6 ? `
         display: flex !important;
         flex-direction: column !important;
         justify-content: flex-start !important;
-        margin-top: ${productsPerPage === 4 ? 8 : productsPerPage === 9 ? 15 : Math.round(PDF_LAYOUT.HEADER_TO_CONTENT_GAP * scale.padding)}mm !important;
+        margin-top: ${productsPerPage === 4 ? 5 : productsPerPage === 9 ? 15 : Math.round(PDF_LAYOUT.HEADER_TO_CONTENT_GAP * scale.padding)}mm !important;
         margin-bottom: ${Math.round(PDF_LAYOUT.HEADER_TO_CONTENT_GAP * scale.padding)}mm !important;
       }
       
@@ -573,12 +573,13 @@ ${productsPerPage === 6 ? `
         display: grid !important;
         grid-template-columns: repeat(${PDF_LAYOUT.COLUMNS}, 1fr) !important;
         
-        /* 🔧 FIX CRÍTICO: Grid flexible con límite de altura para 2x2 */
+        /* 🔧 FIX CRÍTICO: Grid flexible con límite de altura aumentado para 2x2 */
         ${productsPerPage === 4 ? 
-          `grid-template-rows: repeat(2, 1fr) !important;
+          `grid-template-rows: repeat(2, minmax(0, 1fr)) !important;
            grid-auto-rows: minmax(0, 1fr) !important;
-           height: fit-content !important;
-           max-height: 220mm !important;` :
+           height: auto !important;
+           min-height: 180mm !important;
+           max-height: 250mm !important;` :
           `grid-template-rows: repeat(${PDF_LAYOUT.ROWS}, auto) !important;`
         }
         
