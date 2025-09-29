@@ -357,7 +357,7 @@ ${productsPerPage === 6 ? `
     min-height: 0 !important;
   }
   
-  /* 1. NOMBRES DE PRODUCTOS - MULTILINE CLAMP (3 líneas) */
+/* 1. NOMBRES DE PRODUCTOS - MULTILINE CLAMP (3 líneas) */
   .product-name-dynamic {
     /* DISPLAY WEBKIT-BOX REQUERIDO */
     display: -webkit-box !important;
@@ -367,10 +367,12 @@ ${productsPerPage === 6 ? `
     /* WORD-BREAK CRÍTICO PARA LINE-CLAMP */
     word-break: break-word !important;
     word-wrap: break-word !important;
+    overflow-wrap: break-word !important;
     
-    /* WIDTH EXPLÍCITO REQUERIDO */
+    /* WIDTH EXPLÍCITO REQUERIDO - ANCHO MÁXIMO FORZADO */
     width: 100% !important;
-    max-width: 100% !important;
+    max-width: 180px !important;
+    min-width: 150px !important;
     
     /* OVERFLOW Y HEIGHT */
     overflow: hidden !important;

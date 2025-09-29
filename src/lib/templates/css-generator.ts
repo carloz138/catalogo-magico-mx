@@ -432,7 +432,7 @@ export class TemplateGenerator {
       /* ===== NOMBRE ESCALADO CORREGIDO ===== */
       .product-name {
         ${productsPerPage === 6 ? `
-          /* NOMBRE DE PRODUCTO - 3 LÍNEAS PARA TÍTULOS LARGOS */
+/* NOMBRE DE PRODUCTO - 3 LÍNEAS PARA TÍTULOS LARGOS */
           display: -webkit-box !important;
           -webkit-box-orient: vertical !important;
           -webkit-line-clamp: 3 !important;
@@ -440,10 +440,12 @@ export class TemplateGenerator {
           /* WORD-BREAK CRÍTICO */
           word-break: break-word !important;
           word-wrap: break-word !important;
+          overflow-wrap: break-word !important;
           
-          /* WIDTH EXPLÍCITO */
+          /* WIDTH EXPLÍCITO CON LÍMITE MÁXIMO */
           width: 100% !important;
-          max-width: 100% !important;
+          max-width: 180px !important;
+          min-width: 150px !important;
           
           /* OVERFLOW */
           overflow: hidden !important;
