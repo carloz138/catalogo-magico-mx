@@ -492,12 +492,14 @@ export class TemplateGenerator {
       /* ===== SISTEMA DE PRECIOS ESCALADO CORREGIDO ===== */
       .product-pricing {
         ${productsPerPage === 6 ? `
-          /* PRICING CONTAINER - MÁS ESPACIO PARA WHOLESALE */
-          display: block !important;
+          /* PRICING CONTAINER - COMPACTO Y EFICIENTE */
+          display: flex !important;
+          flex-direction: column !important;
+          align-items: center !important;
           overflow: visible !important;
-          margin: calc(2mm * var(--padding-scale)) 0 !important;
+          margin: calc(1.2mm * var(--padding-scale)) 0 !important;
           padding: 0 !important;
-          min-height: calc(18mm * var(--padding-scale)) !important;
+          min-height: calc(14mm * var(--padding-scale)) !important;
           text-align: center !important;
         ` : `
           display: flex !important;
