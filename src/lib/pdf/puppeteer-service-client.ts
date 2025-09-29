@@ -144,7 +144,7 @@ const calculateDynamicDimensions = (productsPerPage: 4 | 6 | 9 = 6) => {
      baseCardHeight = Math.min(cardWidth + 35, 60); // REDUCIDO de +45,75 a +35,60
   } else if (productsPerPage === 6) {
     // 6 productos: altura estándar (SIN CAMBIOS)
-    baseCardHeight = cardWidth + 35;
+    baseCardHeight = cardWidth + 40;
   } else if (productsPerPage === 9) {
     // 🔧 CORREGIDO: Aumentar altura para dar más espacio
     baseCardHeight = cardWidth + 40; // AUMENTADO de 25
@@ -160,7 +160,7 @@ const calculateDynamicDimensions = (productsPerPage: 4 | 6 | 9 = 6) => {
     cardHeight: Math.floor(baseCardHeight * 100) / 100,
     gap,
     padding,
-    imageHeight: Math.floor(baseCardHeight * 0.63 * 100) / 100, // REDUCIDO de 0.68 a 0.63 (más espacio para texto)
+    imageHeight: Math.floor(baseCardHeight * 0.58 * 100) / 100, // REDUCIDO a 0.58 (más espacio para texto)
     textHeight: Math.floor(baseCardHeight * 0.45 * 100) / 100
   };
 };
@@ -369,10 +369,10 @@ ${productsPerPage === 6 ? `
     word-wrap: break-word !important;
     overflow-wrap: break-word !important;
     
-    /* WIDTH EXPLÍCITO REQUERIDO - ANCHO MÁXIMO FORZADO */
+    /* WIDTH EXPLÍCITO REQUERIDO */
     width: 100% !important;
-    max-width: 180px !important;
-    min-width: 150px !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
     
     /* OVERFLOW Y HEIGHT */
     overflow: hidden !important;
@@ -381,7 +381,7 @@ ${productsPerPage === 6 ? `
     
     /* TIPOGRAFÍA OPTIMIZADA */
     font-size: ${Math.round(config.nameSize * scale.font * 0.92)}pt !important;
-    line-height: 1.3 !important;
+    line-height: 1.25 !important;
     
     /* SPACING MÍNIMO */
     margin: 0 0 2mm 0 !important;
@@ -472,7 +472,7 @@ ${productsPerPage === 6 ? `
     display: block !important;
     overflow: visible !important;
     padding: ${Math.round(1.5 * scale.padding)}mm 0 !important;
-    min-height: ${Math.round(LAYOUT.textHeight * scale.layout * 0.9)}mm !important;
+    min-height: ${Math.round(LAYOUT.textHeight * scale.layout * 1.1)}mm !important;
   }
 ` : ''}
 

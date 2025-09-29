@@ -410,7 +410,7 @@ export class TemplateGenerator {
           min-height: 0 !important;
           overflow: visible !important;
           height: auto !important;
-          max-height: calc(var(--text-area-height) * 1.1) !important;
+          max-height: none !important;
           padding: calc(0.8mm * var(--padding-scale)) 0 !important;
           gap: calc(1.2mm * var(--padding-scale)) !important;
         ` : `
@@ -442,10 +442,10 @@ export class TemplateGenerator {
           word-wrap: break-word !important;
           overflow-wrap: break-word !important;
           
-          /* WIDTH EXPLÍCITO CON LÍMITE MÁXIMO */
+          /* WIDTH EXPLÍCITO */
           width: 100% !important;
-          max-width: 180px !important;
-          min-width: 150px !important;
+          max-width: 100% !important;
+          min-width: 0 !important;
           
           /* OVERFLOW */
           overflow: hidden !important;
@@ -454,7 +454,7 @@ export class TemplateGenerator {
           
           /* TIPOGRAFÍA */
           font-size: calc(var(--title-size) * 0.92) !important;
-          line-height: 1.3 !important;
+          line-height: 1.25 !important;
           font-weight: 600 !important;
           color: var(--primary) !important;
           
@@ -1003,7 +1003,7 @@ export class TemplateGenerator {
     
     // 🔧 RATIO DINÁMICO DE IMAGEN CORREGIDO
     const imageHeightRatio = productsPerPage === 4 ? 0.63 :
-                            productsPerPage === 6 ? 0.44 : // REDUCIDO a 0.44 para dar MÁS espacio al texto
+                            productsPerPage === 6 ? 0.52 :
                             0.52;
     
     const imageHeight = cardHeight * imageHeightRatio;
@@ -1067,7 +1067,7 @@ export class TemplateGenerator {
   
   // Gap entre elementos de texto
   private static getTextGap(productsPerPage: 4 | 6 | 9): number {
-    const gaps = { 4: 3, 6: 1.3, 9: 3 }; // OPTIMIZADO a 1.3 para mejor aprovechamiento
+    const gaps = { 4: 3, 6: 2, 9: 3 };
     return gaps[productsPerPage];
   }
   
