@@ -77,7 +77,7 @@ const getDynamicPDFLayout = (productsPerPage: 4 | 6 | 9 = 6) => {
   const layoutConfigs = {
     4: {
       // 🔧 4 PRODUCTOS: Layout ULTRA COMPACTO para grid 2x2 sin overflow
-      HEADER_MARGIN: 5,      // MÍNIMO para más espacio
+      HEADER_MARGIN: 7,      // AUMENTADO para evitar overlap con header
       FOOTER_MARGIN: 5,      // MÍNIMO
       SIDE_MARGIN: 10,       // MANTENIDO
       HEADER_HEIGHT: 5,      // MÍNIMO para más espacio
@@ -85,7 +85,7 @@ const getDynamicPDFLayout = (productsPerPage: 4 | 6 | 9 = 6) => {
       COLUMNS: 2,
       ROWS: 2,
       PRODUCTS_PER_PAGE: 4,
-      HEADER_TO_CONTENT_GAP: 1,   // MÍNIMO para evitar overflow y página en blanco
+      HEADER_TO_CONTENT_GAP: 3,   // AUMENTADO para evitar overlap con header
       GRID_GAP: 3,                // MÍNIMO para mayor uso del espacio
       CONTENT_PADDING: 1,         // MÍNIMO
       CARD_INTERNAL_PADDING: 2,   // MÍNIMO
@@ -510,8 +510,7 @@ ${productsPerPage === 6 ? `
       
       /* BODY ESCALADO */
       body.dynamic-body {
-        ${productsPerPage === 4 ? 'margin-top: -3mm !important;' : 'margin: 0 !important;'}
-        ${productsPerPage === 4 ? 'margin-bottom: 0 !important; margin-left: 0 !important; margin-right: 0 !important;' : ''}
+        margin: 0 !important;
         padding: 0 !important;
         font-family: 'Arial', 'Helvetica', sans-serif !important;
         font-size: ${Math.round(config.fontSize * scale.font)}pt !important;
@@ -530,8 +529,9 @@ ${productsPerPage === 6 ? `
       /* PÁGINA INDIVIDUAL DINÁMICA CORREGIDA */
       .page-container-dynamic {
         width: 100% !important;
-        ${productsPerPage === 4 ? 'margin: -2mm 0 0 0 !important;' : 'margin: 0 !important;'}
+        margin: 0 !important;
         padding: ${PDF_LAYOUT.HEADER_MARGIN}mm ${PDF_LAYOUT.SIDE_MARGIN}mm ${PDF_LAYOUT.FOOTER_MARGIN}mm ${PDF_LAYOUT.SIDE_MARGIN}mm !important;
+        ${productsPerPage === 4 ? 'padding-top: 8mm !important;' : ''}
         background: ${template.colors.background} !important;
         position: relative !important;
         overflow: visible !important;
@@ -556,7 +556,7 @@ ${productsPerPage === 6 ? `
       .page-content-dynamic {
         width: 100% !important;
         ${productsPerPage === 4 ? 
-          `padding: 0mm ${Math.round(LAYOUT.padding * scale.padding)}mm ${Math.round(LAYOUT.padding * scale.padding)}mm ${Math.round(LAYOUT.padding * scale.padding)}mm !important;` : 
+          `padding: ${Math.round(2)}mm ${Math.round(LAYOUT.padding * scale.padding)}mm ${Math.round(LAYOUT.padding * scale.padding)}mm ${Math.round(LAYOUT.padding * scale.padding)}mm !important;` : 
           `padding: ${Math.round(LAYOUT.padding * scale.padding)}mm !important;`}
         background: ${template.colors.background} !important;
         position: relative !important;
@@ -566,7 +566,7 @@ ${productsPerPage === 6 ? `
         display: flex !important;
         flex-direction: column !important;
         justify-content: flex-start !important;
-        margin-top: ${productsPerPage === 4 ? 0 : productsPerPage === 9 ? 15 : Math.round(PDF_LAYOUT.HEADER_TO_CONTENT_GAP * scale.padding)}mm !important;
+        margin-top: ${productsPerPage === 4 ? 4 : productsPerPage === 9 ? 15 : Math.round(PDF_LAYOUT.HEADER_TO_CONTENT_GAP * scale.padding)}mm !important;
         margin-bottom: ${Math.round(PDF_LAYOUT.HEADER_TO_CONTENT_GAP * scale.padding)}mm !important;
       }
       
@@ -574,6 +574,7 @@ ${productsPerPage === 6 ? `
       .products-grid-dynamic {
         width: 100% !important;
         display: grid !important;
+        ${productsPerPage === 4 ? 'padding-top: 3mm !important;' : ''}
         grid-template-columns: repeat(${PDF_LAYOUT.COLUMNS}, 1fr) !important;
         
         /* 🔧 FIX CRÍTICO: Grid flexible con límite de altura aumentado para 2x2 */
@@ -582,7 +583,8 @@ ${productsPerPage === 6 ? `
            grid-auto-rows: minmax(0, 1fr) !important;
            height: auto !important;
            min-height: 160mm !important;
-           max-height: 260mm !important;` :
+           max-height: 260mm !important;
+           margin-top: 5mm !important;` :
           `grid-template-rows: repeat(${PDF_LAYOUT.ROWS}, auto) !important;`
         }
         
@@ -591,8 +593,9 @@ ${productsPerPage === 6 ? `
         /* 🔧 JUSTIFICACIÓN ESPECÍFICA POR LAYOUT CORREGIDAS */
         ${productsPerPage === 4 ? 
           `justify-items: center !important;
-           align-items: start !important;
-           place-content: start center !important;` :
+           align-items: flex-start !important;
+           align-content: flex-start !important;
+           place-content: flex-start center !important;` :
           `justify-items: ${this.getGridJustifyItems(productsPerPage)} !important;
            align-items: start !important;`
         }
@@ -918,10 +921,20 @@ ${productsPerPage === 6 ? `
             float: none !important;
           }
           
+          .page-container-dynamic {
+            padding-top: 10mm !important;
+          }
+          
+          .page-content-dynamic {
+            padding-top: 3mm !important;
+          }
+          
           .products-grid-dynamic {
             height: auto !important;
             min-height: auto !important;
             max-height: none !important;
+            margin-top: 5mm !important;
+            padding-top: 3mm !important;
             
             grid-template-rows: auto auto !important;
             grid-auto-rows: auto !important;
@@ -1334,7 +1347,14 @@ ${productsPerPage === 6 ? `
   
   // 🔧 GENERACIÓN DE GRID CORREGIDA PARA 2x2
   private static generateDynamicGrid(products: Product[], productsPerPage: 4 | 6 | 9): string {
-    let gridHTML = '<div class="products-grid-dynamic">';
+    let gridHTML = '';
+    
+    // 🚀 SPACER INVISIBLE PARA EVITAR OVERLAP CON HEADER
+    if (productsPerPage === 4) {
+      gridHTML += '<div style="height: 5mm; width: 100%;"></div>';
+    }
+    
+    gridHTML += '<div class="products-grid-dynamic">';
     
     // 🚀 FIX CRÍTICO: Para 2x2, siempre generar exactamente 4 slots
     if (productsPerPage === 4) {
