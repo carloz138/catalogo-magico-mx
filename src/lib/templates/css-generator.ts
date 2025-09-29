@@ -999,9 +999,9 @@ export class TemplateGenerator {
     }
     
     // 🔧 RATIO DINÁMICO DE IMAGEN CORREGIDO
-    const imageHeightRatio = productsPerPage === 4 ? 0.63 : // REDUCIDO de 0.68 a 0.63 (más espacio para texto)
-                            productsPerPage === 6 ? 0.48 : // REDUCIDO de 0.50 a 0.48
-                            0.52; // AUMENTADO de 0.50 a 0.52 para 9 productos
+    const imageHeightRatio = productsPerPage === 4 ? 0.63 :
+                            productsPerPage === 6 ? 0.44 : // REDUCIDO a 0.44 para dar MÁS espacio al texto
+                            0.52;
     
     const imageHeight = cardHeight * imageHeightRatio;
     const textAreaHeight = cardHeight - imageHeight;
