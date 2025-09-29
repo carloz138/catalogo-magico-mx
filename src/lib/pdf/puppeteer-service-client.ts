@@ -453,13 +453,16 @@ ${productsPerPage === 6 ? `
     opacity: 0.8 !important;
   }
   
-  /* 7. PRICING CONTAINER - MÁS ESPACIO VERTICAL */
+  /* 7. PRICING CONTAINER - COMPACTO Y EFICIENTE */
   .product-pricing-dynamic {
-    display: block !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
     overflow: visible !important;
-    margin: 2mm 0 !important;
+    margin: calc(1.2mm * var(--padding-scale)) 0 !important;
     padding: 0 !important;
-    min-height: 18mm !important; /* Más altura para wholesale */
+    min-height: calc(14mm * var(--padding-scale)) !important;
+    text-align: center !important;
   }
   
   /* 8. TEXT AREA - MÁS ESPACIO PARA CONTENIDO */

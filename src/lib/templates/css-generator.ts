@@ -915,7 +915,7 @@ export class TemplateGenerator {
           .product-name {
             display: -webkit-box !important;
             -webkit-box-orient: vertical !important;
-            -webkit-line-clamp: 2 !important;
+            -webkit-line-clamp: 3 !important;
             word-break: break-word !important;
             word-wrap: break-word !important;
             width: 100% !important;
