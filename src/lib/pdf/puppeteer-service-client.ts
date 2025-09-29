@@ -228,7 +228,7 @@ export class PuppeteerServiceClient {
       // ✅ PDF Options dinámicos CORREGIDOS
       const pdfOptions = this.getDynamicPDFOptions(options, businessInfo, template, productsPerPage);
       
-      const pdfBlob = await this.generatePDFWithRetry(htmlContent, pdfOptions, businessInfo, options.onProgress);
+      const pdfBlob = await this.generatePDFWithRetry(htmlContent, pdfOptions, businessInfo, options.onProgress, 2, options.catalogTitle);
       
       if (options.onProgress) options.onProgress(90);
       
@@ -249,7 +249,7 @@ export class PuppeteerServiceClient {
         );
         
         if (storageResult.success) {
-          await this.downloadPDF(pdfBlob, businessInfo.business_name);
+          await this.downloadPDF(pdfBlob, businessInfo.business_name, options.catalogTitle);
           
           if (options.onProgress) options.onProgress(100);
           
@@ -265,7 +265,7 @@ export class PuppeteerServiceClient {
         }
       }
       
-      await this.downloadPDF(pdfBlob, businessInfo.business_name);
+      await this.downloadPDF(pdfBlob, businessInfo.business_name, options.catalogTitle);
       
       if (options.onProgress) options.onProgress(100);
       
@@ -1444,7 +1444,7 @@ ${productsPerPage === 6 ? `
       scale: 1.0,
       quality: options.quality === 'high' ? 100 : options.quality === 'low' ? 80 : 90,
       
-      headerTemplate: `<div style="font-size: 12px !important; width: 100% !important; height: ${PDF_LAYOUT.HEADER_HEIGHT}mm !important; text-align: center !important; background: ${primaryColor} !important; background-image: linear-gradient(135deg, ${primaryColor}, ${secondaryColor}) !important; color: white !important; padding: 2mm !important; margin: 0 !important; border-radius: 4px !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; display: table !important; table-layout: fixed !important;"><div style="display: table-cell; vertical-align: middle; text-align: center;"><strong style="color: white !important; font-size: 14px !important;">${businessInfo.business_name || 'Mi Negocio'}</strong><br><span style="color: rgba(255,255,255,0.9) !important; font-size: 10px !important;">${catalogTitle} ${productsPerPage === 4 ? '(2x2 Grid)' : ''}</span></div></div>`,
+      headerTemplate: `<div style="font-size: 12px !important; width: 100% !important; height: ${PDF_LAYOUT.HEADER_HEIGHT}mm !important; text-align: center !important; background: ${primaryColor} !important; background-image: linear-gradient(135deg, ${primaryColor}, ${secondaryColor}) !important; color: white !important; padding: 2mm !important; margin: 0 !important; border-radius: 4px !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; display: table !important; table-layout: fixed !important;"><div style="display: table-cell; vertical-align: middle; text-align: center;"><strong style="color: white !important; font-size: 14px !important;">${businessInfo.business_name || 'Mi Negocio'}</strong><br><span style="color: rgba(255,255,255,0.9) !important; font-size: 10px !important;">${catalogTitle}</span></div></div>`,
 
       footerTemplate: `<div style="font-size: 9px !important; width: 100% !important; height: ${PDF_LAYOUT.FOOTER_HEIGHT}mm !important; text-align: center !important; background: ${secondaryColor} !important; color: white !important; padding: 1mm !important; margin: 0 !important; border-radius: 4px !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; display: table !important; table-layout: fixed !important;"><div style="display: table-cell; vertical-align: middle; text-align: center;">${contactInfo ? `<div style="color: white !important; font-size: 8px !important; margin-bottom: 1mm !important;">${contactInfo}</div>` : ''}</div></div>`,
       landscape: false,
@@ -1529,7 +1529,8 @@ ${productsPerPage === 6 ? `
     pdfOptions: any,
     businessInfo: BusinessInfo,
     onProgress?: (progress: number) => void,
-    maxRetries: number = 2
+    maxRetries: number = 2,
+    catalogTitle?: string
   ): Promise<Blob> {
     
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
@@ -1551,7 +1552,7 @@ ${productsPerPage === 6 ? `
             waitForSelector: '.page-container-dynamic',
             waitForFunction: 'document.readyState === "complete"',
           },
-          filename: `catalogo-corrected-${businessInfo.business_name.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`,
+          filename: `${(catalogTitle || 'Catalogo').replace(/[^a-zA-Z0-9]/g, '_')}-${businessInfo.business_name.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`,
           debug: process.env.NODE_ENV === 'development',
           retryOnFailure: attempt < maxRetries
         };
@@ -1599,10 +1600,13 @@ ${productsPerPage === 6 ? `
     throw new Error('Todos los intentos de generación fallaron');
   }
   
-  private static async downloadPDF(blob: Blob, businessName: string): Promise<void> {
+  private static async downloadPDF(blob: Blob, businessName: string, catalogTitle?: string): Promise<void> {
     try {
       const downloadUrl = URL.createObjectURL(blob);
-      const filename = `catalogo-corrected-${businessName.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
+      const catalogName = catalogTitle || 'Catalogo';
+      const cleanCatalogName = catalogName.replace(/[^a-zA-Z0-9]/g, '_');
+      const cleanBusinessName = businessName.replace(/[^a-zA-Z0-9]/g, '_');
+      const filename = `${cleanCatalogName}-${cleanBusinessName}.pdf`;
       
       const link = document.createElement('a');
       link.href = downloadUrl;
