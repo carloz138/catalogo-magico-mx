@@ -774,7 +774,7 @@ const Index = () => {
             </div>
             <div className="flex items-center">
               <CheckCircle2 className="w-4 h-4 mr-2" />
-              Desde $106 MXN/mes
+              Desde $99 MXN/mes
             </div>
             <div className="flex items-center">
               <CheckCircle2 className="w-4 h-4 mr-2" />
