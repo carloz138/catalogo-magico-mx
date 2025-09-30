@@ -354,14 +354,6 @@ const Analytics = () => {
                 <h2 className="text-lg sm:text-xl font-semibold text-gray-900">Panel de Control</h2>
                 <p className="text-sm text-gray-600">Estado actual de tu cuenta y límites</p>
               </div>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => navigate('/checkout')}
-                className="hidden sm:flex"
-              >
-                Mejorar Plan
-              </Button>
             </div>
             <UsageDashboard />
           </div>

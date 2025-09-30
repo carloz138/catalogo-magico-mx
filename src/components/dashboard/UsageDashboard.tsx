@@ -240,10 +240,9 @@ export const UsageDashboard = () => {
               </p>
             </div>
             <Button 
-              variant="outline" 
               onClick={() => navigate('/checkout')}
               size="sm"
-              className="w-full sm:w-auto"
+              className="w-full sm:w-auto bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-600/90"
             >
               Cambiar Plan
             </Button>
