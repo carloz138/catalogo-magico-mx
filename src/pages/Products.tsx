@@ -106,7 +106,7 @@ const Products = () => {
                 <Button 
                   variant="outline" 
                   size="sm"
-                  onClick={() => navigate('/pricing')}
+                  onClick={() => navigate('/checkout')}
                   className="border-red-300 text-red-700 hover:bg-red-100 text-xs"
                 >
                   Upgrade
