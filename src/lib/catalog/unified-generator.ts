@@ -1482,39 +1482,29 @@ export class UnifiedCatalogGenerator {
   
   static async updateCatalogUsage(userId: string): Promise<void> {
     try {
-      const currentMonth = parseInt(
-        new Date().getFullYear().toString() + 
-        (new Date().getMonth() + 1).toString().padStart(2, '0')
-      );
+      console.log('📊 Llamando a increment_catalog_usage para:', userId);
       
-      const { data: existingUsage } = await (supabase as any)
-        .from('catalog_usage')
-        .select('id, catalogs_generated')
-        .eq('user_id', userId)
-        .eq('usage_month', currentMonth)
-        .maybeSingle();
-      
-      if (existingUsage) {
-        await (supabase as any)
-          .from('catalog_usage')
-          .update({
-            catalogs_generated: existingUsage.catalogs_generated + 1,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', existingUsage.id);
-      } else {
-        await (supabase as any)
-          .from('catalog_usage')
-          .insert({
-            user_id: userId,
-            usage_month: currentMonth,
-            catalogs_generated: 1,
-            uploads_used: 0
-          });
+      const { data, error } = await (supabase as any).rpc('increment_catalog_usage', {
+        p_user_id: userId
+      });
+
+      if (error) {
+        console.error('❌ Error RPC:', error);
+        throw error;
       }
+
+      const result = typeof data === 'string' ? JSON.parse(data) : data;
+      
+      if (!result.success) {
+        console.error('❌ Incremento falló:', result.message);
+        throw new Error(result.message);
+      }
+
+      console.log('✅ Contador de catálogos actualizado');
       
     } catch (error) {
-      console.error('Error in updateCatalogUsage:', error);
+      console.error('❌ Error crítico updateCatalogUsage:', error);
+      throw error;
     }
   }
   
