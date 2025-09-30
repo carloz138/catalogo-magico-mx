@@ -205,7 +205,7 @@ export const UsageDashboard = () => {
           <p className="text-gray-600 mb-4 text-xs sm:text-sm">
             Necesitas una suscripción para usar la plataforma
           </p>
-          <Button onClick={() => navigate('/pricing')} size="sm">
+          <Button onClick={() => navigate('/checkout')} size="sm">
             Ver Planes
           </Button>
         </CardContent>
@@ -241,7 +241,7 @@ export const UsageDashboard = () => {
             </div>
             <Button 
               variant="outline" 
-              onClick={() => navigate('/pricing')}
+              onClick={() => navigate('/checkout')}
               size="sm"
               className="w-full sm:w-auto"
             >
