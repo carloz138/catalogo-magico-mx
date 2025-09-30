@@ -139,7 +139,7 @@ const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
   };
 
   const goToCheckout = () => {
-    navigate('/checkout?plan=monthly');
+    navigate('/checkout');
   };
 
   // No mostrar nada mientras carga
