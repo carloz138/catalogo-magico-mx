@@ -357,7 +357,7 @@ const Analytics = () => {
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => navigate('/pricing')}
+                onClick={() => navigate('/checkout')}
                 className="hidden sm:flex"
               >
                 Mejorar Plan
