@@ -475,7 +475,7 @@ const Index = () => {
               <h3 className="text-xl font-bold text-gray-900 mb-4">90% más barato</h3>
               <p className="text-gray-600 mb-4">
                 Servicios externos: $1,000+ MXN por catálogo.
-                CatifyPro: desde $106 MXN mensual ilimitado.
+                CatifyPro: desde $99 MXN mensual ilimitado.
               </p>
               <div className="bg-green-50 p-4 rounded-lg">
                 <p className="text-sm font-semibold text-green-800">
