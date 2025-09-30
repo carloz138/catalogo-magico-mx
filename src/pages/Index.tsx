@@ -362,7 +362,7 @@ const Index = () => {
               <p className="text-xl text-gray-600 mb-8 leading-relaxed max-w-2xl">
                 La primera plataforma que convierte tu inventario en catálogos PDF profesionales 
                 <span className="font-semibold text-purple-600"> segmentados por cliente</span>. 
-                Organiza productos con etiquetas inteligentes y genera catálogos automáticos por solo $106 MXN/mes.
+                Organiza productos con etiquetas inteligentes y genera catálogos automáticos por solo $99 MXN/mes.
               </p>
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
