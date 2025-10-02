@@ -39,6 +39,125 @@ interface DynamicLayoutConfig {
 export class TemplateGenerator {
   
   /**
+   * Genera CSS específico para templates minimalistas
+   */
+  private static generateMinimalistCSS(
+    template: IndustryTemplate,
+    productsPerPage: 4 | 6 | 9
+  ): string {
+    
+    const isMinimalist = template.id.startsWith('minimalist-');
+    
+    if (!isMinimalist) return '';
+    
+    return `
+      /* ===== ESTILOS MINIMALISTAS ===== */
+      
+      .product-card {
+        background: ${template.colors.cardBackground} !important;
+        border: ${template.design?.shadows ? '0' : '1px solid #e2e8f0'} !important;
+        box-shadow: ${template.design?.shadows ? 
+          '0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)' : 
+          'none'} !important;
+        padding: calc(${productsPerPage === 4 ? 8 : productsPerPage === 6 ? 6 : 5}mm * var(--padding-scale)) !important;
+        transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+      }
+      
+      .product-card:hover {
+        transform: translateY(-2px) !important;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04) !important;
+      }
+      
+      .product-name {
+        font-weight: 500 !important;
+        letter-spacing: 0.02em !important;
+        color: ${template.colors.primary} !important;
+        margin-bottom: calc(3mm * var(--padding-scale)) !important;
+        line-height: 1.4 !important;
+      }
+      
+      .product-sku {
+        font-size: calc(var(--info-size) * 0.85) !important;
+        color: ${template.colors.secondary} !important;
+        font-weight: 400 !important;
+        letter-spacing: 0.05em !important;
+        text-transform: uppercase !important;
+        margin-bottom: calc(2mm * var(--padding-scale)) !important;
+      }
+      
+      .product-price-retail {
+        background: transparent !important;
+        background-image: none !important;
+        color: ${template.colors.primary} !important;
+        font-weight: 600 !important;
+        font-size: calc(var(--price-size) * 1.1) !important;
+        padding: 0 !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        border-bottom: 2px solid ${template.colors.accent} !important;
+        padding-bottom: calc(1mm * var(--padding-scale)) !important;
+        display: inline-block !important;
+      }
+      
+      .product-price-wholesale {
+        background: ${template.colors.background} !important;
+        border: 1px solid ${template.colors.accent} !important;
+        padding: calc(2mm * var(--padding-scale)) !important;
+        border-radius: calc(4px * var(--border-radius-scale)) !important;
+      }
+      
+      .product-image-container {
+        background: ${template.colors.background} !important;
+        border: none !important;
+        padding: calc(4mm * var(--padding-scale)) !important;
+        margin-bottom: calc(4mm * var(--padding-scale)) !important;
+      }
+      
+      .catalog-header {
+        background: ${template.colors.background} !important;
+        background-image: none !important;
+        color: ${template.colors.text} !important;
+        border-bottom: 1px solid ${template.colors.accent} !important;
+        border-radius: 0 !important;
+      }
+      
+      .business-name {
+        color: ${template.colors.text} !important;
+        text-shadow: none !important;
+        font-weight: 500 !important;
+        letter-spacing: 0.1em !important;
+      }
+      
+      .catalog-footer {
+        background: ${template.colors.background} !important;
+        color: ${template.colors.text} !important;
+        border-top: 1px solid ${template.colors.accent} !important;
+        border-radius: 0 !important;
+      }
+      
+      .contact-item {
+        background: transparent !important;
+        border: 1px solid ${template.colors.accent} !important;
+        color: ${template.colors.text} !important;
+      }
+      
+      ${productsPerPage === 4 ? `
+        .products-grid {
+          gap: calc(8mm * var(--padding-scale)) !important;
+        }
+      ` : productsPerPage === 6 ? `
+        .products-grid {
+          gap: calc(6mm * var(--padding-scale)) !important;
+        }
+      ` : `
+        .products-grid {
+          gap: calc(5mm * var(--padding-scale)) !important;
+        }
+      `}
+    `;
+  }
+  
+  /**
    * 🎯 FUNCIÓN PRINCIPAL CON PRODUCTOS POR PÁGINA DINÁMICOS - CORREGIDA + FIX 2x2
    */
   static generateTemplateCSS(
@@ -955,6 +1074,9 @@ export class TemplateGenerator {
         }
       ` : ''}
       ${this.generateDensitySpecificCSS(template, productsPerPage)}
+      
+      /* ===== ESTILOS MINIMALISTAS SI APLICA ===== */
+      ${this.generateMinimalistCSS(template, productsPerPage)}
     `;
   }
   
