@@ -271,10 +271,11 @@ export const TemplatePreview: React.FC<TemplatePreviewProps> = ({
         }
 
         .template-title {
-          font-size: 14px;
-          font-weight: 600;
-          color: #1f2937;
+          font-size: 16px;
+          font-weight: 700;
+          color: #111827;
           margin: 0;
+          letter-spacing: -0.01em;
         }
 
         .template-badges {
