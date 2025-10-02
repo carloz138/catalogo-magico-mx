@@ -1276,6 +1276,9 @@ export const initializeOptimizedTemplates = async () => {
     // Agregar solo templates nuevos
     AUDITED_TEMPLATES_V2.push(...filteredTemplates);
     
+    // 🎨 AGREGAR TEMPLATES MINIMALISTAS
+    await initializeMinimalistTemplates();
+    
     console.log(`✅ ${filteredTemplates.length} templates optimizados agregados`);
     console.log(`📊 Total templates disponibles: ${AUDITED_TEMPLATES_V2.length}`);
     
@@ -1284,6 +1287,130 @@ export const initializeOptimizedTemplates = async () => {
     console.error('❌ Error inicializando templates optimizados:', error);
     return [];
   }
+};
+
+/**
+ * 🎨 INICIALIZAR TEMPLATES MINIMALISTAS
+ */
+const initializeMinimalistTemplates = async () => {
+  console.log('🎨 Inicializando templates minimalistas...');
+  
+  // Template 1: Minimalista Blanco
+  const minimalistWhite = await NewTemplateGenerator.createTemplateFromBlueprint({
+    id: 'minimalist-white',
+    displayName: 'Minimalista Blanco',
+    description: 'Diseño ultra limpio con fondo blanco puro, ideal para productos de hogar, tecnología o moda',
+    industry: 'decoracion',
+    category: 'minimal',
+    tags: ['minimalist', 'clean', 'modern', 'white'],
+    
+    colors: {
+      primary: '#2c3e50',
+      secondary: '#34495e',
+      accent: '#95a5a6'
+    },
+    
+    density: 'baja',
+    productsPerPage: 6,
+    gridColumns: 3,
+    borderRadius: 8,
+    shadows: true,
+    spacing: 'amplio',
+    typography: 'modern',
+    
+    showInfo: {
+      category: false,
+      description: false,
+      sku: true,
+      specifications: false,
+      wholesalePrice: true,
+      wholesaleMinQty: true
+    },
+    
+    isPremium: false,
+    planLevel: 'free'
+  });
+  
+  // Template 2: Minimalista Cálido
+  const minimalistWarm = await NewTemplateGenerator.createTemplateFromBlueprint({
+    id: 'minimalist-warm',
+    displayName: 'Minimalista Cálido',
+    description: 'Diseño minimalista con tonos tierra y beige, perfecto para muebles, decoración y productos artesanales',
+    industry: 'muebles',
+    category: 'minimal',
+    tags: ['minimalist', 'warm', 'earth', 'furniture'],
+    
+    colors: {
+      primary: '#8b7355',
+      secondary: '#a0826d',
+      accent: '#d4b5a0'
+    },
+    
+    density: 'baja',
+    productsPerPage: 6,
+    gridColumns: 3,
+    borderRadius: 12,
+    shadows: false,
+    spacing: 'amplio',
+    typography: 'classic',
+    
+    showInfo: {
+      category: false,
+      description: false,
+      sku: true,
+      specifications: false,
+      wholesalePrice: true,
+      wholesaleMinQty: true
+    },
+    
+    isPremium: false,
+    planLevel: 'free'
+  });
+  
+  // Template 3: Minimalista Nórdico
+  const minimalistNordic = await NewTemplateGenerator.createTemplateFromBlueprint({
+    id: 'minimalist-nordic',
+    displayName: 'Minimalista Nórdico',
+    description: 'Estilo escandinavo con tonos grises suaves y máxima simplicidad',
+    industry: 'decoracion',
+    category: 'minimal',
+    tags: ['minimalist', 'nordic', 'scandinavian', 'grey'],
+    
+    colors: {
+      primary: '#4a5568',
+      secondary: '#718096',
+      accent: '#cbd5e0'
+    },
+    
+    density: 'baja',
+    productsPerPage: 6,
+    gridColumns: 3,
+    borderRadius: 4,
+    shadows: true,
+    spacing: 'amplio',
+    typography: 'modern',
+    
+    showInfo: {
+      category: false,
+      description: false,
+      sku: true,
+      specifications: false,
+      wholesalePrice: true,
+      wholesaleMinQty: true
+    },
+    
+    isPremium: false,
+    planLevel: 'free'
+  });
+  
+  // Verificar que no estén duplicados antes de agregar
+  const existingIds = AUDITED_TEMPLATES_V2.map(t => t.id);
+  const newTemplates = [minimalistWhite, minimalistWarm, minimalistNordic]
+    .filter(t => !existingIds.includes(t.id));
+  
+  AUDITED_TEMPLATES_V2.push(...newTemplates);
+  
+  console.log(`✅ ${newTemplates.length} templates minimalistas agregados`);
 };
 // Para usar:
 // const christmasTemplate = await NewTemplateGenerator.createTemplateFromBlueprint(CHRISTMAS_TEMPLATE_BLUEPRINT);
