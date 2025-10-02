@@ -28,6 +28,7 @@ const convertToIndustryTemplate = (auditedTemplate: AuditedTemplate): any => {
   return {
     id: auditedTemplate.id,
     name: auditedTemplate.displayName,
+    displayName: auditedTemplate.displayName,  // ✅ AGREGAR displayName
     description: auditedTemplate.description || 'Template optimizado V2.0',
     industry: auditedTemplate.industry || 'general',
     density: auditedTemplate.density || 'media',
