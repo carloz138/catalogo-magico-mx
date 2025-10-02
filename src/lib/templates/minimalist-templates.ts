@@ -39,7 +39,9 @@ export const MINIMALIST_TEMPLATES: IndustryTemplate[] = [
     
     isPremium: false,
     
-    imageSize: { width: 250, height: 250 }
+    imageSize: { width: 250, height: 250 },
+    
+    tags: ['minimalist', 'clean', 'modern', 'white']
   },
   
   {
@@ -79,7 +81,9 @@ export const MINIMALIST_TEMPLATES: IndustryTemplate[] = [
     
     isPremium: false,
     
-    imageSize: { width: 250, height: 250 }
+    imageSize: { width: 250, height: 250 },
+    
+    tags: ['minimalist', 'warm', 'earth', 'furniture']
   },
   
   {
@@ -119,6 +123,8 @@ export const MINIMALIST_TEMPLATES: IndustryTemplate[] = [
     
     isPremium: false,
     
-    imageSize: { width: 250, height: 250 }
+    imageSize: { width: 250, height: 250 },
+    
+    tags: ['minimalist', 'nordic', 'scandinavian', 'grey']
   }
 ];

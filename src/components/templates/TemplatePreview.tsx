@@ -4,7 +4,7 @@
 import React from 'react';
 import { IndustryTemplate } from '@/lib/templates/industry-templates';
 import { Badge } from '@/components/ui/badge';
-import { Crown, Package } from 'lucide-react';
+import { Crown, Package, CheckCircle } from 'lucide-react';
 
 // 🎨 PRODUCTOS DE MUESTRA MÁS REALISTAS Y ESPECÍFICOS
 const SAMPLE_PRODUCTS = {
@@ -150,6 +150,17 @@ export const TemplatePreview: React.FC<TemplatePreviewProps> = ({
           </div>
         </div>
         <p className="template-description">{template.description}</p>
+        
+        {/* Tags del template */}
+        {template.tags && template.tags.length > 0 && (
+          <div className="template-tags">
+            {template.tags.slice(0, 4).map(tag => (
+              <Badge key={tag} variant="outline" className="tag-badge">
+                {tag}
+              </Badge>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Preview del catálogo */}
@@ -217,7 +228,7 @@ export const TemplatePreview: React.FC<TemplatePreviewProps> = ({
       {/* Indicador de selección */}
       {isSelected && (
         <div className="selection-indicator">
-          <div className="selection-check">✓</div>
+          <CheckCircle className="w-5 h-5 text-white" strokeWidth={3} />
         </div>
       )}
 
@@ -292,7 +303,23 @@ export const TemplatePreview: React.FC<TemplatePreviewProps> = ({
           font-size: 11px;
           color: #6b7280;
           line-height: 1.4;
-          margin: 0;
+          margin: 0 0 8px 0;
+        }
+        
+        .template-tags {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 4px;
+          margin-top: 8px;
+        }
+        
+        .tag-badge {
+          font-size: 9px;
+          padding: 2px 6px;
+          background: var(--template-primary);
+          color: white;
+          border: none;
+          opacity: 0.85;
         }
 
         .catalog-preview {
@@ -426,20 +453,24 @@ export const TemplatePreview: React.FC<TemplatePreviewProps> = ({
           position: absolute;
           top: 12px;
           right: 12px;
-          width: 24px;
-          height: 24px;
+          width: 28px;
+          height: 28px;
           background: var(--template-primary);
           border-radius: 50%;
           display: flex;
           align-items: center;
           justify-content: center;
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+          box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
+          animation: scaleIn 0.2s ease-out;
         }
-
-        .selection-check {
-          color: white;
-          font-size: 12px;
-          font-weight: bold;
+        
+        @keyframes scaleIn {
+          from {
+            transform: scale(0);
+          }
+          to {
+            transform: scale(1);
+          }
         }
 
         @media (max-width: 768px) {

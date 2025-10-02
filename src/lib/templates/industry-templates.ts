@@ -51,6 +51,9 @@ showInfo: {
   wholesalePrice?: boolean;  // ✅ AGREGA ? para hacerla opcional
   wholesaleMinQty?: boolean; // ✅ AGREGA ? para hacerla opcional
 };
+  
+  // Tags opcionales para filtrado y visualización
+  tags?: string[];
 }
 
 // ===== CONFIGURACIONES POR DENSIDAD =====
