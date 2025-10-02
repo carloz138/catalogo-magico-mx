@@ -250,6 +250,17 @@ const Products = () => {
         <span className="hidden sm:inline">Subir Fotos</span>
         <span className="sm:hidden">Subir</span>
       </Button>
+      
+      <Button 
+        onClick={() => navigate('/products/bulk-upload')} 
+        variant="outline" 
+        size="sm"
+        className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-600 text-green-700 hover:bg-green-100"
+      >
+        <Upload className="h-4 w-4 sm:mr-2" />
+        <span className="hidden sm:inline">Carga Masiva</span>
+        <span className="sm:hidden">Masiva</span>
+      </Button>
 
       <Button 
         onClick={() => navigate('/analytics')} 

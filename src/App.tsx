@@ -25,6 +25,7 @@ import OnboardingPage from "./pages/OnboardingPage";
 import TermsAndConditions from "./pages/TermsAndConditions";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import ResetPassword from "./pages/ResetPassword";
+import BulkUpload from "./pages/BulkUpload";
 
 
 const queryClient = new QueryClient();
@@ -51,6 +52,11 @@ const App = () => (
             <Route path="/products" element={
               <ProtectedRoute>
                 <Products />
+              </ProtectedRoute>
+            } />
+            <Route path="/products/bulk-upload" element={
+              <ProtectedRoute>
+                <BulkUpload />
               </ProtectedRoute>
             } />
             <Route path="/products-management" element={
