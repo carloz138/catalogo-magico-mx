@@ -8,7 +8,8 @@ import { FinalStepComponent } from '@/components/upload/FinalStepComponent';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Upload as UploadIcon, Image, FileText, Package } from 'lucide-react';
+import { Upload as UploadIcon, Image, FileText, Package, PackageOpen } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 export type UploadedFile = {
   id: string;
@@ -20,6 +21,7 @@ export type UploadedFile = {
 };
 
 const Upload = () => {
+  const navigate = useNavigate();
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [currentStep, setCurrentStep] = useState<'upload' | 'analyze' | 'form' | 'final'>('upload');
 
@@ -65,6 +67,16 @@ const Upload = () => {
 
   const actions = (
     <div className="flex items-center gap-3">
+      {/* Botón Carga Masiva */}
+      <Button 
+        variant="secondary"
+        onClick={() => navigate('/products/bulk-upload')}
+        className="gap-2"
+      >
+        <PackageOpen className="h-4 w-4" />
+        📦 Carga Masiva
+      </Button>
+      
       {/* Progress Steps */}
       <div className="hidden md:flex items-center gap-2">
         {['upload', 'analyze', 'form', 'final'].map((step, index) => {

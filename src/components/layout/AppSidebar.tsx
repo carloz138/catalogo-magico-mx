@@ -83,6 +83,13 @@ const menuData: MenuItem[] = [
         icon: Upload,
       },
       {
+        title: "📦 Carga Masiva",
+        path: "/products/bulk-upload",
+        icon: Upload,
+        badge: "Nuevo",
+        badgeColor: "bg-blue-100 text-blue-700 border-blue-200",
+      },
+      {
         title: "Mi Biblioteca",
         path: "/products",
         icon: Layers,
