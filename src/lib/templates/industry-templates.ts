@@ -3,6 +3,7 @@
 
 // ===== IMPORTS =====
 import { TEMPLATES_ENERO_2025, CHANGELOG_ENERO_2025 } from './templates-enero-2025';
+import { MINIMALIST_TEMPLATES } from './minimalist-templates';
 
 export type ProductDensity = 'alta' | 'media' | 'baja';
 export type IndustryType = 'joyeria' | 'moda' | 'electronica' | 'ferreteria' | 'floreria' | 'cosmeticos' | 'decoracion' | 'muebles';
@@ -462,7 +463,11 @@ const ORIGINAL_TEMPLATES: Record<string, IndustryTemplate> = {
 // ===== COMBINANDO TODOS LOS TEMPLATES =====
 export const INDUSTRY_TEMPLATES: Record<string, IndustryTemplate> = {
   ...ORIGINAL_TEMPLATES,
-  ...TEMPLATES_ENERO_2025  // 🎯 NUEVOS TEMPLATES INTEGRADOS
+  ...TEMPLATES_ENERO_2025,  // 🎯 NUEVOS TEMPLATES INTEGRADOS
+  ...MINIMALIST_TEMPLATES.reduce((acc, template) => {
+    acc[template.id] = template;
+    return acc;
+  }, {} as Record<string, IndustryTemplate>)  // 🎨 TEMPLATES MINIMALISTAS
 };
 
 // ===== MAPEO DE INDUSTRIAS =====
