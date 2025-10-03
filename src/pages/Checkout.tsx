@@ -18,7 +18,8 @@ import {
   ArrowLeft,
   Star,
   Package,
-  Coins
+  Coins,
+  Loader2
 } from 'lucide-react';
 
 // Interface correcto que coincide con la BD
@@ -389,13 +390,22 @@ const Checkout = () => {
     }
   };
 
-  const actions = (
-    <div className="flex items-center gap-2">
-      <Button onClick={() => navigate(-1)} variant="outline" size="sm">
-        <ArrowLeft className="h-4 w-4 md:mr-2" />
-        <span className="hidden md:inline">Volver</span>
-      </Button>
+  const PageHeader = () => (
+    <div className="text-center mb-8">
+      <h1 className="text-2xl font-bold text-gray-900 mb-2">
+        Selecciona tu plan
+      </h1>
+      <p className="text-gray-600">
+        Elige entre suscripciones mensuales o packs únicos
+      </p>
     </div>
+  );
+
+  const actions = (
+    <Button onClick={() => navigate(-1)} variant="outline" size="sm">
+      <ArrowLeft className="h-4 w-4 mr-2" />
+      Volver
+    </Button>
   );
 
   if (loading) {
@@ -420,99 +430,101 @@ const Checkout = () => {
 
   return (
     <AppLayout actions={actions}>
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
-            Completa tu compra
-          </h1>
-          <p className="text-gray-600">
-            Elige entre planes mensuales con renovación automática o packs únicos
-          </p>
-        </div>
+      <div className="max-w-6xl mx-auto">
+        <PageHeader />
 
         {/* Tabs mejorados */}
         <Tabs value={activeTab} onValueChange={(value) => {
           setActiveTab(value as 'monthly' | 'credits');
           setSelectedPackage(null);
         }} className="mb-8">
-          <TabsList className="grid w-full max-w-md mx-auto grid-cols-2">
-            <TabsTrigger value="monthly" className="flex items-center gap-2">
+          <TabsList className="grid w-full max-w-md mx-auto grid-cols-2 mb-8">
+            <TabsTrigger value="monthly" className="gap-2 py-3">
               <RefreshCw className="w-4 h-4" />
-              Planes Mensuales
+              <div className="text-left">
+                <div className="font-semibold">Planes Mensuales</div>
+                <div className="text-xs text-gray-500">Renovación automática</div>
+              </div>
             </TabsTrigger>
-            <TabsTrigger value="credits" className="flex items-center gap-2">
+            <TabsTrigger value="credits" className="gap-2 py-3">
               <Coins className="w-4 h-4" />
-              Packs Únicos
+              <div className="text-left">
+                <div className="font-semibold">Packs Únicos</div>
+                <div className="text-xs text-gray-500">Compra una vez</div>
+              </div>
             </TabsTrigger>
           </TabsList>
 
           {/* Planes Mensuales */}
           <TabsContent value="monthly" className="space-y-6">
-            <div className="text-center p-4 bg-blue-50 rounded-lg">
-              <h3 className="font-semibold text-blue-900 mb-2">Suscripciones Mensuales</h3>
-              <p className="text-sm text-blue-700">
-                Créditos que se renuevan automáticamente • Cancela cuando quieras • Precio todo incluido
-              </p>
-            </div>
-            
             {monthlyPlans.length === 0 ? (
               <div className="text-center py-8">
                 <p className="text-gray-500">No hay planes de suscripción disponibles.</p>
               </div>
             ) : (
-              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-8">
                 {monthlyPlans.map(pkg => (
-                  <div 
+                  <button
                     key={pkg.id}
-                    className={`relative border-2 rounded-xl p-4 cursor-pointer transition-all ${
-                      pkg.is_popular 
-                        ? 'border-blue-500 bg-gradient-to-br from-blue-50 to-blue-100 shadow-lg' 
-                        : 'border-gray-200 bg-white'
-                    } ${selectedPackage?.id === pkg.id ? 'ring-2 ring-primary shadow-xl' : ''} hover:shadow-lg`}
                     onClick={() => setSelectedPackage(pkg)}
+                    className={`
+                      relative p-6 rounded-xl border-2 text-left transition-all
+                      ${selectedPackage?.id === pkg.id 
+                        ? 'border-purple-600 bg-purple-50 shadow-lg' 
+                        : 'border-gray-200 hover:border-gray-300 hover:shadow-md'
+                      }
+                      ${pkg.is_popular ? 'ring-2 ring-blue-200' : ''}
+                    `}
                   >
+                    {/* Badge popular */}
                     {pkg.is_popular && (
-                      <div className="absolute -top-2 left-1/2 transform -translate-x-1/2">
-                        <span className="bg-blue-600 text-white px-3 py-1 rounded-full text-xs font-semibold">
+                      <div className="absolute -top-2 left-1/2 -translate-x-1/2">
+                        <span className="bg-blue-600 text-white px-3 py-1 rounded-full text-xs font-bold">
                           POPULAR
                         </span>
                       </div>
                     )}
-                    
-                    <div className="text-center">
-                       <div className={`w-12 h-12 rounded-xl bg-gradient-to-r ${getPackageColor(pkg.name, pkg.package_type)} flex items-center justify-center text-white mx-auto mb-3`}>
-                         {getPackageIcon(pkg.name, pkg.package_type)}
-                      </div>
-                      
-                      <h3 className="font-bold text-lg mb-1">{pkg.name.replace('Plan ', '')}</h3>
-                      <p className="text-xs text-gray-600 mb-4">{pkg.description}</p>
-                      
-                      <div className="mb-4">
-                        <div className="text-2xl font-bold text-gray-900">
-                          ${(pkg.price_mxn / 100).toLocaleString()}
-                        </div>
-                        <div className="text-sm text-gray-600">/mes</div>
-                      </div>
-                      
-                      <div className="space-y-2 mb-4 text-left">
-                        {getPackageFeatures(pkg).map((feature, index) => (
-                          <div key={index} className="flex items-start gap-2">
-                            <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
-                            <span className="text-xs text-gray-700">{feature}</span>
-                          </div>
-                        ))}
-                      </div>
-                      
-                      {selectedPackage?.id === pkg.id && (
-                        <div className="absolute top-2 right-2">
-                          <div className="w-5 h-5 bg-primary rounded-full flex items-center justify-center">
-                            <CheckCircle className="w-3 h-3 text-white" />
-                          </div>
-                        </div>
-                      )}
+
+                    {/* Icono */}
+                    <div className={`
+                      w-12 h-12 rounded-xl bg-gradient-to-r ${getPackageColor(pkg.name, pkg.package_type)}
+                      flex items-center justify-center text-white mb-4
+                    `}>
+                      {getPackageIcon(pkg.name, pkg.package_type)}
                     </div>
-                  </div>
+
+                    {/* Nombre */}
+                    <h3 className="font-bold text-lg mb-2">
+                      {pkg.name.replace('Plan ', '')}
+                    </h3>
+
+                    {/* Precio */}
+                    <div className="mb-4">
+                      <div className="text-3xl font-bold text-gray-900">
+                        ${(pkg.price_mxn / 100).toLocaleString()}
+                      </div>
+                      <div className="text-sm text-gray-600">/mes</div>
+                    </div>
+
+                    {/* Características clave (solo 3 más importantes) */}
+                    <div className="space-y-2">
+                      {getPackageFeatures(pkg).slice(0, 3).map((feature, index) => (
+                        <div key={index} className="flex items-start gap-2">
+                          <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
+                          <span className="text-sm text-gray-700">{feature}</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Checkmark si está seleccionado */}
+                    {selectedPackage?.id === pkg.id && (
+                      <div className="absolute top-4 right-4">
+                        <div className="w-6 h-6 bg-purple-600 rounded-full flex items-center justify-center">
+                          <CheckCircle className="w-4 h-4 text-white" />
+                        </div>
+                      </div>
+                    )}
+                  </button>
                 ))}
               </div>
             )}
@@ -520,75 +532,76 @@ const Checkout = () => {
 
           {/* Packs Únicos */}
           <TabsContent value="credits" className="space-y-6">
-            <div className="text-center p-4 bg-green-50 rounded-lg">
-              <h3 className="font-semibold text-green-900 mb-2">Packs de Créditos</h3>
-              <p className="text-sm text-green-700">
-                Compra una vez • Válidos por 12 meses • Precio todo incluido
-              </p>
-            </div>
-            
             {creditPacks.length === 0 ? (
               <div className="text-center py-8">
                 <p className="text-gray-500">No hay packs de créditos disponibles.</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-8">
                 {creditPacks.map(pkg => (
-                  <div 
+                  <button
                     key={pkg.id}
-                    className={`relative border-2 rounded-xl p-6 cursor-pointer transition-all ${
-                      pkg.is_popular 
-                        ? 'border-green-400 bg-gradient-to-br from-green-50 to-green-100 shadow-lg' 
-                        : 'border-gray-200 bg-white'
-                    } ${selectedPackage?.id === pkg.id ? 'ring-2 ring-primary shadow-xl' : ''} hover:shadow-lg`}
                     onClick={() => setSelectedPackage(pkg)}
+                    className={`
+                      relative p-6 rounded-xl border-2 text-left transition-all
+                      ${selectedPackage?.id === pkg.id 
+                        ? 'border-purple-600 bg-purple-50 shadow-lg' 
+                        : 'border-gray-200 hover:border-gray-300 hover:shadow-md'
+                      }
+                      ${pkg.is_popular ? 'ring-2 ring-blue-200' : ''}
+                    `}
                   >
+                    {/* Badge popular */}
                     {pkg.is_popular && (
-                      <div className="absolute -top-2 left-1/2 transform -translate-x-1/2">
-                        <span className="bg-green-600 text-white px-3 py-1 rounded-full text-xs font-semibold">
-                          MÁS ELEGIDO
+                      <div className="absolute -top-2 left-1/2 -translate-x-1/2">
+                        <span className="bg-blue-600 text-white px-3 py-1 rounded-full text-xs font-bold">
+                          POPULAR
                         </span>
                       </div>
                     )}
-                    
-                    <div className="text-center">
-                       <div className={`w-12 h-12 rounded-xl bg-gradient-to-r ${getPackageColor(pkg.name, pkg.package_type)} flex items-center justify-center text-white mx-auto mb-4`}>
-                         {getPackageIcon(pkg.name, pkg.package_type)}
-                      </div>
-                      
-                      <h3 className="font-bold text-xl mb-2">{pkg.name.replace('Pack ', '')}</h3>
-                      <p className="text-sm text-gray-600 mb-4">{pkg.description}</p>
-                      
-                      <div className="mb-4">
-                        <div className="text-3xl font-bold text-gray-900 mb-1">
-                          {pkg.credits}
-                        </div>
-                        <div className="text-sm text-gray-600">créditos</div>
-                      </div>
-                      
-                      <div className="mb-6">
-                        <div className="text-2xl font-bold text-primary">
-                          ${(pkg.price_mxn / 100).toLocaleString()}
-                        </div>
-                        <div className="text-sm text-gray-600">
-                          ${((pkg.price_mxn / 100) / pkg.credits).toFixed(2)} por crédito
-                        </div>
-                        {pkg.discount_percentage && pkg.discount_percentage > 0 && (
-                          <div className="text-sm text-green-600 font-medium mt-2">
-                            {pkg.discount_percentage}% descuento
-                          </div>
-                        )}
-                      </div>
-                      
-                      {selectedPackage?.id === pkg.id && (
-                        <div className="absolute top-2 right-2">
-                          <div className="w-5 h-5 bg-primary rounded-full flex items-center justify-center">
-                            <CheckCircle className="w-3 h-3 text-white" />
-                          </div>
-                        </div>
-                      )}
+
+                    {/* Icono */}
+                    <div className={`
+                      w-12 h-12 rounded-xl bg-gradient-to-r ${getPackageColor(pkg.name, pkg.package_type)}
+                      flex items-center justify-center text-white mb-4
+                    `}>
+                      {getPackageIcon(pkg.name, pkg.package_type)}
                     </div>
-                  </div>
+
+                    {/* Nombre */}
+                    <h3 className="font-bold text-lg mb-2">
+                      {pkg.name.replace('Pack ', '')}
+                    </h3>
+
+                    {/* Precio */}
+                    <div className="mb-4">
+                      <div className="text-3xl font-bold text-gray-900">
+                        ${(pkg.price_mxn / 100).toLocaleString()}
+                      </div>
+                      <div className="text-sm text-gray-600">
+                        {pkg.credits} créditos
+                      </div>
+                    </div>
+
+                    {/* Características clave (solo 3 más importantes) */}
+                    <div className="space-y-2">
+                      {getPackageFeatures(pkg).slice(0, 3).map((feature, index) => (
+                        <div key={index} className="flex items-start gap-2">
+                          <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
+                          <span className="text-sm text-gray-700">{feature}</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Checkmark si está seleccionado */}
+                    {selectedPackage?.id === pkg.id && (
+                      <div className="absolute top-4 right-4">
+                        <div className="w-6 h-6 bg-purple-600 rounded-full flex items-center justify-center">
+                          <CheckCircle className="w-4 h-4 text-white" />
+                        </div>
+                      </div>
+                    )}
+                  </button>
                 ))}
               </div>
             )}
@@ -596,144 +609,140 @@ const Checkout = () => {
         </Tabs>
 
         {selectedPackage && (
-          <>
-            {/* Payment Method Selection */}
-            <div className="bg-white rounded-lg border p-6 mb-6">
-              <h3 className="font-bold text-lg mb-4">Método de Pago</h3>
-              
+          <div className="max-w-2xl mx-auto space-y-6">
+            {/* Métodos de pago */}
+            <div className="bg-white rounded-lg border p-6">
+              <h3 className="text-lg font-bold mb-4">Método de Pago</h3>
               <div className="space-y-3">
-                {/* Stripe */}
-                <label className={`flex items-center p-4 border rounded-lg cursor-pointer transition-colors ${
-                  paymentMethod === 'stripe' ? 'border-primary bg-primary/5' : 'border-gray-200 hover:border-gray-300'
-                }`}>
-                  <input 
-                    type="radio" 
-                    name="payment" 
-                    value="stripe"
-                    checked={paymentMethod === 'stripe'}
-                    onChange={(e) => setPaymentMethod(e.target.value)}
-                    className="mr-3"
-                  />
+                {/* Tarjeta */}
+                <button
+                  onClick={() => setPaymentMethod('stripe')}
+                  className={`
+                    w-full flex items-center p-4 rounded-lg border-2 transition-all
+                    ${paymentMethod === 'stripe' 
+                      ? 'border-purple-600 bg-purple-50' 
+                      : 'border-gray-200 hover:border-gray-300'
+                    }
+                  `}
+                >
                   <CreditCard className="w-5 h-5 mr-3 text-gray-600" />
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between">
-                      <span className="font-semibold">Tarjeta de Crédito/Débito</span>
-                      {recommendedMethod === 'stripe' && (
-                        <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-sm">
-                          Recomendado
-                        </span>
-                      )}
+                  <div className="flex-1 text-left">
+                    <div className="font-semibold">Tarjeta</div>
+                    <div className="text-sm text-gray-600">
+                      Visa, Mastercard • Instantáneo
                     </div>
-                    <p className="text-sm text-gray-600">Visa, Mastercard, AMEX • Instantáneo</p>
-                    <p className="text-xs text-gray-500">Precio todo incluido - sin comisiones adicionales</p>
                   </div>
-                </label>
-                
-                {/* SPEI - Solo para créditos únicos */}
+                  {paymentMethod === 'stripe' && (
+                    <CheckCircle className="w-5 h-5 text-purple-600" />
+                  )}
+                </button>
+
+                {/* SPEI - solo para packs únicos */}
                 {!isSubscription && (
-                  <label className={`flex items-center p-4 border rounded-lg cursor-pointer transition-colors ${
-                    paymentMethod === 'spei' ? 'border-primary bg-primary/5' : 'border-gray-200 hover:border-gray-300'
-                  }`}>
-                    <input 
-                      type="radio" 
-                      name="payment" 
-                      value="spei"
-                      checked={paymentMethod === 'spei'}
-                      onChange={(e) => setPaymentMethod(e.target.value)}
-                      className="mr-3"
-                    />
+                  <button
+                    onClick={() => setPaymentMethod('spei')}
+                    className={`
+                      w-full flex items-center p-4 rounded-lg border-2 transition-all
+                      ${paymentMethod === 'spei' 
+                        ? 'border-purple-600 bg-purple-50' 
+                        : 'border-gray-200 hover:border-gray-300'
+                      }
+                    `}
+                  >
                     <Building2 className="w-5 h-5 mr-3 text-gray-600" />
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between">
-                        <span className="font-semibold">Transferencia Bancaria (SPEI)</span>
-                        {recommendedMethod === 'spei' && (
-                          <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-sm">
-                            Más Barato
-                          </span>
-                        )}
+                    <div className="flex-1 text-left">
+                      <div className="font-semibold">Transferencia SPEI</div>
+                      <div className="text-sm text-gray-600">
+                        Instantáneo • $5 MXN comisión
                       </div>
-                      <p className="text-sm text-gray-600">Todos los bancos • Instantáneo</p>
-                      <p className="text-xs text-gray-500">Comisión: $5 MXN fijo</p>
                     </div>
-                  </label>
+                    {paymentMethod === 'spei' && (
+                      <CheckCircle className="w-5 h-5 text-purple-600" />
+                    )}
+                  </button>
                 )}
               </div>
             </div>
 
-            {/* Payment Summary */}
+            {/* Resumen de compra */}
             <div className="bg-white rounded-lg border p-6">
-              <h3 className="font-bold text-lg mb-4">Resumen de Compra</h3>
-              
-              <div className="space-y-3 mb-6">
-                <div className="flex justify-between items-center">
-                  <span>Paquete:</span>
+              <h3 className="text-lg font-bold mb-4">Resumen</h3>
+              <div className="space-y-3">
+                {/* Paquete */}
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Paquete</span>
                   <span className="font-semibold">{selectedPackage.name}</span>
                 </div>
-                
-                <div className="flex justify-between items-center">
-                  <span>
-                    {isSubscription ? 'Tipo:' : 'Créditos:'}
+
+                {/* Créditos o tipo */}
+                <div className="flex justify-between">
+                  <span className="text-gray-600">
+                    {isSubscription ? 'Tipo' : 'Créditos'}
                   </span>
                   <span>
-                    {isSubscription ? 'Suscripción mensual' : `${selectedPackage.credits.toLocaleString()} créditos`}
+                    {isSubscription 
+                      ? 'Mensual' 
+                      : `${selectedPackage.credits.toLocaleString()}`
+                    }
                   </span>
                 </div>
-                
-                <div className="flex justify-between items-center">
-                  <span>
-                    {isSubscription ? 'Precio mensual:' : 'Precio:'}
-                  </span>
-                  <span>${(selectedPackage.price_mxn / 100).toLocaleString()} MXN</span>
+
+                {/* Precio */}
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Precio</span>
+                  <span>${(selectedPackage.price_mxn / 100).toLocaleString()}</span>
                 </div>
-                
-                {/* Solo mostrar comisión para SPEI */}
+
+                {/* Comisión SPEI si aplica */}
                 {paymentMethod === 'spei' && !isSubscription && (
-                  <div className="flex justify-between items-center text-sm text-gray-600">
-                    <span>Comisión SPEI:</span>
-                    <span>$5.00 MXN</span>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Comisión SPEI</span>
+                    <span>$5.00</span>
                   </div>
                 )}
-                
-                <div className="flex justify-between items-center font-bold text-lg border-t pt-3">
-                  <span>Total:</span>
-                  <span>
-                    ${(paymentMethod === 'spei' && !isSubscription 
-                      ? (selectedPackage.price_mxn + 500) / 100 
-                      : selectedPackage.price_mxn / 100
-                    ).toLocaleString()} MXN
-                    {isSubscription && <span className="text-sm font-normal text-gray-600">/mes</span>}
-                  </span>
-                </div>
-                
-                <div className="text-sm text-blue-600 bg-blue-50 p-3 rounded">
-                  ✨ {paymentMethod === 'spei' && !isSubscription 
-                    ? 'Precio final con comisión SPEI incluida' 
-                    : 'Precio todo incluido - sin comisiones adicionales'}
+
+                {/* Total */}
+                <div className="flex justify-between items-center pt-3 border-t">
+                  <span className="text-lg font-bold">Total</span>
+                  <div className="text-right">
+                    <div className="text-2xl font-bold text-purple-600">
+                      ${(paymentMethod === 'spei' && !isSubscription 
+                        ? (selectedPackage.price_mxn + 500) / 100 
+                        : selectedPackage.price_mxn / 100
+                      ).toLocaleString()}
+                    </div>
+                    {isSubscription && (
+                      <div className="text-sm text-gray-600">/mes</div>
+                    )}
+                  </div>
                 </div>
               </div>
-              
+
+              {/* CTA de pago */}
               <Button 
                 onClick={handlePayment}
                 disabled={processingPayment}
-                className="w-full py-3 text-lg"
-                size="lg"
+                className="w-full mt-6 py-6 text-lg"
               >
                 {processingPayment ? (
-                  <div className="flex items-center">
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                  <>
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2 inline-block"></div>
                     Procesando...
-                  </div>
+                  </>
                 ) : (
-                  isSubscription ? 'Suscribirme Ahora' : 'Comprar Créditos'
+                  <>
+                    {isSubscription ? 'Suscribirme' : 'Comprar Ahora'}
+                  </>
                 )}
               </Button>
-              
+
+              {/* Nota de seguridad */}
               <p className="text-center text-xs text-gray-500 mt-4">
-                🔒 Pago 100% seguro • SSL encriptado
+                🔒 Pago seguro y encriptado
                 {isSubscription && ' • Cancela cuando quieras'}
               </p>
             </div>
-          </>
+          </div>
         )}
       </div>
     </AppLayout>
