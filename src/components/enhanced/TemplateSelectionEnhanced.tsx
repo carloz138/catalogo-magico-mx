@@ -681,13 +681,6 @@ const TemplateSelectionEnhanced = () => {
                 ({Math.ceil(selectedProducts.length / productsPerPage)} página{Math.ceil(selectedProducts.length / productsPerPage) !== 1 ? 's' : ''} con {productsPerPage}/página)
               </p>
               
-              {optimizedCount > 0 && (
-                <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded-lg">
-                  <p className="text-sm text-green-700">
-                    ⚡ <strong>{optimizedCount} productos optimizados</strong> - PDF será ~90% más ligero
-                  </p>
-                </div>
-              )}
             </div>
             
             {/* Mostrar info del plan en móvil */}
@@ -778,16 +771,6 @@ const TemplateSelectionEnhanced = () => {
             </CardContent>
           </Card>
 
-          {/* 🆕 BANNER DE OPTIMIZACIÓN si hay productos optimizados */}
-          {optimizedCount > 0 && (
-            <Alert className="border-green-200 bg-green-50">
-              <CheckCircle className="h-4 w-4 text-green-600" />
-              <AlertDescription className="text-green-800">
-                <strong>PDFs súper ligeros:</strong> {optimizedCount} de {selectedProducts.length} productos 
-                tienen versiones optimizadas (800x800px). Tu PDF será ~90% más liviano manteniendo excelente calidad.
-              </AlertDescription>
-            </Alert>
-          )}
 
           {/* SELECTOR DE PREFERENCIA DE FONDO */}
           {(() => {
@@ -841,7 +824,6 @@ const TemplateSelectionEnhanced = () => {
                     <p className="text-sm text-green-700">
                       Listo para generar tu catálogo con {selectedProducts.length} productos
                       ({Math.ceil(selectedProducts.length / productsPerPage)} páginas con {productsPerPage}/página)
-                      {optimizedCount > 0 && ` (${optimizedCount} optimizadas para PDF ligero)`}
                     </p>
                   </div>
                 </div>
