@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { toast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { useBusinessInfo } from '@/hooks/useBusinessInfo';
@@ -46,6 +47,8 @@ interface Product {
   name: string;
   description?: string;
   price_retail: number;
+  price_wholesale?: number;
+  wholesale_min_quantity?: number;
   image_url: string;
   sku?: string;
   category?: string;
@@ -141,6 +144,9 @@ const TemplateSelectionEnhanced = () => {
   
   // 🆕 ESTADO PARA PRODUCTOS POR PÁGINA
   const [productsPerPage, setProductsPerPage] = useState<4 | 6 | 9>(6);
+  
+  // Estado para control de precios de mayoreo
+  const [showWholesalePrices, setShowWholesalePrices] = useState(true);
   
   // Estados de límites
   const [limits, setLimits] = useState<UsageLimits | null>(null);
@@ -746,6 +752,30 @@ const TemplateSelectionEnhanced = () => {
             totalProducts={selectedProducts.length}
             disabled={generating}
           />
+
+          {/* Selector de Precios de Mayoreo */}
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <Label className="text-base font-medium flex items-center gap-2">
+                    Opciones de Precios
+                    <Badge variant="outline" className="text-xs">
+                      {selectedProducts.filter(p => p.price_wholesale).length} con mayoreo
+                    </Badge>
+                  </Label>
+                  <p className="text-sm text-muted-foreground">
+                    Incluye precio de mayoreo y cantidad mínima en el catálogo
+                  </p>
+                </div>
+                <Switch
+                  checked={showWholesalePrices}
+                  onCheckedChange={setShowWholesalePrices}
+                  disabled={generating}
+                />
+              </div>
+            </CardContent>
+          </Card>
 
           {/* 🆕 BANNER DE OPTIMIZACIÓN si hay productos optimizados */}
           {optimizedCount > 0 && (
