@@ -274,66 +274,85 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Header */}
-      <header className="bg-white/95 backdrop-blur-sm border-b border-gray-100 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-          <div className="flex items-center space-x-2">
-            <div className="w-10 h-10 bg-gradient-to-br from-purple-600 to-blue-600 rounded-xl flex items-center justify-center">
-              <Layers className="w-6 h-6 text-white" />
-            </div>
-            <span className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-              CatifyPro
-            </span>
-          </div>
-          
-          <nav className="hidden md:flex space-x-8">
-            <a href="#funcionalidades" className="text-gray-600 hover:text-purple-600 font-medium transition-colors">Funcionalidades</a>
-            <a href="#precios" className="text-gray-600 hover:text-purple-600 font-medium transition-colors">Precios</a>
-            <a href="#casos" className="text-gray-600 hover:text-purple-600 font-medium transition-colors">Casos de Éxito</a>
-          </nav>
+      {/* Header simplificado con jerarquía visual clara */}
+      <header className="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            
+            {/* Logo - sin cambios en funcionalidad */}
+            <button 
+              onClick={() => navigate('/')}
+              className="flex items-center space-x-2 hover:opacity-80 transition-opacity"
+            >
+              <div className="w-9 h-9 bg-gradient-to-br from-purple-600 to-blue-600 rounded-lg flex items-center justify-center">
+                <Layers className="w-5 h-5 text-white" />
+              </div>
+              <span className="text-xl font-bold">CatifyPro</span>
+            </button>
 
-          <div className="flex items-center space-x-3">
-            <Button 
-              variant="outline" 
-              className="hidden lg:inline-flex border-gray-300 text-gray-600 hover:bg-gray-50"
-              onClick={() => navigate('/analytics')}
-            >
-              <BarChart3 className="w-4 h-4 mr-2" />
-              Analytics
-            </Button>
-            {user && (
+            {/* Navegación simplificada - solo 3 items principales */}
+            <nav className="hidden md:flex items-center space-x-1">
               <Button 
-                variant="outline" 
-                className="hidden lg:inline-flex border-green-300 text-green-600 hover:bg-green-50"
-                onClick={() => navigate('/onboarding')}
+                variant="ghost"
+                onClick={() => document.getElementById('funcionalidades')?.scrollIntoView({ behavior: 'smooth' })}
+                className="text-gray-700 hover:text-gray-900"
               >
-                <Play className="w-4 h-4 mr-2" />
-                Guía De Inicio
+                Funcionalidades
               </Button>
-            )}
-            {user && (
               <Button 
-                variant="outline" 
-                className="hidden lg:inline-flex border-gray-300 text-gray-600 hover:bg-gray-50"
-                onClick={() => navigate('/products')}
+                variant="ghost"
+                onClick={() => document.getElementById('precios')?.scrollIntoView({ behavior: 'smooth' })}
+                className="text-gray-700 hover:text-gray-900"
               >
-                <Users className="w-4 h-4 mr-2" />
-                Productos
+                Precios
               </Button>
-            )}
-            <Button 
-              variant="outline" 
-              className="hidden sm:inline-flex"
-              onClick={handleAuthButton}
-            >
-              {user ? 'Cerrar sesión' : 'Iniciar sesión'}
-            </Button>
-            <Button 
-              className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
-              onClick={handleMainCTA}
-            >
-              {user ? 'Crear Catálogo' : 'Comenzar ahora'}
-            </Button>
+              <Button 
+                variant="ghost"
+                onClick={() => document.getElementById('casos')?.scrollIntoView({ behavior: 'smooth' })}
+                className="text-gray-700 hover:text-gray-900"
+              >
+                Casos de Éxito
+              </Button>
+            </nav>
+
+            {/* CTAs claros */}
+            <div className="flex items-center gap-2">
+              {user ? (
+                <>
+                  <Button
+                    variant="outline"
+                    onClick={() => navigate('/products')}
+                    className="hidden sm:inline-flex"
+                  >
+                    <Package className="w-4 h-4 mr-2" />
+                    Productos
+                  </Button>
+                  <Button
+                    onClick={() => navigate('/upload')}
+                    className="bg-gradient-to-r from-purple-600 to-blue-600"
+                  >
+                    <Upload className="w-4 h-4 mr-2" />
+                    Subir
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button
+                    variant="outline"
+                    onClick={handleAuthButton}
+                    className="hidden sm:inline-flex"
+                  >
+                    Iniciar sesión
+                  </Button>
+                  <Button
+                    onClick={handleMainCTA}
+                    className="bg-gradient-to-r from-purple-600 to-blue-600"
+                  >
+                    Comenzar gratis
+                  </Button>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </header>
