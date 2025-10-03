@@ -8,6 +8,8 @@ import { CSVUploader } from '@/components/bulk-upload/CSVUploader';
 import { MatchingTable } from '@/components/bulk-upload/MatchingTable';
 import { UploadProgress } from '@/components/bulk-upload/UploadProgress';
 import { useBulkUploadMatching } from '@/hooks/useBulkUploadMatching';
+import { useDuplicateDetection } from '@/hooks/useDuplicateDetection';
+import { DuplicateWarning } from '@/components/bulk-upload/DuplicateWarning';
 import { CSVProduct, ImageFile, UploadProgress as UploadProgressType } from '@/types/bulk-upload';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -21,12 +23,14 @@ export default function BulkUpload() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { matches, processMatches, getStats, cleanFileName } = useBulkUploadMatching();
+  const { duplicates, checkDuplicates, isChecking } = useDuplicateDetection();
 
   const [images, setImages] = useState<ImageFile[]>([]);
   const [csvProducts, setCSVProducts] = useState<CSVProduct[]>([]);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<UploadProgressType | null>(null);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const [showDuplicateWarning, setShowDuplicateWarning] = useState(false);
 
   const handleImagesSelected = (newImages: ImageFile[]) => {
     const processedImages = newImages.map(img => ({
@@ -87,9 +91,33 @@ export default function BulkUpload() {
 
     setValidationErrors([]);
 
+    // Detectar duplicados
+    const duplicateInfo = await checkDuplicates(csvProducts);
+    
+    if (duplicateInfo.length > 0 && !showDuplicateWarning) {
+      setShowDuplicateWarning(true);
+      return;
+    }
+
+    // Si llegamos aquí, el usuario confirmó continuar
+    setShowDuplicateWarning(false);
+
+    // Filtrar productos duplicados
+    const duplicateSkus = new Set(duplicateInfo.map(d => d.sku));
+    const uniqueMatches = matchedProducts.filter(m => !duplicateSkus.has(m.csvData!.sku));
+
+    if (uniqueMatches.length === 0) {
+      toast({
+        title: "Todos son duplicados",
+        description: "Todos los productos ya existen en tu catálogo",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setUploading(true);
     setUploadProgress({
-      total: matchedProducts.length,
+      total: uniqueMatches.length,
       uploaded: 0,
       failed: 0,
       current: 'Subiendo imágenes...'
@@ -149,7 +177,7 @@ export default function BulkUpload() {
     };
 
     const { successful: successfulImages, failed: failedImages } = await processBatchWithConcurrency(
-      matchedProducts,
+      uniqueMatches,
       uploadImage,
       3
     );
@@ -279,6 +307,24 @@ export default function BulkUpload() {
           </Card>
         </div>
 
+        {/* Duplicate Warning */}
+        {showDuplicateWarning && duplicates.length > 0 && (
+          <DuplicateWarning
+            duplicates={duplicates}
+            onContinue={() => {
+              setShowDuplicateWarning(false);
+              uploadToSupabase();
+            }}
+            onCancel={() => {
+              setShowDuplicateWarning(false);
+              toast({
+                title: "Carga cancelada",
+                description: "Puedes modificar tu CSV y volver a intentar",
+              });
+            }}
+          />
+        )}
+
         {/* Matching Results */}
         {matches.length > 0 && (
           <Card className="p-6">
@@ -300,11 +346,11 @@ export default function BulkUpload() {
               <h3 className="text-lg font-semibold">3. Revisa los Matches</h3>
               <Button
                 onClick={uploadToSupabase}
-                disabled={!canUpload || validationErrors.length > 0}
+                disabled={!canUpload || validationErrors.length > 0 || isChecking}
                 className="bg-gradient-to-r from-primary to-purple-600"
               >
                 <Upload className="h-4 w-4 mr-2" />
-                Subir {stats.matched} Producto{stats.matched !== 1 ? 's' : ''}
+                {isChecking ? 'Verificando...' : `Subir ${stats.matched} Producto${stats.matched !== 1 ? 's' : ''}`}
               </Button>
             </div>
 
