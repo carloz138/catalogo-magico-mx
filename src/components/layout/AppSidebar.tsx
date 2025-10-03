@@ -40,6 +40,8 @@ import {
   Bell,
   PlayCircle,
   AlertTriangle,
+  BookOpen,
+  PackageOpen,
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
@@ -57,84 +59,24 @@ interface MenuItem {
 }
 
 // ==========================================
-// CONFIGURACIÓN DEL MENÚ CON ICONOS CORREGIDOS
+// NAVEGACIÓN PLANA Y CLARA
 // ==========================================
 
-const menuData: MenuItem[] = [
-  {
-    title: "Guía De Inicio",
-    path: "/onboarding",
-    icon: PlayCircle,
-    badge: "Nuevo",
-    badgeColor: "bg-green-100 text-green-700 border-green-200",
-  },
-  {
-    title: "Analytics",
-    path: "/analytics",
-    icon: BarChart3,
-  },
-  {
-    title: "Productos",
-    icon: Package,
-    items: [
-      {
-        title: "Subir Productos",
-        path: "/upload",
-        icon: Upload,
-      },
-      {
-        title: "📦 Carga Masiva",
-        path: "/products/bulk-upload",
-        icon: Upload,
-        badge: "Nuevo",
-        badgeColor: "bg-blue-100 text-blue-700 border-blue-200",
-      },
-      {
-        title: "Mi Biblioteca",
-        path: "/products",
-        icon: Layers,
-      },
-      {
-        title: "Editar Productos",
-        path: "/products-management",
-        icon: Settings,
-      },
-    ],
-  },
-  {
-    title: "Catálogos",
-    icon: FileText,
-    items: [
-      {
-        title: "Crear Catálogo",
-        path: "/products",
-        icon: Palette,
-      },
-      {
-        title: "Mis Catálogos",
-        path: "/catalogs",
-        icon: FileText,
-      },
-    ],
-  },
-  {
-    title: "Créditos",
-    path: "/checkout",
-    icon: CreditCard,
-    badge: "Comprar",
-    badgeColor: "bg-purple-100 text-purple-700 border-purple-200",
-  },
-  {
-    title: "Configuración",
-    icon: Settings,
-    items: [
-      {
-        title: "Info del Negocio",
-        path: "/business-info",
-        icon: Building2,
-      },
-    ],
-  },
+const navigationItems = [
+  // GRUPO 1: Acciones Principales (44px altura mínima)
+  { title: "Subir Productos", path: "/upload", icon: Upload, primary: true },
+  { title: "Mi Biblioteca", path: "/products", icon: Package, primary: true },
+  { title: "Mis Catálogos", path: "/catalogs", icon: BookOpen, primary: true },
+  
+  // GRUPO 2: Acciones Secundarias
+  { title: "Carga Masiva", path: "/products/bulk-upload", icon: PackageOpen, badge: "Nuevo" },
+  { title: "Editar Productos", path: "/products-management", icon: Settings },
+  { title: "Analytics", path: "/analytics", icon: BarChart3 },
+  { title: "Comprar Créditos", path: "/checkout", icon: CreditCard },
+  
+  // GRUPO 3: Configuración
+  { title: "Guía de Inicio", path: "/onboarding", icon: PlayCircle, badge: "5 min" },
+  { title: "Info del Negocio", path: "/business-info", icon: Building2 },
 ];
 
 // ==========================================
@@ -189,68 +131,31 @@ export function AppSidebar() {
   };
 
   // ==========================================
-  // RENDER FUNCTIONS CON ICONOS CONSISTENTES
+  // RENDER NAVEGACIÓN PLANA
   // ==========================================
 
-  const renderMenuItem = (item: MenuItem) => {
-    const isActive = item.path ? isActiveRoute(item.path) : false;
-    const hasChildren = item.items && item.items.length > 0;
-
-    if (hasChildren) {
-      return (
-        <SidebarMenuItem key={item.title}>
-          <SidebarMenuButton className="w-full group hover:bg-slate-100 transition-colors min-h-[44px]">
-            <item.icon className="w-5 h-5 text-slate-600 group-hover:text-slate-800 flex-shrink-0" />
-            <span className="text-slate-700 group-hover:text-slate-900 font-medium flex-1 text-left">{item.title}</span>
-            <ChevronRight className="ml-2 h-4 w-4 text-slate-400 group-hover:text-slate-600 flex-shrink-0" />
-          </SidebarMenuButton>
-          <SidebarMenuSub>
-            {item.items?.map((subItem) => (
-              <SidebarMenuSubItem key={subItem.title}>
-                <SidebarMenuSubButton
-                  asChild
-                  isActive={subItem.path ? isActiveRoute(subItem.path) : false}
-                  className="hover:bg-slate-50 min-h-[40px]"
-                >
-                  <button
-                    onClick={() => subItem.path && navigate(subItem.path)}
-                    className={`flex items-center w-full gap-3 px-3 py-2 rounded-md transition-all text-sm ${
-                      subItem.path && isActiveRoute(subItem.path)
-                        ? "bg-blue-50 text-blue-700 border-l-3 border-blue-500"
-                        : "text-slate-600 hover:text-slate-800 hover:bg-slate-50"
-                    }`}
-                  >
-                    <subItem.icon className="w-4 h-4 flex-shrink-0" />
-                    <span className="font-medium flex-1 text-left">{subItem.title}</span>
-                  </button>
-                </SidebarMenuSubButton>
-              </SidebarMenuSubItem>
-            ))}
-          </SidebarMenuSub>
-        </SidebarMenuItem>
-      );
-    }
-
+  const renderNavItem = (item: typeof navigationItems[0]) => {
+    const isActive = isActiveRoute(item.path);
+    const isPrimary = item.primary;
+    
     return (
-      <SidebarMenuItem key={item.title}>
+      <SidebarMenuItem key={item.path}>
         <SidebarMenuButton asChild isActive={isActive}>
           <button
-            onClick={() => item.path && navigate(item.path)}
-            className={`flex items-center w-full gap-3 px-3 py-2 rounded-md transition-all min-h-[44px] ${
-              isActive
-                ? "bg-blue-50 text-blue-700 border-l-3 border-blue-500"
-                : "text-slate-600 hover:text-slate-800 hover:bg-slate-50"
-            }`}
+            onClick={() => navigate(item.path)}
+            className={`
+              flex items-center gap-3 w-full px-3 rounded-lg transition-all
+              ${isPrimary ? 'min-h-[44px] py-3' : 'min-h-[40px] py-2'}
+              ${isActive 
+                ? 'bg-blue-50 text-blue-700 font-semibold border-l-3 border-blue-600' 
+                : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
+              }
+            `}
           >
-            <item.icon className="w-5 h-5 flex-shrink-0" />
-            <span className="font-medium flex-1 text-left">{item.title}</span>
+            <item.icon className={isPrimary ? "w-5 h-5" : "w-4 h-4"} />
+            <span className="flex-1 text-left text-sm">{item.title}</span>
             {item.badge && (
-              <Badge
-                className={`text-xs flex-shrink-0 border ml-2 ${
-                  item.badgeColor || "bg-slate-100 text-slate-700 border-slate-200"
-                }`}
-                variant="outline"
-              >
+              <Badge className="text-xs bg-green-100 text-green-700 border-green-200">
                 {item.badge}
               </Badge>
             )}
@@ -317,17 +222,42 @@ export function AppSidebar() {
         </SidebarGroupContent>
       </SidebarGroup>
 
-      {/* ✅ NAVIGATION CONTENT CON FONDO SÓLIDO */}
-      <SidebarContent className="px-3 py-4 bg-white">
+      {/* ✅ NAVIGATION CONTENT CON JERARQUÍA VISUAL CLARA */}
+      <SidebarContent className="px-3 py-4">
+        {/* Grupo Principal */}
         <SidebarGroup>
-          <SidebarGroupLabel className="text-xs text-slate-500 uppercase tracking-wider font-semibold mb-3 px-3">
-            NAVEGACIÓN
+          <SidebarGroupLabel className="text-xs font-semibold text-slate-500 uppercase px-3 mb-2">
+            Principal
           </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu className="space-y-1">
-              {menuData.map(renderMenuItem)}
-            </SidebarMenu>
-          </SidebarGroupContent>
+          <SidebarMenu className="space-y-1">
+            {navigationItems.filter(item => item.primary).map(renderNavItem)}
+          </SidebarMenu>
+        </SidebarGroup>
+
+        {/* Espaciador visual */}
+        <div className="h-px bg-slate-200 my-4 mx-3" />
+
+        {/* Grupo Herramientas */}
+        <SidebarGroup>
+          <SidebarGroupLabel className="text-xs font-semibold text-slate-500 uppercase px-3 mb-2">
+            Herramientas
+          </SidebarGroupLabel>
+          <SidebarMenu className="space-y-1">
+            {navigationItems.filter(item => !item.primary && item.path !== '/onboarding' && item.path !== '/business-info').map(renderNavItem)}
+          </SidebarMenu>
+        </SidebarGroup>
+
+        {/* Espaciador visual */}
+        <div className="h-px bg-slate-200 my-4 mx-3" />
+
+        {/* Grupo Configuración */}
+        <SidebarGroup>
+          <SidebarGroupLabel className="text-xs font-semibold text-slate-500 uppercase px-3 mb-2">
+            Configuración
+          </SidebarGroupLabel>
+          <SidebarMenu className="space-y-1">
+            {navigationItems.filter(item => item.path === '/onboarding' || item.path === '/business-info').map(renderNavItem)}
+          </SidebarMenu>
         </SidebarGroup>
       </SidebarContent>
 
