@@ -1,7 +1,6 @@
 import React from 'react';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { Scissors, ImageIcon, Sparkles } from 'lucide-react';
+import { Scissors, ImageIcon, CheckCircle } from 'lucide-react';
 
 interface Product {
   id: string;
@@ -55,12 +54,11 @@ export const BackgroundSelector: React.FC<BackgroundSelectorProps> = ({
   }
 
   return (
-    <div className="space-y-3 p-4 bg-blue-50 rounded-lg border">
+    <div className="space-y-3">
       <div className="flex items-center gap-2">
-        <Scissors className="h-4 w-4 text-blue-600" />
-        <Label className="text-sm font-medium text-blue-800">Tipo de imagen</Label>
+        <Label className="text-sm font-medium">Tipo de imagen</Label>
       </div>
-      <p className="text-xs text-blue-600">
+      <p className="text-xs text-gray-600">
         {analysis.mixed 
           ? `Tienes ${analysis.withoutBackground} productos con fondo removido y ${analysis.withBackground} con fondo.`
           : analysis.allHaveNoBackground 
@@ -68,32 +66,78 @@ export const BackgroundSelector: React.FC<BackgroundSelectorProps> = ({
           : `${analysis.withoutBackground} productos tienen el fondo removido.`
         }
       </p>
-      <Select value={backgroundPreference} onValueChange={(value) => {
-        console.log('🎯 BACKGROUND SELECTOR - Cambio de preferencia:', {
-          anterior: backgroundPreference,
-          nuevo: value,
-          timestamp: new Date().toISOString()
-        });
-        onPreferenceChange(value as 'with' | 'without');
-      }}>
-        <SelectTrigger>
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="without">
-            <div className="flex items-center gap-2">
-              <Scissors className="h-3 w-3" />
-              Usar imágenes sin fondo ({analysis.withoutBackground} disponibles)
+      
+      <div className="grid grid-cols-2 gap-3">
+        <button
+          type="button"
+          onClick={() => {
+            console.log('🎯 BACKGROUND SELECTOR - Cambio de preferencia:', {
+              anterior: backgroundPreference,
+              nuevo: 'without',
+              timestamp: new Date().toISOString()
+            });
+            onPreferenceChange('without');
+          }}
+          className={`
+            relative flex flex-col items-center p-4 rounded-lg border-2 transition-all
+            ${backgroundPreference === 'without' 
+              ? 'border-purple-600 bg-purple-50 shadow-sm' 
+              : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+            }
+          `}
+        >
+          <div className={`
+            w-10 h-10 rounded-full flex items-center justify-center mb-2
+            ${backgroundPreference === 'without' ? 'bg-purple-100' : 'bg-gray-100'}
+          `}>
+            <Scissors className={`w-5 h-5 ${backgroundPreference === 'without' ? 'text-purple-600' : 'text-gray-600'}`} />
+          </div>
+          <div className="text-sm font-medium text-center">Sin fondo</div>
+          <div className="text-xs text-gray-500 mt-1">
+            {analysis.withoutBackground} disponibles
+          </div>
+          {backgroundPreference === 'without' && (
+            <div className="absolute top-2 right-2">
+              <CheckCircle className="w-5 h-5 text-purple-600" />
             </div>
-          </SelectItem>
-          <SelectItem value="with">
-            <div className="flex items-center gap-2">
-              <ImageIcon className="h-3 w-3" />
-              Usar imágenes con fondo
+          )}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            console.log('🎯 BACKGROUND SELECTOR - Cambio de preferencia:', {
+              anterior: backgroundPreference,
+              nuevo: 'with',
+              timestamp: new Date().toISOString()
+            });
+            onPreferenceChange('with');
+          }}
+          className={`
+            relative flex flex-col items-center p-4 rounded-lg border-2 transition-all
+            ${backgroundPreference === 'with' 
+              ? 'border-purple-600 bg-purple-50 shadow-sm' 
+              : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+            }
+          `}
+        >
+          <div className={`
+            w-10 h-10 rounded-full flex items-center justify-center mb-2
+            ${backgroundPreference === 'with' ? 'bg-purple-100' : 'bg-gray-100'}
+          `}>
+            <ImageIcon className={`w-5 h-5 ${backgroundPreference === 'with' ? 'text-purple-600' : 'text-gray-600'}`} />
+          </div>
+          <div className="text-sm font-medium text-center">Con fondo</div>
+          <div className="text-xs text-gray-500 mt-1">
+            Originales
+          </div>
+          {backgroundPreference === 'with' && (
+            <div className="absolute top-2 right-2">
+              <CheckCircle className="w-5 h-5 text-purple-600" />
             </div>
-          </SelectItem>
-        </SelectContent>
-      </Select>
+          )}
+        </button>
+      </div>
     </div>
   );
 };
