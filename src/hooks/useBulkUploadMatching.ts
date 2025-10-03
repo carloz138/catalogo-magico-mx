@@ -89,6 +89,7 @@ export const useBulkUploadMatching = () => {
 
   return {
     matches,
+    setMatches,
     processMatches,
     getStats,
     cleanFileName

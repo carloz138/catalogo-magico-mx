@@ -23,7 +23,7 @@ import { retryWithBackoff } from '@/lib/retry-logic';
 export default function BulkUpload() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { matches, processMatches, getStats, cleanFileName } = useBulkUploadMatching();
+  const { matches, setMatches, processMatches, getStats, cleanFileName } = useBulkUploadMatching();
   const { duplicates, checkDuplicates, isChecking } = useDuplicateDetection();
 
   const [images, setImages] = useState<ImageFile[]>([]);
@@ -32,6 +32,7 @@ export default function BulkUpload() {
   const [uploadProgress, setUploadProgress] = useState<UploadProgressType | null>(null);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [showDuplicateWarning, setShowDuplicateWarning] = useState(false);
+  const [showOnlyUnmatched, setShowOnlyUnmatched] = useState(false);
 
   const handleImagesSelected = (newImages: ImageFile[]) => {
     const processedImages = newImages.map(img => ({
@@ -51,6 +52,41 @@ export default function BulkUpload() {
     if (images.length > 0) {
       processMatches(images, products);
     }
+  };
+
+  const handleRenameImage = (imageIndex: number, newCleanName: string) => {
+    const updatedImages = [...images];
+    updatedImages[imageIndex] = {
+      ...updatedImages[imageIndex],
+      cleanName: newCleanName
+    };
+    setImages(updatedImages);
+    
+    // Re-procesar matches con nuevo nombre
+    processMatches(updatedImages, csvProducts);
+    
+    toast({
+      title: "Imagen renombrada",
+      description: "Se actualizó el matching automáticamente",
+    });
+  };
+
+  const handleManualMatch = (imageIndex: number, product: CSVProduct) => {
+    const updatedMatches = [...matches];
+    
+    updatedMatches[imageIndex] = {
+      ...updatedMatches[imageIndex],
+      csvData: product,
+      matchScore: 100,
+      matchType: 'exact'
+    };
+    
+    setMatches(updatedMatches);
+    
+    toast({
+      title: "Match manual aplicado",
+      description: `Imagen asociada con ${product.nombre}`,
+    });
   };
 
   const uploadToSupabase = async () => {
@@ -352,27 +388,44 @@ export default function BulkUpload() {
 
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold">3. Revisa los Matches</h3>
-              <Button
-                onClick={uploadToSupabase}
-                disabled={!canUpload || validationErrors.length > 0 || isChecking}
-                className="bg-gradient-to-r from-primary to-purple-600"
-              >
-                <Upload className="h-4 w-4 mr-2" />
-                {isChecking ? 'Verificando...' : `Subir ${stats.matched} Producto${stats.matched !== 1 ? 's' : ''}`}
-              </Button>
+              <div className="flex gap-2">
+                {stats.unmatched > 0 && (
+                  <Button
+                    variant={showOnlyUnmatched ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setShowOnlyUnmatched(!showOnlyUnmatched)}
+                  >
+                    <AlertTriangle className="h-4 w-4 mr-2" />
+                    Solo sin match ({stats.unmatched})
+                  </Button>
+                )}
+                <Button
+                  onClick={uploadToSupabase}
+                  disabled={!canUpload || validationErrors.length > 0 || isChecking}
+                  className="bg-gradient-to-r from-primary to-purple-600"
+                >
+                  <Upload className="h-4 w-4 mr-2" />
+                  {isChecking ? 'Verificando...' : `Subir ${stats.matched} Producto${stats.matched !== 1 ? 's' : ''}`}
+                </Button>
+              </div>
             </div>
 
-            {stats.unmatched > 0 && (
+            {stats.unmatched > 0 && !showOnlyUnmatched && (
               <Alert className="mb-4">
                 <AlertTriangle className="h-4 w-4" />
                 <AlertDescription>
                   {stats.unmatched} imagen{stats.unmatched !== 1 ? 'es' : ''} no encontró match. 
-                  Verifica los nombres de archivo o el contenido del CSV.
+                  Puedes renombrarlas o hacer matching manual.
                 </AlertDescription>
               </Alert>
             )}
 
-            <MatchingTable matches={matches} />
+            <MatchingTable 
+              matches={showOnlyUnmatched ? matches.filter(m => m.csvData === null) : matches}
+              csvProducts={csvProducts}
+              onRenameImage={handleRenameImage}
+              onManualMatch={handleManualMatch}
+            />
           </Card>
         )}
 
