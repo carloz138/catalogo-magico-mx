@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
-import Fuse from 'fuse.js';
 import { CSVProduct, ImageFile, ProductMatch } from '@/types/bulk-upload';
+import { productMatcher } from '@/lib/matching-engine';
 
 export const useBulkUploadMatching = () => {
   const [matches, setMatches] = useState<ProductMatch[]>([]);
@@ -20,58 +20,26 @@ export const useBulkUploadMatching = () => {
   const findMatch = useCallback((image: ImageFile, csvProducts: CSVProduct[]): ProductMatch => {
     const cleanName = image.cleanName;
     
-    // 1. Exact match by SKU
-    const exactSKU = csvProducts.find(p => 
-      p.sku.toLowerCase() === cleanName.toLowerCase()
-    );
-    if (exactSKU) {
+    // Usar el nuevo motor de matching
+    const matches = productMatcher.match(cleanName, csvProducts);
+    
+    if (matches.length === 0) {
       return {
         image,
-        csvData: exactSKU,
-        matchScore: 100,
-        matchType: 'exact'
+        csvData: null,
+        matchScore: 0,
+        matchType: 'none'
       };
     }
 
-    // 2. Contains match
-    const containsMatch = csvProducts.find(p => {
-      const sku = p.sku.toLowerCase();
-      const nombre = p.nombre.toLowerCase();
-      return cleanName.includes(sku) || sku.includes(cleanName) ||
-             cleanName.includes(nombre) || nombre.includes(cleanName);
-    });
-    if (containsMatch) {
-      return {
-        image,
-        csvData: containsMatch,
-        matchScore: 85,
-        matchType: 'contains'
-      };
-    }
-
-    // 3. Fuzzy match
-    const fuse = new Fuse(csvProducts, {
-      keys: ['sku', 'nombre'],
-      threshold: 0.3, // Lower is stricter (0.3 = 70% similarity)
-      includeScore: true
-    });
-
-    const fuzzyResults = fuse.search(cleanName);
-    if (fuzzyResults.length > 0 && fuzzyResults[0].score && fuzzyResults[0].score < 0.3) {
-      return {
-        image,
-        csvData: fuzzyResults[0].item,
-        matchScore: Math.round((1 - fuzzyResults[0].score) * 100),
-        matchType: 'fuzzy'
-      };
-    }
-
-    // No match
+    // Tomar el mejor match
+    const bestMatch = matches[0];
+    
     return {
       image,
-      csvData: null,
-      matchScore: 0,
-      matchType: 'none'
+      csvData: bestMatch.product,
+      matchScore: Math.round(bestMatch.score * 100),
+      matchType: bestMatch.method as 'exact' | 'contains' | 'fuzzy' | 'none'
     };
   }, []);
 
