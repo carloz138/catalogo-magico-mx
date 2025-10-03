@@ -67,53 +67,56 @@ const Upload = () => {
 
   const actions = (
     <div className="flex items-center gap-3">
-      {/* Botón Carga Masiva */}
-      <Button 
-        variant="secondary"
-        onClick={() => navigate('/products/bulk-upload')}
-        className="gap-2"
-      >
-        <PackageOpen className="h-4 w-4" />
-        📦 Carga Masiva
-      </Button>
-      
-      {/* Progress Steps */}
-      <div className="hidden md:flex items-center gap-2">
-        {['upload', 'analyze', 'form', 'final'].map((step, index) => {
-          const StepIcon = getStepIcon(step);
-          const isActive = currentStep === step;
-          const isCompleted = ['upload', 'analyze', 'form', 'final'].indexOf(currentStep) > index;
-          
-          return (
-            <div key={step} className="flex items-center">
-              <div className={`flex items-center justify-center w-8 h-8 rounded-full border-2 ${
-                isActive 
-                  ? 'border-blue-500 bg-blue-50 text-blue-600' 
-                  : isCompleted 
-                    ? 'border-green-500 bg-green-50 text-green-600'
-                    : 'border-gray-300 bg-gray-50 text-gray-400'
-              }`}>
-                <StepIcon className="w-4 h-4" />
+      {/* Indicador de paso actual - más claro */}
+      <div className="flex items-center gap-2 bg-gray-50 px-3 py-2 rounded-lg border">
+        <div className="flex items-center gap-1">
+          {['upload', 'analyze', 'form', 'final'].map((step, index) => (
+            <React.Fragment key={step}>
+              <div className={`
+                w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold
+                ${currentStep === step 
+                  ? 'bg-blue-600 text-white' 
+                  : index < ['upload', 'analyze', 'form', 'final'].indexOf(currentStep)
+                    ? 'bg-green-500 text-white'
+                    : 'bg-gray-300 text-gray-600'
+                }
+              `}>
+                {index < ['upload', 'analyze', 'form', 'final'].indexOf(currentStep) 
+                  ? '✓' 
+                  : index + 1
+                }
               </div>
               {index < 3 && (
-                <div className={`w-8 h-0.5 mx-2 ${
-                  isCompleted ? 'bg-green-500' : 'bg-gray-300'
+                <div className={`w-6 h-0.5 ${
+                  index < ['upload', 'analyze', 'form', 'final'].indexOf(currentStep)
+                    ? 'bg-green-500'
+                    : 'bg-gray-300'
                 }`} />
               )}
-            </div>
-          );
-        })}
+            </React.Fragment>
+          ))}
+        </div>
+        <span className="text-sm font-medium text-gray-700 ml-2">
+          Paso {['upload', 'analyze', 'form', 'final'].indexOf(currentStep) + 1} de 4
+        </span>
       </div>
 
-      {/* Mobile step indicator */}
-      <div className="md:hidden">
-        <Badge variant="outline">
-          Paso {['upload', 'analyze', 'form', 'final'].indexOf(currentStep) + 1} de 4
-        </Badge>
-      </div>
+      {/* CTAs claros */}
+      <Button 
+        onClick={() => navigate('/products/bulk-upload')}
+        variant="outline"
+        size="sm"
+      >
+        <PackageOpen className="h-4 w-4 mr-2" />
+        Carga Masiva
+      </Button>
 
       {files.length > 0 && (
-        <Button variant="outline" onClick={resetUpload}>
+        <Button 
+          onClick={resetUpload}
+          variant="outline"
+          size="sm"
+        >
           Reiniciar
         </Button>
       )}
