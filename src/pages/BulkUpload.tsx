@@ -15,6 +15,7 @@ import { ArrowLeft, Upload, CheckCircle2, XCircle, AlertTriangle } from 'lucide-
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { bulkUploadSchema } from '@/lib/validation/bulk-upload-schemas';
 import { processBatchWithConcurrency } from '@/lib/concurrency-control';
+import { batchInsert } from '@/lib/batch-processing';
 
 export default function BulkUpload() {
   const navigate = useNavigate();
@@ -68,7 +69,6 @@ export default function BulkUpload() {
       return;
     }
 
-    // Validación con Zod antes de empezar
     const validation = bulkUploadSchema.safeParse({
       images: images.map(i => i.file),
       products: csvProducts
@@ -92,22 +92,22 @@ export default function BulkUpload() {
       total: matchedProducts.length,
       uploaded: 0,
       failed: 0,
-      current: ''
+      current: 'Subiendo imágenes...'
     });
 
-    // Función para procesar un producto individual
-    const uploadSingleProduct = async (match: typeof matchedProducts[0], index: number) => {
-      if (!match.csvData) throw new Error('No CSV data');
+    // FASE 1: Upload todas las imágenes primero
+    const uploadedImages: Array<{
+      match: typeof matchedProducts[0];
+      mainImageUrl: string;
+      secondaryUrls: string[];
+    }> = [];
 
-      setUploadProgress(prev => prev ? {
-        ...prev,
-        current: match.csvData!.nombre
-      } : null);
+    const uploadImage = async (match: typeof matchedProducts[0], index: number) => {
+      if (!match.csvData) throw new Error('No CSV data');
 
       const timestamp = Date.now();
       const mainImagePath = `${user.id}/${timestamp}_${match.image.file.name}`;
       
-      // Upload imagen principal
       const { error: uploadError } = await supabase.storage
         .from('product-images')
         .upload(mainImagePath, match.image.file);
@@ -118,7 +118,6 @@ export default function BulkUpload() {
         .from('product-images')
         .getPublicUrl(mainImagePath);
 
-      // Upload imágenes secundarias si existen
       const secondaryUrls: string[] = [];
       if (match.secondaryImages && match.secondaryImages.length > 0) {
         for (const secImg of match.secondaryImages) {
@@ -136,55 +135,73 @@ export default function BulkUpload() {
         }
       }
 
-      // Insertar producto
-      const { data, error: insertError } = await supabase
-        .from('products')
-        .insert({
-          user_id: user.id,
-          name: match.csvData.nombre,
-          sku: match.csvData.sku,
-          price_retail: parseInt(match.csvData.precio),
-          price_wholesale: match.csvData.precio_mayoreo ? parseInt(match.csvData.precio_mayoreo) : null,
-          description: match.csvData.descripcion || null,
-          category: match.csvData.categoria || null,
-          original_image_url: publicUrl,
-          processing_status: 'pending',
-          processed_images: secondaryUrls.length > 0 ? { secondary: secondaryUrls } : null
-        })
-        .select()
-        .single();
+      setUploadProgress(prev => prev ? {
+        ...prev,
+        uploaded: index + 1,
+        current: `Subiendo imágenes... ${index + 1}/${matchedProducts.length}`
+      } : null);
 
-      if (insertError) throw insertError;
-      
-      return data;
+      return {
+        match,
+        mainImageUrl: publicUrl,
+        secondaryUrls
+      };
     };
 
-    // Procesar con concurrencia de 3
-    const { successful, failed } = await processBatchWithConcurrency(
+    const { successful: successfulImages, failed: failedImages } = await processBatchWithConcurrency(
       matchedProducts,
-      uploadSingleProduct,
+      uploadImage,
       3
     );
 
-    // Actualizar progreso final
+    uploadedImages.push(...successfulImages);
+
+    if (uploadedImages.length === 0) {
+      setUploading(false);
+      toast({
+        title: "Error",
+        description: "No se pudo subir ninguna imagen",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // FASE 2: Batch insert de productos
     setUploadProgress(prev => prev ? {
       ...prev,
-      uploaded: successful.length,
-      failed: failed.length
+      current: 'Guardando productos en base de datos...'
     } : null);
+
+    const productsToInsert = uploadedImages.map(({ match, mainImageUrl, secondaryUrls }) => ({
+      user_id: user.id,
+      name: match.csvData!.nombre,
+      sku: match.csvData!.sku,
+      price_retail: parseInt(match.csvData!.precio),
+      price_wholesale: match.csvData!.precio_mayoreo ? parseInt(match.csvData!.precio_mayoreo) : null,
+      description: match.csvData!.descripcion || null,
+      category: match.csvData!.categoria || null,
+      original_image_url: mainImageUrl,
+      processing_status: 'pending',
+      processed_images: secondaryUrls.length > 0 ? { secondary: secondaryUrls } : null
+    }));
+
+    const { successful: insertedProducts, failed: failedInserts } = await batchInsert(
+      'products',
+      productsToInsert,
+      500,
+      supabase
+    );
 
     setUploading(false);
     
-    if (failed.length > 0) {
-      console.error('Productos fallidos:', failed);
-    }
+    const totalFailed = failedImages.length + failedInserts.length;
     
     toast({
       title: "Carga completada",
-      description: `${successful.length} productos subidos exitosamente${failed.length > 0 ? `, ${failed.length} fallidos` : ''}`,
+      description: `${insertedProducts.length} productos subidos exitosamente${totalFailed > 0 ? `, ${totalFailed} fallidos` : ''}`,
     });
 
-    if (successful.length > 0) {
+    if (insertedProducts.length > 0) {
       setTimeout(() => navigate('/products'), 2000);
     }
   };
