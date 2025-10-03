@@ -4,7 +4,6 @@ export interface CSVProduct {
   precio: string;
   descripcion?: string;
   categoria?: string;
-  [key: string]: string | undefined;
 }
 
 export interface ImageFile {

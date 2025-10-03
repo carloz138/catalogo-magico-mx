@@ -2,6 +2,8 @@ import { useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { Upload, Image as ImageIcon } from 'lucide-react';
 import { ImageFile } from '@/types/bulk-upload';
+import { imageFileSchema } from '@/lib/validation/bulk-upload-schemas';
+import { useToast } from '@/hooks/use-toast';
 
 interface ImageDropzoneProps {
   onImagesSelected: (images: ImageFile[]) => void;
@@ -9,14 +11,47 @@ interface ImageDropzoneProps {
 }
 
 export const ImageDropzone = ({ onImagesSelected, images }: ImageDropzoneProps) => {
+  const { toast } = useToast();
+
   const onDrop = useCallback((acceptedFiles: File[]) => {
-    const imageFiles: ImageFile[] = acceptedFiles.map(file => ({
-      file,
-      preview: URL.createObjectURL(file),
-      cleanName: file.name.replace(/\.[^/.]+$/, '').toLowerCase()
-    }));
-    onImagesSelected([...images, ...imageFiles]);
-  }, [images, onImagesSelected]);
+    const validFiles: ImageFile[] = [];
+    const rejectedFiles: { name: string; reason: string }[] = [];
+
+    // Validar cada archivo
+    acceptedFiles.forEach(file => {
+      const validation = imageFileSchema.safeParse(file);
+      
+      if (validation.success) {
+        validFiles.push({
+          file,
+          preview: URL.createObjectURL(file),
+          cleanName: file.name.replace(/\.[^/.]+$/, '').toLowerCase()
+        });
+      } else {
+        const errorMessage = validation.error.issues[0]?.message || 'Error de validación';
+        rejectedFiles.push({ name: file.name, reason: errorMessage });
+      }
+    });
+
+    // Mostrar toast con archivos rechazados
+    if (rejectedFiles.length > 0) {
+      const reasons = [...new Set(rejectedFiles.map(f => f.reason))].join(', ');
+      toast({
+        title: `${rejectedFiles.length} archivo${rejectedFiles.length > 1 ? 's' : ''} rechazado${rejectedFiles.length > 1 ? 's' : ''}`,
+        description: reasons,
+        variant: "destructive"
+      });
+    }
+
+    // Solo agregar archivos válidos
+    if (validFiles.length > 0) {
+      onImagesSelected([...images, ...validFiles]);
+      toast({
+        title: "Imágenes agregadas",
+        description: `${validFiles.length} imagen${validFiles.length > 1 ? 'es' : ''} válida${validFiles.length > 1 ? 's' : ''}`,
+      });
+    }
+  }, [images, onImagesSelected, toast]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,

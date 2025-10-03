@@ -1,9 +1,11 @@
-import { useCallback, useRef } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import Papa from 'papaparse';
-import { FileSpreadsheet, Upload, CheckCircle2 } from 'lucide-react';
+import { FileSpreadsheet, Upload, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { CSVProduct } from '@/types/bulk-upload';
 import { useToast } from '@/hooks/use-toast';
+import { csvFileSchema, csvProductSchema } from '@/lib/validation/bulk-upload-schemas';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 interface CSVUploaderProps {
   onCSVParsed: (products: CSVProduct[]) => void;
@@ -13,10 +15,23 @@ interface CSVUploaderProps {
 export const CSVUploader = ({ onCSVParsed, csvProducts }: CSVUploaderProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
   const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    // Validar archivo CSV
+    const fileValidation = csvFileSchema.safeParse(file);
+    if (!fileValidation.success) {
+      const errorMessage = fileValidation.error.issues[0]?.message || 'Archivo CSV inválido';
+      toast({
+        title: "Error en archivo CSV",
+        description: errorMessage,
+        variant: "destructive"
+      });
+      return;
+    }
 
     Papa.parse(file, {
       header: true,
@@ -24,22 +39,59 @@ export const CSVUploader = ({ onCSVParsed, csvProducts }: CSVUploaderProps) => {
       complete: (results) => {
         const products = results.data as CSVProduct[];
         
-        // Validate required fields
-        const hasRequiredFields = products.every(p => p.sku && p.nombre && p.precio);
+        // Validar cada producto
+        const validProducts: CSVProduct[] = [];
+        const invalidProducts: { product: any; errors: string[] }[] = [];
         
-        if (!hasRequiredFields) {
+        products.forEach((product, index) => {
+          const validation = csvProductSchema.safeParse(product);
+          
+          if (validation.success) {
+            validProducts.push(validation.data as CSVProduct);
+          } else {
+            const errors = validation.error.issues.map(issue => issue.message);
+            invalidProducts.push({ product, errors });
+          }
+        });
+
+        // Si todos son inválidos, no continuar
+        if (validProducts.length === 0) {
           toast({
             title: "Error en CSV",
-            description: "El CSV debe contener las columnas: sku, nombre, precio",
+            description: "Todos los productos tienen errores de validación",
             variant: "destructive"
           });
+          setValidationErrors(invalidProducts.flatMap(ip => ip.errors));
           return;
         }
 
-        onCSVParsed(products);
+        // Si hay productos inválidos, mostrar resumen
+        if (invalidProducts.length > 0) {
+          const errorSummary = invalidProducts.reduce((acc, ip) => {
+            ip.errors.forEach(error => {
+              acc[error] = (acc[error] || 0) + 1;
+            });
+            return acc;
+          }, {} as Record<string, number>);
+
+          const errorMessages = Object.entries(errorSummary).map(
+            ([error, count]) => `${count} con: ${error}`
+          );
+
+          setValidationErrors(errorMessages);
+        } else {
+          setValidationErrors([]);
+        }
+
+        // Llamar con productos válidos solamente
+        onCSVParsed(validProducts);
+        
         toast({
           title: "CSV cargado",
-          description: `${products.length} productos encontrados`,
+          description: invalidProducts.length > 0
+            ? `${validProducts.length} productos válidos, ${invalidProducts.length} con errores`
+            : `${validProducts.length} productos encontrados`,
+          variant: invalidProducts.length > 0 ? "default" : "default"
         });
       },
       error: (error) => {
@@ -61,6 +113,20 @@ export const CSVUploader = ({ onCSVParsed, csvProducts }: CSVUploaderProps) => {
         onChange={handleFileChange}
         className="hidden"
       />
+
+      {validationErrors.length > 0 && (
+        <Alert variant="destructive" className="mb-4">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Errores de validación en CSV</AlertTitle>
+          <AlertDescription>
+            <ul className="list-disc list-inside mt-2 space-y-1">
+              {validationErrors.map((error, idx) => (
+                <li key={idx} className="text-sm">{error}</li>
+              ))}
+            </ul>
+          </AlertDescription>
+        </Alert>
+      )}
 
       {csvProducts.length === 0 ? (
         <div

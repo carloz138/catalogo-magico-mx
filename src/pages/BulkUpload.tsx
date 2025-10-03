@@ -12,7 +12,8 @@ import { CSVProduct, ImageFile, UploadProgress as UploadProgressType } from '@/t
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, Upload, CheckCircle2, XCircle, AlertTriangle } from 'lucide-react';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { bulkUploadSchema } from '@/lib/validation/bulk-upload-schemas';
 
 export default function BulkUpload() {
   const navigate = useNavigate();
@@ -23,6 +24,7 @@ export default function BulkUpload() {
   const [csvProducts, setCSVProducts] = useState<CSVProduct[]>([]);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<UploadProgressType | null>(null);
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
   const handleImagesSelected = (newImages: ImageFile[]) => {
     const processedImages = newImages.map(img => ({
@@ -54,6 +56,26 @@ export default function BulkUpload() {
       });
       return;
     }
+
+    // Validar batch completo antes de subir
+    const validation = bulkUploadSchema.safeParse({
+      images: images.map(i => i.file),
+      products: csvProducts
+    });
+
+    if (!validation.success) {
+      const errors = validation.error.issues.map(issue => issue.message);
+      setValidationErrors(errors);
+      toast({
+        title: "Errores de validación",
+        description: errors[0],
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Limpiar errores previos
+    setValidationErrors([]);
 
     const matchedProducts = matches.filter(m => m.csvData !== null);
     if (matchedProducts.length === 0) {
@@ -234,11 +256,25 @@ export default function BulkUpload() {
         {/* Matching Results */}
         {matches.length > 0 && (
           <Card className="p-6">
+            {validationErrors.length > 0 && (
+              <Alert variant="destructive" className="mb-4">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>Errores de validación</AlertTitle>
+                <AlertDescription>
+                  <ul className="list-disc list-inside mt-2 space-y-1">
+                    {validationErrors.map((error, idx) => (
+                      <li key={idx} className="text-sm">{error}</li>
+                    ))}
+                  </ul>
+                </AlertDescription>
+              </Alert>
+            )}
+
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold">3. Revisa los Matches</h3>
               <Button
                 onClick={uploadToSupabase}
-                disabled={!canUpload}
+                disabled={!canUpload || validationErrors.length > 0}
                 className="bg-gradient-to-r from-primary to-purple-600"
               >
                 <Upload className="h-4 w-4 mr-2" />
