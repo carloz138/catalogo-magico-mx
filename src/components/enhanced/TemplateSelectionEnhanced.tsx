@@ -39,7 +39,8 @@ import {
   Package,
   Crown,
   Settings,
-  Grid3X3
+  Grid3X3,
+  Zap
 } from 'lucide-react';
 
 interface Product {
@@ -747,26 +748,81 @@ const TemplateSelectionEnhanced = () => {
             disabled={generating}
           />
 
-          {/* Selector de Precios de Mayoreo */}
+          {/* Selector de Precios */}
           <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div className="space-y-1">
-                  <Label className="text-base font-medium flex items-center gap-2">
-                    Opciones de Precios
-                    <Badge variant="outline" className="text-xs">
-                      {selectedProducts.filter(p => p.price_wholesale).length} con mayoreo
-                    </Badge>
-                  </Label>
-                  <p className="text-sm text-muted-foreground">
-                    Incluye precio de mayoreo y cantidad mínima en el catálogo
-                  </p>
-                </div>
-                <Switch
-                  checked={showWholesalePrices}
-                  onCheckedChange={setShowWholesalePrices}
+            <CardContent className="p-4 space-y-3">
+              <div>
+                <Label className="text-sm font-medium flex items-center gap-2">
+                  Opciones de Precios
+                  <Badge variant="outline" className="text-xs">
+                    {selectedProducts.filter(p => p.price_wholesale).length} con mayoreo
+                  </Badge>
+                </Label>
+                <p className="text-xs text-gray-600 mt-1">
+                  Elige qué precios mostrar en tu catálogo
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowWholesalePrices(true)}
                   disabled={generating}
-                />
+                  className={`
+                    relative flex flex-col items-center p-4 rounded-lg border-2 transition-all
+                    ${showWholesalePrices 
+                      ? 'border-purple-600 bg-purple-50 shadow-sm' 
+                      : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                    }
+                    ${generating ? 'opacity-50 cursor-not-allowed' : ''}
+                  `}
+                >
+                  <div className={`
+                    w-10 h-10 rounded-full flex items-center justify-center mb-2
+                    ${showWholesalePrices ? 'bg-purple-100' : 'bg-gray-100'}
+                  `}>
+                    <Package className={`w-5 h-5 ${showWholesalePrices ? 'text-purple-600' : 'text-gray-600'}`} />
+                  </div>
+                  <div className="text-sm font-medium text-center">Mayoreo</div>
+                  <div className="text-xs text-gray-500 mt-1 text-center">
+                    Con precios al por mayor
+                  </div>
+                  {showWholesalePrices && (
+                    <div className="absolute top-2 right-2">
+                      <CheckCircle className="w-5 h-5 text-purple-600" />
+                    </div>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setShowWholesalePrices(false)}
+                  disabled={generating}
+                  className={`
+                    relative flex flex-col items-center p-4 rounded-lg border-2 transition-all
+                    ${!showWholesalePrices 
+                      ? 'border-purple-600 bg-purple-50 shadow-sm' 
+                      : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                    }
+                    ${generating ? 'opacity-50 cursor-not-allowed' : ''}
+                  `}
+                >
+                  <div className={`
+                    w-10 h-10 rounded-full flex items-center justify-center mb-2
+                    ${!showWholesalePrices ? 'bg-purple-100' : 'bg-gray-100'}
+                  `}>
+                    <Zap className={`w-5 h-5 ${!showWholesalePrices ? 'text-purple-600' : 'text-gray-600'}`} />
+                  </div>
+                  <div className="text-sm font-medium text-center">Retail</div>
+                  <div className="text-xs text-gray-500 mt-1 text-center">
+                    Solo precio al público
+                  </div>
+                  {!showWholesalePrices && (
+                    <div className="absolute top-2 right-2">
+                      <CheckCircle className="w-5 h-5 text-purple-600" />
+                    </div>
+                  )}
+                </button>
               </div>
             </CardContent>
           </Card>
