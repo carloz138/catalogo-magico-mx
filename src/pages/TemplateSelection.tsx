@@ -660,88 +660,60 @@ const TemplateSelection = () => {
     );
   }
 
-  // Header actions mejoradas
+  // Header actions simplificado con jerarquía visual clara
   const actions = (
     <div className="flex items-center gap-3">
-      <div className="hidden md:block">
+      {/* Información contextual clara */}
+      <div className="hidden md:flex items-center gap-3 border-r pr-3">
         <Badge variant="outline" className="flex items-center gap-1">
           <Package className="w-3 h-3" />
           {selectedProducts.length} productos
         </Badge>
-      </div>
-      
-      {/* 🆕 BADGE DE PRODUCTOS POR PÁGINA */}
-      <div className="hidden lg:block">
-        <Badge variant="default" className="flex items-center gap-1 bg-blue-600">
-          <Settings className="w-3 h-3" />
+        
+        <Badge variant="default" className="bg-blue-600">
           {productsPerPage}/página
         </Badge>
+
+        {limits && (
+          <span className="text-sm text-gray-600">
+            {limits.catalogsLimit === 'unlimited' 
+              ? 'Ilimitados' 
+              : `${limits.remainingCatalogs} restantes`
+            }
+          </span>
+        )}
       </div>
       
-      {limits && (
-        <div className="hidden lg:block text-sm text-gray-600">
-          {limits.catalogsLimit === 'unlimited' 
-            ? 'Catálogos ilimitados' 
-            : `${limits.remainingCatalogs}/${limits.catalogsLimit} restantes`
-          }
-        </div>
-      )}
-      
-      {/* Selector de método mejorado */}
-      {showAdvancedOptions && selectedTemplate && (
-        <div className="hidden lg:flex items-center gap-2">
-          <span className="text-xs text-gray-500">Método:</span>
-          <select 
-            value={generationMethod}
-            onChange={(e) => setGenerationMethod(e.target.value as GenerationMethod)}
-            className="text-xs border rounded px-2 py-1"
-            disabled={generating || previewLoading}
-          >
-            <option value="auto">Auto (Recomendado: {getRecommendedMethod()})</option>
-            <option value="puppeteer">🚀 Puppeteer (Mejor calidad)</option>
-            <option value="dynamic">⚡ Dynamic (Rápido)</option>
-            <option value="classic">🎨 Classic (Compatible)</option>
-          </select>
-        </div>
-      )}
-      
-      {/* Botón de Preview mejorado */}
-      {selectedTemplate && (
-        <Button 
-          onClick={handlePreviewCatalog}
-          disabled={generating || previewLoading}
-          variant="outline"
-          className="flex items-center gap-2"
-        >
-          {previewLoading ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Generando...
-            </>
-          ) : (
-            <>
-              <Eye className="h-4 w-4" />
-              Preview v2.0
-            </>
-          )}
-        </Button>
-      )}
-      
+      {/* Acciones principales - orden de importancia */}
+      <Button 
+        onClick={handlePreviewCatalog}
+        disabled={!selectedTemplate || generating || previewLoading}
+        variant="outline"
+        size="sm"
+      >
+        {previewLoading ? (
+          <Loader2 className="h-4 w-4 animate-spin mr-2" />
+        ) : (
+          <Eye className="h-4 w-4 mr-2" />
+        )}
+        Preview
+      </Button>
+
       <Button 
         onClick={handleGenerateCatalog}
-        disabled={!selectedTemplate || generating || !limits?.canGenerate || templateQuality?.status === 'broken'}
-        className="flex items-center gap-2"
+        disabled={!selectedTemplate || generating || !limits?.canGenerate}
+        className="bg-purple-600 hover:bg-purple-700"
+        size="sm"
       >
         {generating ? (
           <>
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Generando...
+            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+            {generationProgress}%
           </>
         ) : (
           <>
-            <Palette className="h-4 w-4" />
-            Generar Catálogo
-            <ArrowRight className="h-4 w-4" />
+            <Palette className="h-4 w-4 mr-2" />
+            Generar PDF
           </>
         )}
       </Button>
