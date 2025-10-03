@@ -146,6 +146,7 @@ export default function BulkUpload() {
             name: match.csvData.nombre,
             sku: match.csvData.sku,
             price_retail: parseInt(match.csvData.precio),
+            price_wholesale: match.csvData.precio_mayoreo ? parseInt(match.csvData.precio_mayoreo) : null,
             description: match.csvData.descripcion || null,
             category: match.csvData.categoria || null,
             original_image_url: publicUrl,

@@ -2,6 +2,7 @@ export interface CSVProduct {
   sku: string;
   nombre: string;
   precio: string;
+  precio_mayoreo?: string;
   descripcion?: string;
   categoria?: string;
 }

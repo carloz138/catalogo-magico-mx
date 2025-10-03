@@ -45,6 +45,7 @@ export const MatchingTable = ({ matches }: MatchingTableProps) => {
               <TableHead>Match</TableHead>
               <TableHead>Producto CSV</TableHead>
               <TableHead>Precio</TableHead>
+              <TableHead>Precio Mayoreo</TableHead>
               <TableHead className="text-center">Imágenes</TableHead>
             </TableRow>
           </TableHeader>
@@ -82,6 +83,13 @@ export const MatchingTable = ({ matches }: MatchingTableProps) => {
                     <span className="font-medium">${match.csvData.precio}</span>
                   ) : (
                     '-'
+                  )}
+                </TableCell>
+                <TableCell>
+                  {match.csvData?.precio_mayoreo ? (
+                    <span className="font-medium text-muted-foreground">${match.csvData.precio_mayoreo}</span>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">-</span>
                   )}
                 </TableCell>
                 <TableCell className="text-center">

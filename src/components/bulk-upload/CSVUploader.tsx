@@ -6,6 +6,7 @@ import { CSVProduct } from '@/types/bulk-upload';
 import { useToast } from '@/hooks/use-toast';
 import { csvFileSchema, csvProductSchema } from '@/lib/validation/bulk-upload-schemas';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { generateCSVTemplate } from '@/lib/csv-template';
 
 interface CSVUploaderProps {
   onCSVParsed: (products: CSVProduct[]) => void;
@@ -37,13 +38,20 @@ export const CSVUploader = ({ onCSVParsed, csvProducts }: CSVUploaderProps) => {
       header: true,
       skipEmptyLines: true,
       complete: (results) => {
-        const products = results.data as CSVProduct[];
+        // Normalizar headers a minúsculas
+        const normalizedProducts = (results.data as any[]).map(row => {
+          const normalized: any = {};
+          Object.keys(row).forEach(key => {
+            normalized[key.toLowerCase().trim()] = row[key];
+          });
+          return normalized;
+        });
         
         // Validar cada producto
         const validProducts: CSVProduct[] = [];
         const invalidProducts: { product: any; errors: string[] }[] = [];
         
-        products.forEach((product, index) => {
+        normalizedProducts.forEach((product, index) => {
           const validation = csvProductSchema.safeParse(product);
           
           if (validation.success) {
@@ -106,6 +114,20 @@ export const CSVUploader = ({ onCSVParsed, csvProducts }: CSVUploaderProps) => {
 
   return (
     <div className="space-y-4">
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-sm text-muted-foreground">
+          Descarga nuestro template para ver el formato exacto requerido
+        </p>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={generateCSVTemplate}
+        >
+          <FileSpreadsheet className="h-4 w-4 mr-2" />
+          Descargar Template CSV
+        </Button>
+      </div>
+
       <input
         ref={fileInputRef}
         type="file"
@@ -169,9 +191,9 @@ export const CSVUploader = ({ onCSVParsed, csvProducts }: CSVUploaderProps) => {
       <div className="text-xs text-muted-foreground p-3 bg-muted/20 rounded border">
         <p className="font-medium mb-1">Ejemplo de CSV válido:</p>
         <pre className="text-xs">
-          sku,nombre,precio,descripcion,categoria
-          PROD001,Camisa Azul M,299,Camisa de algodón,ropa
-          PROD002,Zapatos Negros 42,899,Zapatos de cuero,calzado
+          sku,nombre,precio,precio_mayoreo,descripcion,categoria
+          PROD001,Camisa Azul M,299,250,Camisa de algodón,ropa
+          PROD002,Zapatos Negros 42,899,750,Zapatos de cuero,calzado
         </pre>
       </div>
     </div>

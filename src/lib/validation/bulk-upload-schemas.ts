@@ -33,6 +33,11 @@ export const csvProductSchema = z.object({
     .refine(val => !isNaN(parseInt(val)) && parseInt(val) > 0, {
       message: 'El precio debe ser un número positivo'
     }),
+  precio_mayoreo: z.string()
+    .optional()
+    .refine(val => !val || (!isNaN(parseInt(val)) && parseInt(val) > 0), {
+      message: 'El precio de mayoreo debe ser un número positivo'
+    }),
   descripcion: z.string().optional(),
   categoria: z.string().optional()
 });
