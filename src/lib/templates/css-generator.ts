@@ -1450,11 +1450,12 @@ export class TemplateGenerator {
     products: Product[],
     businessInfo: BusinessInfo,
     template: IndustryTemplate,
-    productsPerPage: 4 | 6 | 9 = 6
+    productsPerPage: 4 | 6 | 9 = 6,
+    showWholesalePrices: boolean = true // 🆕 Controlar si se muestran precios de mayoreo
   ): string {
     
     const css = this.generateTemplateCSS(template, productsPerPage);
-    const productsHTML = this.generateProductsHTMLGrid(products, template, productsPerPage);
+    const productsHTML = this.generateProductsHTMLGrid(products, template, productsPerPage, showWholesalePrices);
     const footerHTML = this.generateFooterHTML(businessInfo);
     
     const businessName = businessInfo.business_name || 'Mi Negocio';
@@ -1494,7 +1495,8 @@ export class TemplateGenerator {
   private static generateProductsHTMLGrid(
     products: Product[], 
     template: IndustryTemplate, 
-    productsPerPage: 4 | 6 | 9 = 6
+    productsPerPage: 4 | 6 | 9 = 6,
+    showWholesalePrices: boolean = true // 🆕 Controlar si se muestran precios de mayoreo
   ): string {
     const totalPages = Math.ceil(products.length / productsPerPage);
     
@@ -1535,7 +1537,7 @@ export class TemplateGenerator {
         <div class="products-page ${pageBreakClass}">
           <div class="products-grid">
             ${totalCards.map(product => 
-              product ? this.generateProductCard(product, template) : this.generateEmptyCard()
+              product ? this.generateProductCard(product, template, showWholesalePrices) : this.generateEmptyCard()
             ).join('')}
           </div>
         </div>
@@ -1565,7 +1567,7 @@ export class TemplateGenerator {
     };
   }
   
-  private static generateProductCard(product: Product, template: IndustryTemplate): string {
+  private static generateProductCard(product: Product, template: IndustryTemplate, showWholesalePrices: boolean = true): string {
     const productName = product.name || 'Producto';
     const productPrice = typeof product.price_retail === 'number' ? product.price_retail : 0;
     const productImage = product.image_url || '';
@@ -1604,7 +1606,7 @@ export class TemplateGenerator {
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2
               })}</div>
-              ${product.price_wholesale && template.showInfo?.wholesalePrice ? `
+              ${showWholesalePrices && product.price_wholesale && template.showInfo?.wholesalePrice ? `
                 <div class="product-price-wholesale">
                   <span class="wholesale-label">Mayoreo:</span>
                   <span class="wholesale-price">$${(product.price_wholesale / 100).toLocaleString('es-MX', { 

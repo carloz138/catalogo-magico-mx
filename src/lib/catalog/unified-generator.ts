@@ -308,7 +308,7 @@ export class UnifiedCatalogGenerator {
             pdfGenerationSuccess = true;
             finalMethod = 'puppeteer';
             generationStats = { ...(result.stats || {}), grid2x2Fixed: isGrid2x2 };
-            htmlContent = TemplateGenerator.generateCatalogHTML(products, businessInfo, template, productsPerPage);
+            htmlContent = TemplateGenerator.generateCatalogHTML(products, businessInfo, template, productsPerPage, options.showWholesalePrices ?? true);
             
             console.log(`✅ PDF generado CORREGIDO + FIX 2x2 y subido con ${productsPerPage} productos/página ${isGrid2x2 ? 'GRID 2x2 CONFIRMADO' : ''}`);
           } else {
@@ -325,7 +325,7 @@ export class UnifiedCatalogGenerator {
             );
             pdfGenerationSuccess = fallbackResult.success;
             finalMethod = 'dynamic';
-            htmlContent = TemplateGenerator.generateCatalogHTML(products, businessInfo, template, productsPerPage);
+            htmlContent = TemplateGenerator.generateCatalogHTML(products, businessInfo, template, productsPerPage, options.showWholesalePrices ?? true);
           }
           
         } else if (generationMethod === 'dynamic') {
@@ -341,7 +341,7 @@ export class UnifiedCatalogGenerator {
           if (result.success) {
             pdfGenerationSuccess = true;
             finalMethod = 'dynamic';
-            htmlContent = TemplateGenerator.generateCatalogHTML(products, businessInfo, template, productsPerPage);
+            htmlContent = TemplateGenerator.generateCatalogHTML(products, businessInfo, template, productsPerPage, options.showWholesalePrices ?? true);
           } else {
             console.warn(`⚠️ Dynamic engine falló CORREGIDO + FIX 2x2 para ${productsPerPage}/página ${isGrid2x2 ? '(GRID 2x2)' : ''}, usando fallback clásico`);
             warnings.push(`Motor dinámico no disponible para ${productsPerPage}/página ${isGrid2x2 ? 'Grid 2x2' : ''}, usando método clásico CORREGIDO`);
@@ -814,7 +814,8 @@ export class UnifiedCatalogGenerator {
         },
         quality: 'high' as const,
         catalogTitle: options.catalogTitle,
-        productsPerPage: productsPerPage // 🆕 PASAR PRODUCTOS POR PÁGINA AL PUPPETEER CORREGIDO + FIX 2x2
+        productsPerPage: productsPerPage, // 🆕 PASAR PRODUCTOS POR PÁGINA AL PUPPETEER CORREGIDO + FIX 2x2
+        showWholesalePrices: options.showWholesalePrices ?? true // 🆕 Default true para compatibilidad
       };
       
       // 🎯 LOG ESPECÍFICO PARA GRID 2x2
@@ -1042,7 +1043,8 @@ export class UnifiedCatalogGenerator {
         products,
         businessInfo,
         optimizedTemplate,
-        productsPerPage // 🆕 PASAR PRODUCTOS POR PÁGINA CORREGIDOS + FIX 2x2
+        productsPerPage, // 🆕 PASAR PRODUCTOS POR PÁGINA CORREGIDOS + FIX 2x2
+        options.showWholesalePrices ?? true // 🆕 Default true
       );
       
       if (options.onProgress) options.onProgress(60);
