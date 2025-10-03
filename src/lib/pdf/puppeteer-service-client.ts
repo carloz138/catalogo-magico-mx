@@ -314,7 +314,7 @@ export class PuppeteerServiceClient {
   <meta name="grid-fix" content="${productsPerPage === 4 ? '2x2-fixed' : 'original'}">
   <title>${pageTitle}</title>
   <style>
-    ${this.generateDynamicCSS(template, quality, productsPerPage)}
+    ${this.generateDynamicCSS(template, quality, productsPerPage, showWholesalePrices)}
   </style>
 </head>
 <body class="dynamic-body">
@@ -327,7 +327,8 @@ export class PuppeteerServiceClient {
   private static generateDynamicCSS(
     template: TemplateConfig, 
     quality: 'low' | 'medium' | 'high',
-    productsPerPage: 4 | 6 | 9 = 6
+    productsPerPage: 4 | 6 | 9 = 6,
+    showWholesalePrices: boolean = true
   ): string {
     const qualityConfig = {
       low: { fontSize: 9, priceSize: 10, nameSize: 9 },
@@ -824,31 +825,44 @@ ${productsPerPage === 6 ? `
 
       /* PRECIO MAYOREO DINÁMICO CORREGIDO */
       .product-price-wholesale-dynamic {
-        display: ${productsPerPage === 4 ? 'block' : 'flex'} !important;
-        ${productsPerPage === 4 ? '' : 'flex-direction: column !important;'}
-        ${productsPerPage === 4 ? '' : 'align-items: center !important;'}
-        gap: ${productsPerPage === 4 ? '0' : `${Math.round(1 * scale.padding)}mm`} !important;
-        font-size: ${Math.round(Math.max(config.priceSize - 2, 6) * scale.font)}pt !important;
-        color: ${template.colors.text} !important;
-        background: rgba(0,0,0,0.12) !important;
-        padding: ${productsPerPage === 4 ? '1mm' : `${Math.round(this.getWholesalePadding(productsPerPage) * scale.padding)}mm`} !important;
-        border-radius: ${Math.round(4 * scale.layout)}px !important;
-        border: ${Math.round(0.25 * scale.layout)}pt solid ${template.colors.accent}50 !important;
-        width: 90% !important;
-        text-align: center !important;
-        -webkit-print-color-adjust: exact !important;
-        overflow: hidden !important;
-        position: static !important;
-        flex-shrink: 0 !important;
-        ${productsPerPage === 4 ? `min-height: auto !important;
-        max-height: 10mm !important;
-        line-height: 1 !important;` : `min-height: ${Math.round(this.getWholesaleMinHeight(productsPerPage) * scale.layout)}mm !important;`}
-        margin: ${productsPerPage === 4 ? '0.5mm 0' : '0'} !important;
-        position: relative !important;
-        z-index: 2 !important;
+        ${showWholesalePrices ? `
+          display: ${productsPerPage === 4 ? 'block' : 'flex'} !important;
+          ${productsPerPage === 4 ? '' : 'flex-direction: column !important;'}
+          ${productsPerPage === 4 ? '' : 'align-items: center !important;'}
+          gap: ${productsPerPage === 4 ? '0' : `${Math.round(1 * scale.padding)}mm`} !important;
+          font-size: ${Math.round(Math.max(config.priceSize - 2, 6) * scale.font)}pt !important;
+          color: ${template.colors.text} !important;
+          background: rgba(0,0,0,0.12) !important;
+          padding: ${productsPerPage === 4 ? '1mm' : `${Math.round(this.getWholesalePadding(productsPerPage) * scale.padding)}mm`} !important;
+          border-radius: ${Math.round(4 * scale.layout)}px !important;
+          border: ${Math.round(0.25 * scale.layout)}pt solid ${template.colors.accent}50 !important;
+          width: 90% !important;
+          text-align: center !important;
+          -webkit-print-color-adjust: exact !important;
+          overflow: hidden !important;
+          position: static !important;
+          flex-shrink: 0 !important;
+          ${productsPerPage === 4 ? `min-height: auto !important;
+          max-height: 10mm !important;
+          line-height: 1 !important;` : `min-height: ${Math.round(this.getWholesaleMinHeight(productsPerPage) * scale.layout)}mm !important;`}
+          margin: ${productsPerPage === 4 ? '0.5mm 0' : '0'} !important;
+          position: relative !important;
+          z-index: 2 !important;
+        ` : `
+          /* OCULTAR precios de mayoreo */
+          display: none !important;
+          visibility: hidden !important;
+          height: 0 !important;
+          min-height: 0 !important;
+          max-height: 0 !important;
+          padding: 0 !important;
+          margin: 0 !important;
+          overflow: hidden !important;
+        `}
       }
       
       .wholesale-label-dynamic {
+        ${!showWholesalePrices ? 'display: none !important;' : ''}
         font-size: ${Math.round(Math.max(config.priceSize - 3, 5) * scale.font * (productsPerPage === 4 ? 0.9 : 1))}pt !important;
         font-weight: 600 !important;
         color: ${template.colors.text} !important;
@@ -860,6 +874,7 @@ ${productsPerPage === 6 ? `
       }
       
       .wholesale-price-dynamic {
+        ${!showWholesalePrices ? 'display: none !important;' : ''}
         font-weight: 700 !important;
         color: ${template.colors.primary} !important;
         font-size: ${Math.round(Math.max(config.priceSize - 1, 7) * scale.font * (productsPerPage === 4 ? 0.9 : 1))}pt !important;
@@ -869,6 +884,7 @@ ${productsPerPage === 6 ? `
       }
       
       .wholesale-min-dynamic {
+        ${!showWholesalePrices ? 'display: none !important;' : ''}
         font-size: ${Math.round(Math.max(config.priceSize - 4, 5) * scale.font * (productsPerPage === 4 ? 0.85 : 1))}pt !important;
         color: ${template.colors.text}60 !important;
         font-weight: 400 !important;
