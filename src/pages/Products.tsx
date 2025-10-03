@@ -129,85 +129,95 @@ const Products = () => {
     return null;
   };
 
-  // Header explicativo
+  // Header simplificado con jerarquía visual clara
   const PageHeader = () => (
-    <Card className="mb-6 bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200">
-      <CardContent className="p-4 md:p-6">
-        <div className="flex items-start gap-4">
-          <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center flex-shrink-0">
-            <Package className="w-6 h-6 text-white" />
-          </div>
-          <div className="flex-1">
-            <h1 className="text-xl md:text-2xl font-bold text-gray-900 mb-2">
-              Mi Biblioteca de Productos
-            </h1>
-            <p className="text-sm md:text-base text-gray-600 mb-4">
-              Gestiona tus productos, quita fondos automáticamente y crea catálogos profesionales
-            </p>
-            
-            <div className="flex items-center gap-2 md:gap-4 text-xs md:text-sm text-gray-500 flex-wrap">
-              <div className="flex items-center gap-1">
-                <Upload className="w-3 h-3 md:w-4 md:h-4" />
-                <span>Subir fotos</span>
-              </div>
-              <ArrowRight className="w-3 h-3 text-gray-400" />
-              <div className="flex items-center gap-1">
-                <Scissors className="w-3 h-3 md:w-4 md:h-4" />
-                <span>Quitar fondo</span>
-              </div>
-              <ArrowRight className="w-3 h-3 text-gray-400" />
-              <div className="flex items-center gap-1">
-                <BookOpen className="w-3 h-3 md:w-4 md:h-4" />
-                <span>Crear catálogo</span>
+    <div className="mb-6">
+      {/* Título y descripción simplificados */}
+      <div className="mb-4">
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">
+          Biblioteca de Productos
+        </h1>
+        <p className="text-gray-600">
+          {products.length} productos en total
+        </p>
+      </div>
+
+      {/* Métricas en cards compactas */}
+      <div className="grid grid-cols-3 gap-4">
+        <Card className="border-orange-200 bg-orange-50">
+          <CardContent className="p-3">
+            <div className="flex items-center gap-2">
+              <ImageIcon className="w-4 h-4 text-orange-600" />
+              <div>
+                <p className="text-sm font-semibold text-orange-900">
+                  {stats.withBackground}
+                </p>
+                <p className="text-xs text-orange-700">Con fondo</p>
               </div>
             </div>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+          </CardContent>
+        </Card>
+
+        <Card className="border-blue-200 bg-blue-50">
+          <CardContent className="p-3">
+            <div className="flex items-center gap-2">
+              <Loader2 className="w-4 h-4 text-blue-600" />
+              <div>
+                <p className="text-sm font-semibold text-blue-900">
+                  {stats.processing}
+                </p>
+                <p className="text-xs text-blue-700">Procesando</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-green-200 bg-green-50">
+          <CardContent className="p-3">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-green-600" />
+              <div>
+                <p className="text-sm font-semibold text-green-900">
+                  {stats.noBackground}
+                </p>
+                <p className="text-xs text-green-700">Sin fondo</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
   );
 
-  // Actions con buscador restaurado en el header
+  // Barra de acciones simplificada con jerarquía visual clara
   const actions = (
     <div className="flex items-center gap-2">
-      <div className={`items-center gap-2 ${selectedProducts.length > 0 ? 'hidden lg:flex' : 'flex'}`}>
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <Input
-            placeholder="Buscar por nombre, marca, categoría o etiquetas..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-9 w-32 sm:w-40 lg:w-64"
-          />
-        </div>
-        
-        <select
-          value={filterCategory}
-          onChange={(e) => setFilterCategory(e.target.value)}
-          className="hidden md:block border border-gray-300 rounded-md px-2 py-1.5 text-sm bg-white min-w-[100px]"
-        >
-          <option value="all">Todas las categorías</option>
-          {categories.map(category => (
-            <option key={category} value={category}>
-              {category}
-            </option>
-          ))}
-        </select>
+      {/* Buscador siempre visible */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+        <Input
+          placeholder="Buscar productos..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="pl-9 w-64"
+        />
       </div>
-      
+
+      {/* Acciones contextuales cuando hay selección */}
       {selectedProducts.length > 0 && (
-        <div className="flex items-center gap-1 sm:gap-2">
+        <div className="flex items-center gap-2 border-l pl-2">
+          <Badge variant="secondary" className="text-sm">
+            {selectedProducts.length} seleccionados
+          </Badge>
+
           <Button 
-            variant="outline"
             onClick={() => handleCreateCatalog(isBusinessInfoComplete)}
             size="sm"
-            className="bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100"
+            className="bg-purple-600 hover:bg-purple-700"
             disabled={!canGenerate}
           >
-            <BookOpen className="h-4 w-4 sm:mr-2" />
-            <span className="hidden sm:inline">Crear Catálogo</span>
-            <span className="sm:hidden">Catálogo</span>
-            <span className="ml-1">({selectedProducts.length})</span>
+            <BookOpen className="h-4 w-4 mr-2" />
+            Crear Catálogo
           </Button>
 
           {activeTab === 'with-background' && (
@@ -217,70 +227,34 @@ const Products = () => {
               size="sm"
               className="bg-blue-600 hover:bg-blue-700"
             >
-              {processing ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <>
-                  <Scissors className="h-4 w-4 sm:mr-2" />
-                  <span className="hidden sm:inline">Quitar Fondo</span>
-                  <span className="sm:hidden">Sin Fondo</span>
-                  <span className="ml-1">({selectedProducts.length})</span>
-                </>
-              )}
-            </Button>
-          )}
-          
-          {activeTab === 'processing' && stats.processing > 0 && (
-            <Button 
-              onClick={resetProcessingProducts} 
-              variant="outline"
-              size="sm"
-              className="text-orange-600 border-orange-600 hover:bg-orange-50"
-            >
-              <RotateCcw className="h-4 w-4 sm:mr-2" />
-              <span className="hidden sm:inline">Resetear ({stats.processing})</span>
-              <span className="sm:hidden">Reset</span>
+              <Scissors className="h-4 w-4 mr-2" />
+              Quitar Fondo
             </Button>
           )}
         </div>
       )}
-      
-      <Button onClick={() => navigate('/upload')} variant="outline" size="sm">
-        <Plus className="h-4 w-4 sm:mr-2" />
-        <span className="hidden sm:inline">Subir Fotos</span>
-        <span className="sm:hidden">Subir</span>
-      </Button>
-      
-      <Button 
-        onClick={() => navigate('/products/bulk-upload')} 
-        variant="outline" 
-        size="sm"
-        className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-600 text-green-700 hover:bg-green-100"
-      >
-        <Upload className="h-4 w-4 sm:mr-2" />
-        <span className="hidden sm:inline">Carga Masiva</span>
-        <span className="sm:hidden">Masiva</span>
-      </Button>
 
-      <Button 
-        onClick={() => navigate('/analytics')} 
-        variant="ghost" 
-        size="sm"
-        className="hidden lg:flex"
-      >
-        <BarChart3 className="h-4 w-4 mr-2" />
-        Analytics
-      </Button>
-
-      <Button 
-        onClick={() => navigate('/deleted-products')} 
-        variant="ghost" 
-        size="sm"
-        className="hidden lg:flex"
-      >
-        <Package className="h-4 w-4 mr-2" />
-        Papelera
-      </Button>
+      {/* Acciones primarias siempre visibles */}
+      <div className="flex items-center gap-2 border-l pl-2">
+        <Button 
+          onClick={() => navigate('/upload')} 
+          size="sm"
+          className="bg-blue-600 hover:bg-blue-700"
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          Subir
+        </Button>
+        
+        <Button 
+          onClick={() => navigate('/products/bulk-upload')} 
+          size="sm"
+          variant="outline"
+          className="border-green-600 text-green-700 hover:bg-green-50"
+        >
+          <Upload className="h-4 w-4 mr-2" />
+          Masiva
+        </Button>
+      </div>
     </div>
   );
 
