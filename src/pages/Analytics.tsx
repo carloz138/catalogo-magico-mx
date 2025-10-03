@@ -292,37 +292,52 @@ const Analytics = () => {
     return 'text-gray-500';
   };
 
-  // Actions para el header mejoradas
+  // Header simplificado
+  const PageHeader = () => (
+    <div className="mb-6">
+      <h1 className="text-2xl font-bold text-gray-900 mb-2">
+        Analytics
+      </h1>
+      <p className="text-gray-600">
+        Métricas y rendimiento de tu cuenta
+      </p>
+    </div>
+  );
+
+  // Actions para el header
   const actions = (
     <div className="flex items-center gap-2">
+      {/* Selector de rango más claro */}
+      <div className="flex items-center gap-2 bg-gray-50 px-3 py-2 rounded-lg border">
+        <Calendar className="w-4 h-4 text-gray-600" />
+        <select
+          value={dateRange}
+          onChange={(e) => setDateRange(e.target.value)}
+          className="text-sm bg-transparent border-none outline-none cursor-pointer"
+        >
+          <option value="7">Últimos 7 días</option>
+          <option value="30">Últimos 30 días</option>
+          <option value="90">Últimos 90 días</option>
+        </select>
+      </div>
+
+      {/* Botón actualizar */}
       <Button
-        variant="outline"
-        size="sm"
         onClick={loadAnalytics}
         disabled={loading}
-        className="flex items-center gap-2"
+        variant="outline"
+        size="sm"
       >
         <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-        <span className="hidden sm:inline">Actualizar</span>
       </Button>
-      
-      <select
-        value={dateRange}
-        onChange={(e) => setDateRange(e.target.value)}
-        className="px-2 sm:px-3 py-1.5 text-sm border border-gray-300 rounded-md bg-white"
-      >
-        <option value="7">7 días</option>
-        <option value="30">30 días</option>
-        <option value="90">3 meses</option>
-      </select>
 
+      {/* Link a productos */}
       <Button
+        onClick={() => navigate('/products')}
         variant="ghost"
         size="sm"
-        onClick={() => navigate('/products')}
-        className="hidden sm:flex items-center gap-2"
       >
-        <Package className="h-4 w-4" />
+        <Package className="h-4 w-4 mr-2" />
         Productos
       </Button>
     </div>
@@ -347,133 +362,94 @@ const Analytics = () => {
     <ProtectedRoute>
       <AppLayout actions={actions}>
         <div className="space-y-6">
-          {/* SECCIÓN 1: Dashboard de Uso */}
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h2 className="text-lg sm:text-xl font-semibold text-gray-900">Panel de Control</h2>
-                <p className="text-sm text-gray-600">Estado actual de tu cuenta y límites</p>
-              </div>
-            </div>
-            <UsageDashboard />
-          </div>
+          {/* Header simplificado */}
+          <PageHeader />
 
-          {/* SECCIÓN 2: KPIs Principales */}
-          <div>
-            <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4">Métricas Principales</h2>
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-              {/* Total Productos */}
-              <Card>
-                <CardContent className="p-3 sm:p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="min-w-0 flex-1">
-                      <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">Productos</p>
-                      <p className="text-xl sm:text-2xl font-bold text-gray-900">
-                        {formatNumber(analyticsData.products.total)}
-                      </p>
-                    </div>
-                    <div className="h-8 w-8 sm:h-12 sm:w-12 bg-blue-50 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <Package className="h-4 w-4 sm:h-6 sm:w-6 text-blue-600" />
-                    </div>
-                  </div>
-                  <div className="flex items-center mt-2">
-                    {getGrowthIcon(analyticsData.performance.monthlyGrowth)}
-                    <span className={`text-xs sm:text-sm ml-1 ${getGrowthColor(analyticsData.performance.monthlyGrowth)}`}>
-                      {analyticsData.performance.monthlyGrowth > 0 ? '+' : ''}{analyticsData.performance.monthlyGrowth}%
-                    </span>
-                    <span className="text-xs text-gray-500 ml-2 hidden sm:inline">vs mes anterior</span>
-                  </div>
-                </CardContent>
-              </Card>
+          {/* Dashboard de Uso */}
+          <UsageDashboard />
 
-              {/* Catálogos */}
-              <Card>
-                <CardContent className="p-3 sm:p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="min-w-0 flex-1">
-                      <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">Catálogos</p>
-                      <p className="text-xl sm:text-2xl font-bold text-gray-900">
-                        {formatNumber(analyticsData.catalogs.total)}
-                      </p>
-                    </div>
-                    <div className="h-8 w-8 sm:h-12 sm:w-12 bg-purple-50 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <FileText className="h-4 w-4 sm:h-6 sm:w-6 text-purple-600" />
-                    </div>
+          {/* Sección simplificada - KPIs en una sola fila */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Productos */}
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
+                    <Package className="h-5 w-5 text-blue-600" />
                   </div>
-                  <div className="flex items-center mt-2">
-                    <span className="text-xs text-gray-500 truncate">
-                      {analyticsData.catalogs.avgProductsPerCatalog} productos promedio
-                    </span>
-                  </div>
-                </CardContent>
-              </Card>
+                  {getGrowthIcon(analyticsData.performance.monthlyGrowth)}
+                </div>
+                <div className="text-2xl font-bold text-gray-900 mb-1">
+                  {formatNumber(analyticsData.products.total)}
+                </div>
+                <p className="text-sm text-gray-600">Productos</p>
+              </CardContent>
+            </Card>
 
-              {/* Créditos IA */}
-              <Card>
-                <CardContent className="p-3 sm:p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="min-w-0 flex-1">
-                      <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">Créditos IA</p>
-                      <p className="text-xl sm:text-2xl font-bold text-gray-900">
-                        {formatNumber(analyticsData.credits.remaining)}
-                      </p>
-                    </div>
-                    <div className="h-8 w-8 sm:h-12 sm:w-12 bg-green-50 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <Zap className="h-4 w-4 sm:h-6 sm:w-6 text-green-600" />
-                    </div>
+            {/* Catálogos */}
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="w-10 h-10 bg-purple-50 rounded-lg flex items-center justify-center">
+                    <FileText className="h-5 w-5 text-purple-600" />
                   </div>
-                  <div className="flex items-center mt-2">
-                    <span className="text-xs text-gray-500 truncate">
-                      Para remover fondos de imágenes
-                    </span>
-                  </div>
-                </CardContent>
-              </Card>
+                </div>
+                <div className="text-2xl font-bold text-gray-900 mb-1">
+                  {formatNumber(analyticsData.catalogs.total)}
+                </div>
+                <p className="text-sm text-gray-600">Catálogos</p>
+              </CardContent>
+            </Card>
 
-              {/* Éxito de Procesamiento */}
-              <Card>
-                <CardContent className="p-3 sm:p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="min-w-0 flex-1">
-                      <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">Éxito</p>
-                      <p className="text-xl sm:text-2xl font-bold text-gray-900">
-                        {analyticsData.performance.processingSuccess}%
-                      </p>
-                    </div>
-                    <div className="h-8 w-8 sm:h-12 sm:w-12 bg-orange-50 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <Target className="h-4 w-4 sm:h-6 sm:w-6 text-orange-600" />
-                    </div>
+            {/* Créditos */}
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="w-10 h-10 bg-green-50 rounded-lg flex items-center justify-center">
+                    <Zap className="h-5 w-5 text-green-600" />
                   </div>
-                  <div className="flex items-center mt-2">
-                    <CheckCircle className="h-3 w-3 text-green-500" />
-                    <span className="text-xs text-gray-500 ml-1 truncate">
-                      {analyticsData.products.completed} completados
-                    </span>
+                </div>
+                <div className="text-2xl font-bold text-gray-900 mb-1">
+                  {formatNumber(analyticsData.credits.remaining)}
+                </div>
+                <p className="text-sm text-gray-600">Créditos disponibles</p>
+              </CardContent>
+            </Card>
+
+            {/* Éxito */}
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="w-10 h-10 bg-orange-50 rounded-lg flex items-center justify-center">
+                    <Target className="h-5 w-5 text-orange-600" />
                   </div>
-                </CardContent>
-              </Card>
-            </div>
+                </div>
+                <div className="text-2xl font-bold text-gray-900 mb-1">
+                  {analyticsData.performance.processingSuccess}%
+                </div>
+                <p className="text-sm text-gray-600">Tasa de éxito</p>
+              </CardContent>
+            </Card>
           </div>
 
           {/* SECCIÓN 3: Tabs detallados */}
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 h-auto">
-              <TabsTrigger value="overview" className="flex items-center gap-2 text-xs sm:text-sm">
-                <BarChart3 className="h-3 w-3 sm:h-4 sm:w-4" />
-                <span>Resumen</span>
+            <TabsList className="grid w-full grid-cols-4 mb-6">
+              <TabsTrigger value="overview" className="gap-2">
+                <BarChart3 className="h-4 w-4" />
+                <span className="hidden sm:inline">Resumen</span>
               </TabsTrigger>
-              <TabsTrigger value="products" className="flex items-center gap-2 text-xs sm:text-sm">
-                <Package className="h-3 w-3 sm:h-4 sm:w-4" />
-                <span>Productos</span>
+              <TabsTrigger value="products" className="gap-2">
+                <Package className="h-4 w-4" />
+                <span className="hidden sm:inline">Productos</span>
               </TabsTrigger>
-              <TabsTrigger value="catalogs" className="flex items-center gap-2 text-xs sm:text-sm">
-                <FileText className="h-3 w-3 sm:h-4 sm:w-4" />
-                <span>Catálogos</span>
+              <TabsTrigger value="catalogs" className="gap-2">
+                <FileText className="h-4 w-4" />
+                <span className="hidden sm:inline">Catálogos</span>
               </TabsTrigger>
-              <TabsTrigger value="performance" className="flex items-center gap-2 text-xs sm:text-sm">
-                <Award className="h-3 w-3 sm:h-4 sm:w-4" />
-                <span className="hidden sm:inline">Rendimiento</span>
-                <span className="sm:hidden">KPIs</span>
+              <TabsTrigger value="performance" className="gap-2">
+                <Award className="h-4 w-4" />
+                <span className="hidden sm:inline">KPIs</span>
               </TabsTrigger>
             </TabsList>
 
