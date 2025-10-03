@@ -490,7 +490,8 @@ const TemplateSelectionEnhanced = () => {
           catalogTitle: catalogTitle,
           qualityCheck: true,
           autoFix: true,
-          productsPerPage: productsPerPage // 🔧 PASAR PRODUCTOS POR PÁGINA
+          productsPerPage: productsPerPage, // 🔧 PASAR PRODUCTOS POR PÁGINA
+          showWholesalePrices: showWholesalePrices // 🆕 AGREGAR ESTA LÍNEA
         }
       );
       

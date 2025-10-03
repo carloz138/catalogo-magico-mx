@@ -76,6 +76,7 @@ interface GenerationOptions {
   skipAudit?: boolean;
   catalogTitle?: string;
   productsPerPage?: 4 | 6 | 9;
+  showWholesalePrices?: boolean; // 🆕 Controlar si se muestran precios de mayoreo
 }
 
 export class UnifiedCatalogGenerator {
