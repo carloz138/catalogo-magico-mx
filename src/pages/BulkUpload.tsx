@@ -14,6 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, Upload, CheckCircle2, XCircle, AlertTriangle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { bulkUploadSchema } from '@/lib/validation/bulk-upload-schemas';
+import { processBatchWithConcurrency } from '@/lib/concurrency-control';
 
 export default function BulkUpload() {
   const navigate = useNavigate();
@@ -57,26 +58,6 @@ export default function BulkUpload() {
       return;
     }
 
-    // Validar batch completo antes de subir
-    const validation = bulkUploadSchema.safeParse({
-      images: images.map(i => i.file),
-      products: csvProducts
-    });
-
-    if (!validation.success) {
-      const errors = validation.error.issues.map(issue => issue.message);
-      setValidationErrors(errors);
-      toast({
-        title: "Errores de validación",
-        description: errors[0],
-        variant: "destructive"
-      });
-      return;
-    }
-
-    // Limpiar errores previos
-    setValidationErrors([]);
-
     const matchedProducts = matches.filter(m => m.csvData !== null);
     if (matchedProducts.length === 0) {
       toast({
@@ -87,6 +68,25 @@ export default function BulkUpload() {
       return;
     }
 
+    // Validación con Zod antes de empezar
+    const validation = bulkUploadSchema.safeParse({
+      images: images.map(i => i.file),
+      products: csvProducts
+    });
+
+    if (!validation.success) {
+      const errors = validation.error.issues.map(i => i.message);
+      setValidationErrors(errors);
+      toast({
+        title: "Errores de validación",
+        description: errors[0],
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setValidationErrors([]);
+
     setUploading(true);
     setUploadProgress({
       total: matchedProducts.length,
@@ -95,88 +95,96 @@ export default function BulkUpload() {
       current: ''
     });
 
-    let uploaded = 0;
-    let failed = 0;
-
-    for (const match of matchedProducts) {
-      if (!match.csvData) continue;
+    // Función para procesar un producto individual
+    const uploadSingleProduct = async (match: typeof matchedProducts[0], index: number) => {
+      if (!match.csvData) throw new Error('No CSV data');
 
       setUploadProgress(prev => prev ? {
         ...prev,
         current: match.csvData!.nombre
       } : null);
 
-      try {
-        // Upload main image
-        const timestamp = Date.now();
-        const mainImagePath = `${user.id}/${timestamp}_${match.image.file.name}`;
-        
-        const { error: uploadError } = await supabase.storage
-          .from('product-images')
-          .upload(mainImagePath, match.image.file);
+      const timestamp = Date.now();
+      const mainImagePath = `${user.id}/${timestamp}_${match.image.file.name}`;
+      
+      // Upload imagen principal
+      const { error: uploadError } = await supabase.storage
+        .from('product-images')
+        .upload(mainImagePath, match.image.file);
 
-        if (uploadError) throw uploadError;
+      if (uploadError) throw uploadError;
 
-        const { data: { publicUrl } } = supabase.storage
-          .from('product-images')
-          .getPublicUrl(mainImagePath);
+      const { data: { publicUrl } } = supabase.storage
+        .from('product-images')
+        .getPublicUrl(mainImagePath);
 
-        // Upload secondary images if any
-        const secondaryUrls: string[] = [];
-        if (match.secondaryImages) {
-          for (const secImg of match.secondaryImages) {
-            const secPath = `${user.id}/${timestamp}_${secImg.file.name}`;
-            await supabase.storage
-              .from('product-images')
-              .upload(secPath, secImg.file);
-            
+      // Upload imágenes secundarias si existen
+      const secondaryUrls: string[] = [];
+      if (match.secondaryImages && match.secondaryImages.length > 0) {
+        for (const secImg of match.secondaryImages) {
+          const secPath = `${user.id}/${timestamp}_${secImg.file.name}`;
+          const { error: secError } = await supabase.storage
+            .from('product-images')
+            .upload(secPath, secImg.file);
+          
+          if (!secError) {
             const { data: { publicUrl: secUrl } } = supabase.storage
               .from('product-images')
               .getPublicUrl(secPath);
-            
             secondaryUrls.push(secUrl);
           }
         }
-
-        // Insert product
-        const { error: insertError } = await supabase
-          .from('products')
-          .insert({
-            user_id: user.id,
-            name: match.csvData.nombre,
-            sku: match.csvData.sku,
-            price_retail: parseInt(match.csvData.precio),
-            price_wholesale: match.csvData.precio_mayoreo ? parseInt(match.csvData.precio_mayoreo) : null,
-            description: match.csvData.descripcion || null,
-            category: match.csvData.categoria || null,
-            original_image_url: publicUrl,
-            processing_status: 'pending',
-            processed_images: secondaryUrls.length > 0 ? { secondary: secondaryUrls } : null
-          });
-
-        if (insertError) throw insertError;
-
-        uploaded++;
-      } catch (error) {
-        console.error('Error uploading product:', match.csvData.nombre, error);
-        failed++;
       }
 
-      setUploadProgress(prev => prev ? {
-        ...prev,
-        uploaded,
-        failed
-      } : null);
-    }
+      // Insertar producto
+      const { data, error: insertError } = await supabase
+        .from('products')
+        .insert({
+          user_id: user.id,
+          name: match.csvData.nombre,
+          sku: match.csvData.sku,
+          price_retail: parseInt(match.csvData.precio),
+          price_wholesale: match.csvData.precio_mayoreo ? parseInt(match.csvData.precio_mayoreo) : null,
+          description: match.csvData.descripcion || null,
+          category: match.csvData.categoria || null,
+          original_image_url: publicUrl,
+          processing_status: 'pending',
+          processed_images: secondaryUrls.length > 0 ? { secondary: secondaryUrls } : null
+        })
+        .select()
+        .single();
+
+      if (insertError) throw insertError;
+      
+      return data;
+    };
+
+    // Procesar con concurrencia de 3
+    const { successful, failed } = await processBatchWithConcurrency(
+      matchedProducts,
+      uploadSingleProduct,
+      3
+    );
+
+    // Actualizar progreso final
+    setUploadProgress(prev => prev ? {
+      ...prev,
+      uploaded: successful.length,
+      failed: failed.length
+    } : null);
 
     setUploading(false);
     
+    if (failed.length > 0) {
+      console.error('Productos fallidos:', failed);
+    }
+    
     toast({
       title: "Carga completada",
-      description: `${uploaded} productos subidos exitosamente${failed > 0 ? `, ${failed} fallidos` : ''}`,
+      description: `${successful.length} productos subidos exitosamente${failed.length > 0 ? `, ${failed.length} fallidos` : ''}`,
     });
 
-    if (uploaded > 0) {
+    if (successful.length > 0) {
       setTimeout(() => navigate('/products'), 2000);
     }
   };

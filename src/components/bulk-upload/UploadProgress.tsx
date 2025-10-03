@@ -30,6 +30,14 @@ export const UploadProgress = ({ progress }: UploadProgressProps) => {
 
       <Progress value={percentage} className="h-2" />
 
+      {!isComplete && progress.uploaded > 0 && (
+        <div className="text-xs text-muted-foreground">
+          <span>
+            Velocidad: ~{Math.round((progress.uploaded / Math.max(progress.uploaded, 1)) * 60)} productos/min
+          </span>
+        </div>
+      )}
+
       <div className="grid grid-cols-3 gap-4 text-sm">
         <div className="flex items-center gap-2">
           <CheckCircle2 className="h-4 w-4 text-green-600" />
