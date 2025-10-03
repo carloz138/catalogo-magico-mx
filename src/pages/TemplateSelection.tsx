@@ -12,6 +12,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { toast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { useBusinessInfo } from '@/hooks/useBusinessInfo';
@@ -120,6 +121,7 @@ const TemplateSelection = () => {
   
   // 🆕 ESTADO PARA PRODUCTOS POR PÁGINA
   const [productsPerPage, setProductsPerPage] = useState<4 | 6 | 9>(6);
+  const [showWholesalePrices, setShowWholesalePrices] = useState(true);
   
   // Estados de límites y calidad
   const [limits, setLimits] = useState<UsageLimits | null>(null);
@@ -378,7 +380,8 @@ const TemplateSelection = () => {
         selectedProducts,
         businessData,
         template,
-        productsPerPage // 🔧 PASAR PRODUCTOS POR PÁGINA
+        productsPerPage,
+        showWholesalePrices
       );
       
       setPreviewHTML(htmlContent);
@@ -462,7 +465,8 @@ const TemplateSelection = () => {
             user.id,
             onProgress,
             catalogTitle,
-            productsPerPage // 🔧 PASAR PRODUCTOS POR PÁGINA
+            productsPerPage,
+            showWholesalePrices
           );
           break;
           
@@ -475,7 +479,8 @@ const TemplateSelection = () => {
             user.id,
             onProgress,
             catalogTitle,
-            productsPerPage // 🔧 PASAR PRODUCTOS POR PÁGINA
+            productsPerPage,
+            showWholesalePrices
           );
           break;
           
@@ -488,7 +493,8 @@ const TemplateSelection = () => {
             user.id,
             onProgress,
             catalogTitle,
-            productsPerPage // 🔧 PASAR PRODUCTOS POR PÁGINA
+            productsPerPage,
+            showWholesalePrices
           );
           break;
           
@@ -508,7 +514,8 @@ const TemplateSelection = () => {
               qualityCheck: true,
               autoFix: true,
               catalogTitle: catalogTitle,
-              productsPerPage: productsPerPage // 🔧 PASAR PRODUCTOS POR PÁGINA
+              productsPerPage: productsPerPage,
+              showWholesalePrices: showWholesalePrices
             }
           );
           break;
@@ -824,6 +831,30 @@ const TemplateSelection = () => {
             totalProducts={selectedProducts.length}
             disabled={generating || previewLoading}
           />
+
+          {/* Selector de Precios de Mayoreo */}
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <Label className="text-base font-medium flex items-center gap-2">
+                    Opciones de Precios
+                    <Badge variant="outline" className="text-xs">
+                      {selectedProducts.filter(p => p.price_wholesale).length} con mayoreo
+                    </Badge>
+                  </Label>
+                  <p className="text-sm text-gray-600">
+                    Incluye precio de mayoreo y cantidad mínima en el catálogo
+                  </p>
+                </div>
+                <Switch
+                  checked={showWholesalePrices}
+                  onCheckedChange={setShowWholesalePrices}
+                  disabled={generating || previewLoading}
+                />
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Progress Bar mejorada */}
           {generating && (

@@ -1560,7 +1560,8 @@ export const generatePuppeteerCatalog = async (
   userId: string,
   onProgress?: (progress: number) => void,
   catalogTitle?: string,
-  productsPerPage: 4 | 6 | 9 = 6 // 🆕 PARÁMETRO DINÁMICO CORREGIDO + FIX 2x2
+  productsPerPage: 4 | 6 | 9 = 6,
+  showWholesalePrices: boolean = true
 ): Promise<GenerationResult> => {
   const isGrid2x2 = productsPerPage === 4;
   console.log(`🔍 DEBUG - generatePuppeteerCatalog dinámico CORREGIDO + FIX 2x2 recibió: ${productsPerPage}/página ${isGrid2x2 ? 'GRID 2x2' : ''}, título: ${catalogTitle}`);
@@ -1572,7 +1573,8 @@ export const generatePuppeteerCatalog = async (
     qualityCheck: true,
     autoFix: true,
     catalogTitle,
-    productsPerPage // 🆕 PASAR PRODUCTOS POR PÁGINA CORREGIDOS + FIX 2x2
+    productsPerPage,
+    showWholesalePrices
   });
 };
 
@@ -1586,7 +1588,8 @@ export const generateDynamicCatalog = async (
   userId: string,
   onProgress?: (progress: number) => void,
   catalogTitle?: string,
-  productsPerPage: 4 | 6 | 9 = 6 // 🆕 PARÁMETRO DINÁMICO CORREGIDO + FIX 2x2
+  productsPerPage: 4 | 6 | 9 = 6,
+  showWholesalePrices: boolean = true
 ): Promise<GenerationResult> => {
   return generateCatalog(products, businessInfo, templateId, userId, {
     usePuppeteerService: false,
@@ -1596,7 +1599,8 @@ export const generateDynamicCatalog = async (
     qualityCheck: true,
     autoFix: true,
     catalogTitle,
-    productsPerPage // 🆕 PASAR PRODUCTOS POR PÁGINA CORREGIDOS + FIX 2x2
+    productsPerPage,
+    showWholesalePrices
   });
 };
 
@@ -1610,7 +1614,8 @@ export const generateClassicCatalog = async (
   userId: string,
   onProgress?: (progress: number) => void,
   catalogTitle?: string,
-  productsPerPage: 4 | 6 | 9 = 6 // 🆕 PARÁMETRO DINÁMICO CORREGIDO + FIX 2x2
+  productsPerPage: 4 | 6 | 9 = 6,
+  showWholesalePrices: boolean = true
 ): Promise<GenerationResult> => {
   return generateCatalog(products, businessInfo, templateId, userId, {
     forceClassicMode: true,
@@ -1619,7 +1624,8 @@ export const generateClassicCatalog = async (
     qualityCheck: true,
     autoFix: true,
     catalogTitle,
-    productsPerPage // 🆕 PASAR PRODUCTOS POR PÁGINA CORREGIDOS + FIX 2x2
+    productsPerPage,
+    showWholesalePrices
   });
 };
 
