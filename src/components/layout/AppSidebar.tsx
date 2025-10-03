@@ -179,7 +179,6 @@ export function AppSidebar() {
           </div>
           <div>
             <h2 className="font-bold text-slate-900 text-lg">CatifyPro</h2>
-            <p className="text-xs text-slate-500 font-medium">v2.0 Professional</p>
           </div>
         </div>
       </SidebarHeader>
