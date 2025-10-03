@@ -4,6 +4,8 @@ import { Upload, Image as ImageIcon } from 'lucide-react';
 import { ImageFile } from '@/types/bulk-upload';
 import { imageFileSchema } from '@/lib/validation/bulk-upload-schemas';
 import { useToast } from '@/hooks/use-toast';
+import { useImageCompression } from '@/hooks/useImageCompression';
+import { CompressionProgress } from './CompressionProgress';
 
 interface ImageDropzoneProps {
   onImagesSelected: (images: ImageFile[]) => void;
@@ -12,8 +14,9 @@ interface ImageDropzoneProps {
 
 export const ImageDropzone = ({ onImagesSelected, images }: ImageDropzoneProps) => {
   const { toast } = useToast();
+  const { compressImages, progress, isCompressing } = useImageCompression();
 
-  const onDrop = useCallback((acceptedFiles: File[]) => {
+  const onDrop = useCallback(async (acceptedFiles: File[]) => {
     const validFiles: ImageFile[] = [];
     const rejectedFiles: { name: string; reason: string }[] = [];
 
@@ -45,13 +48,27 @@ export const ImageDropzone = ({ onImagesSelected, images }: ImageDropzoneProps) 
 
     // Solo agregar archivos válidos
     if (validFiles.length > 0) {
-      onImagesSelected([...images, ...validFiles]);
       toast({
-        title: "Imágenes agregadas",
-        description: `${validFiles.length} imagen${validFiles.length > 1 ? 'es' : ''} válida${validFiles.length > 1 ? 's' : ''}`,
+        title: "Comprimiendo imágenes",
+        description: `Optimizando ${validFiles.length} imagen${validFiles.length > 1 ? 'es' : ''}...`,
+      });
+
+      const compressedFiles = await compressImages(validFiles.map(vf => vf.file));
+      
+      const imageFiles: ImageFile[] = compressedFiles.map(file => ({
+        file,
+        preview: URL.createObjectURL(file),
+        cleanName: file.name.replace(/\.[^/.]+$/, '').toLowerCase()
+      }));
+      
+      onImagesSelected([...images, ...imageFiles]);
+      
+      toast({
+        title: "Imágenes optimizadas",
+        description: `${compressedFiles.length} imagen${compressedFiles.length > 1 ? 'es listas' : ' lista'}`,
       });
     }
-  }, [images, onImagesSelected, toast]);
+  }, [images, onImagesSelected, compressImages, toast]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -63,6 +80,15 @@ export const ImageDropzone = ({ onImagesSelected, images }: ImageDropzoneProps) 
 
   return (
     <div className="space-y-4">
+      {isCompressing && progress && (
+        <CompressionProgress
+          current={progress.current}
+          total={progress.total}
+          fileName={progress.fileName}
+          percentage={progress.percentage}
+        />
+      )}
+      
       <div
         {...getRootProps()}
         className={`border-2 border-dashed rounded-lg p-12 text-center cursor-pointer transition-colors ${
@@ -77,7 +103,7 @@ export const ImageDropzone = ({ onImagesSelected, images }: ImageDropzoneProps) 
           {isDragActive ? 'Suelta las imágenes aquí' : 'Arrastra imágenes o haz clic'}
         </p>
         <p className="text-sm text-muted-foreground">
-          Soporta JPG, PNG, WEBP. Puedes subir hasta 500 imágenes.
+          Soporta JPG, PNG, WEBP. Las imágenes se optimizan automáticamente.
         </p>
       </div>
 

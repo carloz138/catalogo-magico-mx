@@ -115,9 +115,10 @@ export const CSVUploader = ({ onCSVParsed, csvProducts }: CSVUploaderProps) => {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between mb-3">
-        <p className="text-sm text-muted-foreground">
-          Descarga nuestro template para ver el formato exacto requerido
-        </p>
+              <p className="text-sm text-muted-foreground">
+                Descarga nuestro template para ver el formato exacto requerido.
+                Las imágenes se optimizan automáticamente a WebP.
+              </p>
         <Button
           variant="outline"
           size="sm"
