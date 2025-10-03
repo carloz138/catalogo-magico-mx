@@ -51,6 +51,13 @@ export const UploadProgress = ({ progress }: UploadProgressProps) => {
           {!isComplete && `Actual: ${progress.current}`}
         </div>
       </div>
+      
+      {progress.retrying && (
+        <div className="flex items-center gap-2 text-xs text-yellow-600 mt-2 p-2 bg-yellow-50 dark:bg-yellow-950/20 rounded">
+          <Loader2 className="h-3 w-3 animate-spin" />
+          <span>Reintentando conexión...</span>
+        </div>
+      )}
     </div>
   );
 };

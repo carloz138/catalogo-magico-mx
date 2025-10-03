@@ -1,3 +1,5 @@
+import { retryWithBackoff } from './retry-logic';
+
 export function chunkArray<T>(array: T[], size: number): T[][] {
   const chunks: T[][] = [];
   for (let i = 0; i < array.length; i += size) {
@@ -26,18 +28,24 @@ export async function batchInsert<T>(
 
   for (let i = 0; i < chunks.length; i++) {
     try {
-      const { data, error } = await supabaseClient
-        .from(tableName)
-        .insert(chunks[i])
-        .select();
+      const { data, error } = await retryWithBackoff(
+        async () => {
+          const result = await supabaseClient
+            .from(tableName)
+            .insert(chunks[i])
+            .select();
+          
+          if (result.error) throw result.error;
+          return result;
+        },
+        { maxAttempts: 3 }
+      );
 
-      if (error) throw error;
-      
       if (data) {
         successful.push(...data);
       }
     } catch (error) {
-      console.error(`Error in batch ${i + 1}:`, error);
+      console.error(`Error in batch ${i + 1} after retries:`, error);
       failed.push({
         batch: i + 1,
         error

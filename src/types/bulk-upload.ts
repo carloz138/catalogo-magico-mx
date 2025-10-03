@@ -26,4 +26,5 @@ export interface UploadProgress {
   uploaded: number;
   failed: number;
   current: string;
+  retrying?: boolean;
 }

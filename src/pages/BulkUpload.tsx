@@ -18,6 +18,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { bulkUploadSchema } from '@/lib/validation/bulk-upload-schemas';
 import { processBatchWithConcurrency } from '@/lib/concurrency-control';
 import { batchInsert } from '@/lib/batch-processing';
+import { retryWithBackoff } from '@/lib/retry-logic';
 
 export default function BulkUpload() {
   const navigate = useNavigate();
@@ -136,9 +137,13 @@ export default function BulkUpload() {
       const timestamp = Date.now();
       const mainImagePath = `${user.id}/${timestamp}_${match.image.file.name}`;
       
-      const { error: uploadError } = await supabase.storage
-        .from('product-images')
-        .upload(mainImagePath, match.image.file);
+      // Upload imagen principal con retry
+      const { error: uploadError } = await retryWithBackoff(
+        () => supabase.storage
+          .from('product-images')
+          .upload(mainImagePath, match.image.file),
+        { maxAttempts: 3 }
+      );
 
       if (uploadError) throw uploadError;
 
@@ -150,9 +155,12 @@ export default function BulkUpload() {
       if (match.secondaryImages && match.secondaryImages.length > 0) {
         for (const secImg of match.secondaryImages) {
           const secPath = `${user.id}/${timestamp}_${secImg.file.name}`;
-          const { error: secError } = await supabase.storage
-            .from('product-images')
-            .upload(secPath, secImg.file);
+          const { error: secError } = await retryWithBackoff(
+            () => supabase.storage
+              .from('product-images')
+              .upload(secPath, secImg.file),
+            { maxAttempts: 3 }
+          );
           
           if (!secError) {
             const { data: { publicUrl: secUrl } } = supabase.storage
