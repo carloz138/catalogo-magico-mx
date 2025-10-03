@@ -56,6 +56,7 @@ interface PuppeteerServiceOptions {
   catalogTitle?: string;
   catalogId?: string;
   productsPerPage?: 4 | 6 | 9;
+  showWholesalePrices?: boolean;
 }
 
 interface PuppeteerResult {
@@ -220,7 +221,8 @@ export class PuppeteerServiceClient {
         template, 
         options.quality || 'medium', 
         options,
-        productsPerPage
+        productsPerPage,
+        options.showWholesalePrices ?? true
       );
       
       if (options.onProgress) options.onProgress(30);
@@ -294,10 +296,11 @@ export class PuppeteerServiceClient {
     template: TemplateConfig,
     quality: 'low' | 'medium' | 'high',
     options: PuppeteerServiceOptions = {},
-    productsPerPage: 4 | 6 | 9 = 6
+    productsPerPage: 4 | 6 | 9 = 6,
+    showWholesalePrices: boolean = true
   ): string {
     
-    const pagesHTML = this.generateDynamicPages(products, businessInfo, template, quality, productsPerPage);
+    const pagesHTML = this.generateDynamicPages(products, businessInfo, template, quality, productsPerPage, showWholesalePrices);
     const pageTitle = options.catalogTitle || `Catálogo ${businessInfo.business_name}`;
     
     return `<!DOCTYPE html>
@@ -1320,7 +1323,8 @@ ${productsPerPage === 6 ? `
     businessInfo: BusinessInfo,
     template: TemplateConfig,
     quality: string,
-    productsPerPage: 4 | 6 | 9 = 6
+    productsPerPage: 4 | 6 | 9 = 6,
+    showWholesalePrices: boolean = true
   ): string {
     
     const totalPages = Math.ceil(products.length / productsPerPage);
@@ -1336,7 +1340,7 @@ ${productsPerPage === 6 ? `
       pagesHTML += `
         <div class="page-container-dynamic">
           <div class="page-content-dynamic">
-            ${this.generateDynamicGrid(pageProducts, productsPerPage)}
+            ${this.generateDynamicGrid(pageProducts, productsPerPage, showWholesalePrices)}
           </div>
         </div>
       `;
@@ -1346,7 +1350,7 @@ ${productsPerPage === 6 ? `
   }
   
   // 🔧 GENERACIÓN DE GRID CORREGIDA PARA 2x2
-  private static generateDynamicGrid(products: Product[], productsPerPage: 4 | 6 | 9): string {
+  private static generateDynamicGrid(products: Product[], productsPerPage: 4 | 6 | 9, showWholesalePrices: boolean = true): string {
     let gridHTML = '';
     
     // 🚀 SPACER INVISIBLE PARA EVITAR OVERLAP CON HEADER
@@ -1363,7 +1367,7 @@ ${productsPerPage === 6 ? `
       // Rellenar con productos reales
       for (let i = 0; i < 4; i++) {
         if (i < products.length) {
-          gridHTML += this.generateDynamicProductCard(products[i]);
+          gridHTML += this.generateDynamicProductCard(products[i], showWholesalePrices);
         } else {
           // 🔧 FIX: Cards vacías con altura específica para mantener grid
           const LAYOUT = calculateDynamicDimensions(4);
@@ -1373,7 +1377,7 @@ ${productsPerPage === 6 ? `
     } else {
       // Lógica original para 3x2 y 3x3 (SIN CAMBIOS)
       products.forEach(product => {
-        gridHTML += this.generateDynamicProductCard(product);
+        gridHTML += this.generateDynamicProductCard(product, showWholesalePrices);
       });
       
       const emptyCardsNeeded = productsPerPage - products.length;
@@ -1386,7 +1390,7 @@ ${productsPerPage === 6 ? `
     return gridHTML;
   }
   
-  private static generateDynamicProductCard(product: Product): string {
+  private static generateDynamicProductCard(product: Product, showWholesalePrices: boolean = true): string {
     const productName = product.name || 'Producto';
     const productPrice = typeof product.price_retail === 'number' ? product.price_retail : 0;
     const productImage = product.image_url || '';
@@ -1408,7 +1412,7 @@ ${productsPerPage === 6 ? `
          </div>
        </div>`;
     
-    const wholesalePriceHTML = product.price_wholesale ? `
+    const wholesalePriceHTML = (showWholesalePrices && product.price_wholesale) ? `
       <div class="product-price-wholesale-dynamic">
         <span class="wholesale-label-dynamic">Mayoreo:</span>
         <span class="wholesale-price-dynamic">$${(product.price_wholesale / 100).toLocaleString('es-MX', { 
