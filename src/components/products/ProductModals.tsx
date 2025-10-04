@@ -56,23 +56,23 @@ export const ProductModals: React.FC<ProductModalsProps> = ({
       <Dialog open={showViewModal} onOpenChange={setShowViewModal}>
         <DialogContent className="sm:max-w-2xl max-h-[80vh] overflow-hidden" aria-describedby={undefined}>
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
+            <DialogTitle className="text-lg sm:text-xl font-bold flex items-center gap-2">
               <ZoomIn className="w-5 h-5" />
               {selectedProduct?.name}
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-sm sm:text-base">
               Detalles completos del producto con imagen y especificaciones
             </DialogDescription>
           </DialogHeader>
           
           {selectedProduct && (
-            <div className="space-y-4 overflow-y-auto">
+            <div className="space-y-4 sm:space-y-6 overflow-y-auto max-h-[60vh] sm:max-h-none">
               {/* Imagen principal */}
               <div className="relative bg-gray-100 rounded-lg overflow-hidden">
                 <img
                   src={getDisplayImageUrl(selectedProduct)}
                   alt={selectedProduct.name}
-                  className="w-full h-64 sm:h-80 object-contain"
+                  className="w-full h-80 sm:h-96 object-contain"
                 />
                 <div className="absolute top-2 right-2">
                   <Badge className={`${
@@ -86,33 +86,31 @@ export const ProductModals: React.FC<ProductModalsProps> = ({
               </div>
 
               {/* Información del producto */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:gap-6">
                 <div className="space-y-3">
                   <div>
-                    <Label className="text-sm font-medium text-gray-600">Nombre</Label>
-                    <p className="text-sm">{selectedProduct.name}</p>
+                    <Label className="text-sm sm:text-base font-medium text-gray-600">Nombre</Label>
+                    <p className="text-base sm:text-sm leading-relaxed">{selectedProduct.name}</p>
                   </div>
                   
                   {selectedProduct.description && (
                     <div>
-                      <Label className="text-sm font-medium text-gray-600">Descripción</Label>
-                      <p className="text-sm">{selectedProduct.description}</p>
+                      <Label className="text-sm sm:text-base font-medium text-gray-600">Descripción</Label>
+                      <p className="text-base sm:text-sm leading-relaxed">{selectedProduct.description}</p>
                     </div>
                   )}
                   
                   {selectedProduct.category && (
                     <div>
-                      <Label className="text-sm font-medium text-gray-600">Categoría</Label>
-                      <p className="text-sm">{selectedProduct.category}</p>
+                      <Label className="text-sm sm:text-base font-medium text-gray-600">Categoría</Label>
+                      <p className="text-base sm:text-sm leading-relaxed">{selectedProduct.category}</p>
                     </div>
                   )}
-                </div>
-
-                <div className="space-y-3">
+                  
                   {selectedProduct.price_retail && (
                     <div>
-                      <Label className="text-sm font-medium text-gray-600">Precio Público</Label>
-                      <p className="text-sm font-bold text-green-600">
+                      <Label className="text-sm sm:text-base font-medium text-gray-600">Precio Público</Label>
+                      <p className="text-base sm:text-sm font-bold text-green-600 leading-relaxed">
                         ${(selectedProduct.price_retail / 100).toFixed(2)}
                       </p>
                     </div>
@@ -120,8 +118,8 @@ export const ProductModals: React.FC<ProductModalsProps> = ({
                   
                   {selectedProduct.price_wholesale && (
                     <div>
-                      <Label className="text-sm font-medium text-gray-600">Precio Mayoreo</Label>
-                      <p className="text-sm font-bold text-blue-600">
+                      <Label className="text-sm sm:text-base font-medium text-gray-600">Precio Mayoreo</Label>
+                      <p className="text-base sm:text-sm font-bold text-blue-600 leading-relaxed">
                         ${(selectedProduct.price_wholesale / 100).toFixed(2)}
                       </p>
                     </div>
@@ -129,8 +127,8 @@ export const ProductModals: React.FC<ProductModalsProps> = ({
                   
                   {selectedProduct.brand && (
                     <div>
-                      <Label className="text-sm font-medium text-gray-600">Marca</Label>
-                      <p className="text-sm">{selectedProduct.brand}</p>
+                      <Label className="text-sm sm:text-base font-medium text-gray-600">Marca</Label>
+                      <p className="text-base sm:text-sm leading-relaxed">{selectedProduct.brand}</p>
                     </div>
                   )}
                 </div>
@@ -142,13 +140,13 @@ export const ProductModals: React.FC<ProductModalsProps> = ({
 
       {/* Modal de preview del catálogo */}
       <Dialog open={showCatalogPreview} onOpenChange={setShowCatalogPreview}>
-        <DialogContent className="sm:max-w-4xl max-h-[80vh] overflow-hidden" aria-describedby={undefined}>
+        <DialogContent className="w-[95vw] sm:max-w-4xl max-h-[85vh] overflow-hidden p-4 sm:p-6" aria-describedby={undefined}>
           <DialogHeader>
-            <DialogTitle className="text-xl flex items-center gap-2">
+            <DialogTitle className="text-lg sm:text-xl font-bold flex items-center gap-2">
               <BookOpen className="w-5 h-5 text-purple-600" />
               Confirmar Catálogo
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-sm sm:text-base">
               Revisa los productos seleccionados antes de crear tu catálogo profesional
             </DialogDescription>
             <p className="text-sm text-gray-600">
@@ -171,7 +169,8 @@ export const ProductModals: React.FC<ProductModalsProps> = ({
               value={catalogTitle}
               onChange={(e) => setCatalogTitle(e.target.value)}
               placeholder="Ingresa el título de tu catálogo"
-              className="w-full"
+              className="w-full h-12 text-base"
+              style={{ fontSize: '16px' }}
             />
             <p className="text-xs text-gray-500">
               Este título aparecerá en tu catálogo PDF y en la lista de catálogos
@@ -179,14 +178,7 @@ export const ProductModals: React.FC<ProductModalsProps> = ({
           </div>
 
           {/* Botones de acción */}
-          <div className="flex gap-3 pt-4 border-t">
-            <Button
-              variant="outline"
-              onClick={() => setShowCatalogPreview(false)}
-              className="flex-1"
-            >
-              Cancelar
-            </Button>
+          <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t">
             <Button
               onClick={() => {
                 if (!catalogTitle.trim()) {
@@ -197,10 +189,17 @@ export const ProductModals: React.FC<ProductModalsProps> = ({
                 setCatalogTitle(''); // Limpiar el campo
               }}
               disabled={!catalogTitle.trim()}
-              className="flex-1 bg-purple-600 hover:bg-purple-700 disabled:opacity-50"
+              className="flex-1 h-12 text-base font-medium bg-purple-600 hover:bg-purple-700 disabled:opacity-50 order-1 sm:order-2"
             >
               <Palette className="h-4 w-4 mr-2" />
               Crear Catálogo ({selectedProducts.length})
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => setShowCatalogPreview(false)}
+              className="flex-1 h-12 text-base font-medium order-2 sm:order-1"
+            >
+              Cancelar
             </Button>
           </div>
         </DialogContent>
@@ -220,35 +219,35 @@ const CatalogPreviewContent: React.FC<{
   const noBackground = selectedProductsData.filter(p => getProcessingStatus(p) === 'completed');
 
   return (
-    <div className="space-y-6 overflow-y-auto">
+    <div className="space-y-4 sm:space-y-6 overflow-y-auto max-h-[40vh] sm:max-h-[50vh] -mx-2 px-2">
       {/* Resumen por estados */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-3 gap-2 sm:gap-4">
         {withBackground.length > 0 && (
           <Card className="border-orange-200 bg-orange-50">
-            <CardContent className="p-3 text-center">
-              <ImageIcon className="h-6 w-6 text-orange-600 mx-auto mb-2" />
-              <div className="font-semibold text-orange-900">{withBackground.length}</div>
-              <div className="text-xs text-orange-700">Con fondo original</div>
+            <CardContent className="p-2 sm:p-3 text-center">
+              <ImageIcon className="h-5 w-5 sm:h-6 sm:w-6 text-orange-600 mx-auto mb-1 sm:mb-2" />
+              <div className="text-lg sm:text-xl font-semibold text-orange-900">{withBackground.length}</div>
+              <div className="text-[10px] sm:text-xs text-orange-700 leading-tight">Con fondo original</div>
             </CardContent>
           </Card>
         )}
         
         {processing.length > 0 && (
           <Card className="border-blue-200 bg-blue-50">
-            <CardContent className="p-3 text-center">
-              <Loader2 className="h-6 w-6 text-blue-600 mx-auto mb-2 animate-spin" />
-              <div className="font-semibold text-blue-900">{processing.length}</div>
-              <div className="text-xs text-blue-700">Quitando fondo</div>
+            <CardContent className="p-2 sm:p-3 text-center">
+              <Loader2 className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600 mx-auto mb-1 sm:mb-2 animate-spin" />
+              <div className="text-lg sm:text-xl font-semibold text-blue-900">{processing.length}</div>
+              <div className="text-[10px] sm:text-xs text-blue-700 leading-tight">Quitando fondo</div>
             </CardContent>
           </Card>
         )}
         
         {noBackground.length > 0 && (
           <Card className="border-green-200 bg-green-50">
-            <CardContent className="p-3 text-center">
-              <Sparkles className="h-6 w-6 text-green-600 mx-auto mb-2" />
-              <div className="font-semibold text-green-900">{noBackground.length}</div>
-              <div className="text-xs text-green-700">Sin fondo</div>
+            <CardContent className="p-2 sm:p-3 text-center">
+              <Sparkles className="h-5 w-5 sm:h-6 sm:w-6 text-green-600 mx-auto mb-1 sm:mb-2" />
+              <div className="text-lg sm:text-xl font-semibold text-green-900">{noBackground.length}</div>
+              <div className="text-[10px] sm:text-xs text-green-700 leading-tight">Sin fondo</div>
             </CardContent>
           </Card>
         )}
@@ -256,12 +255,12 @@ const CatalogPreviewContent: React.FC<{
 
       {/* Info del catálogo */}
       <Card className="bg-purple-50 border-purple-200">
-        <CardContent className="p-4">
-          <div className="flex items-start gap-3">
+        <CardContent className="p-4 sm:p-6">
+          <div className="flex items-start gap-3 sm:gap-4">
             <BookOpen className="h-5 w-5 text-purple-600 mt-0.5" />
             <div className="space-y-1">
               <h4 className="font-semibold text-purple-900">Tu catálogo incluirá:</h4>
-              <ul className="text-sm text-purple-800 space-y-1">
+              <ul className="text-sm sm:text-base text-purple-800 space-y-2">
                 <li>• Imágenes originales y sin fondo según disponibilidad</li>
                 <li>• Precios y descripciones de todos los productos</li>
                 <li>• Diseño profesional totalmente personalizable</li>
