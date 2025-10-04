@@ -294,11 +294,11 @@ const Analytics = () => {
 
   // Header simplificado
   const PageHeader = () => (
-    <div className="mb-6">
-      <h1 className="text-2xl font-bold text-gray-900 mb-2">
+    <div className="mb-4 sm:mb-6">
+      <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-1 sm:mb-2">
         Analytics
       </h1>
-      <p className="text-gray-600">
+      <p className="text-sm sm:text-base text-gray-600">
         Métricas y rendimiento de tu cuenta
       </p>
     </div>
@@ -306,40 +306,43 @@ const Analytics = () => {
 
   // Actions para el header
   const actions = (
-    <div className="flex items-center gap-2">
-      {/* Selector de rango más claro */}
-      <div className="flex items-center gap-2 bg-gray-50 px-3 py-2 rounded-lg border">
-        <Calendar className="w-4 h-4 text-gray-600" />
-        <select
-          value={dateRange}
-          onChange={(e) => setDateRange(e.target.value)}
-          className="text-sm bg-transparent border-none outline-none cursor-pointer"
+    <div className="flex items-center gap-2 w-full md:w-auto">
+      {/* Móvil: Solo selector + refresh */}
+      <div className="flex items-center gap-2 flex-1 md:flex-none">
+        <div className="flex items-center gap-2 bg-gray-50 px-2 sm:px-3 py-2 rounded-lg border flex-1 md:flex-none">
+          <Calendar className="w-4 h-4 text-gray-600 flex-shrink-0" />
+          <select
+            value={dateRange}
+            onChange={(e) => setDateRange(e.target.value)}
+            className="text-xs sm:text-sm bg-transparent border-none outline-none cursor-pointer w-full md:w-auto"
+          >
+            <option value="7">7 días</option>
+            <option value="30">30 días</option>
+            <option value="90">90 días</option>
+          </select>
+        </div>
+
+        <Button
+          onClick={loadAnalytics}
+          disabled={loading}
+          variant="outline"
+          size="sm"
+          className="h-10 w-10 p-0 flex-shrink-0"
         >
-          <option value="7">Últimos 7 días</option>
-          <option value="30">Últimos 30 días</option>
-          <option value="90">Últimos 90 días</option>
-        </select>
+          <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+        </Button>
+
+        {/* Link productos - solo desktop */}
+        <Button
+          onClick={() => navigate('/products')}
+          variant="ghost"
+          size="sm"
+          className="hidden md:flex"
+        >
+          <Package className="h-4 w-4 mr-2" />
+          Productos
+        </Button>
       </div>
-
-      {/* Botón actualizar */}
-      <Button
-        onClick={loadAnalytics}
-        disabled={loading}
-        variant="outline"
-        size="sm"
-      >
-        <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-      </Button>
-
-      {/* Link a productos */}
-      <Button
-        onClick={() => navigate('/products')}
-        variant="ghost"
-        size="sm"
-      >
-        <Package className="h-4 w-4 mr-2" />
-        Productos
-      </Button>
     </div>
   );
 
@@ -368,111 +371,111 @@ const Analytics = () => {
           {/* Dashboard de Uso */}
           <UsageDashboard />
 
-          {/* Sección simplificada - KPIs en una sola fila */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* KPIs - 2 cols móvil, 4 cols desktop */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             {/* Productos */}
             <Card>
-              <CardContent className="p-4">
+              <CardContent className="p-3 sm:p-4">
                 <div className="flex items-center justify-between mb-2">
-                  <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
-                    <Package className="h-5 w-5 text-blue-600" />
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-50 rounded-lg flex items-center justify-center">
+                    <Package className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
                   </div>
                   {getGrowthIcon(analyticsData.performance.monthlyGrowth)}
                 </div>
-                <div className="text-2xl font-bold text-gray-900 mb-1">
+                <div className="text-xl sm:text-2xl font-bold text-gray-900 mb-1">
                   {formatNumber(analyticsData.products.total)}
                 </div>
-                <p className="text-sm text-gray-600">Productos</p>
+                <p className="text-xs sm:text-sm text-gray-600 truncate">Productos</p>
               </CardContent>
             </Card>
 
             {/* Catálogos */}
             <Card>
-              <CardContent className="p-4">
+              <CardContent className="p-3 sm:p-4">
                 <div className="flex items-center justify-between mb-2">
-                  <div className="w-10 h-10 bg-purple-50 rounded-lg flex items-center justify-center">
-                    <FileText className="h-5 w-5 text-purple-600" />
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-purple-50 rounded-lg flex items-center justify-center">
+                    <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600" />
                   </div>
                 </div>
-                <div className="text-2xl font-bold text-gray-900 mb-1">
+                <div className="text-xl sm:text-2xl font-bold text-gray-900 mb-1">
                   {formatNumber(analyticsData.catalogs.total)}
                 </div>
-                <p className="text-sm text-gray-600">Catálogos</p>
+                <p className="text-xs sm:text-sm text-gray-600 truncate">Catálogos</p>
               </CardContent>
             </Card>
 
             {/* Créditos */}
             <Card>
-              <CardContent className="p-4">
+              <CardContent className="p-3 sm:p-4">
                 <div className="flex items-center justify-between mb-2">
-                  <div className="w-10 h-10 bg-green-50 rounded-lg flex items-center justify-center">
-                    <Zap className="h-5 w-5 text-green-600" />
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-green-50 rounded-lg flex items-center justify-center">
+                    <Zap className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" />
                   </div>
                 </div>
-                <div className="text-2xl font-bold text-gray-900 mb-1">
+                <div className="text-xl sm:text-2xl font-bold text-gray-900 mb-1">
                   {formatNumber(analyticsData.credits.remaining)}
                 </div>
-                <p className="text-sm text-gray-600">Créditos disponibles</p>
+                <p className="text-xs sm:text-sm text-gray-600 truncate">Créditos</p>
               </CardContent>
             </Card>
 
             {/* Éxito */}
             <Card>
-              <CardContent className="p-4">
+              <CardContent className="p-3 sm:p-4">
                 <div className="flex items-center justify-between mb-2">
-                  <div className="w-10 h-10 bg-orange-50 rounded-lg flex items-center justify-center">
-                    <Target className="h-5 w-5 text-orange-600" />
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-orange-50 rounded-lg flex items-center justify-center">
+                    <Target className="h-4 w-4 sm:h-5 sm:w-5 text-orange-600" />
                   </div>
                 </div>
-                <div className="text-2xl font-bold text-gray-900 mb-1">
+                <div className="text-xl sm:text-2xl font-bold text-gray-900 mb-1">
                   {analyticsData.performance.processingSuccess}%
                 </div>
-                <p className="text-sm text-gray-600">Tasa de éxito</p>
+                <p className="text-xs sm:text-sm text-gray-600 truncate">Éxito</p>
               </CardContent>
             </Card>
           </div>
 
           {/* SECCIÓN 3: Tabs detallados */}
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-4 mb-6">
-              <TabsTrigger value="overview" className="gap-2">
-                <BarChart3 className="h-4 w-4" />
+            <TabsList className="grid w-full grid-cols-4 mb-4 sm:mb-6 h-auto">
+              <TabsTrigger value="overview" className="gap-1 sm:gap-2 px-2 py-2 sm:py-3 text-xs sm:text-sm min-h-[44px]">
+                <BarChart3 className="h-4 w-4 flex-shrink-0" />
                 <span className="hidden sm:inline">Resumen</span>
               </TabsTrigger>
-              <TabsTrigger value="products" className="gap-2">
-                <Package className="h-4 w-4" />
+              <TabsTrigger value="products" className="gap-1 sm:gap-2 px-2 py-2 sm:py-3 text-xs sm:text-sm min-h-[44px]">
+                <Package className="h-4 w-4 flex-shrink-0" />
                 <span className="hidden sm:inline">Productos</span>
               </TabsTrigger>
-              <TabsTrigger value="catalogs" className="gap-2">
-                <FileText className="h-4 w-4" />
+              <TabsTrigger value="catalogs" className="gap-1 sm:gap-2 px-2 py-2 sm:py-3 text-xs sm:text-sm min-h-[44px]">
+                <FileText className="h-4 w-4 flex-shrink-0" />
                 <span className="hidden sm:inline">Catálogos</span>
               </TabsTrigger>
-              <TabsTrigger value="performance" className="gap-2">
-                <Award className="h-4 w-4" />
+              <TabsTrigger value="performance" className="gap-1 sm:gap-2 px-2 py-2 sm:py-3 text-xs sm:text-sm min-h-[44px]">
+                <Award className="h-4 w-4 flex-shrink-0" />
                 <span className="hidden sm:inline">KPIs</span>
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="overview" className="space-y-6">
+            <TabsContent value="overview" className="space-y-4 sm:space-y-6">
               {/* Estado de Productos */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
                 <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-                      <Layers className="h-4 w-4 sm:h-5 sm:w-5" />
+                  <CardHeader className="pb-3 sm:pb-4">
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <Layers className="h-4 w-4" />
                       Estado de Productos
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-4">
+                    <div className="space-y-3 sm:space-y-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <div className="w-3 h-3 bg-yellow-400 rounded-full"></div>
-                          <span className="text-sm">Pendientes</span>
+                          <div className="w-2 h-2 sm:w-3 sm:h-3 bg-yellow-400 rounded-full flex-shrink-0"></div>
+                          <span className="text-xs sm:text-sm">Pendientes</span>
                         </div>
                         <div className="text-right">
-                          <span className="font-semibold">{analyticsData.products.pending}</span>
-                          <span className="text-xs text-gray-500 ml-2">
+                          <span className="font-semibold text-sm sm:text-base">{analyticsData.products.pending}</span>
+                          <span className="text-[10px] sm:text-xs text-gray-500 ml-1 sm:ml-2">
                             {analyticsData.products.total > 0 
                               ? Math.round((analyticsData.products.pending / analyticsData.products.total) * 100)
                               : 0}%
@@ -482,12 +485,12 @@ const Analytics = () => {
                       
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <div className="w-3 h-3 bg-blue-400 rounded-full"></div>
-                          <span className="text-sm">Procesando</span>
+                          <div className="w-2 h-2 sm:w-3 sm:h-3 bg-blue-400 rounded-full flex-shrink-0"></div>
+                          <span className="text-xs sm:text-sm">Procesando</span>
                         </div>
                         <div className="text-right">
-                          <span className="font-semibold">{analyticsData.products.processing}</span>
-                          <span className="text-xs text-gray-500 ml-2">
+                          <span className="font-semibold text-sm sm:text-base">{analyticsData.products.processing}</span>
+                          <span className="text-[10px] sm:text-xs text-gray-500 ml-1 sm:ml-2">
                             {analyticsData.products.total > 0 
                               ? Math.round((analyticsData.products.processing / analyticsData.products.total) * 100)
                               : 0}%
@@ -497,12 +500,12 @@ const Analytics = () => {
                       
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <div className="w-3 h-3 bg-green-400 rounded-full"></div>
-                          <span className="text-sm">Completados</span>
+                          <div className="w-2 h-2 sm:w-3 sm:h-3 bg-green-400 rounded-full flex-shrink-0"></div>
+                          <span className="text-xs sm:text-sm">Completados</span>
                         </div>
                         <div className="text-right">
-                          <span className="font-semibold">{analyticsData.products.completed}</span>
-                          <span className="text-xs text-gray-500 ml-2">
+                          <span className="font-semibold text-sm sm:text-base">{analyticsData.products.completed}</span>
+                          <span className="text-[10px] sm:text-xs text-gray-500 ml-1 sm:ml-2">
                             {analyticsData.products.total > 0 
                               ? Math.round((analyticsData.products.completed / analyticsData.products.total) * 100)
                               : 0}%
@@ -514,35 +517,35 @@ const Analytics = () => {
                 </Card>
 
                 <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-                      <Calendar className="h-4 w-4 sm:h-5 sm:w-5" />
+                  <CardHeader className="pb-3 sm:pb-4">
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <Calendar className="h-4 w-4" />
                       Actividad Mensual
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-4">
+                    <div className="space-y-3 sm:space-y-4">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm">Productos este mes</span>
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold">{analyticsData.products.thisMonth}</span>
+                        <span className="text-xs sm:text-sm">Productos este mes</span>
+                        <div className="flex items-center gap-1 sm:gap-2">
+                          <span className="font-semibold text-sm sm:text-base">{analyticsData.products.thisMonth}</span>
                           {getGrowthIcon(analyticsData.performance.monthlyGrowth)}
                         </div>
                       </div>
                       
                       <div className="flex items-center justify-between">
-                        <span className="text-sm">Catálogos este mes</span>
-                        <span className="font-semibold">{analyticsData.catalogs.thisMonth}</span>
+                        <span className="text-xs sm:text-sm">Catálogos este mes</span>
+                        <span className="font-semibold text-sm sm:text-base">{analyticsData.catalogs.thisMonth}</span>
                       </div>
                       
                       <div className="flex items-center justify-between">
-                        <span className="text-sm">Créditos usados</span>
-                        <span className="font-semibold">{analyticsData.credits.thisMonth}</span>
+                        <span className="text-xs sm:text-sm">Créditos usados</span>
+                        <span className="font-semibold text-sm sm:text-base">{analyticsData.credits.thisMonth}</span>
                       </div>
 
                       <div className="flex items-center justify-between">
-                        <span className="text-sm">Tiempo promedio</span>
-                        <span className="font-semibold">{analyticsData.products.avgProcessingTime} min</span>
+                        <span className="text-xs sm:text-sm">Tiempo promedio</span>
+                        <span className="font-semibold text-sm sm:text-base">{analyticsData.products.avgProcessingTime} min</span>
                       </div>
                     </div>
                   </CardContent>
@@ -551,41 +554,41 @@ const Analytics = () => {
 
               {/* Top Categorías */}
               <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-                    <BarChart3 className="h-4 w-4 sm:h-5 sm:w-5" />
+                <CardHeader className="pb-3 sm:pb-4">
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <BarChart3 className="h-4 w-4" />
                     Categorías Más Populares
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-3">
+                  <div className="space-y-2 sm:space-y-3">
                     {analyticsData.products.topCategories.length > 0 ? (
                       analyticsData.products.topCategories.map((category, index) => (
-                        <div key={category.category} className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <Badge variant="outline" className="w-6 h-6 p-0 flex items-center justify-center text-xs">
+                        <div key={category.category} className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+                            <Badge variant="outline" className="w-5 h-5 sm:w-6 sm:h-6 p-0 flex items-center justify-center text-[10px] sm:text-xs flex-shrink-0">
                               {index + 1}
                             </Badge>
-                            <span className="text-sm font-medium">{category.category}</span>
+                            <span className="text-xs sm:text-sm font-medium truncate">{category.category}</span>
                           </div>
-                          <div className="flex items-center gap-3">
-                            <div className="w-16 bg-gray-200 rounded-full h-2">
+                          <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+                            <div className="w-12 sm:w-16 bg-gray-200 rounded-full h-1.5 sm:h-2">
                               <div 
-                                className="bg-primary h-2 rounded-full" 
+                                className="bg-primary h-1.5 sm:h-2 rounded-full" 
                                 style={{ width: `${category.percentage}%` }}
                               ></div>
                             </div>
-                            <span className="text-sm text-gray-600 w-12 text-right">
+                            <span className="text-xs sm:text-sm text-gray-600 w-8 sm:w-12 text-right">
                               {category.count}
                             </span>
                           </div>
                         </div>
                       ))
                     ) : (
-                      <div className="text-center py-8 text-gray-500">
-                        <Package className="h-12 w-12 mx-auto mb-2 text-gray-300" />
-                        <p className="text-sm">No hay categorías aún</p>
-                        <p className="text-xs">Sube productos para ver estadísticas</p>
+                      <div className="text-center py-6 sm:py-8 text-gray-500">
+                        <Package className="h-10 w-10 sm:h-12 sm:w-12 mx-auto mb-2 text-gray-300" />
+                        <p className="text-xs sm:text-sm">No hay categorías aún</p>
+                        <p className="text-[10px] sm:text-xs">Sube productos para ver estadísticas</p>
                       </div>
                     )}
                   </div>
@@ -593,14 +596,14 @@ const Analytics = () => {
               </Card>
             </TabsContent>
 
-            <TabsContent value="products" className="space-y-6">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+            <TabsContent value="products" className="space-y-4 sm:space-y-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
                 <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base">Productos Totales</CardTitle>
+                  <CardHeader className="pb-2 sm:pb-3">
+                    <CardTitle className="text-sm sm:text-base">Productos Totales</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl sm:text-3xl font-bold text-blue-600">
+                    <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-blue-600">
                       {formatNumber(analyticsData.products.total)}
                     </div>
                     <p className="text-xs text-gray-500 mt-1">
@@ -610,11 +613,11 @@ const Analytics = () => {
                 </Card>
 
                 <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base">Tasa de Éxito</CardTitle>
+                  <CardHeader className="pb-2 sm:pb-3">
+                    <CardTitle className="text-sm sm:text-base">Tasa de Éxito</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl sm:text-3xl font-bold text-green-600">
+                    <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-green-600">
                       {analyticsData.performance.processingSuccess}%
                     </div>
                     <p className="text-xs text-gray-500 mt-1">
@@ -624,11 +627,11 @@ const Analytics = () => {
                 </Card>
 
                 <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base">Tiempo Promedio</CardTitle>
+                  <CardHeader className="pb-2 sm:pb-3">
+                    <CardTitle className="text-sm sm:text-base">Tiempo Promedio</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl sm:text-3xl font-bold text-orange-600">
+                    <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-orange-600">
                       {analyticsData.products.avgProcessingTime}
                     </div>
                     <p className="text-xs text-gray-500 mt-1">
@@ -639,14 +642,14 @@ const Analytics = () => {
               </div>
             </TabsContent>
 
-            <TabsContent value="catalogs" className="space-y-6">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+            <TabsContent value="catalogs" className="space-y-4 sm:space-y-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
                 <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base">Catálogos Creados</CardTitle>
+                  <CardHeader className="pb-2 sm:pb-3">
+                    <CardTitle className="text-sm sm:text-base">Catálogos Creados</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl sm:text-3xl font-bold text-purple-600">
+                    <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-purple-600">
                       {formatNumber(analyticsData.catalogs.total)}
                     </div>
                     <p className="text-xs text-gray-500 mt-1">
@@ -656,11 +659,11 @@ const Analytics = () => {
                 </Card>
 
                 <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base">Productos por Catálogo</CardTitle>
+                  <CardHeader className="pb-2 sm:pb-3">
+                    <CardTitle className="text-sm sm:text-base">Productos por Catálogo</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl sm:text-3xl font-bold text-indigo-600">
+                    <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-indigo-600">
                       {analyticsData.catalogs.avgProductsPerCatalog}
                     </div>
                     <p className="text-xs text-gray-500 mt-1">
@@ -670,11 +673,11 @@ const Analytics = () => {
                 </Card>
 
                 <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base">Template Favorito</CardTitle>
+                  <CardHeader className="pb-2 sm:pb-3">
+                    <CardTitle className="text-sm sm:text-base">Template Favorito</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-lg font-bold text-pink-600 capitalize">
+                    <div className="text-base sm:text-lg font-bold text-pink-600 capitalize">
                       {analyticsData.catalogs.mostUsedTemplate}
                     </div>
                     <p className="text-xs text-gray-500 mt-1">
@@ -746,17 +749,17 @@ const Analytics = () => {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-3">
+                    <div className="space-y-2 sm:space-y-3">
                       {/* Recomendaciones basadas en datos */}
                       {analyticsData.products.pending > analyticsData.products.completed && (
-                        <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                        <div className="p-2 sm:p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
                           <div className="flex items-start gap-2">
                             <AlertCircle className="h-4 w-4 text-yellow-600 mt-0.5 flex-shrink-0" />
-                            <div className="min-w-0">
-                              <p className="text-sm font-medium text-yellow-800">
+                            <div className="min-w-0 flex-1">
+                              <p className="text-xs sm:text-sm font-medium text-yellow-800">
                                 Procesa tus productos pendientes
                               </p>
-                              <p className="text-xs text-yellow-700">
+                              <p className="text-[10px] sm:text-xs text-yellow-700 mt-0.5">
                                 Tienes {analyticsData.products.pending} productos sin procesar.
                               </p>
                             </div>
@@ -765,14 +768,14 @@ const Analytics = () => {
                       )}
 
                       {analyticsData.credits.remaining < 5 && (
-                        <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                        <div className="p-2 sm:p-3 bg-red-50 border border-red-200 rounded-lg">
                           <div className="flex items-start gap-2">
                             <AlertCircle className="h-4 w-4 text-red-600 mt-0.5 flex-shrink-0" />
-                            <div className="min-w-0">
-                              <p className="text-sm font-medium text-red-800">
+                            <div className="min-w-0 flex-1">
+                              <p className="text-xs sm:text-sm font-medium text-red-800">
                                 Créditos bajos
                               </p>
-                              <p className="text-xs text-red-700">
+                              <p className="text-[10px] sm:text-xs text-red-700 mt-0.5">
                                 Solo tienes {analyticsData.credits.remaining} créditos restantes.
                               </p>
                             </div>
@@ -781,14 +784,14 @@ const Analytics = () => {
                       )}
 
                       {analyticsData.catalogs.total === 0 && analyticsData.products.completed > 0 && (
-                        <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                        <div className="p-2 sm:p-3 bg-green-50 border border-green-200 rounded-lg">
                           <div className="flex items-start gap-2">
                             <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
-                            <div className="min-w-0">
-                              <p className="text-sm font-medium text-green-800">
+                            <div className="min-w-0 flex-1">
+                              <p className="text-xs sm:text-sm font-medium text-green-800">
                                 ¡Crea tu primer catálogo!
                               </p>
-                              <p className="text-xs text-green-700">
+                              <p className="text-[10px] sm:text-xs text-green-700 mt-0.5">
                                 Tienes {analyticsData.products.completed} productos listos.
                               </p>
                             </div>
@@ -797,14 +800,14 @@ const Analytics = () => {
                       )}
 
                       {analyticsData.performance.monthlyGrowth > 50 && (
-                        <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                        <div className="p-2 sm:p-3 bg-blue-50 border border-blue-200 rounded-lg">
                           <div className="flex items-start gap-2">
                             <TrendingUp className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
-                            <div className="min-w-0">
-                              <p className="text-sm font-medium text-blue-800">
+                            <div className="min-w-0 flex-1">
+                              <p className="text-xs sm:text-sm font-medium text-blue-800">
                                 ¡Excelente crecimiento!
                               </p>
-                              <p className="text-xs text-blue-700">
+                              <p className="text-[10px] sm:text-xs text-blue-700 mt-0.5">
                                 Has crecido {analyticsData.performance.monthlyGrowth}% este mes.
                               </p>
                             </div>
@@ -814,14 +817,14 @@ const Analytics = () => {
 
                       {/* Si no hay insights, mostrar mensaje motivacional */}
                       {analyticsData.products.total === 0 && (
-                        <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                        <div className="p-2 sm:p-3 bg-blue-50 border border-blue-200 rounded-lg">
                           <div className="flex items-start gap-2">
                             <Package className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
-                            <div className="min-w-0">
-                              <p className="text-sm font-medium text-blue-800">
+                            <div className="min-w-0 flex-1">
+                              <p className="text-xs sm:text-sm font-medium text-blue-800">
                                 ¡Comienza tu primer proyecto!
                               </p>
-                              <p className="text-xs text-blue-700">
+                              <p className="text-[10px] sm:text-xs text-blue-700 mt-0.5">
                                 Sube algunos productos para ver tus métricas aquí.
                               </p>
                             </div>
