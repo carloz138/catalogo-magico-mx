@@ -277,17 +277,17 @@ const Index = () => {
       {/* Header simplificado con jerarquía visual clara */}
       <header className="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
+          <div className="flex justify-between items-center h-14 sm:h-16">
             
             {/* Logo - sin cambios en funcionalidad */}
             <button 
               onClick={() => navigate('/')}
               className="flex items-center space-x-2 hover:opacity-80 transition-opacity"
             >
-              <div className="w-9 h-9 bg-gradient-to-br from-purple-600 to-blue-600 rounded-lg flex items-center justify-center">
-                <Layers className="w-5 h-5 text-white" />
+              <div className="w-8 h-8 sm:w-9 sm:h-9 bg-gradient-to-br from-purple-600 to-blue-600 rounded-lg flex items-center justify-center">
+                <Layers className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
               </div>
-              <span className="text-xl font-bold">CatifyPro</span>
+              <span className="text-lg sm:text-xl font-bold">CatifyPro</span>
             </button>
 
             {/* Navegación simplificada - solo 3 items principales */}
@@ -315,8 +315,8 @@ const Index = () => {
               </Button>
             </nav>
 
-            {/* CTAs claros */}
-            <div className="flex items-center gap-2">
+            {/* CTAs desktop */}
+            <div className="hidden md:flex items-center gap-2">
               {user ? (
                 <>
                   <Button
@@ -353,12 +353,23 @@ const Index = () => {
                 </>
               )}
             </div>
+
+            {/* CTAs móvil */}
+            <div className="flex md:hidden items-center gap-2">
+              <Button
+                onClick={handleMainCTA}
+                size="sm"
+                className="bg-gradient-to-r from-purple-600 to-blue-600 h-10 px-3 text-sm"
+              >
+                {user ? 'Subir' : 'Comenzar'}
+              </Button>
+            </div>
           </div>
         </div>
       </header>
 
       {/* Hero Section */}
-      <section className="pt-16 pb-24 bg-gradient-to-br from-purple-50 via-white to-blue-50 relative overflow-hidden">
+      <section className="pt-12 sm:pt-16 pb-16 sm:pb-24 bg-gradient-to-br from-purple-50 via-white to-blue-50 relative overflow-hidden">
         {/* Background decorations */}
         <div className="absolute inset-0 overflow-hidden">
           <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-200 rounded-full opacity-20 blur-3xl"></div>
@@ -366,72 +377,72 @@ const Index = () => {
         </div>
         
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
+          <div className="lg:grid lg:grid-cols-2 gap-12 items-center">
             <div className="text-center lg:text-left">
-              <Badge className="mb-6 bg-gradient-to-r from-purple-100 to-blue-100 text-purple-800 border-purple-200 text-sm px-4 py-2">
-                <Sparkles className="w-4 h-4 mr-2" />
+              <Badge className="mb-4 sm:mb-6 bg-gradient-to-r from-purple-100 to-blue-100 text-purple-800 border-purple-200 text-xs sm:text-sm px-3 sm:px-4 py-1.5 sm:py-2">
+                <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
                 +5,000 empresas automatizando sus catálogos
               </Badge>
               
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 mb-6 leading-tight">
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold text-gray-900 mb-6 leading-tight">
                 Crea catálogos
                 <span className="bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent"> personalizados automáticamente</span> en minutos
               </h1>
               
-              <p className="text-xl text-gray-600 mb-8 leading-relaxed max-w-2xl">
+              <p className="text-base sm:text-lg lg:text-xl text-gray-600 mb-6 sm:mb-8 leading-relaxed max-w-2xl">
                 La primera plataforma que convierte tu inventario en catálogos PDF profesionales 
                 <span className="font-semibold text-purple-600"> segmentados por cliente</span>. 
                 Organiza productos con etiquetas inteligentes y genera catálogos automáticos por solo $99 MXN/mes.
               </p>
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
                 {stats.map((stat, index) => (
-                  <div key={index} className="text-center p-4 bg-white/70 backdrop-blur-sm rounded-lg border border-gray-100">
-                    <div className="text-2xl font-bold text-purple-600">{stat.number}</div>
-                    <div className="text-sm text-gray-600 leading-tight">{stat.label}</div>
+                  <div key={index} className="text-center p-3 sm:p-4 bg-white/70 backdrop-blur-sm rounded-lg border border-gray-100">
+                    <div className="text-xl sm:text-2xl font-bold text-purple-600">{stat.number}</div>
+                    <div className="text-xs sm:text-sm text-gray-600 leading-tight">{stat.label}</div>
                   </div>
                 ))}
               </div>
 
-              <div className="flex flex-col sm:flex-row gap-4 mb-6">
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-6">
                 <Button 
                   size="lg" 
-                  className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-lg px-8 py-4 shadow-lg"
+                  className="w-full sm:w-auto bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-base sm:text-lg px-6 sm:px-8 h-12 sm:h-auto"
                   onClick={handleMainCTA}
                 >
-                  <Upload className="mr-2 w-5 h-5" />
+                  <Upload className="mr-2 w-4 h-4 sm:w-5 sm:h-5" />
                   Prueba con tus productos
-                  <ArrowRight className="ml-2 w-5 h-5" />
+                  <ArrowRight className="ml-2 w-4 h-4 sm:w-5 sm:h-5" />
                 </Button>
                 <Button 
                   variant="outline" 
                   size="lg" 
-                  className="text-lg px-8 py-4 border-purple-200 text-purple-600 hover:bg-purple-50"
+                  className="w-full sm:w-auto text-base sm:text-lg px-6 sm:px-8 h-12 sm:h-auto border-purple-200 text-purple-600 hover:bg-purple-50"
                   onClick={handleDemoButton}
                 >
-                  <Play className="mr-2 w-5 h-5" />
+                  <Play className="mr-2 w-4 h-4 sm:w-5 sm:h-5" />
                   Ver demo interactiva
                 </Button>
               </div>
 
-              <div className="flex items-center justify-center lg:justify-start space-x-6 text-sm text-gray-500">
+              <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start sm:space-x-6 space-y-2 sm:space-y-0 text-xs sm:text-sm text-gray-500">
                 <div className="flex items-center">
-                  <CheckCircle2 className="w-4 h-4 text-green-500 mr-2" />
+                  <CheckCircle2 className="w-3 h-3 sm:w-4 sm:h-4 text-green-500 mr-1.5 sm:mr-2" />
                   Setup en 5 minutos
                 </div>
                 <div className="flex items-center">
-                  <CheckCircle2 className="w-4 h-4 text-green-500 mr-2" />
+                  <CheckCircle2 className="w-3 h-3 sm:w-4 sm:h-4 text-green-500 mr-1.5 sm:mr-2" />
                   Desde $106 MXN/mes
                 </div>
                 <div className="flex items-center">
-                  <CheckCircle2 className="w-4 h-4 text-green-500 mr-2" />
+                  <CheckCircle2 className="w-3 h-3 sm:w-4 sm:h-4 text-green-500 mr-1.5 sm:mr-2" />
                   Soporte en español
                 </div>
               </div>
             </div>
 
             {/* Demo Visual */}
-            <div className="relative">
+            <div className="hidden lg:block relative">
               <div className="bg-white rounded-2xl shadow-2xl p-8 relative">
                 {/* Steps visualization */}
                 <div className="space-y-6">
@@ -486,12 +497,12 @@ const Index = () => {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
-            <Card className="p-8 text-center border-none shadow-lg">
-              <div className="w-16 h-16 bg-gradient-to-br from-green-100 to-green-200 rounded-full flex items-center justify-center mx-auto mb-6">
-                <DollarSign className="w-8 h-8 text-green-600" />
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+            <Card className="p-6 sm:p-8 text-center border-none shadow-lg">
+              <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-green-100 to-green-200 rounded-full flex items-center justify-center mx-auto mb-6">
+                <DollarSign className="w-6 h-6 sm:w-8 sm:h-8 text-green-600" />
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-4">90% más barato</h3>
+              <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-4">90% más barato</h3>
               <p className="text-gray-600 mb-4">
                 Servicios externos: $1,000+ MXN por catálogo.
                 CatifyPro: desde $99 MXN mensual ilimitado.
@@ -503,11 +514,11 @@ const Index = () => {
               </div>
             </Card>
 
-            <Card className="p-8 text-center border-none shadow-lg">
-              <div className="w-16 h-16 bg-gradient-to-br from-blue-100 to-blue-200 rounded-full flex items-center justify-center mx-auto mb-6">
-                <Clock className="w-8 h-8 text-blue-600" />
+            <Card className="p-6 sm:p-8 text-center border-none shadow-lg">
+              <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-blue-100 to-blue-200 rounded-full flex items-center justify-center mx-auto mb-6">
+                <Clock className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-4">40x más rápido</h3>
+              <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-4">40x más rápido</h3>
               <p className="text-gray-600 mb-4">
                 Métodos tradicionales: 1-2 semanas entre diseño y entrega.
                 CatifyPro: 15 minutos automático.
@@ -519,11 +530,11 @@ const Index = () => {
               </div>
             </Card>
 
-            <Card className="p-8 text-center border-none shadow-lg">
-              <div className="w-16 h-16 bg-gradient-to-br from-purple-100 to-purple-200 rounded-full flex items-center justify-center mx-auto mb-6">
-                <Target className="w-8 h-8 text-purple-600" />
+            <Card className="p-6 sm:p-8 text-center border-none shadow-lg">
+              <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-purple-100 to-purple-200 rounded-full flex items-center justify-center mx-auto mb-6">
+                <Target className="w-6 h-6 sm:w-8 sm:h-8 text-purple-600" />
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-4">Personalización total</h3>
+              <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-4">Personalización total</h3>
               <p className="text-gray-600 mb-4">
                 Crea catálogos específicos para cada cliente, temporada o segmento.
                 Mismo inventario, múltiples versiones dirigidas.
@@ -550,15 +561,15 @@ const Index = () => {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
             {features.map((feature, index) => (
               <Card key={index} className="group hover:shadow-xl transition-all duration-300 border-0 bg-white">
-                <CardContent className="p-8">
-                  <div className="w-12 h-12 bg-gradient-to-br from-purple-100 to-blue-100 rounded-lg flex items-center justify-center text-purple-600 mb-6 group-hover:scale-110 transition-transform">
+                <CardContent className="p-6 sm:p-8">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-purple-100 to-blue-100 rounded-lg flex items-center justify-center text-purple-600 mb-6 group-hover:scale-110 transition-transform">
                     {feature.icon}
                   </div>
                   
-                  <h3 className="text-xl font-bold text-gray-900 mb-3">{feature.title}</h3>
+                  <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-3">{feature.title}</h3>
                   <p className="text-gray-600 mb-4 leading-relaxed">{feature.description}</p>
                   
                   <div className="bg-gradient-to-r from-purple-50 to-blue-50 p-4 rounded-lg border-l-4 border-purple-400">
@@ -585,30 +596,30 @@ const Index = () => {
             </p>
           </div>
 
-          <div className="grid lg:grid-cols-3 gap-8">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
             {testimonials.map((testimonial, index) => (
               <Card key={index} className="bg-white border-0 shadow-lg hover:shadow-xl transition-all duration-300">
-                <CardContent className="p-8">
+                <CardContent className="p-6 sm:p-8">
                   <div className="flex items-center mb-6">
                     {[...Array(5)].map((_, i) => (
                       <Star key={i} className="w-5 h-5 text-yellow-400 fill-current" />
                     ))}
                   </div>
                   
-                  <blockquote className="text-gray-700 mb-6 italic text-lg leading-relaxed">
+                  <blockquote className="text-gray-700 mb-6 italic text-base sm:text-lg leading-relaxed">
                     "{testimonial.quote}"
                   </blockquote>
 
                   <div className="flex items-center justify-between border-t pt-6">
-                    <div className="flex items-center space-x-4">
+                    <div className="flex items-center space-x-3 sm:space-x-4">
                       <img 
                         src={testimonial.image} 
                         alt={testimonial.name}
-                        className="w-12 h-12 rounded-full object-cover"
+                        className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover"
                       />
                       <div>
-                        <p className="font-semibold text-gray-900">{testimonial.name}</p>
-                        <p className="text-sm text-gray-600">{testimonial.business}</p>
+                        <p className="font-semibold text-sm sm:text-base text-gray-900">{testimonial.name}</p>
+                        <p className="text-xs sm:text-sm text-gray-600">{testimonial.business}</p>
                       </div>
                     </div>
                   </div>
@@ -643,7 +654,46 @@ const Index = () => {
           {/* Monthly Plans */}
           <div className="mb-16">
             <h3 className="text-2xl font-bold text-gray-900 text-center mb-8">Planes Mensuales</h3>
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            
+            {/* Monthly Plans - Móvil scroll horizontal */}
+            <div className="md:hidden overflow-x-auto pb-4 -mx-4 px-4 mb-12">
+              <div className="flex gap-4 snap-x snap-mandatory" style={{ scrollSnapType: 'x mandatory' }}>
+                {monthlyPlans.map((plan, index) => (
+                  <Card 
+                    key={index} 
+                    className="min-w-[280px] flex-shrink-0 snap-center relative transition-all duration-300"
+                  >
+                    <CardContent className="p-5">
+                      <div className="text-center mb-4">
+                        <h3 className="text-lg font-bold text-gray-900 mb-2">{plan.name}</h3>
+                        <p className="text-gray-600 text-xs mb-3">{plan.description}</p>
+                        <div className="flex items-baseline justify-center">
+                          <span className="text-2xl font-bold text-gray-900">${plan.price_mxn / 100}</span>
+                          <span className="text-base text-gray-500 ml-1">/mes</span>
+                        </div>
+                      </div>
+                      <ul className="space-y-2 mb-4">
+                        {getPackageFeatures(plan).slice(0, 4).map((feature, i) => (
+                          <li key={i} className="flex items-start space-x-2">
+                            <CheckCircle2 className="w-3 h-3 text-green-500 flex-shrink-0 mt-0.5" />
+                            <span className="text-xs text-gray-700">{feature}</span>
+                          </li>
+                        ))}
+                      </ul>
+                      <Button 
+                        className="w-full h-11 text-sm"
+                        onClick={() => handlePurchasePackage(plan.id, plan.name)}
+                      >
+                        Comenzar
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+            
+            {/* Monthly Plans - Desktop grid */}
+            <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-4 gap-6">
               {monthlyPlans.map((plan, index) => (
                 <Card 
                   key={index} 
@@ -707,7 +757,7 @@ const Index = () => {
             <h3 className="text-2xl font-bold text-gray-900 text-center mb-4">Créditos para Remoción de Fondos</h3>
             <p className="text-gray-600 text-center mb-8">Compra créditos adicionales cuando los necesites</p>
             
-            <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 max-w-4xl mx-auto">
               {creditPacks.map((pkg, index) => (
                 <Card 
                   key={index}
@@ -721,9 +771,9 @@ const Index = () => {
                     </Badge>
                   )}
                   
-                  <CardContent className="p-6 text-center">
-                    <h3 className="text-xl font-bold text-gray-900 mb-2">{pkg.name}</h3>
-                    <div className="text-3xl font-bold text-gray-900 mb-2">{pkg.credits}</div>
+                  <CardContent className="p-5 sm:p-6 text-center">
+                    <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2">{pkg.name}</h3>
+                    <div className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">{pkg.credits}</div>
                     <p className="text-gray-600 text-sm mb-4">créditos únicos</p>
                     
                     <div className="mb-6">
@@ -758,17 +808,17 @@ const Index = () => {
       <section className="py-20 bg-gradient-to-r from-purple-600 via-blue-600 to-purple-600 relative overflow-hidden">
         <div className="absolute inset-0 bg-black/10"></div>
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative">
-          <h2 className="text-4xl lg:text-5xl font-bold text-white mb-6">
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-6">
             ¿Listo para automatizar tus catálogos?
           </h2>
-          <p className="text-xl text-white/90 mb-8">
+          <p className="text-lg sm:text-xl text-white/90 mb-8">
             Únete a miles de empresas que ya ahorran <span className="font-bold">$11,000+ pesos anuales</span> y crean catálogos en 15 minutos
           </p>
           
-          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center mb-8">
             <Button 
               size="lg" 
-              className="bg-white text-purple-600 hover:bg-gray-100 text-lg px-8 py-4 shadow-lg"
+              className="w-full sm:w-auto bg-white text-purple-600 hover:bg-gray-100 text-base sm:text-lg px-6 sm:px-8 h-12 shadow-lg"
               onClick={handleMainCTA}
             >
               <Upload className="mr-2 w-5 h-5" />
@@ -778,7 +828,7 @@ const Index = () => {
             <Button 
               size="lg" 
               variant="outline" 
-              className="border-white text-white hover:bg-white/10 text-lg px-8 py-4"
+              className="w-full sm:w-auto border-white text-white hover:bg-white/10 text-base sm:text-lg px-6 sm:px-8 h-12"
               onClick={handleDemoButton}
             >
               <Play className="mr-2 w-5 h-5" />
@@ -804,9 +854,35 @@ const Index = () => {
       </section>
 
       {/* Footer */}
-      <footer className="bg-gray-900 text-white py-12">
+      <footer className="bg-gray-900 text-white py-8 sm:py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid md:grid-cols-4 gap-8 mb-8">
+          
+          {/* Footer móvil - Accordions */}
+          <div className="md:hidden space-y-2 mb-8">
+            {[
+              { title: "Producto", items: ["Funcionalidades", "Precios", "API", "Integraciones"] },
+              { title: "Empresa", items: ["Nosotros", "Casos de éxito", "Blog", "Prensa"] },
+              { title: "Soporte", items: ["Centro de ayuda", "WhatsApp", "Email", "Onboarding"] }
+            ].map((section, idx) => (
+              <details key={idx} className="group border-b border-gray-800">
+                <summary className="flex justify-between items-center py-4 cursor-pointer list-none">
+                  <h4 className="font-semibold text-base">{section.title}</h4>
+                  <ChevronDown className="w-5 h-5 transition-transform group-open:rotate-180" />
+                </summary>
+                <ul className="pb-4 space-y-2">
+                  {section.items.map((item, i) => (
+                    <li key={i}>
+                      <a href="#" className="text-gray-400 text-sm hover:text-white block py-1">
+                        {item}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            ))}
+          </div>
+          
+          <div className="hidden md:grid md:grid-cols-4 gap-8 mb-8">
             <div>
               <div className="flex items-center space-x-2 mb-4">
                 <div className="w-8 h-8 bg-gradient-to-br from-purple-600 to-blue-600 rounded-lg flex items-center justify-center">
@@ -850,14 +926,14 @@ const Index = () => {
             </div>
           </div>
 
-          <div className="border-t border-gray-800 pt-8 flex flex-col md:flex-row justify-between items-center">
-            <p className="text-gray-400 text-sm">
+          <div className="border-t border-gray-800 pt-6 sm:pt-8 flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
+            <p className="text-gray-400 text-xs sm:text-sm text-center md:text-left">
               © 2024 CatifyPro. Todos los derechos reservados. Hecho con ❤️ en México.
             </p>
-            <div className="flex space-x-6 mt-4 md:mt-0">
-              <a href="#" className="text-gray-400 hover:text-white text-sm transition-colors">Privacidad</a>
-              <a href="#" className="text-gray-400 hover:text-white text-sm transition-colors">Términos</a>
-              <a href="#" className="text-gray-400 hover:text-white text-sm transition-colors">Cookies</a>
+            <div className="flex space-x-4 sm:space-x-6 text-xs sm:text-sm">
+              <a href="#" className="text-gray-400 hover:text-white transition-colors">Privacidad</a>
+              <a href="#" className="text-gray-400 hover:text-white transition-colors">Términos</a>
+              <a href="#" className="text-gray-400 hover:text-white transition-colors">Cookies</a>
             </div>
           </div>
         </div>
