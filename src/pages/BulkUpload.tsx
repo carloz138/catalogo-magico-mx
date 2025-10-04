@@ -286,52 +286,52 @@ export default function BulkUpload() {
       title="Carga Masiva de Productos"
       subtitle="Sube múltiples productos con imágenes y datos CSV"
     >
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6">
         <Button
           variant="ghost"
           onClick={() => navigate('/products')}
-          className="mb-4"
+          className="mb-3 sm:mb-4 h-10 sm:h-auto"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Volver a Productos
+          <span className="text-sm sm:text-base">Volver a Productos</span>
         </Button>
 
         {/* Statistics */}
         {matches.length > 0 && (
-          <div className="grid grid-cols-4 gap-4">
-            <Card className="p-4">
-              <div className="flex items-center gap-3">
-                <CheckCircle2 className="h-8 w-8 text-green-600" />
-                <div>
-                  <p className="text-2xl font-bold">{stats.matched}</p>
-                  <p className="text-sm text-muted-foreground">Matcheados</p>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            <Card className="p-3 sm:p-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <CheckCircle2 className="h-6 w-6 sm:h-8 sm:w-8 text-green-600 flex-shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-xl sm:text-2xl font-bold">{stats.matched}</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground truncate">Matcheados</p>
                 </div>
               </div>
             </Card>
-            <Card className="p-4">
-              <div className="flex items-center gap-3">
-                <XCircle className="h-8 w-8 text-destructive" />
-                <div>
-                  <p className="text-2xl font-bold">{stats.unmatched}</p>
-                  <p className="text-sm text-muted-foreground">Sin Match</p>
+            <Card className="p-3 sm:p-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <XCircle className="h-6 w-6 sm:h-8 sm:w-8 text-destructive flex-shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-xl sm:text-2xl font-bold">{stats.unmatched}</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground truncate">Sin Match</p>
                 </div>
               </div>
             </Card>
-            <Card className="p-4">
-              <div className="flex items-center gap-3">
-                <Upload className="h-8 w-8 text-primary" />
-                <div>
-                  <p className="text-2xl font-bold">{images.length}</p>
-                  <p className="text-sm text-muted-foreground">Imágenes</p>
+            <Card className="p-3 sm:p-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <Upload className="h-6 w-6 sm:h-8 sm:w-8 text-primary flex-shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-xl sm:text-2xl font-bold">{images.length}</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground truncate">Imágenes</p>
                 </div>
               </div>
             </Card>
-            <Card className="p-4">
-              <div className="flex items-center gap-3">
-                <AlertTriangle className="h-8 w-8 text-yellow-600" />
-                <div>
-                  <p className="text-2xl font-bold">{stats.withSecondary}</p>
-                  <p className="text-sm text-muted-foreground">Multi-imagen</p>
+            <Card className="p-3 sm:p-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <AlertTriangle className="h-6 w-6 sm:h-8 sm:w-8 text-yellow-600 flex-shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-xl sm:text-2xl font-bold">{stats.withSecondary}</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground truncate">Multi-imagen</p>
                 </div>
               </div>
             </Card>
@@ -339,14 +339,18 @@ export default function BulkUpload() {
         )}
 
         {/* Upload Areas */}
-        <div className="grid md:grid-cols-2 gap-6">
-          <Card className="p-6">
-            <h3 className="text-lg font-semibold mb-4">1. Sube las Imágenes</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+          <Card className="p-4 sm:p-6">
+            <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">
+              1. Sube las Imágenes
+            </h3>
             <ImageDropzone images={images} onImagesSelected={handleImagesSelected} />
           </Card>
 
-          <Card className="p-6">
-            <h3 className="text-lg font-semibold mb-4">2. Sube el CSV</h3>
+          <Card className="p-4 sm:p-6">
+            <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">
+              2. Sube el CSV
+            </h3>
             <CSVUploader csvProducts={csvProducts} onCSVParsed={handleCSVParsed} />
           </Card>
         </div>
@@ -371,29 +375,31 @@ export default function BulkUpload() {
 
         {/* Matching Results */}
         {matches.length > 0 && (
-          <Card className="p-6">
+          <Card className="p-4 sm:p-6">
             {validationErrors.length > 0 && (
-              <Alert variant="destructive" className="mb-4">
+              <Alert variant="destructive" className="mb-3 sm:mb-4">
                 <AlertTriangle className="h-4 w-4" />
-                <AlertTitle>Errores de validación</AlertTitle>
+                <AlertTitle className="text-sm sm:text-base">Errores de validación</AlertTitle>
                 <AlertDescription>
                   <ul className="list-disc list-inside mt-2 space-y-1">
                     {validationErrors.map((error, idx) => (
-                      <li key={idx} className="text-sm">{error}</li>
+                      <li key={idx} className="text-xs sm:text-sm">{error}</li>
                     ))}
                   </ul>
                 </AlertDescription>
               </Alert>
             )}
 
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold">3. Revisa los Matches</h3>
-              <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-0 mb-3 sm:mb-4">
+              <h3 className="text-base sm:text-lg font-semibold">3. Revisa los Matches</h3>
+              
+              <div className="flex flex-col sm:flex-row gap-2">
                 {stats.unmatched > 0 && (
                   <Button
                     variant={showOnlyUnmatched ? "default" : "outline"}
                     size="sm"
                     onClick={() => setShowOnlyUnmatched(!showOnlyUnmatched)}
+                    className="w-full sm:w-auto h-11 sm:h-auto text-sm"
                   >
                     <AlertTriangle className="h-4 w-4 mr-2" />
                     Solo sin match ({stats.unmatched})
@@ -402,7 +408,7 @@ export default function BulkUpload() {
                 <Button
                   onClick={uploadToSupabase}
                   disabled={!canUpload || validationErrors.length > 0 || isChecking}
-                  className="bg-gradient-to-r from-primary to-purple-600"
+                  className="w-full sm:w-auto bg-gradient-to-r from-primary to-purple-600 h-11 sm:h-auto text-sm"
                 >
                   <Upload className="h-4 w-4 mr-2" />
                   {isChecking ? 'Verificando...' : `Subir ${stats.matched} Producto${stats.matched !== 1 ? 's' : ''}`}
@@ -411,9 +417,9 @@ export default function BulkUpload() {
             </div>
 
             {stats.unmatched > 0 && !showOnlyUnmatched && (
-              <Alert className="mb-4">
+              <Alert className="mb-3 sm:mb-4">
                 <AlertTriangle className="h-4 w-4" />
-                <AlertDescription>
+                <AlertDescription className="text-xs sm:text-sm">
                   {stats.unmatched} imagen{stats.unmatched !== 1 ? 'es' : ''} no encontró match. 
                   Puedes renombrarlas o hacer matching manual.
                 </AlertDescription>
@@ -431,9 +437,42 @@ export default function BulkUpload() {
 
         {/* Upload Progress */}
         {uploadProgress && (
-          <Card className="p-6">
+          <Card className="p-4 sm:p-6">
             <UploadProgress progress={uploadProgress} />
           </Card>
+        )}
+
+        {/* Bottom Action Bar Móvil - Solo cuando hay matches */}
+        {matches.length > 0 && (
+          <>
+            <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-3 shadow-lg z-40 safe-bottom">
+              <div className="flex items-center gap-2 max-w-7xl mx-auto">
+                {stats.unmatched > 0 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowOnlyUnmatched(!showOnlyUnmatched)}
+                    className="flex-1 h-11 text-xs"
+                  >
+                    <AlertTriangle className="h-4 w-4 mr-1" />
+                    Sin match ({stats.unmatched})
+                  </Button>
+                )}
+                
+                <Button
+                  onClick={uploadToSupabase}
+                  disabled={!canUpload || validationErrors.length > 0 || isChecking}
+                  className="flex-[2] bg-gradient-to-r from-primary to-purple-600 h-11 text-sm font-semibold"
+                >
+                  <Upload className="h-4 w-4 mr-2" />
+                  {isChecking ? 'Verificando...' : `Subir ${stats.matched}`}
+                </Button>
+              </div>
+            </div>
+
+            {/* Spacer para bottom bar */}
+            <div className="md:hidden h-20" />
+          </>
         )}
       </div>
     </AppLayout>
