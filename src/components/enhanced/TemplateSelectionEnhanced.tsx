@@ -2,6 +2,7 @@
 // 🎯 VERSIÓN ACTUALIZADA CON PRODUCTOS POR PÁGINA DINÁMICOS
 
 import React, { useState, useEffect } from 'react';
+import '@/styles/template-selection-mobile.css';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import AppLayout from '@/components/layout/AppLayout';
@@ -585,8 +586,8 @@ const TemplateSelectionEnhanced = () => {
 
   // Header actions mejoradas
   const actions = (
-    <div className="flex items-center gap-3">
-      <div className="hidden md:block">
+    <div className="hidden lg:flex items-center gap-3">
+      <div className="flex items-center gap-3 border-r pr-3">
         <Badge variant="outline" className="flex items-center gap-1">
           <Package className="w-3 h-3" />
           {selectedProducts.length} productos
@@ -685,10 +686,10 @@ const TemplateSelectionEnhanced = () => {
             </div>
             
             {/* Mostrar info del plan en móvil */}
-            <div className="sm:hidden w-full">
+            <div className="lg:hidden w-full">
               <Card>
                 <CardContent className="p-3">
-                  <div className="flex justify-between items-center text-sm">
+                  <div className="flex justify-between items-center text-xs">
                     <span className="text-gray-600">
                       {selectedProducts.length} productos seleccionados
                     </span>
@@ -894,8 +895,9 @@ const TemplateSelectionEnhanced = () => {
                     value={catalogTitle}
                     onChange={(e) => setCatalogTitle(e.target.value)}
                     placeholder="Ej: Catálogo Primavera 2024, Productos Nuevos..."
-                    className="bg-white border-green-300 focus:border-green-500"
+                    className="bg-white border-green-300 focus:border-green-500 text-base h-12"
                     disabled={generating}
+                    style={{ fontSize: '16px' }}
                   />
                   <p className="text-xs text-green-600">
                     Si no especificas un nombre, se generará automáticamente
@@ -939,6 +941,55 @@ const TemplateSelectionEnhanced = () => {
             </Card>
           )}
         </div>
+
+        {/* 📱 BOTTOM ACTION BAR - SOLO MÓVIL/TABLET */}
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-50 safe-area-bottom">
+          <div className="px-4 py-3 max-w-7xl mx-auto">
+            <div className="flex items-center gap-3">
+              {/* Generate Button - Ocupa más espacio */}
+              <Button 
+                onClick={handleGenerateCatalog}
+                disabled={!selectedTemplate || generating || !limits?.canGenerate}
+                className="flex-1 h-12 text-base font-medium bg-purple-600 hover:bg-purple-700"
+              >
+                {generating ? (
+                  <>
+                    <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                    Generando...
+                  </>
+                ) : (
+                  <>
+                    <Palette className="h-5 w-5 mr-2" />
+                    Generar PDF
+                  </>
+                )}
+              </Button>
+            </div>
+
+            {/* Info contextual compacta */}
+            <div className="flex items-center justify-between mt-2 text-xs text-gray-600">
+              <span className="flex items-center gap-1">
+                <Package className="w-3 h-3" />
+                {selectedProducts.length} productos
+              </span>
+              <span className="flex items-center gap-1">
+                <Settings className="w-3 h-3" />
+                {productsPerPage}/página
+              </span>
+              {limits && (
+                <span>
+                  {limits.catalogsLimit === 'unlimited' 
+                    ? '∞ catálogos' 
+                    : `${limits.remainingCatalogs} rest.`
+                  }
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Spacer para evitar que contenido quede detrás de bottom bar */}
+        <div className="lg:hidden h-28" />
       </AppLayout>
     </ProtectedRoute>
   );

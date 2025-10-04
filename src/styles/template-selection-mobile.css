@@ -1,0 +1,11 @@
+/* Safe area para dispositivos con notch/home indicator */
+@supports (padding: env(safe-area-inset-bottom)) {
+  .safe-area-bottom {
+    padding-bottom: calc(12px + env(safe-area-inset-bottom));
+  }
+}
+
+/* Asegurar que el bottom bar esté por encima de todo excepto modals */
+.safe-area-bottom {
+  z-index: 40;
+}
