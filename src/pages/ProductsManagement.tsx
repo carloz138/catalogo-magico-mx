@@ -105,8 +105,10 @@ const ProductsManagement: React.FC = () => {
     name: '',
     sku: '',
     price_retail: '',
+    price_wholesale: '',
     category: '',
-    description: ''
+    description: '',
+    tags: ''
   });
 
   // ==========================================
@@ -182,8 +184,10 @@ const ProductsManagement: React.FC = () => {
         name: product.name || '',
         sku: product.sku || '',
         price_retail: product.price_retail ? (product.price_retail / 100).toString() : '',
+        price_wholesale: product.price_wholesale ? (product.price_wholesale / 100).toString() : '',
         category: product.category || '',
-        description: product.custom_description || product.description || ''
+        description: product.custom_description || product.description || '',
+        tags: product.tags ? product.tags.join(', ') : ''
       });
       setShowMobileEditModal(true);
     }
@@ -193,14 +197,21 @@ const ProductsManagement: React.FC = () => {
     if (!editingProduct || !user) return;
 
     try {
+      // Procesar tags
+      const tagsArray = formData.tags
+        ? formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0)
+        : [];
+
       const { error } = await supabase
         .from('products')
         .update({
           name: formData.name,
           sku: formData.sku,
           price_retail: formData.price_retail ? Math.round(parseFloat(formData.price_retail) * 100) : null,
+          price_wholesale: formData.price_wholesale ? Math.round(parseFloat(formData.price_wholesale) * 100) : null,
           category: formData.category || null,
-          custom_description: formData.description || null
+          custom_description: formData.description || null,
+          tags: tagsArray.length > 0 ? tagsArray : null
         })
         .eq('id', editingProduct.id)
         .eq('user_id', user.id);
@@ -453,15 +464,30 @@ const ProductsManagement: React.FC = () => {
                   />
                 </div>
 
-                {/* Precio */}
+                {/* Precio Retail */}
                 <div>
                   <Label className="text-sm font-medium text-gray-700 mb-1">
-                    Precio
+                    Precio Retail
                   </Label>
                   <Input
                     type="number"
                     value={formData.price_retail}
                     onChange={(e) => setFormData({ ...formData, price_retail: e.target.value })}
+                    className="h-11 text-base"
+                    placeholder="0.00"
+                    step="0.01"
+                  />
+                </div>
+
+                {/* Precio Mayoreo */}
+                <div>
+                  <Label className="text-sm font-medium text-gray-700 mb-1">
+                    Precio Mayoreo
+                  </Label>
+                  <Input
+                    type="number"
+                    value={formData.price_wholesale}
+                    onChange={(e) => setFormData({ ...formData, price_wholesale: e.target.value })}
                     className="h-11 text-base"
                     placeholder="0.00"
                     step="0.01"
@@ -480,6 +506,23 @@ const ProductsManagement: React.FC = () => {
                     className="h-11 text-base"
                     placeholder="Categoría"
                   />
+                </div>
+
+                {/* Etiquetas */}
+                <div>
+                  <Label className="text-sm font-medium text-gray-700 mb-1">
+                    Etiquetas
+                  </Label>
+                  <Input
+                    type="text"
+                    value={formData.tags}
+                    onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
+                    className="h-11 text-base"
+                    placeholder="tag1, tag2, tag3"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Separa las etiquetas con comas
+                  </p>
                 </div>
 
                 {/* Descripción */}
