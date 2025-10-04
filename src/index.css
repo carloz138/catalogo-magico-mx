@@ -91,3 +91,10 @@ All colors MUST be HSL.
     box-shadow: 0 10px 25px -5px rgba(37, 99, 235, 0.1), 0 10px 10px -5px rgba(37, 99, 235, 0.04);
   }
 }
+
+/* CSS Safe Area for mobile bottom bar */
+@supports (padding: env(safe-area-inset-bottom)) {
+  .safe-bottom {
+    padding-bottom: calc(12px + env(safe-area-inset-bottom));
+  }
+}
