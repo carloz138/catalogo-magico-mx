@@ -299,63 +299,63 @@ const ProductsManagement: React.FC = () => {
         actions={actions}
       >
         {/* ✅ CONTENIDO OPTIMIZADO PARA EL NUEVO LAYOUT */}
-        <div className="space-y-4 sm:space-y-6">
+        <div className="space-y-4 sm:space-y-6 w-full overflow-x-hidden min-w-0">
           
           {/* ✅ STATS CARDS RESPONSIVE */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-            <div className="bg-white rounded-lg sm:rounded-xl border shadow-sm p-4 sm:p-6">
-              <div className="flex items-center">
-                <div className="p-2 sm:p-3 bg-blue-100 rounded-lg sm:rounded-xl">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 w-full">
+            <div className="bg-white rounded-lg sm:rounded-xl border shadow-sm p-3 sm:p-6 min-w-0">
+              <div className="flex items-center gap-2">
+                <div className="p-2 sm:p-3 bg-blue-100 rounded-lg sm:rounded-xl flex-shrink-0">
                   <Package className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
                 </div>
-                <div className="ml-3 sm:ml-4">
-                  <p className="text-xs sm:text-sm font-medium text-gray-600">Total</p>
-                  <p className="text-xl sm:text-2xl font-bold text-gray-900">{products.length}</p>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">Total</p>
+                  <p className="text-lg sm:text-2xl font-bold text-gray-900">{products.length}</p>
                 </div>
               </div>
             </div>
             
-            <div className="bg-white rounded-lg sm:rounded-xl border shadow-sm p-4 sm:p-6">
-              <div className="flex items-center">
-                <div className="p-2 sm:p-3 bg-green-100 rounded-lg sm:rounded-xl">
+            <div className="bg-white rounded-lg sm:rounded-xl border shadow-sm p-3 sm:p-6 min-w-0">
+              <div className="flex items-center gap-2">
+                <div className="p-2 sm:p-3 bg-green-100 rounded-lg sm:rounded-xl flex-shrink-0">
                   <Settings className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" />
                 </div>
-                <div className="ml-3 sm:ml-4">
-                  <p className="text-xs sm:text-sm font-medium text-gray-600">Variantes</p>
-                  <p className="text-xl sm:text-2xl font-bold text-gray-900">-</p>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">Variantes</p>
+                  <p className="text-lg sm:text-2xl font-bold text-gray-900">-</p>
                 </div>
               </div>
             </div>
             
-            <div className="bg-white rounded-lg sm:rounded-xl border shadow-sm p-4 sm:p-6">
-              <div className="flex items-center">
-                <div className="p-2 sm:p-3 bg-yellow-100 rounded-lg sm:rounded-xl">
+            <div className="bg-white rounded-lg sm:rounded-xl border shadow-sm p-3 sm:p-6 min-w-0">
+              <div className="flex items-center gap-2">
+                <div className="p-2 sm:p-3 bg-yellow-100 rounded-lg sm:rounded-xl flex-shrink-0">
                   <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-600" />
                 </div>
-                <div className="ml-3 sm:ml-4">
-                  <p className="text-xs sm:text-sm font-medium text-gray-600">Procesados</p>
-                  <p className="text-xl sm:text-2xl font-bold text-gray-900">
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">Procesados</p>
+                  <p className="text-lg sm:text-2xl font-bold text-gray-900">
                     {products.filter(p => p.processing_status === 'completed').length}
                   </p>
                 </div>
               </div>
             </div>
             
-            <div className="bg-white rounded-lg sm:rounded-xl border shadow-sm p-4 sm:p-6">
-              <div className="flex items-center">
-                <div className="p-2 sm:p-3 bg-purple-100 rounded-lg sm:rounded-xl">
+            <div className="bg-white rounded-lg sm:rounded-xl border shadow-sm p-3 sm:p-6 min-w-0">
+              <div className="flex items-center gap-2">
+                <div className="p-2 sm:p-3 bg-purple-100 rounded-lg sm:rounded-xl flex-shrink-0">
                   <Plus className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600" />
                 </div>
-                <div className="ml-3 sm:ml-4">
-                  <p className="text-xs sm:text-sm font-medium text-gray-600">Este Mes</p>
-                  <p className="text-xl sm:text-2xl font-bold text-gray-900">-</p>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">Este Mes</p>
+                  <p className="text-lg sm:text-2xl font-bold text-gray-900">-</p>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Desktop: Tabla inline editing */}
-          <div className="hidden lg:block bg-white rounded-xl border shadow-sm overflow-hidden">
+          {/* Desktop ONLY: Tabla inline editing */}
+          <div className="hidden lg:block bg-white rounded-xl border shadow-sm overflow-hidden w-full">
             <ProductsTableEditor
               onEditVariants={handleEditVariants}
               onViewProduct={handleViewProduct}
@@ -365,31 +365,33 @@ const ProductsManagement: React.FC = () => {
             />
           </div>
 
-          {/* Móvil: Cards con modal */}
-          <div className="lg:hidden space-y-3">
-            {loading ? (
-              <div className="text-center py-8 text-gray-500">
-                <p className="text-sm">Cargando productos...</p>
-              </div>
-            ) : products.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                <Package className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-                <p className="text-sm mb-2">No hay productos aún</p>
-                <Button onClick={handleGoToUpload} size="sm">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Agregar Producto
-                </Button>
-              </div>
-            ) : (
-              products.map(product => (
-                <MobileProductCard
-                  key={product.id}
-                  product={product}
-                  onEdit={handleMobileEdit}
-                  onView={handleViewProduct}
-                />
-              ))
-            )}
+          {/* Móvil/Tablet: Cards scrollables */}
+          <div className="lg:hidden w-full min-w-0">
+            <div className="space-y-3">
+              {loading ? (
+                <div className="bg-white rounded-lg border shadow-sm p-8 text-center">
+                  <p className="text-sm text-gray-500">Cargando productos...</p>
+                </div>
+              ) : products.length === 0 ? (
+                <div className="bg-white rounded-lg border shadow-sm p-8 text-center">
+                  <Package className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                  <p className="text-sm text-gray-600 mb-4">No hay productos aún</p>
+                  <Button onClick={handleGoToUpload} size="sm" className="w-full h-11">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Agregar Producto
+                  </Button>
+                </div>
+              ) : (
+                products.map(product => (
+                  <MobileProductCard
+                    key={product.id}
+                    product={product}
+                    onEdit={handleMobileEdit}
+                    onView={handleViewProduct}
+                  />
+                ))
+              )}
+            </div>
           </div>
         </div>
 

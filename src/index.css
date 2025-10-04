@@ -111,3 +111,15 @@ All colors MUST be HSL.
     padding-bottom: calc(12px + env(safe-area-inset-bottom));
   }
 }
+
+/* Prevenir overflow horizontal en toda la app */
+html, body {
+  overflow-x: hidden;
+  width: 100%;
+}
+
+/* Prevenir que imágenes causen overflow */
+img {
+  max-width: 100%;
+  height: auto;
+}
