@@ -93,6 +93,19 @@ All colors MUST be HSL.
 }
 
 /* CSS Safe Area for mobile bottom bar */
+@keyframes slide-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.3s ease-out;
+}
+
 @supports (padding: env(safe-area-inset-bottom)) {
   .safe-bottom {
     padding-bottom: calc(12px + env(safe-area-inset-bottom));

@@ -136,6 +136,8 @@ interface ProductsTableEditorProps {
   onEditVariants?: (productId: string) => void;
   onViewProduct?: (productId: string) => void;
   className?: string;
+  externalProducts?: EditorProduct[];
+  onProductsChange?: (products: EditorProduct[]) => void;
 }
 
 // ==========================================
@@ -145,7 +147,9 @@ interface ProductsTableEditorProps {
 const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
   onEditVariants,
   onViewProduct,
-  className = ''
+  className = '',
+  externalProducts,
+  onProductsChange
 }) => {
   const { user } = useAuth();
   
@@ -194,10 +198,19 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
   // ==========================================
 
   useEffect(() => {
-    if (user) {
+    if (externalProducts) {
+      setProducts(externalProducts);
+      setLoading(false);
+    } else if (user) {
       fetchProducts();
     }
-  }, [user]);
+  }, [user, externalProducts]);
+
+  useEffect(() => {
+    if (onProductsChange && !externalProducts) {
+      onProductsChange(products);
+    }
+  }, [products, onProductsChange, externalProducts]);
 
   // ==========================================
   // FUNCIONES DE DATOS
