@@ -8,17 +8,22 @@ import CatalogHeader from "@/components/public/CatalogHeader";
 import ProductSearch from "@/components/public/ProductSearch";
 import ProductFilters from "@/components/public/ProductFilters";
 import PasswordModal from "@/components/public/PasswordModal";
+import { PublicProductGrid } from "@/components/public/PublicProductGrid";
 import { useProductSearch } from "@/hooks/useProductSearch";
 import { useProductFilters } from "@/hooks/useProductFilters";
+import { QuoteCartProvider, useQuoteCart } from "@/contexts/QuoteCartContext";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { calculateAdjustedPrice } from "@/lib/utils/price-calculator";
+import { toast } from "sonner";
 
-export default function PublicCatalog() {
+function PublicCatalogContent() {
   const { slug } = useParams<{ slug: string }>();
   const [catalog, setCatalog] = useState<PublicCatalogView | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const { addItem } = useQuoteCart();
 
   useEffect(() => {
     if (slug) {
@@ -89,6 +94,32 @@ export default function PublicCatalog() {
       sessionStorage.setItem(`catalog_${slug}`, "authenticated");
       setIsAuthenticated(true);
     }
+  };
+
+  const handleAddToQuote = (product: any) => {
+    const priceConfig = {
+      display: catalog!.price_display,
+      adjustmentMenudeo: catalog!.price_adjustment_menudeo,
+      adjustmentMayoreo: catalog!.price_adjustment_mayoreo,
+    };
+
+    let priceType: 'retail' | 'wholesale' = 'retail';
+    let unitPrice = product.price_retail;
+
+    if (priceConfig.display === 'menudeo_only') {
+      priceType = 'retail';
+      unitPrice = calculateAdjustedPrice(product.price_retail, priceConfig.adjustmentMenudeo);
+    } else if (priceConfig.display === 'mayoreo_only') {
+      priceType = 'wholesale';
+      unitPrice = calculateAdjustedPrice(product.price_wholesale || product.price_retail, priceConfig.adjustmentMayoreo);
+    } else {
+      // both - default to retail
+      priceType = 'retail';
+      unitPrice = calculateAdjustedPrice(product.price_retail, priceConfig.adjustmentMenudeo);
+    }
+
+    addItem(product, 1, priceType, unitPrice);
+    toast.success(`${product.name} agregado a cotización`);
   };
 
   if (loading) {
@@ -231,52 +262,33 @@ export default function PublicCatalog() {
               )}
 
               {filteredProducts.length > 0 && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {filteredProducts.map((product) => (
-                    <div key={product.id} className="catalog-product-card p-4">
-                      <div className="aspect-square bg-muted rounded-md mb-4 overflow-hidden">
-                        {product.image_url && (
-                          <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
-                        )}
-                      </div>
-
-                      <h3 className="catalog-product-name text-lg mb-2">{product.name}</h3>
-
-                      {catalog.show_sku && product.sku && (
-                        <p className="text-sm text-muted-foreground mb-2">SKU: {product.sku}</p>
-                      )}
-
-                      {catalog.show_tags && product.tags && product.tags.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mb-3">
-                          {product.tags.map((tag) => (
-                            <span key={tag} className="catalog-product-tag">
-                              {tag}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-
-                      {catalog.show_description && product.description && (
-                        <p className="text-sm text-muted-foreground mb-3 line-clamp-2">{product.description}</p>
-                      )}
-
-                      <div className="mt-auto">
-                        <div className="catalog-product-price mb-3">
-                          ${((product.price_retail || 0) / 100).toFixed(2)}
-                        </div>
-
-                        <button className="catalog-add-button w-full py-2 px-4 font-medium">
-                          Agregar a cotización
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                <PublicProductGrid
+                  products={filteredProducts}
+                  priceConfig={{
+                    display: catalog.price_display,
+                    adjustmentMenudeo: catalog.price_adjustment_menudeo,
+                    adjustmentMayoreo: catalog.price_adjustment_mayoreo,
+                  }}
+                  visibilityConfig={{
+                    showSku: catalog.show_sku,
+                    showTags: catalog.show_tags,
+                    showDescription: catalog.show_description,
+                  }}
+                  onAddToQuote={handleAddToQuote}
+                />
               )}
             </main>
           </div>
         </div>
       </div>
     </>
+  );
+}
+
+export default function PublicCatalog() {
+  return (
+    <QuoteCartProvider>
+      <PublicCatalogContent />
+    </QuoteCartProvider>
   );
 }
