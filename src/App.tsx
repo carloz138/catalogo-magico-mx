@@ -13,6 +13,7 @@ import ProductsManagement from "./pages/ProductsManagement";
 import DeletedProducts from "./pages/DeletedProducts";
 import Analytics from "./pages/Analytics";
 import Catalogs from "./pages/Catalogs";
+import DigitalCatalogForm from "./pages/DigitalCatalogForm";
 import ImageReview from "./pages/ImageReview";
 // ✅ CAMBIO: Importar el nuevo componente mejorado
 import TemplateSelectionEnhanced from "@/components/enhanced/TemplateSelectionEnhanced";
@@ -83,6 +84,16 @@ const App = () => (
             <Route path="/catalogs" element={
               <ProtectedRoute>
                 <Catalogs />
+              </ProtectedRoute>
+            } />
+            <Route path="/catalogs/new" element={
+              <ProtectedRoute>
+                <DigitalCatalogForm />
+              </ProtectedRoute>
+            } />
+            <Route path="/catalogs/:id/edit" element={
+              <ProtectedRoute>
+                <DigitalCatalogForm />
               </ProtectedRoute>
             } />
             <Route path="/business-info" element={

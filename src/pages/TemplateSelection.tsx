@@ -21,7 +21,7 @@ import { initializeOptimizedTemplates } from '@/lib/templates/audited-templates-
 
 // Importar nuevos sistemas integrados
 import { SmartTemplateSelector } from '@/components/templates/SmartTemplateSelector';
-import { CatalogPreview } from '@/components/catalog/CatalogPreview';
+import { CatalogPreview } from '@/components/catalog/CatalogPDFPreview';
 import { 
   generateCatalog, 
   generateDynamicCatalog,
