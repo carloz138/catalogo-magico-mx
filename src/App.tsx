@@ -15,6 +15,7 @@ import Analytics from "./pages/Analytics";
 import Catalogs from "./pages/Catalogs";
 import DigitalCatalogForm from "./pages/DigitalCatalogForm";
 import ImageReview from "./pages/ImageReview";
+import PublicCatalog from "./pages/PublicCatalog";
 // ✅ CAMBIO: Importar el nuevo componente mejorado
 import TemplateSelectionEnhanced from "@/components/enhanced/TemplateSelectionEnhanced";
 import Checkout from "./pages/Checkout";
@@ -126,6 +127,10 @@ const App = () => (
             <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
             <Route path="/reset-password" element={<ResetPassword />} />
+            
+            {/* Public catalog route - no auth required */}
+            <Route path="/c/:slug" element={<PublicCatalog />} />
+            
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
