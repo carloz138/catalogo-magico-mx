@@ -12,31 +12,6 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "12.2.12 (cd3cf9e)"
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       backup_view_definitions: {
@@ -119,6 +94,59 @@ export type Database = {
           },
         ]
       }
+      catalog_products: {
+        Row: {
+          catalog_id: string
+          created_at: string | null
+          id: string
+          product_id: string
+          sort_order: number | null
+        }
+        Insert: {
+          catalog_id: string
+          created_at?: string | null
+          id?: string
+          product_id: string
+          sort_order?: number | null
+        }
+        Update: {
+          catalog_id?: string
+          created_at?: string | null
+          id?: string
+          product_id?: string
+          sort_order?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "catalog_products_catalog_id_fkey"
+            columns: ["catalog_id"]
+            isOneToOne: false
+            referencedRelation: "digital_catalogs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalog_products_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "active_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalog_products_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalog_products_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products_with_variants"
+            referencedColumns: ["product_id"]
+          },
+        ]
+      }
       catalog_usage: {
         Row: {
           catalogs_generated: number | null
@@ -156,6 +184,47 @@ export type Database = {
             columns: ["subscription_plan_id"]
             isOneToOne: false
             referencedRelation: "credit_packages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      catalog_views: {
+        Row: {
+          catalog_id: string
+          city: string | null
+          country: string | null
+          id: string
+          ip_address: string | null
+          referrer: string | null
+          user_agent: string | null
+          viewed_at: string | null
+        }
+        Insert: {
+          catalog_id: string
+          city?: string | null
+          country?: string | null
+          id?: string
+          ip_address?: string | null
+          referrer?: string | null
+          user_agent?: string | null
+          viewed_at?: string | null
+        }
+        Update: {
+          catalog_id?: string
+          city?: string | null
+          country?: string | null
+          id?: string
+          ip_address?: string | null
+          referrer?: string | null
+          user_agent?: string | null
+          viewed_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "catalog_views_catalog_id_fkey"
+            columns: ["catalog_id"]
+            isOneToOne: false
+            referencedRelation: "digital_catalogs"
             referencedColumns: ["id"]
           },
         ]
@@ -288,6 +357,114 @@ export type Database = {
         }
         Relationships: []
       }
+      credit_packages_backup_20250929: {
+        Row: {
+          created_at: string | null
+          credits: number | null
+          description: string | null
+          discount_percentage: number | null
+          duration_months: number | null
+          id: string | null
+          is_active: boolean | null
+          is_popular: boolean | null
+          max_catalogs: number | null
+          max_uploads: number | null
+          name: string | null
+          package_type: string | null
+          price_mxn: number | null
+          price_usd: number | null
+          stripe_price_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          credits?: number | null
+          description?: string | null
+          discount_percentage?: number | null
+          duration_months?: number | null
+          id?: string | null
+          is_active?: boolean | null
+          is_popular?: boolean | null
+          max_catalogs?: number | null
+          max_uploads?: number | null
+          name?: string | null
+          package_type?: string | null
+          price_mxn?: number | null
+          price_usd?: number | null
+          stripe_price_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          credits?: number | null
+          description?: string | null
+          discount_percentage?: number | null
+          duration_months?: number | null
+          id?: string | null
+          is_active?: boolean | null
+          is_popular?: boolean | null
+          max_catalogs?: number | null
+          max_uploads?: number | null
+          name?: string | null
+          package_type?: string | null
+          price_mxn?: number | null
+          price_usd?: number | null
+          stripe_price_id?: string | null
+        }
+        Relationships: []
+      }
+      credit_packages_backup_20250930: {
+        Row: {
+          created_at: string | null
+          credits: number | null
+          description: string | null
+          discount_percentage: number | null
+          duration_months: number | null
+          id: string | null
+          is_active: boolean | null
+          is_popular: boolean | null
+          max_catalogs: number | null
+          max_uploads: number | null
+          name: string | null
+          package_type: string | null
+          price_mxn: number | null
+          price_usd: number | null
+          stripe_price_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          credits?: number | null
+          description?: string | null
+          discount_percentage?: number | null
+          duration_months?: number | null
+          id?: string | null
+          is_active?: boolean | null
+          is_popular?: boolean | null
+          max_catalogs?: number | null
+          max_uploads?: number | null
+          name?: string | null
+          package_type?: string | null
+          price_mxn?: number | null
+          price_usd?: number | null
+          stripe_price_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          credits?: number | null
+          description?: string | null
+          discount_percentage?: number | null
+          duration_months?: number | null
+          id?: string | null
+          is_active?: boolean | null
+          is_popular?: boolean | null
+          max_catalogs?: number | null
+          max_uploads?: number | null
+          name?: string | null
+          package_type?: string | null
+          price_mxn?: number | null
+          price_usd?: number | null
+          stripe_price_id?: string | null
+        }
+        Relationships: []
+      }
       credit_usage: {
         Row: {
           amount_paid: number | null
@@ -398,6 +575,69 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      digital_catalogs: {
+        Row: {
+          access_password: string | null
+          created_at: string | null
+          description: string | null
+          expires_at: string | null
+          id: string
+          is_active: boolean | null
+          is_private: boolean | null
+          name: string
+          price_adjustment_mayoreo: number | null
+          price_adjustment_menudeo: number | null
+          price_display: string | null
+          show_description: boolean | null
+          show_sku: boolean | null
+          show_tags: boolean | null
+          slug: string
+          updated_at: string | null
+          user_id: string
+          view_count: number | null
+        }
+        Insert: {
+          access_password?: string | null
+          created_at?: string | null
+          description?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_private?: boolean | null
+          name: string
+          price_adjustment_mayoreo?: number | null
+          price_adjustment_menudeo?: number | null
+          price_display?: string | null
+          show_description?: boolean | null
+          show_sku?: boolean | null
+          show_tags?: boolean | null
+          slug: string
+          updated_at?: string | null
+          user_id: string
+          view_count?: number | null
+        }
+        Update: {
+          access_password?: string | null
+          created_at?: string | null
+          description?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_private?: boolean | null
+          name?: string
+          price_adjustment_mayoreo?: number | null
+          price_adjustment_menudeo?: number | null
+          price_display?: string | null
+          show_description?: boolean | null
+          show_sku?: boolean | null
+          show_tags?: boolean | null
+          slug?: string
+          updated_at?: string | null
+          user_id?: string
+          view_count?: number | null
+        }
+        Relationships: []
       }
       product_archive: {
         Row: {
@@ -653,6 +893,127 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quote_items: {
+        Row: {
+          created_at: string | null
+          id: string
+          price_type: string | null
+          product_id: string | null
+          product_image_url: string | null
+          product_name: string
+          product_sku: string | null
+          quantity: number
+          quote_id: string
+          subtotal: number
+          unit_price: number
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          price_type?: string | null
+          product_id?: string | null
+          product_image_url?: string | null
+          product_name: string
+          product_sku?: string | null
+          quantity: number
+          quote_id: string
+          subtotal: number
+          unit_price: number
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          price_type?: string | null
+          product_id?: string | null
+          product_image_url?: string | null
+          product_name?: string
+          product_sku?: string | null
+          quantity?: number
+          quote_id?: string
+          subtotal?: number
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quote_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "active_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quote_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quote_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products_with_variants"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "quote_items_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quotes: {
+        Row: {
+          catalog_id: string | null
+          created_at: string | null
+          customer_company: string | null
+          customer_email: string
+          customer_name: string
+          customer_phone: string | null
+          id: string
+          notes: string | null
+          status: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          catalog_id?: string | null
+          created_at?: string | null
+          customer_company?: string | null
+          customer_email: string
+          customer_name: string
+          customer_phone?: string | null
+          id?: string
+          notes?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          catalog_id?: string | null
+          created_at?: string | null
+          customer_company?: string | null
+          customer_email?: string
+          customer_name?: string
+          customer_phone?: string | null
+          id?: string
+          notes?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quotes_catalog_id_fkey"
+            columns: ["catalog_id"]
+            isOneToOne: false
+            referencedRelation: "digital_catalogs"
             referencedColumns: ["id"]
           },
         ]
@@ -1575,11 +1936,7 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {},
   },
 } as const
-
