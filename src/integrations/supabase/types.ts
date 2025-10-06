@@ -1654,13 +1654,30 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: number
       }
+      calculate_adjusted_price: {
+        Args: { adjustment_percentage: number; base_price: number }
+        Returns: number
+      }
       can_access_transaction: {
         Args: { transaction_user_id: string }
+        Returns: boolean
+      }
+      can_create_private_catalog: {
+        Args: { p_user_id: string }
         Returns: boolean
       }
       can_generate_catalog: {
         Args: { p_user_id: string }
         Returns: Json
+      }
+      check_catalog_limit: {
+        Args: { p_user_id: string }
+        Returns: {
+          can_create: boolean
+          current_count: number
+          max_allowed: number
+          message: string
+        }[]
       }
       complete_user_profile: {
         Args: {
@@ -1697,6 +1714,10 @@ export type Database = {
       }
       detect_product_category: {
         Args: { product_description?: string; product_name: string }
+        Returns: string
+      }
+      generate_catalog_slug: {
+        Args: Record<PropertyKey, never>
         Returns: string
       }
       get_current_user_stats: {
@@ -1783,6 +1804,10 @@ export type Database = {
       increment_catalog_usage: {
         Args: { p_user_id: string }
         Returns: Json
+      }
+      increment_catalog_views: {
+        Args: { p_catalog_id: string }
+        Returns: undefined
       }
       permanently_delete_product: {
         Args: { product_id: string; requesting_user_id: string }
