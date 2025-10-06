@@ -1,8 +1,8 @@
 // Tipos para el sistema de catálogos digitales
 
-export type PriceDisplay = 'menudeo_only' | 'mayoreo_only' | 'both';
-export type QuoteStatus = 'pending' | 'accepted' | 'rejected';
-export type PriceType = 'menudeo' | 'mayoreo';
+export type PriceDisplay = "menudeo_only" | "mayoreo_only" | "both";
+export type QuoteStatus = "pending" | "accepted" | "rejected";
+export type PriceType = "menudeo" | "mayoreo";
 
 export interface DigitalCatalog {
   id: string;
@@ -10,26 +10,26 @@ export interface DigitalCatalog {
   name: string;
   slug: string;
   description: string | null;
-  
+  template_id: string | null; // ← AGREGAR ESTA LÍNEA
   // Configuración de precios
   price_display: PriceDisplay;
   price_adjustment_menudeo: number;
   price_adjustment_mayoreo: number;
-  
+
   // Configuración de visibilidad
   show_sku: boolean;
   show_tags: boolean;
   show_description: boolean;
-  
+
   // Privacidad
   is_private: boolean;
   access_password: string | null;
-  
+
   // Control
   expires_at: string | null;
   is_active: boolean;
   view_count: number;
-  
+
   created_at: string;
   updated_at: string;
 }
@@ -46,14 +46,14 @@ export interface Quote {
   id: string;
   catalog_id: string;
   user_id: string;
-  
+
   // Datos del cliente
   customer_name: string;
   customer_email: string;
   customer_company: string | null;
   customer_phone: string | null;
   notes: string | null;
-  
+
   status: QuoteStatus;
   created_at: string;
   updated_at: string;
@@ -63,7 +63,7 @@ export interface QuoteItem {
   id: string;
   quote_id: string;
   product_id: string | null;
-  
+
   // Snapshot
   product_name: string;
   product_sku: string | null;
@@ -72,7 +72,7 @@ export interface QuoteItem {
   unit_price: number;
   price_type: PriceType;
   subtotal: number;
-  
+
   created_at: string;
 }
 
@@ -91,6 +91,7 @@ export interface CatalogView {
 export interface CreateDigitalCatalogDTO {
   name: string;
   description?: string;
+  template_id?: string; // ← AGREGAR ESTA LÍNEA
   price_display: PriceDisplay;
   price_adjustment_menudeo: number;
   price_adjustment_mayoreo: number;
@@ -106,6 +107,7 @@ export interface CreateDigitalCatalogDTO {
 export interface UpdateDigitalCatalogDTO {
   name?: string;
   description?: string;
+  template_id?: string; // ← AGREGAR ESTA LÍNEA
   price_display?: PriceDisplay;
   price_adjustment_menudeo?: number;
   price_adjustment_mayoreo?: number;
