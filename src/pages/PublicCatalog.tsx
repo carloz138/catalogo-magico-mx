@@ -4,7 +4,6 @@ import { Helmet } from "react-helmet";
 import { Calendar, Search } from "lucide-react";
 import { DigitalCatalogService } from "@/services/digital-catalog.service";
 import { PublicCatalogView } from "@/types/digital-catalog";
-import { getTemplateById } from "@/lib/templates/industry-templates";
 import CatalogHeader from "@/components/public/CatalogHeader";
 import ProductSearch from "@/components/public/ProductSearch";
 import ProductFilters from "@/components/public/ProductFilters";
@@ -13,81 +12,6 @@ import { useProductSearch } from "@/hooks/useProductSearch";
 import { useProductFilters } from "@/hooks/useProductFilters";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-
-// Generador de CSS adaptado para web
-const generateWebCSS = (templateId: string): string => {
-  const template = getTemplateById(templateId);
-  if (!template) return "";
-
-  return `
-    :root {
-      --catalog-primary: ${template.colors.primary};
-      --catalog-secondary: ${template.colors.secondary};
-      --catalog-accent: ${template.colors.accent};
-      --catalog-background: ${template.colors.background};
-      --catalog-card-bg: ${template.colors.cardBackground || "#ffffff"};
-      --catalog-border-radius: ${template.design?.borderRadius || 8}px;
-    }
-
-    .catalog-public-container {
-      background: var(--catalog-background);
-      min-height: 100vh;
-    }
-
-    .catalog-public-header {
-      background: linear-gradient(135deg, var(--catalog-primary), var(--catalog-secondary));
-      color: white;
-    }
-
-    .catalog-product-card {
-      background: var(--catalog-card-bg);
-      border: 1px solid ${template.colors.accent}40;
-      border-radius: var(--catalog-border-radius);
-      ${template.design?.shadows ? "box-shadow: 0 2px 8px rgba(0,0,0,0.1);" : ""}
-      transition: transform 0.2s, box-shadow 0.2s;
-    }
-
-    .catalog-product-card:hover {
-      transform: translateY(-4px);
-      ${template.design?.shadows ? "box-shadow: 0 4px 12px rgba(0,0,0,0.15);" : ""}
-    }
-
-    .catalog-product-name {
-      color: var(--catalog-primary);
-      font-weight: 600;
-    }
-
-    .catalog-product-price {
-      background: linear-gradient(135deg, var(--catalog-secondary), var(--catalog-primary));
-      color: white;
-      padding: 0.5rem 1rem;
-      border-radius: calc(var(--catalog-border-radius) / 2);
-      font-weight: 700;
-      display: inline-block;
-    }
-
-    .catalog-product-tag {
-      background: ${template.colors.accent}20;
-      color: var(--catalog-accent);
-      padding: 0.25rem 0.5rem;
-      border-radius: 4px;
-      font-size: 0.75rem;
-      font-weight: 600;
-    }
-
-    .catalog-add-button {
-      background: var(--catalog-accent);
-      color: white;
-      border-radius: var(--catalog-border-radius);
-      transition: all 0.2s;
-    }
-
-    .catalog-add-button:hover {
-      background: var(--catalog-primary);
-      transform: scale(1.05);
-    }
-  `;
-};
 
 export default function PublicCatalog() {
   const { slug } = useParams<{ slug: string }>();
@@ -234,7 +158,8 @@ export default function PublicCatalog() {
     );
   }
 
-  const templateCSS = catalog.template_id ? generateWebCSS(catalog.template_id) : "";
+  // Template CSS feature disponible en futuras versiones
+  const templateCSS = "";
 
   return (
     <>
@@ -260,7 +185,6 @@ export default function PublicCatalog() {
           businessLogo={catalog.business_info?.logo_url}
           catalogName={catalog.name}
           catalogDescription={catalog.description}
-          className="catalog-public-header"
         />
 
         <div className="container mx-auto px-4 py-8">

@@ -191,7 +191,6 @@ export default function DigitalCatalogForm() {
         name: catalog.name,
         description: catalog.description || "",
         expires_at: catalog.expires_at ? new Date(catalog.expires_at) : new Date(),
-        template_id: catalog.template_id || "",
         price_display: catalog.price_display,
         price_adjustment_menudeo: Number(catalog.price_adjustment_menudeo),
         price_adjustment_mayoreo: Number(catalog.price_adjustment_mayoreo),
@@ -683,10 +682,9 @@ export default function DigitalCatalogForm() {
 
             {/* Preview */}
             <div className="lg:sticky lg:top-8 lg:self-start">
-              <CatalogFormPreview
+            <CatalogFormPreview
                 name={watchedValues.name}
                 description={watchedValues.description}
-                templateId={watchedValues.template_id}
                 products={selectedProducts}
                 priceConfig={{
                   display: watchedValues.price_display,
