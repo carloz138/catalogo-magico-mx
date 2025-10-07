@@ -9,6 +9,10 @@ import ProductSearch from "@/components/public/ProductSearch";
 import ProductFilters from "@/components/public/ProductFilters";
 import PasswordModal from "@/components/public/PasswordModal";
 import { PublicProductGrid } from "@/components/public/PublicProductGrid";
+import { AddToQuoteModal } from "@/components/public/AddToQuoteModal";
+import { QuoteCartBadge } from "@/components/public/QuoteCartBadge";
+import { QuoteCartModal } from "@/components/public/QuoteCartModal";
+import { QuoteForm } from "@/components/public/QuoteForm";
 import { useProductSearch } from "@/hooks/useProductSearch";
 import { useProductFilters } from "@/hooks/useProductFilters";
 import { QuoteCartProvider, useQuoteCart } from "@/contexts/QuoteCartContext";
@@ -23,7 +27,12 @@ function PublicCatalogContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const { addItem } = useQuoteCart();
+  const { addItem, items, totalAmount, clearCart } = useQuoteCart();
+  
+  const [selectedProduct, setSelectedProduct] = useState<any>(null);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isCartOpen, setIsCartOpen] = useState(false);
+  const [isQuoteFormOpen, setIsQuoteFormOpen] = useState(false);
 
   useEffect(() => {
     if (slug) {
@@ -97,29 +106,59 @@ function PublicCatalogContent() {
   };
 
   const handleAddToQuote = (product: any) => {
+    if (catalog!.price_display === 'both' && product.price_wholesale) {
+      setSelectedProduct(product);
+      setIsAddModalOpen(true);
+    } else {
+      const priceConfig = {
+        display: catalog!.price_display,
+        adjustmentMenudeo: catalog!.price_adjustment_menudeo,
+        adjustmentMayoreo: catalog!.price_adjustment_mayoreo,
+      };
+
+      let priceType: 'retail' | 'wholesale' = 'retail';
+      let unitPrice = product.price_retail;
+
+      if (priceConfig.display === 'menudeo_only') {
+        priceType = 'retail';
+        unitPrice = calculateAdjustedPrice(product.price_retail, priceConfig.adjustmentMenudeo);
+      } else if (priceConfig.display === 'mayoreo_only') {
+        priceType = 'wholesale';
+        unitPrice = calculateAdjustedPrice(product.price_wholesale || product.price_retail, priceConfig.adjustmentMayoreo);
+      }
+
+      addItem(product, 1, priceType, unitPrice);
+      toast.success(`${product.name} agregado a cotización`);
+    }
+  };
+  
+  const handleAddFromModal = (quantity: number, priceType: 'retail' | 'wholesale') => {
+    if (!selectedProduct) return;
+    
     const priceConfig = {
       display: catalog!.price_display,
       adjustmentMenudeo: catalog!.price_adjustment_menudeo,
       adjustmentMayoreo: catalog!.price_adjustment_mayoreo,
     };
-
-    let priceType: 'retail' | 'wholesale' = 'retail';
-    let unitPrice = product.price_retail;
-
-    if (priceConfig.display === 'menudeo_only') {
-      priceType = 'retail';
-      unitPrice = calculateAdjustedPrice(product.price_retail, priceConfig.adjustmentMenudeo);
-    } else if (priceConfig.display === 'mayoreo_only') {
-      priceType = 'wholesale';
-      unitPrice = calculateAdjustedPrice(product.price_wholesale || product.price_retail, priceConfig.adjustmentMayoreo);
-    } else {
-      // both - default to retail
-      priceType = 'retail';
-      unitPrice = calculateAdjustedPrice(product.price_retail, priceConfig.adjustmentMenudeo);
-    }
-
-    addItem(product, 1, priceType, unitPrice);
-    toast.success(`${product.name} agregado a cotización`);
+    
+    const unitPrice = priceType === 'retail' 
+      ? calculateAdjustedPrice(selectedProduct.price_retail, priceConfig.adjustmentMenudeo)
+      : calculateAdjustedPrice(selectedProduct.price_wholesale || selectedProduct.price_retail, priceConfig.adjustmentMayoreo);
+    
+    addItem(selectedProduct, quantity, priceType, unitPrice);
+    toast.success(`${selectedProduct.name} agregado a cotización`);
+    setIsAddModalOpen(false);
+    setSelectedProduct(null);
+  };
+  
+  const handleRequestQuote = () => {
+    setIsCartOpen(false);
+    setIsQuoteFormOpen(true);
+  };
+  
+  const handleQuoteSuccess = () => {
+    clearCart();
+    toast.success('¡Cotización enviada! Te contactaremos pronto.');
   };
 
   if (loading) {
@@ -280,6 +319,38 @@ function PublicCatalogContent() {
             </main>
           </div>
         </div>
+        
+        <AddToQuoteModal
+          product={selectedProduct}
+          priceConfig={{
+            display: catalog.price_display,
+            adjustmentMenudeo: catalog.price_adjustment_menudeo,
+            adjustmentMayoreo: catalog.price_adjustment_mayoreo,
+          }}
+          isOpen={isAddModalOpen}
+          onClose={() => {
+            setIsAddModalOpen(false);
+            setSelectedProduct(null);
+          }}
+          onAdd={handleAddFromModal}
+        />
+        
+        <QuoteCartBadge onClick={() => setIsCartOpen(true)} />
+        
+        <QuoteCartModal
+          isOpen={isCartOpen}
+          onClose={() => setIsCartOpen(false)}
+          onRequestQuote={handleRequestQuote}
+        />
+        
+        <QuoteForm
+          catalogId={catalog.id}
+          items={items}
+          totalAmount={totalAmount}
+          isOpen={isQuoteFormOpen}
+          onClose={() => setIsQuoteFormOpen(false)}
+          onSuccess={handleQuoteSuccess}
+        />
       </div>
     </>
   );
