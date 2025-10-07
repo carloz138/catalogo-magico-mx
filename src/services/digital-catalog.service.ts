@@ -12,12 +12,25 @@ export class DigitalCatalogService {
   static async checkCatalogLimit(userId: string): Promise<CatalogLimitInfo> {
     const { data, error } = await supabase.rpc("check_catalog_limit", { p_user_id: userId });
 
-    if (error) throw error;
+    if (error) {
+      console.error("Error checking catalog limit:", error);
+      throw error;
+    }
+
     if (!data || data.length === 0) {
       throw new Error("No se pudo verificar límite de catálogos");
     }
 
-    return data[0];
+    // Tu función RPC retorna un RECORD, mapeamos los campos correctamente
+    const limitData = Array.isArray(data) ? data[0] : data;
+
+    return {
+      can_create: limitData.can_create || false,
+      current_count: limitData.current_count || 0,
+      max_allowed: limitData.max_allowed || 1,
+      message: limitData.message || "",
+      plan_name: limitData.plan_name || "Básico",
+    };
   }
 
   static async canCreatePrivateCatalog(userId: string): Promise<boolean> {
