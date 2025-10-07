@@ -27,9 +27,9 @@ const Upload = () => {
 
   const handleFilesUploaded = (newFiles: UploadedFile[]) => {
     setFiles(newFiles);
-    // if (newFiles.length > 0) {
-    // setCurrentStep('analyze');
-    // }
+    if (newFiles.length > 0) {
+      setCurrentStep("analyze");
+    }
   };
 
   const handleAnalysisComplete = (analysisResults: any[]) => {
@@ -194,6 +194,23 @@ const Upload = () => {
               </CardHeader>
               <CardContent className="p-4 sm:p-6">
                 <FileUploader onFilesUploaded={handleFilesUploaded} />
+
+                {/* 🆕 Botón de continuación - solo visible cuando hay archivos */}
+                {files.length > 0 && (
+                  <div className="mt-6 pt-6 border-t">
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                      <div className="text-sm text-blue-700">
+                        <p className="font-semibold mb-1">
+                          ✅ {files.length} imagen{files.length > 1 ? "es" : ""} lista{files.length > 1 ? "s" : ""}
+                        </p>
+                        <p className="text-xs">Revisa que todas las imágenes sean correctas antes de continuar</p>
+                      </div>
+                      <Button onClick={() => setCurrentStep("analyze")} size="lg" className="w-full sm:w-auto">
+                        Continuar al Análisis →
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}
