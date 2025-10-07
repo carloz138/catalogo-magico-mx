@@ -144,6 +144,7 @@ export interface CatalogLimitInfo {
   current_count: number;
   max_allowed: number;
   message: string;
+  plan_name: string;
 }
 
 // Tipo extendido para vista pública (incluye productos)

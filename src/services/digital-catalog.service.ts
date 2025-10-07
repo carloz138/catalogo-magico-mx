@@ -29,7 +29,7 @@ export class DigitalCatalogService {
       current_count: limitData.current_count || 0,
       max_allowed: limitData.max_allowed || 1,
       message: limitData.message || "",
-      plan_name: limitData.plan_name || "Básico",
+      plan_name: (limitData as any).plan_name || "Básico",
     };
   }
 
