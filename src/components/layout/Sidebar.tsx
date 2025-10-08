@@ -1,8 +1,7 @@
-
-import React, { useState } from 'react';
-import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
-import { cn } from '@/lib/utils';
+import React, { useState } from "react";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { cn } from "@/lib/utils";
 import {
   Home,
   Upload,
@@ -20,8 +19,8 @@ import {
   FileText,
   ChevronRight,
   X,
-  Menu
-} from 'lucide-react';
+  Menu,
+} from "lucide-react";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -39,98 +38,94 @@ interface MenuItem {
 
 const menuItems: MenuItem[] = [
   {
-    title: 'Dashboard',
-    path: '/',
-    icon: Home
+    title: "Dashboard",
+    path: "/",
+    icon: Home,
   },
   {
-    title: 'Productos',
+    title: "Productos",
     icon: Package,
     children: [
       {
-        title: 'Subir Productos',
-        path: '/upload',
+        title: "Subir Productos",
+        path: "/upload",
         icon: Upload,
-        badgeColor: 'bg-green-100 text-green-800'
+        badgeColor: "bg-green-100 text-green-800",
       },
       {
-        title: 'Mi Biblioteca',
-        path: '/products',
-        icon: Layers
+        title: "Crear Catalogo",
+        path: "/products",
+        icon: Layers,
       },
       {
-        title: 'Editar Productos',
-        path: '/products-management',
-        icon: Settings
+        title: "Editar Productos",
+        path: "/products-management",
+        icon: Settings,
       },
       {
-        title: 'Centro de Imágenes',
-        path: '/image-review',
-        icon: FileImage
-      }
-    ]
+        title: "Centro de Imágenes",
+        path: "/image-review",
+        icon: FileImage,
+      },
+    ],
   },
   {
-    title: 'Catálogos',
+    title: "Catálogos",
     icon: FileText,
     children: [
       {
-        title: 'Crear Catálogo',
-        path: '/template-selection',
-        icon: Palette
+        title: "Crear Catálogo",
+        path: "/template-selection",
+        icon: Palette,
       },
       {
-        title: 'Mis Catálogos',
-        path: '/catalogs',
-        icon: FileText
-      }
-    ]
+        title: "Mis Catálogos",
+        path: "/catalogs",
+        icon: FileText,
+      },
+    ],
   },
   {
-    title: 'Créditos',
-    path: '/checkout',
+    title: "Créditos",
+    path: "/checkout",
     icon: CreditCard,
-    badge: 'Comprar',
-    badgeColor: 'bg-blue-100 text-blue-800'
+    badge: "Comprar",
+    badgeColor: "bg-blue-100 text-blue-800",
   },
   {
-    title: 'Configuración',
+    title: "Configuración",
     icon: Settings,
     children: [
       {
-        title: 'Info del Negocio',
-        path: '/business-info',
-        icon: Building2
-      }
-    ]
-  }
+        title: "Info del Negocio",
+        path: "/business-info",
+        icon: Building2,
+      },
+    ],
+  },
 ];
 
 export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
   const { user, signOut } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
-  const [expandedMenus, setExpandedMenus] = useState<string[]>(['Productos', 'Catálogos', 'Configuración']);
+  const [expandedMenus, setExpandedMenus] = useState<string[]>(["Productos", "Catálogos", "Configuración"]);
 
   const isActive = (path: string) => {
-    if (path === '/') return location.pathname === '/';
+    if (path === "/") return location.pathname === "/";
     return location.pathname.startsWith(path);
   };
 
   const toggleMenu = (title: string) => {
-    setExpandedMenus(prev => 
-      prev.includes(title) 
-        ? prev.filter(item => item !== title)
-        : [...prev, title]
-    );
+    setExpandedMenus((prev) => (prev.includes(title) ? prev.filter((item) => item !== title) : [...prev, title]));
   };
 
   const handleLogout = async () => {
     try {
       await signOut();
-      navigate('/');
+      navigate("/");
     } catch (error) {
-      console.error('Error signing out:', error);
+      console.error("Error signing out:", error);
     }
   };
 
@@ -147,21 +142,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
             className={cn(
               "w-full flex items-center justify-between px-3 py-2 text-sm font-medium rounded-lg transition-colors",
               isChild ? "pl-6" : "",
-              "text-gray-700 hover:bg-gray-100"
+              "text-gray-700 hover:bg-gray-100",
             )}
           >
             <div className="flex items-center">
               <item.icon className="w-5 h-5 mr-3" />
               <span>{item.title}</span>
             </div>
-            <ChevronRight className={cn(
-              "w-4 h-4 transition-transform",
-              isExpanded ? "rotate-90" : ""
-            )} />
+            <ChevronRight className={cn("w-4 h-4 transition-transform", isExpanded ? "rotate-90" : "")} />
           </button>
           {isExpanded && (
             <div className="space-y-1 ml-3 border-l border-gray-200 pl-3">
-              {item.children.map(child => renderMenuItem(child, true))}
+              {item.children.map((child) => renderMenuItem(child, true))}
             </div>
           )}
         </div>
@@ -173,23 +165,24 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
         key={item.title}
         to={item.path!}
         onClick={onClose}
-        className={({ isActive }) => cn(
-          "flex items-center justify-between px-3 py-2 text-sm font-medium rounded-lg transition-colors",
-          isChild ? "pl-6" : "",
-          isActive || active
-            ? "bg-blue-50 text-blue-700 border-r-2 border-blue-600"
-            : "text-gray-700 hover:bg-gray-100"
-        )}
+        className={({ isActive }) =>
+          cn(
+            "flex items-center justify-between px-3 py-2 text-sm font-medium rounded-lg transition-colors",
+            isChild ? "pl-6" : "",
+            isActive || active
+              ? "bg-blue-50 text-blue-700 border-r-2 border-blue-600"
+              : "text-gray-700 hover:bg-gray-100",
+          )
+        }
       >
         <div className="flex items-center">
           <item.icon className="w-5 h-5 mr-3" />
           <span>{item.title}</span>
         </div>
         {item.badge && (
-          <span className={cn(
-            "px-2 py-1 text-xs font-medium rounded-full",
-            item.badgeColor || "bg-gray-100 text-gray-800"
-          )}>
+          <span
+            className={cn("px-2 py-1 text-xs font-medium rounded-full", item.badgeColor || "bg-gray-100 text-gray-800")}
+          >
             {item.badge}
           </span>
         )}
@@ -200,19 +193,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
   return (
     <>
       {/* Mobile Overlay */}
-      {isOpen && (
-        <div 
-          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
-          onClick={onClose}
-        />
-      )}
+      {isOpen && <div className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden" onClick={onClose} />}
 
       {/* Sidebar */}
-      <div className={cn(
-        "fixed top-0 left-0 z-50 h-full w-64 bg-white border-r border-gray-200 transform transition-transform duration-300 ease-in-out",
-        "lg:translate-x-0 lg:static lg:z-auto",
-        isOpen ? "translate-x-0" : "-translate-x-full"
-      )}>
+      <div
+        className={cn(
+          "fixed top-0 left-0 z-50 h-full w-64 bg-white border-r border-gray-200 transform transition-transform duration-300 ease-in-out",
+          "lg:translate-x-0 lg:static lg:z-auto",
+          isOpen ? "translate-x-0" : "-translate-x-full",
+        )}
+      >
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <div className="flex items-center">
@@ -223,10 +213,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
               <h1 className="text-lg font-bold text-gray-900">CatifyPro</h1>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="lg:hidden p-1 rounded-lg hover:bg-gray-100"
-          >
+          <button onClick={onClose} className="lg:hidden p-1 rounded-lg hover:bg-gray-100">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -238,20 +225,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
               <User className="w-5 h-5 text-blue-600" />
             </div>
             <div className="ml-3 flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-900 truncate">
-                {user?.email?.split('@')[0] || 'Usuario'}
-              </p>
-              <p className="text-xs text-gray-500 truncate">
-                {user?.email || 'email@ejemplo.com'}
-              </p>
+              <p className="text-sm font-medium text-gray-900 truncate">{user?.email?.split("@")[0] || "Usuario"}</p>
+              <p className="text-xs text-gray-500 truncate">{user?.email || "email@ejemplo.com"}</p>
             </div>
           </div>
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
-          {menuItems.map(item => renderMenuItem(item))}
-        </nav>
+        <nav className="flex-1 p-4 space-y-2 overflow-y-auto">{menuItems.map((item) => renderMenuItem(item))}</nav>
 
         {/* Footer */}
         <div className="p-4 border-t border-gray-200">
