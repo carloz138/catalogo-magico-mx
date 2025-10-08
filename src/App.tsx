@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -28,7 +27,8 @@ import TermsAndConditions from "./pages/TermsAndConditions";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import ResetPassword from "./pages/ResetPassword";
 import BulkUpload from "./pages/BulkUpload";
-
+import Blog from "./pages/Blog";
+import BlogPost from "./pages/BlogPost";
 
 const queryClient = new QueryClient();
 
@@ -41,96 +41,148 @@ const App = () => (
         <AuthProvider>
           <Routes>
             <Route path="/" element={<Index />} />
-            <Route path="/analytics" element={
-              <ProtectedRoute>
-                <Analytics />
-              </ProtectedRoute>
-            } />
-            <Route path="/upload" element={
-              <ProtectedRoute>
-                <Upload />
-              </ProtectedRoute>
-            } />
-            <Route path="/products" element={
-              <ProtectedRoute>
-                <Products />
-              </ProtectedRoute>
-            } />
-            <Route path="/products/bulk-upload" element={
-              <ProtectedRoute>
-                <BulkUpload />
-              </ProtectedRoute>
-            } />
-            <Route path="/products-management" element={
-              <ProtectedRoute>
-                <ProductsManagement />
-              </ProtectedRoute>
-            } />
-            <Route path="/deleted-products" element={
-              <ProtectedRoute>
-                <DeletedProducts />
-              </ProtectedRoute>
-            } />
-            <Route path="/image-review" element={
-              <ProtectedRoute>
-                <ImageReview />
-              </ProtectedRoute>
-            } />
+            <Route
+              path="/analytics"
+              element={
+                <ProtectedRoute>
+                  <Analytics />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/upload"
+              element={
+                <ProtectedRoute>
+                  <Upload />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/products"
+              element={
+                <ProtectedRoute>
+                  <Products />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/products/bulk-upload"
+              element={
+                <ProtectedRoute>
+                  <BulkUpload />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/products-management"
+              element={
+                <ProtectedRoute>
+                  <ProductsManagement />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/deleted-products"
+              element={
+                <ProtectedRoute>
+                  <DeletedProducts />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/image-review"
+              element={
+                <ProtectedRoute>
+                  <ImageReview />
+                </ProtectedRoute>
+              }
+            />
             {/* ✅ CAMBIO: Usar el nuevo componente mejorado */}
-            <Route path="/template-selection" element={
-              <ProtectedRoute>
-                <TemplateSelectionEnhanced />
-              </ProtectedRoute>
-            } />
-            <Route path="/catalogs" element={
-              <ProtectedRoute>
-                <Catalogs />
-              </ProtectedRoute>
-            } />
-            <Route path="/catalogs/new" element={
-              <ProtectedRoute>
-                <DigitalCatalogForm />
-              </ProtectedRoute>
-            } />
-            <Route path="/catalogs/:id/edit" element={
-              <ProtectedRoute>
-                <DigitalCatalogForm />
-              </ProtectedRoute>
-            } />
-            <Route path="/business-info" element={
-              <ProtectedRoute>
-                <BusinessInfoPage />
-              </ProtectedRoute>
-            } />
-            <Route path="/onboarding" element={
-              <ProtectedRoute>
-                <OnboardingPage />
-              </ProtectedRoute>
-            } />
-            <Route path="/checkout" element={
-              <ProtectedRoute>
-                <Checkout />
-              </ProtectedRoute>
-            } />
-            <Route path="/payment-success" element={
-              <ProtectedRoute>
-                <PaymentSuccess />
-              </ProtectedRoute>
-            } />
-            <Route path="/payment-instructions/:transactionId" element={
-              <ProtectedRoute>
-                <PaymentInstructions />
-              </ProtectedRoute>
-            } />
+            <Route
+              path="/template-selection"
+              element={
+                <ProtectedRoute>
+                  <TemplateSelectionEnhanced />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/catalogs"
+              element={
+                <ProtectedRoute>
+                  <Catalogs />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/catalogs/new"
+              element={
+                <ProtectedRoute>
+                  <DigitalCatalogForm />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/catalogs/:id/edit"
+              element={
+                <ProtectedRoute>
+                  <DigitalCatalogForm />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/business-info"
+              element={
+                <ProtectedRoute>
+                  <BusinessInfoPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/onboarding"
+              element={
+                <ProtectedRoute>
+                  <OnboardingPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/checkout"
+              element={
+                <ProtectedRoute>
+                  <Checkout />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/payment-success"
+              element={
+                <ProtectedRoute>
+                  <PaymentSuccess />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/payment-instructions/:transactionId"
+              element={
+                <ProtectedRoute>
+                  <PaymentInstructions />
+                </ProtectedRoute>
+              }
+            />
             {/* Redirect old /creditos route to /checkout */}
             <Route path="/creditos" element={<Navigate to="/checkout" replace />} />
             <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
             <Route path="/reset-password" element={<ResetPassword />} />
-            
+
             {/* Public catalog route - no auth required */}
             <Route path="/c/:slug" element={<PublicCatalog />} />
-            
+
+            {/* Blog routes - public, no auth required */}
+            <Route path="/blog" element={<Blog />} />
+            <Route path="/blog/:slug" element={<BlogPost />} />
+
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
