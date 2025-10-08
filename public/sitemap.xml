@@ -9,22 +9,4 @@
     <priority>1.0</priority>
   </url>
   
-  <!-- Página de precios -->
-  <url>
-    <loc>https://catifypro.com/pricing</loc>
-    <lastmod>2025-01-07</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  
-  <!-- Página de características -->
-  <url>
-    <loc>https://catifypro.com/features</loc>
-    <lastmod>2025-01-07</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  
-  <!-- Agrega más páginas aquí cuando las crees -->
-  
 </urlset>
