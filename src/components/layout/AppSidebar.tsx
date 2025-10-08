@@ -1,4 +1,3 @@
-
 // /src/components/layout/AppSidebar.tsx - DISEÑO SÓLIDO Y PROFESIONAL
 import React from "react";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -65,15 +64,15 @@ interface MenuItem {
 const navigationItems = [
   // GRUPO 1: Acciones Principales (44px altura mínima)
   { title: "Subir Productos", path: "/upload", icon: Upload, primary: true },
-  { title: "Mi Biblioteca", path: "/products", icon: Package, primary: true },
+  { title: "Crear Catalogo", path: "/products", icon: Package, primary: true },
   { title: "Mis Catálogos", path: "/catalogs", icon: BookOpen, primary: true },
-  
+
   // GRUPO 2: Acciones Secundarias
   { title: "Carga Masiva", path: "/products/bulk-upload", icon: PackageOpen, badge: "Nuevo" },
   { title: "Editar Productos", path: "/products-management", icon: Settings },
   { title: "Analytics", path: "/analytics", icon: BarChart3 },
   { title: "Comprar Créditos", path: "/checkout", icon: CreditCard },
-  
+
   // GRUPO 3: Configuración
   { title: "Guía de Inicio", path: "/onboarding", icon: PlayCircle, badge: "5 min" },
   { title: "Info del Negocio", path: "/business-info", icon: Building2 },
@@ -92,15 +91,10 @@ export function AppSidebar() {
   // Verificar si falta información importante del negocio
   const isBusinessInfoIncomplete = () => {
     if (!businessInfo) return true;
-    
-    const requiredFields = [
-      businessInfo.business_name,
-      businessInfo.phone,
-      businessInfo.email,
-      businessInfo.address
-    ];
-    
-    return requiredFields.some(field => !field || field.trim() === '');
+
+    const requiredFields = [businessInfo.business_name, businessInfo.phone, businessInfo.email, businessInfo.address];
+
+    return requiredFields.some((field) => !field || field.trim() === "");
   };
 
   // ==========================================
@@ -134,10 +128,10 @@ export function AppSidebar() {
   // RENDER NAVEGACIÓN PLANA
   // ==========================================
 
-  const renderNavItem = (item: typeof navigationItems[0]) => {
+  const renderNavItem = (item: (typeof navigationItems)[0]) => {
     const isActive = isActiveRoute(item.path);
     const isPrimary = item.primary;
-    
+
     return (
       <SidebarMenuItem key={item.path}>
         <SidebarMenuButton asChild isActive={isActive}>
@@ -145,20 +139,17 @@ export function AppSidebar() {
             onClick={() => navigate(item.path)}
             className={`
               flex items-center gap-3 w-full px-3 rounded-lg transition-all
-              ${isPrimary ? 'min-h-[44px] py-3' : 'min-h-[40px] py-2'}
-              ${isActive 
-                ? 'bg-blue-50 text-blue-700 font-semibold border-l-3 border-blue-600' 
-                : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
+              ${isPrimary ? "min-h-[44px] py-3" : "min-h-[40px] py-2"}
+              ${
+                isActive
+                  ? "bg-blue-50 text-blue-700 font-semibold border-l-3 border-blue-600"
+                  : "text-slate-700 hover:bg-slate-100 hover:text-slate-900"
               }
             `}
           >
             <item.icon className={isPrimary ? "w-5 h-5" : "w-4 h-4"} />
             <span className="flex-1 text-left text-sm">{item.title}</span>
-            {item.badge && (
-              <Badge className="text-xs bg-green-100 text-green-700 border-green-200">
-                {item.badge}
-              </Badge>
-            )}
+            {item.badge && <Badge className="text-xs bg-green-100 text-green-700 border-green-200">{item.badge}</Badge>}
           </button>
         </SidebarMenuButton>
       </SidebarMenuItem>
@@ -191,20 +182,16 @@ export function AppSidebar() {
               <User className="w-5 h-5 text-white" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-slate-900 truncate">
-                {user?.email?.split("@")[0] || "Usuario"}
-              </p>
-              <p className="text-xs text-slate-500 truncate">
-                Plan Profesional
-              </p>
+              <p className="text-sm font-semibold text-slate-900 truncate">{user?.email?.split("@")[0] || "Usuario"}</p>
+              <p className="text-xs text-slate-500 truncate">Plan Profesional</p>
             </div>
             <div className="flex items-center space-x-1">
               {isBusinessInfoIncomplete() && (
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
+                <Button
+                  variant="ghost"
+                  size="sm"
                   className="h-8 w-8 p-0 hover:bg-orange-100 relative"
-                  onClick={() => navigate('/business-info')}
+                  onClick={() => navigate("/business-info")}
                   title="Completar información del negocio"
                 >
                   <AlertTriangle className="w-4 h-4 text-orange-500" />
@@ -229,7 +216,7 @@ export function AppSidebar() {
             Principal
           </SidebarGroupLabel>
           <SidebarMenu className="space-y-1">
-            {navigationItems.filter(item => item.primary).map(renderNavItem)}
+            {navigationItems.filter((item) => item.primary).map(renderNavItem)}
           </SidebarMenu>
         </SidebarGroup>
 
@@ -242,7 +229,9 @@ export function AppSidebar() {
             Herramientas
           </SidebarGroupLabel>
           <SidebarMenu className="space-y-1">
-            {navigationItems.filter(item => !item.primary && item.path !== '/onboarding' && item.path !== '/business-info').map(renderNavItem)}
+            {navigationItems
+              .filter((item) => !item.primary && item.path !== "/onboarding" && item.path !== "/business-info")
+              .map(renderNavItem)}
           </SidebarMenu>
         </SidebarGroup>
 
@@ -255,7 +244,9 @@ export function AppSidebar() {
             Configuración
           </SidebarGroupLabel>
           <SidebarMenu className="space-y-1">
-            {navigationItems.filter(item => item.path === '/onboarding' || item.path === '/business-info').map(renderNavItem)}
+            {navigationItems
+              .filter((item) => item.path === "/onboarding" || item.path === "/business-info")
+              .map(renderNavItem)}
           </SidebarMenu>
         </SidebarGroup>
       </SidebarContent>
