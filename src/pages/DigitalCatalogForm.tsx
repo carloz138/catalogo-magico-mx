@@ -41,13 +41,14 @@ const catalogSchema = z
     show_sku: z.boolean(),
     show_tags: z.boolean(),
     show_description: z.boolean(),
-    is_private: z.boolean(),
+    catalog_privacy: z.enum(["public", "private"]), // ✅ CAMBIADO: Ahora es enum de strings
     access_password: z.string().optional(),
     product_ids: z.array(z.string()).min(1, "Selecciona al menos 1 producto"),
   })
   .refine(
     (data) => {
-      if (data.is_private && !data.access_password) {
+      if (data.catalog_privacy === "private" && !data.access_password) {
+        // ✅ CAMBIADO
         return false;
       }
       return true;
@@ -91,7 +92,7 @@ export default function DigitalCatalogForm() {
       show_sku: true,
       show_tags: true,
       show_description: true,
-      is_private: false,
+      catalog_privacy: "public", // ✅ CAMBIADO
       access_password: "",
       product_ids: [],
     },
@@ -106,7 +107,7 @@ export default function DigitalCatalogForm() {
     show_sku: useWatch({ control: form.control, name: "show_sku" }),
     show_tags: useWatch({ control: form.control, name: "show_tags" }),
     show_description: useWatch({ control: form.control, name: "show_description" }),
-    is_private: useWatch({ control: form.control, name: "is_private" }),
+    catalog_privacy: useWatch({ control: form.control, name: "catalog_privacy" }), // ✅ CAMBIADO
   };
 
   // Detectar plan del usuario
@@ -208,7 +209,7 @@ export default function DigitalCatalogForm() {
         show_sku: catalog.show_sku,
         show_tags: catalog.show_tags,
         show_description: catalog.show_description,
-        is_private: catalog.is_private,
+        catalog_privacy: catalog.is_private ? "private" : "public", // ✅ CAMBIADO: Convertir boolean a string
         access_password: "",
         product_ids: catalog.products?.map((p) => p.id) || [],
       });
@@ -241,7 +242,8 @@ export default function DigitalCatalogForm() {
       }
     }
 
-    if (data.is_private && !canCreatePrivate) {
+    if (data.catalog_privacy === "private" && !canCreatePrivate) {
+      // ✅ CAMBIADO
       toast({
         title: "Plan requerido",
         description: "Los catálogos privados requieren Plan Medio o Premium",
@@ -262,8 +264,8 @@ export default function DigitalCatalogForm() {
         show_sku: data.show_sku,
         show_tags: data.show_tags,
         show_description: data.show_description,
-        is_private: data.is_private,
-        access_password: data.is_private ? data.access_password : undefined,
+        is_private: data.catalog_privacy === "private", // ✅ CAMBIADO: Convertir string a boolean
+        access_password: data.catalog_privacy === "private" ? data.access_password : undefined, // ✅ CAMBIADO
         expires_at: data.expires_at.toISOString(),
         product_ids: data.product_ids,
       };
@@ -591,14 +593,14 @@ export default function DigitalCatalogForm() {
 
                   <FormField
                     control={form.control}
-                    name="is_private"
+                    name="catalog_privacy"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Tipo de catálogo</FormLabel>
                         <FormControl>
                           <RadioGroup
-                            onValueChange={(value) => field.onChange(value === "private")}
-                            value={field.value ? "private" : "public"}
+                            onValueChange={field.onChange}
+                            value={field.value}
                             className="flex flex-col space-y-1"
                             disabled={!canCreatePrivate}
                           >
@@ -626,7 +628,7 @@ export default function DigitalCatalogForm() {
                     )}
                   />
 
-                  {watchedValues.is_private && canCreatePrivate && (
+                  {watchedValues.catalog_privacy === "private" && canCreatePrivate && (
                     <FormField
                       control={form.control}
                       name="access_password"
