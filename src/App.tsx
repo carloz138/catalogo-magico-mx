@@ -29,6 +29,9 @@ import ResetPassword from "./pages/ResetPassword";
 import BulkUpload from "./pages/BulkUpload";
 import Blog from "./pages/Blog";
 import BlogPost from "./pages/BlogPost";
+// ✅ AGREGAR estas importaciones
+import QuotesPage from "./pages/quotes/index";
+import QuoteDetailPage from "./pages/quotes/QuoteDetail";
 
 const queryClient = new QueryClient();
 
@@ -130,6 +133,24 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
+            {/* ✅ AGREGAR estas rutas - Quotes Dashboard */}
+            <Route
+              path="/quotes"
+              element={
+                <ProtectedRoute>
+                  <QuotesPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/quotes/:id"
+              element={
+                <ProtectedRoute>
+                  <QuoteDetailPage />
+                </ProtectedRoute>
+              }
+            />
+
             <Route
               path="/business-info"
               element={
