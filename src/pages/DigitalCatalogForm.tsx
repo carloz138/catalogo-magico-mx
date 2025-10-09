@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useAuth } from "@/contexts/AuthContext";
@@ -98,15 +98,15 @@ export default function DigitalCatalogForm() {
   });
 
   const watchedValues = {
-    name: form.watch("name"),
-    description: form.watch("description"),
-    price_display: form.watch("price_display"),
-    price_adjustment_menudeo: form.watch("price_adjustment_menudeo"),
-    price_adjustment_mayoreo: form.watch("price_adjustment_mayoreo"),
-    show_sku: form.watch("show_sku"),
-    show_tags: form.watch("show_tags"),
-    show_description: form.watch("show_description"),
-    is_private: form.watch("is_private"),
+    name: useWatch({ control: form.control, name: "name" }),
+    description: useWatch({ control: form.control, name: "description" }),
+    price_display: useWatch({ control: form.control, name: "price_display" }),
+    price_adjustment_menudeo: useWatch({ control: form.control, name: "price_adjustment_menudeo" }),
+    price_adjustment_mayoreo: useWatch({ control: form.control, name: "price_adjustment_mayoreo" }),
+    show_sku: useWatch({ control: form.control, name: "show_sku" }),
+    show_tags: useWatch({ control: form.control, name: "show_tags" }),
+    show_description: useWatch({ control: form.control, name: "show_description" }),
+    is_private: useWatch({ control: form.control, name: "is_private" }),
   };
 
   // Detectar plan del usuario
@@ -442,9 +442,8 @@ export default function DigitalCatalogForm() {
                         <FormLabel>Tipo de precios a mostrar</FormLabel>
                         <FormControl>
                           <RadioGroup
-                            onValueChange={(value) => {
-                              field.onChange(value);
-                            }}
+                            key={`price-display-${field.value}`}
+                            onValueChange={(value) => field.onChange(value)}
                             value={field.value}
                             defaultValue={field.value}
                             className="flex flex-col space-y-1"
@@ -599,6 +598,7 @@ export default function DigitalCatalogForm() {
                         <FormLabel>Tipo de catálogo</FormLabel>
                         <FormControl>
                           <RadioGroup
+                            key={`is-private-${field.value ? "private" : "public"}`}
                             onValueChange={(value) => field.onChange(value === "private")}
                             value={field.value ? "private" : "public"}
                             className="flex flex-col space-y-1"
