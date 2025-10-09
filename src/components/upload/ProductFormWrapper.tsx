@@ -59,7 +59,7 @@ export const ProductFormWrapper = ({ files, onComplete }: ProductFormWrapperProp
       <Card>
         <CardContent className="p-6 text-center">
           <Button onClick={handleSubmit} disabled={!isValid} size="lg" className="w-full md:w-auto">
-            Continuar con el cálculo de costos
+            Guardar
           </Button>
           {!isValid && <p className="text-sm text-gray-500 mt-2">Guardar</p>}
         </CardContent>
