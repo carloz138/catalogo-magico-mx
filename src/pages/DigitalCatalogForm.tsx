@@ -97,7 +97,17 @@ export default function DigitalCatalogForm() {
     },
   });
 
-  const watchedValues = form.watch();
+  const watchedValues = {
+    name: form.watch("name"),
+    description: form.watch("description"),
+    price_display: form.watch("price_display"),
+    price_adjustment_menudeo: form.watch("price_adjustment_menudeo"),
+    price_adjustment_mayoreo: form.watch("price_adjustment_mayoreo"),
+    show_sku: form.watch("show_sku"),
+    show_tags: form.watch("show_tags"),
+    show_description: form.watch("show_description"),
+    is_private: form.watch("is_private"),
+  };
 
   // Detectar plan del usuario
   useEffect(() => {
@@ -682,7 +692,7 @@ export default function DigitalCatalogForm() {
 
             {/* Preview */}
             <div className="lg:sticky lg:top-8 lg:self-start">
-            <CatalogFormPreview
+              <CatalogFormPreview
                 name={watchedValues.name}
                 description={watchedValues.description}
                 products={selectedProducts}
