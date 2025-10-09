@@ -201,6 +201,7 @@ export default function DigitalCatalogForm() {
         name: catalog.name,
         description: catalog.description || "",
         expires_at: catalog.expires_at ? new Date(catalog.expires_at) : new Date(),
+        template_id: catalog.template_id || "",
         price_display: catalog.price_display,
         price_adjustment_menudeo: Number(catalog.price_adjustment_menudeo),
         price_adjustment_mayoreo: Number(catalog.price_adjustment_mayoreo),
@@ -442,10 +443,8 @@ export default function DigitalCatalogForm() {
                         <FormLabel>Tipo de precios a mostrar</FormLabel>
                         <FormControl>
                           <RadioGroup
-                            key={`price-display-${field.value}`}
-                            onValueChange={(value) => field.onChange(value)}
+                            onValueChange={field.onChange}
                             value={field.value}
-                            defaultValue={field.value}
                             className="flex flex-col space-y-1"
                           >
                             <FormItem className="flex items-center space-x-3 space-y-0">
@@ -598,7 +597,6 @@ export default function DigitalCatalogForm() {
                         <FormLabel>Tipo de catálogo</FormLabel>
                         <FormControl>
                           <RadioGroup
-                            key={`is-private-${field.value ? "private" : "public"}`}
                             onValueChange={(value) => field.onChange(value === "private")}
                             value={field.value ? "private" : "public"}
                             className="flex flex-col space-y-1"
