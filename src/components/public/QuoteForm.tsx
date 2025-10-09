@@ -1,19 +1,19 @@
-import { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Button } from '@/components/ui/button';
-import { CheckCircle, Loader2 } from 'lucide-react';
-import { QuoteService } from '@/services/quote.service';
-import { toast } from 'sonner';
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { CheckCircle, Loader2 } from "lucide-react";
+import { QuoteService } from "@/services/quote.service";
+import { toast } from "sonner";
 
 const schema = z.object({
-  name: z.string().min(2, 'Mínimo 2 caracteres'),
-  email: z.string().email('Email inválido'),
+  name: z.string().min(2, "Mínimo 2 caracteres"),
+  email: z.string().email("Email inválido"),
   company: z.string().optional(),
   phone: z.string().optional(),
   notes: z.string().max(500).optional(),
@@ -37,17 +37,17 @@ export function QuoteForm({ catalogId, items, totalAmount, isOpen, onClose, onSu
   const form = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: {
-      name: '',
-      email: '',
-      company: '',
-      phone: '',
-      notes: '',
+      name: "",
+      email: "",
+      company: "",
+      phone: "",
+      notes: "",
     },
   });
 
   const handleSubmit = async (data: FormData) => {
     setIsSubmitting(true);
-    
+
     try {
       await QuoteService.createQuote({
         catalog_id: catalogId,
@@ -56,30 +56,29 @@ export function QuoteForm({ catalogId, items, totalAmount, isOpen, onClose, onSu
         customer_company: data.company,
         customer_phone: data.phone,
         notes: data.notes,
-        items: items.map(item => ({
+        items: items.map((item) => ({
           product_id: item.product.id,
           product_name: item.product.name,
-          product_sku: item.product.sku || '',
+          product_sku: item.product.sku || "",
           product_image_url: item.product.processed_image_url || item.product.original_image_url,
           quantity: item.quantity,
-          price_type: item.priceType,
+          price_type: item.priceType === "retail" ? "menudeo" : "mayoreo",
           unit_price: item.unitPrice,
         })),
       });
-      
+
       setSubmitted(true);
-      toast.success('Cotización enviada correctamente');
-      
+      toast.success("Cotización enviada correctamente");
+
       setTimeout(() => {
         form.reset();
         setSubmitted(false);
         onSuccess();
         onClose();
       }, 2000);
-      
     } catch (error) {
-      console.error('Error:', error);
-      toast.error('No se pudo enviar la cotización');
+      console.error("Error:", error);
+      toast.error("No se pudo enviar la cotización");
     } finally {
       setIsSubmitting(false);
     }
@@ -96,7 +95,7 @@ export function QuoteForm({ catalogId, items, totalAmount, isOpen, onClose, onSu
               Hemos recibido tu solicitud. Nos pondremos en contacto contigo pronto.
             </p>
             <p className="text-sm text-center text-muted-foreground">
-              Enviamos una copia a: <strong>{form.getValues('email')}</strong>
+              Enviamos una copia a: <strong>{form.getValues("email")}</strong>
             </p>
           </div>
         </DialogContent>
