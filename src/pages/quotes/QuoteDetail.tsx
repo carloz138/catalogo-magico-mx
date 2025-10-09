@@ -182,7 +182,8 @@ export default function QuoteDetailPage() {
                           <span>
                             Precio: <strong>${(item.unit_price / 100).toFixed(2)}</strong>
                           </span>
-                          <Badge variant="secondary">{item.price_type === "retail" ? "Menudeo" : "Mayoreo"}</Badge>
+                          // ✅ CORRECTO
+                          <Badge variant="secondary">{item.price_type === "menudeo" ? "Menudeo" : "Mayoreo"}</Badge>
                         </div>
                       </div>
                       <div className="text-right flex-shrink-0">
