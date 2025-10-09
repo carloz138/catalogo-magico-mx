@@ -442,8 +442,11 @@ export default function DigitalCatalogForm() {
                         <FormLabel>Tipo de precios a mostrar</FormLabel>
                         <FormControl>
                           <RadioGroup
-                            onValueChange={field.onChange}
+                            onValueChange={(value) => {
+                              field.onChange(value);
+                            }}
                             value={field.value}
+                            defaultValue={field.value}
                             className="flex flex-col space-y-1"
                           >
                             <FormItem className="flex items-center space-x-3 space-y-0">
