@@ -1,9 +1,9 @@
-import { useParams, useNavigate } from 'react-router-dom';
-import { useQuoteDetail } from '@/hooks/useQuoteDetail';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
+import { useParams, useNavigate } from "react-router-dom";
+import { useQuoteDetail } from "@/hooks/useQuoteDetail";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import {
   Loader2,
   ArrowLeft,
@@ -18,11 +18,11 @@ import {
   XCircle,
   Clock,
   Download,
-  ExternalLink
-} from 'lucide-react';
-import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
-import { QuoteStatus } from '@/types/digital-catalog';
+  ExternalLink,
+} from "lucide-react";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
+import { QuoteStatus } from "@/types/digital-catalog";
 
 export default function QuoteDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -33,19 +33,19 @@ export default function QuoteDetailPage() {
     const config = {
       pending: {
         icon: Clock,
-        label: 'Pendiente',
-        color: 'bg-yellow-50 text-yellow-600 border-yellow-200'
+        label: "Pendiente",
+        color: "bg-yellow-50 text-yellow-600 border-yellow-200",
       },
       accepted: {
         icon: CheckCircle,
-        label: 'Aceptada',
-        color: 'bg-green-50 text-green-600 border-green-200'
+        label: "Aceptada",
+        color: "bg-green-50 text-green-600 border-green-200",
       },
       rejected: {
         icon: XCircle,
-        label: 'Rechazada',
-        color: 'bg-red-50 text-red-600 border-red-200'
-      }
+        label: "Rechazada",
+        color: "bg-red-50 text-red-600 border-red-200",
+      },
     };
 
     return config[status];
@@ -67,13 +67,8 @@ export default function QuoteDetailPage() {
 
   return (
     <div className="container mx-auto py-8 px-4 max-w-5xl">
-      {/* Header */}
       <div className="mb-6">
-        <Button
-          variant="ghost"
-          onClick={() => navigate('/quotes')}
-          className="mb-4"
-        >
+        <Button variant="ghost" onClick={() => navigate("/quotes")} className="mb-4">
           <ArrowLeft className="mr-2 h-4 w-4" />
           Volver a cotizaciones
         </Button>
@@ -85,7 +80,6 @@ export default function QuoteDetailPage() {
               Recibida el {format(new Date(quote.created_at), "d 'de' MMMM, yyyy 'a las' HH:mm", { locale: es })}
             </p>
           </div>
-
           <Badge className={`${statusConfig.color} px-4 py-2 text-base`}>
             <StatusIcon className="w-5 h-5 mr-2" />
             {statusConfig.label}
@@ -94,9 +88,7 @@ export default function QuoteDetailPage() {
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6">
-        {/* Columna principal */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Info del cliente */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -117,10 +109,7 @@ export default function QuoteDetailPage() {
                 <Mail className="w-5 h-5 text-muted-foreground" />
                 <div>
                   <p className="text-sm text-muted-foreground">Email</p>
-                  
-                    href={`mailto:${quote.customer_email}`}
-                    className="font-semibold text-blue-600 hover:underline"
-                  >
+                  <a href={`mailto:${quote.customer_email}`} className="font-semibold text-blue-600 hover:underline">
                     {quote.customer_email}
                   </a>
                 </div>
@@ -141,10 +130,7 @@ export default function QuoteDetailPage() {
                   <Phone className="w-5 h-5 text-muted-foreground" />
                   <div>
                     <p className="text-sm text-muted-foreground">Teléfono</p>
-                    
-                      href={`tel:${quote.customer_phone}`}
-                      className="font-semibold text-blue-600 hover:underline"
-                    >
+                    <a href={`tel:${quote.customer_phone}`} className="font-semibold text-blue-600 hover:underline">
                       {quote.customer_phone}
                     </a>
                   </div>
@@ -166,7 +152,6 @@ export default function QuoteDetailPage() {
             </CardContent>
           </Card>
 
-          {/* Productos */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -189,23 +174,19 @@ export default function QuoteDetailPage() {
                       )}
                       <div className="flex-1 min-w-0">
                         <h4 className="font-semibold mb-1">{item.product_name}</h4>
-                        {item.product_sku && (
-                          <p className="text-sm text-muted-foreground">SKU: {item.product_sku}</p>
-                        )}
+                        {item.product_sku && <p className="text-sm text-muted-foreground">SKU: {item.product_sku}</p>}
                         <div className="flex flex-wrap gap-4 mt-2 text-sm">
-                          <span>Cantidad: <strong>{item.quantity}</strong></span>
+                          <span>
+                            Cantidad: <strong>{item.quantity}</strong>
+                          </span>
                           <span>
                             Precio: <strong>${(item.unit_price / 100).toFixed(2)}</strong>
                           </span>
-                          <Badge variant="secondary">
-                            {item.price_type === 'retail' ? 'Menudeo' : 'Mayoreo'}
-                          </Badge>
+                          <Badge variant="secondary">{item.price_type === "retail" ? "Menudeo" : "Mayoreo"}</Badge>
                         </div>
                       </div>
                       <div className="text-right flex-shrink-0">
-                        <p className="text-lg font-bold">
-                          ${(item.subtotal / 100).toFixed(2)}
-                        </p>
+                        <p className="text-lg font-bold">${(item.subtotal / 100).toFixed(2)}</p>
                       </div>
                     </div>
                   </div>
@@ -217,16 +198,14 @@ export default function QuoteDetailPage() {
               <div className="flex justify-between items-center">
                 <span className="text-lg font-semibold">Total</span>
                 <span className="text-2xl font-bold text-purple-600">
-                  ${(total / 100).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                  ${(total / 100).toLocaleString("es-MX", { minimumFractionDigits: 2 })}
                 </span>
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Sidebar */}
         <div className="space-y-6">
-          {/* Catálogo origen */}
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Catálogo Origen</CardTitle>
@@ -235,14 +214,14 @@ export default function QuoteDetailPage() {
               <div className="space-y-3">
                 <div>
                   <p className="text-sm text-muted-foreground mb-1">Nombre</p>
-                  <p className="font-semibold">{quote.catalog?.name || 'Sin nombre'}</p>
+                  <p className="font-semibold">{quote.catalog?.name || "Sin nombre"}</p>
                 </div>
                 {quote.catalog?.slug && (
                   <Button
                     variant="outline"
                     size="sm"
                     className="w-full"
-                    onClick={() => window.open(`/c/${quote.catalog.slug}`, '_blank')}
+                    onClick={() => window.open(`/c/${quote.catalog.slug}`, "_blank")}
                   >
                     <ExternalLink className="w-4 h-4 mr-2" />
                     Ver catálogo
@@ -252,8 +231,7 @@ export default function QuoteDetailPage() {
             </CardContent>
           </Card>
 
-          {/* Acciones */}
-          {quote.status === 'pending' && (
+          {quote.status === "pending" && (
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">Acciones</CardTitle>
@@ -271,12 +249,11 @@ export default function QuoteDetailPage() {
             </Card>
           )}
 
-          {/* Exportar */}
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Exportar</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2">
+            <CardContent>
               <Button variant="outline" className="w-full">
                 <Download className="w-4 h-4 mr-2" />
                 Descargar PDF
@@ -284,7 +261,6 @@ export default function QuoteDetailPage() {
             </CardContent>
           </Card>
 
-          {/* Timeline */}
           <Card>
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
@@ -304,14 +280,16 @@ export default function QuoteDetailPage() {
                   </div>
                 </div>
 
-                {quote.status !== 'pending' && (
+                {quote.status !== "pending" && (
                   <div className="flex gap-3">
-                    <div className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${
-                      quote.status === 'accepted' ? 'bg-green-500' : 'bg-red-500'
-                    }`} />
+                    <div
+                      className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${
+                        quote.status === "accepted" ? "bg-green-500" : "bg-red-500"
+                      }`}
+                    />
                     <div>
                       <p className="font-semibold text-sm">
-                        Cotización {quote.status === 'accepted' ? 'aceptada' : 'rechazada'}
+                        Cotización {quote.status === "accepted" ? "aceptada" : "rechazada"}
                       </p>
                       <p className="text-xs text-muted-foreground">
                         {format(new Date(quote.updated_at), "d 'de' MMM, HH:mm", { locale: es })}
