@@ -441,32 +441,30 @@ export default function DigitalCatalogForm() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Tipo de precios a mostrar</FormLabel>
-                        <FormControl>
-                          <RadioGroup
-                            onValueChange={field.onChange}
-                            value={field.value}
-                            className="flex flex-col space-y-1"
-                          >
-                            <FormItem className="flex items-center space-x-3 space-y-0">
-                              <FormControl>
-                                <RadioGroupItem value="menudeo_only" />
-                              </FormControl>
-                              <FormLabel className="font-normal">Solo precio menudeo</FormLabel>
-                            </FormItem>
-                            <FormItem className="flex items-center space-x-3 space-y-0">
-                              <FormControl>
-                                <RadioGroupItem value="mayoreo_only" />
-                              </FormControl>
-                              <FormLabel className="font-normal">Solo precio mayoreo</FormLabel>
-                            </FormItem>
-                            <FormItem className="flex items-center space-x-3 space-y-0">
-                              <FormControl>
-                                <RadioGroupItem value="both" />
-                              </FormControl>
-                              <FormLabel className="font-normal">Ambos precios</FormLabel>
-                            </FormItem>
-                          </RadioGroup>
-                        </FormControl>
+                        <RadioGroup
+                          onValueChange={field.onChange}
+                          value={field.value}
+                          className="flex flex-col space-y-1"
+                        >
+                          <div className="flex items-center space-x-3 space-y-0">
+                            <RadioGroupItem value="menudeo_only" id="menudeo_only" />
+                            <label htmlFor="menudeo_only" className="font-normal text-sm cursor-pointer">
+                              Solo precio menudeo
+                            </label>
+                          </div>
+                          <div className="flex items-center space-x-3 space-y-0">
+                            <RadioGroupItem value="mayoreo_only" id="mayoreo_only" />
+                            <label htmlFor="mayoreo_only" className="font-normal text-sm cursor-pointer">
+                              Solo precio mayoreo
+                            </label>
+                          </div>
+                          <div className="flex items-center space-x-3 space-y-0">
+                            <RadioGroupItem value="both" id="both" />
+                            <label htmlFor="both" className="font-normal text-sm cursor-pointer">
+                              Ambos precios
+                            </label>
+                          </div>
+                        </RadioGroup>
                         <FormMessage />
                       </FormItem>
                     )}
