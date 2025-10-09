@@ -28,13 +28,18 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { IndustryType } from "@/lib/templates/industry-templates";
+import { getUserPlanTier, getPlanFeatures, PlanTier } from "@/lib/web-catalog/plan-restrictions";
+import { getAvailableTemplatesForPlan, getTemplateStatsByPlan } from "@/lib/web-catalog/template-filters";
+import { EXPANDED_WEB_TEMPLATES } from "@/lib/web-catalog/expanded-templates-catalog";
+import type { WebCatalogTemplate } from "@/lib/web-catalog/types";
 
 const catalogSchema = z
   .object({
     name: z.string().min(3, "Mínimo 3 caracteres").max(100, "Máximo 100 caracteres"),
     description: z.string().max(500, "Máximo 500 caracteres").optional(),
     expires_at: z.date().min(new Date(), "La fecha debe ser futura"),
-    template_id: z.string().min(1, "Selecciona un template"),
+
+    web_template_id: z.string().min(1, "Selecciona un template"),
     price_display: z.enum(["menudeo_only", "mayoreo_only", "both"]),
     price_adjustment_menudeo: z.number().min(-90, "Mínimo -90%").max(100, "Máximo 100%"),
     price_adjustment_mayoreo: z.number().min(-90, "Mínimo -90%").max(100, "Máximo 100%"),
@@ -44,6 +49,8 @@ const catalogSchema = z
     is_private: z.boolean(),
     access_password: z.string().optional(),
     product_ids: z.array(z.string()).min(1, "Selecciona al menos 1 producto"),
+
+    enable_quotation: z.boolean().optional(),
   })
   .refine(
     (data) => {
@@ -74,6 +81,9 @@ export default function DigitalCatalogForm() {
   const [selectedProducts, setSelectedProducts] = useState<any[]>([]);
   const [userPlan, setUserPlan] = useState<"basic" | "premium">("basic");
   const [userIndustry, setUserIndustry] = useState<IndustryType | undefined>();
+  const [userPlanTier, setUserPlanTier] = useState<PlanTier>("free");
+  const [availableTemplates, setAvailableTemplates] = useState<WebCatalogTemplate[]>([]);
+  const [templateStats, setTemplateStats] = useState<any>(null);
 
   const isEditing = !!id;
   const canCreatePrivate = limits?.planName !== "Básico" && limits?.planName !== "Starter";
@@ -84,7 +94,7 @@ export default function DigitalCatalogForm() {
       name: "",
       description: "",
       expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-      template_id: "",
+      web_template_id: "",
       price_display: "both",
       price_adjustment_menudeo: 0,
       price_adjustment_mayoreo: 0,
@@ -94,6 +104,7 @@ export default function DigitalCatalogForm() {
       is_private: false,
       access_password: "",
       product_ids: [],
+      enable_quotation: false,
     },
   });
 
@@ -201,7 +212,8 @@ export default function DigitalCatalogForm() {
         name: catalog.name,
         description: catalog.description || "",
         expires_at: catalog.expires_at ? new Date(catalog.expires_at) : new Date(),
-        template_id: catalog.template_id || "",
+
+        web_template_id: catalog.web_template_id || "",
         price_display: catalog.price_display,
         price_adjustment_menudeo: Number(catalog.price_adjustment_menudeo),
         price_adjustment_mayoreo: Number(catalog.price_adjustment_mayoreo),
@@ -211,6 +223,7 @@ export default function DigitalCatalogForm() {
         is_private: catalog.is_private,
         access_password: "",
         product_ids: catalog.products?.map((p) => p.id) || [],
+        enable_quotation: catalog.enable_quotation || false,
       });
 
       setSelectedProducts(catalog.products || []);
@@ -255,7 +268,7 @@ export default function DigitalCatalogForm() {
       const catalogDTO = {
         name: data.name,
         description: data.description,
-        template_id: data.template_id,
+        web_template_id: data.web_template_id,
         price_display: data.price_display,
         price_adjustment_menudeo: data.price_adjustment_menudeo,
         price_adjustment_mayoreo: data.price_adjustment_mayoreo,
@@ -266,6 +279,7 @@ export default function DigitalCatalogForm() {
         access_password: data.is_private ? data.access_password : undefined,
         expires_at: data.expires_at.toISOString(),
         product_ids: data.product_ids,
+        enable_quotation: getPlanFeatures(userPlanTier).hasQuotation && data.enable_quotation,
       };
 
       if (isEditing && id) {
@@ -670,6 +684,100 @@ export default function DigitalCatalogForm() {
                   />
                 </CardContent>
               </Card>
+              {/* Template de Diseño */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Palette className="h-5 w-5" />
+                    Template Web para tu Catálogo
+                  </CardTitle>
+                  <CardDescription>
+                    {templateStats ? (
+                      <>
+                        {templateStats.available.total} template{templateStats.available.total !== 1 && "s"} disponible
+                        {templateStats.available.total !== 1 && "s"} en tu plan
+                        {templateStats.locked.total > 0 && (
+                          <>
+                            {" "}
+                            • {templateStats.locked.total} premium bloqueado{templateStats.locked.total !== 1 && "s"}
+                          </>
+                        )}
+                      </>
+                    ) : (
+                      "Elige el diseño interactivo para tu catálogo digital"
+                    )}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <FormField
+                    control={form.control}
+                    name="web_template_id"
+                    render={({ field }) => (
+                      <FormItem>
+                        {/* Aquí va tu selector - usa availableTemplates */}
+                        <div className="text-sm text-muted-foreground mb-2">
+                          Tu plan: <strong>{getPlanFeatures(userPlanTier).displayName}</strong>
+                        </div>
+
+                        {/* Por ahora un selector simple - después crearemos uno visual */}
+                        <select
+                          value={field.value}
+                          onChange={(e) => field.onChange(e.target.value)}
+                          className="w-full border rounded p-2"
+                        >
+                          <option value="">Selecciona un template</option>
+                          {availableTemplates.map((template) => (
+                            <option key={template.id} value={template.id}>
+                              {template.name} {template.category === "seasonal" && "👑"}
+                            </option>
+                          ))}
+                        </select>
+
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </CardContent>
+              </Card>
+
+              {/* 🆕 NUEVO: Card de Cotización (solo si el plan lo permite) */}
+              {getPlanFeatures(userPlanTier).hasQuotation ? (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Sistema de Cotización</CardTitle>
+                    <CardDescription>Permite que los clientes soliciten cotizaciones directamente</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <FormField
+                      control={form.control}
+                      name="enable_quotation"
+                      render={({ field }) => (
+                        <FormItem className="flex items-center justify-between rounded-lg border p-4">
+                          <div className="space-y-0.5">
+                            <FormLabel className="text-base">Habilitar cotizaciones</FormLabel>
+                            <FormDescription>
+                              Los clientes podrán seleccionar productos y solicitar cotización
+                            </FormDescription>
+                          </div>
+                          <FormControl>
+                            <Switch checked={field.value} onCheckedChange={field.onChange} />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                  </CardContent>
+                </Card>
+              ) : (
+                <Alert>
+                  <Lock className="h-4 w-4" />
+                  <AlertDescription>
+                    El sistema de cotización está disponible en Plan Profesional y Empresarial.
+                    <Button variant="link" className="p-0 h-auto ml-1" onClick={() => navigate("/checkout")}>
+                      Actualizar plan
+                    </Button>
+                  </AlertDescription>
+                </Alert>
+              )}
 
               {/* Botones de Acción */}
               <div className="flex gap-4 sticky bottom-0 bg-background py-4 border-t">
