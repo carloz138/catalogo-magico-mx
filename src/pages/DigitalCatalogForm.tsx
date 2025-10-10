@@ -22,12 +22,12 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ProductSelector } from "@/components/catalog/ProductSelector";
 import { PriceAdjustmentInput } from "@/components/catalog/PriceAdjustmentInput";
 import { CatalogFormPreview } from "@/components/catalog/CatalogFormPreview";
-import { SmartTemplateSelector } from "@/components/templates/SmartTemplateSelector";
+import { WebTemplateSelector } from "@/components/templates/WebTemplateSelector";
 import { ArrowLeft, CalendarIcon, Loader2, Lock, AlertCircle, Palette } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
-import { IndustryType } from "@/lib/templates/industry-templates";
+
 import { getUserPlanTier, getPlanFeatures, PlanTier } from "@/lib/web-catalog/plan-restrictions";
 import { getAvailableTemplatesForPlan, getTemplateStatsByPlan } from "@/lib/web-catalog/template-filters";
 import { EXPANDED_WEB_TEMPLATES } from "@/lib/web-catalog/expanded-templates-catalog";
@@ -79,11 +79,9 @@ export default function DigitalCatalogForm() {
   const [isSaving, setIsSaving] = useState(false);
   const [catalogData, setCatalogData] = useState<any>(null);
   const [selectedProducts, setSelectedProducts] = useState<any[]>([]);
-  const [userPlan, setUserPlan] = useState<"basic" | "premium">("basic");
-  const [userIndustry, setUserIndustry] = useState<IndustryType | undefined>();
   const [userPlanTier, setUserPlanTier] = useState<PlanTier>("free");
-  const [availableTemplates, setAvailableTemplates] = useState<WebCatalogTemplate[]>([]);
-  const [templateStats, setTemplateStats] = useState<any>(null);
+  const [userPlanId, setUserPlanId] = useState<string | undefined>();
+  const [userPlanName, setUserPlanName] = useState<string | undefined>();
 
   const isEditing = !!id;
   const canCreatePrivate = limits?.planName !== "Básico" && limits?.planName !== "Starter";
@@ -127,13 +125,6 @@ export default function DigitalCatalogForm() {
     }
   }, [user]);
 
-  // Detectar industria cuando cambian productos
-  useEffect(() => {
-    if (selectedProducts.length > 0) {
-      detectUserIndustry();
-    }
-  }, [selectedProducts]);
-
   const loadUserPlan = async () => {
     if (!user) return;
 
@@ -143,9 +134,11 @@ export default function DigitalCatalogForm() {
         .select(
           `
           status,
+          package_id,
           credit_packages (
-            package_type,
-            price_usd
+            id,
+            name,
+            package_type
           )
         `,
         )
@@ -155,42 +148,25 @@ export default function DigitalCatalogForm() {
 
       if (subscription?.credit_packages) {
         const pkg = subscription.credit_packages as any;
-        const isPremium = pkg.package_type === "monthly_plan" && pkg.price_usd >= 1250;
-        setUserPlan(isPremium ? "premium" : "basic");
+        setUserPlanId(pkg.id);
+        setUserPlanName(pkg.name);
+        
+        // Determinar tier usando el sistema de web-catalog
+        const tier = getUserPlanTier(pkg.id, pkg.name);
+        setUserPlanTier(tier);
+        
+        console.log('📊 Plan del usuario detectado:', {
+          id: pkg.id,
+          name: pkg.name,
+          tier,
+          features: getPlanFeatures(tier)
+        });
+      } else {
+        setUserPlanTier('free');
       }
     } catch (error) {
       console.error("Error loading user plan:", error);
-    }
-  };
-
-  const detectUserIndustry = () => {
-    const categories = selectedProducts.map((p) => p.category?.toLowerCase()).filter(Boolean);
-
-    const industryKeywords = {
-      joyeria: ["joyeria", "jewelry", "anillo", "collar", "pulsera", "oro", "plata"],
-      moda: ["ropa", "clothing", "vestido", "blusa", "pantalon", "fashion"],
-      electronica: ["electronico", "electronic", "smartphone", "laptop", "tech"],
-      ferreteria: ["ferreteria", "hardware", "herramienta", "tool", "tornillo"],
-      floreria: ["flor", "flower", "planta", "plant", "jardin", "ramo"],
-      cosmeticos: ["cosmetico", "cosmetic", "maquillaje", "makeup", "belleza"],
-      decoracion: ["decoracion", "decoration", "hogar", "home", "mueble"],
-      muebles: ["mueble", "furniture", "silla", "mesa", "sofa"],
-    };
-
-    for (const [industry, keywords] of Object.entries(industryKeywords)) {
-      if (categories.some((c) => keywords.some((k) => c?.includes(k)))) {
-        setUserIndustry(industry as IndustryType);
-        return;
-      }
-    }
-
-    if (!userIndustry && businessInfo?.business_name) {
-      const businessName = businessInfo.business_name.toLowerCase();
-      if (businessName.includes("joyeria") || businessName.includes("jewelry")) {
-        setUserIndustry("joyeria");
-      } else if (businessName.includes("moda") || businessName.includes("fashion")) {
-        setUserIndustry("moda");
-      }
+      setUserPlanTier('free');
     }
   };
 
@@ -413,14 +389,14 @@ export default function DigitalCatalogForm() {
                 </CardContent>
               </Card>
 
-              {/* Template de Diseño */}
+              {/* Template de Diseño Web */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Palette className="h-5 w-5" />
-                    Template de Diseño
+                    Template Web
                   </CardTitle>
-                  <CardDescription>Elige el estilo visual de tu catálogo</CardDescription>
+                  <CardDescription>Elige el diseño para tu catálogo digital</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <FormField
@@ -428,11 +404,11 @@ export default function DigitalCatalogForm() {
                     name="web_template_id"
                     render={({ field }) => (
                       <FormItem>
-                        <SmartTemplateSelector
+                        <WebTemplateSelector
                           selectedTemplate={field.value}
                           onTemplateSelect={field.onChange}
-                          userPlan={userPlan}
-                          userIndustry={userIndustry}
+                          userPlanId={userPlanId}
+                          userPlanName={userPlanName}
                           productCount={selectedProducts.length}
                         />
                         <FormMessage />
@@ -678,61 +654,6 @@ export default function DigitalCatalogForm() {
                             setSelectedProducts(products);
                           }}
                         />
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </CardContent>
-              </Card>
-              {/* Template de Diseño */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Palette className="h-5 w-5" />
-                    Template Web para tu Catálogo
-                  </CardTitle>
-                  <CardDescription>
-                    {templateStats ? (
-                      <>
-                        {templateStats.available.total} template{templateStats.available.total !== 1 && "s"} disponible
-                        {templateStats.available.total !== 1 && "s"} en tu plan
-                        {templateStats.locked.total > 0 && (
-                          <>
-                            {" "}
-                            • {templateStats.locked.total} premium bloqueado{templateStats.locked.total !== 1 && "s"}
-                          </>
-                        )}
-                      </>
-                    ) : (
-                      "Elige el diseño interactivo para tu catálogo digital"
-                    )}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <FormField
-                    control={form.control}
-                    name="web_template_id"
-                    render={({ field }) => (
-                      <FormItem>
-                        {/* Aquí va tu selector - usa availableTemplates */}
-                        <div className="text-sm text-muted-foreground mb-2">
-                          Tu plan: <strong>{getPlanFeatures(userPlanTier).displayName}</strong>
-                        </div>
-
-                        {/* Por ahora un selector simple - después crearemos uno visual */}
-                        <select
-                          value={field.value}
-                          onChange={(e) => field.onChange(e.target.value)}
-                          className="w-full border rounded p-2"
-                        >
-                          <option value="">Selecciona un template</option>
-                          {availableTemplates.map((template) => (
-                            <option key={template.id} value={template.id}>
-                              {template.name} {template.category === "seasonal" && "👑"}
-                            </option>
-                          ))}
-                        </select>
-
                         <FormMessage />
                       </FormItem>
                     )}
