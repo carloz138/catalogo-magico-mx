@@ -425,7 +425,7 @@ export default function DigitalCatalogForm() {
                 <CardContent>
                   <FormField
                     control={form.control}
-                    name="template_id"
+                    name="web_template_id"
                     render={({ field }) => (
                       <FormItem>
                         <SmartTemplateSelector

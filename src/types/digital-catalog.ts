@@ -10,7 +10,8 @@ export interface DigitalCatalog {
   name: string;
   slug: string;
   description: string | null;
-  template_id: string | null; // ← AGREGAR ESTA LÍNEA
+  template_id: string | null;
+  web_template_id: string | null;
   // Configuración de precios
   price_display: PriceDisplay;
   price_adjustment_menudeo: number;
@@ -29,6 +30,7 @@ export interface DigitalCatalog {
   expires_at: string | null;
   is_active: boolean;
   view_count: number;
+  enable_quotation: boolean;
 
   created_at: string;
   updated_at: string;
@@ -91,7 +93,8 @@ export interface CatalogView {
 export interface CreateDigitalCatalogDTO {
   name: string;
   description?: string;
-  template_id?: string; // ← AGREGAR ESTA LÍNEA
+  template_id?: string;
+  web_template_id?: string;
   price_display: PriceDisplay;
   price_adjustment_menudeo: number;
   price_adjustment_mayoreo: number;
@@ -102,12 +105,14 @@ export interface CreateDigitalCatalogDTO {
   access_password?: string;
   expires_at?: string;
   product_ids: string[];
+  enable_quotation?: boolean;
 }
 
 export interface UpdateDigitalCatalogDTO {
   name?: string;
   description?: string;
-  template_id?: string; // ← AGREGAR ESTA LÍNEA
+  template_id?: string;
+  web_template_id?: string;
   price_display?: PriceDisplay;
   price_adjustment_menudeo?: number;
   price_adjustment_mayoreo?: number;
@@ -119,6 +124,7 @@ export interface UpdateDigitalCatalogDTO {
   expires_at?: string;
   is_active?: boolean;
   product_ids?: string[];
+  enable_quotation?: boolean;
 }
 
 export interface CreateQuoteDTO {

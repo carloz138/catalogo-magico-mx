@@ -17,6 +17,7 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBusinessInfo } from "@/hooks/useBusinessInfo";
+import { supabase } from "@/integrations/supabase/client";
 import { initializeOptimizedTemplates } from "@/lib/templates/audited-templates-v2";
 
 // Importar nuevos sistemas integrados
@@ -34,6 +35,10 @@ import { getTemplateById } from "@/lib/templates/industry-templates";
 import { TemplateGenerator } from "@/lib/templates/css-generator";
 import { TemplateAuditSystem } from "@/lib/templates/template-audit-system";
 import { IndustryType } from "@/lib/templates/industry-templates";
+import { getUserPlanTier, getPlanFeatures, PlanTier } from "@/lib/web-catalog/plan-restrictions";
+import { getAvailableTemplatesForPlan, getTemplateStatsByPlan } from "@/lib/web-catalog/template-filters";
+import { EXPANDED_WEB_TEMPLATES } from "@/lib/web-catalog/expanded-templates-catalog";
+import type { WebCatalogTemplate } from "@/lib/web-catalog/types";
 
 // 🆕 IMPORTAR SELECTOR DE PRODUCTOS POR PÁGINA
 import { ProductsPerPageSelector } from "@/components/templates/ProductsPerPageSelector";
@@ -133,6 +138,9 @@ const TemplateSelection = () => {
   const [userPlan, setUserPlan] = useState<"basic" | "premium">("basic");
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
   const [autoFix, setAutoFix] = useState(true);
+  const [userPlanTier, setUserPlanTier] = useState<PlanTier>("free");
+  const [availableTemplates, setAvailableTemplates] = useState<WebCatalogTemplate[]>([]);
+  const [templateStats, setTemplateStats] = useState<any>(null);
 
   // Estados del sistema de preview
   const [showPreview, setShowPreview] = useState(false);

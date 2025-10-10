@@ -581,6 +581,7 @@ export type Database = {
           access_password: string | null
           created_at: string | null
           description: string | null
+          enable_quotation: boolean | null
           expires_at: string | null
           id: string
           is_active: boolean | null
@@ -593,14 +594,18 @@ export type Database = {
           show_sku: boolean | null
           show_tags: boolean | null
           slug: string
+          template_config: Json | null
+          template_id: string | null
           updated_at: string | null
           user_id: string
           view_count: number | null
+          web_template_id: string | null
         }
         Insert: {
           access_password?: string | null
           created_at?: string | null
           description?: string | null
+          enable_quotation?: boolean | null
           expires_at?: string | null
           id?: string
           is_active?: boolean | null
@@ -613,14 +618,18 @@ export type Database = {
           show_sku?: boolean | null
           show_tags?: boolean | null
           slug: string
+          template_config?: Json | null
+          template_id?: string | null
           updated_at?: string | null
           user_id: string
           view_count?: number | null
+          web_template_id?: string | null
         }
         Update: {
           access_password?: string | null
           created_at?: string | null
           description?: string | null
+          enable_quotation?: boolean | null
           expires_at?: string | null
           id?: string
           is_active?: boolean | null
@@ -633,9 +642,12 @@ export type Database = {
           show_sku?: boolean | null
           show_tags?: boolean | null
           slug?: string
+          template_config?: Json | null
+          template_id?: string | null
           updated_at?: string | null
           user_id?: string
           view_count?: number | null
+          web_template_id?: string | null
         }
         Relationships: []
       }

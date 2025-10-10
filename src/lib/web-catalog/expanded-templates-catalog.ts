@@ -358,8 +358,8 @@ export const EXPANDED_WEB_TEMPLATES: WebCatalogTemplate[] = [
       'Compartir directo'
     ],
     config: {
-      columnsDesktop: 3,
-      columnsMobile: 3,
+      columnsDesktop: 2,
+      columnsMobile: 2,
       gap: 'tight',
       cardStyle: 'flat',
       cardRadius: 'none',
@@ -914,8 +914,8 @@ export const EXPANDED_WEB_TEMPLATES: WebCatalogTemplate[] = [
       'Animaciones 3D'
     ],
     config: {
-      columnsDesktop: 1,
-      columnsMobile: 1,
+      columnsDesktop: 2,
+      columnsMobile: 2,
       gap: 'normal',
       cardStyle: 'flat',
       cardRadius: 'none',
