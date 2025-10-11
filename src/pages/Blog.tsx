@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { BlogCard } from "@/components/BlogCard";
-import { Search } from "lucide-react";
+import { Search, ArrowLeft } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
 
 interface BlogPost {
   title: string;
@@ -117,6 +119,12 @@ export default function Blog() {
       {/* Hero Section */}
       <section className="bg-gradient-to-br from-primary to-primary/80 text-white py-20">
         <div className="container mx-auto px-4 max-w-6xl">
+          <Link to="/">
+            <Button variant="ghost" className="mb-6 text-white hover:bg-white/10 hover:text-white">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Volver al inicio
+            </Button>
+          </Link>
           <h1 className="text-4xl md:text-5xl font-bold mb-4">
             Blog de CatifyPro
           </h1>
