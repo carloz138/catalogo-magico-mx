@@ -41,6 +41,7 @@ import {
   AlertTriangle,
   BookOpen,
   PackageOpen,
+  ClipboardList,
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
