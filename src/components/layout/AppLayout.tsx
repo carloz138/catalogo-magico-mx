@@ -57,6 +57,7 @@ const ROUTE_BREADCRUMBS: { [key: string]: { title: string; subtitle?: string; pa
   "/image-review": { title: "Centro de Imágenes", subtitle: "Revisa y confirma imágenes procesadas", parent: "Productos" },
   "/template-selection": { title: "Crear Catálogo", subtitle: "Selecciona un template para tu catálogo", parent: "Catálogos" },
   "/catalogs": { title: "Mis Catálogos", subtitle: "Historial de catálogos generados", parent: "Catálogos" },
+  "/quotes": { title: "Cotizaciones", subtitle: "Gestiona las solicitudes de cotización de tus clientes", parent: "Ventas" },
   "/business-info": { title: "Información del Negocio", subtitle: "Configura los datos de tu empresa", parent: "Configuración" },
   "/checkout": { title: "Comprar Créditos", subtitle: "Selecciona un paquete de créditos" },
 };
