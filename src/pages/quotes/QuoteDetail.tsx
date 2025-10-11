@@ -67,9 +67,8 @@ export default function QuoteDetailPage() {
 
   return (
     <div className="container mx-auto py-8 px-4 max-w-5xl">
-      {/* ✅ Mejorar el botón de regreso */}
       <div className="mb-6">
-        <Button variant="ghost" onClick={() => navigate("/quotes")} className="mb-4 hover:bg-gray-100">
+        <Button variant="ghost" onClick={() => navigate("/quotes")} className="mb-4">
           <ArrowLeft className="mr-2 h-4 w-4" />
           Volver a cotizaciones
         </Button>
