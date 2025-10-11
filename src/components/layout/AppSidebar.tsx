@@ -68,7 +68,7 @@ const navigationItems = [
   { title: "Crear Catalogo", path: "/products", icon: Package, primary: true },
   { title: "Mis Catálogos", path: "/catalogs", icon: BookOpen, primary: true },
   { title: "Nuevo Catálogo Digital", path: "/catalogs/new", icon: FileText, primary: true },
-  { title: "Cotizaciones", path: "/quotes", icon: FileText, primary: true },
+  { title: "Cotizaciones", path: "/quotes", icon: ClipboardList, primary: true },
 
   // GRUPO 2: Acciones Secundarias
   { title: "Carga Masiva", path: "/products/bulk-upload", icon: PackageOpen, badge: "Nuevo" },
