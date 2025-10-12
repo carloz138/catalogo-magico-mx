@@ -225,28 +225,63 @@ const Checkout = () => {
     const features = [];
     
     if (pkg.package_type === 'monthly_plan') {
-      // Suscripciones mensuales - ahora funciona porque tenemos todos los campos
-      if (pkg.credits > 0) {
-        features.push(`${pkg.credits} créditos mensuales`);
+      // Suscripciones mensuales - por nombre de plan
+      const planName = pkg.name.toLowerCase();
+      
+      if (planName.includes('gratis') || planName.includes('free')) {
+        // Plan Gratis
+        features.push('1 catálogo activo');
+        features.push('50 productos por catálogo');
+        features.push('❌ Sin sistema de cotización');
+        features.push('❌ Sin analytics');
+      } else if (planName.includes('catálogos') && !planName.includes('básico') && !planName.includes('basico') && !planName.includes('ia')) {
+        // Plan Catálogos
+        features.push('1 catálogo activo');
+        features.push('100 productos por catálogo');
+        features.push('✅ Sistema de cotización incluido');
+        features.push('✅ Analytics básicas');
+      } else if (planName.includes('básico') || planName.includes('basico')) {
+        // Plan Básico
+        features.push('5 catálogos activos');
+        features.push('200 productos por catálogo');
+        features.push('✅ Sistema de cotización incluido');
+        features.push('✅ Analytics avanzadas');
+        features.push('✅ IA para quitar fondos');
+      } else if (planName.includes('profesional')) {
+        // Plan Profesional
+        features.push('30 catálogos activos');
+        features.push('500 productos por catálogo');
+        features.push('✅ Sistema de cotización incluido');
+        features.push('✅ Analytics profesionales');
+        features.push('✅ IA para quitar fondos');
+        features.push('✅ Catálogos privados');
+        features.push('✅ Personalización de colores');
+      } else if (planName.includes('empresarial')) {
+        // Plan Empresarial
+        features.push('♾️ Catálogos ilimitados');
+        features.push('♾️ Productos ilimitados');
+        features.push('✅ Sistema de cotización incluido');
+        features.push('✅ Analytics profesionales + API');
+        features.push('✅ IA para quitar fondos');
+        features.push('✅ Catálogos privados');
+        features.push('✅ Personalización completa');
+        features.push('✅ API de integración');
       } else {
-        features.push('Sin procesamiento IA');
-      }
-      
-      if (pkg.max_catalogs !== undefined && pkg.max_catalogs !== null) {
-        if (pkg.max_catalogs === 0) {
-          features.push('Catálogos ilimitados');
-        } else {
-          features.push(`${pkg.max_catalogs} catálogos/mes`);
+        // Fallback genérico
+        if (pkg.credits > 0) {
+          features.push(`${pkg.credits} créditos mensuales`);
         }
-      }
-      
-      if (pkg.max_uploads) {
-        features.push(`${pkg.max_uploads} uploads/mes`);
+        if (pkg.max_catalogs !== undefined && pkg.max_catalogs !== null) {
+          if (pkg.max_catalogs === 0) {
+            features.push('♾️ Catálogos ilimitados');
+          } else {
+            features.push(`${pkg.max_catalogs} catálogos activos`);
+          }
+        }
       }
       
       features.push('Se renueva automáticamente');
       features.push('Cancela cuando quieras');
-      features.push('Soporte prioritario');
     } else {
       // Packs únicos
       features.push(`${pkg.credits} créditos únicos`);
@@ -254,10 +289,6 @@ const Checkout = () => {
       features.push('Sin renovación automática');
       features.push('Úsalos cuando quieras');
     }
-    
-    features.push('Catálogos PDF profesionales');
-    features.push('Imágenes HD sin marca de agua');
-    features.push('Soporte por WhatsApp');
     
     return features;
   };
