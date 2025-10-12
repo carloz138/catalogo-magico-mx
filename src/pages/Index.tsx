@@ -154,39 +154,48 @@ const Index = () => {
     const features = [];
 
     if (pkg.package_type === "monthly_plan") {
-      // Suscripciones mensuales
-      if (pkg.credits > 0) {
-        features.push(`${pkg.credits} créditos mensuales incluidos`);
-      } else {
-        features.push("Sin procesamiento IA");
+      const planName = pkg.name.toLowerCase();
+      
+      if (planName.includes('gratis') || planName.includes('free')) {
+        features.push('1 catálogo digital');
+        features.push('50 productos máximo');
+        features.push('❌ Sin cotización ni analytics');
+      } else if (planName.includes('catálogos') && !planName.includes('básico') && !planName.includes('basico') && !planName.includes('ia')) {
+        features.push('✅ Sistema de cotización');
+        features.push('✅ Analytics básicas');
+        features.push('1 catálogo, 100 productos');
+        features.push('Sin procesamiento IA');
+      } else if (planName.includes('básico') || planName.includes('basico')) {
+        features.push('✅ Sistema de cotización');
+        features.push('➕ 30 créditos IA/mes');
+        features.push('5 catálogos activos');
+        features.push('✅ Analytics avanzadas');
+        features.push('9 templates profesionales');
+      } else if (planName.includes('profesional')) {
+        features.push('✅ Sistema de cotización + seguimiento');
+        features.push('➕ 100 créditos IA/mes');
+        features.push('30 catálogos activos');
+        features.push('✅ Analytics profesionales');
+        features.push('16 templates (todos)');
+        features.push('✅ Catálogos privados');
+      } else if (planName.includes('empresarial')) {
+        features.push('✅ Sistema de cotización empresarial');
+        features.push('➕ 300 créditos IA/mes');
+        features.push('♾️ Catálogos ilimitados');
+        features.push('✅ Analytics PRO + API');
+        features.push('✅ API de integración');
+        features.push('✅ Soporte 24/7');
       }
-
-      if (pkg.max_catalogs !== undefined && pkg.max_catalogs !== null) {
-        if (pkg.max_catalogs === 0) {
-          features.push("Catálogos PDF ilimitados");
-        } else {
-          features.push(`${pkg.max_catalogs} catálogos/mes`);
-        }
-      }
-
-      if (pkg.max_uploads) {
-        features.push(`${pkg.max_uploads} uploads/mes`);
-      }
-
-      features.push("Se renueva automáticamente");
-      features.push("Cancela cuando quieras");
+      
+      features.push('Se renueva automáticamente');
+      features.push('Cancela cuando quieras');
     } else {
       // Packs únicos
       features.push(`${pkg.credits} créditos únicos`);
-      features.push("Válidos por 12 meses");
-      features.push("Sin renovación automática");
-      features.push("Úsalos cuando quieras");
+      features.push('Válidos por 12 meses');
+      features.push('Sin renovación automática');
+      features.push('Úsalos cuando quieras');
     }
-
-    features.push("Sistema de etiquetas avanzado");
-    features.push("Inline editing completo");
-    features.push("Templates profesionales");
-    features.push("Soporte por WhatsApp");
 
     return features;
   };
@@ -406,18 +415,17 @@ const Index = () => {
               </Badge>
 
               <h1 className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold text-gray-900 mb-6 leading-tight">
-                Crea catálogos
+                Catálogos digitales con
                 <span className="bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-                  {" "}
-                  personalizados automáticamente
+                  {" "}sistema de cotización profesional
                 </span>{" "}
                 en minutos
               </h1>
 
               <p className="text-base sm:text-lg lg:text-xl text-gray-600 mb-6 sm:mb-8 leading-relaxed max-w-2xl">
-                La primera plataforma que convierte tu inventario en catálogos PDF profesionales
-                <span className="font-semibold text-purple-600"> segmentados por cliente</span>. Organiza productos con
-                etiquetas inteligentes y genera catálogos automáticos por solo $99 MXN/mes.
+                Crea catálogos web con <span className="font-semibold text-purple-600">cotización automática y analytics de ventas</span>. 
+                Organiza productos, genera catálogos por cliente, y cierra más ventas. 
+                <span className="font-semibold"> Desde $99 MXN/mes. IA opcional.</span>
               </p>
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
