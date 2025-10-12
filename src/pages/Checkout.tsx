@@ -246,14 +246,16 @@ const Checkout = () => {
         features.push('200 productos por catálogo');
         features.push('✅ Sistema de cotización incluido');
         features.push('✅ Analytics avanzadas');
-        features.push('✅ IA para quitar fondos');
+        features.push('30 créditos IA/mes incluidos');
+        features.push('➕ Compra packs extra cuando necesites más');
       } else if (planName.includes('profesional')) {
         // Plan Profesional
         features.push('30 catálogos activos');
         features.push('500 productos por catálogo');
         features.push('✅ Sistema de cotización incluido');
         features.push('✅ Analytics profesionales');
-        features.push('✅ IA para quitar fondos');
+        features.push('100 créditos IA/mes incluidos');
+        features.push('➕ Compra packs extra cuando necesites más');
         features.push('✅ Catálogos privados');
         features.push('✅ Personalización de colores');
       } else if (planName.includes('empresarial')) {
@@ -262,7 +264,8 @@ const Checkout = () => {
         features.push('♾️ Productos ilimitados');
         features.push('✅ Sistema de cotización incluido');
         features.push('✅ Analytics profesionales + API');
-        features.push('✅ IA para quitar fondos');
+        features.push('300 créditos IA/mes incluidos');
+        features.push('➕ Compra packs extra cuando necesites más');
         features.push('✅ Catálogos privados');
         features.push('✅ Personalización completa');
         features.push('✅ API de integración');
