@@ -20,6 +20,8 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { calculateAdjustedPrice } from "@/lib/utils/price-calculator";
 import { toast } from "sonner";
+import { EXPANDED_WEB_TEMPLATES } from "@/lib/web-catalog/expanded-templates-catalog";
+import { WebTemplateAdapter } from "@/lib/templates/web-css-adapter";
 
 function PublicCatalogContent() {
   const { slug } = useParams<{ slug: string }>();
@@ -228,8 +230,14 @@ function PublicCatalogContent() {
     );
   }
 
-  // Template CSS feature disponible en futuras versiones
-  const templateCSS = "";
+  // Cargar y aplicar template CSS
+  const template = catalog.web_template_id 
+    ? EXPANDED_WEB_TEMPLATES.find(t => t.id === catalog.web_template_id)
+    : null;
+  
+  const templateCSS = template 
+    ? WebTemplateAdapter.generateWebCSS(template)
+    : "";
 
   return (
     <>
