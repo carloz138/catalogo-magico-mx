@@ -70,7 +70,8 @@ export class DigitalCatalogService {
         name: catalogData.name,
         slug,
         description: catalogData.description || null,
-        template_id: catalogData.template_id || null, // ← AGREGADO
+        template_id: catalogData.template_id || null,
+        web_template_id: catalogData.web_template_id || null,
         price_display: catalogData.price_display,
         price_adjustment_menudeo: catalogData.price_adjustment_menudeo,
         price_adjustment_mayoreo: catalogData.price_adjustment_mayoreo,
@@ -80,6 +81,7 @@ export class DigitalCatalogService {
         is_private: catalogData.is_private,
         access_password: hashedPassword,
         expires_at: catalogData.expires_at || null,
+        enable_quotation: catalogData.enable_quotation || false,
       })
       .select()
       .single();
