@@ -36,69 +36,65 @@ export class WebTemplateAdapter {
         --border-color: ${colors.border};
         --border-radius: ${borderRadius};
         --grid-gap: ${gap};
-        --columns-desktop: ${config.columnsDesktop};
-        --columns-mobile: ${config.columnsMobile};
         
-        background: var(--background-color);
-        color: var(--text-color);
+        background-color: var(--background-color) !important;
+        min-height: 100vh;
       }
       
-      .catalog-public-container .product-grid {
-        display: grid;
-        grid-template-columns: repeat(var(--columns-mobile), 1fr);
-        gap: var(--grid-gap);
+      /* Grid de productos */
+      .catalog-public-container .grid {
+        gap: var(--grid-gap) !important;
       }
       
-      @media (min-width: 768px) {
-        .catalog-public-container .product-grid {
-          grid-template-columns: repeat(var(--columns-desktop), 1fr);
-        }
-      }
-      
-      .catalog-public-container .product-card {
-        background: var(--card-background);
-        border-radius: var(--border-radius);
-        border: 1px solid var(--border-color);
+      /* Cards de productos - usando el selector real del componente */
+      .catalog-public-container .catalog-product-card {
+        background: var(--card-background) !important;
+        border-radius: var(--border-radius) !important;
+        border-color: var(--border-color) !important;
         transition: all 0.3s ease;
-        ${config.cardStyle === 'elevated' ? 'box-shadow: 0 4px 6px rgba(0,0,0,0.1);' : ''}
-        ${config.cardStyle === 'outlined' ? 'border: 2px solid var(--border-color);' : ''}
+        ${config.cardStyle === 'elevated' ? 'box-shadow: 0 4px 6px rgba(0,0,0,0.1) !important;' : ''}
+        ${config.cardStyle === 'outlined' ? 'border-width: 2px !important;' : ''}
       }
       
-      .catalog-public-container .product-card:hover {
-        ${config.hoverEffect === 'lift' ? 'transform: translateY(-4px); box-shadow: 0 8px 12px rgba(0,0,0,0.15);' : ''}
-        ${config.hoverEffect === 'zoom' ? 'transform: scale(1.03);' : ''}
-        ${config.hoverEffect === 'tilt' ? 'transform: rotate(1deg) scale(1.02);' : ''}
+      .catalog-public-container .catalog-product-card:hover {
+        ${config.hoverEffect === 'lift' ? 'transform: translateY(-4px) !important; box-shadow: 0 8px 12px rgba(0,0,0,0.15) !important;' : ''}
+        ${config.hoverEffect === 'zoom' ? 'transform: scale(1.03) !important;' : ''}
+        ${config.hoverEffect === 'tilt' ? 'transform: rotate(1deg) scale(1.02) !important;' : ''}
       }
       
-      .catalog-public-container .product-name {
-        color: var(--text-color);
-        font-weight: 600;
+      /* Nombre del producto */
+      .catalog-public-container .catalog-product-name {
+        color: var(--text-color) !important;
       }
       
-      .catalog-public-container .product-price {
-        color: var(--primary-color);
-        font-weight: 700;
+      /* Precio del producto */
+      .catalog-public-container .catalog-product-price {
+        color: var(--primary-color) !important;
+        font-size: 1.5rem !important;
       }
       
-      .catalog-public-container .product-description {
-        color: var(--text-muted);
+      /* Tags */
+      .catalog-public-container .catalog-product-tag {
+        background: var(--accent-color) !important;
+        color: white !important;
+        border-radius: calc(var(--border-radius) / 2) !important;
       }
       
-      .catalog-public-container .badge {
-        background: var(--accent-color);
-        color: white;
-        border-radius: calc(var(--border-radius) / 2);
+      /* Botón agregar a cotización */
+      .catalog-public-container .catalog-add-button {
+        background: var(--primary-color) !important;
+        border-radius: var(--border-radius) !important;
+        transition: all 0.2s ease !important;
       }
       
-      .catalog-public-container button {
-        background: var(--primary-color);
-        color: white;
-        border-radius: var(--border-radius);
-        transition: all 0.2s ease;
+      .catalog-public-container .catalog-add-button:hover {
+        background: var(--secondary-color) !important;
+        transform: translateY(-2px);
       }
       
-      .catalog-public-container button:hover {
-        background: var(--secondary-color);
+      /* Textos mutados */
+      .catalog-public-container .text-muted-foreground {
+        color: var(--text-muted) !important;
       }
     `;
   }
