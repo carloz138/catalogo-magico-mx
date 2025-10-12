@@ -28,6 +28,9 @@ export interface PlanFeatures {
   
   // Productos
   maxProductsPerCatalog: number; // 0 = ilimitado
+  
+  // Analytics
+  analyticsLevel: 'none' | 'basic' | 'advanced' | 'pro';
 }
 
 // Mapeo de IDs de planes a tiers
@@ -62,7 +65,8 @@ export const PLAN_FEATURES: Record<PlanTier, PlanFeatures> = {
     canUsePrivateCatalogs: false,
     showPoweredBy: true,
     canRemoveBranding: false,
-    maxProductsPerCatalog: 50
+    maxProductsPerCatalog: 50,
+    analyticsLevel: 'none'
   },
   
   catalogs: {
@@ -71,13 +75,14 @@ export const PLAN_FEATURES: Record<PlanTier, PlanFeatures> = {
     allowedTemplateCategories: ['basic'], // 🆕 Solo básico
     canAccessAllTemplates: false,
     hasWatermark: true,
-    maxActiveCatalogs: 3,
-    hasQuotation: false,
+    maxActiveCatalogs: 1,
+    hasQuotation: true,
     canCustomizeColors: false,
     canUsePrivateCatalogs: false,
     showPoweredBy: true,
     canRemoveBranding: false,
-    maxProductsPerCatalog: 100
+    maxProductsPerCatalog: 100,
+    analyticsLevel: 'basic'
   },
   
   basic: {
@@ -86,13 +91,14 @@ export const PLAN_FEATURES: Record<PlanTier, PlanFeatures> = {
     allowedTemplateCategories: ['basic', 'standard'], // 🆕 Básico + Estándar (9 templates)
     canAccessAllTemplates: false,
     hasWatermark: false,
-    maxActiveCatalogs: 10,
-    hasQuotation: false,
+    maxActiveCatalogs: 5,
+    hasQuotation: true,
     canCustomizeColors: false,
     canUsePrivateCatalogs: false,
     showPoweredBy: false,
     canRemoveBranding: true,
-    maxProductsPerCatalog: 200
+    maxProductsPerCatalog: 200,
+    analyticsLevel: 'advanced'
   },
   
   professional: {
@@ -107,7 +113,8 @@ export const PLAN_FEATURES: Record<PlanTier, PlanFeatures> = {
     canUsePrivateCatalogs: true,
     showPoweredBy: false,
     canRemoveBranding: true,
-    maxProductsPerCatalog: 500
+    maxProductsPerCatalog: 500,
+    analyticsLevel: 'pro'
   },
   
   enterprise: {
@@ -122,7 +129,8 @@ export const PLAN_FEATURES: Record<PlanTier, PlanFeatures> = {
     canUsePrivateCatalogs: true,
     showPoweredBy: false,
     canRemoveBranding: true,
-    maxProductsPerCatalog: 0 // Ilimitado
+    maxProductsPerCatalog: 0, // Ilimitado
+    analyticsLevel: 'pro'
   }
 };
 
@@ -316,6 +324,15 @@ export function getPlanFeaturesList(tier: PlanTier) {
       value: features.showPoweredBy ? 'Incluye "Creado con..."' : 'Sin branding',
       icon: 'Award',
       enabled: !features.showPoweredBy
+    },
+    {
+      feature: 'Analytics',
+      value: features.analyticsLevel === 'none' ? 'Sin analytics' :
+             features.analyticsLevel === 'basic' ? 'Analytics básicas' :
+             features.analyticsLevel === 'advanced' ? 'Analytics avanzadas' :
+             'Analytics profesionales',
+      icon: 'BarChart',
+      enabled: features.analyticsLevel !== 'none'
     }
   ];
 }
