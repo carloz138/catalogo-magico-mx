@@ -797,9 +797,6 @@ const Index = () => {
 
                     <div className="mb-6">
                       <div className="text-2xl font-bold text-purple-600">${pkg.price_mxn / 100}</div>
-                      <div className="text-sm text-gray-500">
-                        ${Math.round(pkg.price_mxn / 100 / pkg.credits)} por crédito
-                      </div>
                     </div>
 
                     <Button
@@ -817,7 +814,6 @@ const Index = () => {
           </div>
 
           <div className="text-center mt-12 space-y-4">
-            <p className="text-gray-600">💳 Aceptamos tarjeta, OXXO, transferencia bancaria y PayPal</p>
             <p className="text-sm text-gray-500">Precios en pesos mexicanos • IVA incluido</p>
           </div>
         </div>
