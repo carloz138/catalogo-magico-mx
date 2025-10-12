@@ -225,62 +225,48 @@ const Checkout = () => {
     const features = [];
     
     if (pkg.package_type === 'monthly_plan') {
-      // Suscripciones mensuales - por nombre de plan
       const planName = pkg.name.toLowerCase();
       
       if (planName.includes('gratis') || planName.includes('free')) {
-        // Plan Gratis
         features.push('1 catálogo activo');
         features.push('50 productos por catálogo');
+        features.push('1 template básico');
         features.push('❌ Sin sistema de cotización');
         features.push('❌ Sin analytics');
+        features.push('❌ Sin procesamiento IA');
       } else if (planName.includes('catálogos') && !planName.includes('básico') && !planName.includes('basico') && !planName.includes('ia')) {
-        // Plan Catálogos
         features.push('1 catálogo activo');
         features.push('100 productos por catálogo');
+        features.push('1 template básico');
         features.push('✅ Sistema de cotización incluido');
         features.push('✅ Analytics básicas');
+        features.push('❌ Sin procesamiento IA');
       } else if (planName.includes('básico') || planName.includes('basico')) {
-        // Plan Básico
         features.push('5 catálogos activos');
         features.push('200 productos por catálogo');
+        features.push('9 templates profesionales');
         features.push('✅ Sistema de cotización incluido');
         features.push('✅ Analytics avanzadas');
-        features.push('30 créditos IA/mes incluidos');
+        features.push('➕ BONUS: 30 créditos IA/mes');
         features.push('➕ Compra packs extra cuando necesites más');
       } else if (planName.includes('profesional')) {
-        // Plan Profesional
         features.push('30 catálogos activos');
         features.push('500 productos por catálogo');
+        features.push('16 templates (todos)');
         features.push('✅ Sistema de cotización incluido');
         features.push('✅ Analytics profesionales');
-        features.push('100 créditos IA/mes incluidos');
-        features.push('➕ Compra packs extra cuando necesites más');
         features.push('✅ Catálogos privados');
-        features.push('✅ Personalización de colores');
+        features.push('➕ BONUS: 100 créditos IA/mes');
+        features.push('➕ Compra packs extra cuando necesites más');
       } else if (planName.includes('empresarial')) {
-        // Plan Empresarial
         features.push('♾️ Catálogos ilimitados');
         features.push('♾️ Productos ilimitados');
-        features.push('✅ Sistema de cotización incluido');
+        features.push('16 templates + personalización');
+        features.push('✅ Sistema de cotización empresarial');
         features.push('✅ Analytics profesionales + API');
-        features.push('300 créditos IA/mes incluidos');
-        features.push('➕ Compra packs extra cuando necesites más');
-        features.push('✅ Catálogos privados');
-        features.push('✅ Personalización completa');
         features.push('✅ API de integración');
-      } else {
-        // Fallback genérico
-        if (pkg.credits > 0) {
-          features.push(`${pkg.credits} créditos mensuales`);
-        }
-        if (pkg.max_catalogs !== undefined && pkg.max_catalogs !== null) {
-          if (pkg.max_catalogs === 0) {
-            features.push('♾️ Catálogos ilimitados');
-          } else {
-            features.push(`${pkg.max_catalogs} catálogos activos`);
-          }
-        }
+        features.push('➕ BONUS: 300 créditos IA/mes');
+        features.push('➕ Compra packs extra cuando necesites más');
       }
       
       features.push('Se renueva automáticamente');
