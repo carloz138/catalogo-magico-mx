@@ -49,12 +49,12 @@ export const EXPANDED_WEB_TEMPLATES: WebCatalogTemplate[] = [
       showWatermark: true
     },
     colorScheme: {
-      primary: '#3b82f6',
-      secondary: '#64748b',
-      accent: '#10b981',
+      primary: '#2563eb',
+      secondary: '#475569',
+      accent: '#059669',
       background: '#f8fafc',
       cardBackground: '#ffffff',
-      text: '#1e293b',
+      text: '#0f172a',
       textMuted: '#64748b',
       border: '#e2e8f0'
     },
@@ -108,14 +108,14 @@ export const EXPANDED_WEB_TEMPLATES: WebCatalogTemplate[] = [
       showWatermark: false
     },
     colorScheme: {
-      primary: '#ffc107',
-      secondary: '#ffb300',
-      accent: '#ff9800',
+      primary: '#6366f1',
+      secondary: '#8b5cf6',
+      accent: '#ec4899',
       background: '#ffffff',
-      cardBackground: '#ffffff',
-      text: '#212121',
-      textMuted: '#757575',
-      border: '#e0e0e0'
+      cardBackground: '#fafafa',
+      text: '#0f172a',
+      textMuted: '#64748b',
+      border: '#e5e7eb'
     },
     popularity: 90,
     tags: ['simple', 'clean', 'rápido']
@@ -162,14 +162,14 @@ export const EXPANDED_WEB_TEMPLATES: WebCatalogTemplate[] = [
       showWatermark: false
     },
     colorScheme: {
-      primary: '#2d3436',
-      secondary: '#636e72',
-      accent: '#00b894',
-      background: '#f5f6fa',
+      primary: '#0f172a',
+      secondary: '#475569',
+      accent: '#06b6d4',
+      background: '#f8fafc',
       cardBackground: '#ffffff',
-      text: '#2d3436',
-      textMuted: '#636e72',
-      border: '#dfe6e9'
+      text: '#0f172a',
+      textMuted: '#64748b',
+      border: '#e2e8f0'
     },
     popularity: 88,
     tags: ['moda', 'elegante', 'asimétrico']
@@ -216,14 +216,14 @@ export const EXPANDED_WEB_TEMPLATES: WebCatalogTemplate[] = [
       showWatermark: false
     },
     colorScheme: {
-      primary: '#d4845c',
-      secondary: '#e8b196',
-      accent: '#f4a261',
-      background: '#ffe8d6',
+      primary: '#ea580c',
+      secondary: '#f97316',
+      accent: '#fb923c',
+      background: '#fff7ed',
       cardBackground: '#ffffff',
-      text: '#264653',
-      textMuted: '#7d8491',
-      border: '#ddbea9'
+      text: '#1c1917',
+      textMuted: '#78716c',
+      border: '#fed7aa'
     },
     popularity: 86,
     tags: ['sidebar', 'warm', 'detail']
@@ -270,14 +270,14 @@ export const EXPANDED_WEB_TEMPLATES: WebCatalogTemplate[] = [
       showWatermark: false
     },
     colorScheme: {
-      primary: '#2196f3',
-      secondary: '#64b5f6',
-      accent: '#1976d2',
-      background: '#e3f2fd',
+      primary: '#0284c7',
+      secondary: '#0ea5e9',
+      accent: '#06b6d4',
+      background: '#f0f9ff',
       cardBackground: '#ffffff',
-      text: '#0d47a1',
-      textMuted: '#546e7a',
-      border: '#90caf9'
+      text: '#0c4a6e',
+      textMuted: '#64748b',
+      border: '#bae6fd'
     },
     popularity: 82,
     tags: ['tech', 'blue', 'profesional']
@@ -324,14 +324,14 @@ export const EXPANDED_WEB_TEMPLATES: WebCatalogTemplate[] = [
       showWatermark: false
     },
     colorScheme: {
-      primary: '#ff6b6b',
-      secondary: '#4ecdc4',
-      accent: '#ffe66d',
-      background: '#f8f9fa',
+      primary: '#8b5cf6',
+      secondary: '#a78bfa',
+      accent: '#c084fc',
+      background: '#faf5ff',
       cardBackground: '#ffffff',
-      text: '#2d3436',
-      textMuted: '#636e72',
-      border: '#dfe6e9'
+      text: '#1e1b4b',
+      textMuted: '#6b7280',
+      border: '#e9d5ff'
     },
     popularity: 84,
     tags: ['colorful', 'fun', 'categories']
@@ -378,17 +378,17 @@ export const EXPANDED_WEB_TEMPLATES: WebCatalogTemplate[] = [
       showWatermark: false
     },
     colorScheme: {
-      primary: '#405de6',
-      secondary: '#833ab4',
-      accent: '#fd1d1d',
-      background: '#fafafa',
+      primary: '#db2777',
+      secondary: '#ec4899',
+      accent: '#f472b6',
+      background: '#fdf2f8',
       cardBackground: '#ffffff',
-      text: '#262626',
-      textMuted: '#8e8e8e',
-      border: '#dbdbdb',
+      text: '#1f2937',
+      textMuted: '#6b7280',
+      border: '#fbcfe8',
       gradient: {
-        from: '#833ab4',
-        to: '#fd1d1d',
+        from: '#ec4899',
+        to: '#f472b6',
         direction: 'to-r'
       }
     },
@@ -437,14 +437,14 @@ export const EXPANDED_WEB_TEMPLATES: WebCatalogTemplate[] = [
       showWatermark: false
     },
     colorScheme: {
-      primary: '#8b7355',
-      secondary: '#a0826d',
-      accent: '#c9a66b',
-      background: '#f5ebe0',
-      cardBackground: '#fefefe',
-      text: '#3e2723',
-      textMuted: '#6d4c41',
-      border: '#d7ccc8'
+      primary: '#78716c',
+      secondary: '#a8a29e',
+      accent: '#d6d3d1',
+      background: '#fafaf9',
+      cardBackground: '#ffffff',
+      text: '#1c1917',
+      textMuted: '#57534e',
+      border: '#e7e5e4'
     },
     popularity: 73,
     tags: ['vintage', 'polaroid', 'creative']
@@ -490,17 +490,17 @@ export const EXPANDED_WEB_TEMPLATES: WebCatalogTemplate[] = [
       showWatermark: false
     },
     colorScheme: {
-      primary: '#ec4899',
-      secondary: '#8b5cf6',
-      accent: '#f59e0b',
-      background: '#fef3c7',
+      primary: '#dc2626',
+      secondary: '#ef4444',
+      accent: '#f87171',
+      background: '#fef2f2',
       cardBackground: '#ffffff',
       text: '#1f2937',
       textMuted: '#6b7280',
-      border: '#fbbf24',
+      border: '#fecaca',
       gradient: {
-        from: '#fef3c7',
-        to: '#fed7aa',
+        from: '#fee2e2',
+        to: '#fecaca',
         direction: 'to-br'
       }
     },
@@ -559,17 +559,17 @@ export const EXPANDED_WEB_TEMPLATES: WebCatalogTemplate[] = [
       showWatermark: false
     },
     colorScheme: {
-      primary: '#ffffff',
-      secondary: '#a8a8a8',
-      accent: '#ffd700',
-      background: '#1a1a1a',
-      cardBackground: 'rgba(255, 255, 255, 0.05)',
-      text: '#ffffff',
-      textMuted: '#a8a8a8',
-      border: 'rgba(255, 255, 255, 0.1)',
+      primary: '#f8fafc',
+      secondary: '#94a3b8',
+      accent: '#fbbf24',
+      background: '#0f172a',
+      cardBackground: 'rgba(248, 250, 252, 0.05)',
+      text: '#f8fafc',
+      textMuted: '#94a3b8',
+      border: 'rgba(248, 250, 252, 0.1)',
       gradient: {
-        from: '#2d2d2d',
-        to: '#1a1a1a',
+        from: '#1e293b',
+        to: '#0f172a',
         direction: 'to-br'
       }
     },
@@ -624,17 +624,17 @@ export const EXPANDED_WEB_TEMPLATES: WebCatalogTemplate[] = [
       showWatermark: false
     },
     colorScheme: {
-      primary: '#d4af37',
-      secondary: '#b8860b',
-      accent: '#ffd700',
-      background: '#1a1a1a',
-      cardBackground: 'rgba(255, 255, 255, 0.05)',
-      text: '#ffffff',
-      textMuted: '#a8a8a8',
-      border: 'rgba(212, 175, 55, 0.3)',
+      primary: '#fbbf24',
+      secondary: '#f59e0b',
+      accent: '#fde047',
+      background: '#0f172a',
+      cardBackground: 'rgba(251, 191, 36, 0.05)',
+      text: '#f8fafc',
+      textMuted: '#94a3b8',
+      border: 'rgba(251, 191, 36, 0.2)',
       gradient: {
-        from: '#2d2d2d',
-        to: '#1a1a1a',
+        from: '#1e293b',
+        to: '#0f172a',
         direction: 'to-b'
       }
     },
@@ -689,14 +689,14 @@ export const EXPANDED_WEB_TEMPLATES: WebCatalogTemplate[] = [
       showWatermark: false
     },
     colorScheme: {
-      primary: '#1e88e5',
-      secondary: '#64b5f6',
-      accent: '#ffa726',
-      background: '#fafafa',
+      primary: '#3b82f6',
+      secondary: '#60a5fa',
+      accent: '#93c5fd',
+      background: '#f8fafc',
       cardBackground: '#ffffff',
-      text: '#212121',
-      textMuted: '#757575',
-      border: '#e0e0e0'
+      text: '#0f172a',
+      textMuted: '#64748b',
+      border: '#e2e8f0'
     },
     popularity: 76,
     tags: ['compact', 'dense', 'professional', 'seasonal']
@@ -749,14 +749,14 @@ export const EXPANDED_WEB_TEMPLATES: WebCatalogTemplate[] = [
       customFonts: ['Playfair Display', 'Montserrat']
     },
     colorScheme: {
-      primary: '#000000',
-      secondary: '#dc143c',
-      accent: '#ffd700',
+      primary: '#0f172a',
+      secondary: '#dc2626',
+      accent: '#fbbf24',
       background: '#ffffff',
-      cardBackground: '#ffffff',
-      text: '#000000',
-      textMuted: '#666666',
-      border: '#000000'
+      cardBackground: '#f8fafc',
+      text: '#0f172a',
+      textMuted: '#64748b',
+      border: '#e2e8f0'
     },
     popularity: 81,
     isNew: true,
@@ -809,17 +809,17 @@ export const EXPANDED_WEB_TEMPLATES: WebCatalogTemplate[] = [
       showWatermark: false
     },
     colorScheme: {
-      primary: '#007aff',
-      secondary: '#5856d6',
-      accent: '#ff2d55',
-      background: '#f2f2f7',
-      cardBackground: 'rgba(255, 255, 255, 0.7)',
-      text: '#000000',
-      textMuted: '#8e8e93',
-      border: 'rgba(0, 0, 0, 0.1)',
+      primary: '#0ea5e9',
+      secondary: '#6366f1',
+      accent: '#ec4899',
+      background: '#f8fafc',
+      cardBackground: 'rgba(255, 255, 255, 0.8)',
+      text: '#0f172a',
+      textMuted: '#64748b',
+      border: 'rgba(15, 23, 42, 0.1)',
       gradient: {
-        from: '#f2f2f7',
-        to: '#e5e5ea',
+        from: '#f8fafc',
+        to: '#f1f5f9',
         direction: 'to-br'
       }
     },
@@ -874,14 +874,14 @@ export const EXPANDED_WEB_TEMPLATES: WebCatalogTemplate[] = [
       showWatermark: false
     },
     colorScheme: {
-      primary: '#e50914',
-      secondary: '#831010',
-      accent: '#f5f5f1',
-      background: '#141414',
-      cardBackground: '#1f1f1f',
-      text: '#ffffff',
-      textMuted: '#b3b3b3',
-      border: '#2f2f2f'
+      primary: '#dc2626',
+      secondary: '#991b1b',
+      accent: '#fbbf24',
+      background: '#0f172a',
+      cardBackground: '#1e293b',
+      text: '#f8fafc',
+      textMuted: '#94a3b8',
+      border: '#334155'
     },
     popularity: 89,
     isNew: true,
@@ -934,17 +934,17 @@ export const EXPANDED_WEB_TEMPLATES: WebCatalogTemplate[] = [
       showWatermark: false
     },
     colorScheme: {
-      primary: '#000000',
-      secondary: '#d4af37',
-      accent: '#fbbf24',
-      background: '#0a0a0a',
-      cardBackground: '#1a1a1a',
-      text: '#ffffff',
-      textMuted: '#a3a3a3',
-      border: '#262626',
+      primary: '#0f172a',
+      secondary: '#fbbf24',
+      accent: '#f59e0b',
+      background: '#000000',
+      cardBackground: '#0f172a',
+      text: '#f8fafc',
+      textMuted: '#94a3b8',
+      border: '#1e293b',
       gradient: {
-        from: '#1e1e1e',
-        to: '#0a0a0a',
+        from: '#0f172a',
+        to: '#000000',
         direction: 'to-b'
       }
     },
