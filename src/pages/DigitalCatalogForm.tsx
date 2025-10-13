@@ -723,6 +723,7 @@ export default function DigitalCatalogForm() {
               <CatalogFormPreview
                 name={watchedValues.name}
                 description={watchedValues.description}
+                webTemplateId={form.watch('web_template_id')}
                 products={selectedProducts}
                 priceConfig={{
                   display: watchedValues.price_display,

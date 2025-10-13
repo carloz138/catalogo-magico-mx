@@ -1,8 +1,11 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Eye } from "lucide-react";
+import { Eye, Monitor, Tablet, Smartphone } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { calculateAdjustedPrice, formatPrice } from "@/lib/utils/price-calculator";
-import { getTemplateById } from "@/lib/templates/industry-templates";
+import { EXPANDED_WEB_TEMPLATES } from "@/lib/web-catalog/expanded-templates-catalog";
+import { useState } from "react";
+import { cn } from "@/lib/utils";
 
 interface Product {
   id: string;
@@ -31,7 +34,7 @@ interface VisibilityConfig {
 interface CatalogFormPreviewProps {
   name: string;
   description?: string;
-  templateId?: string; // ← AGREGADO
+  webTemplateId?: string;
   products: Product[];
   priceConfig: PriceConfig;
   visibilityConfig: VisibilityConfig;
@@ -40,27 +43,50 @@ interface CatalogFormPreviewProps {
 export function CatalogFormPreview({
   name,
   description,
-  templateId, // ← AGREGADO
+  webTemplateId,
   products,
   priceConfig,
   visibilityConfig,
 }: CatalogFormPreviewProps) {
+  const [viewMode, setViewMode] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
   const displayProducts = products.slice(0, 6);
 
-  // ← OBTENER TEMPLATE
-  const template = templateId ? getTemplateById(templateId) : null;
+  // Obtener template web
+  const template = webTemplateId 
+    ? EXPANDED_WEB_TEMPLATES.find(t => t.id === webTemplateId)
+    : null;
 
-  // ← GENERAR ESTILOS DINÁMICOS
+  // Generar estilos dinámicos del template
   const previewStyles = template
     ? ({
-        "--preview-primary": template.colors.primary,
-        "--preview-secondary": template.colors.secondary,
-        "--preview-accent": template.colors.accent,
-        "--preview-background": template.colors.background,
-        "--preview-card-bg": template.colors.cardBackground || "#ffffff",
-        "--preview-border-radius": `${template.design?.borderRadius || 8}px`,
+        "--preview-primary": template.colorScheme.primary,
+        "--preview-secondary": template.colorScheme.secondary,
+        "--preview-accent": template.colorScheme.accent,
+        "--preview-background": template.colorScheme.background,
+        "--preview-card-bg": template.colorScheme.cardBackground,
+        "--preview-text": template.colorScheme.text,
+        "--preview-border": template.colorScheme.border,
+        "--preview-border-radius": template.config.cardRadius === 'none' ? '0px' : 
+                                   template.config.cardRadius === 'sm' ? '4px' :
+                                   template.config.cardRadius === 'md' ? '8px' :
+                                   template.config.cardRadius === 'lg' ? '12px' : '16px',
       } as React.CSSProperties)
     : {};
+
+  const getGridColumns = () => {
+    if (!template) return 'grid-cols-2';
+    
+    switch (viewMode) {
+      case 'mobile':
+        return template.config.columnsMobile === 1 ? 'grid-cols-1' : 'grid-cols-2';
+      case 'tablet':
+        return 'grid-cols-2';
+      case 'desktop':
+        return template.config.columnsDesktop === 2 ? 'grid-cols-2' :
+               template.config.columnsDesktop === 3 ? 'grid-cols-3' :
+               template.config.columnsDesktop === 4 ? 'grid-cols-2' : 'grid-cols-2';
+    }
+  };
 
   const getPriceDisplay = (product: Product) => {
     const { display, adjustmentMenudeo, adjustmentMayoreo } = priceConfig;
@@ -90,41 +116,92 @@ export function CatalogFormPreview({
   return (
     <Card className="sticky top-8">
       <CardHeader>
-        <div className="flex items-center gap-2">
-          <Eye className="h-5 w-5" />
-          <CardTitle>Vista Previa</CardTitle>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Eye className="h-5 w-5" />
+            <CardTitle>Vista Previa</CardTitle>
+          </div>
+          
+          {/* Selector de vista */}
+          <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
+            <Button
+              variant={viewMode === 'desktop' ? 'secondary' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('desktop')}
+              className="h-7 w-7 p-0"
+            >
+              <Monitor className="h-3.5 w-3.5" />
+            </Button>
+            <Button
+              variant={viewMode === 'tablet' ? 'secondary' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('tablet')}
+              className="h-7 w-7 p-0"
+            >
+              <Tablet className="h-3.5 w-3.5" />
+            </Button>
+            <Button
+              variant={viewMode === 'mobile' ? 'secondary' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('mobile')}
+              className="h-7 w-7 p-0"
+            >
+              <Smartphone className="h-3.5 w-3.5" />
+            </Button>
+          </div>
         </div>
-        <CardDescription className="flex items-center gap-2">
-          Así se verá tu catálogo para los clientes
-          {template && (
-            <Badge variant="outline" className="ml-2">
-              {template.displayName}
-            </Badge>
+        
+        <CardDescription>
+          {template ? (
+            <div className="flex items-center gap-2 flex-wrap">
+              <span>Previsualizando:</span>
+              <Badge variant="outline">{template.name}</Badge>
+              <Badge variant="secondary" className="text-xs">
+                {template.layout} • {template.style}
+              </Badge>
+            </div>
+          ) : (
+            'Selecciona un template para ver el preview'
           )}
         </CardDescription>
       </CardHeader>
-      <CardContent style={previewStyles}>
-        {/* ← CSS ESPECÍFICO DEL PREVIEW */}
+      <CardContent style={previewStyles} className={cn(
+        'transition-all',
+        viewMode === 'mobile' && 'max-w-[375px] mx-auto',
+        viewMode === 'tablet' && 'max-w-[600px] mx-auto'
+      )}>
+        {/* CSS específico del preview */}
         <style>{`
-          .preview-header {
-            background: linear-gradient(135deg, var(--preview-primary, #3B82F6), var(--preview-secondary, #2563EB));
-            color: white;
-            padding: 1rem;
+          .preview-container {
+            background: var(--preview-background, #f8fafc);
             border-radius: var(--preview-border-radius, 8px);
-            margin-bottom: 1.5rem;
+            overflow: hidden;
+          }
+          
+          .preview-header {
+            background: ${template?.colorScheme.gradient 
+              ? `linear-gradient(135deg, ${template.colorScheme.gradient.from}, ${template.colorScheme.gradient.to})`
+              : `linear-gradient(135deg, var(--preview-primary, #3B82F6), var(--preview-secondary, #2563EB))`
+            };
+            color: white;
+            padding: 1.5rem 1rem;
+            text-align: center;
           }
           
           .preview-product-card {
             background: var(--preview-card-bg, #ffffff);
-            border: 1px solid color-mix(in srgb, var(--preview-accent, #94A3B8) 40%, transparent);
+            border: 1px solid var(--preview-border, #e2e8f0);
             border-radius: var(--preview-border-radius, 8px);
             overflow: hidden;
             transition: transform 0.2s, box-shadow 0.2s;
+            ${template?.config.cardStyle === 'elevated' ? 'box-shadow: 0 2px 8px rgba(0,0,0,0.08);' : ''}
+            ${template?.config.cardStyle === 'glass' ? 'backdrop-filter: blur(10px); background: rgba(255,255,255,0.9);' : ''}
           }
           
           .preview-product-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            ${template?.config.hoverEffect === 'lift' ? 'transform: translateY(-4px);' : ''}
+            ${template?.config.hoverEffect === 'zoom' ? 'transform: scale(1.02);' : ''}
+            ${template?.config.hoverEffect === 'glow' ? 'box-shadow: 0 4px 20px rgba(var(--preview-primary), 0.3);' : ''}
           }
           
           .preview-product-name {
@@ -133,81 +210,117 @@ export function CatalogFormPreview({
           }
           
           .preview-price-badge {
-            background: linear-gradient(135deg, var(--preview-secondary, #2563EB), var(--preview-primary, #3B82F6));
+            background: var(--preview-primary, #3B82F6);
             color: white;
             padding: 0.375rem 0.75rem;
             border-radius: calc(var(--preview-border-radius, 8px) / 2);
             font-weight: 700;
             display: inline-block;
-            font-size: 1.125rem;
-            line-height: 1.75rem;
+            font-size: 1rem;
           }
           
           .preview-tag {
-            background: color-mix(in srgb, var(--preview-accent, #94A3B8) 20%, transparent);
-            color: var(--preview-accent, #475569);
+            background: var(--preview-accent, #94A3B8);
+            color: white;
             padding: 0.125rem 0.5rem;
             border-radius: 0.25rem;
             font-size: 0.75rem;
-            font-weight: 600;
+            font-weight: 500;
           }
         `}</style>
 
-        {/* Header del catálogo */}
-        <div className="preview-header">
-          <h2 className="text-2xl font-bold mb-2">{name || "Nombre del catálogo"}</h2>
-          {description && <p className="text-sm opacity-90">{description}</p>}
-        </div>
-
-        {/* Grid de productos */}
-        {displayProducts.length === 0 ? (
-          <div className="text-center py-12 text-muted-foreground">
-            <p>Selecciona productos para ver el preview</p>
+        <div className="preview-container">
+          {/* Header del catálogo */}
+          <div className="preview-header">
+            <h2 className={cn(
+              "font-bold mb-2",
+              viewMode === 'mobile' ? 'text-xl' : 'text-2xl'
+            )}>
+              {name || "Nombre del catálogo"}
+            </h2>
+            {description && (
+              <p className={cn(
+                "opacity-90",
+                viewMode === 'mobile' ? 'text-xs' : 'text-sm'
+              )}>
+                {description}
+              </p>
+            )}
           </div>
-        ) : (
-          <div className="grid grid-cols-2 gap-4">
-            {displayProducts.map((product) => {
-              const imageUrl = product.processed_image_url || product.image_url;
 
-              return (
-                <div key={product.id} className="preview-product-card">
-                  <img src={imageUrl} alt={product.name} className="w-full aspect-square object-cover" />
-                  <div className="p-3 space-y-2">
-                    <h3 className="preview-product-name text-sm line-clamp-2">{product.name}</h3>
+          {/* Grid de productos */}
+          {displayProducts.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground bg-muted/50">
+              <Eye className="h-12 w-12 mx-auto mb-3 opacity-50" />
+              <p className="text-sm">Selecciona productos para ver el preview</p>
+            </div>
+          ) : (
+            <div className={cn(
+              'grid gap-4 p-4',
+              getGridColumns()
+            )}>
+              {displayProducts.map((product) => {
+                const imageUrl = product.processed_image_url || product.image_url;
+                const imageRatio = template?.config.imageRatio || 'square';
 
-                    {visibilityConfig.showSku && product.sku && (
-                      <Badge variant="outline" className="text-xs">
-                        {product.sku}
-                      </Badge>
-                    )}
+                return (
+                  <div key={product.id} className="preview-product-card">
+                    <img 
+                      src={imageUrl} 
+                      alt={product.name} 
+                      className={cn(
+                        'w-full object-cover',
+                        imageRatio === 'square' && 'aspect-square',
+                        imageRatio === 'portrait' && 'aspect-[3/4]',
+                        imageRatio === 'landscape' && 'aspect-video',
+                        imageRatio === 'auto' && 'aspect-square'
+                      )}
+                    />
+                    <div className={cn(
+                      'space-y-2',
+                      viewMode === 'mobile' ? 'p-2' : 'p-3'
+                    )}>
+                      <h3 className={cn(
+                        'preview-product-name line-clamp-2',
+                        viewMode === 'mobile' ? 'text-xs' : 'text-sm'
+                      )}>
+                        {product.name}
+                      </h3>
 
-                    {visibilityConfig.showDescription && product.description && (
-                      <p className="text-xs text-muted-foreground line-clamp-2">{product.description}</p>
-                    )}
+                      {visibilityConfig.showSku && product.sku && (
+                        <Badge variant="outline" className="text-xs">
+                          {product.sku}
+                        </Badge>
+                      )}
 
-                    {visibilityConfig.showTags && product.tags && product.tags.length > 0 && (
-                      <div className="flex flex-wrap gap-1">
-                        {product.tags.slice(0, 2).map((tag, i) => (
-                          <span key={i} className="preview-tag">
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
-                    )}
+                      {visibilityConfig.showDescription && product.description && viewMode !== 'mobile' && (
+                        <p className="text-xs text-muted-foreground line-clamp-2">{product.description}</p>
+                      )}
 
-                    {getPriceDisplay(product)}
+                      {visibilityConfig.showTags && product.tags && product.tags.length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                          {product.tags.slice(0, 2).map((tag, i) => (
+                            <span key={i} className="preview-tag">
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+
+                      {getPriceDisplay(product)}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
+                );
+              })}
+            </div>
+          )}
 
-        {products.length > 6 && (
-          <div className="mt-4 text-center text-sm text-muted-foreground">
-            + {products.length - 6} producto{products.length - 6 !== 1 ? "s" : ""} más
-          </div>
-        )}
+          {products.length > 6 && (
+            <div className="p-4 text-center text-sm text-muted-foreground bg-muted/30">
+              + {products.length - 6} producto{products.length - 6 !== 1 ? "s" : ""} más
+            </div>
+          )}
+        </div>
       </CardContent>
     </Card>
   );
