@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { Search, CheckSquare, Square, Loader2 } from "lucide-react";
+import { Search, CheckSquare, Square, Loader2, Tag, X } from "lucide-react";
 import { formatPrice } from "@/lib/utils/price-calculator";
+import { cn } from "@/lib/utils";
 
 interface Product {
   id: string;
@@ -34,6 +35,7 @@ export function ProductSelector({ selectedIds, onChange }: ProductSelectorProps)
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
   useEffect(() => {
     if (user) {
@@ -75,14 +77,39 @@ export function ProductSelector({ selectedIds, onChange }: ProductSelectorProps)
     }
   };
 
-  const filteredProducts = useMemo(() => {
-    if (!searchQuery) return products;
+  // Obtener todas las etiquetas únicas disponibles
+  const availableTags = useMemo(() => {
+    const tagsSet = new Set<string>();
+    products.forEach((product) => {
+      if (product.tags && Array.isArray(product.tags)) {
+        product.tags.forEach((tag) => tagsSet.add(tag));
+      }
+    });
+    return Array.from(tagsSet).sort();
+  }, [products]);
 
-    const query = searchQuery.toLowerCase();
-    return products.filter(
-      (p) => p.name.toLowerCase().includes(query) || (p.sku && p.sku.toLowerCase().includes(query)),
-    );
-  }, [products, searchQuery]);
+  const filteredProducts = useMemo(() => {
+    let filtered = products;
+
+    // Filtrar por búsqueda de texto
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(
+        (p) => p.name.toLowerCase().includes(query) || (p.sku && p.sku.toLowerCase().includes(query)),
+      );
+    }
+
+    // Filtrar por etiquetas seleccionadas
+    if (selectedTags.length > 0) {
+      filtered = filtered.filter((p) => {
+        if (!p.tags || !Array.isArray(p.tags)) return false;
+        // El producto debe tener al menos una de las etiquetas seleccionadas
+        return selectedTags.some((tag) => p.tags!.includes(tag));
+      });
+    }
+
+    return filtered;
+  }, [products, searchQuery, selectedTags]);
 
   const sortedProducts = useMemo(() => {
     // Productos seleccionados primero
@@ -126,6 +153,17 @@ export function ProductSelector({ selectedIds, onChange }: ProductSelectorProps)
   const handleDeselectAll = useCallback(() => {
     onChange([], []);
   }, [onChange]);
+
+  const handleToggleTag = useCallback((tag: string) => {
+    setSelectedTags((prev) =>
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+    );
+  }, []);
+
+  const handleClearFilters = useCallback(() => {
+    setSearchQuery("");
+    setSelectedTags([]);
+  }, []);
 
   if (loading) {
     return (
@@ -177,13 +215,55 @@ export function ProductSelector({ selectedIds, onChange }: ProductSelectorProps)
         </Button>
       </div>
 
+      {/* Filtros por etiquetas */}
+      {availableTags.length > 0 && (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Tag className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-medium">Filtrar por etiquetas</span>
+            </div>
+            {(searchQuery || selectedTags.length > 0) && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={handleClearFilters}
+                className="h-7 text-xs"
+              >
+                <X className="h-3 w-3 mr-1" />
+                Limpiar filtros
+              </Button>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {availableTags.map((tag) => {
+              const isSelected = selectedTags.includes(tag);
+              return (
+                <Badge
+                  key={tag}
+                  variant={isSelected ? "default" : "outline"}
+                  className={cn(
+                    "cursor-pointer transition-colors",
+                    isSelected ? "bg-primary text-primary-foreground" : "hover:bg-accent"
+                  )}
+                  onClick={() => handleToggleTag(tag)}
+                >
+                  {tag}
+                </Badge>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Contador */}
       <div className="flex items-center justify-between text-sm">
         <span className="text-muted-foreground">
           {selectedIds.length} producto{selectedIds.length !== 1 ? "s" : ""} seleccionado
           {selectedIds.length !== 1 ? "s" : ""}
         </span>
-        {searchQuery && (
+        {(searchQuery || selectedTags.length > 0) && (
           <span className="text-muted-foreground">
             {filteredProducts.length} resultado{filteredProducts.length !== 1 ? "s" : ""}
           </span>
@@ -228,7 +308,7 @@ export function ProductSelector({ selectedIds, onChange }: ProductSelectorProps)
 
                   <div className="flex-1 min-w-0 pointer-events-none">
                     <p className="font-medium truncate">{product.name}</p>
-                    <div className="flex items-center gap-2 mt-1">
+                    <div className="flex items-center gap-2 mt-1 flex-wrap">
                       {product.sku && (
                         <Badge variant="outline" className="text-xs">
                           {product.sku}
@@ -236,6 +316,20 @@ export function ProductSelector({ selectedIds, onChange }: ProductSelectorProps)
                       )}
                       <span className="text-sm text-muted-foreground">{formatPrice(product.price_retail / 100)}</span>
                     </div>
+                    {product.tags && product.tags.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-1.5">
+                        {product.tags.slice(0, 3).map((tag, i) => (
+                          <Badge key={i} variant="secondary" className="text-[10px] py-0 px-1.5">
+                            {tag}
+                          </Badge>
+                        ))}
+                        {product.tags.length > 3 && (
+                          <Badge variant="secondary" className="text-[10px] py-0 px-1.5">
+                            +{product.tags.length - 3}
+                          </Badge>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </label>
               );
