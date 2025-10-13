@@ -66,12 +66,17 @@ export function PublicProductCard({ product, priceConfig, visibilityConfig, onAd
         )}
         
         {visibilityConfig.showTags && product.tags && product.tags.length > 0 && (
-          <div className="flex flex-wrap gap-1">
+          <div className="flex flex-wrap gap-1.5">
             {product.tags.slice(0, 3).map((tag) => (
-              <span key={tag} className="catalog-product-tag text-xs px-2 py-1 bg-secondary rounded-full">
+              <span key={tag} className="catalog-product-tag text-xs px-2.5 py-1 rounded-full font-medium">
                 {tag}
               </span>
             ))}
+            {product.tags.length > 3 && (
+              <span className="catalog-product-tag text-xs px-2.5 py-1 rounded-full font-medium">
+                +{product.tags.length - 3}
+              </span>
+            )}
           </div>
         )}
         
