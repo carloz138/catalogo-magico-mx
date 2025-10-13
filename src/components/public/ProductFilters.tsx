@@ -85,14 +85,14 @@ export default function ProductFilters({
               <Slider
                 min={minPrice}
                 max={maxPrice}
-                step={1}
+                step={0.01}
                 value={priceRange}
                 onValueChange={(value) => onPriceRangeChange(value as [number, number])}
                 className="mb-4"
               />
               <div className="flex items-center justify-between text-sm text-muted-foreground">
-                <span>${priceRange[0].toFixed(2)}</span>
-                <span>${priceRange[1].toFixed(2)}</span>
+                <span>${priceRange[0].toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                <span>${priceRange[1].toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               </div>
             </div>
           </div>

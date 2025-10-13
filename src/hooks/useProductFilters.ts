@@ -18,14 +18,14 @@ export function useProductFilters(
 ) {
   const { priceField = 'price_retail' } = options;
 
-  // Calculate min and max prices
+  // Calculate min and max prices (converting from cents to currency)
   const { minPrice, maxPrice } = useMemo(() => {
     if (products.length === 0) {
       return { minPrice: 0, maxPrice: 100 };
     }
 
     const prices = products
-      .map((p) => p[priceField] || 0)
+      .map((p) => (p[priceField] || 0) / 100)
       .filter((p) => p > 0);
 
     if (prices.length === 0) {
@@ -58,8 +58,8 @@ export function useProductFilters(
         if (!hasMatchingTag) return false;
       }
 
-      // Filter by price range
-      const price = product[priceField] || 0;
+      // Filter by price range (converting from cents to currency)
+      const price = (product[priceField] || 0) / 100;
       if (price < priceRange[0] || price > priceRange[1]) {
         return false;
       }
