@@ -322,44 +322,48 @@ function PublicCatalogContent() {
                     showTags: catalog.show_tags,
                     showDescription: catalog.show_description,
                   }}
-                  onAddToQuote={handleAddToQuote}
+                  onAddToQuote={catalog.enable_quotation ? handleAddToQuote : undefined}
                 />
               )}
             </main>
           </div>
         </div>
         
-        <AddToQuoteModal
-          product={selectedProduct}
-          priceConfig={{
-            display: catalog.price_display,
-            adjustmentMenudeo: catalog.price_adjustment_menudeo,
-            adjustmentMayoreo: catalog.price_adjustment_mayoreo,
-          }}
-          isOpen={isAddModalOpen}
-          onClose={() => {
-            setIsAddModalOpen(false);
-            setSelectedProduct(null);
-          }}
-          onAdd={handleAddFromModal}
-        />
-        
-        <QuoteCartBadge onClick={() => setIsCartOpen(true)} />
-        
-        <QuoteCartModal
-          isOpen={isCartOpen}
-          onClose={() => setIsCartOpen(false)}
-          onRequestQuote={handleRequestQuote}
-        />
-        
-        <QuoteForm
-          catalogId={catalog.id}
-          items={items}
-          totalAmount={totalAmount}
-          isOpen={isQuoteFormOpen}
-          onClose={() => setIsQuoteFormOpen(false)}
-          onSuccess={handleQuoteSuccess}
-        />
+        {catalog.enable_quotation && (
+          <>
+            <AddToQuoteModal
+              product={selectedProduct}
+              priceConfig={{
+                display: catalog.price_display,
+                adjustmentMenudeo: catalog.price_adjustment_menudeo,
+                adjustmentMayoreo: catalog.price_adjustment_mayoreo,
+              }}
+              isOpen={isAddModalOpen}
+              onClose={() => {
+                setIsAddModalOpen(false);
+                setSelectedProduct(null);
+              }}
+              onAdd={handleAddFromModal}
+            />
+            
+            <QuoteCartBadge onClick={() => setIsCartOpen(true)} />
+            
+            <QuoteCartModal
+              isOpen={isCartOpen}
+              onClose={() => setIsCartOpen(false)}
+              onRequestQuote={handleRequestQuote}
+            />
+            
+            <QuoteForm
+              catalogId={catalog.id}
+              items={items}
+              totalAmount={totalAmount}
+              isOpen={isQuoteFormOpen}
+              onClose={() => setIsQuoteFormOpen(false)}
+              onSuccess={handleQuoteSuccess}
+            />
+          </>
+        )}
       </div>
     </>
   );

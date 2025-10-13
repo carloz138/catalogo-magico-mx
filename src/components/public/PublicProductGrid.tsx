@@ -7,7 +7,7 @@ interface Props {
   products: any[];
   priceConfig: any;
   visibilityConfig: any;
-  onAddToQuote: (product: any) => void;
+  onAddToQuote?: (product: any) => void;
 }
 
 const PRODUCTS_PER_PAGE = 12;
@@ -33,7 +33,7 @@ export function PublicProductGrid({ products, priceConfig, visibilityConfig, onA
             product={product}
             priceConfig={priceConfig}
             visibilityConfig={visibilityConfig}
-            onAddToQuote={() => onAddToQuote(product)}
+            onAddToQuote={onAddToQuote ? () => onAddToQuote(product) : undefined}
           />
         ))}
       </div>

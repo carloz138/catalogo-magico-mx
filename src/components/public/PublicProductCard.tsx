@@ -27,7 +27,7 @@ interface Props {
     showTags: boolean;
     showDescription: boolean;
   };
-  onAddToQuote: () => void;
+  onAddToQuote?: () => void;
 }
 
 export function PublicProductCard({ product, priceConfig, visibilityConfig, onAddToQuote }: Props) {
@@ -103,13 +103,15 @@ export function PublicProductCard({ product, priceConfig, visibilityConfig, onAd
           )}
         </div>
         
-        <Button 
-          onClick={onAddToQuote}
-          className="w-full catalog-add-button"
-        >
-          <ShoppingCart className="mr-2 h-4 w-4" />
-          Agregar a cotización
-        </Button>
+        {onAddToQuote && (
+          <Button 
+            onClick={onAddToQuote}
+            className="w-full catalog-add-button"
+          >
+            <ShoppingCart className="mr-2 h-4 w-4" />
+            Agregar a cotización
+          </Button>
+        )}
       </div>
     </div>
   );
