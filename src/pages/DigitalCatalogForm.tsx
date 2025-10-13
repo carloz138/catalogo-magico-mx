@@ -6,6 +6,7 @@ import * as z from "zod";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCatalogLimits } from "@/hooks/useCatalogLimits";
 import { useBusinessInfo } from "@/hooks/useBusinessInfo";
+import { useIsMobile } from "@/hooks/useMediaQuery";
 import { DigitalCatalogService } from "@/services/digital-catalog.service";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -19,12 +20,15 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Skeleton } from "@/components/ui/skeleton";
 import { ProductSelector } from "@/components/catalog/ProductSelector";
 import { PriceAdjustmentInput } from "@/components/catalog/PriceAdjustmentInput";
 import { CatalogFormPreview } from "@/components/catalog/CatalogFormPreview";
 import { WebTemplateSelector } from "@/components/templates/WebTemplateSelector";
 import { BackgroundPatternSelector } from "@/components/catalog/BackgroundPatternSelector";
-import { ArrowLeft, CalendarIcon, Loader2, Lock, AlertCircle, Palette } from "lucide-react";
+import { ArrowLeft, CalendarIcon, Loader2, Lock, AlertCircle, Palette, Check, ChevronRight, Package, DollarSign, Eye, Settings } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -76,6 +80,7 @@ export default function DigitalCatalogForm() {
   const { toast } = useToast();
   const { businessInfo } = useBusinessInfo();
   const { limits, loading: limitsLoading } = useCatalogLimits();
+  const isMobile = useIsMobile();
 
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -292,413 +297,892 @@ export default function DigitalCatalogForm() {
 
   if (isLoading || limitsLoading) {
     return (
-      <div className="container mx-auto py-8">
-        <div className="flex items-center justify-center min-h-[400px]">
-          <Loader2 className="h-8 w-8 animate-spin" />
+      <div className="container mx-auto py-4 md:py-8 px-4">
+        <div className="space-y-4">
+          <Skeleton className="h-10 w-32" />
+          <Skeleton className="h-8 w-64" />
+          <Skeleton className="h-4 w-full max-w-md" />
+          {[1, 2, 3].map((i) => (
+            <Card key={i}>
+              <CardHeader>
+                <Skeleton className="h-6 w-48" />
+                <Skeleton className="h-4 w-72 mt-2" />
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full mt-4" />
+              </CardContent>
+            </Card>
+          ))}
         </div>
       </div>
     );
   }
 
+  const productIds = form.watch('product_ids') || [];
+  const webTemplateId = form.watch('web_template_id');
+
   return (
-    <div className="container mx-auto py-8">
-      <div className="mb-6">
-        <Button variant="ghost" onClick={() => navigate("/catalogs")} className="mb-4">
+    <div className="container mx-auto py-4 md:py-8 px-4">
+      {/* Header Responsive */}
+      <div className="mb-4 md:mb-6">
+        <Button 
+          variant="ghost" 
+          size={isMobile ? "sm" : "default"}
+          onClick={() => navigate("/catalogs")} 
+          className="mb-3 md:mb-4 -ml-2"
+        >
           <ArrowLeft className="mr-2 h-4 w-4" />
-          Volver a catálogos
+          {isMobile ? "Volver" : "Volver a catálogos"}
         </Button>
 
-        <h1 className="text-3xl font-bold">{isEditing ? "Editar Catálogo" : "Crear Catálogo Digital"}</h1>
-        <p className="text-muted-foreground mt-2">
-          {isEditing ? "Actualiza la configuración de tu catálogo" : "Configura y publica tu catálogo de productos"}
-        </p>
+        <h1 className="text-2xl md:text-3xl font-bold">
+          {isEditing ? "Editar Catálogo" : "Crear Catálogo Digital"}
+        </h1>
+        {!isMobile && (
+          <p className="text-muted-foreground mt-2">
+            {isEditing ? "Actualiza la configuración de tu catálogo" : "Configura y publica tu catálogo de productos"}
+          </p>
+        )}
       </div>
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(handleSubmit)}>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <div className="space-y-6">
-              {/* 1. Selección de Productos - LO MÁS IMPORTANTE PRIMERO */}
-              <Card className="border-primary">
-                <CardHeader>
-                  <CardTitle className="text-xl">1. Selecciona tus Productos</CardTitle>
-                  <CardDescription>Elige los productos que aparecerán en el catálogo</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <FormField
-                    control={form.control}
-                    name="product_ids"
-                    render={({ field }) => (
-                      <FormItem>
-                        <ProductSelector
-                          selectedIds={field.value}
-                          onChange={(ids, products) => {
-                            field.onChange(ids);
-                            setSelectedProducts(products);
-                          }}
-                        />
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </CardContent>
-              </Card>
+        <form onSubmit={form.handleSubmit(handleSubmit)} className={cn(isMobile && "pb-24")}>
+          {isMobile ? (
+            /* ================ MOBILE LAYOUT: TABS ================ */
+            <Tabs defaultValue="form" className="w-full">
+              <TabsList className="grid w-full grid-cols-2 mb-4 h-12">
+                <TabsTrigger value="form" className="text-base">
+                  Configuración
+                </TabsTrigger>
+                <TabsTrigger value="preview" className="text-base">
+                  Vista Previa
+                </TabsTrigger>
+              </TabsList>
 
-              {/* 2. Template de Diseño Web */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Palette className="h-5 w-5" />
-                    2. Elige el Diseño
-                  </CardTitle>
-                  <CardDescription>Selecciona cómo se verá tu catálogo</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <FormField
-                    control={form.control}
-                    name="web_template_id"
-                    render={({ field }) => (
-                      <FormItem>
-                        <WebTemplateSelector
-                          selectedTemplate={field.value}
-                          onTemplateSelect={field.onChange}
-                          userPlanId={userPlanId}
-                          userPlanName={userPlanName}
-                          productCount={selectedProducts.length}
-                        />
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="background_pattern"
-                    render={({ field }) => (
-                      <FormItem>
-                        <BackgroundPatternSelector
-                          selectedPattern={field.value}
-                          onPatternChange={field.onChange}
-                          webTemplateId={form.watch('web_template_id')}
-                        />
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </CardContent>
-              </Card>
-
-              {/* 3. Información Básica */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>3. Información del Catálogo</CardTitle>
-                  <CardDescription>Nombre y descripción</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <FormField
-                    control={form.control}
-                    name="name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Nombre del catálogo *</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Ej: Catálogo Primavera 2025" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="description"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Descripción (opcional)</FormLabel>
-                        <FormControl>
-                          <Textarea placeholder="Describe tu catálogo..." className="resize-none" {...field} />
-                        </FormControl>
-                        <FormDescription>{field.value?.length || 0}/500 caracteres</FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </CardContent>
-              </Card>
-
-              {/* 4. Configuración de Precios */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>4. Configuración de Precios</CardTitle>
-                  <CardDescription>Define qué precios mostrar y ajustes</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <FormField
-                    control={form.control}
-                    name="price_display"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Tipo de precios a mostrar</FormLabel>
-                        <RadioGroup
-                          onValueChange={field.onChange}
-                          value={field.value}
-                          className="flex flex-col space-y-1"
+              {/* Tab: Form (Mobile Accordion) */}
+              <TabsContent value="form" className="mt-0">
+                <Accordion type="single" collapsible className="space-y-3">
+                  {/* Accordion Item 1: Productos */}
+                  <AccordionItem value="products" className="border rounded-lg overflow-hidden">
+                    <AccordionTrigger className="px-4 py-4 hover:no-underline hover:bg-muted/50 transition-colors">
+                      <div className="flex items-center gap-3 w-full">
+                        <div
+                          className={cn(
+                            "flex items-center justify-center w-10 h-10 rounded-full flex-shrink-0 transition-all",
+                            productIds.length > 0 ? "bg-green-100 text-green-700" : "bg-muted"
+                          )}
                         >
-                          <div className="flex items-center space-x-3 space-y-0">
-                            <RadioGroupItem value="menudeo_only" id="menudeo_only" />
-                            <label htmlFor="menudeo_only" className="font-normal text-sm cursor-pointer">
-                              Solo precio menudeo
-                            </label>
-                          </div>
-                          <div className="flex items-center space-x-3 space-y-0">
-                            <RadioGroupItem value="mayoreo_only" id="mayoreo_only" />
-                            <label htmlFor="mayoreo_only" className="font-normal text-sm cursor-pointer">
-                              Solo precio mayoreo
-                            </label>
-                          </div>
-                          <div className="flex items-center space-x-3 space-y-0">
-                            <RadioGroupItem value="both" id="both" />
-                            <label htmlFor="both" className="font-normal text-sm cursor-pointer">
-                              Ambos precios
-                            </label>
-                          </div>
-                        </RadioGroup>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  {(watchedValues.price_display === "menudeo_only" || watchedValues.price_display === "both") && (
-                    <FormField
-                      control={form.control}
-                      name="price_adjustment_menudeo"
-                      render={({ field }) => (
-                        <FormItem>
-                          <PriceAdjustmentInput
-                            label="Ajuste de precio menudeo"
-                            value={field.value}
-                            onChange={field.onChange}
-                            basePrice={100}
-                          />
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  )}
-
-                  {(watchedValues.price_display === "mayoreo_only" || watchedValues.price_display === "both") && (
-                    <FormField
-                      control={form.control}
-                      name="price_adjustment_mayoreo"
-                      render={({ field }) => (
-                        <FormItem>
-                          <PriceAdjustmentInput
-                            label="Ajuste de precio mayoreo"
-                            value={field.value}
-                            onChange={field.onChange}
-                            basePrice={100}
-                          />
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* 5. Configuración de Visibilidad */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>5. Información a Mostrar</CardTitle>
-                  <CardDescription>Qué datos mostrar de cada producto</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <FormField
-                    control={form.control}
-                    name="show_sku"
-                    render={({ field }) => (
-                      <FormItem className="flex items-center justify-between rounded-lg border p-4">
-                        <div className="space-y-0.5">
-                          <FormLabel className="text-base">Mostrar SKU</FormLabel>
-                          <FormDescription>Código de producto visible</FormDescription>
+                          {productIds.length > 0 ? <Check className="h-5 w-5" /> : <Package className="h-5 w-5" />}
                         </div>
-                        <FormControl>
-                          <Switch checked={field.value} onCheckedChange={field.onChange} />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="show_tags"
-                    render={({ field }) => (
-                      <FormItem className="flex items-center justify-between rounded-lg border p-4">
-                        <div className="space-y-0.5">
-                          <FormLabel className="text-base">Mostrar Tags</FormLabel>
-                          <FormDescription>Etiquetas del producto</FormDescription>
+                        <div className="flex-1 text-left">
+                          <div className="font-semibold text-base">Productos</div>
+                          <div className="text-sm text-muted-foreground">
+                            {productIds.length > 0 ? `${productIds.length} seleccionados` : "Selecciona productos"}
+                          </div>
                         </div>
-                        <FormControl>
-                          <Switch checked={field.value} onCheckedChange={field.onChange} />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
+                        {productIds.length > 0 && (
+                          <Badge variant="secondary" className="ml-2">
+                            {productIds.length}
+                          </Badge>
+                        )}
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="px-4 pb-4">
+                      <FormField
+                        control={form.control}
+                        name="product_ids"
+                        render={({ field }) => (
+                          <FormItem>
+                            <ProductSelector
+                              selectedIds={field.value}
+                              onChange={(ids, products) => {
+                                field.onChange(ids);
+                                setSelectedProducts(products);
+                              }}
+                            />
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </AccordionContent>
+                  </AccordionItem>
 
-                  <FormField
-                    control={form.control}
-                    name="show_description"
-                    render={({ field }) => (
-                      <FormItem className="flex items-center justify-between rounded-lg border p-4">
-                        <div className="space-y-0.5">
-                          <FormLabel className="text-base">Mostrar Descripción</FormLabel>
-                          <FormDescription>Descripción completa del producto</FormDescription>
+                  {/* Accordion Item 2: Diseño */}
+                  <AccordionItem value="design" className="border rounded-lg overflow-hidden">
+                    <AccordionTrigger className="px-4 py-4 hover:no-underline hover:bg-muted/50 transition-colors">
+                      <div className="flex items-center gap-3 w-full">
+                        <div
+                          className={cn(
+                            "flex items-center justify-center w-10 h-10 rounded-full flex-shrink-0 transition-all",
+                            webTemplateId ? "bg-green-100 text-green-700" : "bg-muted"
+                          )}
+                        >
+                          {webTemplateId ? <Check className="h-5 w-5" /> : <Palette className="h-5 w-5" />}
                         </div>
-                        <FormControl>
-                          <Switch checked={field.value} onCheckedChange={field.onChange} />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                </CardContent>
-              </Card>
+                        <div className="flex-1 text-left">
+                          <div className="font-semibold text-base">Diseño</div>
+                          <div className="text-sm text-muted-foreground">
+                            {webTemplateId ? "Template seleccionado" : "Elige el diseño"}
+                          </div>
+                        </div>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="px-4 pb-4 space-y-6">
+                      <FormField
+                        control={form.control}
+                        name="web_template_id"
+                        render={({ field }) => (
+                          <FormItem>
+                            <WebTemplateSelector
+                              selectedTemplate={field.value}
+                              onTemplateSelect={field.onChange}
+                              userPlanId={userPlanId}
+                              userPlanName={userPlanName}
+                              productCount={selectedProducts.length}
+                            />
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
 
-              {/* 6. Configuración Avanzada */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Lock className="h-5 w-5" />
-                    6. Configuración Avanzada
-                  </CardTitle>
-                  <CardDescription>Privacidad y fecha de expiración</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <FormField
-                    control={form.control}
-                    name="expires_at"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-col">
-                        <FormLabel>Fecha de expiración *</FormLabel>
-                        <Popover>
-                          <PopoverTrigger asChild>
+                      <FormField
+                        control={form.control}
+                        name="background_pattern"
+                        render={({ field }) => (
+                          <FormItem>
+                            <BackgroundPatternSelector
+                              selectedPattern={field.value}
+                              onPatternChange={field.onChange}
+                              webTemplateId={form.watch("web_template_id")}
+                            />
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  {/* Accordion Item 3: Información Básica */}
+                  <AccordionItem value="info" className="border rounded-lg overflow-hidden">
+                    <AccordionTrigger className="px-4 py-4 hover:no-underline hover:bg-muted/50 transition-colors">
+                      <div className="flex items-center gap-3 w-full">
+                        <div
+                          className={cn(
+                            "flex items-center justify-center w-10 h-10 rounded-full flex-shrink-0 transition-all",
+                            form.watch("name") ? "bg-green-100 text-green-700" : "bg-muted"
+                          )}
+                        >
+                          {form.watch("name") ? <Check className="h-5 w-5" /> : "3"}
+                        </div>
+                        <div className="flex-1 text-left">
+                          <div className="font-semibold text-base">Información</div>
+                          <div className="text-sm text-muted-foreground">Nombre y descripción</div>
+                        </div>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="px-4 pb-4 space-y-4">
+                      <FormField
+                        control={form.control}
+                        name="name"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel htmlFor="catalog-name" className="text-base">
+                              Nombre del catálogo *
+                            </FormLabel>
                             <FormControl>
-                              <Button
-                                variant="outline"
+                              <Input
+                                id="catalog-name"
+                                placeholder="Ej: Catálogo Primavera 2025"
+                                className="h-12 text-base"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="description"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel htmlFor="catalog-description" className="text-base">
+                              Descripción (opcional)
+                            </FormLabel>
+                            <FormControl>
+                              <Textarea
+                                id="catalog-description"
+                                placeholder="Describe tu catálogo..."
+                                className="min-h-[120px] resize-none text-base"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormDescription>{field.value?.length || 0}/500 caracteres</FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  {/* Accordion Item 4: Precios */}
+                  <AccordionItem value="pricing" className="border rounded-lg overflow-hidden">
+                    <AccordionTrigger className="px-4 py-4 hover:no-underline hover:bg-muted/50 transition-colors">
+                      <div className="flex items-center gap-3 w-full">
+                        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-muted flex-shrink-0">
+                          <DollarSign className="h-5 w-5" />
+                        </div>
+                        <div className="flex-1 text-left">
+                          <div className="font-semibold text-base">Precios</div>
+                          <div className="text-sm text-muted-foreground">Configuración de precios</div>
+                        </div>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="px-4 pb-4 space-y-6">
+                      <FormField
+                        control={form.control}
+                        name="price_display"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-base">Tipo de precios a mostrar</FormLabel>
+                            <RadioGroup
+                              onValueChange={field.onChange}
+                              value={field.value}
+                              className="flex flex-col space-y-2"
+                            >
+                              <label
+                                htmlFor="menudeo_only"
                                 className={cn(
-                                  "w-full pl-3 text-left font-normal",
-                                  !field.value && "text-muted-foreground",
+                                  "flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all active:scale-[0.98]",
+                                  field.value === "menudeo_only" && "border-primary bg-primary/5"
                                 )}
                               >
-                                {field.value ? format(field.value, "PPP") : <span>Selecciona una fecha</span>}
-                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                              </Button>
-                            </FormControl>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                              mode="single"
-                              selected={field.value}
-                              onSelect={field.onChange}
-                              disabled={(date) => date < new Date()}
-                              initialFocus
-                              className="pointer-events-auto"
-                            />
-                          </PopoverContent>
-                        </Popover>
-                        <FormDescription>Después de esta fecha el catálogo no será accesible</FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                                <RadioGroupItem value="menudeo_only" id="menudeo_only" className="h-5 w-5" />
+                                <div className="flex-1">
+                                  <div className="font-medium">Solo precio menudeo</div>
+                                </div>
+                              </label>
 
-                  {!canCreatePrivate && (
+                              <label
+                                htmlFor="mayoreo_only"
+                                className={cn(
+                                  "flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all active:scale-[0.98]",
+                                  field.value === "mayoreo_only" && "border-primary bg-primary/5"
+                                )}
+                              >
+                                <RadioGroupItem value="mayoreo_only" id="mayoreo_only" className="h-5 w-5" />
+                                <div className="flex-1">
+                                  <div className="font-medium">Solo precio mayoreo</div>
+                                </div>
+                              </label>
+
+                              <label
+                                htmlFor="both"
+                                className={cn(
+                                  "flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all active:scale-[0.98]",
+                                  field.value === "both" && "border-primary bg-primary/5"
+                                )}
+                              >
+                                <RadioGroupItem value="both" id="both" className="h-5 w-5" />
+                                <div className="flex-1">
+                                  <div className="font-medium">Ambos precios</div>
+                                </div>
+                              </label>
+                            </RadioGroup>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      {(watchedValues.price_display === "menudeo_only" || watchedValues.price_display === "both") && (
+                        <FormField
+                          control={form.control}
+                          name="price_adjustment_menudeo"
+                          render={({ field }) => (
+                            <FormItem>
+                              <PriceAdjustmentInput
+                                label="Ajuste de precio menudeo"
+                                value={field.value}
+                                onChange={field.onChange}
+                                basePrice={100}
+                              />
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      )}
+
+                      {(watchedValues.price_display === "mayoreo_only" || watchedValues.price_display === "both") && (
+                        <FormField
+                          control={form.control}
+                          name="price_adjustment_mayoreo"
+                          render={({ field }) => (
+                            <FormItem>
+                              <PriceAdjustmentInput
+                                label="Ajuste de precio mayoreo"
+                                value={field.value}
+                                onChange={field.onChange}
+                                basePrice={100}
+                              />
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      )}
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  {/* Accordion Item 5: Visibilidad */}
+                  <AccordionItem value="visibility" className="border rounded-lg overflow-hidden">
+                    <AccordionTrigger className="px-4 py-4 hover:no-underline hover:bg-muted/50 transition-colors">
+                      <div className="flex items-center gap-3 w-full">
+                        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-muted flex-shrink-0">
+                          <Eye className="h-5 w-5" />
+                        </div>
+                        <div className="flex-1 text-left">
+                          <div className="font-semibold text-base">Información a Mostrar</div>
+                          <div className="text-sm text-muted-foreground">Qué datos mostrar</div>
+                        </div>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="px-4 pb-4 space-y-3">
+                      <FormField
+                        control={form.control}
+                        name="show_sku"
+                        render={({ field }) => (
+                          <div
+                            className="flex items-center justify-between p-4 rounded-lg border cursor-pointer active:scale-[0.98] transition-all"
+                            onClick={() => field.onChange(!field.value)}
+                          >
+                            <div className="flex-1">
+                              <div className="font-medium text-base">Mostrar SKU</div>
+                              <div className="text-sm text-muted-foreground">Código de producto visible</div>
+                            </div>
+                            <Switch
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                              className="pointer-events-none"
+                            />
+                          </div>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="show_tags"
+                        render={({ field }) => (
+                          <div
+                            className="flex items-center justify-between p-4 rounded-lg border cursor-pointer active:scale-[0.98] transition-all"
+                            onClick={() => field.onChange(!field.value)}
+                          >
+                            <div className="flex-1">
+                              <div className="font-medium text-base">Mostrar Tags</div>
+                              <div className="text-sm text-muted-foreground">Etiquetas del producto</div>
+                            </div>
+                            <Switch
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                              className="pointer-events-none"
+                            />
+                          </div>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="show_description"
+                        render={({ field }) => (
+                          <div
+                            className="flex items-center justify-between p-4 rounded-lg border cursor-pointer active:scale-[0.98] transition-all"
+                            onClick={() => field.onChange(!field.value)}
+                          >
+                            <div className="flex-1">
+                              <div className="font-medium text-base">Mostrar Descripción</div>
+                              <div className="text-sm text-muted-foreground">Descripción completa del producto</div>
+                            </div>
+                            <Switch
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                              className="pointer-events-none"
+                            />
+                          </div>
+                        )}
+                      />
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  {/* Accordion Item 6: Configuración Avanzada */}
+                  <AccordionItem value="advanced" className="border rounded-lg overflow-hidden">
+                    <AccordionTrigger className="px-4 py-4 hover:no-underline hover:bg-muted/50 transition-colors">
+                      <div className="flex items-center gap-3 w-full">
+                        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-muted flex-shrink-0">
+                          <Settings className="h-5 w-5" />
+                        </div>
+                        <div className="flex-1 text-left">
+                          <div className="font-semibold text-base flex items-center gap-2">
+                            <Lock className="h-4 w-4" />
+                            Avanzado
+                          </div>
+                          <div className="text-sm text-muted-foreground">Privacidad y expiración</div>
+                        </div>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="px-4 pb-4 space-y-4">
+                      <FormField
+                        control={form.control}
+                        name="expires_at"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-col">
+                            <FormLabel htmlFor="expires-at" className="text-base">
+                              Fecha de expiración *
+                            </FormLabel>
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <FormControl>
+                                  <Button
+                                    id="expires-at"
+                                    variant="outline"
+                                    className={cn(
+                                      "w-full h-12 justify-start text-left font-normal text-base",
+                                      !field.value && "text-muted-foreground"
+                                    )}
+                                  >
+                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                    {field.value ? format(field.value, "PPP") : <span>Selecciona una fecha</span>}
+                                  </Button>
+                                </FormControl>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-auto p-0" align="center" side="top">
+                                <Calendar
+                                  mode="single"
+                                  selected={field.value}
+                                  onSelect={field.onChange}
+                                  disabled={(date) => date < new Date()}
+                                  initialFocus
+                                />
+                              </PopoverContent>
+                            </Popover>
+                            <FormDescription>Después de esta fecha el catálogo no será accesible</FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      {!canCreatePrivate && (
+                        <Alert>
+                          <AlertCircle className="h-4 w-4" />
+                          <AlertDescription>
+                            Los catálogos privados requieren Plan Medio o Premium.{" "}
+                            <Button variant="link" className="p-0 h-auto" onClick={() => navigate("/checkout")}>
+                              Ver planes
+                            </Button>
+                          </AlertDescription>
+                        </Alert>
+                      )}
+
+                      <FormField
+                        control={form.control}
+                        name="is_private"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-base">Tipo de catálogo</FormLabel>
+                            <FormControl>
+                              <RadioGroup
+                                onValueChange={(value) => field.onChange(value === "private")}
+                                value={field.value ? "private" : "public"}
+                                className="flex flex-col space-y-2"
+                                disabled={!canCreatePrivate}
+                              >
+                                <label
+                                  htmlFor="public"
+                                  className={cn(
+                                    "flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all active:scale-[0.98]",
+                                    !field.value && "border-primary bg-primary/5",
+                                    !canCreatePrivate && "opacity-50"
+                                  )}
+                                >
+                                  <RadioGroupItem value="public" id="public" className="h-5 w-5" />
+                                  <div className="flex-1">
+                                    <div className="font-medium">Público</div>
+                                    <div className="text-sm text-muted-foreground">
+                                      Cualquiera con el link puede verlo
+                                    </div>
+                                  </div>
+                                </label>
+
+                                <label
+                                  htmlFor="private"
+                                  className={cn(
+                                    "flex items-center gap-3 p-4 rounded-lg border-2 transition-all",
+                                    field.value && "border-primary bg-primary/5",
+                                    canCreatePrivate ? "cursor-pointer active:scale-[0.98]" : "opacity-50 cursor-not-allowed"
+                                  )}
+                                >
+                                  <RadioGroupItem
+                                    value="private"
+                                    id="private"
+                                    disabled={!canCreatePrivate}
+                                    className="h-5 w-5"
+                                  />
+                                  <div className="flex-1">
+                                    <div className="font-medium flex items-center gap-2 flex-wrap">
+                                      Privado - Requiere contraseña
+                                      {!canCreatePrivate && <Badge variant="secondary">Plan Medio/Premium</Badge>}
+                                    </div>
+                                    <div className="text-sm text-muted-foreground">Solo con contraseña</div>
+                                  </div>
+                                </label>
+                              </RadioGroup>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      {watchedValues.is_private && canCreatePrivate && (
+                        <FormField
+                          control={form.control}
+                          name="access_password"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel htmlFor="access-password" className="text-base">
+                                Contraseña de acceso *
+                              </FormLabel>
+                              <FormControl>
+                                <Input
+                                  id="access-password"
+                                  type="password"
+                                  placeholder="Ingresa una contraseña"
+                                  className="h-12 text-base"
+                                  {...field}
+                                />
+                              </FormControl>
+                              <FormDescription>
+                                Los clientes necesitarán esta contraseña para ver el catálogo
+                              </FormDescription>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      )}
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  {/* Accordion Item 7: Cotización (condicional) */}
+                  {getPlanFeatures(userPlanTier).hasQuotation ? (
+                    <AccordionItem value="quotation" className="border rounded-lg overflow-hidden">
+                      <AccordionTrigger className="px-4 py-4 hover:no-underline hover:bg-muted/50 transition-colors">
+                        <div className="flex items-center gap-3 w-full">
+                          <div className="flex items-center justify-center w-10 h-10 rounded-full bg-muted flex-shrink-0">
+                            <ChevronRight className="h-5 w-5" />
+                          </div>
+                          <div className="flex-1 text-left">
+                            <div className="font-semibold text-base">Sistema de Cotización</div>
+                            <div className="text-sm text-muted-foreground">Solicitudes de clientes</div>
+                          </div>
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent className="px-4 pb-4">
+                        <FormField
+                          control={form.control}
+                          name="enable_quotation"
+                          render={({ field }) => (
+                            <div
+                              className="flex items-center justify-between p-4 rounded-lg border cursor-pointer active:scale-[0.98] transition-all"
+                              onClick={() => field.onChange(!field.value)}
+                            >
+                              <div className="flex-1">
+                                <div className="font-medium text-base">Habilitar cotizaciones</div>
+                                <div className="text-sm text-muted-foreground">
+                                  Los clientes podrán seleccionar productos y solicitar cotización
+                                </div>
+                              </div>
+                              <Switch
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                                className="pointer-events-none"
+                              />
+                            </div>
+                          )}
+                        />
+                      </AccordionContent>
+                    </AccordionItem>
+                  ) : (
                     <Alert>
-                      <AlertCircle className="h-4 w-4" />
+                      <Lock className="h-4 w-4" />
                       <AlertDescription>
-                        Los catálogos privados requieren Plan Medio o Premium.{" "}
-                        <Button variant="link" className="p-0 h-auto" onClick={() => navigate("/checkout")}>
-                          Ver planes
+                        El sistema de cotización está disponible en Plan Profesional y Empresarial.
+                        <Button variant="link" className="p-0 h-auto ml-1" onClick={() => navigate("/checkout")}>
+                          Actualizar plan
                         </Button>
                       </AlertDescription>
                     </Alert>
                   )}
+                </Accordion>
+              </TabsContent>
 
-                  <FormField
-                    control={form.control}
-                    name="is_private"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Tipo de catálogo</FormLabel>
-                        <FormControl>
-                          <RadioGroup
-                            onValueChange={(value) => field.onChange(value === "private")}
-                            value={field.value ? "private" : "public"}
-                            className="flex flex-col space-y-1"
-                            disabled={!canCreatePrivate}
-                          >
-                            <FormItem className="flex items-center space-x-3 space-y-0">
-                              <FormControl>
-                                <RadioGroupItem value="public" />
-                              </FormControl>
-                              <FormLabel className="font-normal">
-                                Público - Cualquiera con el link puede verlo
-                              </FormLabel>
-                            </FormItem>
-                            <FormItem className="flex items-center space-x-3 space-y-0">
-                              <FormControl>
-                                <RadioGroupItem value="private" disabled={!canCreatePrivate} />
-                              </FormControl>
-                              <FormLabel className="font-normal flex items-center gap-2">
-                                Privado - Requiere contraseña
-                                {!canCreatePrivate && <Badge variant="secondary">Plan Medio/Premium</Badge>}
-                              </FormLabel>
-                            </FormItem>
-                          </RadioGroup>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  {watchedValues.is_private && canCreatePrivate && (
-                    <FormField
-                      control={form.control}
-                      name="access_password"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Contraseña de acceso *</FormLabel>
-                          <FormControl>
-                            <Input type="password" placeholder="Ingresa una contraseña" {...field} />
-                          </FormControl>
-                          <FormDescription>
-                            Los clientes necesitarán esta contraseña para ver el catálogo
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* 🆕 NUEVO: Card de Cotización (solo si el plan lo permite) */}
-              {getPlanFeatures(userPlanTier).hasQuotation ? (
-                <Card>
+              {/* Tab: Preview (Mobile) */}
+              <TabsContent value="preview" className="mt-0">
+                <CatalogFormPreview
+                  name={watchedValues.name}
+                  description={watchedValues.description}
+                  webTemplateId={form.watch("web_template_id")}
+                  products={selectedProducts}
+                  priceConfig={{
+                    display: watchedValues.price_display,
+                    adjustmentMenudeo: watchedValues.price_adjustment_menudeo,
+                    adjustmentMayoreo: watchedValues.price_adjustment_mayoreo,
+                  }}
+                  visibilityConfig={{
+                    showSku: watchedValues.show_sku,
+                    showTags: watchedValues.show_tags,
+                    showDescription: watchedValues.show_description,
+                  }}
+                  backgroundPattern={form.watch("background_pattern")}
+                />
+              </TabsContent>
+            </Tabs>
+          ) : (
+            /* ================ DESKTOP LAYOUT: 2 COLUMNS ================ */
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div className="space-y-6">
+                {/* 1. Selección de Productos */}
+                <Card className="border-primary">
                   <CardHeader>
-                    <CardTitle>Sistema de Cotización</CardTitle>
-                    <CardDescription>Permite que los clientes soliciten cotizaciones directamente</CardDescription>
+                    <CardTitle className="text-xl">1. Selecciona tus Productos</CardTitle>
+                    <CardDescription>Elige los productos que aparecerán en el catálogo</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <FormField
                       control={form.control}
-                      name="enable_quotation"
+                      name="product_ids"
+                      render={({ field }) => (
+                        <FormItem>
+                          <ProductSelector
+                            selectedIds={field.value}
+                            onChange={(ids, products) => {
+                              field.onChange(ids);
+                              setSelectedProducts(products);
+                            }}
+                          />
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </CardContent>
+                </Card>
+
+                {/* 2. Template de Diseño Web */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Palette className="h-5 w-5" />
+                      2. Elige el Diseño
+                    </CardTitle>
+                    <CardDescription>Selecciona cómo se verá tu catálogo</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    <FormField
+                      control={form.control}
+                      name="web_template_id"
+                      render={({ field }) => (
+                        <FormItem>
+                          <WebTemplateSelector
+                            selectedTemplate={field.value}
+                            onTemplateSelect={field.onChange}
+                            userPlanId={userPlanId}
+                            userPlanName={userPlanName}
+                            productCount={selectedProducts.length}
+                          />
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="background_pattern"
+                      render={({ field }) => (
+                        <FormItem>
+                          <BackgroundPatternSelector
+                            selectedPattern={field.value}
+                            onPatternChange={field.onChange}
+                            webTemplateId={form.watch("web_template_id")}
+                          />
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </CardContent>
+                </Card>
+
+                {/* 3. Información Básica */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>3. Información del Catálogo</CardTitle>
+                    <CardDescription>Nombre y descripción</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <FormField
+                      control={form.control}
+                      name="name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Nombre del catálogo *</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Ej: Catálogo Primavera 2025" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="description"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Descripción (opcional)</FormLabel>
+                          <FormControl>
+                            <Textarea placeholder="Describe tu catálogo..." className="resize-none" {...field} />
+                          </FormControl>
+                          <FormDescription>{field.value?.length || 0}/500 caracteres</FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </CardContent>
+                </Card>
+
+                {/* 4. Configuración de Precios */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>4. Configuración de Precios</CardTitle>
+                    <CardDescription>Define qué precios mostrar y ajustes</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <FormField
+                      control={form.control}
+                      name="price_display"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Tipo de precios a mostrar</FormLabel>
+                          <RadioGroup
+                            onValueChange={field.onChange}
+                            value={field.value}
+                            className="flex flex-col space-y-1"
+                          >
+                            <div className="flex items-center space-x-3 space-y-0">
+                              <RadioGroupItem value="menudeo_only" id="menudeo_only" />
+                              <label htmlFor="menudeo_only" className="font-normal text-sm cursor-pointer">
+                                Solo precio menudeo
+                              </label>
+                            </div>
+                            <div className="flex items-center space-x-3 space-y-0">
+                              <RadioGroupItem value="mayoreo_only" id="mayoreo_only" />
+                              <label htmlFor="mayoreo_only" className="font-normal text-sm cursor-pointer">
+                                Solo precio mayoreo
+                              </label>
+                            </div>
+                            <div className="flex items-center space-x-3 space-y-0">
+                              <RadioGroupItem value="both" id="both" />
+                              <label htmlFor="both" className="font-normal text-sm cursor-pointer">
+                                Ambos precios
+                              </label>
+                            </div>
+                          </RadioGroup>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    {(watchedValues.price_display === "menudeo_only" || watchedValues.price_display === "both") && (
+                      <FormField
+                        control={form.control}
+                        name="price_adjustment_menudeo"
+                        render={({ field }) => (
+                          <FormItem>
+                            <PriceAdjustmentInput
+                              label="Ajuste de precio menudeo"
+                              value={field.value}
+                              onChange={field.onChange}
+                              basePrice={100}
+                            />
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
+
+                    {(watchedValues.price_display === "mayoreo_only" || watchedValues.price_display === "both") && (
+                      <FormField
+                        control={form.control}
+                        name="price_adjustment_mayoreo"
+                        render={({ field }) => (
+                          <FormItem>
+                            <PriceAdjustmentInput
+                              label="Ajuste de precio mayoreo"
+                              value={field.value}
+                              onChange={field.onChange}
+                              basePrice={100}
+                            />
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* 5. Configuración de Visibilidad */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>5. Información a Mostrar</CardTitle>
+                    <CardDescription>Qué datos mostrar de cada producto</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <FormField
+                      control={form.control}
+                      name="show_sku"
                       render={({ field }) => (
                         <FormItem className="flex items-center justify-between rounded-lg border p-4">
                           <div className="space-y-0.5">
-                            <FormLabel className="text-base">Habilitar cotizaciones</FormLabel>
-                            <FormDescription>
-                              Los clientes podrán seleccionar productos y solicitar cotización
-                            </FormDescription>
+                            <FormLabel className="text-base">Mostrar SKU</FormLabel>
+                            <FormDescription>Código de producto visible</FormDescription>
+                          </div>
+                          <FormControl>
+                            <Switch checked={field.value} onCheckedChange={field.onChange} />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="show_tags"
+                      render={({ field }) => (
+                        <FormItem className="flex items-center justify-between rounded-lg border p-4">
+                          <div className="space-y-0.5">
+                            <FormLabel className="text-base">Mostrar Tags</FormLabel>
+                            <FormDescription>Etiquetas del producto</FormDescription>
+                          </div>
+                          <FormControl>
+                            <Switch checked={field.value} onCheckedChange={field.onChange} />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="show_description"
+                      render={({ field }) => (
+                        <FormItem className="flex items-center justify-between rounded-lg border p-4">
+                          <div className="space-y-0.5">
+                            <FormLabel className="text-base">Mostrar Descripción</FormLabel>
+                            <FormDescription>Descripción completa del producto</FormDescription>
                           </div>
                           <FormControl>
                             <Switch checked={field.value} onCheckedChange={field.onChange} />
@@ -708,57 +1192,223 @@ export default function DigitalCatalogForm() {
                     />
                   </CardContent>
                 </Card>
-              ) : (
-                <Alert>
-                  <Lock className="h-4 w-4" />
-                  <AlertDescription>
-                    El sistema de cotización está disponible en Plan Profesional y Empresarial.
-                    <Button variant="link" className="p-0 h-auto ml-1" onClick={() => navigate("/checkout")}>
-                      Actualizar plan
-                    </Button>
-                  </AlertDescription>
-                </Alert>
-              )}
 
-              {/* Botones de Acción */}
-              <div className="flex gap-4 sticky bottom-0 bg-background py-4 border-t">
+                {/* 6. Configuración Avanzada */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Lock className="h-5 w-5" />
+                      6. Configuración Avanzada
+                    </CardTitle>
+                    <CardDescription>Privacidad y fecha de expiración</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <FormField
+                      control={form.control}
+                      name="expires_at"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-col">
+                          <FormLabel>Fecha de expiración *</FormLabel>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <FormControl>
+                                <Button
+                                  variant="outline"
+                                  className={cn(
+                                    "w-full pl-3 text-left font-normal",
+                                    !field.value && "text-muted-foreground"
+                                  )}
+                                >
+                                  {field.value ? format(field.value, "PPP") : <span>Selecciona una fecha</span>}
+                                  <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                </Button>
+                              </FormControl>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                              <Calendar
+                                mode="single"
+                                selected={field.value}
+                                onSelect={field.onChange}
+                                disabled={(date) => date < new Date()}
+                                initialFocus
+                                className="pointer-events-auto"
+                              />
+                            </PopoverContent>
+                          </Popover>
+                          <FormDescription>Después de esta fecha el catálogo no será accesible</FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    {!canCreatePrivate && (
+                      <Alert>
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertDescription>
+                          Los catálogos privados requieren Plan Medio o Premium.{" "}
+                          <Button variant="link" className="p-0 h-auto" onClick={() => navigate("/checkout")}>
+                            Ver planes
+                          </Button>
+                        </AlertDescription>
+                      </Alert>
+                    )}
+
+                    <FormField
+                      control={form.control}
+                      name="is_private"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Tipo de catálogo</FormLabel>
+                          <FormControl>
+                            <RadioGroup
+                              onValueChange={(value) => field.onChange(value === "private")}
+                              value={field.value ? "private" : "public"}
+                              className="flex flex-col space-y-1"
+                              disabled={!canCreatePrivate}
+                            >
+                              <FormItem className="flex items-center space-x-3 space-y-0">
+                                <FormControl>
+                                  <RadioGroupItem value="public" />
+                                </FormControl>
+                                <FormLabel className="font-normal">Público - Cualquiera con el link puede verlo</FormLabel>
+                              </FormItem>
+                              <FormItem className="flex items-center space-x-3 space-y-0">
+                                <FormControl>
+                                  <RadioGroupItem value="private" disabled={!canCreatePrivate} />
+                                </FormControl>
+                                <FormLabel className="font-normal flex items-center gap-2">
+                                  Privado - Requiere contraseña
+                                  {!canCreatePrivate && <Badge variant="secondary">Plan Medio/Premium</Badge>}
+                                </FormLabel>
+                              </FormItem>
+                            </RadioGroup>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    {watchedValues.is_private && canCreatePrivate && (
+                      <FormField
+                        control={form.control}
+                        name="access_password"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Contraseña de acceso *</FormLabel>
+                            <FormControl>
+                              <Input type="password" placeholder="Ingresa una contraseña" {...field} />
+                            </FormControl>
+                            <FormDescription>
+                              Los clientes necesitarán esta contraseña para ver el catálogo
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* 7. Sistema de Cotización */}
+                {getPlanFeatures(userPlanTier).hasQuotation ? (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Sistema de Cotización</CardTitle>
+                      <CardDescription>Permite que los clientes soliciten cotizaciones directamente</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <FormField
+                        control={form.control}
+                        name="enable_quotation"
+                        render={({ field }) => (
+                          <FormItem className="flex items-center justify-between rounded-lg border p-4">
+                            <div className="space-y-0.5">
+                              <FormLabel className="text-base">Habilitar cotizaciones</FormLabel>
+                              <FormDescription>
+                                Los clientes podrán seleccionar productos y solicitar cotización
+                              </FormDescription>
+                            </div>
+                            <FormControl>
+                              <Switch checked={field.value} onCheckedChange={field.onChange} />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <Alert>
+                    <Lock className="h-4 w-4" />
+                    <AlertDescription>
+                      El sistema de cotización está disponible en Plan Profesional y Empresarial.
+                      <Button variant="link" className="p-0 h-auto ml-1" onClick={() => navigate("/checkout")}>
+                        Actualizar plan
+                      </Button>
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                {/* Botones de Acción Desktop */}
+                <div className="flex gap-4 sticky bottom-0 bg-background py-4 border-t">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => navigate("/catalogs")}
+                    disabled={isSaving}
+                    className="flex-1"
+                  >
+                    Cancelar
+                  </Button>
+                  <Button type="submit" disabled={isSaving} className="flex-1">
+                    {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    {isEditing ? "Guardar Cambios" : "Publicar Catálogo"}
+                  </Button>
+                </div>
+              </div>
+
+              {/* Preview Desktop */}
+              <div className="lg:sticky lg:top-8 lg:self-start">
+                <CatalogFormPreview
+                  name={watchedValues.name}
+                  description={watchedValues.description}
+                  webTemplateId={form.watch("web_template_id")}
+                  products={selectedProducts}
+                  priceConfig={{
+                    display: watchedValues.price_display,
+                    adjustmentMenudeo: watchedValues.price_adjustment_menudeo,
+                    adjustmentMayoreo: watchedValues.price_adjustment_mayoreo,
+                  }}
+                  visibilityConfig={{
+                    showSku: watchedValues.show_sku,
+                    showTags: watchedValues.show_tags,
+                    showDescription: watchedValues.show_description,
+                  }}
+                  backgroundPattern={form.watch("background_pattern")}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Sticky Bottom Action Bar (Solo Mobile) */}
+          {isMobile && (
+            <div className="fixed bottom-0 left-0 right-0 p-4 bg-background border-t shadow-lg z-50">
+              <div className="flex gap-3">
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() => navigate("/catalogs")}
                   disabled={isSaving}
-                  className="flex-1"
+                  className="flex-1 h-12 text-base"
                 >
                   Cancelar
                 </Button>
-                <Button type="submit" disabled={isSaving} className="flex-1">
+                <Button type="submit" disabled={isSaving} className="flex-1 h-12 text-base">
                   {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {isEditing ? "Guardar Cambios" : "Publicar Catálogo"}
+                  {isEditing ? "Guardar" : "Publicar"}
                 </Button>
               </div>
             </div>
-
-            {/* Preview */}
-            <div className="lg:sticky lg:top-8 lg:self-start">
-              <CatalogFormPreview
-                name={watchedValues.name}
-                description={watchedValues.description}
-                webTemplateId={form.watch('web_template_id')}
-                products={selectedProducts}
-                priceConfig={{
-                  display: watchedValues.price_display,
-                  adjustmentMenudeo: watchedValues.price_adjustment_menudeo,
-                  adjustmentMayoreo: watchedValues.price_adjustment_mayoreo,
-                }}
-                visibilityConfig={{
-                  showSku: watchedValues.show_sku,
-                  showTags: watchedValues.show_tags,
-                  showDescription: watchedValues.show_description,
-                }}
-                backgroundPattern={form.watch('background_pattern')}
-              />
-            </div>
-          </div>
+          )}
         </form>
       </Form>
     </div>
