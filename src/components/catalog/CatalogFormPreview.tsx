@@ -40,6 +40,7 @@ interface CatalogFormPreviewProps {
   products: Product[];
   priceConfig: PriceConfig;
   visibilityConfig: VisibilityConfig;
+  backgroundPattern?: string | null;
 }
 
 export function CatalogFormPreview({
@@ -49,6 +50,7 @@ export function CatalogFormPreview({
   products,
   priceConfig,
   visibilityConfig,
+  backgroundPattern,
 }: CatalogFormPreviewProps) {
   const [viewMode, setViewMode] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
   const displayProducts = products.slice(0, 6);
@@ -74,6 +76,26 @@ export function CatalogFormPreview({
                                    template.config.cardRadius === 'lg' ? '12px' : '16px',
       } as React.CSSProperties)
     : {};
+
+  // Generar filtro de color para el patrón de fondo
+  const getPatternFilter = () => {
+    if (!template || !backgroundPattern) return '';
+    
+    const primaryColor = template.colorScheme.primary;
+    const hex = primaryColor.replace('#', '');
+    const r = parseInt(hex.substring(0, 2), 16);
+    const g = parseInt(hex.substring(2, 4), 16);
+    const b = parseInt(hex.substring(4, 6), 16);
+    
+    const hue = Math.atan2(Math.sqrt(3) * (g - b), 2 * r - g - b) * 180 / Math.PI;
+    
+    return `
+      hue-rotate(${hue}deg) 
+      saturate(1.2) 
+      brightness(0.95) 
+      opacity(0.15)
+    `;
+  };
 
   const getGridColumns = () => {
     if (!template) return 'grid-cols-2';
@@ -179,7 +201,34 @@ export function CatalogFormPreview({
             background: var(--preview-background, #f8fafc);
             border-radius: var(--preview-border-radius, 8px);
             overflow: hidden;
+            ${backgroundPattern ? `
+              position: relative;
+            ` : ''}
           }
+          
+          ${backgroundPattern ? `
+            .preview-container::before {
+              content: '';
+              position: absolute;
+              top: 0;
+              left: 0;
+              right: 0;
+              bottom: 0;
+              background-image: url('/src/assets/patterns/pattern-${backgroundPattern}.png');
+              background-size: 200px 200px;
+              background-repeat: repeat;
+              filter: ${getPatternFilter()};
+              pointer-events: none;
+              z-index: 0;
+            }
+            
+            .preview-header,
+            .preview-product-card {
+              position: relative;
+              z-index: 1;
+            }
+          ` : ''}
+          
           
           .preview-header {
             background: ${template?.colorScheme.gradient 

@@ -754,6 +754,7 @@ export default function DigitalCatalogForm() {
                   showTags: watchedValues.show_tags,
                   showDescription: watchedValues.show_description,
                 }}
+                backgroundPattern={form.watch('background_pattern')}
               />
             </div>
           </div>
