@@ -91,9 +91,9 @@ export function CatalogFormPreview({
     
     return `
       hue-rotate(${hue}deg) 
-      saturate(1.2) 
-      brightness(0.95) 
-      opacity(0.15)
+      saturate(1.0) 
+      brightness(0.9) 
+      opacity(0.08)
     `;
   };
 
@@ -215,7 +215,7 @@ export function CatalogFormPreview({
               right: 0;
               bottom: 0;
               background-image: url('/src/assets/patterns/pattern-${backgroundPattern}.png');
-              background-size: 200px 200px;
+              background-size: 120px 120px;
               background-repeat: repeat;
               filter: ${getPatternFilter()};
               pointer-events: none;
