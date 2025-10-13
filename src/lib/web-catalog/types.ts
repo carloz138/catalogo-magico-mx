@@ -196,6 +196,9 @@ export interface WebCatalogConfig {
   
   // Personalización de colores (override del template)
   custom_colors?: Partial<WebTemplateColors>;
+  
+  // Patrón de fondo
+  background_pattern?: string | null;
 }
 
 // Para el preview en tiempo real

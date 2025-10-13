@@ -23,6 +23,7 @@ import { ProductSelector } from "@/components/catalog/ProductSelector";
 import { PriceAdjustmentInput } from "@/components/catalog/PriceAdjustmentInput";
 import { CatalogFormPreview } from "@/components/catalog/CatalogFormPreview";
 import { WebTemplateSelector } from "@/components/templates/WebTemplateSelector";
+import { BackgroundPatternSelector } from "@/components/catalog/BackgroundPatternSelector";
 import { ArrowLeft, CalendarIcon, Loader2, Lock, AlertCircle, Palette } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -40,6 +41,7 @@ const catalogSchema = z
     expires_at: z.date().min(new Date(), "La fecha debe ser futura"),
 
     web_template_id: z.string().min(1, "Selecciona un template"),
+    background_pattern: z.string().nullable().optional(),
     price_display: z.enum(["menudeo_only", "mayoreo_only", "both"]),
     price_adjustment_menudeo: z.number().min(-90, "Mínimo -90%").max(100, "Máximo 100%"),
     price_adjustment_mayoreo: z.number().min(-90, "Mínimo -90%").max(100, "Máximo 100%"),
@@ -93,6 +95,7 @@ export default function DigitalCatalogForm() {
       description: "",
       expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
       web_template_id: "",
+      background_pattern: null,
       price_display: "both",
       price_adjustment_menudeo: 0,
       price_adjustment_mayoreo: 0,
@@ -190,6 +193,7 @@ export default function DigitalCatalogForm() {
         expires_at: catalog.expires_at ? new Date(catalog.expires_at) : new Date(),
 
         web_template_id: catalog.web_template_id || "",
+        background_pattern: catalog.background_pattern || null,
         price_display: catalog.price_display,
         price_adjustment_menudeo: Number(catalog.price_adjustment_menudeo),
         price_adjustment_mayoreo: Number(catalog.price_adjustment_mayoreo),
@@ -245,6 +249,7 @@ export default function DigitalCatalogForm() {
         name: data.name,
         description: data.description,
         web_template_id: data.web_template_id,
+        background_pattern: data.background_pattern,
         price_display: data.price_display,
         price_adjustment_menudeo: data.price_adjustment_menudeo,
         price_adjustment_mayoreo: data.price_adjustment_mayoreo,
@@ -348,7 +353,7 @@ export default function DigitalCatalogForm() {
                   </CardTitle>
                   <CardDescription>Selecciona cómo se verá tu catálogo</CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="space-y-6">
                   <FormField
                     control={form.control}
                     name="web_template_id"
@@ -360,6 +365,20 @@ export default function DigitalCatalogForm() {
                           userPlanId={userPlanId}
                           userPlanName={userPlanName}
                           productCount={selectedProducts.length}
+                        />
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="background_pattern"
+                    render={({ field }) => (
+                      <FormItem>
+                        <BackgroundPatternSelector
+                          selectedPattern={field.value}
+                          onPatternChange={field.onChange}
                         />
                         <FormMessage />
                       </FormItem>

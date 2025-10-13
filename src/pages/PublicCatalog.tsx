@@ -237,7 +237,7 @@ function PublicCatalogContent() {
     : null;
   
   const templateCSS = template 
-    ? WebTemplateAdapter.generateWebCSS(template)
+    ? WebTemplateAdapter.generateWebCSS(template, catalog.background_pattern)
     : "";
 
   return (

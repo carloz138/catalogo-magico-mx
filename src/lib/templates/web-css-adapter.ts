@@ -2,7 +2,7 @@
 import { WebCatalogTemplate } from '@/lib/web-catalog/types';
 
 export class WebTemplateAdapter {
-  static generateWebCSS(template: WebCatalogTemplate): string {
+  static generateWebCSS(template: WebCatalogTemplate, backgroundPattern?: string | null): string {
     const colors = template.colorScheme;
     const config = template.config;
     
@@ -24,6 +24,37 @@ export class WebTemplateAdapter {
     };
     const gap = gapMap[config.gap] || '1rem';
     
+    // Importar el patrón si existe
+    const patternUrls: Record<string, string> = {
+      'taco': '/src/assets/patterns/pattern-taco.png',
+    };
+    
+    const patternUrl = backgroundPattern ? patternUrls[backgroundPattern] : null;
+    
+    // Calcular filtro de color para el patrón basado en el primary color
+    // Extraer hue del primary color y aplicarlo al patrón
+    const getColorFilter = (hexColor: string) => {
+      // Convertir hex a HSL y crear un filtro CSS que tinte la imagen
+      // Este filtro hará que la imagen negra tome el color del tema
+      return `
+        filter: brightness(0) saturate(100%) invert(${hexColor.includes('#2') || hexColor.includes('#3') ? '30' : '60'}%) sepia(100%) saturate(500%) hue-rotate(${getHueFromHex(hexColor)}deg) brightness(0.9);
+        opacity: 0.08;
+      `;
+    };
+    
+    const getHueFromHex = (hex: string): number => {
+      // Extracción simplificada del hue basada en el color hex
+      const colors: Record<string, number> = {
+        '#': 0,
+        '2': 200, '3': 180, '4': 160, '5': 140,
+        '6': 120, '7': 100, '8': 80, '9': 60,
+        'a': 40, 'b': 20, 'c': 0, 'd': 340,
+        'e': 320, 'f': 300
+      };
+      const firstChar = hex.toLowerCase().charAt(1);
+      return colors[firstChar] || 0;
+    };
+    
     return `
       .catalog-public-container {
         --primary-color: ${colors.primary};
@@ -39,7 +70,30 @@ export class WebTemplateAdapter {
         
         background-color: var(--background-color) !important;
         min-height: 100vh;
+        position: relative;
       }
+      
+      ${patternUrl ? `
+      .catalog-public-container::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-image: url('${patternUrl}');
+        background-repeat: repeat;
+        background-size: 80px 80px;
+        ${getColorFilter(colors.primary)}
+        pointer-events: none;
+        z-index: 0;
+      }
+      
+      .catalog-public-container > * {
+        position: relative;
+        z-index: 1;
+      }
+      ` : ''}
       
       /* Grid de productos */
       .catalog-public-container .grid {
