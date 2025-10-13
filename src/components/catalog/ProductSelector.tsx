@@ -15,8 +15,9 @@ interface Product {
   sku: string | null;
   price_retail: number;
   price_wholesale: number | null;
-  image_url: string;
+  original_image_url: string;
   processed_image_url: string | null;
+  image_url: string | null;
 }
 
 interface ProductSelectorProps {
@@ -43,7 +44,7 @@ export function ProductSelector({ selectedIds, onChange }: ProductSelectorProps)
     try {
       const { data, error } = await supabase
         .from("products")
-        .select("id, name, sku, price_retail, price_wholesale, image_url, processed_image_url")
+        .select("id, name, sku, price_retail, price_wholesale, original_image_url, processed_image_url, image_url")
         .eq("user_id", user.id)
         .is("deleted_at", null)
         .order("created_at", { ascending: false });
@@ -180,7 +181,7 @@ export function ProductSelector({ selectedIds, onChange }: ProductSelectorProps)
           ) : (
             sortedProducts.map((product) => {
               const isSelected = selectedIds.includes(product.id);
-              const imageUrl = product.processed_image_url || product.image_url;
+              const imageUrl = product.processed_image_url || product.original_image_url || product.image_url;
 
               return (
                 <label
@@ -211,7 +212,7 @@ export function ProductSelector({ selectedIds, onChange }: ProductSelectorProps)
                           {product.sku}
                         </Badge>
                       )}
-                      <span className="text-sm text-muted-foreground">{formatPrice(product.price_retail)}</span>
+                      <span className="text-sm text-muted-foreground">{formatPrice(product.price_retail / 100)}</span>
                     </div>
                   </div>
                 </label>
