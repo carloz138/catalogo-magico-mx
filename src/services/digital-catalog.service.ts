@@ -82,6 +82,7 @@ export class DigitalCatalogService {
         access_password: hashedPassword,
         expires_at: catalogData.expires_at || null,
         enable_quotation: catalogData.enable_quotation || false,
+        background_pattern: catalogData.background_pattern || null,
       })
       .select()
       .single();
@@ -101,7 +102,7 @@ export class DigitalCatalogService {
       if (productsError) throw productsError;
     }
 
-    return catalog as DigitalCatalog;
+    return catalog as unknown as DigitalCatalog;
   }
 
   static async getUserCatalogs(userId: string): Promise<DigitalCatalog[]> {
@@ -112,7 +113,7 @@ export class DigitalCatalogService {
       .order("created_at", { ascending: false });
 
     if (error) throw error;
-    return (data || []) as DigitalCatalog[];
+    return (data || []) as unknown as DigitalCatalog[];
   }
 
   static async getCatalogById(catalogId: string, userId: string): Promise<DigitalCatalog & { products: any[] }> {
@@ -141,7 +142,7 @@ export class DigitalCatalogService {
 
     const products = catalogProducts?.map((cp: any) => cp.products) || [];
 
-    return { ...catalog, products } as DigitalCatalog & { products: any[] };
+    return { ...catalog, products } as unknown as DigitalCatalog & { products: any[] };
   }
 
   static async updateCatalog(
@@ -191,7 +192,7 @@ export class DigitalCatalogService {
       }
     }
 
-    return data as DigitalCatalog;
+    return data as unknown as DigitalCatalog;
   }
 
   static async deleteCatalog(catalogId: string, userId: string): Promise<void> {
@@ -258,7 +259,7 @@ export class DigitalCatalogService {
         email: null,
         website: null,
       },
-    } as PublicCatalogView;
+    } as unknown as PublicCatalogView;
   }
 
   static async verifyPrivateAccess(slug: string, password: string): Promise<boolean> {
