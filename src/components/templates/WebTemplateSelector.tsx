@@ -6,8 +6,9 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { Lock, Check, Sparkles, Crown, Zap, AlertCircle } from 'lucide-react';
+import { Lock, Check, Sparkles, Crown, Zap, AlertCircle, Eye } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { WebTemplatePreviewModal } from './WebTemplatePreviewModal';
 
 // Imports del sistema web-catalog
 import { EXPANDED_WEB_TEMPLATES } from '@/lib/web-catalog/expanded-templates-catalog';
@@ -62,6 +63,8 @@ export const WebTemplateSelector: React.FC<WebTemplateSelectorProps> = ({
   const [availableTemplates, setAvailableTemplates] = useState<WebCatalogTemplate[]>([]);
   const [lockedTemplates, setLockedTemplates] = useState<WebCatalogTemplate[]>([]);
   const [stats, setStats] = useState<any>(null);
+  const [previewTemplate, setPreviewTemplate] = useState<WebCatalogTemplate | null>(null);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
   useEffect(() => {
     loadTemplatesForUser();
@@ -104,6 +107,12 @@ export const WebTemplateSelector: React.FC<WebTemplateSelectorProps> = ({
     onTemplateSelect(template.id);
   };
 
+  const handleOpenPreview = (template: WebCatalogTemplate, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setPreviewTemplate(template);
+    setIsPreviewOpen(true);
+  };
+
   const renderTemplateCard = (template: WebCatalogTemplate, isLocked: boolean) => {
     const Icon = getCategoryIcon(template.category);
     const isSelected = selectedTemplate === template.id;
@@ -112,7 +121,7 @@ export const WebTemplateSelector: React.FC<WebTemplateSelectorProps> = ({
       <Card
         key={template.id}
         className={cn(
-          'cursor-pointer transition-all hover:shadow-lg border-2',
+          'group cursor-pointer transition-all hover:shadow-lg border-2',
           isSelected ? 'border-primary ring-2 ring-primary/20' : 'border-border hover:border-primary/50',
           isLocked && 'opacity-60 cursor-not-allowed'
         )}
@@ -133,6 +142,19 @@ export const WebTemplateSelector: React.FC<WebTemplateSelectorProps> = ({
               </div>
             )}
             
+            {/* Preview button overlay - aparece en hover */}
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
+              <Button
+                size="sm"
+                variant="secondary"
+                className="shadow-lg"
+                onClick={(e) => handleOpenPreview(template, e)}
+              >
+                <Eye className="h-4 w-4 mr-2" />
+                Vista Previa
+              </Button>
+            </div>
+            
             {/* Lock overlay */}
             {isLocked && (
               <div className="absolute inset-0 bg-black/40 flex items-center justify-center backdrop-blur-sm">
@@ -145,13 +167,13 @@ export const WebTemplateSelector: React.FC<WebTemplateSelectorProps> = ({
 
             {/* Selected indicator */}
             {isSelected && !isLocked && (
-              <div className="absolute top-2 right-2 bg-primary text-primary-foreground rounded-full p-1">
+              <div className="absolute top-2 right-2 bg-primary text-primary-foreground rounded-full p-1 z-10">
                 <Check className="h-4 w-4" />
               </div>
             )}
 
             {/* Category badge */}
-            <div className="absolute top-2 left-2">
+            <div className="absolute top-2 left-2 z-10">
               <Badge 
                 variant="secondary" 
                 className={cn('text-xs', getCategoryColor(template.category))}
@@ -275,6 +297,16 @@ export const WebTemplateSelector: React.FC<WebTemplateSelectorProps> = ({
           </AlertDescription>
         </Alert>
       )}
+
+      {/* Preview Modal */}
+      <WebTemplatePreviewModal
+        template={previewTemplate}
+        isOpen={isPreviewOpen}
+        onClose={() => setIsPreviewOpen(false)}
+        onSelect={onTemplateSelect}
+        isLocked={previewTemplate ? !isTemplateAvailable(previewTemplate, userTier) : false}
+        isSelected={previewTemplate?.id === selectedTemplate}
+      />
     </div>
   );
 };
