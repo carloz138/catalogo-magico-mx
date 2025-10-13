@@ -313,11 +313,66 @@ export default function DigitalCatalogForm() {
         <form onSubmit={form.handleSubmit(handleSubmit)}>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <div className="space-y-6">
-              {/* Información Básica */}
+              {/* 1. Selección de Productos - LO MÁS IMPORTANTE PRIMERO */}
+              <Card className="border-primary">
+                <CardHeader>
+                  <CardTitle className="text-xl">1. Selecciona tus Productos</CardTitle>
+                  <CardDescription>Elige los productos que aparecerán en el catálogo</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <FormField
+                    control={form.control}
+                    name="product_ids"
+                    render={({ field }) => (
+                      <FormItem>
+                        <ProductSelector
+                          selectedIds={field.value}
+                          onChange={(ids, products) => {
+                            field.onChange(ids);
+                            setSelectedProducts(products);
+                          }}
+                        />
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </CardContent>
+              </Card>
+
+              {/* 2. Template de Diseño Web */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Información Básica</CardTitle>
-                  <CardDescription>Nombre y descripción de tu catálogo</CardDescription>
+                  <CardTitle className="flex items-center gap-2">
+                    <Palette className="h-5 w-5" />
+                    2. Elige el Diseño
+                  </CardTitle>
+                  <CardDescription>Selecciona cómo se verá tu catálogo</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <FormField
+                    control={form.control}
+                    name="web_template_id"
+                    render={({ field }) => (
+                      <FormItem>
+                        <WebTemplateSelector
+                          selectedTemplate={field.value}
+                          onTemplateSelect={field.onChange}
+                          userPlanId={userPlanId}
+                          userPlanName={userPlanName}
+                          productCount={selectedProducts.length}
+                        />
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </CardContent>
+              </Card>
+
+              {/* 3. Información Básica */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>3. Información del Catálogo</CardTitle>
+                  <CardDescription>Nombre y descripción</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <FormField
@@ -348,80 +403,13 @@ export default function DigitalCatalogForm() {
                       </FormItem>
                     )}
                   />
-
-                  <FormField
-                    control={form.control}
-                    name="expires_at"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-col">
-                        <FormLabel>Fecha de expiración *</FormLabel>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <FormControl>
-                              <Button
-                                variant="outline"
-                                className={cn(
-                                  "w-full pl-3 text-left font-normal",
-                                  !field.value && "text-muted-foreground",
-                                )}
-                              >
-                                {field.value ? format(field.value, "PPP") : <span>Selecciona una fecha</span>}
-                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                              </Button>
-                            </FormControl>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                              mode="single"
-                              selected={field.value}
-                              onSelect={field.onChange}
-                              disabled={(date) => date < new Date()}
-                              initialFocus
-                              className="pointer-events-auto"
-                            />
-                          </PopoverContent>
-                        </Popover>
-                        <FormDescription>Después de esta fecha el catálogo no será accesible</FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
                 </CardContent>
               </Card>
 
-              {/* Template de Diseño Web */}
+              {/* 4. Configuración de Precios */}
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Palette className="h-5 w-5" />
-                    Template Web
-                  </CardTitle>
-                  <CardDescription>Elige el diseño para tu catálogo digital</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <FormField
-                    control={form.control}
-                    name="web_template_id"
-                    render={({ field }) => (
-                      <FormItem>
-                        <WebTemplateSelector
-                          selectedTemplate={field.value}
-                          onTemplateSelect={field.onChange}
-                          userPlanId={userPlanId}
-                          userPlanName={userPlanName}
-                          productCount={selectedProducts.length}
-                        />
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </CardContent>
-              </Card>
-
-              {/* Configuración de Precios */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Configuración de Precios</CardTitle>
+                  <CardTitle>4. Configuración de Precios</CardTitle>
                   <CardDescription>Define qué precios mostrar y ajustes</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -498,11 +486,11 @@ export default function DigitalCatalogForm() {
                 </CardContent>
               </Card>
 
-              {/* Configuración de Visibilidad */}
+              {/* 5. Configuración de Visibilidad */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Configuración de Visibilidad</CardTitle>
-                  <CardDescription>Qué información mostrar en cada producto</CardDescription>
+                  <CardTitle>5. Información a Mostrar</CardTitle>
+                  <CardDescription>Qué datos mostrar de cada producto</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <FormField
@@ -555,16 +543,54 @@ export default function DigitalCatalogForm() {
                 </CardContent>
               </Card>
 
-              {/* Privacidad */}
+              {/* 6. Configuración Avanzada */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Lock className="h-5 w-5" />
-                    Privacidad
+                    6. Configuración Avanzada
                   </CardTitle>
-                  <CardDescription>Control de acceso al catálogo</CardDescription>
+                  <CardDescription>Privacidad y fecha de expiración</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="expires_at"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-col">
+                        <FormLabel>Fecha de expiración *</FormLabel>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant="outline"
+                                className={cn(
+                                  "w-full pl-3 text-left font-normal",
+                                  !field.value && "text-muted-foreground",
+                                )}
+                              >
+                                {field.value ? format(field.value, "PPP") : <span>Selecciona una fecha</span>}
+                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={field.value}
+                              onSelect={field.onChange}
+                              disabled={(date) => date < new Date()}
+                              initialFocus
+                              className="pointer-events-auto"
+                            />
+                          </PopoverContent>
+                        </Popover>
+                        <FormDescription>Después de esta fecha el catálogo no será accesible</FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
                   {!canCreatePrivate && (
                     <Alert>
                       <AlertCircle className="h-4 w-4" />
@@ -632,32 +658,6 @@ export default function DigitalCatalogForm() {
                       )}
                     />
                   )}
-                </CardContent>
-              </Card>
-
-              {/* Selección de Productos */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Selección de Productos</CardTitle>
-                  <CardDescription>Elige los productos que aparecerán en el catálogo</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <FormField
-                    control={form.control}
-                    name="product_ids"
-                    render={({ field }) => (
-                      <FormItem>
-                        <ProductSelector
-                          selectedIds={field.value}
-                          onChange={(ids, products) => {
-                            field.onChange(ids);
-                            setSelectedProducts(products);
-                          }}
-                        />
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
                 </CardContent>
               </Card>
 
