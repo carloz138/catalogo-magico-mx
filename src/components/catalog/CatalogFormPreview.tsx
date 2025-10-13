@@ -16,6 +16,8 @@ interface Product {
   price_wholesale: number | null;
   image_url: string;
   processed_image_url: string | null;
+  catalog_image_url?: string | null;
+  thumbnail_image_url?: string | null;
   tags?: string[] | null;
 }
 
@@ -91,9 +93,10 @@ export function CatalogFormPreview({
   const getPriceDisplay = (product: Product) => {
     const { display, adjustmentMenudeo, adjustmentMayoreo } = priceConfig;
 
-    const menudeoPrice = calculateAdjustedPrice(product.price_retail, adjustmentMenudeo);
+    // Los precios vienen en centavos, dividir por 100
+    const menudeoPrice = calculateAdjustedPrice(product.price_retail / 100, adjustmentMenudeo);
     const mayoreoPrice = product.price_wholesale
-      ? calculateAdjustedPrice(product.price_wholesale, adjustmentMayoreo)
+      ? calculateAdjustedPrice(product.price_wholesale / 100, adjustmentMayoreo)
       : null;
 
     const priceClass = template ? "preview-price-badge" : "text-lg font-bold text-primary";
@@ -260,7 +263,11 @@ export function CatalogFormPreview({
               getGridColumns()
             )}>
               {displayProducts.map((product) => {
-                const imageUrl = product.processed_image_url || product.image_url;
+                // Prioridad de imágenes: catalog > processed > thumbnail > original
+                const imageUrl = product.catalog_image_url || 
+                                product.processed_image_url || 
+                                product.thumbnail_image_url || 
+                                product.image_url;
                 const imageRatio = template?.config.imageRatio || 'square';
 
                 return (
