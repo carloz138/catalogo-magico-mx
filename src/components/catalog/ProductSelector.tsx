@@ -13,11 +13,15 @@ interface Product {
   id: string;
   name: string;
   sku: string | null;
+  description: string | null;
   price_retail: number;
   price_wholesale: number | null;
   original_image_url: string;
   processed_image_url: string | null;
+  catalog_image_url: string | null;
+  thumbnail_image_url: string | null;
   image_url: string | null;
+  tags: string[] | null;
 }
 
 interface ProductSelectorProps {
@@ -44,7 +48,20 @@ export function ProductSelector({ selectedIds, onChange }: ProductSelectorProps)
     try {
       const { data, error } = await supabase
         .from("products")
-        .select("id, name, sku, price_retail, price_wholesale, original_image_url, processed_image_url, image_url")
+        .select(`
+          id, 
+          name, 
+          sku,
+          description,
+          tags,
+          price_retail, 
+          price_wholesale, 
+          original_image_url, 
+          processed_image_url, 
+          catalog_image_url,
+          thumbnail_image_url,
+          image_url
+        `)
         .eq("user_id", user.id)
         .is("deleted_at", null)
         .order("created_at", { ascending: false });
@@ -181,7 +198,12 @@ export function ProductSelector({ selectedIds, onChange }: ProductSelectorProps)
           ) : (
             sortedProducts.map((product) => {
               const isSelected = selectedIds.includes(product.id);
-              const imageUrl = product.processed_image_url || product.original_image_url || product.image_url;
+              // Prioridad: catalog > processed > thumbnail > original > image_url
+              const imageUrl = product.catalog_image_url || 
+                              product.processed_image_url || 
+                              product.thumbnail_image_url || 
+                              product.original_image_url || 
+                              product.image_url;
 
               return (
                 <label
