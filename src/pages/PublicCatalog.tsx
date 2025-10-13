@@ -90,11 +90,12 @@ function PublicCatalogContent() {
 
   const availableTags = Array.from(new Set(catalog?.products.flatMap((p) => p.tags || []).filter(Boolean) || []));
 
+  // Calculate min and max prices in currency (converting from cents)
   const prices = catalog?.products.map((p) => {
     if (catalog.price_display === "both" || catalog.price_display === "menudeo_only") {
-      return p.price_retail || 0;
+      return (p.price_retail || 0) / 100;
     }
-    return p.price_wholesale || 0;
+    return (p.price_wholesale || 0) / 100;
   }) || [0];
 
   const minPrice = Math.min(...prices);
