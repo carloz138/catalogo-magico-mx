@@ -76,8 +76,9 @@ export class WebTemplateAdapter {
       /* Tags */
       .catalog-public-container .catalog-product-tag {
         background: var(--accent-color) !important;
-        color: white !important;
+        color: var(--text-color) !important;
         border-radius: calc(var(--border-radius) / 2) !important;
+        font-weight: 600 !important;
       }
       
       /* Botón agregar a cotización */
