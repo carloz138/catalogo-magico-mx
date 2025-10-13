@@ -379,6 +379,7 @@ export default function DigitalCatalogForm() {
                         <BackgroundPatternSelector
                           selectedPattern={field.value}
                           onPatternChange={field.onChange}
+                          webTemplateId={form.watch('web_template_id')}
                         />
                         <FormMessage />
                       </FormItem>
