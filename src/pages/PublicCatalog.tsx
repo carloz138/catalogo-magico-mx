@@ -292,7 +292,7 @@ function PublicCatalogContent() {
                 </TabsTrigger>
               </TabsList>
 
-              <TabsContent value="productos" className="space-y-6">
+              <TabsContent value="productos" className="space-y-6" style={{ pointerEvents: 'auto' }}>
                 <ProductsContent 
                   catalog={catalog}
                   query={query}
@@ -310,7 +310,7 @@ function PublicCatalogContent() {
                 />
               </TabsContent>
 
-              <TabsContent value="info">
+              <TabsContent value="info" style={{ pointerEvents: 'auto' }}>
                 <Card className="max-w-4xl mx-auto">
                   <CardContent className="p-8">
                     <div className="prose prose-slate max-w-none">

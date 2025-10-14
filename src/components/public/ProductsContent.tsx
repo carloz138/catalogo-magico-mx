@@ -37,7 +37,7 @@ export function ProductsContent({
   maxPrice,
 }: ProductsContentProps) {
   return (
-    <div className="flex flex-col lg:flex-row gap-8">
+    <div className="flex flex-col lg:flex-row gap-8" style={{ pointerEvents: 'auto' }}>
       <aside className="hidden lg:block w-64 flex-shrink-0">
         <ProductFilters
           tags={availableTags}
