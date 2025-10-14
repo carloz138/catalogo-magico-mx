@@ -113,7 +113,7 @@ export default function DigitalCatalogForm() {
       is_private: false,
       access_password: "",
       product_ids: [],
-      enable_quotation: true,
+      enable_quotation: false,
       enable_variants: true,
     },
   });
@@ -181,6 +181,19 @@ export default function DigitalCatalogForm() {
       setUserPlanTier('free');
     }
   };
+
+  // Establecer valor por defecto de enable_quotation basado en el plan del usuario (solo para nuevos catálogos)
+  useEffect(() => {
+    if (!isEditing && userPlanTier) {
+      const hasQuotation = getPlanFeatures(userPlanTier).hasQuotation;
+      form.setValue('enable_quotation', hasQuotation);
+      
+      // Si tiene cotizaciones, habilitar variantes por defecto
+      if (hasQuotation) {
+        form.setValue('enable_variants', true);
+      }
+    }
+  }, [userPlanTier, isEditing]);
 
   useEffect(() => {
     if (isEditing && user && id) {

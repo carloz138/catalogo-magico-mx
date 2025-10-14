@@ -82,7 +82,7 @@ export class DigitalCatalogService {
         is_private: catalogData.is_private,
         access_password: hashedPassword,
         expires_at: catalogData.expires_at || null,
-        enable_quotation: catalogData.enable_quotation ?? true,
+        enable_quotation: catalogData.enable_quotation ?? false,
         enable_variants: catalogData.enable_variants ?? true,
         background_pattern: catalogData.background_pattern || null,
       })
