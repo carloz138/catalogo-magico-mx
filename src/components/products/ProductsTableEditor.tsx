@@ -6,13 +6,14 @@ import { Badge } from '@/components/ui/badge';
 import { 
   Save, X, Edit, Trash2, Plus, Eye, Package, 
   Filter, Search, RefreshCw, Settings, Palette, ShoppingCart,
-  AlertCircle, CheckCircle, Clock, Upload, ExternalLink, Tag, BookOpen
+  AlertCircle, CheckCircle, Clock, Upload, ExternalLink, Tag, BookOpen, Layers
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { Product, getDisplayImageUrl, getCatalogImageUrl, getProcessingStatus } from '@/types/products';
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
+import { VariantManagementModal } from './VariantManagementModal';
 
 // ==========================================
 // TIPOS ESPECÍFICOS DEL EDITOR
@@ -194,6 +195,10 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
     category: '',
     status: ''
   });
+
+  // Estados para modal de variantes
+  const [showVariantModal, setShowVariantModal] = useState(false);
+  const [variantProduct, setVariantProduct] = useState<EditorProduct | null>(null);
 
   // ==========================================
   // EFECTOS
@@ -1184,6 +1189,7 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
                 <th className="p-3 text-left font-medium min-w-[140px]">Precio Mayoreo</th>
                 <th className="p-3 text-left font-medium min-w-[120px]">Min. Mayoreo</th>
                 <th className="p-3 text-left font-medium min-w-[120px]">Marca</th>
+                <th className="p-3 text-left font-medium min-w-[100px]">Variantes</th>
                 <th className="p-3 text-left font-medium min-w-[150px]">
                   <div className="flex items-center gap-1">
                     <Tag className="w-4 h-4" />
@@ -1191,7 +1197,7 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
                   </div>
                 </th>
                 <th className="p-3 text-left font-medium min-w-[120px]">Estado</th>
-                <th className="p-3 text-left font-medium min-w-[120px]">Acciones</th>
+                <th className="p-3 text-left font-medium min-w-[150px]">Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -1232,6 +1238,24 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
                   <td className="p-3">
                     {renderEditableCell(product, 'brand', product.brand)}
                   </td>
+                  <td className="p-3">
+                    <Button
+                      size="sm"
+                      variant={product.has_variants ? "default" : "outline"}
+                      onClick={() => {
+                        setVariantProduct(product);
+                        setShowVariantModal(true);
+                      }}
+                      className="gap-1"
+                    >
+                      <Layers className="w-3.5 h-3.5" />
+                      {product.has_variants ? (
+                        <span>{product.variant_count || 0}</span>
+                      ) : (
+                        <span className="text-xs">Crear</span>
+                      )}
+                    </Button>
+                  </td>
                   <td className="p-3 min-w-[150px]">
                     {renderEditableCell(product, 'tags', product.tags)}
                   </td>
@@ -1240,6 +1264,17 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
                   </td>
                   <td className="p-3">
                     <div className="flex items-center gap-1">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                          setVariantProduct(product);
+                          setShowVariantModal(true);
+                        }}
+                        title="Gestionar variantes"
+                      >
+                        <Layers className="w-4 h-4" />
+                      </Button>
                       <Button
                         size="sm"
                         variant="ghost"
@@ -1662,6 +1697,28 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Modal de Gestión de Variantes */}
+      {variantProduct && (
+        <VariantManagementModal
+          open={showVariantModal}
+          onOpenChange={(open) => {
+            setShowVariantModal(open);
+            if (!open) {
+              setVariantProduct(null);
+              // Recargar productos para actualizar el conteo de variantes
+              if (!externalProducts && user) {
+                fetchProducts();
+              }
+            }
+          }}
+          productId={variantProduct.id}
+          productName={variantProduct.name}
+          productCategory={variantProduct.category || undefined}
+          basePrice={variantProduct.price_retail || undefined}
+          basePriceWholesale={variantProduct.price_wholesale || undefined}
+        />
       )}
 
       {/* Modales de Confirmación */}
