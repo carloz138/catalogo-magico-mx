@@ -186,6 +186,20 @@ export default function DigitalCatalogForm() {
     }
   }, [isEditing, user, id]);
 
+  // Validar productos sin wholesale_min_qty cuando se selecciona mostrar precios de mayoreo
+  const productsWithoutWholesaleMin = useMemo(() => {
+    const priceDisplay = watchedValues.price_display;
+    if (priceDisplay !== "mayoreo_only" && priceDisplay !== "both") {
+      return [];
+    }
+    
+    return selectedProducts.filter(product => {
+      const hasWholesalePrice = product.price_wholesale && product.price_wholesale > 0;
+      const hasWholesaleMin = product.wholesale_min_qty && product.wholesale_min_qty > 0;
+      return hasWholesalePrice && !hasWholesaleMin;
+    });
+  }, [selectedProducts, watchedValues.price_display]);
+
   const loadCatalog = async () => {
     if (!user || !id) return;
 
@@ -325,20 +339,6 @@ export default function DigitalCatalogForm() {
 
   const productIds = form.watch('product_ids') || [];
   const webTemplateId = form.watch('web_template_id');
-
-  // Validar productos sin wholesale_min_qty cuando se selecciona mostrar precios de mayoreo
-  const productsWithoutWholesaleMin = useMemo(() => {
-    const priceDisplay = watchedValues.price_display;
-    if (priceDisplay !== "mayoreo_only" && priceDisplay !== "both") {
-      return [];
-    }
-    
-    return selectedProducts.filter(product => {
-      const hasWholesalePrice = product.price_wholesale && product.price_wholesale > 0;
-      const hasWholesaleMin = product.wholesale_min_qty && product.wholesale_min_qty > 0;
-      return hasWholesalePrice && !hasWholesaleMin;
-    });
-  }, [selectedProducts, watchedValues.price_display]);
 
   return (
     <div className="container mx-auto py-4 md:py-8 px-4">
