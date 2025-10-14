@@ -459,19 +459,19 @@ const Checkout = () => {
           }}
           className="mb-8"
         >
-          <TabsList className="grid w-full max-w-md mx-auto grid-cols-2 mb-8">
-            <TabsTrigger value="monthly" className="gap-2 py-3">
-              <RefreshCw className="w-4 h-4" />
-              <div className="text-left">
-                <div className="font-semibold">Planes Mensuales</div>
-                <div className="text-xs text-gray-500">Renovación automática</div>
+          <TabsList className="grid w-full max-w-3xl mx-auto grid-cols-2 gap-2 mb-8 h-auto p-2">
+            <TabsTrigger value="monthly" className="gap-2 py-4 px-4 h-auto">
+              <RefreshCw className="w-4 h-4 flex-shrink-0" />
+              <div className="text-left flex-1 min-w-0">
+                <div className="font-semibold text-sm">Planes Mensuales</div>
+                <div className="text-xs text-muted-foreground whitespace-nowrap overflow-hidden text-ellipsis">Renovación automática</div>
               </div>
             </TabsTrigger>
-            <TabsTrigger value="credits" className="gap-2 py-3">
-              <Coins className="w-4 h-4" />
-              <div className="text-left">
-                <div className="font-semibold">Comprar créditos</div>
-                <div className="text-xs text-gray-500">Recarga tu saldo para remover fondos de imágenes</div>
+            <TabsTrigger value="credits" className="gap-2 py-4 px-4 h-auto">
+              <Coins className="w-4 h-4 flex-shrink-0" />
+              <div className="text-left flex-1 min-w-0">
+                <div className="font-semibold text-sm">Comprar créditos</div>
+                <div className="text-xs text-muted-foreground">Recarga tu saldo para remover fondos</div>
               </div>
             </TabsTrigger>
           </TabsList>
