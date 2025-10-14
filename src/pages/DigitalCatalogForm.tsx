@@ -388,7 +388,7 @@ export default function DigitalCatalogForm() {
                         )}
                       </div>
                     </AccordionTrigger>
-                    <AccordionContent className="px-4 pb-4">
+                    <AccordionContent className="px-4 pb-4 pt-2">
                       <FormField
                         control={form.control}
                         name="product_ids"

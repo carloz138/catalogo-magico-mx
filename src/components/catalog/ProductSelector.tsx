@@ -6,9 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { Search, CheckSquare, Square, Loader2, Tag, X } from "lucide-react";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Search, CheckSquare, Square, Loader2, Tag, X, ChevronRight } from "lucide-react";
 import { formatPrice } from "@/lib/utils/price-calculator";
 import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface Product {
   id: string;
@@ -32,10 +34,12 @@ interface ProductSelectorProps {
 
 export function ProductSelector({ selectedIds, onChange }: ProductSelectorProps) {
   const { user } = useAuth();
+  const isMobile = useIsMobile();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
     if (user) {
