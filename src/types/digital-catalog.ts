@@ -37,6 +37,7 @@ export interface DigitalCatalog {
   is_active: boolean;
   view_count: number;
   enable_quotation: boolean;
+  enable_variants: boolean;
 
   created_at: string;
   updated_at: string;
@@ -116,6 +117,7 @@ export interface CreateDigitalCatalogDTO {
   expires_at?: string;
   product_ids: string[];
   enable_quotation?: boolean;
+  enable_variants?: boolean;
 }
 
 export interface UpdateDigitalCatalogDTO {
@@ -137,6 +139,7 @@ export interface UpdateDigitalCatalogDTO {
   is_active?: boolean;
   product_ids?: string[];
   enable_quotation?: boolean;
+  enable_variants?: boolean;
 }
 
 export interface CreateQuoteDTO {
@@ -198,4 +201,5 @@ export interface PublicCatalogView extends DigitalCatalog {
     email: string | null;
     website: string | null;
   };
+  enable_variants: boolean;
 }

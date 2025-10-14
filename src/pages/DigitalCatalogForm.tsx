@@ -28,7 +28,7 @@ import { PriceAdjustmentInput } from "@/components/catalog/PriceAdjustmentInput"
 import { CatalogFormPreview } from "@/components/catalog/CatalogFormPreview";
 import { WebTemplateSelector } from "@/components/templates/WebTemplateSelector";
 import { BackgroundPatternSelector } from "@/components/catalog/BackgroundPatternSelector";
-import { ArrowLeft, CalendarIcon, Loader2, Lock, AlertCircle, Palette, Check, ChevronRight, Package, DollarSign, Eye, Settings, ExternalLink, AlertTriangle } from "lucide-react";
+import { ArrowLeft, CalendarIcon, Loader2, Lock, AlertCircle, Palette, Check, ChevronRight, Package, DollarSign, Eye, Settings, ExternalLink, AlertTriangle, Layers } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -58,6 +58,7 @@ const catalogSchema = z
     product_ids: z.array(z.string()).min(1, "Selecciona al menos 1 producto"),
 
     enable_quotation: z.boolean().optional(),
+    enable_variants: z.boolean().optional(),
   })
   .refine(
     (data) => {
@@ -113,6 +114,7 @@ export default function DigitalCatalogForm() {
       access_password: "",
       product_ids: [],
       enable_quotation: false,
+      enable_variants: true,
     },
   });
 
@@ -226,6 +228,7 @@ export default function DigitalCatalogForm() {
         access_password: "",
         product_ids: catalog.products?.map((p) => p.id) || [],
         enable_quotation: catalog.enable_quotation || false,
+        enable_variants: catalog.enable_variants ?? true,
       });
 
       setSelectedProducts(catalog.products || []);
@@ -284,6 +287,7 @@ export default function DigitalCatalogForm() {
         expires_at: data.expires_at.toISOString(),
         product_ids: data.product_ids,
         enable_quotation: getPlanFeatures(userPlanTier).hasQuotation && data.enable_quotation,
+        enable_variants: data.enable_variants ?? true,
       };
 
       if (isEditing && id) {
@@ -924,13 +928,13 @@ export default function DigitalCatalogForm() {
                           </div>
                         </div>
                       </AccordionTrigger>
-                      <AccordionContent className="px-4 pb-4">
+                       <AccordionContent className="px-4 pb-4">
                         <FormField
                           control={form.control}
                           name="enable_quotation"
                           render={({ field }) => (
                             <div
-                              className="flex items-center justify-between p-4 rounded-lg border cursor-pointer active:scale-[0.98] transition-all"
+                              className="flex items-center justify-between p-4 rounded-lg border cursor-pointer active:scale-[0.98] transition-all mb-3"
                               onClick={() => field.onChange(!field.value)}
                             >
                               <div className="flex-1">
@@ -947,6 +951,31 @@ export default function DigitalCatalogForm() {
                             </div>
                           )}
                         />
+                        
+                        {form.watch("enable_quotation") && (
+                          <FormField
+                            control={form.control}
+                            name="enable_variants"
+                            render={({ field }) => (
+                              <div
+                                className="flex items-center justify-between p-4 rounded-lg border cursor-pointer active:scale-[0.98] transition-all"
+                                onClick={() => field.onChange(!field.value)}
+                              >
+                                <div className="flex-1">
+                                  <div className="font-medium text-base">Permitir selección de variantes</div>
+                                  <div className="text-sm text-muted-foreground">
+                                    Los clientes podrán elegir variantes específicas al cotizar
+                                  </div>
+                                </div>
+                                <Switch
+                                  checked={field.value}
+                                  onCheckedChange={field.onChange}
+                                  className="pointer-events-none"
+                                />
+                              </div>
+                            )}
+                          />
+                        )}
                       </AccordionContent>
                     </AccordionItem>
                   ) : (
@@ -1399,7 +1428,7 @@ export default function DigitalCatalogForm() {
                       <CardTitle>Sistema de Cotización</CardTitle>
                       <CardDescription>Permite que los clientes soliciten cotizaciones directamente</CardDescription>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="space-y-4">
                       <FormField
                         control={form.control}
                         name="enable_quotation"
@@ -1417,6 +1446,29 @@ export default function DigitalCatalogForm() {
                           </FormItem>
                         )}
                       />
+                      
+                      {form.watch("enable_quotation") && (
+                        <FormField
+                          control={form.control}
+                          name="enable_variants"
+                          render={({ field }) => (
+                            <FormItem className="flex items-center justify-between rounded-lg border p-4">
+                              <div className="space-y-0.5 flex items-start gap-2">
+                                <Layers className="h-5 w-5 mt-0.5 text-muted-foreground" />
+                                <div>
+                                  <FormLabel className="text-base">Permitir selección de variantes</FormLabel>
+                                  <FormDescription>
+                                    Los clientes podrán elegir variantes específicas (talla, color, etc.) al cotizar
+                                  </FormDescription>
+                                </div>
+                              </div>
+                              <FormControl>
+                                <Switch checked={field.value} onCheckedChange={field.onChange} />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
+                      )}
                     </CardContent>
                   </Card>
                 ) : (

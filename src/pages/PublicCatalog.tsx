@@ -354,6 +354,7 @@ function PublicCatalogContent() {
                 adjustmentMenudeo: catalog.price_adjustment_menudeo,
                 adjustmentMayoreo: catalog.price_adjustment_mayoreo,
               }}
+              catalog={catalog}
               isOpen={isAddModalOpen}
               onClose={() => {
                 setIsAddModalOpen(false);

@@ -590,6 +590,7 @@ export type Database = {
           created_at: string | null
           description: string | null
           enable_quotation: boolean | null
+          enable_variants: boolean | null
           expires_at: string | null
           id: string
           is_active: boolean | null
@@ -616,6 +617,7 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           enable_quotation?: boolean | null
+          enable_variants?: boolean | null
           expires_at?: string | null
           id?: string
           is_active?: boolean | null
@@ -642,6 +644,7 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           enable_quotation?: boolean | null
+          enable_variants?: boolean | null
           expires_at?: string | null
           id?: string
           is_active?: boolean | null

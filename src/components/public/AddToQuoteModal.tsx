@@ -39,9 +39,10 @@ interface Props {
   isOpen: boolean;
   onClose: () => void;
   onAdd: (quantity: number, priceType: 'retail' | 'wholesale', variantId?: string | null, variantDescription?: string | null) => void;
+  catalog: { enable_variants?: boolean };
 }
 
-export function AddToQuoteModal({ product, priceConfig, isOpen, onClose, onAdd }: Props) {
+export function AddToQuoteModal({ product, priceConfig, isOpen, onClose, onAdd, catalog }: Props) {
   const [quantity, setQuantity] = useState(1);
   const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
 
@@ -124,7 +125,7 @@ export function AddToQuoteModal({ product, priceConfig, isOpen, onClose, onAdd }
           </div>
 
           {/* Selector de variantes */}
-          {product.has_variants && product.variants && product.variants.length > 0 && (
+          {product.has_variants && product.variants && product.variants.length > 0 && catalog.enable_variants && (
             <VariantSelector
               variants={product.variants}
               selectedVariantId={selectedVariantId}
