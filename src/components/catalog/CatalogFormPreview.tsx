@@ -4,6 +4,7 @@ import { Eye, Monitor, Tablet, Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { calculateAdjustedPrice, formatPrice } from "@/lib/utils/price-calculator";
 import { EXPANDED_WEB_TEMPLATES } from "@/lib/web-catalog/expanded-templates-catalog";
+import { WebTemplateAdapter } from "@/lib/templates/web-css-adapter";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 
@@ -55,47 +56,14 @@ export function CatalogFormPreview({
   const [viewMode, setViewMode] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
   const displayProducts = products.slice(0, 6);
 
-  // Obtener template web
+  // Obtener template web y generar CSS con el mismo adaptador que usa el catálogo público
   const template = webTemplateId 
     ? EXPANDED_WEB_TEMPLATES.find(t => t.id === webTemplateId)
     : null;
 
-  // Generar estilos dinámicos del template
-  const previewStyles = template
-    ? ({
-        "--preview-primary": template.colorScheme.primary,
-        "--preview-secondary": template.colorScheme.secondary,
-        "--preview-accent": template.colorScheme.accent,
-        "--preview-background": template.colorScheme.background,
-        "--preview-card-bg": template.colorScheme.cardBackground,
-        "--preview-text": template.colorScheme.text,
-        "--preview-border": template.colorScheme.border,
-        "--preview-border-radius": template.config.cardRadius === 'none' ? '0px' : 
-                                   template.config.cardRadius === 'sm' ? '4px' :
-                                   template.config.cardRadius === 'md' ? '8px' :
-                                   template.config.cardRadius === 'lg' ? '12px' : '16px',
-      } as React.CSSProperties)
-    : {};
-
-  // Generar filtro de color para el patrón de fondo
-  const getPatternFilter = () => {
-    if (!template || !backgroundPattern) return '';
-    
-    const primaryColor = template.colorScheme.primary;
-    const hex = primaryColor.replace('#', '');
-    const r = parseInt(hex.substring(0, 2), 16);
-    const g = parseInt(hex.substring(2, 4), 16);
-    const b = parseInt(hex.substring(4, 6), 16);
-    
-    const hue = Math.atan2(Math.sqrt(3) * (g - b), 2 * r - g - b) * 180 / Math.PI;
-    
-    return `
-      hue-rotate(${hue}deg) 
-      saturate(1.0) 
-      brightness(0.9) 
-      opacity(0.08)
-    `;
-  };
+  const templateCSS = template 
+    ? WebTemplateAdapter.generateWebCSS(template, backgroundPattern)
+    : "";
 
   const getGridColumns = () => {
     if (!template) return 'grid-cols-2';
@@ -121,17 +89,15 @@ export function CatalogFormPreview({
       ? calculateAdjustedPrice(product.price_wholesale / 100, adjustmentMayoreo)
       : null;
 
-    const priceClass = template ? "preview-price-badge" : "text-lg font-bold text-primary";
-
     switch (display) {
       case "menudeo_only":
-        return <div className={priceClass}>{formatPrice(menudeoPrice)}</div>;
+        return <div className="text-xl font-bold text-primary">{formatPrice(menudeoPrice)}</div>;
       case "mayoreo_only":
-        return <div className={priceClass}>{mayoreoPrice ? formatPrice(mayoreoPrice) : formatPrice(menudeoPrice)}</div>;
+        return <div className="text-xl font-bold text-primary">{mayoreoPrice ? formatPrice(mayoreoPrice) : formatPrice(menudeoPrice)}</div>;
       case "both":
         return (
           <div className="space-y-1">
-            <div className={priceClass}>{formatPrice(menudeoPrice)}</div>
+            <div className="text-xl font-bold text-primary">{formatPrice(menudeoPrice)}</div>
             {mayoreoPrice && <div className="text-sm text-muted-foreground">Mayoreo: {formatPrice(mayoreoPrice)}</div>}
           </div>
         );
@@ -190,98 +156,38 @@ export function CatalogFormPreview({
           )}
         </CardDescription>
       </CardHeader>
-      <CardContent style={previewStyles} className={cn(
+      <CardContent className={cn(
         'transition-all',
         viewMode === 'mobile' && 'max-w-[375px] mx-auto',
         viewMode === 'tablet' && 'max-w-[600px] mx-auto'
       )}>
-        {/* CSS específico del preview */}
+        {/* Aplicar el mismo CSS que usa el catálogo público */}
+        <style>{templateCSS}</style>
+        
+        {/* Estilos adicionales solo para el header del preview */}
         <style>{`
-          .preview-container {
-            background: var(--preview-background, #f8fafc);
-            border-radius: var(--preview-border-radius, 8px);
-            overflow: hidden;
-            ${backgroundPattern ? `
-              position: relative;
-            ` : ''}
-          }
-          
-          ${backgroundPattern ? `
-            .preview-container::before {
-              content: '';
-              position: absolute;
-              top: 0;
-              left: 0;
-              right: 0;
-              bottom: 0;
-              background-image: url('/src/assets/patterns/pattern-${backgroundPattern}.png');
-              background-size: 120px 120px;
-              background-repeat: repeat;
-              filter: ${getPatternFilter()};
-              pointer-events: none;
-              z-index: 0;
-            }
-            
-            .preview-header,
-            .preview-product-card {
-              position: relative;
-              z-index: 1;
-            }
-          ` : ''}
-          
-          
           .preview-header {
             background: ${template?.colorScheme.gradient 
               ? `linear-gradient(135deg, ${template.colorScheme.gradient.from}, ${template.colorScheme.gradient.to})`
-              : `linear-gradient(135deg, var(--preview-primary, #3B82F6), var(--preview-secondary, #2563EB))`
+              : template
+              ? `linear-gradient(135deg, ${template.colorScheme.primary}, ${template.colorScheme.secondary})`
+              : 'linear-gradient(135deg, #3B82F6, #2563EB)'
             };
             color: white;
             padding: 1.5rem 1rem;
             text-align: center;
+            border-radius: 0.5rem 0.5rem 0 0;
           }
           
-          .preview-product-card {
-            background: var(--preview-card-bg, #ffffff);
-            border: 1px solid var(--preview-border, #e2e8f0);
-            border-radius: var(--preview-border-radius, 8px);
+          .preview-container {
+            background: ${template?.colorScheme.background || '#f8fafc'};
+            border-radius: 0.5rem;
             overflow: hidden;
-            transition: transform 0.2s, box-shadow 0.2s;
-            ${template?.config.cardStyle === 'elevated' ? 'box-shadow: 0 2px 8px rgba(0,0,0,0.08);' : ''}
-            ${template?.config.cardStyle === 'glass' ? 'backdrop-filter: blur(10px); background: rgba(255,255,255,0.9);' : ''}
-          }
-          
-          .preview-product-card:hover {
-            ${template?.config.hoverEffect === 'lift' ? 'transform: translateY(-4px);' : ''}
-            ${template?.config.hoverEffect === 'zoom' ? 'transform: scale(1.02);' : ''}
-            ${template?.config.hoverEffect === 'glow' ? 'box-shadow: 0 4px 20px rgba(var(--preview-primary), 0.3);' : ''}
-          }
-          
-          .preview-product-name {
-            color: var(--preview-primary, #1E40AF);
-            font-weight: 600;
-          }
-          
-          .preview-price-badge {
-            background: var(--preview-primary, #3B82F6);
-            color: white;
-            padding: 0.375rem 0.75rem;
-            border-radius: calc(var(--preview-border-radius, 8px) / 2);
-            font-weight: 700;
-            display: inline-block;
-            font-size: 1rem;
-          }
-          
-          .preview-tag {
-            background: var(--preview-accent, #94A3B8);
-            color: white;
-            padding: 0.125rem 0.5rem;
-            border-radius: 0.25rem;
-            font-size: 0.75rem;
-            font-weight: 500;
+            position: relative;
           }
         `}</style>
 
-        <div className="preview-container">
+        <div className="catalog-public-container preview-container">
           {/* Header del catálogo */}
           <div className="preview-header">
             <h2 className={cn(
@@ -320,50 +226,54 @@ export function CatalogFormPreview({
                 const imageRatio = template?.config.imageRatio || 'square';
 
                 return (
-                  <div key={product.id} className="preview-product-card">
-                    <img 
-                      src={imageUrl} 
-                      alt={product.name} 
-                      className={cn(
-                        'w-full object-cover',
-                        imageRatio === 'square' && 'aspect-square',
-                        imageRatio === 'portrait' && 'aspect-[3/4]',
-                        imageRatio === 'landscape' && 'aspect-video',
-                        imageRatio === 'auto' && 'aspect-square'
-                      )}
-                    />
+                  <div key={product.id} className="catalog-product-card border overflow-hidden">
+                    <div className="aspect-square overflow-hidden bg-muted">
+                      <img 
+                        src={imageUrl} 
+                        alt={product.name} 
+                        className={cn(
+                          'w-full h-full object-cover',
+                          imageRatio === 'square' && 'aspect-square',
+                          imageRatio === 'portrait' && 'aspect-[3/4]',
+                          imageRatio === 'landscape' && 'aspect-video',
+                          imageRatio === 'auto' && 'aspect-square'
+                        )}
+                      />
+                    </div>
                     <div className={cn(
                       'space-y-2',
-                      viewMode === 'mobile' ? 'p-2' : 'p-3'
+                      viewMode === 'mobile' ? 'p-2' : 'p-4'
                     )}>
                       <h3 className={cn(
-                        'preview-product-name line-clamp-2',
-                        viewMode === 'mobile' ? 'text-xs' : 'text-sm'
+                        'catalog-product-name font-semibold line-clamp-2',
+                        viewMode === 'mobile' ? 'text-sm' : 'text-lg'
                       )}>
                         {product.name}
                       </h3>
 
                       {visibilityConfig.showSku && product.sku && (
                         <Badge variant="outline" className="text-xs">
-                          {product.sku}
+                          SKU: {product.sku}
                         </Badge>
                       )}
 
                       {visibilityConfig.showDescription && product.description && viewMode !== 'mobile' && (
-                        <p className="text-xs text-muted-foreground line-clamp-2">{product.description}</p>
+                        <p className="text-sm text-muted-foreground line-clamp-2">{product.description}</p>
                       )}
 
                       {visibilityConfig.showTags && product.tags && product.tags.length > 0 && (
-                        <div className="flex flex-wrap gap-1">
+                        <div className="flex flex-wrap gap-1.5">
                           {product.tags.slice(0, 2).map((tag, i) => (
-                            <span key={i} className="preview-tag">
+                            <span key={i} className="catalog-product-tag text-xs px-2.5 py-1 rounded-full font-medium">
                               {tag}
                             </span>
                           ))}
                         </div>
                       )}
 
-                      {getPriceDisplay(product)}
+                      <div className="catalog-product-price">
+                        {getPriceDisplay(product)}
+                      </div>
                     </div>
                   </div>
                 );
