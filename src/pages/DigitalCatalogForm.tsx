@@ -622,16 +622,16 @@ export default function DigitalCatalogForm() {
                             <span>
                               {productsWithoutWholesaleMin.length} {productsWithoutWholesaleMin.length === 1 ? 'producto tiene' : 'productos tienen'} precio de mayoreo pero no {productsWithoutWholesaleMin.length === 1 ? 'tiene' : 'tienen'} cantidad mínima asignada.
                             </span>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              className="w-fit"
-                              onClick={() => window.open('/products-management', '_blank')}
-                            >
-                              <ExternalLink className="h-4 w-4 mr-2" />
-                              Ir a Gestión de Productos
-                            </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="w-fit"
+                            onClick={() => window.open('https://catifypro.com/products-management', '_blank')}
+                          >
+                            <ExternalLink className="h-4 w-4 mr-2" />
+                            Ir a Gestión de Productos
+                          </Button>
                           </AlertDescription>
                         </Alert>
                       )}
@@ -1167,16 +1167,16 @@ export default function DigitalCatalogForm() {
                           <span>
                             {productsWithoutWholesaleMin.length} {productsWithoutWholesaleMin.length === 1 ? 'producto tiene' : 'productos tienen'} precio de mayoreo pero no {productsWithoutWholesaleMin.length === 1 ? 'tiene' : 'tienen'} cantidad mínima asignada.
                           </span>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            className="w-fit"
-                            onClick={() => window.open('/products-management', '_blank')}
-                          >
-                            <ExternalLink className="h-4 w-4 mr-2" />
-                            Ir a Gestión de Productos
-                          </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="w-fit"
+                              onClick={() => window.open('https://catifypro.com/products-management', '_blank')}
+                            >
+                              <ExternalLink className="h-4 w-4 mr-2" />
+                              Ir a Gestión de Productos
+                            </Button>
                         </AlertDescription>
                       </Alert>
                     )}

@@ -30,6 +30,7 @@ interface Product {
   description: string | null;
   price_retail: number;
   price_wholesale: number | null;
+  wholesale_min_qty: number | null;
   original_image_url: string;
   processed_image_url: string | null;
   catalog_image_url: string | null;
@@ -72,7 +73,8 @@ export function ProductSelector({ selectedIds, onChange }: ProductSelectorProps)
           description,
           tags,
           price_retail, 
-          price_wholesale, 
+          price_wholesale,
+          wholesale_min_qty,
           original_image_url, 
           processed_image_url, 
           catalog_image_url,
