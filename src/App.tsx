@@ -5,7 +5,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
-import AppLayout from "@/components/layout/AppLayout";
 import Index from "./pages/Index";
 import Upload from "./pages/Upload";
 import Products from "./pages/Products";
@@ -44,23 +43,12 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <Routes>
-            {/* Public routes - NO layout */}
             <Route path="/" element={<Index />} />
-            <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
-            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
-            <Route path="/c/:slug" element={<PublicCatalog />} />
-            <Route path="/blog" element={<Blog />} />
-            <Route path="/blog/:slug" element={<BlogPost />} />
-            
-            {/* Protected routes - WITH AppLayout */}
             <Route
               path="/analytics"
               element={
                 <ProtectedRoute>
-                  <AppLayout>
-                    <Analytics />
-                  </AppLayout>
+                  <Analytics />
                 </ProtectedRoute>
               }
             />
@@ -68,9 +56,7 @@ const App = () => (
               path="/upload"
               element={
                 <ProtectedRoute>
-                  <AppLayout>
-                    <Upload />
-                  </AppLayout>
+                  <Upload />
                 </ProtectedRoute>
               }
             />
@@ -78,9 +64,7 @@ const App = () => (
               path="/products"
               element={
                 <ProtectedRoute>
-                  <AppLayout>
-                    <Products />
-                  </AppLayout>
+                  <Products />
                 </ProtectedRoute>
               }
             />
@@ -88,9 +72,7 @@ const App = () => (
               path="/products/bulk-upload"
               element={
                 <ProtectedRoute>
-                  <AppLayout>
-                    <BulkUpload />
-                  </AppLayout>
+                  <BulkUpload />
                 </ProtectedRoute>
               }
             />
@@ -98,9 +80,7 @@ const App = () => (
               path="/products-management"
               element={
                 <ProtectedRoute>
-                  <AppLayout>
-                    <ProductsManagement />
-                  </AppLayout>
+                  <ProductsManagement />
                 </ProtectedRoute>
               }
             />
@@ -108,9 +88,7 @@ const App = () => (
               path="/deleted-products"
               element={
                 <ProtectedRoute>
-                  <AppLayout>
-                    <DeletedProducts />
-                  </AppLayout>
+                  <DeletedProducts />
                 </ProtectedRoute>
               }
             />
@@ -118,19 +96,16 @@ const App = () => (
               path="/image-review"
               element={
                 <ProtectedRoute>
-                  <AppLayout>
-                    <ImageReview />
-                  </AppLayout>
+                  <ImageReview />
                 </ProtectedRoute>
               }
             />
+            {/* ✅ CAMBIO: Usar el nuevo componente mejorado */}
             <Route
               path="/template-selection"
               element={
                 <ProtectedRoute>
-                  <AppLayout>
-                    <TemplateSelectionEnhanced />
-                  </AppLayout>
+                  <TemplateSelectionEnhanced />
                 </ProtectedRoute>
               }
             />
@@ -138,9 +113,7 @@ const App = () => (
               path="/catalogs"
               element={
                 <ProtectedRoute>
-                  <AppLayout>
-                    <Catalogs />
-                  </AppLayout>
+                  <Catalogs />
                 </ProtectedRoute>
               }
             />
@@ -148,9 +121,7 @@ const App = () => (
               path="/catalogs/new"
               element={
                 <ProtectedRoute>
-                  <AppLayout>
-                    <DigitalCatalogForm />
-                  </AppLayout>
+                  <DigitalCatalogForm />
                 </ProtectedRoute>
               }
             />
@@ -158,19 +129,16 @@ const App = () => (
               path="/catalogs/:id/edit"
               element={
                 <ProtectedRoute>
-                  <AppLayout>
-                    <DigitalCatalogForm />
-                  </AppLayout>
+                  <DigitalCatalogForm />
                 </ProtectedRoute>
               }
             />
+            {/* ✅ AGREGAR estas rutas - Quotes Dashboard */}
             <Route
               path="/quotes"
               element={
                 <ProtectedRoute>
-                  <AppLayout>
-                    <QuotesPage />
-                  </AppLayout>
+                  <QuotesPage />
                 </ProtectedRoute>
               }
             />
@@ -178,19 +146,16 @@ const App = () => (
               path="/quotes/:id"
               element={
                 <ProtectedRoute>
-                  <AppLayout>
-                    <QuoteDetailPage />
-                  </AppLayout>
+                  <QuoteDetailPage />
                 </ProtectedRoute>
               }
             />
+
             <Route
               path="/business-info"
               element={
                 <ProtectedRoute>
-                  <AppLayout>
-                    <BusinessInfoPage />
-                  </AppLayout>
+                  <BusinessInfoPage />
                 </ProtectedRoute>
               }
             />
@@ -198,9 +163,7 @@ const App = () => (
               path="/onboarding"
               element={
                 <ProtectedRoute>
-                  <AppLayout>
-                    <OnboardingPage />
-                  </AppLayout>
+                  <OnboardingPage />
                 </ProtectedRoute>
               }
             />
@@ -208,9 +171,7 @@ const App = () => (
               path="/checkout"
               element={
                 <ProtectedRoute>
-                  <AppLayout>
-                    <Checkout />
-                  </AppLayout>
+                  <Checkout />
                 </ProtectedRoute>
               }
             />
@@ -218,9 +179,7 @@ const App = () => (
               path="/payment-success"
               element={
                 <ProtectedRoute>
-                  <AppLayout>
-                    <PaymentSuccess />
-                  </AppLayout>
+                  <PaymentSuccess />
                 </ProtectedRoute>
               }
             />
@@ -228,17 +187,24 @@ const App = () => (
               path="/payment-instructions/:transactionId"
               element={
                 <ProtectedRoute>
-                  <AppLayout>
-                    <PaymentInstructions />
-                  </AppLayout>
+                  <PaymentInstructions />
                 </ProtectedRoute>
               }
             />
-            
-            {/* Redirects */}
+            {/* Redirect old /creditos route to /checkout */}
             <Route path="/creditos" element={<Navigate to="/checkout" replace />} />
-            
-            {/* Catch-all */}
+            <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
+            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
+
+            {/* Public catalog route - no auth required */}
+            <Route path="/c/:slug" element={<PublicCatalog />} />
+
+            {/* Blog routes - public, no auth required */}
+            <Route path="/blog" element={<Blog />} />
+            <Route path="/blog/:slug" element={<BlogPost />} />
+
+            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
