@@ -187,8 +187,9 @@ export function VariantForm({
                     {type.variant_values.map((value) => {
                       const isChecked = selectedValues.includes(value.value);
                       return (
-                        <div
+                        <label
                           key={value.id}
+                          htmlFor={`${type.name}-${value.value}`}
                           className={`
                             flex items-center gap-2 p-2 rounded-md border cursor-pointer transition-colors
                             ${isChecked 
@@ -196,7 +197,6 @@ export function VariantForm({
                               : 'bg-background border-border hover:border-primary/50'
                             }
                           `}
-                          onClick={() => handleCheckboxChange(type.name, value.value, !isChecked)}
                         >
                           <Checkbox
                             id={`${type.name}-${value.value}`}
@@ -204,12 +204,8 @@ export function VariantForm({
                             onCheckedChange={(checked) => 
                               handleCheckboxChange(type.name, value.value, checked as boolean)
                             }
-                            onClick={(e) => e.stopPropagation()}
                           />
-                          <label
-                            htmlFor={`${type.name}-${value.value}`}
-                            className="flex items-center gap-2 cursor-pointer flex-1 text-sm"
-                          >
+                          <div className="flex items-center gap-2 flex-1 text-sm">
                             {value.hex_color && (
                               <div 
                                 className="w-4 h-4 rounded-full border flex-shrink-0" 
@@ -217,8 +213,8 @@ export function VariantForm({
                               />
                             )}
                             <span className="truncate">{value.display_value || value.value}</span>
-                          </label>
-                        </div>
+                          </div>
+                        </label>
                       );
                     })}
                   </div>
