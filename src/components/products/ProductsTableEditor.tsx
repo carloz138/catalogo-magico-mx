@@ -887,7 +887,21 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
         </div>
       ) : '-';
     } else if (column === 'wholesale_min_qty') {
-      displayValue = value ?? '-';
+      const hasWholesalePrice = product.price_wholesale && product.price_wholesale > 0;
+      const hasWholesaleMin = value && value > 0;
+      
+      if (hasWholesalePrice && !hasWholesaleMin) {
+        displayValue = (
+          <div className="flex items-center gap-1">
+            <span className="text-destructive font-medium">No asignado</span>
+            <Badge variant="destructive" className="text-xs">
+              <AlertCircle className="w-3 h-3" />
+            </Badge>
+          </div>
+        );
+      } else {
+        displayValue = value ?? '-';
+      }
     }
 
     return (

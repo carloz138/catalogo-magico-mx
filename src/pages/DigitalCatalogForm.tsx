@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -28,7 +28,7 @@ import { PriceAdjustmentInput } from "@/components/catalog/PriceAdjustmentInput"
 import { CatalogFormPreview } from "@/components/catalog/CatalogFormPreview";
 import { WebTemplateSelector } from "@/components/templates/WebTemplateSelector";
 import { BackgroundPatternSelector } from "@/components/catalog/BackgroundPatternSelector";
-import { ArrowLeft, CalendarIcon, Loader2, Lock, AlertCircle, Palette, Check, ChevronRight, Package, DollarSign, Eye, Settings } from "lucide-react";
+import { ArrowLeft, CalendarIcon, Loader2, Lock, AlertCircle, Palette, Check, ChevronRight, Package, DollarSign, Eye, Settings, ExternalLink, AlertTriangle } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -326,6 +326,20 @@ export default function DigitalCatalogForm() {
   const productIds = form.watch('product_ids') || [];
   const webTemplateId = form.watch('web_template_id');
 
+  // Validar productos sin wholesale_min_qty cuando se selecciona mostrar precios de mayoreo
+  const productsWithoutWholesaleMin = useMemo(() => {
+    const priceDisplay = watchedValues.price_display;
+    if (priceDisplay !== "mayoreo_only" && priceDisplay !== "both") {
+      return [];
+    }
+    
+    return selectedProducts.filter(product => {
+      const hasWholesalePrice = product.price_wholesale && product.price_wholesale > 0;
+      const hasWholesaleMin = product.wholesale_min_qty && product.wholesale_min_qty > 0;
+      return hasWholesalePrice && !hasWholesaleMin;
+    });
+  }, [selectedProducts, watchedValues.price_display]);
+
   return (
     <div className="container mx-auto py-4 md:py-8 px-4">
       {/* Header Responsive */}
@@ -599,6 +613,28 @@ export default function DigitalCatalogForm() {
                           </FormItem>
                         )}
                       />
+
+                      {/* Alerta de productos sin cantidad mínima de mayoreo */}
+                      {productsWithoutWholesaleMin.length > 0 && (
+                        <Alert variant="destructive" className="mt-4">
+                          <AlertTriangle className="h-4 w-4" />
+                          <AlertDescription className="flex flex-col gap-2">
+                            <span>
+                              {productsWithoutWholesaleMin.length} {productsWithoutWholesaleMin.length === 1 ? 'producto tiene' : 'productos tienen'} precio de mayoreo pero no {productsWithoutWholesaleMin.length === 1 ? 'tiene' : 'tienen'} cantidad mínima asignada.
+                            </span>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="w-fit"
+                              onClick={() => window.open('/products-management', '_blank')}
+                            >
+                              <ExternalLink className="h-4 w-4 mr-2" />
+                              Ir a Gestión de Productos
+                            </Button>
+                          </AlertDescription>
+                        </Alert>
+                      )}
 
                       {(watchedValues.price_display === "menudeo_only" || watchedValues.price_display === "both") && (
                         <FormField
