@@ -14,6 +14,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarProvider,
 } from "@/components/ui/sidebar";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
@@ -276,23 +277,25 @@ export function AppSidebar({ isOpen, onClose }: AppSidebarProps) {
     </>
   );
 
-  // MOBILE: Sheet Drawer
+  // MOBILE: Sheet Drawer (no necesita SidebarProvider)
   if (isMobile) {
     return (
       <Sheet open={isOpen} onOpenChange={onClose}>
         <SheetContent side="left" className="p-0 w-[280px]">
-          <Sidebar className="border-none w-full">
+          <div className="flex flex-col h-full border-r bg-background">
             <SidebarContentComponent />
-          </Sidebar>
+          </div>
         </SheetContent>
       </Sheet>
     );
   }
 
-  // DESKTOP: Sidebar fijo
+  // DESKTOP: Sidebar fijo con SidebarProvider
   return (
-    <Sidebar className="border-r bg-background w-72 min-w-72 h-screen sticky top-0">
-      <SidebarContentComponent />
-    </Sidebar>
+    <SidebarProvider>
+      <Sidebar className="border-r bg-background w-72 min-w-72 h-screen sticky top-0">
+        <SidebarContentComponent />
+      </Sidebar>
+    </SidebarProvider>
   );
 }
