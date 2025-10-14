@@ -42,6 +42,7 @@ const catalogSchema = z
   .object({
     name: z.string().min(3, "Mínimo 3 caracteres").max(100, "Máximo 100 caracteres"),
     description: z.string().max(500, "Máximo 500 caracteres").optional(),
+    additional_info: z.string().max(5000, "Máximo 5000 caracteres").optional(),
     expires_at: z.date().min(new Date(), "La fecha debe ser futura"),
 
     web_template_id: z.string().min(1, "Selecciona un template"),
@@ -98,6 +99,7 @@ export default function DigitalCatalogForm() {
     defaultValues: {
       name: "",
       description: "",
+      additional_info: "",
       expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
       web_template_id: "",
       background_pattern: null,
@@ -195,6 +197,7 @@ export default function DigitalCatalogForm() {
       form.reset({
         name: catalog.name,
         description: catalog.description || "",
+        additional_info: catalog.additional_info || "",
         expires_at: catalog.expires_at ? new Date(catalog.expires_at) : new Date(),
 
         web_template_id: catalog.web_template_id || "",
@@ -253,6 +256,7 @@ export default function DigitalCatalogForm() {
       const catalogDTO = {
         name: data.name,
         description: data.description,
+        additional_info: data.additional_info,
         web_template_id: data.web_template_id,
         background_pattern: data.background_pattern,
         price_display: data.price_display,
@@ -1049,6 +1053,27 @@ export default function DigitalCatalogForm() {
                             <Textarea placeholder="Describe tu catálogo..." className="resize-none" {...field} />
                           </FormControl>
                           <FormDescription>{field.value?.length || 0}/500 caracteres</FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="additional_info"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Información Adicional (opcional)</FormLabel>
+                          <FormControl>
+                            <Textarea 
+                              placeholder="Preguntas frecuentes, términos y condiciones, información importante..." 
+                              className="resize-none min-h-[120px]" 
+                              {...field} 
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            {field.value?.length || 0}/5000 caracteres - Aparecerá en una pestaña separada
+                          </FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}

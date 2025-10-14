@@ -305,11 +305,13 @@ export type Database = {
       }
       credit_packages: {
         Row: {
+          analytics_level: string | null
           created_at: string
           credits: number
           description: string | null
           discount_percentage: number | null
           duration_months: number | null
+          has_quotation: boolean | null
           id: string
           is_active: boolean | null
           is_popular: boolean | null
@@ -322,11 +324,13 @@ export type Database = {
           stripe_price_id: string | null
         }
         Insert: {
+          analytics_level?: string | null
           created_at?: string
           credits: number
           description?: string | null
           discount_percentage?: number | null
           duration_months?: number | null
+          has_quotation?: boolean | null
           id?: string
           is_active?: boolean | null
           is_popular?: boolean | null
@@ -339,11 +343,13 @@ export type Database = {
           stripe_price_id?: string | null
         }
         Update: {
+          analytics_level?: string | null
           created_at?: string
           credits?: number
           description?: string | null
           discount_percentage?: number | null
           duration_months?: number | null
+          has_quotation?: boolean | null
           id?: string
           is_active?: boolean | null
           is_popular?: boolean | null
@@ -579,6 +585,8 @@ export type Database = {
       digital_catalogs: {
         Row: {
           access_password: string | null
+          additional_info: string | null
+          background_pattern: string | null
           created_at: string | null
           description: string | null
           enable_quotation: boolean | null
@@ -603,6 +611,8 @@ export type Database = {
         }
         Insert: {
           access_password?: string | null
+          additional_info?: string | null
+          background_pattern?: string | null
           created_at?: string | null
           description?: string | null
           enable_quotation?: boolean | null
@@ -627,6 +637,8 @@ export type Database = {
         }
         Update: {
           access_password?: string | null
+          additional_info?: string | null
+          background_pattern?: string | null
           created_at?: string | null
           description?: string | null
           enable_quotation?: boolean | null

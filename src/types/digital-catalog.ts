@@ -24,6 +24,9 @@ export interface DigitalCatalog {
 
   // Diseño
   background_pattern: string | null;
+  
+  // Información adicional
+  additional_info: string | null;
 
   // Privacidad
   is_private: boolean;
@@ -105,6 +108,7 @@ export interface CreateDigitalCatalogDTO {
   show_tags: boolean;
   show_description: boolean;
   background_pattern?: string | null;
+  additional_info?: string;
   is_private: boolean;
   access_password?: string;
   expires_at?: string;
@@ -124,6 +128,7 @@ export interface UpdateDigitalCatalogDTO {
   show_tags?: boolean;
   show_description?: boolean;
   background_pattern?: string | null;
+  additional_info?: string;
   is_private?: boolean;
   access_password?: string;
   expires_at?: string;

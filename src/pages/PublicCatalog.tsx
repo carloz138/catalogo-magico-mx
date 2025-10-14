@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Helmet } from "react-helmet";
-import { Calendar, Search } from "lucide-react";
+import { Calendar, Search, Info } from "lucide-react";
 import { DigitalCatalogService } from "@/services/digital-catalog.service";
 import { PublicCatalogView } from "@/types/digital-catalog";
 import CatalogHeader from "@/components/public/CatalogHeader";
@@ -9,6 +9,7 @@ import ProductSearch from "@/components/public/ProductSearch";
 import ProductFilters from "@/components/public/ProductFilters";
 import PasswordModal from "@/components/public/PasswordModal";
 import { PublicProductGrid } from "@/components/public/PublicProductGrid";
+import { ProductsContent } from "@/components/public/ProductsContent";
 import { AddToQuoteModal } from "@/components/public/AddToQuoteModal";
 import { QuoteCartBadge } from "@/components/public/QuoteCartBadge";
 import { QuoteCartModal } from "@/components/public/QuoteCartModal";
@@ -18,6 +19,8 @@ import { useProductFilters } from "@/hooks/useProductFilters";
 import { QuoteCartProvider, useQuoteCart } from "@/contexts/QuoteCartContext";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent } from "@/components/ui/card";
 import { calculateAdjustedPrice } from "@/lib/utils/price-calculator";
 import { toast } from "sonner";
 import { EXPANDED_WEB_TEMPLATES } from "@/lib/web-catalog/expanded-templates-catalog";
@@ -29,6 +32,7 @@ function PublicCatalogContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [activeTab, setActiveTab] = useState("productos");
   const { addItem, items, totalAmount, clearCart } = useQuoteCart();
   
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
@@ -267,66 +271,71 @@ function PublicCatalogContent() {
         />
 
         <div className="container mx-auto px-4 py-8">
-          <div className="flex flex-col lg:flex-row gap-8">
-            <aside className="hidden lg:block w-64 flex-shrink-0">
-              <ProductFilters
-                tags={availableTags}
-                minPrice={minPrice}
-                maxPrice={maxPrice}
-                selectedTags={selectedTags}
-                onTagsChange={setSelectedTags}
-                priceRange={priceRange}
-                onPriceRangeChange={setPriceRange}
-                onClearAll={clearFilters}
-                resultCount={filteredProducts.length}
-                showTags={catalog.show_tags}
-              />
-            </aside>
+          {/* Tabs para productos e información adicional */}
+          {catalog.additional_info ? (
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <TabsList className="grid w-full max-w-md mx-auto mb-6" style={{ gridTemplateColumns: "1fr 1fr" }}>
+                <TabsTrigger value="productos" className="flex items-center gap-2">
+                  <Search className="h-4 w-4" />
+                  Productos
+                </TabsTrigger>
+                <TabsTrigger value="info" className="flex items-center gap-2">
+                  <Info className="h-4 w-4" />
+                  Información
+                </TabsTrigger>
+              </TabsList>
 
-            <main className="flex-1">
-              <div className="mb-6">
-                <ProductSearch query={query} onQueryChange={setQuery} placeholder="Buscar productos..." />
-              </div>
-
-              <div className="lg:hidden mb-6">
-                <Button variant="outline" className="w-full" onClick={() => {}}>
-                  <Search className="mr-2 h-4 w-4" />
-                  Filtros ({selectedTags.length > 0 ? selectedTags.length : "Ninguno"})
-                </Button>
-              </div>
-
-              <div className="mb-4 text-sm text-muted-foreground">
-                {filteredProducts.length}{" "}
-                {filteredProducts.length === 1 ? "producto encontrado" : "productos encontrados"}
-              </div>
-
-              {filteredProducts.length === 0 && (
-                <div className="text-center py-12">
-                  <Search className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-                  <h3 className="text-xl font-semibold mb-2">No se encontraron productos</h3>
-                  <p className="text-muted-foreground mb-4">Intenta ajustar los filtros o buscar algo diferente</p>
-                  <Button onClick={clearFilters}>Limpiar filtros</Button>
-                </div>
-              )}
-
-              {filteredProducts.length > 0 && (
-                <PublicProductGrid
-                  products={filteredProducts}
-                  priceConfig={{
-                    display: catalog.price_display,
-                    adjustmentMenudeo: catalog.price_adjustment_menudeo,
-                    adjustmentMayoreo: catalog.price_adjustment_mayoreo,
-                  }}
-                  visibilityConfig={{
-                    showSku: catalog.show_sku,
-                    showTags: catalog.show_tags,
-                    showDescription: catalog.show_description,
-                  }}
-                  onAddToQuote={catalog.enable_quotation ? handleAddToQuote : undefined}
+              <TabsContent value="productos" className="space-y-6">
+                <ProductsContent 
+                  catalog={catalog}
+                  query={query}
+                  setQuery={setQuery}
+                  availableTags={availableTags}
+                  selectedTags={selectedTags}
+                  setSelectedTags={setSelectedTags}
+                  priceRange={priceRange}
+                  setPriceRange={setPriceRange}
+                  clearFilters={clearFilters}
+                  filteredProducts={filteredProducts}
+                  handleAddToQuote={handleAddToQuote}
+                  minPrice={minPrice}
+                  maxPrice={maxPrice}
                 />
-              )}
-            </main>
-          </div>
+              </TabsContent>
+
+              <TabsContent value="info">
+                <Card className="max-w-4xl mx-auto">
+                  <CardContent className="p-8">
+                    <div className="prose prose-slate max-w-none">
+                      <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
+                        <Info className="h-6 w-6" />
+                        Información Adicional
+                      </h2>
+                      <div className="whitespace-pre-wrap text-base leading-relaxed">
+                        {catalog.additional_info}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
+          ) : (
+            <ProductsContent 
+              catalog={catalog}
+              query={query}
+              setQuery={setQuery}
+              availableTags={availableTags}
+              selectedTags={selectedTags}
+              setSelectedTags={setSelectedTags}
+              priceRange={priceRange}
+              setPriceRange={setPriceRange}
+              clearFilters={clearFilters}
+              filteredProducts={filteredProducts}
+              handleAddToQuote={handleAddToQuote}
+              minPrice={minPrice}
+              maxPrice={maxPrice}
+            />
+          )}
         </div>
         
         {catalog.enable_quotation && (

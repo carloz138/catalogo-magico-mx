@@ -70,6 +70,7 @@ export class DigitalCatalogService {
         name: catalogData.name,
         slug,
         description: catalogData.description || null,
+        additional_info: catalogData.additional_info || null,
         template_id: catalogData.template_id || null,
         web_template_id: catalogData.web_template_id || null,
         price_display: catalogData.price_display,
