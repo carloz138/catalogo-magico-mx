@@ -7,12 +7,13 @@ interface Props {
   products: any[];
   priceConfig: any;
   visibilityConfig: any;
+  enableVariants?: boolean;
   onAddToQuote?: (product: any) => void;
 }
 
 const PRODUCTS_PER_PAGE = 12;
 
-export function PublicProductGrid({ products, priceConfig, visibilityConfig, onAddToQuote }: Props) {
+export function PublicProductGrid({ products, priceConfig, visibilityConfig, enableVariants = true, onAddToQuote }: Props) {
   const [currentPage, setCurrentPage] = useState(1);
   
   const totalPages = Math.ceil(products.length / PRODUCTS_PER_PAGE);
@@ -33,6 +34,7 @@ export function PublicProductGrid({ products, priceConfig, visibilityConfig, onA
             product={product}
             priceConfig={priceConfig}
             visibilityConfig={visibilityConfig}
+            enableVariants={enableVariants}
             onAddToQuote={onAddToQuote ? () => onAddToQuote(product) : undefined}
           />
         ))}

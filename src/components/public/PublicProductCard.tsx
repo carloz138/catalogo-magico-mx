@@ -1,7 +1,19 @@
+import { useState, useEffect } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ShoppingCart } from 'lucide-react';
 import { calculateAdjustedPrice } from '@/lib/utils/price-calculator';
+import { VariantSelector } from './VariantSelector';
+
+interface ProductVariant {
+  id: string;
+  variant_combination: Record<string, string>;
+  sku: string | null;
+  price_retail: number;
+  price_wholesale: number | null;
+  stock_quantity: number;
+  is_default: boolean;
+}
 
 interface Product {
   id: string;
@@ -14,6 +26,8 @@ interface Product {
   processed_image_url: string | null;
   original_image_url: string;
   tags: string[] | null;
+  has_variants?: boolean;
+  variants?: ProductVariant[];
 }
 
 interface Props {
@@ -28,15 +42,35 @@ interface Props {
     showTags: boolean;
     showDescription: boolean;
   };
+  enableVariants?: boolean;
   onAddToQuote?: () => void;
 }
 
-export function PublicProductCard({ product, priceConfig, visibilityConfig, onAddToQuote }: Props) {
+export function PublicProductCard({ product, priceConfig, visibilityConfig, enableVariants = true, onAddToQuote }: Props) {
+  const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
+
+  // Inicializar con la variante por defecto
+  useEffect(() => {
+    if (product.has_variants && product.variants && product.variants.length > 0) {
+      const defaultVariant = product.variants.find(v => v.is_default) || product.variants[0];
+      setSelectedVariantId(defaultVariant.id);
+    }
+  }, [product]);
+
   const imageUrl = product.processed_image_url || product.original_image_url;
   
-  const retailPrice = calculateAdjustedPrice(product.price_retail, priceConfig.adjustmentMenudeo);
-  const wholesalePrice = product.price_wholesale 
-    ? calculateAdjustedPrice(product.price_wholesale, priceConfig.adjustmentMayoreo)
+  // Obtener la variante seleccionada si el producto tiene variantes
+  const selectedVariant = product.has_variants && product.variants 
+    ? product.variants.find(v => v.id === selectedVariantId)
+    : null;
+
+  // Usar precios de la variante si existe, sino usar precios del producto base
+  const baseRetailPrice = selectedVariant?.price_retail ?? product.price_retail;
+  const baseWholesalePrice = selectedVariant?.price_wholesale ?? product.price_wholesale;
+  
+  const retailPrice = calculateAdjustedPrice(baseRetailPrice, priceConfig.adjustmentMenudeo);
+  const wholesalePrice = baseWholesalePrice 
+    ? calculateAdjustedPrice(baseWholesalePrice, priceConfig.adjustmentMayoreo)
     : null;
 
   return (
@@ -54,9 +88,9 @@ export function PublicProductCard({ product, priceConfig, visibilityConfig, onAd
           {product.name}
         </h3>
         
-        {visibilityConfig.showSku && product.sku && (
+        {visibilityConfig.showSku && (selectedVariant?.sku || product.sku) && (
           <Badge variant="outline" className="text-xs">
-            SKU: {product.sku}
+            SKU: {selectedVariant?.sku || product.sku}
           </Badge>
         )}
         
@@ -64,6 +98,15 @@ export function PublicProductCard({ product, priceConfig, visibilityConfig, onAd
           <p className="text-sm text-muted-foreground line-clamp-2">
             {product.description}
           </p>
+        )}
+
+        {/* Selector de variantes */}
+        {product.has_variants && product.variants && product.variants.length > 0 && enableVariants && (
+          <VariantSelector
+            variants={product.variants}
+            selectedVariantId={selectedVariantId}
+            onVariantChange={setSelectedVariantId}
+          />
         )}
         
         {visibilityConfig.showTags && product.tags && product.tags.length > 0 && (

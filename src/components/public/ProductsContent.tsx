@@ -92,6 +92,7 @@ export function ProductsContent({
               showTags: catalog.show_tags,
               showDescription: catalog.show_description,
             }}
+            enableVariants={catalog.enable_variants}
             onAddToQuote={catalog.enable_quotation ? handleAddToQuote : undefined}
           />
         )}
