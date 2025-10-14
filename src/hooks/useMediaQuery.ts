@@ -12,7 +12,9 @@ export function useMediaQuery(query: string): boolean {
     const media = window.matchMedia(query);
     
     // Set inicial
-    setMatches(media.matches);
+    if (media.matches !== matches) {
+      setMatches(media.matches);
+    }
 
     // Listener para cambios
     const listener = () => setMatches(media.matches);
@@ -26,7 +28,7 @@ export function useMediaQuery(query: string): boolean {
       media.addListener(listener);
       return () => media.removeListener(listener);
     }
-  }, [query]);
+  }, [matches, query]);
 
   return matches;
 }
@@ -43,5 +45,29 @@ export function useIsTablet() {
 }
 
 export function useIsDesktop() {
-  return useMediaQuery('(min-width: 1024px)');
+  return useMediaQuery('(min-width: 1024px) and (max-width: 1439px)');
+}
+
+export function useIsUltraWide() {
+  return useMediaQuery('(min-width: 1440px)');
+}
+
+/**
+ * Hook combinado para gestionar todos los breakpoints
+ */
+export function useBreakpoint() {
+  const isMobile = useIsMobile();
+  const isTablet = useIsTablet();
+  const isDesktop = useIsDesktop();
+  const isUltraWide = useIsUltraWide();
+  
+  return {
+    isMobile,
+    isTablet,
+    isDesktop,
+    isUltraWide,
+    // Helpers combinados
+    isMobileOrTablet: isMobile || isTablet,
+    isDesktopOrWider: isDesktop || isUltraWide,
+  };
 }
