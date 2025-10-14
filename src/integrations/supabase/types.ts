@@ -601,6 +601,7 @@ export type Database = {
           price_display: string | null
           show_description: boolean | null
           show_sku: boolean | null
+          show_stock: boolean | null
           show_tags: boolean | null
           slug: string
           template_config: Json | null
@@ -628,6 +629,7 @@ export type Database = {
           price_display?: string | null
           show_description?: boolean | null
           show_sku?: boolean | null
+          show_stock?: boolean | null
           show_tags?: boolean | null
           slug: string
           template_config?: Json | null
@@ -655,6 +657,7 @@ export type Database = {
           price_display?: string | null
           show_description?: boolean | null
           show_sku?: boolean | null
+          show_stock?: boolean | null
           show_tags?: boolean | null
           slug?: string
           template_config?: Json | null

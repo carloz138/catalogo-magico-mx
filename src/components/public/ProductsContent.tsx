@@ -91,6 +91,7 @@ export function ProductsContent({
               showSku: catalog.show_sku,
               showTags: catalog.show_tags,
               showDescription: catalog.show_description,
+              showStock: catalog.show_stock,
             }}
             enableVariants={catalog.enable_variants}
             onAddToQuote={catalog.enable_quotation ? handleAddToQuote : undefined}

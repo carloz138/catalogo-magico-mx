@@ -16,9 +16,10 @@ interface Props {
   variants: ProductVariant[];
   selectedVariantId: string | null;
   onVariantChange: (variantId: string) => void;
+  showStock?: boolean;
 }
 
-export function VariantSelector({ variants, selectedVariantId, onVariantChange }: Props) {
+export function VariantSelector({ variants, selectedVariantId, onVariantChange, showStock = true }: Props) {
   if (!variants || variants.length === 0) {
     return null;
   }
@@ -75,7 +76,7 @@ export function VariantSelector({ variants, selectedVariantId, onVariantChange }
         </SelectContent>
       </Select>
 
-      {selectedVariant && selectedVariant.stock_quantity !== undefined && (
+      {showStock && selectedVariant && selectedVariant.stock_quantity !== undefined && (
         <p className="text-sm text-muted-foreground">
           {selectedVariant.stock_quantity > 0 ? (
             <>Disponible: <strong>{selectedVariant.stock_quantity}</strong> unidades</>

@@ -79,6 +79,7 @@ export class DigitalCatalogService {
         show_sku: catalogData.show_sku,
         show_tags: catalogData.show_tags,
         show_description: catalogData.show_description,
+        show_stock: catalogData.show_stock ?? true,
         is_private: catalogData.is_private,
         access_password: hashedPassword,
         expires_at: catalogData.expires_at || null,

@@ -53,6 +53,7 @@ const catalogSchema = z
     show_sku: z.boolean(),
     show_tags: z.boolean(),
     show_description: z.boolean(),
+    show_stock: z.boolean(),
     is_private: z.boolean(),
     access_password: z.string().optional(),
     product_ids: z.array(z.string()).min(1, "Selecciona al menos 1 producto"),
@@ -110,6 +111,7 @@ export default function DigitalCatalogForm() {
       show_sku: true,
       show_tags: true,
       show_description: true,
+      show_stock: true,
       is_private: false,
       access_password: "",
       product_ids: [],
@@ -295,6 +297,7 @@ export default function DigitalCatalogForm() {
         show_sku: data.show_sku,
         show_tags: data.show_tags,
         show_description: data.show_description,
+        show_stock: data.show_stock,
         is_private: data.is_private,
         access_password: data.is_private ? data.access_password : undefined,
         expires_at: data.expires_at.toISOString(),
@@ -758,6 +761,27 @@ export default function DigitalCatalogForm() {
                             <div className="flex-1">
                               <div className="font-medium text-base">Mostrar Descripción</div>
                               <div className="text-sm text-muted-foreground">Descripción completa del producto</div>
+                            </div>
+                            <Switch
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                              className="pointer-events-none"
+                            />
+                          </div>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="show_stock"
+                        render={({ field }) => (
+                          <div
+                            className="flex items-center justify-between p-4 rounded-lg border cursor-pointer active:scale-[0.98] transition-all"
+                            onClick={() => field.onChange(!field.value)}
+                          >
+                            <div className="flex-1">
+                              <div className="font-medium text-base">Mostrar Stock</div>
+                              <div className="text-sm text-muted-foreground">Mostrar cantidad disponible de variantes</div>
                             </div>
                             <Switch
                               checked={field.value}

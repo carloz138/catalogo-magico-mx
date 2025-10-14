@@ -21,6 +21,7 @@ export interface DigitalCatalog {
   show_sku: boolean;
   show_tags: boolean;
   show_description: boolean;
+  show_stock: boolean;
 
   // Diseño
   background_pattern: string | null;
@@ -110,6 +111,7 @@ export interface CreateDigitalCatalogDTO {
   show_sku: boolean;
   show_tags: boolean;
   show_description: boolean;
+  show_stock: boolean;
   background_pattern?: string | null;
   additional_info?: string;
   is_private: boolean;
@@ -131,6 +133,7 @@ export interface UpdateDigitalCatalogDTO {
   show_sku?: boolean;
   show_tags?: boolean;
   show_description?: boolean;
+  show_stock?: boolean;
   background_pattern?: string | null;
   additional_info?: string;
   is_private?: boolean;

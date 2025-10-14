@@ -41,6 +41,7 @@ interface Props {
     showSku: boolean;
     showTags: boolean;
     showDescription: boolean;
+    showStock: boolean;
   };
   enableVariants?: boolean;
   onAddToQuote?: () => void;
@@ -106,6 +107,7 @@ export function PublicProductCard({ product, priceConfig, visibilityConfig, enab
             variants={product.variants}
             selectedVariantId={selectedVariantId}
             onVariantChange={setSelectedVariantId}
+            showStock={visibilityConfig.showStock}
           />
         )}
         
