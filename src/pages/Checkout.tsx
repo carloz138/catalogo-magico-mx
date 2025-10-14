@@ -79,11 +79,8 @@ const Checkout = () => {
   const [loading, setLoading] = useState(true);
   const [processingPayment, setProcessingPayment] = useState(false);
 
-  // Determinar tipo inicial basado en la URL
-  const [activeTab, setActiveTab] = useState<"monthly" | "credits">(() => {
-    const planParam = searchParams.get("plan");
-    return planParam ? "monthly" : "credits";
-  });
+  // Por defecto mostrar planes mensuales
+  const [activeTab, setActiveTab] = useState<"monthly" | "credits">("monthly");
 
   const preSelectedPlanName = searchParams.get("plan") || location.state?.selectedPackageName;
 
@@ -473,8 +470,8 @@ const Checkout = () => {
             <TabsTrigger value="credits" className="gap-2 py-3">
               <Coins className="w-4 h-4" />
               <div className="text-left">
-                <div className="font-semibold">Packs Únicos</div>
-                <div className="text-xs text-gray-500">Compra una vez</div>
+                <div className="font-semibold">Comprar créditos</div>
+                <div className="text-xs text-gray-500">Recarga tu saldo para remover fondos de imágenes</div>
               </div>
             </TabsTrigger>
           </TabsList>
