@@ -411,9 +411,9 @@ const Checkout = () => {
   };
 
   const PageHeader = () => (
-    <div className="text-center mb-8">
-      <h1 className="text-2xl font-bold text-gray-900 mb-2">Selecciona tu plan</h1>
-      <p className="text-gray-600">Elige entre suscripciones mensuales o packs únicos</p>
+    <div className="text-center mb-6 sm:mb-8">
+      <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">Selecciona tu plan</h1>
+      <p className="text-sm sm:text-base text-gray-600 px-4">Elige entre suscripciones mensuales o packs únicos</p>
     </div>
   );
 
@@ -447,7 +447,7 @@ const Checkout = () => {
 
   return (
     <AppLayout actions={actions}>
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <PageHeader />
 
         {/* Tabs mejorados */}
@@ -459,19 +459,19 @@ const Checkout = () => {
           }}
           className="mb-8"
         >
-          <TabsList className="grid w-full max-w-3xl mx-auto grid-cols-2 gap-2 mb-8 h-auto p-2">
-            <TabsTrigger value="monthly" className="gap-2 py-4 px-4 h-auto">
+          <TabsList className="grid w-full max-w-3xl mx-auto grid-cols-1 sm:grid-cols-2 gap-2 mb-6 sm:mb-8 h-auto p-2">
+            <TabsTrigger value="monthly" className="gap-2 py-3 sm:py-4 px-3 sm:px-4 h-auto">
               <RefreshCw className="w-4 h-4 flex-shrink-0" />
               <div className="text-left flex-1 min-w-0">
-                <div className="font-semibold text-sm">Planes Mensuales</div>
-                <div className="text-xs text-muted-foreground whitespace-nowrap overflow-hidden text-ellipsis">Renovación automática</div>
+                <div className="font-semibold text-xs sm:text-sm">Planes Mensuales</div>
+                <div className="text-[10px] sm:text-xs text-muted-foreground line-clamp-1">Renovación automática</div>
               </div>
             </TabsTrigger>
-            <TabsTrigger value="credits" className="gap-2 py-4 px-4 h-auto">
+            <TabsTrigger value="credits" className="gap-2 py-3 sm:py-4 px-3 sm:px-4 h-auto">
               <Coins className="w-4 h-4 flex-shrink-0" />
               <div className="text-left flex-1 min-w-0">
-                <div className="font-semibold text-sm">Comprar créditos</div>
-                <div className="text-xs text-muted-foreground">Recarga tu saldo para remover fondos</div>
+                <div className="font-semibold text-xs sm:text-sm">Comprar créditos</div>
+                <div className="text-[10px] sm:text-xs text-muted-foreground line-clamp-1">Recarga tu saldo para remover fondos</div>
               </div>
             </TabsTrigger>
           </TabsList>
@@ -483,13 +483,13 @@ const Checkout = () => {
                 <p className="text-gray-500">No hay planes de suscripción disponibles.</p>
               </div>
             ) : (
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-8">
+              <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 mb-6 sm:mb-8">
                 {monthlyPlans.map((pkg) => (
                   <button
                     key={pkg.id}
                     onClick={() => setSelectedPackage(pkg)}
                     className={`
-                      relative p-6 rounded-xl border-2 text-left transition-all
+                      relative p-4 sm:p-6 rounded-xl border-2 text-left transition-all
                       ${
                         selectedPackage?.id === pkg.id
                           ? "border-purple-600 bg-purple-50 shadow-lg"
@@ -500,47 +500,47 @@ const Checkout = () => {
                   >
                     {/* Badge popular */}
                     {pkg.is_popular && (
-                      <div className="absolute -top-2 left-1/2 -translate-x-1/2">
-                        <span className="bg-blue-600 text-white px-3 py-1 rounded-full text-xs font-bold">POPULAR</span>
+                      <div className="absolute -top-2 left-1/2 -translate-x-1/2 z-10">
+                        <span className="bg-blue-600 text-white px-2 sm:px-3 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-bold whitespace-nowrap">POPULAR</span>
                       </div>
                     )}
 
                     {/* Icono */}
                     <div
                       className={`
-                      w-12 h-12 rounded-xl bg-gradient-to-r ${getPackageColor(pkg.name, pkg.package_type)}
-                      flex items-center justify-center text-white mb-4
+                      w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-r ${getPackageColor(pkg.name, pkg.package_type)}
+                      flex items-center justify-center text-white mb-3 sm:mb-4
                     `}
                     >
                       {getPackageIcon(pkg.name, pkg.package_type)}
                     </div>
 
                     {/* Nombre */}
-                    <h3 className="font-bold text-lg mb-2">{pkg.name.replace("Plan ", "")}</h3>
+                    <h3 className="font-bold text-base sm:text-lg mb-2 line-clamp-2">{pkg.name.replace("Plan ", "")}</h3>
 
                     {/* Precio */}
-                    <div className="mb-4">
-                      <div className="text-3xl font-bold text-gray-900">${(pkg.price_mxn / 100).toLocaleString()}</div>
-                      <div className="text-sm text-gray-600">/mes</div>
+                    <div className="mb-3 sm:mb-4">
+                      <div className="text-2xl sm:text-3xl font-bold text-gray-900">${(pkg.price_mxn / 100).toLocaleString()}</div>
+                      <div className="text-xs sm:text-sm text-gray-600">/mes</div>
                     </div>
 
                     {/* Características clave (solo 3 más importantes) */}
-                    <div className="space-y-2">
+                    <div className="space-y-1.5 sm:space-y-2">
                       {getPackageFeatures(pkg)
                         .slice(0, 5)
                         .map((feature, index) => (
-                          <div key={index} className="flex items-start gap-2">
-                            <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
-                            <span className="text-sm text-gray-700">{feature}</span>
+                          <div key={index} className="flex items-start gap-1.5 sm:gap-2">
+                            <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 text-green-500 flex-shrink-0 mt-0.5" />
+                            <span className="text-xs sm:text-sm text-gray-700 leading-tight">{feature}</span>
                           </div>
                         ))}
                     </div>
 
                     {/* Checkmark si está seleccionado */}
                     {selectedPackage?.id === pkg.id && (
-                      <div className="absolute top-4 right-4">
-                        <div className="w-6 h-6 bg-purple-600 rounded-full flex items-center justify-center">
-                          <CheckCircle className="w-4 h-4 text-white" />
+                      <div className="absolute top-3 right-3 sm:top-4 sm:right-4">
+                        <div className="w-5 h-5 sm:w-6 sm:h-6 bg-purple-600 rounded-full flex items-center justify-center">
+                          <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
                         </div>
                       </div>
                     )}
@@ -557,13 +557,13 @@ const Checkout = () => {
                 <p className="text-gray-500">No hay packs de créditos disponibles.</p>
               </div>
             ) : (
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-8">
+              <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 mb-6 sm:mb-8">
                 {creditPacks.map((pkg) => (
                   <button
                     key={pkg.id}
                     onClick={() => setSelectedPackage(pkg)}
                     className={`
-                      relative p-6 rounded-xl border-2 text-left transition-all
+                      relative p-4 sm:p-6 rounded-xl border-2 text-left transition-all
                       ${
                         selectedPackage?.id === pkg.id
                           ? "border-purple-600 bg-purple-50 shadow-lg"
@@ -574,47 +574,47 @@ const Checkout = () => {
                   >
                     {/* Badge popular */}
                     {pkg.is_popular && (
-                      <div className="absolute -top-2 left-1/2 -translate-x-1/2">
-                        <span className="bg-blue-600 text-white px-3 py-1 rounded-full text-xs font-bold">POPULAR</span>
+                      <div className="absolute -top-2 left-1/2 -translate-x-1/2 z-10">
+                        <span className="bg-blue-600 text-white px-2 sm:px-3 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-bold whitespace-nowrap">POPULAR</span>
                       </div>
                     )}
 
                     {/* Icono */}
                     <div
                       className={`
-                      w-12 h-12 rounded-xl bg-gradient-to-r ${getPackageColor(pkg.name, pkg.package_type)}
-                      flex items-center justify-center text-white mb-4
+                      w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-r ${getPackageColor(pkg.name, pkg.package_type)}
+                      flex items-center justify-center text-white mb-3 sm:mb-4
                     `}
                     >
                       {getPackageIcon(pkg.name, pkg.package_type)}
                     </div>
 
                     {/* Nombre */}
-                    <h3 className="font-bold text-lg mb-2">{pkg.name.replace("Pack ", "")}</h3>
+                    <h3 className="font-bold text-base sm:text-lg mb-2 line-clamp-2">{pkg.name.replace("Pack ", "")}</h3>
 
                     {/* Precio */}
-                    <div className="mb-4">
-                      <div className="text-3xl font-bold text-gray-900">${(pkg.price_mxn / 100).toLocaleString()}</div>
-                      <div className="text-sm text-gray-600">{pkg.credits} créditos</div>
+                    <div className="mb-3 sm:mb-4">
+                      <div className="text-2xl sm:text-3xl font-bold text-gray-900">${(pkg.price_mxn / 100).toLocaleString()}</div>
+                      <div className="text-xs sm:text-sm text-gray-600">{pkg.credits} créditos</div>
                     </div>
 
                     {/* Características clave (solo 3 más importantes) */}
-                    <div className="space-y-2">
+                    <div className="space-y-1.5 sm:space-y-2">
                       {getPackageFeatures(pkg)
                         .slice(0, 5)
                         .map((feature, index) => (
-                          <div key={index} className="flex items-start gap-2">
-                            <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
-                            <span className="text-sm text-gray-700">{feature}</span>
+                          <div key={index} className="flex items-start gap-1.5 sm:gap-2">
+                            <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 text-green-500 flex-shrink-0 mt-0.5" />
+                            <span className="text-xs sm:text-sm text-gray-700 leading-tight">{feature}</span>
                           </div>
                         ))}
                     </div>
 
                     {/* Checkmark si está seleccionado */}
                     {selectedPackage?.id === pkg.id && (
-                      <div className="absolute top-4 right-4">
-                        <div className="w-6 h-6 bg-purple-600 rounded-full flex items-center justify-center">
-                          <CheckCircle className="w-4 h-4 text-white" />
+                      <div className="absolute top-3 right-3 sm:top-4 sm:right-4">
+                        <div className="w-5 h-5 sm:w-6 sm:h-6 bg-purple-600 rounded-full flex items-center justify-center">
+                          <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
                         </div>
                       </div>
                     )}
@@ -626,16 +626,16 @@ const Checkout = () => {
         </Tabs>
 
         {selectedPackage && (
-          <div className="max-w-2xl mx-auto space-y-6">
+          <div className="max-w-2xl mx-auto space-y-4 sm:space-y-6">
             {/* Métodos de pago */}
-            <div className="bg-white rounded-lg border p-6">
-              <h3 className="text-lg font-bold mb-4">Método de Pago</h3>
-              <div className="space-y-3">
+            <div className="bg-white rounded-lg border p-4 sm:p-6">
+              <h3 className="text-base sm:text-lg font-bold mb-3 sm:mb-4">Método de Pago</h3>
+              <div className="space-y-2 sm:space-y-3">
                 {/* Tarjeta */}
                 <button
                   onClick={() => setPaymentMethod("stripe")}
                   className={`
-                    w-full flex items-center p-4 rounded-lg border-2 transition-all
+                    w-full flex items-center p-3 sm:p-4 rounded-lg border-2 transition-all
                     ${
                       paymentMethod === "stripe"
                         ? "border-purple-600 bg-purple-50"
@@ -643,12 +643,12 @@ const Checkout = () => {
                     }
                   `}
                 >
-                  <CreditCard className="w-5 h-5 mr-3 text-gray-600" />
-                  <div className="flex-1 text-left">
-                    <div className="font-semibold">Tarjeta</div>
-                    <div className="text-sm text-gray-600">Visa, Mastercard • Instantáneo</div>
+                  <CreditCard className="w-4 h-4 sm:w-5 sm:h-5 mr-2 sm:mr-3 text-gray-600 flex-shrink-0" />
+                  <div className="flex-1 text-left min-w-0">
+                    <div className="font-semibold text-sm sm:text-base">Tarjeta</div>
+                    <div className="text-xs sm:text-sm text-gray-600 line-clamp-1">Visa, Mastercard • Instantáneo</div>
                   </div>
-                  {paymentMethod === "stripe" && <CheckCircle className="w-5 h-5 text-purple-600" />}
+                  {paymentMethod === "stripe" && <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 flex-shrink-0" />}
                 </button>
 
                 {/* SPEI - solo para packs únicos */}
@@ -656,7 +656,7 @@ const Checkout = () => {
                   <button
                     onClick={() => setPaymentMethod("spei")}
                     className={`
-                      w-full flex items-center p-4 rounded-lg border-2 transition-all
+                      w-full flex items-center p-3 sm:p-4 rounded-lg border-2 transition-all
                       ${
                         paymentMethod === "spei"
                           ? "border-purple-600 bg-purple-50"
@@ -664,65 +664,65 @@ const Checkout = () => {
                       }
                     `}
                   >
-                    <Building2 className="w-5 h-5 mr-3 text-gray-600" />
-                    <div className="flex-1 text-left">
-                      <div className="font-semibold">Transferencia SPEI</div>
-                      <div className="text-sm text-gray-600">Instantáneo • $5 MXN comisión</div>
+                    <Building2 className="w-4 h-4 sm:w-5 sm:h-5 mr-2 sm:mr-3 text-gray-600 flex-shrink-0" />
+                    <div className="flex-1 text-left min-w-0">
+                      <div className="font-semibold text-sm sm:text-base">Transferencia SPEI</div>
+                      <div className="text-xs sm:text-sm text-gray-600 line-clamp-1">Instantáneo • $5 MXN comisión</div>
                     </div>
-                    {paymentMethod === "spei" && <CheckCircle className="w-5 h-5 text-purple-600" />}
+                    {paymentMethod === "spei" && <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 flex-shrink-0" />}
                   </button>
                 )}
               </div>
             </div>
 
             {/* Resumen de compra */}
-            <div className="bg-white rounded-lg border p-6">
-              <h3 className="text-lg font-bold mb-4">Resumen</h3>
-              <div className="space-y-3">
+            <div className="bg-white rounded-lg border p-4 sm:p-6">
+              <h3 className="text-base sm:text-lg font-bold mb-3 sm:mb-4">Resumen</h3>
+              <div className="space-y-2 sm:space-y-3">
                 {/* Paquete */}
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Paquete</span>
-                  <span className="font-semibold">{selectedPackage.name}</span>
+                <div className="flex justify-between gap-2">
+                  <span className="text-xs sm:text-sm text-gray-600">Paquete</span>
+                  <span className="font-semibold text-xs sm:text-sm text-right line-clamp-2">{selectedPackage.name}</span>
                 </div>
 
                 {/* Créditos o tipo */}
-                <div className="flex justify-between">
-                  <span className="text-gray-600">{isSubscription ? "Tipo" : "Créditos"}</span>
-                  <span>{isSubscription ? "Mensual" : `${selectedPackage.credits.toLocaleString()}`}</span>
+                <div className="flex justify-between gap-2">
+                  <span className="text-xs sm:text-sm text-gray-600">{isSubscription ? "Tipo" : "Créditos"}</span>
+                  <span className="text-xs sm:text-sm">{isSubscription ? "Mensual" : `${selectedPackage.credits.toLocaleString()}`}</span>
                 </div>
 
                 {/* Precio */}
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Precio</span>
-                  <span>${(selectedPackage.price_mxn / 100).toLocaleString()}</span>
+                <div className="flex justify-between gap-2">
+                  <span className="text-xs sm:text-sm text-gray-600">Precio</span>
+                  <span className="text-xs sm:text-sm">${(selectedPackage.price_mxn / 100).toLocaleString()}</span>
                 </div>
 
                 {/* Comisión SPEI si aplica */}
                 {paymentMethod === "spei" && !isSubscription && (
-                  <div className="flex justify-between text-sm">
+                  <div className="flex justify-between gap-2 text-xs sm:text-sm">
                     <span className="text-gray-600">Comisión SPEI</span>
                     <span>$5.00</span>
                   </div>
                 )}
 
                 {/* Total */}
-                <div className="flex justify-between items-center pt-3 border-t">
-                  <span className="text-lg font-bold">Total</span>
+                <div className="flex justify-between items-center pt-2 sm:pt-3 border-t gap-2">
+                  <span className="text-base sm:text-lg font-bold">Total</span>
                   <div className="text-right">
-                    <div className="text-2xl font-bold text-purple-600">
+                    <div className="text-xl sm:text-2xl font-bold text-purple-600">
                       $
                       {(paymentMethod === "spei" && !isSubscription
                         ? (selectedPackage.price_mxn + 500) / 100
                         : selectedPackage.price_mxn / 100
                       ).toLocaleString()}
                     </div>
-                    {isSubscription && <div className="text-sm text-gray-600">/mes</div>}
+                    {isSubscription && <div className="text-xs sm:text-sm text-gray-600">/mes</div>}
                   </div>
                 </div>
               </div>
 
               {/* CTA de pago */}
-              <Button onClick={handlePayment} disabled={processingPayment} className="w-full mt-6 py-6 text-lg">
+              <Button onClick={handlePayment} disabled={processingPayment} className="w-full mt-4 sm:mt-6 py-4 sm:py-6 text-base sm:text-lg">
                 {processingPayment ? (
                   <>
                     <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2 inline-block"></div>
@@ -734,7 +734,7 @@ const Checkout = () => {
               </Button>
 
               {/* Nota de seguridad */}
-              <p className="text-center text-xs text-gray-500 mt-4">
+              <p className="text-center text-[10px] sm:text-xs text-gray-500 mt-3 sm:mt-4 px-2">
                 🔒 Pago seguro y encriptado
                 {isSubscription && " • Cancela cuando quieras"}
               </p>
