@@ -26,7 +26,9 @@ export class WebTemplateAdapter {
     
     // Importar el patrón si existe
     const patternUrls: Record<string, string> = {
-      'taco': '/src/assets/patterns/pattern-taco.png',
+      'taco': '/patterns/pattern-taco.png',
+      'ghost': '/patterns/pattern-ghost.png',
+      'pumpkin': '/patterns/pattern-pumpkin.png',
     };
     
     const patternUrl = backgroundPattern ? patternUrls[backgroundPattern] : null;
