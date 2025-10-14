@@ -14,6 +14,7 @@ import { toast } from '@/hooks/use-toast';
 import { Product, getDisplayImageUrl, getCatalogImageUrl, getProcessingStatus } from '@/types/products';
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 import { VariantManagementModal } from './VariantManagementModal';
+import { BulkVariantCreationModal } from './BulkVariantCreationModal';
 
 // ==========================================
 // TIPOS ESPECÍFICOS DEL EDITOR
@@ -184,6 +185,7 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
   const [showBulkTagsModal, setShowBulkTagsModal] = useState(false);
   const [showBulkPriceModal, setShowBulkPriceModal] = useState(false);
   const [showBulkWholesaleMinModal, setShowBulkWholesaleMinModal] = useState(false);
+  const [showBulkVariantsModal, setShowBulkVariantsModal] = useState(false);
   const [bulkTags, setBulkTags] = useState('');
   const [bulkPriceType, setBulkPriceType] = useState<'retail' | 'wholesale'>('retail');
   const [bulkPrice, setBulkPrice] = useState('');
@@ -1156,6 +1158,15 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
             </Button>
             <Button 
               size="sm" 
+              variant="secondary"
+              onClick={() => setShowBulkVariantsModal(true)}
+              className="flex items-center gap-1"
+            >
+              <Layers className="w-4 h-4" />
+              Crear Variantes
+            </Button>
+            <Button 
+              size="sm" 
               variant="destructive"
               onClick={() => deleteProducts(selectedProducts)}
             >
@@ -1743,6 +1754,30 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
         onConfirm={confirmDeleteProducts}
         variant="destructive"
       />
+
+      {/* Modal de Creación Masiva de Variantes */}
+      {user && (
+        <BulkVariantCreationModal
+          open={showBulkVariantsModal}
+          onOpenChange={setShowBulkVariantsModal}
+          selectedProducts={products
+            .filter(p => selectedProducts.includes(p.id))
+            .map(p => ({
+              id: p.id,
+              name: p.name,
+              category: p.category,
+              price_retail: p.price_retail || 0,
+              price_wholesale: p.price_wholesale || 0
+            }))}
+          userId={user.id}
+          onSuccess={() => {
+            if (!externalProducts) {
+              fetchProducts();
+            }
+            setSelectedProducts([]);
+          }}
+        />
+      )}
     </div>
   );
 };
