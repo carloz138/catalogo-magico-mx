@@ -227,7 +227,10 @@ export class DigitalCatalogService {
         `
         products (
           id, name, sku, description, price_retail, price_wholesale,
-          wholesale_min_qty, original_image_url, processed_image_url, tags, category
+          wholesale_min_qty, original_image_url, processed_image_url, tags, category, has_variants,
+          product_variants (
+            id, variant_combination, sku, price_retail, price_wholesale, stock_quantity, is_default
+          )
         )
       `,
       )
@@ -241,6 +244,7 @@ export class DigitalCatalogService {
         ?.map((cp: any) => ({
           ...cp.products,
           image_url: cp.products.processed_image_url || cp.products.original_image_url,
+          variants: cp.products.product_variants || [],
         }))
         .filter(Boolean) || [];
 

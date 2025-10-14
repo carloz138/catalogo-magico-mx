@@ -50,6 +50,8 @@ export class QuoteService {
       unit_price: item.unit_price,
       price_type: item.price_type,
       subtotal: item.quantity * item.unit_price,
+      variant_id: item.variant_id || null,
+      variant_description: item.variant_description || null,
     }));
     
     const { error: itemsError } = await supabase

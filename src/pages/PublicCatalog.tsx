@@ -139,7 +139,12 @@ function PublicCatalogContent() {
     }
   };
   
-  const handleAddFromModal = (quantity: number, priceType: 'retail' | 'wholesale') => {
+  const handleAddFromModal = (
+    quantity: number, 
+    priceType: 'retail' | 'wholesale',
+    variantId?: string | null,
+    variantDescription?: string | null
+  ) => {
     if (!selectedProduct) return;
     
     const priceConfig = {
@@ -152,8 +157,10 @@ function PublicCatalogContent() {
       ? calculateAdjustedPrice(selectedProduct.price_retail, priceConfig.adjustmentMenudeo)
       : calculateAdjustedPrice(selectedProduct.price_wholesale || selectedProduct.price_retail, priceConfig.adjustmentMayoreo);
     
-    addItem(selectedProduct, quantity, priceType, unitPrice);
-    toast.success(`${selectedProduct.name} agregado a cotización`);
+    addItem(selectedProduct, quantity, priceType, unitPrice, variantId, variantDescription);
+    
+    const variantText = variantDescription ? ` (${variantDescription})` : '';
+    toast.success(`${selectedProduct.name}${variantText} agregado a cotización`);
     setIsAddModalOpen(false);
     setSelectedProduct(null);
   };

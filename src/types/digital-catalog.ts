@@ -71,11 +71,13 @@ export interface QuoteItem {
   id: string;
   quote_id: string;
   product_id: string | null;
+  variant_id?: string | null;
 
   // Snapshot
   product_name: string;
   product_sku: string | null;
   product_image_url: string | null;
+  variant_description: string | null;
   quantity: number;
   unit_price: number;
   price_type: PriceType;
@@ -152,6 +154,8 @@ export interface CreateQuoteDTO {
     quantity: number;
     unit_price: number;
     price_type: PriceType;
+    variant_id?: string | null;
+    variant_description?: string | null;
   }[];
 }
 
@@ -176,6 +180,16 @@ export interface PublicCatalogView extends DigitalCatalog {
     image_url: string;
     tags: string[] | null;
     category: string | null;
+    has_variants?: boolean;
+    variants?: Array<{
+      id: string;
+      variant_combination: Record<string, string>;
+      sku: string | null;
+      price_retail: number;
+      price_wholesale: number | null;
+      stock_quantity: number;
+      is_default: boolean;
+    }>;
   }>;
   business_info: {
     business_name: string;

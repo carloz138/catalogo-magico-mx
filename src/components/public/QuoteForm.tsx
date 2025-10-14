@@ -64,6 +64,8 @@ export function QuoteForm({ catalogId, items, totalAmount, isOpen, onClose, onSu
           quantity: item.quantity,
           price_type: item.priceType === "retail" ? "menudeo" : "mayoreo",
           unit_price: item.unitPrice,
+          variant_id: item.variantId || null,
+          variant_description: item.variantDescription || null,
         })),
       });
 

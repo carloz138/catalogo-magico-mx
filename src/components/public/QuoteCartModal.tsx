@@ -62,6 +62,12 @@ export function QuoteCartModal({ isOpen, onClose, onRequestQuote }: Props) {
                       {item.product.name}
                     </h4>
                     
+                    {item.variantDescription && (
+                      <p className="text-xs text-muted-foreground mb-1">
+                        {item.variantDescription}
+                      </p>
+                    )}
+                    
                     <p className="text-xs text-muted-foreground mb-2">
                       {item.priceType === 'retail' ? 'Menudeo' : 'Mayoreo'} - 
                       ${(item.unitPrice / 100).toFixed(2)}
@@ -72,7 +78,7 @@ export function QuoteCartModal({ isOpen, onClose, onRequestQuote }: Props) {
                         variant="outline"
                         size="icon"
                         className="h-7 w-7"
-                        onClick={() => updateQuantity(item.product.id, item.priceType, item.quantity - 1)}
+                        onClick={() => updateQuantity(item.product.id, item.priceType, item.quantity - 1, item.variantId)}
                       >
                         <Minus className="h-3 w-3" />
                       </Button>
@@ -85,7 +91,7 @@ export function QuoteCartModal({ isOpen, onClose, onRequestQuote }: Props) {
                         variant="outline"
                         size="icon"
                         className="h-7 w-7"
-                        onClick={() => updateQuantity(item.product.id, item.priceType, item.quantity + 1)}
+                        onClick={() => updateQuantity(item.product.id, item.priceType, item.quantity + 1, item.variantId)}
                       >
                         <Plus className="h-3 w-3" />
                       </Button>
@@ -94,7 +100,7 @@ export function QuoteCartModal({ isOpen, onClose, onRequestQuote }: Props) {
                         variant="ghost"
                         size="icon"
                         className="h-7 w-7 ml-auto"
-                        onClick={() => removeItem(item.product.id, item.priceType)}
+                        onClick={() => removeItem(item.product.id, item.priceType, item.variantId)}
                       >
                         <Trash2 className="h-3 w-3 text-destructive" />
                       </Button>

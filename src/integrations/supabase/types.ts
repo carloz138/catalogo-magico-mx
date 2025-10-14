@@ -934,6 +934,8 @@ export type Database = {
           quote_id: string
           subtotal: number
           unit_price: number
+          variant_description: string | null
+          variant_id: string | null
         }
         Insert: {
           created_at?: string | null
@@ -947,6 +949,8 @@ export type Database = {
           quote_id: string
           subtotal: number
           unit_price: number
+          variant_description?: string | null
+          variant_id?: string | null
         }
         Update: {
           created_at?: string | null
@@ -960,6 +964,8 @@ export type Database = {
           quote_id?: string
           subtotal?: number
           unit_price?: number
+          variant_description?: string | null
+          variant_id?: string | null
         }
         Relationships: [
           {
@@ -989,6 +995,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "quotes"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quote_items_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "product_variants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quote_items_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "products_with_variants"
+            referencedColumns: ["variant_id"]
           },
         ]
       }

@@ -16,13 +16,22 @@ interface QuoteItem {
   quantity: number;
   priceType: 'retail' | 'wholesale';
   unitPrice: number; // Centavos
+  variantId?: string | null; // ID de la variante seleccionada
+  variantDescription?: string | null; // Descripción legible de la variante
 }
 
 interface QuoteCartContextType {
   items: QuoteItem[];
-  addItem: (product: Product, quantity: number, priceType: 'retail' | 'wholesale', unitPrice: number) => void;
-  updateQuantity: (productId: string, priceType: string, quantity: number) => void;
-  removeItem: (productId: string, priceType: string) => void;
+  addItem: (
+    product: Product, 
+    quantity: number, 
+    priceType: 'retail' | 'wholesale', 
+    unitPrice: number,
+    variantId?: string | null,
+    variantDescription?: string | null
+  ) => void;
+  updateQuantity: (productId: string, priceType: string, quantity: number, variantId?: string | null) => void;
+  removeItem: (productId: string, priceType: string, variantId?: string | null) => void;
   clearCart: () => void;
   totalItems: number;
   totalAmount: number;
@@ -33,10 +42,21 @@ const QuoteCartContext = createContext<QuoteCartContextType | undefined>(undefin
 export function QuoteCartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<QuoteItem[]>([]);
 
-  const addItem = useCallback((product: Product, quantity: number, priceType: 'retail' | 'wholesale', unitPrice: number) => {
+  const addItem = useCallback((
+    product: Product, 
+    quantity: number, 
+    priceType: 'retail' | 'wholesale', 
+    unitPrice: number,
+    variantId?: string | null,
+    variantDescription?: string | null
+  ) => {
     setItems(prev => {
+      // Buscar si ya existe este producto con la misma variante y tipo de precio
       const existingIndex = prev.findIndex(
-        item => item.product.id === product.id && item.priceType === priceType
+        item => 
+          item.product.id === product.id && 
+          item.priceType === priceType &&
+          item.variantId === variantId
       );
       
       if (existingIndex >= 0) {
@@ -45,26 +65,43 @@ export function QuoteCartProvider({ children }: { children: React.ReactNode }) {
         return updated;
       }
       
-      return [...prev, { product, quantity, priceType, unitPrice }];
+      return [...prev, { 
+        product, 
+        quantity, 
+        priceType, 
+        unitPrice,
+        variantId,
+        variantDescription
+      }];
     });
   }, []);
 
-  const updateQuantity = useCallback((productId: string, priceType: string, quantity: number) => {
+  const updateQuantity = useCallback((productId: string, priceType: string, quantity: number, variantId?: string | null) => {
     setItems(prev => {
       if (quantity <= 0) {
-        return prev.filter(item => !(item.product.id === productId && item.priceType === priceType));
+        return prev.filter(item => !(
+          item.product.id === productId && 
+          item.priceType === priceType &&
+          item.variantId === variantId
+        ));
       }
       
       return prev.map(item =>
-        item.product.id === productId && item.priceType === priceType
+        item.product.id === productId && 
+        item.priceType === priceType &&
+        item.variantId === variantId
           ? { ...item, quantity }
           : item
       );
     });
   }, []);
 
-  const removeItem = useCallback((productId: string, priceType: string) => {
-    setItems(prev => prev.filter(item => !(item.product.id === productId && item.priceType === priceType)));
+  const removeItem = useCallback((productId: string, priceType: string, variantId?: string | null) => {
+    setItems(prev => prev.filter(item => !(
+      item.product.id === productId && 
+      item.priceType === priceType &&
+      item.variantId === variantId
+    )));
   }, []);
 
   const clearCart = useCallback(() => {
