@@ -113,7 +113,7 @@ export default function DigitalCatalogForm() {
       is_private: false,
       access_password: "",
       product_ids: [],
-      enable_quotation: false,
+      enable_quotation: true,
       enable_variants: true,
     },
   });
