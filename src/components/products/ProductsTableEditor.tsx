@@ -182,9 +182,11 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
   // Estados para acciones masivas
   const [showBulkTagsModal, setShowBulkTagsModal] = useState(false);
   const [showBulkPriceModal, setShowBulkPriceModal] = useState(false);
+  const [showBulkWholesaleMinModal, setShowBulkWholesaleMinModal] = useState(false);
   const [bulkTags, setBulkTags] = useState('');
   const [bulkPriceType, setBulkPriceType] = useState<'retail' | 'wholesale'>('retail');
   const [bulkPrice, setBulkPrice] = useState('');
+  const [bulkWholesaleMin, setBulkWholesaleMin] = useState('');
   
   // Estados de filtros
   const [filters, setFilters] = useState<ProductFilters>({
@@ -710,20 +712,67 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
         )
       );
 
-      const priceTypeLabel = bulkPriceType === 'retail' ? 'retail' : 'mayoreo';
       toast({
         title: "Precios actualizados",
-        description: `${selectedProducts.length} producto(s) actualizados con precio ${priceTypeLabel}: $${centsToPrice(priceInCents)}`,
+        description: `${selectedProducts.length} producto(s) actualizados con precio ${bulkPriceType === 'retail' ? 'retail' : 'mayoreo'}`,
       });
 
       setSelectedProducts([]);
       setShowBulkPriceModal(false);
       setBulkPrice('');
     } catch (error) {
-      console.error('Error updating prices:', error);
+      console.error('Error updating price:', error);
       toast({
         title: "Error",
         description: "No se pudieron actualizar los precios",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const bulkUpdateWholesaleMin = async () => {
+    if (selectedProducts.length === 0 || !bulkWholesaleMin.trim()) return;
+
+    const intValue = parseInt(bulkWholesaleMin);
+    if (isNaN(intValue) || intValue < 1) {
+      toast({
+        title: "Error",
+        description: "Por favor ingrese una cantidad válida (mínimo 1)",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('products')
+        .update({ wholesale_min_qty: intValue })
+        .in('id', selectedProducts)
+        .eq('user_id', user?.id);
+
+      if (error) throw error;
+
+      setProducts(prevProducts => 
+        prevProducts.map(product => 
+          selectedProducts.includes(product.id) 
+            ? { ...product, wholesale_min_qty: intValue }
+            : product
+        )
+      );
+
+      toast({
+        title: "Cantidad mínima actualizada",
+        description: `${selectedProducts.length} producto(s) actualizados con cantidad mínima de ${intValue} unidades`,
+      });
+
+      setSelectedProducts([]);
+      setShowBulkWholesaleMinModal(false);
+      setBulkWholesaleMin('');
+    } catch (error) {
+      console.error('Error updating wholesale_min_qty:', error);
+      toast({
+        title: "Error",
+        description: "No se pudo actualizar la cantidad mínima",
         variant: "destructive",
       });
     }
@@ -1079,6 +1128,15 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
             </Button>
             <Button 
               size="sm" 
+              variant="outline"
+              onClick={() => setShowBulkWholesaleMinModal(true)}
+              className="flex items-center gap-1"
+            >
+              <Package className="w-4 h-4" />
+              Cant. Mín. Mayoreo
+            </Button>
+            <Button 
+              size="sm" 
               variant="destructive"
               onClick={() => deleteProducts(selectedProducts)}
             >
@@ -1321,6 +1379,63 @@ const ProductsTableEditor: React.FC<ProductsTableEditorProps> = ({
                 </Button>
                 <Button onClick={bulkUpdatePrice} disabled={!bulkPrice.trim()}>
                   Asignar Precio
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal para Cantidad Mínima de Mayoreo Masiva */}
+      {showBulkWholesaleMinModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl p-6 max-w-md w-full shadow-xl">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-bold text-gray-900">Asignar Cantidad Mínima de Mayoreo</h2>
+              <Button 
+                variant="ghost" 
+                onClick={() => {
+                  setShowBulkWholesaleMinModal(false);
+                  setBulkWholesaleMin('');
+                }}
+                className="h-8 w-8 p-0 hover:bg-gray-100"
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+            
+            <div className="space-y-4">
+              <p className="text-sm text-gray-600">
+                Se asignará esta cantidad mínima a {selectedProducts.length} producto(s) seleccionado(s).
+              </p>
+              <div>
+                <Label htmlFor="bulk-wholesale-min">Cantidad Mínima</Label>
+                <Input
+                  id="bulk-wholesale-min"
+                  type="number"
+                  min="1"
+                  step="1"
+                  value={bulkWholesaleMin}
+                  onChange={(e) => setBulkWholesaleMin(e.target.value)}
+                  placeholder="Ej: 10"
+                  className="mt-1"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Los valores existentes serán reemplazados. Esta cantidad define el mínimo para aplicar el precio de mayoreo.
+                </p>
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    setShowBulkWholesaleMinModal(false);
+                    setBulkWholesaleMin('');
+                  }}
+                >
+                  Cancelar
+                </Button>
+                <Button onClick={bulkUpdateWholesaleMin} disabled={!bulkWholesaleMin.trim()}>
+                  Asignar Cantidad
                 </Button>
               </div>
             </div>
