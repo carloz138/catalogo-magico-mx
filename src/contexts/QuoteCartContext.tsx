@@ -5,6 +5,7 @@ interface Product {
   name: string;
   price_retail: number;
   price_wholesale: number | null;
+  wholesale_min_qty: number | null;
   processed_image_url: string | null;
   original_image_url: string;
   sku: string | null;

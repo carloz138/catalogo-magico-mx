@@ -10,6 +10,7 @@ interface Product {
   description: string | null;
   price_retail: number;
   price_wholesale: number | null;
+  wholesale_min_qty: number | null;
   processed_image_url: string | null;
   original_image_url: string;
   tags: string[] | null;
@@ -86,9 +87,9 @@ export function PublicProductCard({ product, priceConfig, visibilityConfig, onAd
               <div className="catalog-product-price text-xl font-bold text-primary">
                 ${(retailPrice / 100).toFixed(2)}
               </div>
-              {wholesalePrice && (
+              {wholesalePrice && product.wholesale_min_qty && (
                 <div className="text-sm text-muted-foreground">
-                  Mayoreo: ${(wholesalePrice / 100).toFixed(2)}
+                  Mayoreo (desde {product.wholesale_min_qty} pzas): ${(wholesalePrice / 100).toFixed(2)}
                 </div>
               )}
             </>

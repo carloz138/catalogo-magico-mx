@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Minus, Plus } from 'lucide-react';
 import { calculateAdjustedPrice } from '@/lib/utils/price-calculator';
@@ -12,6 +11,7 @@ interface Product {
   sku: string | null;
   price_retail: number;
   price_wholesale: number | null;
+  wholesale_min_qty: number | null;
   processed_image_url: string | null;
   original_image_url: string;
 }
@@ -30,7 +30,6 @@ interface Props {
 
 export function AddToQuoteModal({ product, priceConfig, isOpen, onClose, onAdd }: Props) {
   const [quantity, setQuantity] = useState(1);
-  const [priceType, setPriceType] = useState<'retail' | 'wholesale'>('retail');
 
   if (!product) return null;
 
@@ -41,13 +40,17 @@ export function AddToQuoteModal({ product, priceConfig, isOpen, onClose, onAdd }
     ? calculateAdjustedPrice(product.price_wholesale, priceConfig.adjustmentMayoreo)
     : null;
 
+  // Determinar automáticamente el tipo de precio según la cantidad
+  const wholesaleMinQty = product.wholesale_min_qty || 1;
+  const priceType: 'retail' | 'wholesale' = 
+    wholesalePrice && quantity >= wholesaleMinQty ? 'wholesale' : 'retail';
+
   const currentPrice = priceType === 'retail' ? retailPrice : (wholesalePrice || retailPrice);
   const subtotal = currentPrice * quantity;
 
   const handleAdd = () => {
     onAdd(quantity, priceType);
     setQuantity(1);
-    setPriceType('retail');
   };
 
   return (
@@ -73,22 +76,23 @@ export function AddToQuoteModal({ product, priceConfig, isOpen, onClose, onAdd }
           </div>
 
           {priceConfig.display === 'both' && wholesalePrice && (
-            <div className="space-y-2">
-              <Label>Tipo de precio</Label>
-              <RadioGroup value={priceType} onValueChange={(v) => setPriceType(v as 'retail' | 'wholesale')}>
-                <div className="flex items-center space-x-2 border rounded-lg p-3">
-                  <RadioGroupItem value="retail" id="retail" />
-                  <Label htmlFor="retail" className="flex-1 cursor-pointer">
-                    Menudeo - ${(retailPrice / 100).toFixed(2)}
-                  </Label>
+            <div className="space-y-2 bg-muted/50 p-3 rounded-lg">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-medium">Precio actual:</Label>
+                <div className="text-right">
+                  <div className="font-semibold">
+                    {priceType === 'retail' ? 'Menudeo' : 'Mayoreo'} - ${(currentPrice / 100).toFixed(2)}
+                  </div>
+                  {wholesalePrice && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {priceType === 'retail' 
+                        ? `Mayoreo desde ${wholesaleMinQty} pzas: $${(wholesalePrice / 100).toFixed(2)}`
+                        : `Menudeo: $${(retailPrice / 100).toFixed(2)}`
+                      }
+                    </p>
+                  )}
                 </div>
-                <div className="flex items-center space-x-2 border rounded-lg p-3">
-                  <RadioGroupItem value="wholesale" id="wholesale" />
-                  <Label htmlFor="wholesale" className="flex-1 cursor-pointer">
-                    Mayoreo - ${(wholesalePrice / 100).toFixed(2)}
-                  </Label>
-                </div>
-              </RadioGroup>
+              </div>
             </div>
           )}
 
