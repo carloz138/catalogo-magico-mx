@@ -52,12 +52,18 @@ export const BulkVariantCreationModal: React.FC<BulkVariantCreationModalProps> =
   // Categorías de los productos seleccionados
   const uniqueCategories = [...new Set(selectedProducts.map(p => p.category).filter(Boolean))];
   const hasMultipleCategories = uniqueCategories.length > 1;
+  const productsWithoutCategory = selectedProducts.filter(p => !p.category);
 
   useEffect(() => {
-    if (open && uniqueCategories.length > 0) {
-      loadVariantTypes(uniqueCategories[0] as string);
+    if (open) {
+      console.log('🎯 Modal abierto con productos:', selectedProducts);
+      console.log('📂 Categorías únicas:', uniqueCategories);
+      
+      if (uniqueCategories.length > 0) {
+        loadVariantTypes(uniqueCategories[0] as string);
+      }
     }
-  }, [open, uniqueCategories]);
+  }, [open]);
 
   const loadVariantTypes = async (category: string) => {
     setLoading(true);
@@ -240,7 +246,19 @@ export const BulkVariantCreationModal: React.FC<BulkVariantCreationModalProps> =
           </Button>
         </div>
 
-        {hasMultipleCategories && (
+        {productsWithoutCategory.length > 0 && (
+          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
+            <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
+            <div>
+              <p className="text-sm font-medium text-red-800">Productos sin categoría</p>
+              <p className="text-xs text-red-700 mt-1">
+                {productsWithoutCategory.length} producto(s) no tienen categoría asignada. Asigna una categoría primero para crear variantes.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {hasMultipleCategories && uniqueCategories.length > 0 && (
           <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg flex items-start gap-2">
             <AlertCircle className="w-5 h-5 text-yellow-600 mt-0.5 flex-shrink-0" />
             <div>
@@ -252,7 +270,25 @@ export const BulkVariantCreationModal: React.FC<BulkVariantCreationModalProps> =
           </div>
         )}
 
-        {loading ? (
+        {uniqueCategories.length === 0 && productsWithoutCategory.length === selectedProducts.length && (
+          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
+            <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
+            <div>
+              <p className="text-sm font-medium text-red-800">Sin categorías</p>
+              <p className="text-xs text-red-700 mt-1">
+                Ninguno de los productos seleccionados tiene categoría. Asigna categorías desde la tabla de productos.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {uniqueCategories.length === 0 ? (
+          <div className="text-center py-12">
+            <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
+            <p className="text-gray-700 font-medium mb-2">No se puede continuar</p>
+            <p className="text-sm text-gray-500">Asigna categorías a los productos seleccionados antes de crear variantes</p>
+          </div>
+        ) : loading ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="w-8 h-8 animate-spin text-primary" />
           </div>
@@ -328,32 +364,45 @@ export const BulkVariantCreationModal: React.FC<BulkVariantCreationModalProps> =
               </div>
             )}
 
-            <div className="flex justify-end gap-2 pt-4 border-t">
-              <Button 
-                variant="outline" 
-                onClick={() => onOpenChange(false)}
-                disabled={creating}
-              >
-                Cancelar
-              </Button>
-              <Button 
-                onClick={handleCreateVariants}
-                disabled={creating || combinationsCount === 0}
-              >
-                {creating ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Creando...
-                  </>
-                ) : (
-                  <>
-                    <Plus className="w-4 h-4 mr-2" />
-                    Crear {totalVariantsToCreate} Variantes
-                  </>
-                )}
-              </Button>
-            </div>
+            {uniqueCategories.length > 0 && (
+              <div className="flex justify-end gap-2 pt-4 border-t">
+                <Button 
+                  variant="outline" 
+                  onClick={() => onOpenChange(false)}
+                  disabled={creating}
+                >
+                  Cancelar
+                </Button>
+                <Button 
+                  onClick={handleCreateVariants}
+                  disabled={creating || combinationsCount === 0}
+                >
+                  {creating ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Creando...
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="w-4 h-4 mr-2" />
+                      Crear {totalVariantsToCreate} Variantes
+                    </>
+                  )}
+                </Button>
+              </div>
+            )}
           </>
+        )}
+
+        {uniqueCategories.length === 0 && (
+          <div className="flex justify-end gap-2 pt-4 border-t">
+            <Button 
+              variant="outline" 
+              onClick={() => onOpenChange(false)}
+            >
+              Cerrar
+            </Button>
+          </div>
         )}
       </div>
     </div>
