@@ -1159,6 +1159,28 @@ export default function DigitalCatalogForm() {
                       )}
                     />
 
+                    {/* Alerta de productos sin cantidad mínima de mayoreo */}
+                    {productsWithoutWholesaleMin.length > 0 && (
+                      <Alert variant="destructive">
+                        <AlertTriangle className="h-4 w-4" />
+                        <AlertDescription className="flex flex-col gap-2">
+                          <span>
+                            {productsWithoutWholesaleMin.length} {productsWithoutWholesaleMin.length === 1 ? 'producto tiene' : 'productos tienen'} precio de mayoreo pero no {productsWithoutWholesaleMin.length === 1 ? 'tiene' : 'tienen'} cantidad mínima asignada.
+                          </span>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="w-fit"
+                            onClick={() => window.open('/products-management', '_blank')}
+                          >
+                            <ExternalLink className="h-4 w-4 mr-2" />
+                            Ir a Gestión de Productos
+                          </Button>
+                        </AlertDescription>
+                      </Alert>
+                    )}
+
                     {(watchedValues.price_display === "menudeo_only" || watchedValues.price_display === "both") && (
                       <FormField
                         control={form.control}
