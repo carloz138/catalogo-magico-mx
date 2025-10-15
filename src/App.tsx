@@ -32,6 +32,8 @@ import BlogPost from "./pages/BlogPost";
 // ✅ AGREGAR estas importaciones
 import QuotesPage from "./pages/quotes/index";
 import QuoteDetailPage from "./pages/quotes/QuoteDetail";
+import ActivateCatalog from "./pages/ActivateCatalog";
+import DistributionNetwork from "./pages/DistributionNetwork";
 
 const queryClient = new QueryClient();
 
@@ -150,6 +152,14 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
+            <Route
+              path="/network"
+              element={
+                <ProtectedRoute>
+                  <DistributionNetwork />
+                </ProtectedRoute>
+              }
+            />
 
             <Route
               path="/business-info"
@@ -199,6 +209,7 @@ const App = () => (
 
             {/* Public catalog route - no auth required */}
             <Route path="/c/:slug" element={<PublicCatalog />} />
+            <Route path="/activar/:token" element={<ActivateCatalog />} />
 
             {/* Blog routes - public, no auth required */}
             <Route path="/blog" element={<Blog />} />
