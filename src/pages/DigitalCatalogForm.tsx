@@ -308,6 +308,7 @@ export default function DigitalCatalogForm() {
         product_ids: data.product_ids,
         enable_quotation: getPlanFeatures(userPlanTier).hasQuotation && data.enable_quotation,
         enable_variants: data.enable_variants ?? true,
+        enable_distribution: data.enable_distribution ?? false,
       };
 
       if (isEditing && id) {
@@ -1027,15 +1028,15 @@ export default function DigitalCatalogForm() {
                                  className="flex items-center justify-between p-4 rounded-lg border cursor-pointer active:scale-[0.98] transition-all bg-indigo-50 border-indigo-200 mt-3"
                                  onClick={() => field.onChange(!field.value)}
                                >
-                                 <div className="flex-1">
-                                   <div className="font-medium text-base flex items-center gap-2">
-                                     🔄 Permitir que mis clientes creen catálogos
-                                     <Badge variant="secondary">Nuevo</Badge>
-                                   </div>
-                                   <div className="text-sm text-muted-foreground">
-                                     Al aceptar cotizaciones, tus clientes podrán activar su propio catálogo por $29 MXN
-                                   </div>
-                                 </div>
+                                  <div className="flex-1">
+                                    <div className="font-medium text-base flex items-center gap-2">
+                                      Permitir que mis clientes creen catálogos
+                                      <Badge variant="secondary">Nuevo</Badge>
+                                    </div>
+                                    <div className="text-sm text-muted-foreground">
+                                      Si apruebas la cotización, tu cliente podrá crear un catálogo para distribuir más rápido sus productos
+                                    </div>
+                                  </div>
                                  <Switch
                                    checked={field.value}
                                    onCheckedChange={field.onChange}
@@ -1560,19 +1561,16 @@ export default function DigitalCatalogForm() {
                            control={form.control}
                            name="enable_distribution"
                            render={({ field }) => (
-                             <FormItem className="flex items-center justify-between rounded-lg border p-4 bg-indigo-50 border-indigo-200">
-                               <div className="space-y-0.5 flex items-start gap-2">
-                                 <div className="text-2xl">🔄</div>
-                                 <div>
-                                   <FormLabel className="text-base flex items-center gap-2">
-                                     Permitir que mis clientes creen catálogos
-                                     <Badge variant="secondary">Nuevo</Badge>
-                                   </FormLabel>
-                                   <FormDescription>
-                                     Al aceptar una cotización, tu cliente recibirá un link para activar su propio catálogo por $29 MXN y empezar a vender estos productos
-                                   </FormDescription>
-                                 </div>
-                               </div>
+                              <FormItem className="flex items-center justify-between rounded-lg border p-4 bg-indigo-50 border-indigo-200">
+                                <div className="space-y-0.5">
+                                  <FormLabel className="text-base flex items-center gap-2">
+                                    Permitir que mis clientes creen catálogos
+                                    <Badge variant="secondary">Nuevo</Badge>
+                                  </FormLabel>
+                                  <FormDescription>
+                                    Si apruebas la cotización, tu cliente podrá crear un catálogo para distribuir más rápido sus productos
+                                  </FormDescription>
+                                </div>
                                <FormControl>
                                  <Switch checked={field.value} onCheckedChange={field.onChange} />
                                </FormControl>
