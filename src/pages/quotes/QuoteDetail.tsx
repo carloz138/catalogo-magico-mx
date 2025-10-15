@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Loader2,
   ArrowLeft,
@@ -19,15 +20,92 @@ import {
   Clock,
   Download,
   ExternalLink,
+  Copy,
 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { QuoteStatus } from "@/types/digital-catalog";
+import { QuoteService } from "@/services/quote.service";
+import { ReplicationService } from "@/services/replication.service";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
+import { useState } from "react";
+import { ShareCatalogModal } from "@/components/replication/ShareCatalogModal";
 
 export default function QuoteDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { quote, loading } = useQuoteDetail(id || null);
+  const { quote, loading, refetch } = useQuoteDetail(id || null);
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [actionLoading, setActionLoading] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [activationLink, setActivationLink] = useState("");
+
+  const handleAcceptQuote = async () => {
+    if (!quote || !user?.id) return;
+
+    setActionLoading(true);
+    try {
+      await QuoteService.updateQuoteStatus(quote.id, user.id, "accepted");
+
+      if (quote.catalog?.enable_distribution) {
+        const replicatedCatalog = await ReplicationService.createReplica({
+          original_catalog_id: quote.catalog_id,
+          quote_id: quote.id,
+          distributor_id: user.id,
+        });
+
+        const link = await ReplicationService.getActivationLink(replicatedCatalog.id);
+        setActivationLink(link);
+        setShowShareModal(true);
+
+        toast({
+          title: "✅ Cotización aceptada",
+          description: "Se creó un catálogo para tu cliente. Comparte el link de activación.",
+        });
+      } else {
+        toast({
+          title: "✅ Cotización aceptada",
+          description: "La cotización ha sido aceptada exitosamente",
+        });
+      }
+
+      refetch();
+    } catch (error: any) {
+      console.error("Error accepting quote:", error);
+      toast({
+        title: "Error",
+        description: error.message || "No se pudo aceptar la cotización",
+        variant: "destructive",
+      });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleRejectQuote = async () => {
+    if (!quote || !user?.id) return;
+
+    setActionLoading(true);
+    try {
+      await QuoteService.updateQuoteStatus(quote.id, user.id, "rejected");
+      toast({
+        title: "Cotización rechazada",
+        description: "La cotización ha sido rechazada",
+      });
+      refetch();
+    } catch (error: any) {
+      console.error("Error rejecting quote:", error);
+      toast({
+        title: "Error",
+        description: error.message || "No se pudo rechazar la cotización",
+        variant: "destructive",
+      });
+    } finally {
+      setActionLoading(false);
+    }
+  };
 
   const getStatusConfig = (status: QuoteStatus) => {
     const config = {
@@ -237,13 +315,36 @@ export default function QuoteDetailPage() {
               <CardHeader>
                 <CardTitle className="text-base">Acciones</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-2">
-                <Button className="w-full bg-green-600 hover:bg-green-700">
-                  <CheckCircle className="w-4 h-4 mr-2" />
+              <CardContent className="space-y-3">
+                {quote.catalog?.enable_distribution && (
+                  <Alert className="bg-indigo-50 border-indigo-200">
+                    <Copy className="h-4 w-4 text-indigo-600" />
+                    <AlertDescription className="text-indigo-900">
+                      <strong>Distribución habilitada:</strong> Al aceptar, se creará automáticamente un catálogo para tu cliente.
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                <Button
+                  className="w-full bg-green-600 hover:bg-green-700"
+                  onClick={handleAcceptQuote}
+                  disabled={actionLoading}
+                >
+                  {actionLoading ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                  )}
                   Aceptar Cotización
                 </Button>
-                <Button variant="destructive" className="w-full">
-                  <XCircle className="w-4 h-4 mr-2" />
+
+                <Button
+                  variant="destructive"
+                  className="w-full"
+                  onClick={handleRejectQuote}
+                  disabled={actionLoading}
+                >
+                  <XCircle className="w-4 w-4 mr-2" />
                   Rechazar Cotización
                 </Button>
               </CardContent>
@@ -303,6 +404,13 @@ export default function QuoteDetailPage() {
           </Card>
         </div>
       </div>
+
+      <ShareCatalogModal
+        open={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        activationLink={activationLink}
+        customerName={quote?.customer_name || ""}
+      />
     </div>
   );
 }

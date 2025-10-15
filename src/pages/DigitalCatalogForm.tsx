@@ -60,6 +60,7 @@ const catalogSchema = z
 
     enable_quotation: z.boolean().optional(),
     enable_variants: z.boolean().optional(),
+    enable_distribution: z.boolean().optional(),
   })
   .refine(
     (data) => {
@@ -117,6 +118,7 @@ export default function DigitalCatalogForm() {
       product_ids: [],
       enable_quotation: false,
       enable_variants: true,
+      enable_distribution: false,
     },
   });
 
@@ -244,6 +246,8 @@ export default function DigitalCatalogForm() {
         product_ids: catalog.products?.map((p) => p.id) || [],
         enable_quotation: catalog.enable_quotation || false,
         enable_variants: catalog.enable_variants ?? true,
+        enable_distribution: catalog.enable_distribution || false,
+        show_stock: catalog.show_stock || false,
       });
 
       setSelectedProducts(catalog.products || []);
@@ -1010,11 +1014,39 @@ export default function DigitalCatalogForm() {
                                   className="pointer-events-none"
                                 />
                               </div>
-                            )}
-                          />
-                        )}
-                      </AccordionContent>
-                    </AccordionItem>
+                             )}
+                           />
+                         )}
+
+                         {form.watch("enable_quotation") && (
+                           <FormField
+                             control={form.control}
+                             name="enable_distribution"
+                             render={({ field }) => (
+                               <div
+                                 className="flex items-center justify-between p-4 rounded-lg border cursor-pointer active:scale-[0.98] transition-all bg-indigo-50 border-indigo-200 mt-3"
+                                 onClick={() => field.onChange(!field.value)}
+                               >
+                                 <div className="flex-1">
+                                   <div className="font-medium text-base flex items-center gap-2">
+                                     🔄 Permitir que mis clientes creen catálogos
+                                     <Badge variant="secondary">Nuevo</Badge>
+                                   </div>
+                                   <div className="text-sm text-muted-foreground">
+                                     Al aceptar cotizaciones, tus clientes podrán activar su propio catálogo por $29 MXN
+                                   </div>
+                                 </div>
+                                 <Switch
+                                   checked={field.value}
+                                   onCheckedChange={field.onChange}
+                                   className="pointer-events-none"
+                                 />
+                               </div>
+                             )}
+                           />
+                         )}
+                       </AccordionContent>
+                     </AccordionItem>
                   ) : (
                     <Alert>
                       <Lock className="h-4 w-4" />
@@ -1519,11 +1551,37 @@ export default function DigitalCatalogForm() {
                                 <Switch checked={field.value} onCheckedChange={field.onChange} />
                               </FormControl>
                             </FormItem>
-                          )}
-                        />
-                      )}
-                    </CardContent>
-                  </Card>
+                           )}
+                         />
+                       )}
+
+                       {form.watch("enable_quotation") && (
+                         <FormField
+                           control={form.control}
+                           name="enable_distribution"
+                           render={({ field }) => (
+                             <FormItem className="flex items-center justify-between rounded-lg border p-4 bg-indigo-50 border-indigo-200">
+                               <div className="space-y-0.5 flex items-start gap-2">
+                                 <div className="text-2xl">🔄</div>
+                                 <div>
+                                   <FormLabel className="text-base flex items-center gap-2">
+                                     Permitir que mis clientes creen catálogos
+                                     <Badge variant="secondary">Nuevo</Badge>
+                                   </FormLabel>
+                                   <FormDescription>
+                                     Al aceptar una cotización, tu cliente recibirá un link para activar su propio catálogo por $29 MXN y empezar a vender estos productos
+                                   </FormDescription>
+                                 </div>
+                               </div>
+                               <FormControl>
+                                 <Switch checked={field.value} onCheckedChange={field.onChange} />
+                               </FormControl>
+                             </FormItem>
+                           )}
+                         />
+                       )}
+                     </CardContent>
+                   </Card>
                 ) : (
                   <Alert>
                     <Lock className="h-4 w-4" />
