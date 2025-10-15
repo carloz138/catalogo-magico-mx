@@ -39,8 +39,7 @@ export interface DigitalCatalog {
   view_count: number;
   enable_quotation: boolean;
   enable_variants: boolean;
-  enable_distribution: boolean; // ← AGREGAR ESTE
-
+  enable_distribution?: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -121,6 +120,7 @@ export interface CreateDigitalCatalogDTO {
   product_ids: string[];
   enable_quotation?: boolean;
   enable_variants?: boolean;
+  enable_distribution?: boolean;
 }
 
 export interface UpdateDigitalCatalogDTO {
@@ -144,6 +144,7 @@ export interface UpdateDigitalCatalogDTO {
   product_ids?: string[];
   enable_quotation?: boolean;
   enable_variants?: boolean;
+  enable_distribution?: boolean;
 }
 
 export interface CreateQuoteDTO {
