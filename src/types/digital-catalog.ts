@@ -25,7 +25,7 @@ export interface DigitalCatalog {
 
   // Diseño
   background_pattern: string | null;
-  
+
   // Información adicional
   additional_info: string | null;
 
@@ -205,4 +205,108 @@ export interface PublicCatalogView extends DigitalCatalog {
     website: string | null;
   };
   enable_variants: boolean;
+}
+
+// ============================================
+// TIPOS PARA SISTEMA DE REPLICACIÓN
+// ============================================
+
+export interface ReplicatedCatalog {
+  id: string;
+  original_catalog_id: string;
+  quote_id: string | null;
+  reseller_id: string | null;
+  distributor_id: string;
+
+  // Estado
+  is_active: boolean;
+  activation_token: string;
+  activation_paid: boolean;
+  activated_at: string | null;
+  expires_at: string | null;
+
+  // Límites
+  product_limit: number | null;
+
+  // Metadata
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DistributionNetwork {
+  id: string;
+  distributor_id: string;
+  reseller_id: string | null;
+  replicated_catalog_id: string;
+
+  // Estadísticas
+  total_quotes_generated: number;
+  total_quotes_accepted: number;
+  conversion_rate: number;
+  last_quote_at: string | null;
+
+  // Metadata
+  created_at: string;
+  updated_at: string;
+}
+
+// DTOs para replicación
+export interface CreateReplicatedCatalogDTO {
+  original_catalog_id: string;
+  quote_id: string;
+  distributor_id: string;
+}
+
+export interface ActivateReplicatedCatalogDTO {
+  token: string;
+  reseller_id: string;
+}
+
+// Respuesta de get_catalog_by_token
+export interface CatalogByTokenResponse {
+  catalog_id: string;
+  original_catalog_id: string;
+  distributor_id: string;
+  distributor_name: string | null;
+  distributor_company: string | null;
+  is_active: boolean;
+  product_limit: number | null;
+  expires_at: string | null;
+  product_count: number;
+  catalog_name: string;
+  catalog_description: string | null;
+}
+
+// Vista extendida para red de distribución
+export interface NetworkResellerView {
+  network_id: string;
+  reseller_id: string | null;
+  reseller_email: string | null;
+  reseller_name: string | null;
+  reseller_company: string | null;
+  catalog_id: string;
+  catalog_name: string;
+  is_active: boolean;
+  total_quotes: number;
+  conversion_rate: number;
+  created_at: string;
+  activated_at: string | null;
+}
+
+// Estadísticas de red
+export interface NetworkStats {
+  total_catalogs_created: number;
+  active_resellers: number;
+  pending_activations: number;
+  total_quotes_generated: number;
+  total_revenue: number; // $29 x activaciones
+  conversion_rate: number;
+  top_product: {
+    name: string;
+    sales: number;
+  } | null;
+  top_reseller: {
+    name: string;
+    quotes: number;
+  } | null;
 }
