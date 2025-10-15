@@ -42,6 +42,7 @@ import {
   BookOpen,
   PackageOpen,
   ClipboardList,
+  Network,
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
@@ -69,6 +70,7 @@ const navigationItems = [
   { title: "Mis Catálogos", path: "/catalogs", icon: BookOpen, primary: true },
   { title: "Nuevo Catálogo Digital", path: "/catalogs/new", icon: FileText, primary: true },
   { title: "Cotizaciones", path: "/quotes", icon: ClipboardList, primary: true },
+  { title: "Red de Distribución", path: "/network", icon: Network, primary: true, badge: "Nuevo" },
 
   // GRUPO 2: Acciones Secundarias
   { title: "Carga Masiva", path: "/products/bulk-upload", icon: PackageOpen, badge: "Nuevo" },
