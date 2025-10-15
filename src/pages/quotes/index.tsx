@@ -279,34 +279,6 @@ export default function QuotesPage() {
                       <Eye className="w-4 h-4 mr-2" />
                       Ver detalle
                     </Button>
-
-                    {quote.status === 'pending' && (
-                      <>
-                        <Button
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            updateStatus(quote.id, 'accepted');
-                          }}
-                          className="flex-1 sm:flex-none bg-green-600 hover:bg-green-700"
-                        >
-                          <CheckCircle className="w-4 h-4 mr-2" />
-                          Aceptar
-                        </Button>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            updateStatus(quote.id, 'rejected');
-                          }}
-                          className="flex-1 sm:flex-none"
-                        >
-                          <XCircle className="w-4 h-4 mr-2" />
-                          Rechazar
-                        </Button>
-                      </>
-                    )}
                   </div>
                 </div>
               </CardContent>
