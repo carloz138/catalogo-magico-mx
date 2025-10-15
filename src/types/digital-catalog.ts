@@ -39,6 +39,7 @@ export interface DigitalCatalog {
   view_count: number;
   enable_quotation: boolean;
   enable_variants: boolean;
+  enable_distribution: boolean; // ← AGREGAR ESTE
 
   created_at: string;
   updated_at: string;
