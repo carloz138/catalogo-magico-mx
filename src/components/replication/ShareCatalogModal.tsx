@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef } from "react";
 import {
   Dialog,
   DialogContent,
@@ -13,7 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Copy, Mail, MessageSquare, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import QRCode from "qrcode";
+import { QRCodeCanvas } from "qrcode.react";
 
 interface ShareCatalogModalProps {
   open: boolean;
@@ -31,23 +31,7 @@ export function ShareCatalogModal({
   distributorName = "tu negocio",
 }: ShareCatalogModalProps) {
   const { toast } = useToast();
-  const [qrCodeUrl, setQrCodeUrl] = useState<string>("");
-
-  const generateQRCode = async () => {
-    try {
-      const url = await QRCode.toDataURL(activationLink, {
-        width: 300,
-        margin: 2,
-        color: {
-          dark: "#4F46E5", // indigo-600
-          light: "#FFFFFF",
-        },
-      });
-      setQrCodeUrl(url);
-    } catch (error) {
-      console.error("Error generating QR code:", error);
-    }
-  };
+  const qrRef = useRef<HTMLCanvasElement>(null);
 
   const copyToClipboard = async (text: string) => {
     try {
@@ -78,11 +62,13 @@ export function ShareCatalogModal({
   };
 
   const downloadQR = () => {
-    if (!qrCodeUrl) return;
+    const canvas = qrRef.current;
+    if (!canvas) return;
 
+    const url = canvas.toDataURL("image/png");
     const link = document.createElement("a");
     link.download = "catalogo-qr.png";
-    link.href = qrCodeUrl;
+    link.href = url;
     link.click();
   };
 
@@ -118,13 +104,6 @@ Saludos,
 ${distributorName}`;
 
   const smsMessage = `${customerName}, tu catálogo digital está listo: ${activationLink} - Actívalo por $29 MXN y empieza a vender 🚀`;
-
-  // Generar QR al abrir el modal
-  useState(() => {
-    if (open) {
-      generateQRCode();
-    }
-  });
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -265,27 +244,22 @@ ${distributorName}`;
             <Label className="text-base font-semibold mb-3 block">
               Código QR para imprimir
             </Label>
-            {qrCodeUrl ? (
-              <>
-                <img
-                  src={qrCodeUrl}
-                  alt="QR Code"
-                  className="mx-auto mb-3"
-                  style={{ width: 200, height: 200 }}
-                />
-                <p className="text-sm text-muted-foreground mb-3">
-                  Comparte este QR en flyers, tarjetas o stands
-                </p>
-                <Button onClick={downloadQR} variant="outline" size="sm">
-                  <Download className="h-4 w-4 mr-2" />
-                  Descargar QR
-                </Button>
-              </>
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                Generando código QR...
+            <div className="flex flex-col items-center">
+              <QRCodeCanvas
+                value={activationLink}
+                size={200}
+                level="H"
+                includeMargin={true}
+                ref={qrRef}
+              />
+              <p className="text-sm text-muted-foreground my-3">
+                Comparte este QR en flyers, tarjetas o stands
               </p>
-            )}
+              <Button onClick={downloadQR} variant="outline" size="sm">
+                <Download className="h-4 w-4 mr-2" />
+                Descargar QR
+              </Button>
+            </div>
           </div>
         </div>
       </DialogContent>
