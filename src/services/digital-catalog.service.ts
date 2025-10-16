@@ -85,6 +85,7 @@ export class DigitalCatalogService {
         expires_at: catalogData.expires_at || null,
         enable_quotation: catalogData.enable_quotation ?? false,
         enable_variants: catalogData.enable_variants ?? true,
+        enable_distribution: catalogData.enable_distribution ?? false,
         background_pattern: catalogData.background_pattern || null,
       })
       .select()
