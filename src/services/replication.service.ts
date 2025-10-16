@@ -6,6 +6,9 @@ import type {
   CatalogByTokenResponse,
   NetworkResellerView,
   NetworkStats,
+  ActivateWithEmailDTO,
+  MagicLinkResponse,
+  ResellerDashboardData,
 } from "@/types/digital-catalog";
 
 export class ReplicationService {
@@ -269,6 +272,187 @@ export class ReplicationService {
     if (error) {
       console.error("Error deleting replica:", error);
       throw new Error(`Error al eliminar catálogo: ${error.message}`);
+    }
+  }
+
+  /**
+   * Activar catálogo con solo email (sin password) - Sistema híbrido
+   */
+  static async activateWithEmail(
+    data: ActivateWithEmailDTO
+  ): Promise<MagicLinkResponse> {
+    try {
+      // 1. Verificar que el token existe y no está activo
+      const catalogInfo = await this.getCatalogByToken(data.token);
+      
+      if (catalogInfo.is_active) {
+        throw new Error('Este catálogo ya está activo');
+      }
+
+      // 2. Crear o encontrar usuario con este email (sin password)
+      // Verificar si existe en la tabla users pública
+      const { data: existingUser, error: userCheckError } = await supabase
+        .from('users')
+        .select('id')
+        .eq('email', data.email)
+        .maybeSingle();
+
+      let userId: string;
+
+      if (existingUser) {
+        // Usuario ya existe
+        userId = existingUser.id;
+      } else {
+        // Crear nuevo usuario "ligero" usando signUp con email
+        // Supabase enviará email de confirmación automáticamente
+        const { data: newUser, error: signUpError } = await supabase.auth.signUp({
+          email: data.email,
+          password: crypto.randomUUID(), // Password temporal random
+          options: {
+            data: {
+              full_name: data.name || data.email.split('@')[0],
+              is_reseller: true,
+              onboarding_completed: false,
+            },
+            emailRedirectTo: `${window.location.origin}/dashboard/reseller`,
+          },
+        });
+
+        if (signUpError || !newUser.user) {
+          throw new Error(`Error al crear cuenta: ${signUpError?.message}`);
+        }
+
+        userId = newUser.user.id;
+      }
+
+      // 3. Activar el catálogo replicado
+      const { data: activationResult, error: activationError } = await supabase.rpc(
+        'activate_replicated_catalog',
+        {
+          p_token: data.token,
+          p_reseller_id: userId,
+        }
+      );
+
+      if (activationError) {
+        throw new Error(`Error al activar: ${activationError.message}`);
+      }
+
+      // 4. Obtener el catálogo actualizado para generar el slug
+      const { data: catalog, error: catalogError } = await supabase
+        .from('replicated_catalogs')
+        .select('id, original_catalog_id')
+        .eq('activation_token', data.token)
+        .single();
+
+      if (catalogError || !catalog) {
+        throw new Error('Error al obtener catálogo actualizado');
+      }
+
+      // 5. Generar magic link usando el email confirmation que Supabase ya envió
+      const magicLink = `${window.location.origin}/dashboard/reseller?catalog_id=${catalog.id}`;
+
+      return {
+        success: true,
+        message: 'Catálogo activado exitosamente. Revisa tu email para acceder.',
+        magic_link: magicLink,
+      };
+    } catch (error: any) {
+      console.error('Error in activateWithEmail:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Obtener datos del dashboard del revendedor
+   */
+  static async getResellerDashboard(
+    catalogId: string,
+    userId: string
+  ): Promise<ResellerDashboardData> {
+    try {
+      // 1. Obtener catálogo replicado
+      const { data: replicatedCatalog, error: catalogError } = await supabase
+        .from('replicated_catalogs')
+        .select(`
+          id,
+          original_catalog_id,
+          quote_id,
+          digital_catalogs!replicated_catalogs_original_catalog_id_fkey (
+            name,
+            slug
+          )
+        `)
+        .eq('id', catalogId)
+        .eq('reseller_id', userId)
+        .single();
+
+      if (catalogError || !replicatedCatalog) {
+        throw new Error('Catálogo no encontrado');
+      }
+
+      const originalCatalog = (replicatedCatalog as any).digital_catalogs;
+
+      // 2. Contar productos del catálogo original
+      const { count: productCount } = await supabase
+        .from('catalog_products')
+        .select('*', { count: 'exact', head: true })
+        .eq('catalog_id', replicatedCatalog.original_catalog_id);
+
+      // 3. Obtener cotización original (la que hizo el revendedor)
+      let originalQuote = null;
+      if (replicatedCatalog.quote_id) {
+        const { data: quoteData } = await supabase
+          .from('quotes')
+          .select(`
+            id,
+            status,
+            created_at,
+            quote_items (subtotal)
+          `)
+          .eq('id', replicatedCatalog.quote_id)
+          .single();
+
+        if (quoteData) {
+          const items = (quoteData as any).quote_items || [];
+          const total = items.reduce((sum: number, item: any) => sum + (item.subtotal || 0), 0);
+          
+          originalQuote = {
+            id: quoteData.id,
+            status: quoteData.status,
+            total_amount: total,
+            items_count: items.length,
+            created_at: quoteData.created_at,
+          };
+        }
+      }
+
+      // 4. Obtener cotizaciones recibidas del nuevo catálogo del revendedor
+      // Por ahora este catálogo aún no tiene slug propio, usaremos el original
+      // TODO: En el futuro, cada catálogo replicado tendrá su propio slug
+      
+      const receivedQuotes: any[] = []; // Placeholder por ahora
+      const stats = {
+        total_quotes: 0,
+        pending_quotes: 0,
+        accepted_quotes: 0,
+      };
+
+      return {
+        catalog: {
+          id: replicatedCatalog.id,
+          slug: originalCatalog.slug, // Por ahora usa el slug original
+          name: originalCatalog.name,
+          product_count: productCount || 0,
+          public_url: `${window.location.origin}/c/${originalCatalog.slug}`,
+        },
+        original_quote: originalQuote,
+        received_quotes: receivedQuotes,
+        stats,
+      };
+    } catch (error: any) {
+      console.error('Error getting reseller dashboard:', error);
+      throw error;
     }
   }
 }

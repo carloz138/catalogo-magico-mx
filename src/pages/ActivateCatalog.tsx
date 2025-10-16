@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Loader2, Check, X } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Loader2, Check, X, CheckCircle, Mail } from "lucide-react";
 import { ReplicationService } from "@/services/replication.service";
 import { ComparisonTable } from "@/components/replication/ComparisonTable";
 import { useToast } from "@/hooks/use-toast";
@@ -17,6 +18,11 @@ export default function ActivateCatalog() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isExpired, setIsExpired] = useState(false);
+  const [email, setEmail] = useState("");
+  const [name, setName] = useState("");
+  const [showEmailForm, setShowEmailForm] = useState(false);
+  const [activating, setActivating] = useState(false);
+  const [activated, setActivated] = useState(false);
 
   useEffect(() => {
     if (!token) {
@@ -48,10 +54,38 @@ export default function ActivateCatalog() {
     }
   };
 
-  const handleActivate = () => {
-    // Redirigir a página de pago/registro
-    // Por ahora redirigimos a registro con el token en query
-    navigate(`/register?activation_token=${token}`);
+  const handleActivate = async () => {
+    if (!catalog) return;
+    setShowEmailForm(true);
+  };
+
+  const handleActivateWithEmail = async () => {
+    if (!email || !catalog) return;
+
+    setActivating(true);
+    try {
+      const result = await ReplicationService.activateWithEmail({
+        token: token!,
+        email,
+        name,
+      });
+
+      toast({
+        title: "✅ ¡Catálogo activado!",
+        description: result.message,
+      });
+
+      setActivated(true);
+    } catch (error: any) {
+      console.error("Error activating:", error);
+      toast({
+        title: "Error",
+        description: error.message || "No se pudo activar el catálogo",
+        variant: "destructive",
+      });
+    } finally {
+      setActivating(false);
+    }
   };
 
   const handleContinueFree = () => {
@@ -196,58 +230,160 @@ export default function ActivateCatalog() {
         </div>
 
         {/* CTA Principal */}
-        <div className="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl shadow-2xl p-8 md:p-12 text-white mb-8">
-          <div className="max-w-3xl mx-auto text-center">
-            <h3 className="text-3xl md:text-4xl font-bold mb-6">
-              Activa tu catálogo GRATIS
-            </h3>
-            <div className="grid md:grid-cols-2 gap-4 text-left mb-8">
-              <div className="flex items-start gap-3">
-                <Check className="h-6 w-6 flex-shrink-0 mt-1" />
-                <div>
-                  <p className="font-semibold">Productos ilimitados</p>
-                  <p className="text-sm text-indigo-100">
-                    No te limites a 50 productos
-                  </p>
+        {!activated ? (
+          <div className="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl shadow-2xl p-8 md:p-12 text-white mb-8">
+            <div className="max-w-3xl mx-auto text-center">
+              <h3 className="text-3xl md:text-4xl font-bold mb-6">
+                Activa tu catálogo GRATIS
+              </h3>
+              <div className="grid md:grid-cols-2 gap-4 text-left mb-8">
+                <div className="flex items-start gap-3">
+                  <Check className="h-6 w-6 flex-shrink-0 mt-1" />
+                  <div>
+                    <p className="font-semibold">Productos ilimitados</p>
+                    <p className="text-sm text-indigo-100">
+                      No te limites a 50 productos
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <Check className="h-6 w-6 flex-shrink-0 mt-1" />
+                  <div>
+                    <p className="font-semibold">Sin costo, sin expiración</p>
+                    <p className="text-sm text-indigo-100">
+                      Úsalo todo el tiempo que necesites
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <Check className="h-6 w-6 flex-shrink-0 mt-1" />
+                  <div>
+                    <p className="font-semibold">Cotizaciones 24/7</p>
+                    <p className="text-sm text-indigo-100">
+                      Recibe pedidos automáticamente
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <Check className="h-6 w-6 flex-shrink-0 mt-1" />
+                  <div>
+                    <p className="font-semibold">Panel de gestión</p>
+                    <p className="text-sm text-indigo-100">
+                      Controla todos tus pedidos
+                    </p>
+                  </div>
                 </div>
               </div>
-              <div className="flex items-start gap-3">
-                <Check className="h-6 w-6 flex-shrink-0 mt-1" />
-                <div>
-                  <p className="font-semibold">Sin costo, sin expiración</p>
-                  <p className="text-sm text-indigo-100">
-                    Úsalo todo el tiempo que necesites
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <Check className="h-6 w-6 flex-shrink-0 mt-1" />
-                <div>
-                  <p className="font-semibold">Cotizaciones 24/7</p>
-                  <p className="text-sm text-indigo-100">
-                    Recibe pedidos automáticamente
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <Check className="h-6 w-6 flex-shrink-0 mt-1" />
-                <div>
-                  <p className="font-semibold">Panel de gestión</p>
-                  <p className="text-sm text-indigo-100">
-                    Controla todos tus pedidos
-                  </p>
-                </div>
-              </div>
+              {!showEmailForm ? (
+                <Button
+                  size="lg"
+                  onClick={handleActivate}
+                  className="bg-white text-indigo-600 hover:bg-gray-100 text-lg px-8 py-6 h-auto font-bold"
+                >
+                  🚀 Activar catálogo GRATIS
+                </Button>
+              ) : (
+                <Card className="w-full max-w-md mx-auto mt-6 text-left">
+                  <CardHeader>
+                    <CardTitle className="text-gray-900">Ingresa tu email para activar</CardTitle>
+                    <CardDescription className="text-gray-600">
+                      Te enviaremos un link mágico para acceder a tu dashboard
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div>
+                      <label className="text-sm font-medium mb-2 block text-gray-900">Email *</label>
+                      <input
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="tu@email.com"
+                        className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium mb-2 block text-gray-900">Nombre (opcional)</label>
+                      <input
+                        type="text"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        placeholder="Tu nombre"
+                        className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div className="flex gap-3">
+                      <Button
+                        variant="outline"
+                        onClick={() => setShowEmailForm(false)}
+                        disabled={activating}
+                        className="flex-1"
+                      >
+                        Cancelar
+                      </Button>
+                      <Button
+                        onClick={handleActivateWithEmail}
+                        disabled={!email || activating}
+                        className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600"
+                      >
+                        {activating ? "Activando..." : "Activar"}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </div>
-            <Button
-              size="lg"
-              onClick={handleActivate}
-              className="bg-white text-indigo-600 hover:bg-gray-100 text-lg px-8 py-6 h-auto font-bold"
-            >
-              🚀 Activar catálogo GRATIS
-            </Button>
           </div>
-        </div>
+        ) : (
+          <Card className="max-w-2xl mx-auto mt-8 border-2 border-green-500">
+            <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50">
+              <CardTitle className="text-center text-2xl flex items-center justify-center gap-2">
+                <CheckCircle className="w-8 h-8 text-green-600" />
+                ¡Catálogo Activado Exitosamente!
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-6 space-y-6">
+              <div className="text-center">
+                <div className="text-6xl mb-4">📧</div>
+                <h3 className="text-xl font-bold mb-2">Revisa tu email</h3>
+                <p className="text-gray-600 mb-4">
+                  Te hemos enviado un <strong>magic link</strong> a <strong>{email}</strong>
+                </p>
+                <p className="text-sm text-gray-500">
+                  Haz clic en el link del email para acceder a tu dashboard y empezar a compartir tu catálogo
+                </p>
+              </div>
+
+              <Alert className="bg-blue-50 border-blue-200">
+                <Mail className="w-4 h-4 text-blue-600" />
+                <AlertDescription className="text-blue-900">
+                  <strong>¿No ves el email?</strong> Revisa tu carpeta de spam o correo no deseado.
+                  El email puede tardar hasta 2 minutos en llegar.
+                </AlertDescription>
+              </Alert>
+
+              <div className="border-t pt-6">
+                <p className="text-sm text-center text-gray-500 mb-4">
+                  Mientras esperas, aquí está lo que puedes hacer con tu catálogo:
+                </p>
+                <div className="grid md:grid-cols-3 gap-4">
+                  <div className="text-center p-4 bg-gray-50 rounded-lg">
+                    <div className="text-3xl mb-2">📦</div>
+                    <p className="text-sm font-semibold">Productos ilimitados</p>
+                  </div>
+                  <div className="text-center p-4 bg-gray-50 rounded-lg">
+                    <div className="text-3xl mb-2">💼</div>
+                    <p className="text-sm font-semibold">Cotizaciones automáticas</p>
+                  </div>
+                  <div className="text-center p-4 bg-gray-50 rounded-lg">
+                    <div className="text-3xl mb-2">📊</div>
+                    <p className="text-sm font-semibold">Analytics en tiempo real</p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Opción gratuita - ELIMINADA ya que todo es gratis */}
 

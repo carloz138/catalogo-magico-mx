@@ -312,3 +312,46 @@ export interface NetworkStats {
     quotes: number;
   } | null;
 }
+
+// Tipos para activación híbrida con Magic Link
+export interface ActivateWithEmailDTO {
+  token: string;
+  email: string;
+  name?: string;
+}
+
+export interface MagicLinkResponse {
+  success: boolean;
+  message: string;
+  magic_link?: string;
+}
+
+export interface ResellerDashboardData {
+  catalog: {
+    id: string;
+    slug: string;
+    name: string;
+    product_count: number;
+    public_url: string;
+  };
+  original_quote: {
+    id: string;
+    status: string;
+    total_amount: number;
+    items_count: number;
+    created_at: string;
+  } | null;
+  received_quotes: Array<{
+    id: string;
+    customer_name: string;
+    customer_email: string;
+    status: string;
+    total_amount: number;
+    created_at: string;
+  }>;
+  stats: {
+    total_quotes: number;
+    pending_quotes: number;
+    accepted_quotes: number;
+  };
+}

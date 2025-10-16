@@ -34,6 +34,7 @@ import QuotesPage from "./pages/quotes/index";
 import QuoteDetailPage from "./pages/quotes/QuoteDetail";
 import ActivateCatalog from "./pages/ActivateCatalog";
 import DistributionNetwork from "./pages/DistributionNetwork";
+import ResellerDashboard from "./pages/ResellerDashboard";
 
 const queryClient = new QueryClient();
 
@@ -157,6 +158,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <DistributionNetwork />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/reseller"
+              element={
+                <ProtectedRoute>
+                  <ResellerDashboard />
                 </ProtectedRoute>
               }
             />
