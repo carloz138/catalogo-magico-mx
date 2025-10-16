@@ -292,7 +292,7 @@ export class ReplicationService {
       // 2. Guardar email temporalmente en el catálogo
       const { error: updateError } = await supabase
         .from('replicated_catalogs')
-        .update({ reseller_email: data.email })
+        .update({ reseller_email: data.email } as any)
         .eq('activation_token', data.token);
 
       if (updateError) {
