@@ -35,6 +35,7 @@ import QuoteDetailPage from "./pages/quotes/QuoteDetail";
 import ActivateCatalog from "./pages/ActivateCatalog";
 import DistributionNetwork from "./pages/DistributionNetwork";
 import ResellerDashboard from "./pages/ResellerDashboard";
+import CompleteActivation from "./pages/CompleteActivation";
 
 const queryClient = new QueryClient();
 
@@ -166,6 +167,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <ResellerDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/complete-activation"
+              element={
+                <ProtectedRoute>
+                  <CompleteActivation />
                 </ProtectedRoute>
               }
             />

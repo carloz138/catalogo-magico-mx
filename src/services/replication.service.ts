@@ -289,48 +289,22 @@ export class ReplicationService {
         throw new Error('Este catálogo ya está activo');
       }
 
-      // 2. Crear o encontrar usuario con este email (sin password)
-      // Verificar si existe en la tabla users pública
-      const { data: existingUser, error: userCheckError } = await supabase
-        .from('users')
-        .select('id')
-        .eq('email', data.email)
-        .maybeSingle();
+      // 2. Guardar email temporalmente en el catálogo
+      const { error: updateError } = await supabase
+        .from('replicated_catalogs')
+        .update({ reseller_email: data.email })
+        .eq('activation_token', data.token);
 
-      let userId: string;
-
-      if (existingUser) {
-        // Usuario ya existe
-        userId = existingUser.id;
-      } else {
-        // Crear nuevo usuario "ligero" usando signUp con email
-        // Supabase enviará email de confirmación automáticamente
-        const { data: newUser, error: signUpError } = await supabase.auth.signUp({
-          email: data.email,
-          password: crypto.randomUUID(), // Password temporal random
-          options: {
-            data: {
-              full_name: data.name || data.email.split('@')[0],
-              is_reseller: true,
-              onboarding_completed: false,
-            },
-            emailRedirectTo: `${window.location.origin}/dashboard/reseller`,
-          },
-        });
-
-        if (signUpError || !newUser.user) {
-          throw new Error(`Error al crear cuenta: ${signUpError?.message}`);
-        }
-
-        userId = newUser.user.id;
+      if (updateError) {
+        throw new Error(`Error al guardar email: ${updateError.message}`);
       }
 
-      // 3. Activar el catálogo replicado
+      // 3. Activar el catálogo SIN asignar reseller_id todavía
       const { data: activationResult, error: activationError } = await supabase.rpc(
         'activate_replicated_catalog',
         {
           p_token: data.token,
-          p_reseller_id: userId,
+          p_reseller_id: null, // NULL por ahora
         }
       );
 
@@ -338,27 +312,58 @@ export class ReplicationService {
         throw new Error(`Error al activar: ${activationError.message}`);
       }
 
-      // 4. Obtener el catálogo actualizado para generar el slug
-      const { data: catalog, error: catalogError } = await supabase
-        .from('replicated_catalogs')
-        .select('id, original_catalog_id')
-        .eq('activation_token', data.token)
-        .single();
+      // 4. Crear usuario usando signUp (Supabase enviará email automático)
+      const { data: authData, error: signUpError } = await supabase.auth.signUp({
+        email: data.email,
+        password: crypto.randomUUID(), // Password temporal random
+        options: {
+          data: {
+            full_name: data.name || data.email.split('@')[0],
+            is_reseller: true,
+            catalog_token: data.token, // Guardar token para después
+          },
+          emailRedirectTo: `${window.location.origin}/complete-activation?token=${data.token}`,
+        },
+      });
 
-      if (catalogError || !catalog) {
-        throw new Error('Error al obtener catálogo actualizado');
+      if (signUpError) {
+        console.error('Error en signUp:', signUpError);
+        // No fallar si ya existe el usuario
+        if (!signUpError.message.includes('already registered')) {
+          throw new Error(`Error al crear cuenta: ${signUpError.message}`);
+        }
       }
-
-      // 5. Generar magic link usando el email confirmation que Supabase ya envió
-      const magicLink = `${window.location.origin}/dashboard/reseller?catalog_id=${catalog.id}`;
 
       return {
         success: true,
-        message: 'Catálogo activado exitosamente. Revisa tu email para acceder.',
-        magic_link: magicLink,
+        message: 'Catálogo activado. Revisa tu email para completar el registro.',
       };
     } catch (error: any) {
       console.error('Error in activateWithEmail:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Completar activación después de confirmar email
+   */
+  static async completeActivation(
+    token: string,
+    userId: string
+  ): Promise<boolean> {
+    try {
+      const { data, error } = await supabase.rpc('complete_catalog_activation', {
+        p_token: token,
+        p_reseller_id: userId,
+      });
+
+      if (error) {
+        throw new Error(`Error al completar activación: ${error.message}`);
+      }
+
+      return true;
+    } catch (error: any) {
+      console.error('Error completing activation:', error);
       throw error;
     }
   }
