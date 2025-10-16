@@ -999,22 +999,26 @@ export default function DigitalCatalogForm() {
                             control={form.control}
                             name="enable_variants"
                             render={({ field }) => (
-                              <div
-                                className="flex items-center justify-between p-4 rounded-lg border cursor-pointer active:scale-[0.98] transition-all"
-                                onClick={() => field.onChange(!field.value)}
-                              >
-                                <div className="flex-1">
-                                  <div className="font-medium text-base">Permitir selección de variantes</div>
-                                  <div className="text-sm text-muted-foreground">
-                                    Los clientes podrán elegir variantes específicas al cotizar
+                              <FormItem>
+                                <div
+                                  className="flex items-center justify-between p-4 rounded-lg border cursor-pointer active:scale-[0.98] transition-all"
+                                  onClick={() => field.onChange(!field.value)}
+                                >
+                                  <div className="flex-1">
+                                    <div className="font-medium text-base">Permitir selección de variantes</div>
+                                    <div className="text-sm text-muted-foreground">
+                                      Los clientes podrán elegir variantes específicas al cotizar
+                                    </div>
                                   </div>
+                                  <FormControl>
+                                    <Switch
+                                      checked={field.value}
+                                      onCheckedChange={field.onChange}
+                                    />
+                                  </FormControl>
                                 </div>
-                                <Switch
-                                  checked={field.value}
-                                  onCheckedChange={field.onChange}
-                                  className="pointer-events-none"
-                                />
-                              </div>
+                                <FormMessage />
+                              </FormItem>
                              )}
                            />
                          )}
@@ -1024,25 +1028,29 @@ export default function DigitalCatalogForm() {
                              control={form.control}
                              name="enable_distribution"
                              render={({ field }) => (
-                               <div
-                                 className="flex items-center justify-between p-4 rounded-lg border cursor-pointer active:scale-[0.98] transition-all bg-indigo-50 border-indigo-200 mt-3"
-                                 onClick={() => field.onChange(!field.value)}
-                               >
-                                  <div className="flex-1">
-                                    <div className="font-medium text-base flex items-center gap-2">
-                                      Permitir que mis clientes creen catálogos
-                                      <Badge variant="secondary">Nuevo</Badge>
+                               <FormItem>
+                                 <div
+                                   className="flex items-center justify-between p-4 rounded-lg border cursor-pointer active:scale-[0.98] transition-all bg-indigo-50 border-indigo-200 mt-3"
+                                   onClick={() => field.onChange(!field.value)}
+                                 >
+                                    <div className="flex-1">
+                                      <div className="font-medium text-base flex items-center gap-2">
+                                        Permitir que mis clientes creen catálogos
+                                        <Badge variant="secondary">Nuevo</Badge>
+                                      </div>
+                                      <div className="text-sm text-muted-foreground">
+                                        Si apruebas la cotización, tu cliente podrá crear un catálogo para distribuir más rápido sus productos
+                                      </div>
                                     </div>
-                                    <div className="text-sm text-muted-foreground">
-                                      Si apruebas la cotización, tu cliente podrá crear un catálogo para distribuir más rápido sus productos
-                                    </div>
-                                  </div>
-                                 <Switch
-                                   checked={field.value}
-                                   onCheckedChange={field.onChange}
-                                   className="pointer-events-none"
-                                 />
-                               </div>
+                                    <FormControl>
+                                      <Switch
+                                        checked={field.value}
+                                        onCheckedChange={field.onChange}
+                                      />
+                                    </FormControl>
+                                 </div>
+                                 <FormMessage />
+                               </FormItem>
                              )}
                            />
                          )}
