@@ -141,10 +141,10 @@ export default function ActivateCatalog() {
               Este catálogo gratuito ha expirado (30 días).
             </p>
             <p className="text-gray-600 mb-6">
-              Puedes activarlo por $29 MXN para tener acceso ilimitado.
+              Puedes activarlo GRATIS para tener acceso ilimitado.
             </p>
             <Button onClick={handleActivate} className="w-full">
-              Activar por $29 MXN
+              Activar GRATIS
             </Button>
           </CardContent>
         </Card>
@@ -174,7 +174,7 @@ export default function ActivateCatalog() {
         {/* Hero Section */}
         <div className="text-center mb-12">
           <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-            🎉 ¡Tu catálogo está listo!
+            🎉 ¡Tu catálogo gratuito está listo!
           </h1>
           <p className="text-xl text-gray-600 mb-2">
             <span className="font-semibold text-indigo-600">
@@ -199,7 +199,7 @@ export default function ActivateCatalog() {
         <div className="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl shadow-2xl p-8 md:p-12 text-white mb-8">
           <div className="max-w-3xl mx-auto text-center">
             <h3 className="text-3xl md:text-4xl font-bold mb-6">
-              Activa tu catálogo por solo $29 MXN
+              Activa tu catálogo GRATIS
             </h3>
             <div className="grid md:grid-cols-2 gap-4 text-left mb-8">
               <div className="flex items-start gap-3">
@@ -214,7 +214,7 @@ export default function ActivateCatalog() {
               <div className="flex items-start gap-3">
                 <Check className="h-6 w-6 flex-shrink-0 mt-1" />
                 <div>
-                  <p className="font-semibold">Sin expiración</p>
+                  <p className="font-semibold">Sin costo, sin expiración</p>
                   <p className="text-sm text-indigo-100">
                     Úsalo todo el tiempo que necesites
                   </p>
@@ -244,20 +244,12 @@ export default function ActivateCatalog() {
               onClick={handleActivate}
               className="bg-white text-indigo-600 hover:bg-gray-100 text-lg px-8 py-6 h-auto font-bold"
             >
-              🚀 Activar ahora por $29 MXN (pago único)
+              🚀 Activar catálogo GRATIS
             </Button>
           </div>
         </div>
 
-        {/* Opción gratuita */}
-        <div className="text-center">
-          <button
-            onClick={handleContinueFree}
-            className="text-gray-600 hover:text-gray-800 underline text-sm"
-          >
-            Continuar con versión gratuita (50 productos, 30 días, solo vista)
-          </button>
-        </div>
+        {/* Opción gratuita - ELIMINADA ya que todo es gratis */}
 
         {/* Info adicional */}
         <div className="mt-12 grid md:grid-cols-3 gap-6 text-center">
@@ -272,9 +264,9 @@ export default function ActivateCatalog() {
           </div>
           <div className="bg-white rounded-lg p-6 shadow">
             <div className="text-3xl mb-3">💰</div>
-            <h4 className="font-semibold text-gray-900 mb-2">Pago único</h4>
+            <h4 className="font-semibold text-gray-900 mb-2">100% Gratuito</h4>
             <p className="text-sm text-gray-600">
-              Solo $29 MXN, sin suscripciones ni cargos ocultos
+              Sin pagos, sin suscripciones, sin cargos ocultos
             </p>
           </div>
           <div className="bg-white rounded-lg p-6 shadow">

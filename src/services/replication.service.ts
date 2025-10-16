@@ -141,7 +141,8 @@ export class ReplicationService {
       0
     );
 
-    const total_revenue = active_resellers * 29; // $29 MXN por activación
+    // Sistema gratuito - revenue por otras fuentes (upgrades, features premium)
+    const total_revenue = 0;
 
     const conversion_rate =
       total_catalogs_created > 0

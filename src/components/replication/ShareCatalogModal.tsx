@@ -80,7 +80,7 @@ Gracias por tu interés en nuestros productos. He creado un catálogo digital es
 
 Puedes:
 ✅ Ver el catálogo completo (GRATIS)
-✅ O activar cotizaciones automáticas por $29 MXN y empezar a vender estos productos a tus propios clientes
+✅ O activar cotizaciones automáticas GRATIS y empezar a vender estos productos a tus propios clientes
 
 ¡Es una excelente oportunidad para hacer crecer tu negocio! 🚀`;
 
@@ -95,7 +95,7 @@ ${activationLink}
 
 Con este catálogo puedes:
 - Ver todos los productos (GRATIS)
-- Activar cotizaciones automáticas por $29 MXN
+- Activar cotizaciones automáticas GRATIS
 - Empezar a vender estos productos a tus propios clientes
 
 Es una excelente oportunidad para hacer crecer tu negocio.
@@ -103,7 +103,7 @@ Es una excelente oportunidad para hacer crecer tu negocio.
 Saludos,
 ${distributorName}`;
 
-  const smsMessage = `${customerName}, tu catálogo digital está listo: ${activationLink} - Actívalo por $29 MXN y empieza a vender 🚀`;
+  const smsMessage = `${customerName}, tu catálogo digital está listo: ${activationLink} - Actívalo GRATIS y empieza a vender 🚀`;
 
   return (
     <Dialog open={open} onOpenChange={onClose}>

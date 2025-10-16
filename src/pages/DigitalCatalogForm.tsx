@@ -1038,9 +1038,9 @@ export default function DigitalCatalogForm() {
                                         Permitir que mis clientes creen catálogos
                                         <Badge variant="secondary">Nuevo</Badge>
                                       </div>
-                                      <div className="text-sm text-muted-foreground">
-                                        Si apruebas la cotización, tu cliente podrá crear un catálogo para distribuir más rápido sus productos
-                                      </div>
+                                       <div className="text-sm text-muted-foreground">
+                                         Al aceptar cotizaciones, tus clientes podrán activar su propio catálogo GRATIS
+                                       </div>
                                     </div>
                                     <FormControl>
                                       <Switch
@@ -1575,9 +1575,9 @@ export default function DigitalCatalogForm() {
                                     Permitir que mis clientes creen catálogos
                                     <Badge variant="secondary">Nuevo</Badge>
                                   </FormLabel>
-                                  <FormDescription>
-                                    Si apruebas la cotización, tu cliente podrá crear un catálogo para distribuir más rápido sus productos
-                                  </FormDescription>
+                                   <FormDescription>
+                                     Al aceptar una cotización, tu cliente recibirá un link para activar su propio catálogo GRATIS y empezar a vender estos productos
+                                   </FormDescription>
                                 </div>
                                <FormControl>
                                  <Switch checked={field.value} onCheckedChange={field.onChange} />

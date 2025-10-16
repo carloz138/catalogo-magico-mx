@@ -320,7 +320,7 @@ export default function QuoteDetailPage() {
                   <Alert className="bg-indigo-50 border-indigo-200">
                     <Copy className="h-4 w-4 text-indigo-600" />
                     <AlertDescription className="text-indigo-900">
-                      <strong>Distribución habilitada:</strong> Al aceptar, se creará automáticamente un catálogo para tu cliente.
+                      <strong>Distribución habilitada:</strong> Al aceptar, se creará automáticamente un catálogo GRATUITO para tu cliente.
                     </AlertDescription>
                   </Alert>
                 )}
