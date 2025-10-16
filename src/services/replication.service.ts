@@ -50,20 +50,38 @@ export class ReplicationService {
   static async getCatalogByToken(
     token: string
   ): Promise<CatalogByTokenResponse> {
+    console.log('🔍 Getting catalog by token:', token);
+    
     const { data, error } = await supabase.rpc("get_catalog_by_token", {
       p_token: token,
     });
+
+    console.log('📦 Response data:', data);
+    console.log('❌ Response error:', error);
+    console.log('📊 Data type:', typeof data);
+    console.log('📏 Data length:', Array.isArray(data) ? data.length : 'not array');
 
     if (error) {
       console.error("Error getting catalog by token:", error);
       throw new Error(`Error al obtener catálogo: ${error.message}`);
     }
 
-    if (!data || data.length === 0) {
-      throw new Error("Catálogo no encontrado o token inválido");
+    if (!data) {
+      throw new Error("Catálogo no encontrado - data es null/undefined");
     }
 
-    return data[0];
+    // Si data es un array
+    if (Array.isArray(data)) {
+      if (data.length === 0) {
+        throw new Error("Catálogo no encontrado - array vacío");
+      }
+      console.log('✅ Returning data[0]:', data[0]);
+      return data[0];
+    }
+
+    // Si data es un objeto directo
+    console.log('✅ Returning data directly:', data);
+    return data as CatalogByTokenResponse;
   }
 
   /**
