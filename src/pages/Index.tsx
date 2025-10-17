@@ -26,10 +26,17 @@ import {
   Package,
   Coins,
   RefreshCw,
+  AlertCircle,
+  Network,
+  GitBranch,
+  Share2,
+  Repeat,
+  LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { LoginModal } from "@/components/auth/LoginModal";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -161,40 +168,41 @@ const Index = () => {
         features.push('50 productos máximo');
         features.push('❌ Sin cotización ni analytics');
       } else if (planName.includes('catálogos') && !planName.includes('básico') && !planName.includes('basico') && !planName.includes('ia')) {
-        features.push('✅ Sistema de cotización');
-        features.push('✅ Analytics básicas');
+        features.push('✅ Cotización Automática 24/7');
+        features.push('✅ Analytics de Ventas Básicas');
         features.push('1 catálogo, 100 productos');
-        features.push('Sin procesamiento IA');
+        features.push('Créditos IA como add-on');
       } else if (planName.includes('básico') || planName.includes('basico')) {
-        features.push('✅ Sistema de cotización');
-        features.push('➕ 30 créditos IA/mes');
+        features.push('✅ Sistema de cotización profesional');
+        features.push('⭐ Activa tu Red de Distribución');
+        features.push('✅ Tus clientes replican catálogos');
         features.push('5 catálogos activos');
         features.push('✅ Analytics avanzadas');
-        features.push('9 templates profesionales');
+        features.push('➕ 30 créditos IA/mes incluidos');
       } else if (planName.includes('profesional')) {
-        features.push('✅ Sistema de cotización + seguimiento');
-        features.push('➕ 100 créditos IA/mes');
+        features.push('✅ Ecosistema de ventas completo');
+        features.push('⭐ Red de Distribución ilimitada');
         features.push('30 catálogos activos');
-        features.push('✅ Analytics profesionales');
-        features.push('16 templates (todos)');
+        features.push('✅ Inteligencia de Negocio PRO');
         features.push('✅ Catálogos privados');
+        features.push('➕ 100 créditos IA/mes incluidos');
       } else if (planName.includes('empresarial')) {
-        features.push('✅ Sistema de cotización empresarial');
-        features.push('➕ 300 créditos IA/mes');
+        features.push('✅ Ecosistema empresarial escalable');
+        features.push('⭐ Red de Distribución multi-nivel');
         features.push('♾️ Catálogos ilimitados');
-        features.push('✅ Analytics PRO + API');
-        features.push('✅ API de integración');
-        features.push('✅ Soporte 24/7');
+        features.push('✅ API de integración completa');
+        features.push('✅ Soporte prioritario 24/7');
+        features.push('➕ 300 créditos IA/mes incluidos');
       }
       
       features.push('Se renueva automáticamente');
       features.push('Cancela cuando quieras');
     } else {
-      // Packs únicos
-      features.push(`${pkg.credits} créditos únicos`);
+      // Packs únicos de créditos IA
+      features.push(`${pkg.credits} créditos IA`);
       features.push('Válidos por 12 meses');
       features.push('Sin renovación automática');
-      features.push('Úsalos cuando quieras');
+      features.push('Add-on para procesamiento IA');
     }
 
     return features;
@@ -232,86 +240,147 @@ const Index = () => {
     }
   };
 
-  const features = [
+  // Sección de Problemas
+  const painPoints = [
     {
-      icon: <Upload className="w-6 h-6" />,
-      title: "Subida de Productos Masiva",
-      description:
-        "Carga cientos de productos de una vez. Arrastra y suelta todas tus imágenes y organízalas rápidamente en tu biblioteca personal.",
-      benefit: "Procesa 100+ productos en minutos vs semanas",
+      icon: <Clock className="w-6 h-6" />,
+      title: "Horas perdidas",
+      description: "Semanas creando PDFs que quedan obsoletos al instante.",
     },
     {
-      icon: <Tag className="w-6 h-6" />,
-      title: "Sistema de Etiquetas Inteligente",
-      description:
-        "Organiza productos por categorías, temporadas, clientes. Crea catálogos específicos en un clic: 'Halloween', 'Cliente Premium', etc.",
-      benefit: "760% más ingresos con segmentación",
+      icon: <AlertCircle className="w-6 h-6" />,
+      title: "Errores costosos",
+      description: "Cotizaciones manuales con precios incorrectos que dañan tu margen.",
     },
     {
-      icon: <Edit3 className="w-6 h-6" />,
-      title: "Edición Inline Ultrarrápida",
-      description:
-        "Edita precios, nombres y descripciones directamente en la tabla. Sin abrir ventanas, sin perder tiempo en navegación.",
-      benefit: "30% menos tiempo en gestión diaria",
+      icon: <DollarSign className="w-6 h-6" />,
+      title: "Ventas perdidas",
+      description: "Clientes listos para comprar fuera de tu horario de oficina.",
     },
     {
-      icon: <FileImage className="w-6 h-6" />,
-      title: "Remoción de Fondos Opcional",
-      description:
-        "Decide cuándo usar nuestro servicio de remoción de fondos. Elimina fondos de productos seleccionados cuando lo necesites.",
-      benefit: "9.6% más conversiones con fondos limpios",
+      icon: <TrendingUp className="w-6 h-6" />,
+      title: "Crecimiento estancado",
+      description: "Dependes 100% de tu propio esfuerzo para encontrar nuevos clientes.",
+    },
+  ];
+
+  // Sección de Solución (5 pasos)
+  const solutionSteps = [
+    {
+      number: "1",
+      icon: <Upload className="w-8 h-8" />,
+      title: "Crea tu Catálogo Profesional en Minutos",
+      howItWorks: "Sube tus productos, personaliza precios y diseño. Tu catálogo web está listo para compartir.",
+      result: "Vendes con estrategia, no al azar. Catálogos actualizados en tiempo real.",
     },
     {
-      icon: <Layers className="w-6 h-6" />,
-      title: "Templates Profesionales",
-      description:
-        "Elige un template, selecciona productos por etiquetas, y genera PDFs profesionales automáticamente. Zero diseño manual.",
-      benefit: "Reduce costos de producción 10-50%",
+      number: "2",
+      icon: <MousePointer className="w-8 h-8" />,
+      title: "Tu Cliente Cotiza Automáticamente 24/7",
+      howItWorks: "Compartes el link. Tu cliente elige productos, cantidades, y recibe una cotización instantánea sin esperar tu respuesta.",
+      result: "Cierras ventas mientras duermes. 25% más conversiones por respuesta inmediata.",
     },
     {
-      icon: <Target className="w-6 h-6" />,
-      title: "Catálogos Personalizados por Cliente",
-      description:
-        "Crea versiones específicas para cada cliente o segmento. Mismo inventario, múltiples catálogos dirigidos.",
-      benefit: "400% ROI en personalización",
+      number: "3",
+      icon: <BarChart3 className="w-8 h-8" />,
+      title: "Analytics que te Dicen Qué Vender",
+      howItWorks: "Ve qué productos generan más interés, qué clientes están activos, y cuándo contactar.",
+      result: "Tomas decisiones con datos reales, no intuición. Optimizas inventario y ofertas.",
+    },
+    {
+      number: "4",
+      icon: <Share2 className="w-8 h-8" />,
+      title: "Tu Cliente Activa su Propia Red",
+      howItWorks: "Con un clic y $29 MXN, tu cliente replica tu catálogo con TUS productos para vender a su red.",
+      result: "Crecimiento exponencial. Tus clientes se convierten en tu fuerza de ventas.",
+    },
+    {
+      number: "5",
+      icon: <Network className="w-8 h-8" />,
+      title: "Controlas Todo el Ecosistema",
+      howItWorks: "Tú defines precios base, inventario disponible, y márgenes. Ellos venden, tú ganas.",
+      result: "Escalas sin contratar vendedores. CAC (Costo de Adquisición) = $0.",
+    },
+  ];
+
+  // Característica Estrella
+  const cascadeFeatures = [
+    {
+      icon: <Repeat className="w-6 h-6" />,
+      title: "Crecimiento Viral",
+      description: "Cada cliente puede convertirse en distribuidor. Tu red crece automáticamente.",
+    },
+    {
+      icon: <DollarSign className="w-6 h-6" />,
+      title: "Costo de Adquisición Cero",
+      description: "No pagas por cada nuevo cliente. Tu red se expande orgánicamente.",
+    },
+    {
+      icon: <Shield className="w-6 h-6" />,
+      title: "Ecosistema Defensivo",
+      description: "Tus clientes dependen de tu plataforma. Mayor retención y lealtad.",
+    },
+  ];
+
+  // FAQ
+  const faqs = [
+    {
+      question: "¿Qué pasa exactamente cuando mi cliente replica un catálogo?",
+      answer: "Tu cliente paga $29 MXN y obtiene su propia versión de tu catálogo con TUS productos. Puede personalizar su marca y precios (con tus límites), pero el inventario y precios base los controlas tú. Cuando su cliente hace un pedido, tú lo cumples y defines los márgenes.",
+    },
+    {
+      question: "¿Tengo control sobre los precios que mis clientes ponen?",
+      answer: "Sí, completamente. Tú defines el precio base y el margen mínimo. Tu cliente puede aumentar el precio para su margen, pero nunca vender por debajo de tu precio mínimo. Mantienes control total sobre tu rentabilidad.",
+    },
+    {
+      question: "¿Qué tan seguro es el sistema?",
+      answer: "Utilizamos encriptación de nivel bancario y cumplimos con todas las normativas de protección de datos. Tu información de productos, precios y clientes está completamente protegida. Además, cuentas con backups automáticos diarios.",
+    },
+    {
+      question: "¿Es difícil de configurar?",
+      answer: "Para nada. En menos de 15 minutos puedes tener tu primer catálogo activo. El sistema es intuitivo: sube productos, personaliza tu marca, y comparte el link. No necesitas conocimientos técnicos. Además, ofrecemos onboarding guiado.",
+    },
+    {
+      question: "¿Qué tipo de soporte ofrecen?",
+      answer: "Todos los planes incluyen soporte por email con respuesta en menos de 24 horas. Los planes Profesional y Empresarial incluyen soporte prioritario con respuesta en menos de 4 horas, y el plan Empresarial tiene soporte 24/7 por WhatsApp y videollamadas de capacitación.",
     },
   ];
 
   const testimonials = [
     {
       name: "Carlos Mendoza",
-      business: "Muebles Artesanales CM - Guadalajara",
+      business: "Distribuidor Mayorista - Guadalajara",
       image: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=80&h=80&fit=crop&crop=face",
       quote:
-        "Antes tardaba 2 semanas creando catálogos manualmente por $1000+ pesos. Ahora tengo 15 catálogos diferentes para cada tipo de cliente por solo $261 al mes.",
-      results: "15 catálogos automáticos",
-      metric: "De 2 semanas a 15 minutos",
+        "Dejé de ser un simple proveedor. Ahora gestiono una red. Mis 10 clientes más grandes le venden a sus propios 50 clientes con catálogos que nacen de mi sistema. Mis pedidos se triplicaron.",
+      results: "Red de 50 distribuidores",
+      metric: "3X en pedidos mensuales",
     },
     {
       name: "Sofia Hernández",
       business: "Textiles y Decoración SH - Puebla",
       image: "https://images.unsplash.com/photo-1494790108755-2616b332c5ae?w=80&h=80&fit=crop&crop=face",
       quote:
-        "El sistema de etiquetas cambió mi negocio. Ahora creo catálogos de 'Navidad', 'Hoteles', 'Casas' en segundos. Cada cliente ve solo lo que le interesa.",
-      results: "12 segmentos activos",
-      metric: "760% más pedidos dirigidos",
+        "El cotizador 24/7 es un cambio de juego. Cierro ventas mientras duermo. La tasa de conversión subió un 25% porque somos los primeros en responder, siempre.",
+      results: "Ventas 24/7 automatizadas",
+      metric: "+25% tasa de conversión",
     },
     {
       name: "Roberto Aguilar",
       business: "Productos Industriales RA - Monterrey",
       image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&h=80&fit=crop&crop=face",
       quote:
-        "2,400 productos organizados por industria. Cada prospecto recibe un catálogo personalizado. Cerramos 80% más deals porque parecemos empresa grande.",
-      results: "2,400 productos activos",
-      metric: "+80% tasa de cierre",
+        "Mis mejores clientes ahora tienen su propio catálogo con mis productos. Ellos venden a sus redes y yo solo cumplo pedidos. Es como tener 20 vendedores sin pagarles salario.",
+      results: "20 clientes = 20 vendedores",
+      metric: "CAC = $0",
     },
   ];
 
   const stats = [
-    { number: "760%", label: "Aumento en ingresos con catálogos segmentados", source: "Estudio DataAxle 2024" },
-    { number: "$1,000", label: "Costo promedio servicios externos", source: "Feedback clientes 2024" },
-    { number: "1-2 sem", label: "Tiempo promedio métodos tradicionales", source: "Feedback clientes 2024" },
-    { number: "15 min", label: "Tiempo con CatifyPro", source: "Promedio usuarios 2024" },
+    { number: "3X", label: "Crecimiento promedio en pedidos", source: "Clientes con red activa 2024" },
+    { number: "25%", label: "Más conversiones con cotización 24/7", source: "Analytics usuarios 2024" },
+    { number: "$0", label: "Costo de adquisición con red", source: "Promedio usuarios 2024" },
+    { number: "24/7", label: "Tu catálogo vende sin parar", source: "Sistema automático" },
   ];
 
   return (
@@ -415,17 +484,15 @@ const Index = () => {
               </Badge>
 
               <h1 className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold text-gray-900 mb-6 leading-tight">
-                Catálogos digitales con
+                Tu Catálogo es Ahora tu
                 <span className="bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-                  {" "}sistema de cotización profesional
-                </span>{" "}
-                en minutos
+                  {" "}Red de Ventas
+                </span>
               </h1>
 
               <p className="text-base sm:text-lg lg:text-xl text-gray-600 mb-6 sm:mb-8 leading-relaxed max-w-2xl">
-                Crea catálogos web con <span className="font-semibold text-purple-600">cotización automática y analytics de ventas</span>. 
-                Organiza productos, genera catálogos por cliente, y cierra más ventas. 
-                <span className="font-semibold"> Desde $99 MXN/mes. IA opcional.</span>
+                Transforma tu proceso de ventas con catálogos digitales, cotizaciones automáticas y un <span className="font-semibold text-purple-600">ecosistema que permite a tus clientes vender tus productos por ti</span>. 
+                Activa tu red de distribución y escala sin límites.
               </p>
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
@@ -527,85 +594,139 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Value Props */}
+      {/* Sección del Problema */}
       <section className="py-16 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">¿Por qué las PyMEs mexicanas eligen CatifyPro?</h2>
-            <p className="text-xl text-gray-600">Porque entendemos que tu negocio merece verse como empresa grande</p>
+            <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">¿Te suena familiar?</h2>
+            <p className="text-xl text-gray-600">Estos son los frenos de mano que están limitando tu crecimiento</p>
           </div>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-            <Card className="p-6 sm:p-8 text-center border-none shadow-lg">
-              <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-green-100 to-green-200 rounded-full flex items-center justify-center mx-auto mb-6">
-                <DollarSign className="w-6 h-6 sm:w-8 sm:h-8 text-green-600" />
-              </div>
-              <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-4">90% más barato</h3>
-              <p className="text-gray-600 mb-4">
-                Servicios externos: $1,000+ MXN por catálogo. CatifyPro: desde $99 MXN mensual ilimitado.
-              </p>
-              <div className="bg-green-50 p-4 rounded-lg">
-                <p className="text-sm font-semibold text-green-800">Ahorra hasta $11,000+ MXN anuales</p>
-              </div>
-            </Card>
-
-            <Card className="p-6 sm:p-8 text-center border-none shadow-lg">
-              <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-blue-100 to-blue-200 rounded-full flex items-center justify-center mx-auto mb-6">
-                <Clock className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
-              </div>
-              <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-4">40x más rápido</h3>
-              <p className="text-gray-600 mb-4">
-                Métodos tradicionales: 1-2 semanas entre diseño y entrega. CatifyPro: 15 minutos automático.
-              </p>
-              <div className="bg-blue-50 p-4 rounded-lg">
-                <p className="text-sm font-semibold text-blue-800">Catálogo completo en una tarde</p>
-              </div>
-            </Card>
-
-            <Card className="p-6 sm:p-8 text-center border-none shadow-lg">
-              <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-purple-100 to-purple-200 rounded-full flex items-center justify-center mx-auto mb-6">
-                <Target className="w-6 h-6 sm:w-8 sm:h-8 text-purple-600" />
-              </div>
-              <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-4">Personalización total</h3>
-              <p className="text-gray-600 mb-4">
-                Crea catálogos específicos para cada cliente, temporada o segmento. Mismo inventario, múltiples
-                versiones dirigidas.
-              </p>
-              <div className="bg-purple-50 p-4 rounded-lg">
-                <p className="text-sm font-semibold text-purple-800">760% más ingresos con segmentación</p>
-              </div>
-            </Card>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {painPoints.map((point, index) => (
+              <Card key={index} className="p-6 text-center border-none shadow-lg hover:shadow-xl transition-all">
+                <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4 text-red-600">
+                  {point.icon}
+                </div>
+                <h3 className="text-lg font-bold text-gray-900 mb-2">{point.title}</h3>
+                <p className="text-gray-600 text-sm">{point.description}</p>
+              </Card>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* Features Section */}
+      {/* Sección de la Solución: El Ciclo de Crecimiento Acelerado */}
       <section id="funcionalidades" className="py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
+            <Badge className="mb-4 bg-gradient-to-r from-purple-100 to-blue-100 text-purple-800 border-purple-200">
+              <Sparkles className="w-4 h-4 mr-2" />
+              El Ciclo de Crecimiento Acelerado
+            </Badge>
             <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
-              6 funcionalidades que revolucionarán tu negocio
+              Cómo CatifyPro Transforma tu Negocio
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Cada funcionalidad está respaldada por datos reales de impacto empresarial
+              De la gestión manual a un ecosistema de ventas automatizado en 5 pasos
             </p>
           </div>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-            {features.map((feature, index) => (
-              <Card key={index} className="group hover:shadow-xl transition-all duration-300 border-0 bg-white">
-                <CardContent className="p-6 sm:p-8">
-                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-purple-100 to-blue-100 rounded-lg flex items-center justify-center text-purple-600 mb-6 group-hover:scale-110 transition-transform">
-                    {feature.icon}
-                  </div>
+          <div className="space-y-8">
+            {solutionSteps.map((step, index) => (
+              <Card key={index} className="overflow-hidden hover:shadow-2xl transition-all duration-300">
+                <CardContent className="p-0">
+                  <div className="grid lg:grid-cols-12 gap-0">
+                    {/* Número del paso */}
+                    <div className="lg:col-span-2 bg-gradient-to-br from-purple-600 to-blue-600 p-8 flex items-center justify-center">
+                      <div className="text-center">
+                        <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mb-3">
+                          {step.icon}
+                        </div>
+                        <div className="text-6xl font-bold text-white/40">{step.number}</div>
+                      </div>
+                    </div>
 
-                  <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-3">{feature.title}</h3>
-                  <p className="text-gray-600 mb-4 leading-relaxed">{feature.description}</p>
+                    {/* Contenido */}
+                    <div className="lg:col-span-10 p-8">
+                      <h3 className="text-2xl font-bold text-gray-900 mb-4">{step.title}</h3>
+                      
+                      <div className="mb-6">
+                        <h4 className="text-sm font-semibold text-purple-600 uppercase mb-2">Cómo funciona</h4>
+                        <p className="text-gray-700 leading-relaxed">{step.howItWorks}</p>
+                      </div>
 
-                  <div className="bg-gradient-to-r from-purple-50 to-blue-50 p-4 rounded-lg border-l-4 border-purple-400">
-                    <p className="text-sm font-semibold text-purple-800">📈 {feature.benefit}</p>
+                      <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-6 rounded-lg border-l-4 border-green-500">
+                        <p className="text-base font-semibold text-green-800">{step.result}</p>
+                      </div>
+                    </div>
                   </div>
                 </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Característica Estrella: El Efecto Cascada */}
+      <section className="py-20 bg-gradient-to-br from-purple-50 via-white to-blue-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <Badge className="mb-4 bg-gradient-to-r from-yellow-100 to-orange-100 text-orange-800 border-orange-200">
+              <Crown className="w-4 h-4 mr-2" />
+              Tu Arma Secreta
+            </Badge>
+            <h2 className="text-3xl lg:text-5xl font-bold text-gray-900 mb-6">
+              Transforma a cada Cliente en tu Propio Vendedor
+            </h2>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+              La característica que separa CatifyPro de cualquier otra herramienta de catálogos
+            </p>
+          </div>
+
+          <div className="grid lg:grid-cols-2 gap-12 items-center mb-16">
+            {/* Izquierda */}
+            <Card className="p-8 bg-white shadow-xl">
+              <div className="text-center">
+                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <CheckCircle2 className="w-8 h-8 text-blue-600" />
+                </div>
+                <h3 className="text-2xl font-bold text-gray-900 mb-4">Tu Cliente Recibe su Pedido</h3>
+                <p className="text-gray-600 leading-relaxed">
+                  Tu cliente está satisfecho con tu producto y servicio. El proceso tradicional terminaría aquí.
+                </p>
+              </div>
+            </Card>
+
+            {/* Derecha */}
+            <Card className="p-8 bg-gradient-to-br from-purple-600 to-blue-600 text-white shadow-2xl transform lg:scale-105">
+              <div className="text-center">
+                <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <Network className="w-8 h-8 text-white" />
+                </div>
+                <h3 className="text-2xl font-bold mb-4">El Efecto Cascada Comienza</h3>
+                <p className="leading-relaxed mb-6">
+                  Con un clic y por solo <span className="font-bold text-yellow-300">$29 MXN</span>, tu cliente activa 
+                  su propio catálogo con <span className="font-bold">TUS productos</span>, listo para vender a su red.
+                </p>
+                <div className="bg-white/10 p-4 rounded-lg border border-white/20">
+                  <p className="text-sm font-semibold">
+                    Tú controlas el inventario y los precios base. Ellos venden, tú ganas.
+                  </p>
+                </div>
+              </div>
+            </Card>
+          </div>
+
+          {/* Beneficios Clave */}
+          <div className="grid md:grid-cols-3 gap-6">
+            {cascadeFeatures.map((feature, index) => (
+              <Card key={index} className="p-6 text-center hover:shadow-xl transition-all">
+                <div className="w-12 h-12 bg-gradient-to-br from-purple-100 to-blue-100 rounded-full flex items-center justify-center mx-auto mb-4 text-purple-600">
+                  {feature.icon}
+                </div>
+                <h3 className="text-lg font-bold text-gray-900 mb-2">{feature.title}</h3>
+                <p className="text-gray-600 text-sm">{feature.description}</p>
               </Card>
             ))}
           </div>
@@ -666,14 +787,19 @@ const Index = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
-              Precios diseñados para PyMEs mexicanas
+              Elige tu Plan de Crecimiento
             </h2>
-            <p className="text-xl text-gray-600 mb-8">Planes mensuales + créditos opcionales para remoción de fondos</p>
+            <p className="text-xl text-gray-600 mb-8">
+              Desde catálogos básicos hasta ecosistemas de distribución completos. Créditos IA opcionales.
+            </p>
           </div>
 
           {/* Monthly Plans */}
           <div className="mb-16">
-            <h3 className="text-2xl font-bold text-gray-900 text-center mb-8">Planes Mensuales</h3>
+            <h3 className="text-2xl font-bold text-gray-900 text-center mb-2">Planes de Ecosistema</h3>
+            <p className="text-gray-600 text-center mb-8">
+              Activa tu red de distribución y escala sin límites
+            </p>
 
             {/* Monthly Plans - Móvil scroll horizontal */}
             <div className="md:hidden overflow-x-auto pb-4 -mx-4 px-4 mb-12">
@@ -771,8 +897,10 @@ const Index = () => {
 
           {/* Credit Packages */}
           <div>
-            <h3 className="text-2xl font-bold text-gray-900 text-center mb-4">Créditos para Remoción de Fondos</h3>
-            <p className="text-gray-600 text-center mb-8">Compra créditos adicionales cuando los necesites</p>
+            <h3 className="text-2xl font-bold text-gray-900 text-center mb-2">Créditos IA (Add-on Opcional)</h3>
+            <p className="text-gray-600 text-center mb-8">
+              Compra créditos adicionales para procesamiento de imágenes con IA cuando los necesites
+            </p>
 
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 max-w-4xl mx-auto">
               {creditPacks.map((pkg, index) => (
@@ -819,16 +947,43 @@ const Index = () => {
         </div>
       </section>
 
+      {/* FAQ Section */}
+      <section className="py-20 bg-white">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
+              Preguntas Frecuentes
+            </h2>
+            <p className="text-xl text-gray-600">
+              Todo lo que necesitas saber sobre CatifyPro
+            </p>
+          </div>
+
+          <Accordion type="single" collapsible className="w-full">
+            {faqs.map((faq, index) => (
+              <AccordionItem key={index} value={`item-${index}`} className="border-b border-gray-200">
+                <AccordionTrigger className="text-left hover:text-purple-600 transition-colors py-6">
+                  <span className="text-lg font-semibold">{faq.question}</span>
+                </AccordionTrigger>
+                <AccordionContent className="text-gray-600 leading-relaxed pb-6">
+                  {faq.answer}
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
+        </div>
+      </section>
+
       {/* Final CTA */}
       <section className="py-20 bg-gradient-to-r from-purple-600 via-blue-600 to-purple-600 relative overflow-hidden">
         <div className="absolute inset-0 bg-black/10"></div>
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative">
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-6">
-            ¿Listo para automatizar tus catálogos?
+            ¿Listo para Dejar de Vender y Empezar a Construir tu Red?
           </h2>
           <p className="text-lg sm:text-xl text-white/90 mb-8">
-            Únete a miles de empresas que ya ahorran <span className="font-bold">$11,000+ pesos anuales</span> y crean
-            catálogos en 15 minutos
+            Únete a las empresas que ya están escalando con <span className="font-bold">crecimiento exponencial</span> y 
+            {" "}<span className="font-bold">CAC = $0</span>
           </p>
 
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center mb-8">
@@ -837,8 +992,8 @@ const Index = () => {
               className="w-full sm:w-auto bg-white text-purple-600 hover:bg-gray-100 text-base sm:text-lg px-6 sm:px-8 h-12 shadow-lg"
               onClick={handleMainCTA}
             >
-              <Upload className="mr-2 w-5 h-5" />
-              Comenzar ahora
+              <Network className="mr-2 w-5 h-5" />
+              Activa tu Ecosistema de Ventas
               <ArrowRight className="ml-2 w-5 h-5" />
             </Button>
             <Button
@@ -855,7 +1010,7 @@ const Index = () => {
           <div className="flex flex-col sm:flex-row items-center justify-center space-x-0 sm:space-x-6 space-y-2 sm:space-y-0 text-white/80">
             <div className="flex items-center">
               <CheckCircle2 className="w-4 h-4 mr-2" />
-              Setup en 5 minutos
+              Sin límite de vendedores
             </div>
             <div className="flex items-center">
               <CheckCircle2 className="w-4 h-4 mr-2" />
@@ -863,7 +1018,7 @@ const Index = () => {
             </div>
             <div className="flex items-center">
               <CheckCircle2 className="w-4 h-4 mr-2" />
-              Soporte en español 24/7
+              Red activa en 24 horas
             </div>
           </div>
         </div>
