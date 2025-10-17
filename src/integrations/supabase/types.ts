@@ -1079,6 +1079,7 @@ export type Database = {
           id: string
           notes: string | null
           status: string | null
+          total_amount: number | null
           updated_at: string | null
           user_id: string
         }
@@ -1092,6 +1093,7 @@ export type Database = {
           id?: string
           notes?: string | null
           status?: string | null
+          total_amount?: number | null
           updated_at?: string | null
           user_id: string
         }
@@ -1105,6 +1107,7 @@ export type Database = {
           id?: string
           notes?: string | null
           status?: string | null
+          total_amount?: number | null
           updated_at?: string | null
           user_id?: string
         }
@@ -2008,6 +2011,14 @@ export type Database = {
           variants: Json
           wholesale_min_qty: number
         }[]
+      }
+      get_user_analytics_level: {
+        Args: { user_id_param: string }
+        Returns: string
+      }
+      get_user_kpis: {
+        Args: { days_param: number; user_id_param: string }
+        Returns: Json
       }
       get_variant_types_by_category: {
         Args: { category_name: string }
