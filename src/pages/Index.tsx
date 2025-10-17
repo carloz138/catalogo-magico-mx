@@ -326,7 +326,7 @@ const Index = () => {
   const faqs = [
     {
       question: "¿Qué pasa exactamente cuando mi cliente replica un catálogo?",
-      answer: "Tu cliente paga $29 MXN y obtiene su propia versión de tu catálogo con TUS productos. Puede personalizar su marca y precios (con tus límites), pero el inventario y precios base los controlas tú. Cuando su cliente hace un pedido, tú lo cumples y defines los márgenes.",
+      answer: "Tu cliente obtiene gratuitamente su propia versión de tu catálogo con TUS productos. Puede personalizar su marca y precios (con tus límites), pero el inventario y precios base los controlas tú. Cuando su cliente hace un pedido, tú lo cumples y defines los márgenes.",
     },
     {
       question: "¿Tengo control sobre los precios que mis clientes ponen?",
@@ -706,7 +706,7 @@ const Index = () => {
                 </div>
                 <h3 className="text-2xl font-bold mb-4">El Efecto Cascada Comienza</h3>
                 <p className="leading-relaxed mb-6">
-                  Con un clic y por solo <span className="font-bold text-yellow-300">$29 MXN</span>, tu cliente activa 
+                  Con un clic y <span className="font-bold text-yellow-300">completamente gratis</span>, tu cliente activa 
                   su propio catálogo con <span className="font-bold">TUS productos</span>, listo para vender a su red.
                 </p>
                 <div className="bg-white/10 p-4 rounded-lg border border-white/20">
