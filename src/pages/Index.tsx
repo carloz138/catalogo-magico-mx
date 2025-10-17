@@ -724,9 +724,7 @@ const Index = () => {
                   red.
                 </p>
                 <div className="bg-white/10 p-4 rounded-lg border border-white/20">
-                  <p className="text-sm font-semibold">
-                    Tú controlas el inventario y los precios base. Ellos venden, tú ganas.
-                  </p>
+                  <p className="text-sm font-semibold">Tú controlas los productos, ellos venden, tú ganas.</p>
                 </div>
               </div>
             </Card>
