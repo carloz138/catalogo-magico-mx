@@ -162,47 +162,52 @@ const Index = () => {
 
     if (pkg.package_type === "monthly_plan") {
       const planName = pkg.name.toLowerCase();
-      
-      if (planName.includes('gratis') || planName.includes('free')) {
-        features.push('1 catálogo digital');
-        features.push('50 productos máximo');
-        features.push('❌ Sin cotización ni analytics');
-      } else if (planName.includes('catálogos') && !planName.includes('básico') && !planName.includes('basico') && !planName.includes('ia')) {
-        features.push('✅ Cotización Automática 24/7');
-        features.push('✅ Analytics de Ventas Básicas');
-        features.push('1 catálogo, 100 productos');
-        features.push('Créditos IA como add-on');
-      } else if (planName.includes('básico') || planName.includes('basico')) {
-        features.push('✅ Sistema de cotización profesional');
-        features.push('⭐ Activa tu Red de Distribución');
-        features.push('✅ Tus clientes replican catálogos');
-        features.push('5 catálogos activos');
-        features.push('✅ Analytics avanzadas');
-        features.push('➕ 30 créditos IA/mes incluidos');
-      } else if (planName.includes('profesional')) {
-        features.push('✅ Ecosistema de ventas completo');
-        features.push('⭐ Red de Distribución ilimitada');
-        features.push('30 catálogos activos');
-        features.push('✅ Inteligencia de Negocio PRO');
-        features.push('✅ Catálogos privados');
-        features.push('➕ 100 créditos IA/mes incluidos');
-      } else if (planName.includes('empresarial')) {
-        features.push('✅ Ecosistema empresarial escalable');
-        features.push('⭐ Red de Distribución multi-nivel');
-        features.push('♾️ Catálogos ilimitados');
-        features.push('✅ API de integración completa');
-        features.push('✅ Soporte prioritario 24/7');
-        features.push('➕ 300 créditos IA/mes incluidos');
+
+      if (planName.includes("gratis") || planName.includes("free")) {
+        features.push("1 catálogo digital");
+        features.push("50 productos máximo");
+        features.push("❌ Sin cotización ni analytics");
+      } else if (
+        planName.includes("catálogos") &&
+        !planName.includes("básico") &&
+        !planName.includes("basico") &&
+        !planName.includes("ia")
+      ) {
+        features.push("✅ Cotización Automática 24/7");
+        features.push("✅ Analytics de Ventas Básicas");
+        features.push("1 catálogo, 100 productos");
+        features.push("Créditos IA como add-on");
+      } else if (planName.includes("básico") || planName.includes("basico")) {
+        features.push("✅ Sistema de cotización profesional");
+        features.push("⭐ Activa tu Red de Distribución");
+        features.push("✅ Tus clientes replican catálogos");
+        features.push("5 catálogos activos");
+        features.push("✅ Analytics avanzadas");
+        features.push("➕ 30 créditos IA/mes incluidos");
+      } else if (planName.includes("profesional")) {
+        features.push("✅ Ecosistema de ventas completo");
+        features.push("⭐ Red de Distribución ilimitada");
+        features.push("30 catálogos activos");
+        features.push("✅ Inteligencia de Negocio PRO");
+        features.push("✅ Catálogos privados");
+        features.push("➕ 100 créditos IA/mes incluidos");
+      } else if (planName.includes("empresarial")) {
+        features.push("✅ Ecosistema empresarial escalable");
+        features.push("⭐ Red de Distribución multi-nivel");
+        features.push("♾️ Catálogos ilimitados");
+        features.push("✅ API de integración completa");
+        features.push("✅ Soporte prioritario 24/7");
+        features.push("➕ 300 créditos IA/mes incluidos");
       }
-      
-      features.push('Se renueva automáticamente');
-      features.push('Cancela cuando quieras');
+
+      features.push("Se renueva automáticamente");
+      features.push("Cancela cuando quieras");
     } else {
       // Packs únicos de créditos IA
       features.push(`${pkg.credits} créditos IA`);
-      features.push('Válidos por 12 meses');
-      features.push('Sin renovación automática');
-      features.push('Add-on para procesamiento IA');
+      features.push("Válidos por 12 meses");
+      features.push("Sin renovación automática");
+      features.push("Add-on para procesamiento IA");
     }
 
     return features;
@@ -277,7 +282,8 @@ const Index = () => {
       number: "2",
       icon: <MousePointer className="w-8 h-8" />,
       title: "Tu Cliente Cotiza Automáticamente 24/7",
-      howItWorks: "Compartes el link. Tu cliente elige productos, cantidades, y recibe una cotización instantánea sin esperar tu respuesta.",
+      howItWorks:
+        "Compartes el link. Tu cliente elige productos, cantidades, y recibe una cotización instantánea sin esperar tu respuesta.",
       result: "Cierras ventas mientras duermes. 25% más conversiones por respuesta inmediata.",
     },
     {
@@ -291,7 +297,7 @@ const Index = () => {
       number: "4",
       icon: <Share2 className="w-8 h-8" />,
       title: "Tu Cliente Activa su Propia Red",
-      howItWorks: "Con un clic y $29 MXN, tu cliente replica tu catálogo con TUS productos para vender a su red.",
+      howItWorks: "Con un clic, tu cliente replica tu catálogo con TUS productos para vender a su red. ¡GRATIS!",
       result: "Crecimiento exponencial. Tus clientes se convierten en tu fuerza de ventas.",
     },
     {
@@ -326,23 +332,28 @@ const Index = () => {
   const faqs = [
     {
       question: "¿Qué pasa exactamente cuando mi cliente replica un catálogo?",
-      answer: "Tu cliente obtiene gratuitamente su propia versión de tu catálogo con TUS productos. Puede personalizar su marca y precios (con tus límites), pero el inventario y precios base los controlas tú. Cuando su cliente hace un pedido, tú lo cumples y defines los márgenes.",
+      answer:
+        "Tu cliente obtiene gratuitamente su propia versión de tu catálogo con TUS productos. Puede personalizar su marca y precios (con tus límites), pero el inventario y precios base los controlas tú. Cuando su cliente hace un pedido, tú lo cumples y defines los márgenes.",
     },
     {
       question: "¿Tengo control sobre los precios que mis clientes ponen?",
-      answer: "Sí, completamente. Tú defines el precio base y el margen mínimo. Tu cliente puede aumentar el precio para su margen, pero nunca vender por debajo de tu precio mínimo. Mantienes control total sobre tu rentabilidad.",
+      answer:
+        "Sí, completamente. Tú defines el precio base y el margen mínimo. Tu cliente puede aumentar el precio para su margen, pero nunca vender por debajo de tu precio mínimo. Mantienes control total sobre tu rentabilidad.",
     },
     {
       question: "¿Qué tan seguro es el sistema?",
-      answer: "Utilizamos encriptación de nivel bancario y cumplimos con todas las normativas de protección de datos. Tu información de productos, precios y clientes está completamente protegida. Además, cuentas con backups automáticos diarios.",
+      answer:
+        "Utilizamos encriptación de nivel bancario y cumplimos con todas las normativas de protección de datos. Tu información de productos, precios y clientes está completamente protegida. Además, cuentas con backups automáticos diarios.",
     },
     {
       question: "¿Es difícil de configurar?",
-      answer: "Para nada. En menos de 15 minutos puedes tener tu primer catálogo activo. El sistema es intuitivo: sube productos, personaliza tu marca, y comparte el link. No necesitas conocimientos técnicos. Además, ofrecemos onboarding guiado.",
+      answer:
+        "Para nada. En menos de 15 minutos puedes tener tu primer catálogo activo. El sistema es intuitivo: sube productos, personaliza tu marca, y comparte el link. No necesitas conocimientos técnicos. Además, ofrecemos onboarding guiado.",
     },
     {
       question: "¿Qué tipo de soporte ofrecen?",
-      answer: "Todos los planes incluyen soporte por email con respuesta en menos de 24 horas. Los planes Profesional y Empresarial incluyen soporte prioritario con respuesta en menos de 4 horas, y el plan Empresarial tiene soporte 24/7 por WhatsApp y videollamadas de capacitación.",
+      answer:
+        "Todos los planes incluyen soporte por email con respuesta en menos de 24 horas. Los planes Profesional y Empresarial incluyen soporte prioritario con respuesta en menos de 4 horas, y el plan Empresarial tiene soporte 24/7 por WhatsApp y videollamadas de capacitación.",
     },
   ];
 
@@ -486,13 +497,17 @@ const Index = () => {
               <h1 className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold text-gray-900 mb-6 leading-tight">
                 Tu Catálogo es Ahora tu
                 <span className="bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-                  {" "}Red de Ventas
+                  {" "}
+                  Red de Ventas
                 </span>
               </h1>
 
               <p className="text-base sm:text-lg lg:text-xl text-gray-600 mb-6 sm:mb-8 leading-relaxed max-w-2xl">
-                Transforma tu proceso de ventas con catálogos digitales, cotizaciones automáticas y un <span className="font-semibold text-purple-600">ecosistema que permite a tus clientes vender tus productos por ti</span>. 
-                Activa tu red de distribución y escala sin límites.
+                Transforma tu proceso de ventas con catálogos digitales, cotizaciones automáticas y un{" "}
+                <span className="font-semibold text-purple-600">
+                  ecosistema que permite a tus clientes vender tus productos por ti
+                </span>
+                . Activa tu red de distribución y escala sin límites.
               </p>
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
@@ -624,9 +639,7 @@ const Index = () => {
               <Sparkles className="w-4 h-4 mr-2" />
               El Ciclo de Crecimiento Acelerado
             </Badge>
-            <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
-              Cómo CatifyPro Transforma tu Negocio
-            </h2>
+            <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">Cómo CatifyPro Transforma tu Negocio</h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
               De la gestión manual a un ecosistema de ventas automatizado en 5 pasos
             </p>
@@ -650,7 +663,7 @@ const Index = () => {
                     {/* Contenido */}
                     <div className="lg:col-span-10 p-8">
                       <h3 className="text-2xl font-bold text-gray-900 mb-4">{step.title}</h3>
-                      
+
                       <div className="mb-6">
                         <h4 className="text-sm font-semibold text-purple-600 uppercase mb-2">Cómo funciona</h4>
                         <p className="text-gray-700 leading-relaxed">{step.howItWorks}</p>
@@ -706,8 +719,9 @@ const Index = () => {
                 </div>
                 <h3 className="text-2xl font-bold mb-4">El Efecto Cascada Comienza</h3>
                 <p className="leading-relaxed mb-6">
-                  Con un clic y <span className="font-bold text-yellow-300">completamente gratis</span>, tu cliente activa 
-                  su propio catálogo con <span className="font-bold">TUS productos</span>, listo para vender a su red.
+                  Con un clic y <span className="font-bold text-yellow-300">completamente gratis</span>, tu cliente
+                  activa su propio catálogo con <span className="font-bold">TUS productos</span>, listo para vender a su
+                  red.
                 </p>
                 <div className="bg-white/10 p-4 rounded-lg border border-white/20">
                   <p className="text-sm font-semibold">
@@ -786,9 +800,7 @@ const Index = () => {
       <section id="precios" className="py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
-              Elige tu Plan de Crecimiento
-            </h2>
+            <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">Elige tu Plan de Crecimiento</h2>
             <p className="text-xl text-gray-600 mb-8">
               Desde catálogos básicos hasta ecosistemas de distribución completos. Créditos IA opcionales.
             </p>
@@ -797,9 +809,7 @@ const Index = () => {
           {/* Monthly Plans */}
           <div className="mb-16">
             <h3 className="text-2xl font-bold text-gray-900 text-center mb-2">Planes de Ecosistema</h3>
-            <p className="text-gray-600 text-center mb-8">
-              Activa tu red de distribución y escala sin límites
-            </p>
+            <p className="text-gray-600 text-center mb-8">Activa tu red de distribución y escala sin límites</p>
 
             {/* Monthly Plans - Móvil scroll horizontal */}
             <div className="md:hidden overflow-x-auto pb-4 -mx-4 px-4 mb-12">
@@ -951,12 +961,8 @@ const Index = () => {
       <section className="py-20 bg-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
-              Preguntas Frecuentes
-            </h2>
-            <p className="text-xl text-gray-600">
-              Todo lo que necesitas saber sobre CatifyPro
-            </p>
+            <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">Preguntas Frecuentes</h2>
+            <p className="text-xl text-gray-600">Todo lo que necesitas saber sobre CatifyPro</p>
           </div>
 
           <Accordion type="single" collapsible className="w-full">
@@ -965,9 +971,7 @@ const Index = () => {
                 <AccordionTrigger className="text-left hover:text-purple-600 transition-colors py-6">
                   <span className="text-lg font-semibold">{faq.question}</span>
                 </AccordionTrigger>
-                <AccordionContent className="text-gray-600 leading-relaxed pb-6">
-                  {faq.answer}
-                </AccordionContent>
+                <AccordionContent className="text-gray-600 leading-relaxed pb-6">{faq.answer}</AccordionContent>
               </AccordionItem>
             ))}
           </Accordion>
@@ -982,8 +986,8 @@ const Index = () => {
             ¿Listo para Dejar de Vender y Empezar a Construir tu Red?
           </h2>
           <p className="text-lg sm:text-xl text-white/90 mb-8">
-            Únete a las empresas que ya están escalando con <span className="font-bold">crecimiento exponencial</span> y 
-            {" "}<span className="font-bold">CAC = $0</span>
+            Únete a las empresas que ya están escalando con <span className="font-bold">crecimiento exponencial</span> y{" "}
+            <span className="font-bold">CAC = $0</span>
           </p>
 
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center mb-8">
