@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import AppLayout from '@/components/layout/AppLayout';
 import { UsageDashboard } from '@/components/dashboard/UsageDashboard';
+import KpiDashboard from '@/components/dashboard/KpiDashboard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -370,6 +371,12 @@ const Analytics = () => {
 
           {/* Dashboard de Uso */}
           <UsageDashboard />
+
+          {/* KPIs de Ventas */}
+          <div className="mt-8">
+            <h2 className="text-2xl font-bold mb-4">Métricas de Ventas</h2>
+            <KpiDashboard />
+          </div>
         </div>
       </AppLayout>
     </ProtectedRoute>
