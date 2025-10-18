@@ -85,7 +85,7 @@ export function FabricanteRadarDashboard() {
     fetchConsultasDeRed();
   }, [user]);
 
-  const handleStatusChange = async (id: string, newStatus: string) => {
+  const handleStatusChange = async (id: string, newStatus: FabricanteStatus) => {
     try {
       const { error } = await supabase
         .from("solicitudes_mercado")
