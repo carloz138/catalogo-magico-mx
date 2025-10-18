@@ -6,7 +6,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, AlertCircle, Users, MoreHorizontal, Check, Clock, Send } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Loader2, AlertCircle, Users, MoreHorizontal, Check, Clock, Send, SearchCheck } from "lucide-react";
 
 // Tipos para los datos
 type SolicitudCliente = {
@@ -30,13 +31,13 @@ export function RevendedorRequestsDashboard() {
     setLoading(true);
     try {
       const { data, error } = await supabase
-        .from('vista_solicitudes_revendedor') // Usamos la vista segura del L2
-        .select('*') // Esta vista solo tiene los campos que el L2 puede ver
+        .from('vista_solicitudes_revendedor' as any)
+        .select('*')
         .eq('revendedor_id', user.id)
         .order('creado_el', { ascending: false });
         
       if (error) throw error;
-      setSolicitudes(data as SolicitudCliente[]);
+      setSolicitudes(data as unknown as SolicitudCliente[]);
     } catch (err: any) {
       setError("Error al cargar las solicitudes de clientes.");
     } finally {
@@ -51,13 +52,13 @@ export function RevendedorRequestsDashboard() {
   const handleStatusChange = async (id: string, newStatus: string) => {
     try {
       const { error } = await supabase
-        .from('solicitudes_mercado')
-        .update({ estatus_revendedor: newStatus })
+        .from('solicitudes_mercado' as any)
+        .update({ estatus_revendedor: newStatus } as any)
         .eq('id', id)
-        .eq('revendedor_id', user.id); // RLS lo protege
+        .eq('revendedor_id', user?.id);
       
       if (error) throw error;
-      fetchSolicitudes(); // Recargar los datos
+      fetchSolicitudes();
     } catch (err: any) {
       console.error("Error updating status:", err);
     }
@@ -159,7 +160,7 @@ function RenderTableSolicitudes({ data, onStatusChange, getStatusBadge }: any) {
 function StatusDropdownL2({ item, onStatusChange, getStatusBadge, isDesktop = false }: any) {
   const statuses = [
     { value: 'nuevo', label: 'Nuevo', icon: <Clock className="mr-2 h-4 w-4" /> },
-    { value: 'revisando', label: 'Revisando', icon: <Radar className="mr-2 h-4 w-4" /> },
+    { value: 'revisando', label: 'Revisando', icon: <SearchCheck className="mr-2 h-4 w-4" /> },
     { value: 'consultado_proveedor', label: 'Consultar Proveedor', icon: <Send className="mr-2 h-4 w-4" /> },
     { value: 'conseguido', label: 'Conseguido', icon: <Check className="mr-2 h-4 w-4" /> },
     { value: 'rechazado', label: 'Rechazado', icon: <AlertCircle className="mr-2 h-4 w-4" /> },

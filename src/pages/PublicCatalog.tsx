@@ -14,7 +14,7 @@ import { AddToQuoteModal } from "@/components/public/AddToQuoteModal";
 import { QuoteCartBadge } from "@/components/public/QuoteCartBadge";
 import { QuoteCartModal } from "@/components/public/QuoteCartModal";
 import { QuoteForm } from "@/components/public/QuoteForm";
-import { ProductRequestForm } from "@/components/catalog/ProductRequestForm";
+import { MarketRadarForm } from "@/components/dashboard/MarketRadarForm";
 import { useProductSearch } from "@/hooks/useProductSearch";
 import { useProductFilters } from "@/hooks/useProductFilters";
 import { QuoteCartProvider, useQuoteCart } from "@/contexts/QuoteCartContext";
@@ -364,11 +364,10 @@ function PublicCatalogContent() {
             <DialogHeader>
               <DialogTitle>Solicita un Producto</DialogTitle>
             </DialogHeader>
-            <ProductRequestForm 
+            <MarketRadarForm 
               fabricanteId={catalog.user_id}
               catalogoId={catalog.id}
               revendedorId={null}
-              onSuccess={() => setIsRequestFormOpen(false)}
             />
           </DialogContent>
         </Dialog>
