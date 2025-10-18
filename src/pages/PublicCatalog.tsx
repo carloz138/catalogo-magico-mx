@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Helmet } from "react-helmet";
-import { Calendar, Search, Info } from "lucide-react";
+import { Calendar, Search, Info, MessageCircleQuestion } from "lucide-react";
 import { DigitalCatalogService } from "@/services/digital-catalog.service";
 import { PublicCatalogView } from "@/types/digital-catalog";
 import CatalogHeader from "@/components/public/CatalogHeader";
@@ -14,6 +14,7 @@ import { AddToQuoteModal } from "@/components/public/AddToQuoteModal";
 import { QuoteCartBadge } from "@/components/public/QuoteCartBadge";
 import { QuoteCartModal } from "@/components/public/QuoteCartModal";
 import { QuoteForm } from "@/components/public/QuoteForm";
+import { ProductRequestForm } from "@/components/catalog/ProductRequestForm";
 import { useProductSearch } from "@/hooks/useProductSearch";
 import { useProductFilters } from "@/hooks/useProductFilters";
 import { QuoteCartProvider, useQuoteCart } from "@/contexts/QuoteCartContext";
@@ -21,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { calculateAdjustedPrice } from "@/lib/utils/price-calculator";
 import { toast } from "sonner";
 import { EXPANDED_WEB_TEMPLATES } from "@/lib/web-catalog/expanded-templates-catalog";
@@ -39,6 +41,7 @@ function PublicCatalogContent() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isQuoteFormOpen, setIsQuoteFormOpen] = useState(false);
+  const [isRequestFormOpen, setIsRequestFormOpen] = useState(false);
 
   useEffect(() => {
     if (slug) {
@@ -345,6 +348,31 @@ function PublicCatalogContent() {
           )}
         </div>
         
+        {/* Botón flotante para solicitar productos */}
+        <Dialog open={isRequestFormOpen} onOpenChange={setIsRequestFormOpen}>
+          <DialogTrigger asChild>
+            <Button 
+              variant="outline" 
+              size="lg"
+              className="fixed bottom-4 right-4 shadow-lg z-40 gap-2"
+            >
+              <MessageCircleQuestion className="h-5 w-5" />
+              ¿No encuentras lo que buscas?
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>Solicita un Producto</DialogTitle>
+            </DialogHeader>
+            <ProductRequestForm 
+              fabricanteId={catalog.user_id}
+              catalogoId={catalog.id}
+              revendedorId={null}
+              onSuccess={() => setIsRequestFormOpen(false)}
+            />
+          </DialogContent>
+        </Dialog>
+
         {catalog.enable_quotation && (
           <>
             <AddToQuoteModal
