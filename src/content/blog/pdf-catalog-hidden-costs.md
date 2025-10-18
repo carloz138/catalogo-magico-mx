@@ -1,6 +1,15 @@
-# El Costo Oculto de tu Catálogo PDF: ¿Cuánto Dinero Estás Perdiendo en Realidad?
+---
+title: "El Costo Oculto de tu Catálogo PDF: ¿Cuánto Dinero Estás Perdiendo en Realidad?"
+description: "Descubre los costos ocultos de usar catálogos PDF en tus ventas B2B. Analizamos con cifras el tiempo, las oportunidades y la imagen de marca que tu empresa está perdiendo y cómo modernizar tu proceso comercial para ser más competitivo."
+slug: "costo-oculto-catalogos-pdf"
+date: "2025-01-15"
+author: "Equipo CatifyPro"
+keywords: "catalogo pdf, ventas b2b, costos ocultos pdf, catalogos digitales, modernizar ventas, eficiencia comercial"
+category: "Análisis"
+image: "/placeholder.svg"
+---
 
-Descubre los costos ocultos de usar catálogos PDF en tus ventas B2B. Analizamos con cifras el tiempo, las oportunidades y la imagen de marca que tu empresa está perdiendo y cómo modernizar tu proceso comercial para ser más competitivo.
+# El Costo Oculto de tu Catálogo PDF: ¿Cuánto Dinero Estás Perdiendo en Realidad?
 
 El catálogo en PDF es el caballo de batalla de innumerables equipos comerciales B2B en México y Latinoamérica. Es universal, fácil de enviar por correo o WhatsApp y, aparentemente, "gratis". Pero, ¿alguna vez te has detenido a calcular su verdadero costo?
 
