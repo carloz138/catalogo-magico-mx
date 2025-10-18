@@ -4,10 +4,17 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, AlertCircle, Radar, Users, MoreHorizontal, Check, Clock, Package } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+// Asegúrate de que otros componentes como Card, Tabs, Table, etc., también estén importados si faltan.
 
 // Tipos para los datos
 type RadarAgregado = {
@@ -39,8 +46,8 @@ export function FabricanteRadarDashboard() {
     if (!user) return;
     setLoadingRadar(true);
     try {
-      const { data, error } = await supabase.rpc('get_radar_agregado', {
-        user_id_param: user.id
+      const { data, error } = await supabase.rpc("get_radar_agregado", {
+        user_id_param: user.id,
       });
       if (error) throw error;
       setRadarData(data as RadarAgregado[]);
@@ -56,12 +63,12 @@ export function FabricanteRadarDashboard() {
     setLoadingConsultas(true);
     try {
       const { data, error } = await supabase
-        .from('vista_radar_fabricante')
-        .select('id, creado_el, producto_nombre, cantidad, estatus_fabricante')
-        .eq('fabricante_id', user.id)
-        .eq('estatus_revendedor', 'consultado_proveedor') // Solo las que el L2 escaló
-        .order('creado_el', { ascending: false });
-        
+        .from("vista_radar_fabricante")
+        .select("id, creado_el, producto_nombre, cantidad, estatus_fabricante")
+        .eq("fabricante_id", user.id)
+        .eq("estatus_revendedor", "consultado_proveedor") // Solo las que el L2 escaló
+        .order("creado_el", { ascending: false });
+
       if (error) throw error;
       setConsultasData(data as ConsultaDeRed[]);
     } catch (err: any) {
@@ -79,13 +86,13 @@ export function FabricanteRadarDashboard() {
   const handleStatusChange = async (id: string, newStatus: string) => {
     try {
       const { error } = await supabase
-        .from('solicitudes_mercado')
+        .from("solicitudes_mercado")
         .update({ estatus_fabricante: newStatus })
-        .eq('id', id)
-        .eq('fabricante_id', user.id); // RLS lo protege, pero es buena práctica
-      
+        .eq("id", id)
+        .eq("fabricante_id", user.id); // RLS lo protege, pero es buena práctica
+
       if (error) throw error;
-      
+
       // Actualizar estado local para reflejar el cambio
       fetchRadarAgregado();
       fetchConsultasDeRed();
@@ -96,11 +103,30 @@ export function FabricanteRadarDashboard() {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'nuevo': return <Badge variant="secondary"><Clock className="mr-1 h-3 w-3" />Nuevo</Badge>;
-      case 'en_analisis': return <Badge variant="default" className="bg-blue-500">En Análisis</Badge>;
-      case 'agregado_al_catalogo': return <Badge variant="default" className="bg-green-600"><Check className="mr-1 h-3 w-3" />Agregado</Badge>;
-      case 'ignorado': return <Badge variant="destructive">Ignorado</Badge>;
-      default: return <Badge variant="outline">{status}</Badge>;
+      case "nuevo":
+        return (
+          <Badge variant="secondary">
+            <Clock className="mr-1 h-3 w-3" />
+            Nuevo
+          </Badge>
+        );
+      case "en_analisis":
+        return (
+          <Badge variant="default" className="bg-blue-500">
+            En Análisis
+          </Badge>
+        );
+      case "agregado_al_catalogo":
+        return (
+          <Badge variant="default" className="bg-green-600">
+            <Check className="mr-1 h-3 w-3" />
+            Agregado
+          </Badge>
+        );
+      case "ignorado":
+        return <Badge variant="destructive">Ignorado</Badge>;
+      default:
+        return <Badge variant="outline">{status}</Badge>;
     }
   };
 
@@ -118,23 +144,37 @@ export function FabricanteRadarDashboard() {
         )}
         <Tabs defaultValue="radar" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="radar"><Radar className="mr-2 h-4 w-4" />Radar de Mercado</TabsTrigger>
-            <TabsTrigger value="consultas"><Users className="mr-2 h-4 w-4" />Consultas de Red</TabsTrigger>
+            <TabsTrigger value="radar">
+              <Radar className="mr-2 h-4 w-4" />
+              Radar de Mercado
+            </TabsTrigger>
+            <TabsTrigger value="consultas">
+              <Users className="mr-2 h-4 w-4" />
+              Consultas de Red
+            </TabsTrigger>
           </TabsList>
-          
+
           <TabsContent value="radar" className="mt-4">
             {loadingRadar ? (
-              <div className="flex justify-center items-center h-40"><Loader2 className="h-8 w-8 animate-spin" /></div>
+              <div className="flex justify-center items-center h-40">
+                <Loader2 className="h-8 w-8 animate-spin" />
+              </div>
             ) : (
               <RenderTableRadar data={radarData} onStatusChange={handleStatusChange} getStatusBadge={getStatusBadge} />
             )}
           </TabsContent>
-          
+
           <TabsContent value="consultas" className="mt-4">
             {loadingConsultas ? (
-              <div className="flex justify-center items-center h-40"><Loader2 className="h-8 w-8 animate-spin" /></div>
+              <div className="flex justify-center items-center h-40">
+                <Loader2 className="h-8 w-8 animate-spin" />
+              </div>
             ) : (
-              <RenderTableConsultas data={consultasData} onStatusChange={handleStatusChange} getStatusBadge={getStatusBadge} />
+              <RenderTableConsultas
+                data={consultasData}
+                onStatusChange={handleStatusChange}
+                getStatusBadge={getStatusBadge}
+              />
             )}
           </TabsContent>
         </Tabs>
@@ -157,14 +197,18 @@ function RenderTableRadar({ data, onStatusChange, getStatusBadge }: any) {
               <div className="flex justify-between items-start">
                 <div>
                   <h4 className="font-semibold">{item.producto_nombre}</h4>
-                  <p className="text-sm text-muted-foreground">{item.producto_marca || 'Sin marca'}</p>
+                  <p className="text-sm text-muted-foreground">{item.producto_marca || "Sin marca"}</p>
                 </div>
                 {getStatusBadge(item.estatus_fabricante)}
               </div>
               <div className="flex justify-between items-end mt-4">
                 <div className="text-sm">
-                  <p><strong>{item.total_solicitudes}</strong> solicitudes</p>
-                  <p><strong>{item.total_cantidad}</strong> pzas. total</p>
+                  <p>
+                    <strong>{item.total_solicitudes}</strong> solicitudes
+                  </p>
+                  <p>
+                    <strong>{item.total_cantidad}</strong> pzas. total
+                  </p>
                 </div>
                 {/* Asumimos que no se puede cambiar estatus en la vista agregada, o es más complejo */}
               </div>
@@ -172,7 +216,7 @@ function RenderTableRadar({ data, onStatusChange, getStatusBadge }: any) {
           </Card>
         ))}
       </div>
-      
+
       {/* Vista Desktop (tabla) */}
       <div className="hidden md:block border rounded-lg">
         <Table>
@@ -190,7 +234,7 @@ function RenderTableRadar({ data, onStatusChange, getStatusBadge }: any) {
             {data.map((item: RadarAgregado, idx: number) => (
               <TableRow key={idx}>
                 <TableCell className="font-medium">{item.producto_nombre}</TableCell>
-                <TableCell>{item.producto_marca || '-'}</TableCell>
+                <TableCell>{item.producto_marca || "-"}</TableCell>
                 <TableCell>{item.total_solicitudes}</TableCell>
                 <TableCell>{item.total_cantidad}</TableCell>
                 <TableCell>{getStatusBadge(item.estatus_fabricante)}</TableCell>
@@ -207,7 +251,8 @@ function RenderTableRadar({ data, onStatusChange, getStatusBadge }: any) {
 
 // Componente para renderizar la tabla de Consultas de Red (optimizado para móvil)
 function RenderTableConsultas({ data, onStatusChange, getStatusBadge }: any) {
-  if (data.length === 0) return <p className="text-center text-muted-foreground py-4">No hay consultas activas de tu red.</p>;
+  if (data.length === 0)
+    return <p className="text-center text-muted-foreground py-4">No hay consultas activas de tu red.</p>;
 
   return (
     <div>
@@ -247,7 +292,12 @@ function RenderTableConsultas({ data, onStatusChange, getStatusBadge }: any) {
                 <TableCell>{item.cantidad}</TableCell>
                 <TableCell>{getStatusBadge(item.estatus_fabricante)}</TableCell>
                 <TableCell className="text-right">
-                  <StatusDropdown item={item} onStatusChange={onStatusChange} getStatusBadge={getStatusBadge} isDesktop={true} />
+                  <StatusDropdown
+                    item={item}
+                    onStatusChange={onStatusChange}
+                    getStatusBadge={getStatusBadge}
+                    isDesktop={true}
+                  />
                 </TableCell>
               </TableRow>
             ))}
@@ -261,10 +311,10 @@ function RenderTableConsultas({ data, onStatusChange, getStatusBadge }: any) {
 // Dropdown para cambiar el estatus (L1)
 function StatusDropdown({ item, onStatusChange, getStatusBadge, isDesktop = false }: any) {
   const statuses = [
-    { value: 'nuevo', label: 'Nuevo', icon: <Clock className="mr-2 h-4 w-4" /> },
-    { value: 'en_analisis', label: 'En Análisis', icon: <Radar className="mr-2 h-4 w-4" /> },
-    { value: 'agregado_al_catalogo', label: 'Agregado al Catálogo', icon: <Package className="mr-2 h-4 w-4" /> },
-    { value: 'ignorado', label: 'Ignorado', icon: <AlertCircle className="mr-2 h-4 w-4" /> },
+    { value: "nuevo", label: "Nuevo", icon: <Clock className="mr-2 h-4 w-4" /> },
+    { value: "en_analisis", label: "En Análisis", icon: <Radar className="mr-2 h-4 w-4" /> },
+    { value: "agregado_al_catalogo", label: "Agregado al Catálogo", icon: <Package className="mr-2 h-4 w-4" /> },
+    { value: "ignorado", label: "Ignorado", icon: <AlertCircle className="mr-2 h-4 w-4" /> },
   ];
 
   return (
@@ -279,7 +329,7 @@ function StatusDropdown({ item, onStatusChange, getStatusBadge, isDesktop = fals
         )}
       </DropdownMenuTrigger>
       <DropdownMenuContent align={isDesktop ? "end" : "start"}>
-        {statuses.map(status => (
+        {statuses.map((status) => (
           <DropdownMenuItem key={status.value} onClick={() => onStatusChange(item.id, status.value)}>
             {status.icon}
             <span>{status.label}</span>
