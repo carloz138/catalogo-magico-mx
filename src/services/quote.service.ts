@@ -52,8 +52,15 @@ export class QuoteService {
 
     if (itemsError) throw itemsError;
 
-    // 4. TODO: Enviar notificaciones (email + WhatsApp)
-    // Esto lo haremos con Edge Functions en la siguiente fase
+    // 4. Enviar notificación por email/WhatsApp
+    try {
+      await supabase.functions.invoke('send-quote-notification', {
+        body: { quoteId: quote.id }
+      });
+    } catch (notificationError) {
+      // No bloqueamos la cotización si falla la notificación
+      console.error('Error enviando notificación:', notificationError);
+    }
 
     return quote as Quote;
   }
