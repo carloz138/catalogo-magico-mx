@@ -16,6 +16,8 @@ import { Loader2, AlertCircle, Radar, Users, MoreHorizontal, Check, Clock, Packa
 import { Alert, AlertDescription } from "@/components/ui/alert";
 // Asegúrate de que otros componentes como Card, Tabs, Table, etc., también estén importados si faltan.
 
+// Define el tipo exacto que coincide con tu ENUM de Supabase
+type FabricanteStatus = "nuevo" | "en_analisis" | "agregado_al_catalogo" | "ignorado";
 // Tipos para los datos
 type RadarAgregado = {
   producto_nombre: string;
