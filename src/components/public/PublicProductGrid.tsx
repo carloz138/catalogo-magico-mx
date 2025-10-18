@@ -16,6 +16,11 @@ const PRODUCTS_PER_PAGE = 12;
 export function PublicProductGrid({ products, priceConfig, visibilityConfig, enableVariants = true, onAddToQuote }: Props) {
   const [currentPage, setCurrentPage] = useState(1);
   
+  // Reset to page 1 when products change (search/filter applied)
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [products.length]);
+  
   const totalPages = Math.ceil(products.length / PRODUCTS_PER_PAGE);
   const startIndex = (currentPage - 1) * PRODUCTS_PER_PAGE;
   const endIndex = startIndex + PRODUCTS_PER_PAGE;
