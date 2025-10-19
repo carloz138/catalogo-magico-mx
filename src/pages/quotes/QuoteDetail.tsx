@@ -46,32 +46,38 @@ export default function QuoteDetailPage() {
     if (!quote || !user?.id) return;
 
     setActionLoading(true);
-    try {
-      await QuoteService.updateQuoteStatus(quote.id, user.id, "accepted");
+    let generatedLink: string | null = null; // Variable para guardar el link
 
+    try {
+      // 1. Crear la réplica y obtener el link SI la distribución está habilitada
       if (quote.catalog?.enable_distribution) {
         const replicatedCatalog = await ReplicationService.createReplica({
           original_catalog_id: quote.catalog_id,
           quote_id: quote.id,
           distributor_id: user.id,
         });
+        generatedLink = await ReplicationService.getActivationLink(replicatedCatalog.id); // Guardar el link
+        setActivationLink(generatedLink); // Actualizar estado para el modal si aún lo usas
+        setShowShareModal(true); // Mostrar el modal
+      }
 
-        const link = await ReplicationService.getActivationLink(replicatedCatalog.id);
-        setActivationLink(link);
-        setShowShareModal(true);
+      // 2. Actualizar el estado de la cotización, PASANDO el link generado (o null)
+      await QuoteService.updateQuoteStatus(quote.id, user.id, "accepted", generatedLink ?? undefined); // 🔥 PASAR EL LINK AQUÍ 🔥
 
+      // 3. Mostrar notificaciones Toast
+      if (generatedLink) {
         toast({
           title: "✅ Cotización aceptada",
-          description: "Se creó un catálogo para tu cliente. Comparte el link de activación.",
+          description: "Se creó un catálogo para tu cliente y se envió el link de activación por correo.",
         });
       } else {
         toast({
           title: "✅ Cotización aceptada",
-          description: "La cotización ha sido aceptada exitosamente",
+          description: "La cotización fue aceptada y se notificó al cliente por correo.",
         });
       }
 
-      refetch();
+      refetch(); // Recargar datos de la cotización
     } catch (error: any) {
       console.error("Error accepting quote:", error);
       toast({
@@ -320,7 +326,8 @@ export default function QuoteDetailPage() {
                   <Alert className="bg-indigo-50 border-indigo-200">
                     <Copy className="h-4 w-4 text-indigo-600" />
                     <AlertDescription className="text-indigo-900">
-                      <strong>Distribución habilitada:</strong> Al aceptar, se creará automáticamente un catálogo GRATUITO para tu cliente.
+                      <strong>Distribución habilitada:</strong> Al aceptar, se creará automáticamente un catálogo
+                      GRATUITO para tu cliente.
                     </AlertDescription>
                   </Alert>
                 )}
@@ -338,12 +345,7 @@ export default function QuoteDetailPage() {
                   Aceptar Cotización
                 </Button>
 
-                <Button
-                  variant="destructive"
-                  className="w-full"
-                  onClick={handleRejectQuote}
-                  disabled={actionLoading}
-                >
+                <Button variant="destructive" className="w-full" onClick={handleRejectQuote} disabled={actionLoading}>
                   <XCircle className="w-4 w-4 mr-2" />
                   Rechazar Cotización
                 </Button>
