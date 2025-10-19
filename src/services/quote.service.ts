@@ -4,7 +4,7 @@ import { Quote, QuoteItem, CreateQuoteDTO, QuoteStatus } from "@/types/digital-c
 export class QuoteService {
   // Crear cotización (desde vista pública - cliente anónimo)
   static async createQuote(quoteData: CreateQuoteDTO): Promise<Quote> {
-    // 1. Obtener user_id del catálogo
+    // 1. Obtener user_id del catálogo y ya
     const { data: catalog, error: catalogError } = await supabase
       .from("digital_catalogs")
       .select("user_id")
