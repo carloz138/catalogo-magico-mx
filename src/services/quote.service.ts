@@ -54,12 +54,12 @@ export class QuoteService {
 
     // 4. Enviar notificación por email/WhatsApp
     try {
-      await supabase.functions.invoke('send-quote-notification', {
-        body: { quoteId: quote.id }
+      await supabase.functions.invoke("send-quote-notification", {
+        body: { quoteId: quote.id },
       });
     } catch (notificationError) {
       // No bloqueamos la cotización si falla la notificación
-      console.error('Error enviando notificación:', notificationError);
+      console.error("Error enviando notificación:", notificationError);
     }
 
     return quote as Quote;
@@ -173,21 +173,52 @@ export class QuoteService {
 
   // Actualizar estado de cotización
   static async updateQuoteStatus(quoteId: string, userId: string, status: QuoteStatus): Promise<Quote> {
-    const { data, error } = await supabase
+    const { data: updatedQuote, error } = await supabase
       .from("quotes")
       .update({ status })
       .eq("id", quoteId)
       .eq("user_id", userId)
-      .select()
+      .select() // Asegúrate de seleccionar los datos necesarios para la notificación
       .single();
 
     if (error) throw error;
-    if (!data) throw new Error("No se pudo actualizar la cotización");
+    if (!updatedQuote) throw new Error("No se pudo actualizar la cotización");
 
-    // TODO: Enviar email al cliente notificando cambio de estado
-    // Esto lo haremos con Edge Functions
+    // --- INICIO CÓDIGO AÑADIDO ---
+    // Enviar notificación al cliente SOLO si la actualización fue exitosa
+    if (updatedQuote) {
+      try {
+        console.log(`Intentando invocar send-quote-notification para quote ${quoteId} con status ${status}`);
+        // Asegúrate de que tu Edge Function 'send-quote-notification'
+        // esté diseñada para manejar estos datos en el body.
+        const { data: functionData, error: functionError } = await supabase.functions.invoke(
+          "send-quote-notification",
+          {
+            body: {
+              quoteId: updatedQuote.id,
+              newStatus: status, // 'accepted' or 'rejected'
+              customerEmail: updatedQuote.customer_email, // Necesitas el email del cliente
+              customerName: updatedQuote.customer_name, // Y su nombre para personalizar
+              // Puedes añadir más datos si tu función los necesita,
+              // por ejemplo, el nombre del catálogo o un link directo.
+            },
+          },
+        );
 
-    return data as Quote;
+        if (functionError) {
+          // No lanzar un error fatal, pero sí registrarlo
+          console.error("Error al invocar la función de notificación:", functionError);
+        } else {
+          console.log("Función de notificación invocada con éxito:", functionData);
+        }
+      } catch (notificationError) {
+        // Captura cualquier otro error durante la invocación
+        console.error("Error inesperado al intentar notificar:", notificationError);
+      }
+    }
+    // --- FIN CÓDIGO AÑADIDO ---
+
+    return updatedQuote as Quote;
   }
 
   // Obtener estadísticas de cotizaciones
