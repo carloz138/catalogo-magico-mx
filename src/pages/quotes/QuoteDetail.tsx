@@ -51,18 +51,23 @@ export default function QuoteDetailPage() {
     try {
       // 1. Crear la réplica y obtener el link SI la distribución está habilitada
       if (quote.catalog?.enable_distribution) {
+        console.log("Distribution enabled, creating replica..."); // Log añadido
         const replicatedCatalog = await ReplicationService.createReplica({
           original_catalog_id: quote.catalog_id,
           quote_id: quote.id,
           distributor_id: user.id,
         });
-        generatedLink = await ReplicationService.getActivationLink(replicatedCatalog.id); // Guardar el link
-        setActivationLink(generatedLink); // Actualizar estado para el modal si aún lo usas
-        setShowShareModal(true); // Mostrar el modal
+        generatedLink = await ReplicationService.getActivationLink(replicatedCatalog.id);
+        console.log("Generated activation link in DetailPage:", generatedLink); // Log añadido
+        setActivationLink(generatedLink);
+        setShowShareModal(true);
+      } else {
+        console.log("Distribution not enabled for this catalog."); // Log añadido
       }
 
       // 2. Actualizar el estado de la cotización, PASANDO el link generado (o null)
-      await QuoteService.updateQuoteStatus(quote.id, user.id, "accepted", generatedLink ?? undefined); // 🔥 PASAR EL LINK AQUÍ 🔥
+      console.log("Passing activation link to QuoteService:", generatedLink ?? "undefined/null"); // Log añadido
+      await QuoteService.updateQuoteStatus(quote.id, user.id, "accepted", generatedLink ?? undefined); // <-- PASAR EL LINK AQUÍ
 
       // 3. Mostrar notificaciones Toast
       if (generatedLink) {
