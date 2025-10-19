@@ -46,43 +46,34 @@ export default function QuoteDetailPage() {
     if (!quote || !user?.id) return;
 
     setActionLoading(true);
-    let generatedLink: string | null = null; // Variable para guardar el link
-
     try {
-      // 1. Crear la réplica y obtener el link SI la distribución está habilitada
+      console.log("Passing activation link to QuoteService:", link ?? "undefined/null");
+      await QuoteService.updateQuoteStatus(quote.id, user.id, "accepted", link ?? undefined);
+
       if (quote.catalog?.enable_distribution) {
-        console.log("Distribution enabled, creating replica..."); // Log añadido
         const replicatedCatalog = await ReplicationService.createReplica({
           original_catalog_id: quote.catalog_id,
           quote_id: quote.id,
           distributor_id: user.id,
         });
-        generatedLink = await ReplicationService.getActivationLink(replicatedCatalog.id);
-        console.log("Generated activation link in DetailPage:", generatedLink); // Log añadido
-        setActivationLink(generatedLink);
+
+        const link = await ReplicationService.getActivationLink(replicatedCatalog.id);
+        console.log("Generated activation link in DetailPage:", link);
+        setActivationLink(link);
         setShowShareModal(true);
-      } else {
-        console.log("Distribution not enabled for this catalog."); // Log añadido
-      }
 
-      // 2. Actualizar el estado de la cotización, PASANDO el link generado (o null)
-      console.log("Passing activation link to QuoteService:", generatedLink ?? "undefined/null"); // Log añadido
-      await QuoteService.updateQuoteStatus(quote.id, user.id, "accepted", generatedLink ?? undefined); // <-- PASAR EL LINK AQUÍ
-
-      // 3. Mostrar notificaciones Toast
-      if (generatedLink) {
         toast({
           title: "✅ Cotización aceptada",
-          description: "Se creó un catálogo para tu cliente y se envió el link de activación por correo.",
+          description: "Se creó un catálogo para tu cliente. Comparte el link de activación.",
         });
       } else {
         toast({
           title: "✅ Cotización aceptada",
-          description: "La cotización fue aceptada y se notificó al cliente por correo.",
+          description: "La cotización ha sido aceptada exitosamente",
         });
       }
 
-      refetch(); // Recargar datos de la cotización
+      refetch();
     } catch (error: any) {
       console.error("Error accepting quote:", error);
       toast({
