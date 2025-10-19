@@ -171,7 +171,14 @@ export class QuoteService {
     } as Quote & { items: QuoteItem[]; catalog: any };
   }
 
-  static async updateQuoteStatus(quoteId: string, userId: string, status: QuoteStatus): Promise<Quote> {
+  // Actualizar estado de cotización
+  static async updateQuoteStatus(
+    quoteId: string,
+    userId: string,
+    status: QuoteStatus,
+    activationLink?: string,
+  ): Promise<Quote> {
+    // <-- Needs 4 params here!
     const { data: updatedQuote, error } = await supabase
       .from("quotes")
       .update({ status })
