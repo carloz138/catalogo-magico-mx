@@ -172,12 +172,7 @@ export class QuoteService {
   }
 
   // Actualizar estado de cotización
-  static async updateQuoteStatus(
-    quoteId: string,
-    userId: string,
-    status: QuoteStatus,
-    activationLink?: string,
-  ): Promise<Quote> {
+  static async updateQuoteStatus(quoteId: string, userId: string, status: QuoteStatus): Promise<Quote> {
     const { data: updatedQuote, error } = await supabase
       .from("quotes")
       .update({ status })
@@ -204,6 +199,7 @@ export class QuoteService {
               newStatus: status, // 'accepted' or 'rejected'
               customerEmail: updatedQuote.customer_email, // Necesitas el email del cliente
               customerName: updatedQuote.customer_name, // Y su nombre para personalizar
+              activationLink: activationLink || null, //
               // Puedes añadir más datos si tu función los necesita,
               // por ejemplo, el nombre del catálogo o un link directo.
             },
