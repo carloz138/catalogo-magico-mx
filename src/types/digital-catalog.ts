@@ -277,6 +277,7 @@ export interface CatalogByTokenResponse {
   product_count: number;
   catalog_name: string;
   catalog_description: string | null;
+  reseller_email?: string | null;
 }
 
 // Vista extendida para red de distribución
