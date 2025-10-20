@@ -2,7 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Quote, QuoteItem, CreateQuoteDTO, QuoteStatus } from "@/types/digital-catalog";
 
 export class QuoteService {
-  // Crear cotización (desde vista pública - cliente anónimo)
+  // Crear cotización (desde vista pública - cliente anónimo).
   static async createQuote(quoteData: CreateQuoteDTO): Promise<Quote> {
     // 1. Obtener user_id del catálogo y ya
     const { data: catalog, error: catalogError } = await supabase
