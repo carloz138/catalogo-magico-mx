@@ -207,6 +207,8 @@ export interface PublicCatalogView extends DigitalCatalog {
     website: string | null;
   };
   enable_variants: boolean;
+  purchasedProductIds?: string[];
+  isReplicated?: boolean;
 }
 
 // ============================================
