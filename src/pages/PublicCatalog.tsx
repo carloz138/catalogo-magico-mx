@@ -36,7 +36,7 @@ function PublicCatalogContent() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [activeTab, setActiveTab] = useState("productos");
   const { addItem, items, totalAmount, clearCart } = useQuoteCart();
-  
+
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -119,7 +119,7 @@ function PublicCatalogContent() {
     // Si es catálogo replicado, verificar si el producto está en purchasedProductIds
     if (catalog!.isReplicated && catalog!.purchasedProductIds) {
       const isProductPurchased = catalog!.purchasedProductIds.includes(product.id);
-      
+
       if (!isProductPurchased) {
         toast.info('Este producto está bajo pedido. Usa "Solicitar Cotización Especial"', {
           duration: 4000,
@@ -128,7 +128,7 @@ function PublicCatalogContent() {
       }
     }
 
-    if (catalog!.price_display === 'both' && product.price_wholesale) {
+    if (catalog!.price_display === "both" && product.price_wholesale) {
       setSelectedProduct(product);
       setIsAddModalOpen(true);
     } else {
@@ -138,15 +138,18 @@ function PublicCatalogContent() {
         adjustmentMayoreo: catalog!.price_adjustment_mayoreo,
       };
 
-      let priceType: 'retail' | 'wholesale' = 'retail';
+      let priceType: "retail" | "wholesale" = "retail";
       let unitPrice = product.price_retail;
 
-      if (priceConfig.display === 'menudeo_only') {
-        priceType = 'retail';
+      if (priceConfig.display === "menudeo_only") {
+        priceType = "retail";
         unitPrice = calculateAdjustedPrice(product.price_retail, priceConfig.adjustmentMenudeo);
-      } else if (priceConfig.display === 'mayoreo_only') {
-        priceType = 'wholesale';
-        unitPrice = calculateAdjustedPrice(product.price_wholesale || product.price_retail, priceConfig.adjustmentMayoreo);
+      } else if (priceConfig.display === "mayoreo_only") {
+        priceType = "wholesale";
+        unitPrice = calculateAdjustedPrice(
+          product.price_wholesale || product.price_retail,
+          priceConfig.adjustmentMayoreo,
+        );
       }
 
       addItem(product, 1, priceType, unitPrice);
@@ -161,41 +164,45 @@ function PublicCatalogContent() {
       toast.info(`Solicita "${product.name}" en el formulario`);
     }
   };
-  
+
   const handleAddFromModal = (
-    quantity: number, 
-    priceType: 'retail' | 'wholesale',
+    quantity: number,
+    priceType: "retail" | "wholesale",
     variantId?: string | null,
-    variantDescription?: string | null
+    variantDescription?: string | null,
   ) => {
     if (!selectedProduct) return;
-    
+
     const priceConfig = {
       display: catalog!.price_display,
       adjustmentMenudeo: catalog!.price_adjustment_menudeo,
       adjustmentMayoreo: catalog!.price_adjustment_mayoreo,
     };
-    
-    const unitPrice = priceType === 'retail' 
-      ? calculateAdjustedPrice(selectedProduct.price_retail, priceConfig.adjustmentMenudeo)
-      : calculateAdjustedPrice(selectedProduct.price_wholesale || selectedProduct.price_retail, priceConfig.adjustmentMayoreo);
-    
+
+    const unitPrice =
+      priceType === "retail"
+        ? calculateAdjustedPrice(selectedProduct.price_retail, priceConfig.adjustmentMenudeo)
+        : calculateAdjustedPrice(
+            selectedProduct.price_wholesale || selectedProduct.price_retail,
+            priceConfig.adjustmentMayoreo,
+          );
+
     addItem(selectedProduct, quantity, priceType, unitPrice, variantId, variantDescription);
-    
-    const variantText = variantDescription ? ` (${variantDescription})` : '';
+
+    const variantText = variantDescription ? ` (${variantDescription})` : "";
     toast.success(`${selectedProduct.name}${variantText} agregado a cotización`);
     setIsAddModalOpen(false);
     setSelectedProduct(null);
   };
-  
+
   const handleRequestQuote = () => {
     setIsCartOpen(false);
     setIsQuoteFormOpen(true);
   };
-  
+
   const handleQuoteSuccess = () => {
     clearCart();
-    toast.success('¡Cotización enviada! Te contactaremos pronto.');
+    toast.success("¡Cotización enviada! Te contactaremos pronto.");
   };
 
   if (loading) {
@@ -266,13 +273,11 @@ function PublicCatalogContent() {
   }
 
   // Cargar y aplicar template CSS
-  const template = catalog.web_template_id 
-    ? EXPANDED_WEB_TEMPLATES.find(t => t.id === catalog.web_template_id)
+  const template = catalog.web_template_id
+    ? EXPANDED_WEB_TEMPLATES.find((t) => t.id === catalog.web_template_id)
     : null;
-  
-  const templateCSS = template 
-    ? WebTemplateAdapter.generateWebCSS(template, catalog.background_pattern)
-    : "";
+
+  const templateCSS = template ? WebTemplateAdapter.generateWebCSS(template, catalog.background_pattern) : "";
 
   return (
     <>
@@ -315,8 +320,8 @@ function PublicCatalogContent() {
                 </TabsTrigger>
               </TabsList>
 
-              <TabsContent value="productos" className="space-y-6" style={{ pointerEvents: 'auto' }}>
-                <ProductsContent 
+              <TabsContent value="productos" className="space-y-6" style={{ pointerEvents: "auto" }}>
+                <ProductsContent
                   catalog={catalog}
                   query={query}
                   setQuery={setQuery}
@@ -331,10 +336,11 @@ function PublicCatalogContent() {
                   handleRequestSpecialQuote={handleRequestSpecialQuote}
                   minPrice={minPrice}
                   maxPrice={maxPrice}
+                  purchasedProductIds={catalog.purchasedProductIds || []}
                 />
               </TabsContent>
 
-              <TabsContent value="info" style={{ pointerEvents: 'auto' }}>
+              <TabsContent value="info" style={{ pointerEvents: "auto" }}>
                 <Card className="max-w-4xl mx-auto">
                   <CardContent className="p-8">
                     <div className="prose prose-slate max-w-none">
@@ -342,16 +348,14 @@ function PublicCatalogContent() {
                         <Info className="h-6 w-6" />
                         Información Adicional
                       </h2>
-                      <div className="whitespace-pre-wrap text-base leading-relaxed">
-                        {catalog.additional_info}
-                      </div>
+                      <div className="whitespace-pre-wrap text-base leading-relaxed">{catalog.additional_info}</div>
                     </div>
                   </CardContent>
                 </Card>
               </TabsContent>
             </Tabs>
           ) : (
-            <ProductsContent 
+            <ProductsContent
               catalog={catalog}
               query={query}
               setQuery={setQuery}
@@ -366,18 +370,15 @@ function PublicCatalogContent() {
               handleRequestSpecialQuote={handleRequestSpecialQuote}
               minPrice={minPrice}
               maxPrice={maxPrice}
+              purchasedProductIds={catalog.purchasedProductIds || []}
             />
           )}
         </div>
-        
+
         {/* Botón flotante para solicitar productos */}
         <Dialog open={isRequestFormOpen} onOpenChange={setIsRequestFormOpen}>
           <DialogTrigger asChild>
-            <Button 
-              variant="outline" 
-              size="lg"
-              className="fixed bottom-4 right-4 shadow-lg z-40 gap-2"
-            >
+            <Button variant="outline" size="lg" className="fixed bottom-4 right-4 shadow-lg z-40 gap-2">
               <MessageCircleQuestion className="h-5 w-5" />
               ¿No encuentras lo que buscas?
             </Button>
@@ -386,10 +387,10 @@ function PublicCatalogContent() {
             <DialogHeader>
               <DialogTitle>Solicita un Producto</DialogTitle>
             </DialogHeader>
-            <MarketRadarForm 
+            <MarketRadarForm
               fabricanteId={catalog.user_id}
               catalogoId={catalog.id}
-              revendedorId={null}
+              revendedorId={catalog.isReplicated ? (catalog as any).resellerInfo?.reseller_id : null}
             />
           </DialogContent>
         </Dialog>
@@ -411,15 +412,15 @@ function PublicCatalogContent() {
               }}
               onAdd={handleAddFromModal}
             />
-            
+
             <QuoteCartBadge onClick={() => setIsCartOpen(true)} />
-            
+
             <QuoteCartModal
               isOpen={isCartOpen}
               onClose={() => setIsCartOpen(false)}
               onRequestQuote={handleRequestQuote}
             />
-            
+
             <QuoteForm
               catalogId={catalog.id}
               items={items}
