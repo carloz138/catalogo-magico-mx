@@ -52,7 +52,10 @@ export function PublicProductGrid({
             priceConfig={priceConfig}
             visibilityConfig={visibilityConfig}
             enableVariants={enableVariants}
+            purchasedProductIds={purchasedProductIds}
+            isReplicatedCatalog={isReplicatedCatalog}
             onAddToQuote={onAddToQuote ? () => onAddToQuote(product) : undefined}
+            onRequestSpecialQuote={onRequestSpecialQuote ? () => onRequestSpecialQuote(product) : undefined}
           />
         ))}
       </div>

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ShoppingCart } from 'lucide-react';
+import { ShoppingCart, Send } from 'lucide-react';
 import { calculateAdjustedPrice } from '@/lib/utils/price-calculator';
 import { VariantSelector } from './VariantSelector';
 
@@ -44,10 +44,22 @@ interface Props {
     showStock: boolean;
   };
   enableVariants?: boolean;
+  purchasedProductIds: string[];
+  isReplicatedCatalog: boolean;
   onAddToQuote?: () => void;
+  onRequestSpecialQuote?: (product: any) => void;
 }
 
-export function PublicProductCard({ product, priceConfig, visibilityConfig, enableVariants = true, onAddToQuote }: Props) {
+export function PublicProductCard({ 
+  product, 
+  priceConfig, 
+  visibilityConfig, 
+  enableVariants = true, 
+  purchasedProductIds,
+  isReplicatedCatalog,
+  onAddToQuote,
+  onRequestSpecialQuote 
+}: Props) {
   const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
 
   // Inicializar con la variante por defecto
@@ -57,6 +69,9 @@ export function PublicProductCard({ product, priceConfig, visibilityConfig, enab
       setSelectedVariantId(defaultVariant.id);
     }
   }, [product]);
+
+  // Determinar si el producto está en la lista de comprados
+  const isPurchased = !isReplicatedCatalog || purchasedProductIds.includes(product.id);
 
   const imageUrl = product.processed_image_url || product.original_image_url;
   
@@ -88,6 +103,21 @@ export function PublicProductCard({ product, priceConfig, visibilityConfig, enab
         <h3 className="catalog-product-name font-semibold text-lg line-clamp-2 min-h-[3.5rem]">
           {product.name}
         </h3>
+        
+        {/* Badge de estado: Disponible o Bajo Pedido */}
+        {isReplicatedCatalog && (
+          <div>
+            {isPurchased ? (
+              <Badge variant="outline" className="border-green-500 text-green-700">
+                ✅ Disponible
+              </Badge>
+            ) : (
+              <Badge variant="secondary" className="bg-amber-100 text-amber-800 border-amber-300">
+                📝 Bajo Pedido
+              </Badge>
+            )}
+          </div>
+        )}
         
         {visibilityConfig.showSku && (selectedVariant?.sku || product.sku) && (
           <Badge variant="outline" className="text-xs">
@@ -149,14 +179,30 @@ export function PublicProductCard({ product, priceConfig, visibilityConfig, enab
           )}
         </div>
         
-        {onAddToQuote && (
-          <Button 
-            onClick={onAddToQuote}
-            className="w-full catalog-add-button"
-          >
-            <ShoppingCart className="mr-2 h-4 w-4" />
-            Agregar a cotización
-          </Button>
+        {/* Botón condicional basado en estado de compra */}
+        {isPurchased ? (
+          onAddToQuote && (
+            <Button 
+              size="sm"
+              onClick={onAddToQuote}
+              className="w-full catalog-add-button"
+            >
+              <ShoppingCart className="mr-2 h-4 w-4" />
+              Agregar a cotización
+            </Button>
+          )
+        ) : (
+          onRequestSpecialQuote && (
+            <Button 
+              variant="outline"
+              size="sm"
+              className="w-full border-indigo-500 text-indigo-700 hover:bg-indigo-50"
+              onClick={() => onRequestSpecialQuote(product)}
+            >
+              <Send className="mr-2 h-4 w-4" />
+              Solicitar Cotización Especial
+            </Button>
+          )
         )}
       </div>
     </div>
