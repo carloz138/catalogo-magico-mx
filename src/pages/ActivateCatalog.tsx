@@ -13,7 +13,7 @@ export default function ActivateCatalog() {
   const { token } = useParams<{ token: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
-  
+
   const [catalog, setCatalog] = useState<CatalogByTokenResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -23,6 +23,7 @@ export default function ActivateCatalog() {
   const [showEmailForm, setShowEmailForm] = useState(false);
   const [activating, setActivating] = useState(false);
   const [activated, setActivated] = useState(false);
+  const [activationMessage, setActivationMessage] = useState("");
 
   useEffect(() => {
     if (!token) {
@@ -57,6 +58,39 @@ export default function ActivateCatalog() {
   const handleActivate = async () => {
     if (!catalog) return;
     setShowEmailForm(true);
+  };
+
+  const handleActivateWithEmail = async () => {
+    if (!email || !catalog || !token) return; // Ensure token is also checked
+
+    setActivating(true);
+    setError(null); // Clear previous errors
+    try {
+      // Call the updated service function that invokes the Edge Function
+      const result = await ReplicationService.activateWithEmail({
+        token: token,
+        email,
+        name,
+      });
+
+      // Update state based on the function's response
+      setActivationMessage(result.message); // Store the message to display
+      setActivated(true); // Show the "Check your email" UI
+
+      // No toast needed here as the UI changes significantly
+    } catch (error: any) {
+      console.error("Error activating:", error);
+      toast({
+        title: "Error de Activación",
+        description:
+          error.message || "No se pudo iniciar el proceso de activación. Verifica el email e inténtalo de nuevo.",
+        variant: "destructive",
+      });
+      // Important: Do NOT set activated to true if there was an error
+      setActivated(false);
+    } finally {
+      setActivating(false);
+    }
   };
 
   const handleActivateWithEmail = async () => {
@@ -122,12 +156,8 @@ export default function ActivateCatalog() {
             <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <X className="h-8 w-8 text-red-600" />
             </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">
-              Catálogo no encontrado
-            </h2>
-            <p className="text-gray-600 mb-6">
-              {error || "El link de activación no es válido o ha expirado"}
-            </p>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Catálogo no encontrado</h2>
+            <p className="text-gray-600 mb-6">{error || "El link de activación no es válido o ha expirado"}</p>
             <Button onClick={() => navigate("/")} variant="outline">
               Ir al inicio
             </Button>
@@ -145,15 +175,9 @@ export default function ActivateCatalog() {
             <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <Check className="h-8 w-8 text-green-600" />
             </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">
-              Catálogo ya activo
-            </h2>
-            <p className="text-gray-600 mb-6">
-              Este catálogo ya ha sido activado. Inicia sesión para gestionarlo.
-            </p>
-            <Button onClick={() => navigate("/login")}>
-              Iniciar sesión
-            </Button>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Catálogo ya activo</h2>
+            <p className="text-gray-600 mb-6">Este catálogo ya ha sido activado. Inicia sesión para gestionarlo.</p>
+            <Button onClick={() => navigate("/login")}>Iniciar sesión</Button>
           </CardContent>
         </Card>
       </div>
@@ -168,15 +192,9 @@ export default function ActivateCatalog() {
             <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <X className="h-8 w-8 text-yellow-600" />
             </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">
-              Catálogo expirado
-            </h2>
-            <p className="text-gray-600 mb-4">
-              Este catálogo gratuito ha expirado (30 días).
-            </p>
-            <p className="text-gray-600 mb-6">
-              Puedes activarlo GRATIS para tener acceso ilimitado.
-            </p>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Catálogo expirado</h2>
+            <p className="text-gray-600 mb-4">Este catálogo gratuito ha expirado (30 días).</p>
+            <p className="text-gray-600 mb-6">Puedes activarlo GRATIS para tener acceso ilimitado.</p>
             <Button onClick={handleActivate} className="w-full">
               Activar GRATIS
             </Button>
@@ -207,25 +225,19 @@ export default function ActivateCatalog() {
       <div className="max-w-5xl mx-auto py-12 px-4">
         {/* Hero Section */}
         <div className="text-center mb-12">
-          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-            🎉 ¡Tu catálogo gratuito está listo!
-          </h1>
+          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">🎉 ¡Tu catálogo gratuito está listo!</h1>
           <p className="text-xl text-gray-600 mb-2">
             <span className="font-semibold text-indigo-600">
               {catalog.distributor_name || catalog.distributor_company || "Tu proveedor"}
             </span>{" "}
             te ha creado un catálogo profesional
           </p>
-          <p className="text-lg text-gray-500">
-            con {catalog.product_count} productos
-          </p>
+          <p className="text-lg text-gray-500">con {catalog.product_count} productos</p>
         </div>
 
         {/* Comparison Table */}
         <div className="mb-12">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">
-            Elige tu plan
-          </h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">Elige tu plan</h2>
           <ComparisonTable />
         </div>
 
@@ -233,44 +245,34 @@ export default function ActivateCatalog() {
         {!activated ? (
           <div className="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl shadow-2xl p-8 md:p-12 text-white mb-8">
             <div className="max-w-3xl mx-auto text-center">
-              <h3 className="text-3xl md:text-4xl font-bold mb-6">
-                Activa tu catálogo GRATIS
-              </h3>
+              <h3 className="text-3xl md:text-4xl font-bold mb-6">Activa tu catálogo GRATIS</h3>
               <div className="grid md:grid-cols-2 gap-4 text-left mb-8">
                 <div className="flex items-start gap-3">
                   <Check className="h-6 w-6 flex-shrink-0 mt-1" />
                   <div>
                     <p className="font-semibold">Productos ilimitados</p>
-                    <p className="text-sm text-indigo-100">
-                      No te limites a 50 productos
-                    </p>
+                    <p className="text-sm text-indigo-100">No te limites a 50 productos</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
                   <Check className="h-6 w-6 flex-shrink-0 mt-1" />
                   <div>
                     <p className="font-semibold">Sin costo, sin expiración</p>
-                    <p className="text-sm text-indigo-100">
-                      Úsalo todo el tiempo que necesites
-                    </p>
+                    <p className="text-sm text-indigo-100">Úsalo todo el tiempo que necesites</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
                   <Check className="h-6 w-6 flex-shrink-0 mt-1" />
                   <div>
                     <p className="font-semibold">Cotizaciones 24/7</p>
-                    <p className="text-sm text-indigo-100">
-                      Recibe pedidos automáticamente
-                    </p>
+                    <p className="text-sm text-indigo-100">Recibe pedidos automáticamente</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
                   <Check className="h-6 w-6 flex-shrink-0 mt-1" />
                   <div>
                     <p className="font-semibold">Panel de gestión</p>
-                    <p className="text-sm text-indigo-100">
-                      Controla todos tus pedidos
-                    </p>
+                    <p className="text-sm text-indigo-100">Controla todos tus pedidos</p>
                   </div>
                 </div>
               </div>
@@ -357,8 +359,8 @@ export default function ActivateCatalog() {
               <Alert className="bg-blue-50 border-blue-200">
                 <Mail className="w-4 h-4 text-blue-600" />
                 <AlertDescription className="text-blue-900">
-                  <strong>¿No ves el email?</strong> Revisa tu carpeta de spam o correo no deseado.
-                  El email puede tardar hasta 2 minutos en llegar.
+                  <strong>¿No ves el email?</strong> Revisa tu carpeta de spam o correo no deseado. El email puede
+                  tardar hasta 2 minutos en llegar.
                 </AlertDescription>
               </Alert>
 
@@ -391,28 +393,18 @@ export default function ActivateCatalog() {
         <div className="mt-12 grid md:grid-cols-3 gap-6 text-center">
           <div className="bg-white rounded-lg p-6 shadow">
             <div className="text-3xl mb-3">⚡</div>
-            <h4 className="font-semibold text-gray-900 mb-2">
-              Activación instantánea
-            </h4>
-            <p className="text-sm text-gray-600">
-              Tu catálogo estará listo en menos de 1 minuto
-            </p>
+            <h4 className="font-semibold text-gray-900 mb-2">Activación instantánea</h4>
+            <p className="text-sm text-gray-600">Tu catálogo estará listo en menos de 1 minuto</p>
           </div>
           <div className="bg-white rounded-lg p-6 shadow">
             <div className="text-3xl mb-3">💰</div>
             <h4 className="font-semibold text-gray-900 mb-2">100% Gratuito</h4>
-            <p className="text-sm text-gray-600">
-              Sin pagos, sin suscripciones, sin cargos ocultos
-            </p>
+            <p className="text-sm text-gray-600">Sin pagos, sin suscripciones, sin cargos ocultos</p>
           </div>
           <div className="bg-white rounded-lg p-6 shadow">
             <div className="text-3xl mb-3">📱</div>
-            <h4 className="font-semibold text-gray-900 mb-2">
-              100% responsive
-            </h4>
-            <p className="text-sm text-gray-600">
-              Funciona perfecto en móvil, tablet y desktop
-            </p>
+            <h4 className="font-semibold text-gray-900 mb-2">100% responsive</h4>
+            <p className="text-sm text-gray-600">Funciona perfecto en móvil, tablet y desktop</p>
           </div>
         </div>
       </div>
@@ -420,8 +412,8 @@ export default function ActivateCatalog() {
       {/* Footer */}
       <footer className="bg-white mt-12 py-6 px-4 text-center text-sm text-gray-600 border-t">
         <p>
-          Powered by <span className="font-semibold text-indigo-600">CatifyPro</span> |
-          La manera más fácil de crear catálogos digitales
+          Powered by <span className="font-semibold text-indigo-600">CatifyPro</span> | La manera más fácil de crear
+          catálogos digitales
         </p>
       </footer>
     </div>
