@@ -11,21 +11,24 @@ import type {
   ResellerDashboardData,
 } from "@/types/digital-catalog";
 
+// Define the expected return type from the Edge Function
+interface ActivationResponse {
+  success: boolean;
+  message: string;
+  userExisted: boolean;
+  requiresConfirmation: boolean;
+}
+
 export class ReplicationService {
   /**
    * Crear catálogo replicado cuando se acepta una cotización
    */
-  static async createReplica(
-    data: CreateReplicatedCatalogDTO
-  ): Promise<ReplicatedCatalog> {
-    const { data: catalogId, error } = await supabase.rpc(
-      "create_replicated_catalog",
-      {
-        p_original_catalog_id: data.original_catalog_id,
-        p_quote_id: data.quote_id,
-        p_distributor_id: data.distributor_id,
-      }
-    );
+  static async createReplica(data: CreateReplicatedCatalogDTO): Promise<ReplicatedCatalog> {
+    const { data: catalogId, error } = await supabase.rpc("create_replicated_catalog", {
+      p_original_catalog_id: data.original_catalog_id,
+      p_quote_id: data.quote_id,
+      p_distributor_id: data.distributor_id,
+    });
 
     if (error) {
       console.error("Error creating replicated catalog:", error);
@@ -50,19 +53,17 @@ export class ReplicationService {
   /**
    * Obtener información de catálogo por token (para página de activación)
    */
-  static async getCatalogByToken(
-    token: string
-  ): Promise<CatalogByTokenResponse> {
-    console.log('🔍 Getting catalog by token:', token);
-    
+  static async getCatalogByToken(token: string): Promise<CatalogByTokenResponse> {
+    console.log("🔍 Getting catalog by token:", token);
+
     const { data, error } = await supabase.rpc("get_catalog_by_token", {
       p_token: token,
     });
 
-    console.log('📦 Response data:', data);
-    console.log('❌ Response error:', error);
-    console.log('📊 Data type:', typeof data);
-    console.log('📏 Data length:', Array.isArray(data) ? data.length : 'not array');
+    console.log("📦 Response data:", data);
+    console.log("❌ Response error:", error);
+    console.log("📊 Data type:", typeof data);
+    console.log("📏 Data length:", Array.isArray(data) ? data.length : "not array");
 
     if (error) {
       console.error("Error getting catalog by token:", error);
@@ -78,28 +79,23 @@ export class ReplicationService {
       if (data.length === 0) {
         throw new Error("Catálogo no encontrado - array vacío");
       }
-      console.log('✅ Returning data[0]:', data[0]);
+      console.log("✅ Returning data[0]:", data[0]);
       return data[0];
     }
 
     // Si data es un objeto directo
-    console.log('✅ Returning data directly:', data);
+    console.log("✅ Returning data directly:", data);
     return data as CatalogByTokenResponse;
   }
 
   /**
    * Activar catálogo tras pago de $29 MXN
    */
-  static async activateCatalog(
-    data: ActivateReplicatedCatalogDTO
-  ): Promise<boolean> {
-    const { data: result, error } = await supabase.rpc(
-      "activate_replicated_catalog",
-      {
-        p_token: data.token,
-        p_reseller_id: data.reseller_id,
-      }
-    );
+  static async activateCatalog(data: ActivateReplicatedCatalogDTO): Promise<boolean> {
+    const { data: result, error } = await supabase.rpc("activate_replicated_catalog", {
+      p_token: data.token,
+      p_reseller_id: data.reseller_id,
+    });
 
     if (error) {
       console.error("Error activating catalog:", error);
@@ -112,9 +108,7 @@ export class ReplicationService {
   /**
    * Obtener red de distribución de un usuario (Nivel 2)
    */
-  static async getDistributionNetwork(
-    distributorId: string
-  ): Promise<NetworkResellerView[]> {
+  static async getDistributionNetwork(distributorId: string): Promise<NetworkResellerView[]> {
     const { data, error } = await supabase.rpc("get_distribution_network", {
       p_distributor_id: distributorId,
     });
@@ -139,18 +133,12 @@ export class ReplicationService {
     const active_resellers = network.filter((r) => r.is_active).length;
     const pending_activations = network.filter((r) => !r.is_active).length;
 
-    const total_quotes_generated = network.reduce(
-      (sum, r) => sum + (r.total_quotes || 0),
-      0
-    );
+    const total_quotes_generated = network.reduce((sum, r) => sum + (r.total_quotes || 0), 0);
 
     // Sistema gratuito - revenue por otras fuentes (upgrades, features premium)
     const total_revenue = 0;
 
-    const conversion_rate =
-      total_catalogs_created > 0
-        ? (active_resellers / total_catalogs_created) * 100
-        : 0;
+    const conversion_rate = total_catalogs_created > 0 ? (active_resellers / total_catalogs_created) * 100 : 0;
 
     // Top reseller
     const sortedByQuotes = [...network]
@@ -230,9 +218,7 @@ export class ReplicationService {
   /**
    * Obtener catálogos replicados de un revendedor (Nivel 3)
    */
-  static async getResellerCatalogs(
-    resellerId: string
-  ): Promise<ReplicatedCatalog[]> {
+  static async getResellerCatalogs(resellerId: string): Promise<ReplicatedCatalog[]> {
     const { data, error } = await supabase
       .from("replicated_catalogs")
       .select("*")
@@ -241,9 +227,7 @@ export class ReplicationService {
 
     if (error) {
       console.error("Error getting reseller catalogs:", error);
-      throw new Error(
-        `Error al obtener catálogos del revendedor: ${error.message}`
-      );
+      throw new Error(`Error al obtener catálogos del revendedor: ${error.message}`);
     }
 
     return data || [];
@@ -264,10 +248,7 @@ export class ReplicationService {
       throw new Error("No se puede eliminar un catálogo activo");
     }
 
-    const { error } = await supabase
-      .from("replicated_catalogs")
-      .delete()
-      .eq("id", catalogId);
+    const { error } = await supabase.from("replicated_catalogs").delete().eq("id", catalogId);
 
     if (error) {
       console.error("Error deleting replica:", error);
@@ -279,67 +260,47 @@ export class ReplicationService {
    * Activar catálogo con solo email (sin password) - Sistema híbrido
    */
   static async activateWithEmail(
-    data: ActivateWithEmailDTO
-  ): Promise<MagicLinkResponse> {
+    data: ActivateWithEmailDTO, // Or use { token: string; email: string; name?: string } directly
+  ): Promise<ActivationResponse> {
+    // <-- Use the specific return type
     try {
-      // 1. Verificar que el token existe y no está activo
-      const catalogInfo = await this.getCatalogByToken(data.token);
-      
-      if (catalogInfo.is_active) {
-        throw new Error('Este catálogo ya está activo');
-      }
-
-      // 2. Guardar email temporalmente en el catálogo
-      const { error: updateError } = await supabase
-        .from('replicated_catalogs')
-        .update({ reseller_email: data.email } as any)
-        .eq('activation_token', data.token);
-
-      if (updateError) {
-        throw new Error(`Error al guardar email: ${updateError.message}`);
-      }
-
-      // 3. Activar el catálogo SIN asignar reseller_id todavía
-      const { data: activationResult, error: activationError } = await supabase.rpc(
-        'activate_replicated_catalog',
+      console.log("Calling activate-replicated-catalog Edge Function with:", data);
+      const { data: functionResponse, error } = await supabase.functions.invoke<ActivationResponse>( // <-- Specify the return type here
+        "activate-replicated-catalog",
         {
-          p_token: data.token,
-          p_reseller_id: null, // NULL por ahora
-        }
+          body: {
+            token: data.token,
+            email: data.email,
+            name: data.name || undefined, // Send name only if it exists
+          },
+        },
       );
 
-      if (activationError) {
-        throw new Error(`Error al activar: ${activationError.message}`);
+      if (error) {
+        console.error("Error invoking activate-replicated-catalog:", error);
+        // Try to extract a more useful error message if possible
+        const message =
+          (error as any).context?.message || error.message || "Error al contactar el servidor de activación.";
+        throw new Error(message);
       }
 
-      // 4. Crear usuario usando signUp (Supabase enviará email automático)
-      const { data: authData, error: signUpError } = await supabase.auth.signUp({
-        email: data.email,
-        password: crypto.randomUUID(), // Password temporal random
-        options: {
-          data: {
-            full_name: data.name || data.email.split('@')[0],
-            is_reseller: true,
-            catalog_token: data.token, // Guardar token para después
-          },
-          emailRedirectTo: `${window.location.origin}/complete-activation?token=${data.token}`,
-        },
-      });
-
-      if (signUpError) {
-        console.error('Error en signUp:', signUpError);
-        // No fallar si ya existe el usuario
-        if (!signUpError.message.includes('already registered')) {
-          throw new Error(`Error al crear cuenta: ${signUpError.message}`);
-        }
+      // Validate the function's response structure
+      if (!functionResponse || typeof functionResponse.success !== "boolean") {
+        console.error("Invalid response from activation function:", functionResponse);
+        throw new Error("Respuesta inesperada del servidor de activación.");
       }
 
-      return {
-        success: true,
-        message: 'Catálogo activado. Revisa tu email para completar el registro.',
-      };
+      // If the function itself reported an internal failure (even with a 200 status)
+      if (!functionResponse.success) {
+        throw new Error(functionResponse.message || "Ocurrió un error durante la activación en el servidor.");
+      }
+
+      console.log("Activation function response:", functionResponse);
+      // Return the full response from the Edge Function
+      return functionResponse;
     } catch (error: any) {
-      console.error('Error in activateWithEmail:', error);
+      console.error("Error in activateWithEmail:", error);
+      // Re-throw the error so ActivateCatalog.tsx can catch and display it
       throw error;
     }
   }
@@ -347,12 +308,9 @@ export class ReplicationService {
   /**
    * Completar activación después de confirmar email
    */
-  static async completeActivation(
-    token: string,
-    userId: string
-  ): Promise<boolean> {
+  static async completeActivation(token: string, userId: string): Promise<boolean> {
     try {
-      const { data, error } = await supabase.rpc('complete_catalog_activation', {
+      const { data, error } = await supabase.rpc("complete_catalog_activation", {
         p_token: token,
         p_reseller_id: userId,
       });
@@ -363,7 +321,7 @@ export class ReplicationService {
 
       return true;
     } catch (error: any) {
-      console.error('Error completing activation:', error);
+      console.error("Error completing activation:", error);
       throw error;
     }
   }
@@ -371,15 +329,13 @@ export class ReplicationService {
   /**
    * Obtener datos del dashboard del revendedor
    */
-  static async getResellerDashboard(
-    catalogId: string,
-    userId: string
-  ): Promise<ResellerDashboardData> {
+  static async getResellerDashboard(catalogId: string, userId: string): Promise<ResellerDashboardData> {
     try {
       // 1. Obtener catálogo replicado
       const { data: replicatedCatalog, error: catalogError } = await supabase
-        .from('replicated_catalogs')
-        .select(`
+        .from("replicated_catalogs")
+        .select(
+          `
           id,
           original_catalog_id,
           quote_id,
@@ -387,41 +343,44 @@ export class ReplicationService {
             name,
             slug
           )
-        `)
-        .eq('id', catalogId)
-        .eq('reseller_id', userId)
+        `,
+        )
+        .eq("id", catalogId)
+        .eq("reseller_id", userId)
         .single();
 
       if (catalogError || !replicatedCatalog) {
-        throw new Error('Catálogo no encontrado');
+        throw new Error("Catálogo no encontrado");
       }
 
       const originalCatalog = (replicatedCatalog as any).digital_catalogs;
 
       // 2. Contar productos del catálogo original
       const { count: productCount } = await supabase
-        .from('catalog_products')
-        .select('*', { count: 'exact', head: true })
-        .eq('catalog_id', replicatedCatalog.original_catalog_id);
+        .from("catalog_products")
+        .select("*", { count: "exact", head: true })
+        .eq("catalog_id", replicatedCatalog.original_catalog_id);
 
       // 3. Obtener cotización original (la que hizo el revendedor)
       let originalQuote = null;
       if (replicatedCatalog.quote_id) {
         const { data: quoteData } = await supabase
-          .from('quotes')
-          .select(`
+          .from("quotes")
+          .select(
+            `
             id,
             status,
             created_at,
             quote_items (subtotal)
-          `)
-          .eq('id', replicatedCatalog.quote_id)
+          `,
+          )
+          .eq("id", replicatedCatalog.quote_id)
           .single();
 
         if (quoteData) {
           const items = (quoteData as any).quote_items || [];
           const total = items.reduce((sum: number, item: any) => sum + (item.subtotal || 0), 0);
-          
+
           originalQuote = {
             id: quoteData.id,
             status: quoteData.status,
@@ -435,7 +394,7 @@ export class ReplicationService {
       // 4. Obtener cotizaciones recibidas del nuevo catálogo del revendedor
       // Por ahora este catálogo aún no tiene slug propio, usaremos el original
       // TODO: En el futuro, cada catálogo replicado tendrá su propio slug
-      
+
       const receivedQuotes: any[] = []; // Placeholder por ahora
       const stats = {
         total_quotes: 0,
@@ -456,7 +415,7 @@ export class ReplicationService {
         stats,
       };
     } catch (error: any) {
-      console.error('Error getting reseller dashboard:', error);
+      console.error("Error getting reseller dashboard:", error);
       throw error;
     }
   }
