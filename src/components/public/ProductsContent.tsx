@@ -17,6 +17,7 @@ interface ProductsContentProps {
   clearFilters: () => void;
   filteredProducts: any[];
   handleAddToQuote: (product: any) => void;
+  handleRequestSpecialQuote: (product?: any) => void;
   minPrice: number;
   maxPrice: number;
 }
@@ -33,6 +34,7 @@ export function ProductsContent({
   clearFilters,
   filteredProducts,
   handleAddToQuote,
+  handleRequestSpecialQuote,
   minPrice,
   maxPrice,
 }: ProductsContentProps) {

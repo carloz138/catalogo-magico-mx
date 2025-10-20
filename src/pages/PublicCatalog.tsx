@@ -116,6 +116,18 @@ function PublicCatalogContent() {
   };
 
   const handleAddToQuote = (product: any) => {
+    // Si es catálogo replicado, verificar si el producto está en purchasedProductIds
+    if (catalog!.isReplicated && catalog!.purchasedProductIds) {
+      const isProductPurchased = catalog!.purchasedProductIds.includes(product.id);
+      
+      if (!isProductPurchased) {
+        toast.info('Este producto está bajo pedido. Usa "Solicitar Cotización Especial"', {
+          duration: 4000,
+        });
+        return;
+      }
+    }
+
     if (catalog!.price_display === 'both' && product.price_wholesale) {
       setSelectedProduct(product);
       setIsAddModalOpen(true);
@@ -139,6 +151,14 @@ function PublicCatalogContent() {
 
       addItem(product, 1, priceType, unitPrice);
       toast.success(`${product.name} agregado a cotización`);
+    }
+  };
+
+  const handleRequestSpecialQuote = (product?: any) => {
+    // Si se pasa un producto, podríamos pre-llenarlo en el formulario (futura mejora)
+    setIsRequestFormOpen(true);
+    if (product) {
+      toast.info(`Solicita "${product.name}" en el formulario`);
     }
   };
   
@@ -308,6 +328,7 @@ function PublicCatalogContent() {
                   clearFilters={clearFilters}
                   filteredProducts={filteredProducts}
                   handleAddToQuote={handleAddToQuote}
+                  handleRequestSpecialQuote={handleRequestSpecialQuote}
                   minPrice={minPrice}
                   maxPrice={maxPrice}
                 />
@@ -342,6 +363,7 @@ function PublicCatalogContent() {
               clearFilters={clearFilters}
               filteredProducts={filteredProducts}
               handleAddToQuote={handleAddToQuote}
+              handleRequestSpecialQuote={handleRequestSpecialQuote}
               minPrice={minPrice}
               maxPrice={maxPrice}
             />
