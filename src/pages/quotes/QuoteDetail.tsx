@@ -46,7 +46,7 @@ export default function QuoteDetailPage() {
     if (!quote || !user?.id) return;
 
     setActionLoading(true);
-    let generatedLink: string | null = null; // Variable para guardar el link
+    let generatedLink: string | null = null; // Variable para guardar el link.
 
     try {
       // 1. Crear la réplica y obtener el link SI la distribución está habilitada
