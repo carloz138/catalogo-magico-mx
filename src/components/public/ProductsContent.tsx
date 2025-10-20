@@ -20,6 +20,7 @@ interface ProductsContentProps {
   handleRequestSpecialQuote: (product?: any) => void;
   minPrice: number;
   maxPrice: number;
+  purchasedProductIds: string[];
 }
 
 export function ProductsContent({
@@ -37,9 +38,10 @@ export function ProductsContent({
   handleRequestSpecialQuote,
   minPrice,
   maxPrice,
+  purchasedProductIds, // <-- AÑADIR AQUÍ
 }: ProductsContentProps) {
   return (
-    <div className="flex flex-col lg:flex-row gap-8" style={{ pointerEvents: 'auto' }}>
+    <div className="flex flex-col lg:flex-row gap-8" style={{ pointerEvents: "auto" }}>
       <aside className="hidden lg:block w-64 flex-shrink-0">
         <ProductFilters
           tags={availableTags}
@@ -68,8 +70,7 @@ export function ProductsContent({
         </div>
 
         <div className="mb-4 text-sm text-muted-foreground">
-          {filteredProducts.length}{" "}
-          {filteredProducts.length === 1 ? "producto encontrado" : "productos encontrados"}
+          {filteredProducts.length} {filteredProducts.length === 1 ? "producto encontrado" : "productos encontrados"}
         </div>
 
         {filteredProducts.length === 0 && (
@@ -97,6 +98,9 @@ export function ProductsContent({
             }}
             enableVariants={catalog.enable_variants}
             onAddToQuote={catalog.enable_quotation ? handleAddToQuote : undefined}
+            purchasedProductIds={purchasedProductIds}
+            onRequestSpecialQuote={catalog.enable_quotation ? handleRequestSpecialQuote : undefined}
+            isReplicatedCatalog={catalog.isReplicated ?? false}
           />
         )}
       </main>
