@@ -16,7 +16,7 @@ export function QuoteCartBadge({ onClick }: Props) {
     <Button
       onClick={onClick}
       size="lg"
-      className="fixed bottom-6 right-6 z-50 shadow-2xl rounded-full px-6 py-6"
+      className="shadow-2xl rounded-full px-6 py-6"
     >
       <div className="relative">
         <ShoppingCart className="h-5 w-5" />

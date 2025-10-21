@@ -371,9 +371,15 @@ function PublicCatalogContent() {
           )}
                  {" "}
         </div>
-        <div className="fixed bottom-4 right-4 z-50 flex flex-col items-end gap-3">
-          {catalog.enable_quotation && items.length > 0 && <QuoteCartBadge onClick={() => setIsCartOpen(true)} />}
 
+        {/* Grupo de Botones Flotantes */}
+        <div className="fixed bottom-4 right-4 z-50 flex flex-col items-end gap-3">
+          {/* Botón de Cotización */}
+          {catalog.enable_quotation && items.length > 0 && (
+            <QuoteCartBadge onClick={() => setIsCartOpen(true)} />
+          )}
+
+          {/* Botón de Market Radar */}
           <Dialog open={isRequestFormOpen} onOpenChange={setIsRequestFormOpen}>
             <DialogTrigger asChild>
               <Button variant="outline" size="lg" className="bg-white/80 backdrop-blur-sm shadow-lg gap-2">
