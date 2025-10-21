@@ -1,7 +1,7 @@
 // Tipos para el sistema de catálogos digitales
 
 export type PriceDisplay = "menudeo_only" | "mayoreo_only" | "both";
-export type QuoteStatus = "pending" | "accepted" | "rejected";
+export type QuoteStatus = "pending" | "accepted" | "rejected" | "shipped";
 export type PriceType = "menudeo" | "mayoreo";
 
 export interface DigitalCatalog {

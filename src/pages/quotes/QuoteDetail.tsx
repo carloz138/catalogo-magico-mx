@@ -21,6 +21,7 @@ import {
   Download,
   ExternalLink,
   Copy,
+  Truck,
 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -123,6 +124,29 @@ export default function QuoteDetailPage() {
     }
   };
 
+  const handleMarkAsShipped = async () => {
+    if (!quote || !user?.id) return;
+
+    setActionLoading(true);
+    try {
+      await QuoteService.updateQuoteStatus(quote.id, user.id, "shipped");
+      toast({
+        title: "✅ Pedido marcado como enviado",
+        description: "El cliente será notificado del envío",
+      });
+      refetch();
+    } catch (error: any) {
+      console.error("Error marking as shipped:", error);
+      toast({
+        title: "Error",
+        description: error.message || "No se pudo marcar como enviado",
+        variant: "destructive",
+      });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const getStatusConfig = (status: QuoteStatus) => {
     const config = {
       pending: {
@@ -139,6 +163,11 @@ export default function QuoteDetailPage() {
         icon: XCircle,
         label: "Rechazada",
         color: "bg-red-50 text-red-600 border-red-200",
+      },
+      shipped: {
+        icon: Truck,
+        label: "Pedido Enviado",
+        color: "bg-blue-50 text-blue-600 border-blue-200",
       },
     };
 
@@ -358,6 +387,24 @@ export default function QuoteDetailPage() {
                 <Button variant="destructive" className="w-full" onClick={handleRejectQuote} disabled={actionLoading}>
                   <XCircle className="w-4 w-4 mr-2" />
                   Rechazar Cotización
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
+          {quote.status === "accepted" && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Siguiente Paso</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Button
+                  className="w-full bg-blue-600 hover:bg-blue-700"
+                  onClick={handleMarkAsShipped}
+                  disabled={actionLoading}
+                >
+                  {actionLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Truck className="w-4 h-4 mr-2" />}
+                  Marcar como Enviado
                 </Button>
               </CardContent>
             </Card>
