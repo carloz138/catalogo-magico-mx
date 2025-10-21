@@ -2,28 +2,28 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Helmet, HelmetProvider } from "react-helmet-async";
 import { Calendar, Search, Info, MessageCircleQuestion } from "lucide-react";
-import { DigitalCatalogService } from "../services/digital-catalog.service";
-import { PublicCatalogView } from "../types/digital-catalog";
-import CatalogHeader from "../components/public/CatalogHeader";
-import { ProductsContent } from "../components/public/ProductsContent";
-import PasswordModal from "../components/public/PasswordModal";
-import { AddToQuoteModal } from "../components/public/AddToQuoteModal";
-import { QuoteCartBadge } from "../components/public/QuoteCartBadge";
-import { QuoteCartModal } from "../components/public/QuoteCartModal";
-import { QuoteForm } from "../components/public/QuoteForm";
-import { MarketRadarForm } from "../components/dashboard/MarketRadarForm";
-import { useProductSearch } from "../hooks/useProductSearch";
-import { useProductFilters } from "../hooks/useProductFilters";
-import { QuoteCartProvider, useQuoteCart } from "../contexts/QuoteCartContext";
-import { Button } from "../components/ui/button";
-import { Skeleton } from "../components/ui/skeleton";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
-import { Card, CardContent } from "../components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "../components/ui/dialog";
-import { calculateAdjustedPrice } from "../lib/utils/price-calculator";
+import { DigitalCatalogService } from "@/services/digital-catalog.service";
+import { PublicCatalogView } from "@/types/digital-catalog";
+import CatalogHeader from "@/components/public/CatalogHeader";
+import { ProductsContent } from "@/components/public/ProductsContent";
+import PasswordModal from "@/components/public/PasswordModal";
+import { AddToQuoteModal } from "@/components/public/AddToQuoteModal";
+import { QuoteCartBadge } from "@/components/public/QuoteCartBadge";
+import { QuoteCartModal } from "@/components/public/QuoteCartModal";
+import { QuoteForm } from "@/components/public/QuoteForm";
+import { MarketRadarForm } from "@/components/dashboard/MarketRadarForm";
+import { useProductSearch } from "@/hooks/useProductSearch";
+import { useProductFilters } from "@/hooks/useProductFilters";
+import { QuoteCartProvider, useQuoteCart } from "@/contexts/QuoteCartContext";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { calculateAdjustedPrice } from "@/lib/utils/price-calculator";
 import { toast } from "sonner";
-import { EXPANDED_WEB_TEMPLATES } from "../lib/web-catalog/expanded-templates-catalog";
-import { WebTemplateAdapter } from "../lib/templates/web-css-adapter";
+import { EXPANDED_WEB_TEMPLATES } from "@/lib/web-catalog/expanded-templates-catalog";
+import { WebTemplateAdapter } from "@/lib/templates/web-css-adapter";
 
 function PublicCatalogContent() {
   const { slug } = useParams<{ slug: string }>();
@@ -371,12 +371,9 @@ function PublicCatalogContent() {
           )}
                  {" "}
         </div>
-        {/* --- CAMBIO: Grupo de Botones Flotantes --- */}
         <div className="fixed bottom-4 right-4 z-50 flex flex-col items-end gap-3">
-          {/* Botón de Cotización (visible solo si hay items y la cotización está habilitada) */}
           {catalog.enable_quotation && items.length > 0 && <QuoteCartBadge onClick={() => setIsCartOpen(true)} />}
 
-          {/* Botón de Market Radar */}
           <Dialog open={isRequestFormOpen} onOpenChange={setIsRequestFormOpen}>
             <DialogTrigger asChild>
               <Button variant="outline" size="lg" className="bg-white/80 backdrop-blur-sm shadow-lg gap-2">
@@ -396,7 +393,7 @@ function PublicCatalogContent() {
             </DialogContent>
           </Dialog>
         </div>
-        {/* --- FIN DEL CAMBIO --- */}       {" "}
+               {" "}
         {catalog.enable_quotation && (
           <>
                        {" "}
@@ -429,7 +426,7 @@ function PublicCatalogContent() {
               isOpen={isQuoteFormOpen}
               onClose={() => setIsQuoteFormOpen(false)}
               onSuccess={handleQuoteSuccess}
-              businessAddress={catalog.business_info?.address || null}
+              businessAddress={(catalog.business_info as any)?.address || null}
             />
                      {" "}
           </>
