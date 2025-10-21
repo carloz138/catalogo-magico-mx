@@ -4,7 +4,6 @@
 import React, { useState, useEffect } from 'react';
 import '@/styles/template-selection-mobile.css';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import AppLayout from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -569,8 +568,7 @@ const TemplateSelectionEnhanced = () => {
 
   if (loading) {
     return (
-      <ProtectedRoute>
-        <AppLayout>
+      <AppLayout>
           <div className="flex items-center justify-center py-12">
             <div className="text-center">
               <Loader2 className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
@@ -653,8 +651,7 @@ const TemplateSelectionEnhanced = () => {
   );
 
   return (
-    <ProtectedRoute>
-      <AppLayout actions={actions}>
+    <AppLayout actions={actions}>
         <div className="space-y-6">
           {/* Header con información mejorada */}
           <div className="flex flex-col sm:flex-row justify-between items-start gap-4">

@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { BusinessInfo, BusinessInfoForm } from '@/types/business';
-import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import AppLayout from '@/components/layout/AppLayout';
 import SubscriptionCard from '@/components/SubscriptionCard';
 import { Button } from '@/components/ui/button';
@@ -220,8 +219,7 @@ const BusinessInfoPage: React.FC = () => {
 
   if (loading) {
     return (
-      <ProtectedRoute>
-        <AppLayout>
+      <AppLayout>
           <div className="flex items-center justify-center py-12">
             <div className="text-center">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
@@ -229,13 +227,11 @@ const BusinessInfoPage: React.FC = () => {
             </div>
           </div>
         </AppLayout>
-      </ProtectedRoute>
     );
   }
 
   return (
-    <ProtectedRoute>
-      <AppLayout actions={actions}>
+    <AppLayout actions={actions}>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8 w-full overflow-x-hidden min-w-0">
           <div className="space-y-4 sm:space-y-6">
             <div className="bg-white rounded-lg sm:rounded-xl shadow-sm p-4 sm:p-6">
@@ -568,7 +564,6 @@ const BusinessInfoPage: React.FC = () => {
         {/* Spacer para bottom bar */}
         <div className="lg:hidden h-20" />
       </AppLayout>
-    </ProtectedRoute>
   );
 };
 

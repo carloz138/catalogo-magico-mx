@@ -1,7 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import AppLayout from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -398,8 +397,7 @@ const ImageReview = () => {
 
   if (loading) {
     return (
-      <ProtectedRoute>
-        <AppLayout actions={actions}>
+      <AppLayout actions={actions}>
           <div className="flex items-center justify-center py-12">
             <div className="text-center">
               <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
@@ -407,13 +405,11 @@ const ImageReview = () => {
             </div>
           </div>
         </AppLayout>
-      </ProtectedRoute>
     );
   }
 
   return (
-    <ProtectedRoute>
-      <AppLayout actions={actions}>
+    <AppLayout actions={actions}>
         {/* Banner de suscripción con información de créditos */}
         <PlanStatusBanner />
 
@@ -578,7 +574,6 @@ const ImageReview = () => {
         {/* Modal de compra de créditos */}
         <CreditModal />
       </AppLayout>
-    </ProtectedRoute>
   );
 };
 

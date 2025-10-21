@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import AppLayout from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -162,8 +161,7 @@ const OnboardingPage = () => {
   };
 
   return (
-    <ProtectedRoute>
-      <AppLayout>
+    <AppLayout>
         <div className="max-w-7xl mx-auto p-6">
           
           {/* Hero Section */}
@@ -1170,7 +1168,6 @@ const OnboardingPage = () => {
           </div>
         </div>
       </AppLayout>
-    </ProtectedRoute>
   );
 };
 

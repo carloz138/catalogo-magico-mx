@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuotes } from '@/hooks/useQuotes';
 import { QuoteStatus } from '@/types/digital-catalog';
-import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import AppLayout from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -115,8 +114,7 @@ export default function QuotesPage() {
 
   if (loading) {
     return (
-      <ProtectedRoute>
-        <AppLayout
+      <AppLayout
           title="Cotizaciones"
           subtitle="Gestiona las solicitudes de cotización de tus clientes"
           actions={actions}
@@ -125,13 +123,11 @@ export default function QuotesPage() {
             <Loader2 className="h-8 w-8 animate-spin" />
           </div>
         </AppLayout>
-      </ProtectedRoute>
     );
   }
 
   return (
-    <ProtectedRoute>
-      <AppLayout
+    <AppLayout
         title="Cotizaciones"
         subtitle="Gestiona las solicitudes de cotización de tus clientes"
         actions={actions}
@@ -288,6 +284,5 @@ export default function QuotesPage() {
       )}
         </div>
       </AppLayout>
-    </ProtectedRoute>
   );
 }

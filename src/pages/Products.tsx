@@ -1,6 +1,5 @@
 // /src/pages/Products.tsx - Componente Principal con Buscador Mejorado
 import React from 'react';
-import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import AppLayout from '@/components/layout/AppLayout';
 import { useCatalogLimits } from '@/hooks/useCatalogLimits';
 import { useBusinessInfo } from '@/hooks/useBusinessInfo';
@@ -279,8 +278,7 @@ const Products = () => {
 
   if (loading) {
     return (
-      <ProtectedRoute>
-        <AppLayout actions={actions}>
+      <AppLayout actions={actions}>
           <div className="flex items-center justify-center py-12">
             <div className="text-center">
               <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
@@ -288,13 +286,11 @@ const Products = () => {
             </div>
           </div>
         </AppLayout>
-      </ProtectedRoute>
     );
   }
 
   return (
-    <ProtectedRoute>
-      <AppLayout actions={actions}>
+    <AppLayout actions={actions}>
         <PageHeader />
         <LimitsAlert />
         
@@ -622,7 +618,6 @@ const Products = () => {
           variant="destructive"
         />
       </AppLayout>
-    </ProtectedRoute>
   );
 };
 

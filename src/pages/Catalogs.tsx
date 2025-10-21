@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import AppLayout from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -382,15 +381,13 @@ const Catalogs = () => {
 
   if (isLoading) {
     return (
-      <ProtectedRoute>
-        <AppLayout actions={actions}>
+      <AppLayout actions={actions}>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[...Array(6)].map((_, i) => (
               <CatalogSkeleton key={i} />
             ))}
           </div>
         </AppLayout>
-      </ProtectedRoute>
     );
   }
 
@@ -473,8 +470,7 @@ const Catalogs = () => {
   };
 
   return (
-    <ProtectedRoute>
-      <AppLayout actions={actions}>
+    <AppLayout actions={actions}>
         <div className="space-y-6">
           <div>
             <h1 className="text-3xl font-bold mb-2">Mis Catálogos</h1>
@@ -542,7 +538,6 @@ const Catalogs = () => {
           }}
         />
       </AppLayout>
-    </ProtectedRoute>
   );
 };
 

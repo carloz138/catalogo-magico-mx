@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import AppLayout from "@/components/layout/AppLayout";
 import { FileUploader } from "@/components/upload/FileUploader";
 import { ProductFormWrapper } from "@/components/upload/ProductFormWrapper";
@@ -136,8 +135,7 @@ const Upload = () => {
   );
 
   return (
-    <ProtectedRoute>
-      <AppLayout actions={actions}>
+    <AppLayout actions={actions}>
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Progress visual móvil */}
           <div className="md:hidden mb-4 px-4">
@@ -299,7 +297,6 @@ const Upload = () => {
         {/* Spacer para bottom nav */}
         <div className="md:hidden h-20" />
       </AppLayout>
-    </ProtectedRoute>
   );
 };
 

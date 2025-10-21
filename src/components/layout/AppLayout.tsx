@@ -75,13 +75,13 @@ const ROUTE_BREADCRUMBS: { [key: string]: { title: string; subtitle?: string; pa
 // COMPONENTE PRINCIPAL CORREGIDO
 // ==========================================
 
-const AppLayout: React.FC<AppLayoutProps> = ({
+const AppLayout = ({
   children,
   showSidebar = true,
   title: customTitle,
   subtitle: customSubtitle,
   actions,
-}) => {
+}: AppLayoutProps) => {
   const { user, signOut } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();

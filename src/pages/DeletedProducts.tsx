@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
-import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { useDeletedProducts } from '@/hooks/useDeletedProducts';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -55,8 +54,7 @@ export default function DeletedProducts() {
   );
 
   return (
-    <ProtectedRoute>
-      <AppLayout 
+    <AppLayout 
         title="Papelera de Productos" 
         subtitle="Administra los productos eliminados"
         actions={actions}
@@ -193,6 +191,5 @@ export default function DeletedProducts() {
           variant="destructive"
         />
       </AppLayout>
-    </ProtectedRoute>
   );
 }

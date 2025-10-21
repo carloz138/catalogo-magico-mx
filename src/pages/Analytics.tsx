@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import AppLayout from '@/components/layout/AppLayout';
 import { UsageDashboard } from '@/components/dashboard/UsageDashboard';
 import KpiDashboard from '@/components/dashboard/KpiDashboard';
@@ -349,8 +348,7 @@ const Analytics = () => {
 
   if (loading || !analyticsData) {
     return (
-      <ProtectedRoute>
-        <AppLayout actions={actions}>
+      <AppLayout actions={actions}>
           <div className="flex items-center justify-center py-12">
             <div className="text-center">
               <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
@@ -358,13 +356,11 @@ const Analytics = () => {
             </div>
           </div>
         </AppLayout>
-      </ProtectedRoute>
     );
   }
 
   return (
-    <ProtectedRoute>
-      <AppLayout actions={actions}>
+    <AppLayout actions={actions}>
         <div className="space-y-6">
           {/* Header simplificado */}
           <PageHeader />
@@ -379,7 +375,6 @@ const Analytics = () => {
           </div>
         </div>
       </AppLayout>
-    </ProtectedRoute>
   );
 };
 

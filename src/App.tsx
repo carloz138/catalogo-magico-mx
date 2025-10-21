@@ -42,196 +42,15 @@ import MainDashboard from "./pages/MainDashboard";
 const queryClient = new QueryClient();
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
+  <BrowserRouter>
+    <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
         <Sonner />
         <AuthProvider>
-          <RoleProvider>
-            <BrowserRouter>
-              <Routes>
-            <Route path="/" element={<Index />} />
-
-            {/* ✅ NUEVA RUTA DEL DASHBOARD PRINCIPAL */}
-            <Route
-              path="/dashboard"
-              element={
-                <ProtectedRoute>
-                  <MainDashboard />
-                </ProtectedRoute>
-              }
-            />
-
-            <Route
-              path="/analytics"
-              element={
-                <ProtectedRoute>
-                  <Analytics />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/upload"
-              element={
-                <ProtectedRoute>
-                  <Upload />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/products"
-              element={
-                <ProtectedRoute>
-                  <Products />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/products/bulk-upload"
-              element={
-                <ProtectedRoute>
-                  <BulkUpload />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/products-management"
-              element={
-                <ProtectedRoute>
-                  <ProductsManagement />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/deleted-products"
-              element={
-                <ProtectedRoute>
-                  <DeletedProducts />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/image-review"
-              element={
-                <ProtectedRoute>
-                  <ImageReview />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/template-selection"
-              element={
-                <ProtectedRoute>
-                  <TemplateSelectionEnhanced />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/catalogs"
-              element={
-                <ProtectedRoute>
-                  <Catalogs />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/catalogs/new"
-              element={
-                <ProtectedRoute>
-                  <DigitalCatalogForm />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/catalogs/:id/edit"
-              element={
-                <ProtectedRoute>
-                  <DigitalCatalogForm />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/quotes"
-              element={
-                <ProtectedRoute>
-                  <QuotesPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/quotes/:id"
-              element={
-                <ProtectedRoute>
-                  <QuoteDetailPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/network"
-              element={
-                <ProtectedRoute>
-                  <DistributionNetwork />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/dashboard/reseller"
-              element={
-                <ProtectedRoute>
-                  <ResellerDashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/complete-activation"
-              element={
-                <ProtectedRoute>
-                  <CompleteActivation />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/business-info"
-              element={
-                <ProtectedRoute>
-                  <BusinessInfoPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/onboarding"
-              element={
-                <ProtectedRoute>
-                  <OnboardingPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/checkout"
-              element={
-                <ProtectedRoute>
-                  <Checkout />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/payment-success"
-              element={
-                <ProtectedRoute>
-                  <PaymentSuccess />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/payment-instructions/:transactionId"
-              element={
-                <ProtectedRoute>
-                  <PaymentInstructions />
-                </ProtectedRoute>
-              }
-            />
-
+          <Routes>
             {/* Rutas Públicas */}
+            <Route path="/" element={<Index />} />
             <Route path="/creditos" element={<Navigate to="/checkout" replace />} />
             <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
@@ -241,13 +60,44 @@ const App = () => (
             <Route path="/blog" element={<Blog />} />
             <Route path="/blog/:slug" element={<BlogPost />} />
 
+            {/* Rutas Protegidas Agrupadas */}
+            <Route
+              element={
+                <RoleProvider>
+                  <ProtectedRoute />
+                </RoleProvider>
+              }
+            >
+              <Route path="/dashboard" element={<MainDashboard />} />
+              <Route path="/analytics" element={<Analytics />} />
+              <Route path="/upload" element={<Upload />} />
+              <Route path="/products" element={<Products />} />
+              <Route path="/products/bulk-upload" element={<BulkUpload />} />
+              <Route path="/products-management" element={<ProductsManagement />} />
+              <Route path="/deleted-products" element={<DeletedProducts />} />
+              <Route path="/image-review" element={<ImageReview />} />
+              <Route path="/template-selection" element={<TemplateSelectionEnhanced />} />
+              <Route path="/catalogs" element={<Catalogs />} />
+              <Route path="/catalogs/new" element={<DigitalCatalogForm />} />
+              <Route path="/catalogs/:id/edit" element={<DigitalCatalogForm />} />
+              <Route path="/quotes" element={<QuotesPage />} />
+              <Route path="/quotes/:id" element={<QuoteDetailPage />} />
+              <Route path="/network" element={<DistributionNetwork />} />
+              <Route path="/dashboard/reseller" element={<ResellerDashboard />} />
+              <Route path="/complete-activation" element={<CompleteActivation />} />
+              <Route path="/business-info" element={<BusinessInfoPage />} />
+              <Route path="/onboarding" element={<OnboardingPage />} />
+              <Route path="/checkout" element={<Checkout />} />
+              <Route path="/payment-success" element={<PaymentSuccess />} />
+              <Route path="/payment-instructions/:transactionId" element={<PaymentInstructions />} />
+            </Route>
+
             <Route path="*" element={<NotFound />} />
-              </Routes>
-            </BrowserRouter>
-          </RoleProvider>
+          </Routes>
         </AuthProvider>
       </TooltipProvider>
-  </QueryClientProvider>
+    </QueryClientProvider>
+  </BrowserRouter>
 );
 
 export default App;

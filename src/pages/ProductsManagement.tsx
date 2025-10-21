@@ -1,7 +1,6 @@
 // /src/pages/ProductsManagement.tsx - VERSIÓN FINAL CORREGIDA
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import AppLayout from '@/components/layout/AppLayout';
 import ProductsTableEditor from '@/components/products/ProductsTableEditor';
 import { Button } from '@/components/ui/button';
@@ -292,8 +291,7 @@ const ProductsManagement: React.FC = () => {
   // ==========================================
 
   return (
-    <ProtectedRoute>
-      <AppLayout 
+    <AppLayout 
         title="Editar Productos"
         subtitle="Edición inline, variantes y gestión masiva de productos"
         actions={actions}
@@ -588,7 +586,6 @@ const ProductsManagement: React.FC = () => {
         {/* Spacer */}
         <div className="lg:hidden h-20" />
       </AppLayout>
-    </ProtectedRoute>
   );
 };
 
