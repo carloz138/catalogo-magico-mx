@@ -9,8 +9,8 @@ export const ProtectedRoute = () => {
 
   useEffect(() => {
     if (!loading && !user) {
-      // Redirige a la página de inicio si no está autenticado
-      navigate("/", { replace: true });
+      // Redirige a la página de login si no está autenticado
+      navigate("/login", { replace: true });
     }
   }, [user, loading, navigate]);
 

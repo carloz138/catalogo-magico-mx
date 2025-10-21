@@ -13,6 +13,7 @@ import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 // --- Pages ---
 // Public Pages
 import Index from "@/pages/Index";
+import LoginPage from "@/pages/LoginPage";
 import PublicCatalog from "@/pages/PublicCatalog";
 import ActivateCatalog from "@/pages/ActivateCatalog";
 import CompleteActivation from "@/pages/CompleteActivation";
@@ -57,6 +58,7 @@ const App = () => (
           <Routes>
             {/* --- Rutas Públicas --- */}
             <Route path="/" element={<Index />} />
+            <Route path="/login" element={<LoginPage />} />
             <Route path="/creditos" element={<Navigate to="/checkout" replace />} />
             <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
