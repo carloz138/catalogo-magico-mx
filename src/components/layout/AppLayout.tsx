@@ -17,8 +17,17 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
-import { Bell, User } from "lucide-react";
+import { Bell, User, CreditCard, LogOut } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 // ==========================================
 // INTERFACES
@@ -73,8 +82,14 @@ const AppLayout: React.FC<AppLayoutProps> = ({
   subtitle: customSubtitle,
   actions,
 }) => {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate("/");
+  };
 
   // Determinar si mostrar sidebar
   const shouldShowSidebar = showSidebar && !NO_SIDEBAR_ROUTES.includes(location.pathname);
@@ -155,16 +170,33 @@ const AppLayout: React.FC<AppLayoutProps> = ({
                   <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></span>
                 </Button>
                 
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                    <User className="w-4 h-4 text-blue-600" />
-                  </div>
-                  <div className="hidden md:block">
-                    <p className="text-sm font-medium text-gray-900">
-                      {user?.email?.split("@")[0] || "Usuario"}
-                    </p>
-                  </div>
-                </div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="flex items-center gap-2 h-auto p-2 hover:bg-gray-100">
+                      <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                        <User className="w-4 h-4 text-blue-600" />
+                      </div>
+                      <div className="hidden md:block text-left">
+                        <p className="text-sm font-medium text-gray-900">
+                          {user?.email?.split("@")[0] || "Usuario"}
+                        </p>
+                      </div>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56 bg-white">
+                    <DropdownMenuLabel>Mi Cuenta</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => navigate("/checkout")} className="cursor-pointer">
+                      <CreditCard className="mr-2 h-4 w-4" />
+                      <span>Suscribirme</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer text-red-600">
+                      <LogOut className="mr-2 h-4 w-4" />
+                      <span>Cerrar Sesión</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </div>
           </header>
