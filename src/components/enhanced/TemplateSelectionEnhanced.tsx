@@ -576,7 +576,6 @@ const TemplateSelectionEnhanced = () => {
             </div>
           </div>
         </AppLayout>
-      </ProtectedRoute>
     );
   }
 
@@ -988,7 +987,6 @@ const TemplateSelectionEnhanced = () => {
         {/* Spacer para evitar que contenido quede detrás de bottom bar */}
         <div className="lg:hidden h-28" />
       </AppLayout>
-    </ProtectedRoute>
   );
 };
 
