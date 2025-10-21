@@ -15,7 +15,6 @@ import Catalogs from "./pages/Catalogs";
 import DigitalCatalogForm from "./pages/DigitalCatalogForm";
 import ImageReview from "./pages/ImageReview";
 import PublicCatalog from "./pages/PublicCatalog";
-// ✅ CAMBIO: Importar el nuevo componente mejorado
 import TemplateSelectionEnhanced from "@/components/enhanced/TemplateSelectionEnhanced";
 import Checkout from "./pages/Checkout";
 import PaymentInstructions from "./pages/PaymentInstructions";
@@ -29,13 +28,15 @@ import ResetPassword from "./pages/ResetPassword";
 import BulkUpload from "./pages/BulkUpload";
 import Blog from "./pages/Blog";
 import BlogPost from "./pages/BlogPost";
-// ✅ AGREGAR estas importaciones
 import QuotesPage from "./pages/quotes/index";
 import QuoteDetailPage from "./pages/quotes/QuoteDetail";
 import ActivateCatalog from "./pages/ActivateCatalog";
 import DistributionNetwork from "./pages/DistributionNetwork";
 import ResellerDashboard from "./pages/ResellerDashboard";
 import CompleteActivation from "./pages/CompleteActivation";
+
+// ✅ NUEVA IMPORTACIÓN: Importar el dashboard principal
+import MainDashboard from "./pages/MainDashboard";
 
 const queryClient = new QueryClient();
 
@@ -48,6 +49,17 @@ const App = () => (
         <AuthProvider>
           <Routes>
             <Route path="/" element={<Index />} />
+
+            {/* ✅ NUEVA RUTA DEL DASHBOARD PRINCIPAL */}
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute>
+                  <MainDashboard />
+                </ProtectedRoute>
+              }
+            />
+
             <Route
               path="/analytics"
               element={
@@ -104,7 +116,6 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
-            {/* ✅ CAMBIO: Usar el nuevo componente mejorado */}
             <Route
               path="/template-selection"
               element={
@@ -137,7 +148,6 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
-            {/* ✅ AGREGAR estas rutas - Quotes Dashboard */}
             <Route
               path="/quotes"
               element={
@@ -178,7 +188,6 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
-
             <Route
               path="/business-info"
               element={
@@ -219,21 +228,17 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
-            {/* Redirect old /creditos route to /checkout */}
+
+            {/* Rutas Públicas */}
             <Route path="/creditos" element={<Navigate to="/checkout" replace />} />
             <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
             <Route path="/reset-password" element={<ResetPassword />} />
-
-            {/* Public catalog route - no auth required */}
             <Route path="/c/:slug" element={<PublicCatalog />} />
             <Route path="/activar/:token" element={<ActivateCatalog />} />
-
-            {/* Blog routes - public, no auth required */}
             <Route path="/blog" element={<Blog />} />
             <Route path="/blog/:slug" element={<BlogPost />} />
 
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
