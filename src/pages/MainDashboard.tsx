@@ -1,14 +1,17 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { MyActivatedCatalogsList } from "@/components/dashboard/MyActivatedCatalogsList";
 // Importa aquí los componentes del dashboard del L1 (Creador) que ya tienes
 // import { MyOriginalCatalogsList } from "@/components/dashboard/MyOriginalCatalogsList"; // Ejemplo
 // import { KpiDashboard } from "@/components/dashboard/KpiDashboard"; // Ejemplo
-import { Loader2 } from "lucide-react";
+import { Loader2, ArrowLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export default function MainDashboard() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [loadingRoles, setLoadingRoles] = useState(true);
   const [isCreator, setIsCreator] = useState(false);
   const [isReseller, setIsReseller] = useState(false);
@@ -63,9 +66,19 @@ export default function MainDashboard() {
   return (
     <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto space-y-8">
-        <header>
-          <h1 className="text-3xl font-bold text-gray-900">Tu Dashboard</h1>
-          <p className="text-gray-500">Gestiona todos tus catálogos desde aquí.</p>
+        <header className="space-y-4">
+          <Button
+            variant="ghost"
+            onClick={() => navigate(-1)}
+            className="gap-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Volver
+          </Button>
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Tu Dashboard</h1>
+            <p className="text-gray-500">Gestiona todos tus catálogos desde aquí.</p>
+          </div>
         </header>
 
         {/* --- SECCIÓN PARA REVENDEDORES (L2) --- */}
