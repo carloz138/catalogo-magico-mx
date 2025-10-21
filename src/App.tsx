@@ -58,6 +58,7 @@ const App = () => (
           <Routes>
             {/* --- Rutas Públicas --- */}
             <Route path="/" element={<Index />} />
+            <Route path="/login" element={<LoginPage />} /> {/* 👈 2. Añade esta línea */}
             <Route path="/login" element={<LoginPage />} />
             <Route path="/creditos" element={<Navigate to="/checkout" replace />} />
             <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
@@ -67,7 +68,6 @@ const App = () => (
             <Route path="/activar/:token" element={<ActivateCatalog />} />
             <Route path="/blog" element={<Blog />} />
             <Route path="/blog/:slug" element={<BlogPost />} />
-
             {/* --- Rutas Protegidas Agrupadas --- */}
             <Route element={<ProtectedRoute />}>
               <Route path="/dashboard" element={<MainDashboard />} />
@@ -93,7 +93,6 @@ const App = () => (
               <Route path="/payment-success" element={<PaymentSuccess />} />
               <Route path="/payment-instructions/:transactionId" element={<PaymentInstructions />} />
             </Route>
-
             {/* Ruta para Not Found al final */}
             <Route path="*" element={<NotFound />} />
           </Routes>
