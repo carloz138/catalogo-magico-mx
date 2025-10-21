@@ -7,17 +7,38 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, Loader2 } from "lucide-react";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { CheckCircle, Loader2, MapPin, Truck } from "lucide-react";
 import { QuoteService } from "@/services/quote.service";
 import { toast } from "sonner";
+import { Separator } from "@/components/ui/separator";
 
-const schema = z.object({
-  name: z.string().min(2, "Mínimo 2 caracteres"),
-  email: z.string().email("Email inválido"),
-  company: z.string().optional(),
-  phone: z.string().optional(),
-  notes: z.string().max(500).optional(),
-});
+// --- Esquema de validación actualizado ---
+const schema = z
+  .object({
+    name: z.string().min(2, "El nombre completo es requerido."),
+    email: z.string().email("El email ingresado no es válido."),
+    company: z.string().optional(),
+    phone: z.string().optional(),
+    delivery_method: z.enum(["pickup", "shipping"], {
+      required_error: "Debes seleccionar un método de entrega.",
+    }),
+    shipping_address: z.string().optional(),
+    notes: z.string().max(500, "Las notas no pueden exceder los 500 caracteres.").optional(),
+  })
+  .refine(
+    (data) => {
+      if (data.delivery_method === "shipping") {
+        return !!data.shipping_address && data.shipping_address.length > 10;
+      }
+      return true;
+    },
+    {
+      message: "La dirección de envío es requerida y debe tener al menos 10 caracteres.",
+      path: ["shipping_address"], // Campo al que se aplica el error
+    },
+  );
 
 type FormData = z.infer<typeof schema>;
 
@@ -28,9 +49,10 @@ interface Props {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  businessAddress: string | null; // Prop para la dirección del negocio
 }
 
-export function QuoteForm({ catalogId, items, totalAmount, isOpen, onClose, onSuccess }: Props) {
+export function QuoteForm({ catalogId, items, totalAmount, isOpen, onClose, onSuccess, businessAddress }: Props) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
@@ -42,20 +64,29 @@ export function QuoteForm({ catalogId, items, totalAmount, isOpen, onClose, onSu
       company: "",
       phone: "",
       notes: "",
+      delivery_method: "shipping", // Por defecto, envío a domicilio
+      shipping_address: "",
     },
   });
+
+  // Observar el valor del método de entrega para mostrar/ocultar campos
+  const deliveryMethod = form.watch("delivery_method");
 
   const handleSubmit = async (data: FormData) => {
     setIsSubmitting(true);
 
     try {
-      await QuoteService.createQuote({
+      // Pasar los nuevos datos al servicio de creación de cotizaciones
+      await (QuoteService.createQuote as any)({
+        // Usar 'as any' si el DTO no está actualizado
         catalog_id: catalogId,
         customer_name: data.name,
         customer_email: data.email,
         customer_company: data.company,
         customer_phone: data.phone,
         notes: data.notes,
+        delivery_method: data.delivery_method, // Nuevo campo
+        shipping_address: data.delivery_method === "shipping" ? data.shipping_address : null, // Nuevo campo, nulo si es pickup
         items: items.map((item) => ({
           product_id: item.product.id,
           product_name: item.product.name,
@@ -77,7 +108,7 @@ export function QuoteForm({ catalogId, items, totalAmount, isOpen, onClose, onSu
         setSubmitted(false);
         onSuccess();
         onClose();
-      }, 2000);
+      }, 3000);
     } catch (error) {
       console.error("Error:", error);
       toast.error("No se pudo enviar la cotización");
@@ -86,6 +117,7 @@ export function QuoteForm({ catalogId, items, totalAmount, isOpen, onClose, onSu
     }
   };
 
+  // Vista de éxito no cambia
   if (submitted) {
     return (
       <Dialog open={isOpen} onOpenChange={onClose}>
@@ -116,11 +148,13 @@ export function QuoteForm({ catalogId, items, totalAmount, isOpen, onClose, onSu
           <p className="text-sm">
             <strong>{items.length}</strong> producto(s) en tu cotización
           </p>
-          <p className="text-lg font-bold">Total: ${(totalAmount / 100).toFixed(2)}</p>
+          <p className="text-lg font-bold">Subtotal: ${(totalAmount / 100).toFixed(2)}</p>
+          <p className="text-xs text-muted-foreground">(El costo de envío se agregará después por el vendedor)</p>
         </div>
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+            {/* Campos de cliente no cambian */}
             <FormField
               control={form.control}
               name="name"
@@ -134,7 +168,6 @@ export function QuoteForm({ catalogId, items, totalAmount, isOpen, onClose, onSu
                 </FormItem>
               )}
             />
-
             <FormField
               control={form.control}
               name="email"
@@ -148,7 +181,6 @@ export function QuoteForm({ catalogId, items, totalAmount, isOpen, onClose, onSu
                 </FormItem>
               )}
             />
-
             <FormField
               control={form.control}
               name="company"
@@ -162,7 +194,6 @@ export function QuoteForm({ catalogId, items, totalAmount, isOpen, onClose, onSu
                 </FormItem>
               )}
             />
-
             <FormField
               control={form.control}
               name="phone"
@@ -176,6 +207,77 @@ export function QuoteForm({ catalogId, items, totalAmount, isOpen, onClose, onSu
                 </FormItem>
               )}
             />
+
+            <Separator className="my-6" />
+
+            {/* --- Nuevos campos de entrega --- */}
+            <FormField
+              control={form.control}
+              name="delivery_method"
+              render={({ field }) => (
+                <FormItem className="space-y-3">
+                  <FormLabel className="text-base font-semibold">Método de Entrega *</FormLabel>
+                  <FormControl>
+                    <RadioGroup
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                      className="flex flex-col space-y-1"
+                    >
+                      <FormItem className="flex items-center space-x-3 space-y-0">
+                        <FormControl>
+                          <RadioGroupItem value="shipping" />
+                        </FormControl>
+                        <FormLabel className="font-normal flex items-center gap-2">
+                          <Truck className="h-4 w-4" /> Envío a Domicilio
+                        </FormLabel>
+                      </FormItem>
+                      <FormItem className="flex items-center space-x-3 space-y-0">
+                        <FormControl>
+                          <RadioGroupItem value="pickup" />
+                        </FormControl>
+                        <FormLabel className="font-normal flex items-center gap-2">
+                          <MapPin className="h-4 w-4" /> Recoger en Tienda
+                        </FormLabel>
+                      </FormItem>
+                    </RadioGroup>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {deliveryMethod === "pickup" && businessAddress && (
+              <Alert variant="default" className="bg-blue-50 border-blue-200">
+                <MapPin className="h-4 w-4 text-blue-600" />
+                <AlertDescription className="text-blue-900">
+                  Puedes recoger tu pedido en: <br />
+                  <strong>{businessAddress}</strong>
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {deliveryMethod === "shipping" && (
+              <FormField
+                control={form.control}
+                name="shipping_address"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Dirección de Envío *</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Calle, número, colonia, ciudad, estado, C.P. y referencias"
+                        {...field}
+                        rows={4}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+            {/* --- FIN CAMBIOS DE ENTREGA --- */}
+
+            <Separator className="my-6" />
 
             <FormField
               control={form.control}
@@ -192,7 +294,7 @@ export function QuoteForm({ catalogId, items, totalAmount, isOpen, onClose, onSu
             />
 
             <div className="flex gap-2 pt-4">
-              <Button type="button" variant="outline" onClick={onClose} className="flex-1">
+              <Button type="button" variant="outline" onClick={onClose} className="flex-1" disabled={isSubmitting}>
                 Cancelar
               </Button>
               <Button type="submit" disabled={isSubmitting} className="flex-1">
