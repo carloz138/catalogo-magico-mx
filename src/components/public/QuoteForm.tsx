@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -139,171 +139,175 @@ export function QuoteForm({ catalogId, items, totalAmount, isOpen, onClose, onSu
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="max-w-lg flex flex-col max-h-[90vh] p-0">
+        <DialogHeader className="p-6 pb-4">
           <DialogTitle>Solicitar Cotización</DialogTitle>
         </DialogHeader>
 
-        <div className="bg-muted p-3 rounded mb-4">
-          <p className="text-sm">
-            <strong>{items.length}</strong> producto(s) en tu cotización
-          </p>
-          <p className="text-lg font-bold">Subtotal: ${(totalAmount / 100).toFixed(2)}</p>
-          <p className="text-xs text-muted-foreground">(El costo de envío se agregará después por el vendedor)</p>
-        </div>
+        <div className="flex-1 overflow-y-auto px-6 space-y-4">
+          <div className="bg-muted p-3 rounded">
+            <p className="text-sm">
+              <strong>{items.length}</strong> producto(s) en tu cotización
+            </p>
+            <p className="text-lg font-bold">Subtotal: ${(totalAmount / 100).toFixed(2)}</p>
+            <p className="text-xs text-muted-foreground">(El costo de envío se agregará después por el vendedor)</p>
+          </div>
 
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-            {/* Campos de cliente no cambian */}
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Nombre completo *</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email *</FormLabel>
-                  <FormControl>
-                    <Input type="email" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="company"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Empresa (opcional)</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="phone"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Teléfono (opcional)</FormLabel>
-                  <FormControl>
-                    <Input type="tel" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <Separator className="my-6" />
-
-            {/* --- Nuevos campos de entrega --- */}
-            <FormField
-              control={form.control}
-              name="delivery_method"
-              render={({ field }) => (
-                <FormItem className="space-y-3">
-                  <FormLabel className="text-base font-semibold">Método de Entrega *</FormLabel>
-                  <FormControl>
-                    <RadioGroup
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                      className="flex flex-col space-y-1"
-                    >
-                      <FormItem className="flex items-center space-x-3 space-y-0">
-                        <FormControl>
-                          <RadioGroupItem value="shipping" />
-                        </FormControl>
-                        <FormLabel className="font-normal flex items-center gap-2">
-                          <Truck className="h-4 w-4" /> Envío a Domicilio
-                        </FormLabel>
-                      </FormItem>
-                      <FormItem className="flex items-center space-x-3 space-y-0">
-                        <FormControl>
-                          <RadioGroupItem value="pickup" />
-                        </FormControl>
-                        <FormLabel className="font-normal flex items-center gap-2">
-                          <MapPin className="h-4 w-4" /> Recoger en Tienda
-                        </FormLabel>
-                      </FormItem>
-                    </RadioGroup>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {deliveryMethod === "pickup" && businessAddress && (
-              <Alert variant="default" className="bg-blue-50 border-blue-200">
-                <MapPin className="h-4 w-4 text-blue-600" />
-                <AlertDescription className="text-blue-900">
-                  Puedes recoger tu pedido en: <br />
-                  <strong>{businessAddress}</strong>
-                </AlertDescription>
-              </Alert>
-            )}
-
-            {deliveryMethod === "shipping" && (
+          <Form {...form}>
+            <form id="quote-form" onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+              {/* Campos de cliente no cambian */}
               <FormField
                 control={form.control}
-                name="shipping_address"
+                name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Dirección de Envío *</FormLabel>
+                    <FormLabel>Nombre completo *</FormLabel>
                     <FormControl>
-                      <Textarea
-                        placeholder="Calle, número, colonia, ciudad, estado, C.P. y referencias"
-                        {...field}
-                        rows={4}
-                      />
+                      <Input {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-            )}
-            {/* --- FIN CAMBIOS DE ENTREGA --- */}
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email *</FormLabel>
+                    <FormControl>
+                      <Input type="email" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="company"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Empresa (opcional)</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="phone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Teléfono (opcional)</FormLabel>
+                    <FormControl>
+                      <Input type="tel" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <Separator className="my-6" />
+              <Separator className="my-6" />
 
-            <FormField
-              control={form.control}
-              name="notes"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Notas adicionales</FormLabel>
-                  <FormControl>
-                    <Textarea {...field} rows={3} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
+              {/* --- Nuevos campos de entrega --- */}
+              <FormField
+                control={form.control}
+                name="delivery_method"
+                render={({ field }) => (
+                  <FormItem className="space-y-3">
+                    <FormLabel className="text-base font-semibold">Método de Entrega *</FormLabel>
+                    <FormControl>
+                      <RadioGroup
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                        className="flex flex-col space-y-1"
+                      >
+                        <FormItem className="flex items-center space-x-3 space-y-0">
+                          <FormControl>
+                            <RadioGroupItem value="shipping" />
+                          </FormControl>
+                          <FormLabel className="font-normal flex items-center gap-2">
+                            <Truck className="h-4 w-4" /> Envío a Domicilio
+                          </FormLabel>
+                        </FormItem>
+                        <FormItem className="flex items-center space-x-3 space-y-0">
+                          <FormControl>
+                            <RadioGroupItem value="pickup" />
+                          </FormControl>
+                          <FormLabel className="font-normal flex items-center gap-2">
+                            <MapPin className="h-4 w-4" /> Recoger en Tienda
+                          </FormLabel>
+                        </FormItem>
+                      </RadioGroup>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {deliveryMethod === "pickup" && businessAddress && (
+                <Alert variant="default" className="bg-blue-50 border-blue-200">
+                  <MapPin className="h-4 w-4 text-blue-600" />
+                  <AlertDescription className="text-blue-900">
+                    Puedes recoger tu pedido en: <br />
+                    <strong>{businessAddress}</strong>
+                  </AlertDescription>
+                </Alert>
               )}
-            />
 
-            <div className="flex gap-2 pt-4">
-              <Button type="button" variant="outline" onClick={onClose} className="flex-1" disabled={isSubmitting}>
-                Cancelar
-              </Button>
-              <Button type="submit" disabled={isSubmitting} className="flex-1">
-                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Enviar Cotización
-              </Button>
-            </div>
-          </form>
-        </Form>
+              {deliveryMethod === "shipping" && (
+                <FormField
+                  control={form.control}
+                  name="shipping_address"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Dirección de Envío *</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="Calle, número, colonia, ciudad, estado, C.P. y referencias"
+                          {...field}
+                          rows={4}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+              {/* --- FIN CAMBIOS DE ENTREGA --- */}
+
+              <Separator className="my-6" />
+
+              <FormField
+                control={form.control}
+                name="notes"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Notas adicionales</FormLabel>
+                    <FormControl>
+                      <Textarea {...field} rows={3} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </form>
+          </Form>
+        </div>
+
+        <DialogFooter className="p-6 pt-4 border-t">
+          <div className="flex gap-2 w-full">
+            <Button type="button" variant="outline" onClick={onClose} className="flex-1" disabled={isSubmitting}>
+              Cancelar
+            </Button>
+            <Button type="submit" form="quote-form" disabled={isSubmitting} className="flex-1">
+              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Enviar Cotización
+            </Button>
+          </div>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
