@@ -31,6 +31,8 @@ import {
   GitBranch,
   Share2,
   Repeat,
+  Truck,
+  Radar,
   LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -280,17 +282,16 @@ const Index = () => {
     },
     {
       number: "2",
-      icon: <MousePointer className="w-8 h-8" />,
-      title: "Tu Cliente Cotiza Automáticamente 24/7",
-      howItWorks:
-        "Compartes el link. Tu cliente elige productos, cantidades, y recibe una cotización instantánea sin esperar tu respuesta.",
-      result: "Cierras ventas mientras duermes. 25% más conversiones por respuesta inmediata.",
+      icon: <Truck className="w-8 h-8" />,
+      title: "Gestiona el Ciclo de Venta Completo (24/7)",
+      howItWorks: "Tu cliente cotiza al instante. Tú recibes la solicitud, la aceptas, y con un clic marcas el pedido como 'Pedido Enviado'. Todo el seguimiento en un solo lugar.",
+      result: "Cierras ventas mientras duermes. +25% conversión por respuesta inmediata.",
     },
     {
       number: "3",
-      icon: <BarChart3 className="w-8 h-8" />,
-      title: "Analytics que te Dicen Qué Vender",
-      howItWorks: "Ve qué productos generan más interés, qué clientes están activos, y cuándo contactar.",
+      icon: <Radar className="w-8 h-8" />,
+      title: "Inteligencia Real: Analytics y Radar de Mercado",
+      howItWorks: "Ve tus KPIs de ventas, productos más vistos, y además, usa el Radar de Mercado para capturar la demanda de productos que *aún no tienes* pero que tu red está buscando.",
       result: "Tomas decisiones con datos reales, no intuición. Optimizas inventario y ofertas.",
     },
     {
