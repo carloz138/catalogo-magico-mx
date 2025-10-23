@@ -46,7 +46,7 @@ interface Props {
   enableVariants?: boolean;
   purchasedProductIds: string[];
   isReplicatedCatalog: boolean;
-  onAddToQuote?: () => void;
+  onAddToQuote?: (product: any) => void;
   onRequestSpecialQuote?: (product: any) => void;
 }
 
@@ -184,7 +184,7 @@ export function PublicProductCard({
           onAddToQuote && (
             <Button 
               size="sm"
-              onClick={onAddToQuote}
+              onClick={() => onAddToQuote(product)}
               className="w-full catalog-add-button"
             >
               <ShoppingCart className="mr-2 h-4 w-4" />
