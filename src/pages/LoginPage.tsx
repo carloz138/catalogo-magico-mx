@@ -157,12 +157,7 @@ export default function LoginPage() {
               </div>
             ) : (
               <div className="flex items-center justify-center gap-2 relative">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => navigate("/")}
-                  className="h-6 w-6 p-0 absolute left-0"
-                >
+                <Button variant="ghost" size="sm" onClick={() => navigate("/")} className="h-6 w-6 p-0 absolute left-0">
                   <ArrowLeft className="h-4 w-4" />
                 </Button>
                 Accede a CatifyPro
@@ -339,7 +334,7 @@ export default function LoginPage() {
                   {/* --- Formulario de Magic Link --- */}
                   <form onSubmit={handleMagicLink} className="space-y-4">
                     <p className="text-sm text-center text-muted-foreground">
-                      ¿Prefieres un link de acceso sin contraseña?
+                      ¿Vienes a revisar un pedido o tu catálogo activado?
                     </p>
                     <div>
                       <Label htmlFor="magic-email">Email</Label>
@@ -414,72 +409,72 @@ export default function LoginPage() {
                     {/* ... (Campos de registro copiados de tu modal) ... */}
                     <div>
                       <Label htmlFor="full-name">Nombre Completo</Label>
-                    <Input
-                      id="full-name"
-                      type="text"
-                      value={signupData.full_name}
-                      onChange={(e) => setSignupData({ ...signupData, full_name: e.target.value })}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="signup-email">Email</Label>
-                    <Input
-                      id="signup-email"
-                      type="email"
-                      value={signupData.email}
-                      onChange={(e) => setSignupData({ ...signupData, email: e.target.value })}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="signup-password">Contraseña</Label>
-                    <Input
-                      id="signup-password"
-                      type="password"
-                      value={signupData.password}
-                      onChange={(e) => setSignupData({ ...signupData, password: e.target.value })}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="business-name">Nombre del Negocio</Label>
-                    <Input
-                      id="business-name"
-                      type="text"
-                      value={signupData.business_name}
-                      onChange={(e) => setSignupData({ ...signupData, business_name: e.target.value })}
-                      placeholder="Opcional"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="business-type">Tipo de Negocio</Label>
-                    <Select
-                      value={signupData.business_type}
-                      onValueChange={(value) => setSignupData({ ...signupData, business_type: value })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecciona el tipo de negocio" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {businessTypeOptions.map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label htmlFor="phone">Teléfono</Label>
-                    <Input
-                      id="phone"
-                      type="tel"
-                      value={signupData.phone}
-                      onChange={(e) => setSignupData({ ...signupData, phone: e.target.value })}
-                      placeholder="Opcional"
-                    />
-                  </div>
+                      <Input
+                        id="full-name"
+                        type="text"
+                        value={signupData.full_name}
+                        onChange={(e) => setSignupData({ ...signupData, full_name: e.target.value })}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="signup-email">Email</Label>
+                      <Input
+                        id="signup-email"
+                        type="email"
+                        value={signupData.email}
+                        onChange={(e) => setSignupData({ ...signupData, email: e.target.value })}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="signup-password">Contraseña</Label>
+                      <Input
+                        id="signup-password"
+                        type="password"
+                        value={signupData.password}
+                        onChange={(e) => setSignupData({ ...signupData, password: e.target.value })}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="business-name">Nombre del Negocio</Label>
+                      <Input
+                        id="business-name"
+                        type="text"
+                        value={signupData.business_name}
+                        onChange={(e) => setSignupData({ ...signupData, business_name: e.target.value })}
+                        placeholder="Opcional"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="business-type">Tipo de Negocio</Label>
+                      <Select
+                        value={signupData.business_type}
+                        onValueChange={(value) => setSignupData({ ...signupData, business_type: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecciona el tipo de negocio" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {businessTypeOptions.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="phone">Teléfono</Label>
+                      <Input
+                        id="phone"
+                        type="tel"
+                        value={signupData.phone}
+                        onChange={(e) => setSignupData({ ...signupData, phone: e.target.value })}
+                        placeholder="Opcional"
+                      />
+                    </div>
 
                     <Button type="submit" className="w-full" disabled={loading}>
                       {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
