@@ -284,14 +284,16 @@ const Index = () => {
       number: "2",
       icon: <Truck className="w-8 h-8" />,
       title: "Gestiona el Ciclo de Venta Completo (24/7)",
-      howItWorks: "Tu cliente cotiza al instante. Tú recibes la solicitud, la aceptas, y con un clic marcas el pedido como 'Pedido Enviado'. Todo el seguimiento en un solo lugar.",
+      howItWorks:
+        "Tu cliente cotiza al instante. Tú recibes la solicitud, la aceptas, y con un clic marcas el pedido como 'Pedido Enviado'. Todo el seguimiento en un solo lugar.",
       result: "Cierras ventas mientras duermes. +25% conversión por respuesta inmediata.",
     },
     {
       number: "3",
       icon: <Radar className="w-8 h-8" />,
       title: "Inteligencia Real: Analytics y Radar de Mercado",
-      howItWorks: "Ve tus KPIs de ventas, productos más vistos, y además, usa el Radar de Mercado para capturar la demanda de productos que *aún no tienes* pero que tu red está buscando.",
+      howItWorks:
+        "Ve tus KPIs de ventas, productos más vistos, y además, usa el Radar de Mercado para capturar la demanda de productos que *aún no tienes* pero que tu red está buscando.",
       result: "Tomas decisiones con datos reales, no intuición. Optimizas inventario y ofertas.",
     },
     {
@@ -305,7 +307,8 @@ const Index = () => {
       number: "5",
       icon: <Network className="w-8 h-8" />,
       title: "Controlas Todo el Ecosistema",
-      howItWorks: "Tú defines precios base, inventario disponible, y márgenes. Ellos venden, tú ganas.",
+      howItWorks:
+        "Convierte a tus clientes en tu fuerza de ventas: ellos replican tu catálogo completo, mostrando los productos que te compraron como 'Disponibles' y el resto de tu inventario como 'Bajo Pedido'. ¡Así pueden vender toda tu línea de productos, no solo lo que te compraron!. Ellos venden, tú ganas.",
       result: "Escalas sin contratar vendedores. CAC (Costo de Adquisición) = $0.",
     },
   ];
