@@ -1,68 +1,62 @@
 import { supabase } from "@/integrations/supabase/client";
 import { Quote, QuoteItem, CreateQuoteDTO, QuoteStatus } from "@/types/digital-catalog";
 
+// Definir el tipo de respuesta esperado de nuestra nueva Edge Function
+interface CreateQuoteResponse {
+  success: boolean;
+  quoteId?: string;
+  error?: string;
+}
+
 export class QuoteService {
-  // Crear cotización (desde vista pública - cliente anónimo).
+  /**
+   * Crear cotización (desde vista pública - cliente anónimo).
+   * AHORA LLAMA A LA EDGE FUNCTION 'create-anonymous-quote'
+   */
   static async createQuote(quoteData: CreateQuoteDTO): Promise<Quote> {
-    // 1. Obtener user_id del catálogo y ya
-    const { data: catalog, error: catalogError } = await supabase
-      .from("digital_catalogs")
-      .select("user_id")
-      .eq("id", quoteData.catalog_id)
-      .single();
+    console.log("Invocando Edge Function 'create-anonymous-quote'...");
 
-    if (catalogError) throw catalogError;
-    if (!catalog) throw new Error("Catálogo no encontrado");
+    // 1. Llamar a la nueva Edge Function segura
+    const { data, error } = await supabase.functions.invoke<CreateQuoteResponse>("create-anonymous-quote", {
+      body: quoteData, // Pasamos el DTO completo (que incluye los datos del form)
+    });
 
-    // 2. Crear cotización
-    const { data: quote, error: quoteError } = await supabase
-      .from("quotes")
-      .insert({
-        catalog_id: quoteData.catalog_id,
-        user_id: catalog.user_id,
-        customer_name: quoteData.customer_name,
-        customer_email: quoteData.customer_email,
-        customer_company: quoteData.customer_company || null,
-        customer_phone: quoteData.customer_phone || null,
-        notes: quoteData.notes || null,
-        status: "pending",
-      })
-      .select()
-      .single();
-
-    if (quoteError) throw quoteError;
-    if (!quote) throw new Error("Error al crear cotización");
-
-    // 3. Crear items de la cotización
-    const quoteItems = quoteData.items.map((item) => ({
-      quote_id: quote.id,
-      product_id: item.product_id,
-      product_name: item.product_name,
-      product_sku: item.product_sku,
-      product_image_url: item.product_image_url,
-      quantity: item.quantity,
-      unit_price: item.unit_price,
-      price_type: item.price_type,
-      subtotal: item.quantity * item.unit_price,
-      variant_id: item.variant_id || null,
-      variant_description: item.variant_description || null,
-    }));
-
-    const { error: itemsError } = await supabase.from("quote_items").insert(quoteItems);
-
-    if (itemsError) throw itemsError;
-
-    // 4. Enviar notificación por email/WhatsApp
-    try {
-      await supabase.functions.invoke("send-quote-notification", {
-        body: { quoteId: quote.id },
-      });
-    } catch (notificationError) {
-      // No bloqueamos la cotización si falla la notificación
-      console.error("Error enviando notificación:", notificationError);
+    if (error) {
+      console.error("Error al invocar Edge Function:", error);
+      throw new Error(`Error al invocar la función: ${error.message}`);
     }
 
-    return quote as Quote;
+    // 2. Manejar la respuesta de la Edge Function
+    if (data.error) {
+      console.error("Error devuelto por la Edge Function:", data.error);
+      throw new Error(`Error en el servidor: ${data.error}`);
+    }
+
+    if (!data.success || !data.quoteId) {
+      console.error("La función no devolvió una respuesta exitosa:", data);
+      throw new Error("La función no devolvió una respuesta exitosa.");
+    }
+
+    console.log(`Cotización creada exitosamente por Edge Function con ID: ${data.quoteId}`);
+
+    // 3. Devolver un objeto 'Quote' parcial para cumplir con el tipo
+    // El frontend (QuoteForm) realmente no usa este objeto,
+    // solo necesita saber que la promesa se resolvió sin error.
+    const partialQuote: Quote = {
+      id: data.quoteId,
+      catalog_id: quoteData.catalog_id,
+      user_id: "", // No lo necesitamos en el frontend en este punto
+      customer_name: quoteData.customer_name,
+      customer_email: quoteData.customer_email,
+      customer_company: quoteData.customer_company || null,
+      customer_phone: quoteData.customer_phone || null,
+      notes: quoteData.notes || null,
+      status: "pending",
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    return partialQuote as Quote; // Cumplimos el contrato de tipo Promise<Quote>
   }
 
   // Obtener cotizaciones del usuario (con filtros)
@@ -183,7 +177,7 @@ export class QuoteService {
       .update({ status })
       .eq("id", quoteId)
       .eq("user_id", userId)
-      .select() // Asegúrate de seleccionar los datos necesarios para la notificación
+      .select("id, status, customer_email, customer_name") // Seleccionamos solo lo necesario
       .single();
 
     if (error) throw error;
@@ -194,20 +188,21 @@ export class QuoteService {
     if (updatedQuote) {
       try {
         console.log(`Intentando invocar send-quote-notification para quote ${quoteId} con status ${status}`);
-        // Asegúrate de que tu Edge Function 'send-quote-notification'
-        // esté diseñada para manejar estos datos en el body.
+
+        const functionBody = {
+          quoteId: updatedQuote.id,
+          newStatus: status,
+          customerEmail: updatedQuote.customer_email,
+          customerName: updatedQuote.customer_name,
+          activationLink: activationLink || null,
+        };
+
+        console.log("Object being sent to Edge Function body:", JSON.stringify(functionBody));
+
         const { data: functionData, error: functionError } = await supabase.functions.invoke(
           "send-quote-notification",
           {
-            body: {
-              quoteId: updatedQuote.id,
-              newStatus: status, // 'accepted' or 'rejected'
-              customerEmail: updatedQuote.customer_email, // Necesitas el email del cliente
-              customerName: updatedQuote.customer_name, // Y su nombre para personalizar
-              activationLink: activationLink || null, // Debe estar
-              // Puedes añadir más datos si tu función los necesita,
-              // por ejemplo, el nombre del catálogo o un link directo.
-            },
+            body: functionBody,
           },
         );
 
