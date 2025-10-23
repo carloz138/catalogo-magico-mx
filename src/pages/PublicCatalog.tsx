@@ -382,9 +382,10 @@ function PublicCatalogContent() {
           {/* Botón de Market Radar */}
           <Dialog open={isRequestFormOpen} onOpenChange={setIsRequestFormOpen}>
             <DialogTrigger asChild>
-              <Button variant="outline" size="lg" className="bg-white/80 backdrop-blur-sm shadow-lg gap-2">
-                <MessageCircleQuestion className="h-5 w-5" />
-                <span className="hidden sm:inline">¿No encuentras lo que buscas?</span>
+              <Button variant="outline" size="lg" className="bg-white/80 backdrop-blur-sm shadow-lg gap-2 hover:bg-white">
+                <Search className="h-5 w-5 text-primary" />
+                <span className="hidden sm:inline">¿No encuentras algo?</span>
+                <span className="sm:hidden text-xs font-semibold">Buscar</span>
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[500px]">
