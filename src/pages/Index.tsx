@@ -39,7 +39,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { LoginModal } from "@/components/auth/LoginModal";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -64,7 +63,6 @@ interface CreditPackage {
 }
 
 const Index = () => {
-  const [loginModalOpen, setLoginModalOpen] = useState(false);
   const [monthlyPlans, setMonthlyPlans] = useState<CreditPackage[]>([]);
   const [creditPacks, setCreditPacks] = useState<CreditPackage[]>([]);
   const [loadingPlans, setLoadingPlans] = useState(true);
@@ -219,7 +217,7 @@ const Index = () => {
     if (user) {
       navigate("/checkout", { state: { selectedPackageName: packageName } });
     } else {
-      setLoginModalOpen(true);
+      navigate("/login");
     }
   };
 
@@ -227,7 +225,7 @@ const Index = () => {
     if (user) {
       navigate("/upload");
     } else {
-      setLoginModalOpen(true);
+      navigate("/login");
     }
   };
 
@@ -235,7 +233,7 @@ const Index = () => {
     if (user) {
       navigate("/onboarding");
     } else {
-      setLoginModalOpen(true);
+      navigate("/login");
     }
   };
 
@@ -243,7 +241,7 @@ const Index = () => {
     if (user) {
       signOut();
     } else {
-      setLoginModalOpen(true);
+      navigate("/login");
     }
   };
 
@@ -1168,8 +1166,6 @@ const Index = () => {
           </div>
         </div>
       </footer>
-
-      <LoginModal open={loginModalOpen} onOpenChange={setLoginModalOpen} />
     </div>
   );
 };
