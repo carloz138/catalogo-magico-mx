@@ -17,9 +17,12 @@ export class QuoteService {
     console.log("Invocando Edge Function 'create-anonymous-quote'...");
 
     // 1. Llamar a la nueva Edge Function segura
-    const { data, error } = await supabase.functions.invoke<CreateQuoteResponse>("create-anonymous-quote", {
-      body: quoteData, // Pasamos el DTO completo (que incluye los datos del form)
-    });
+    const { data, error } = await supabase.functions.invoke<CreateQuoteResponse>(
+      'create-anonymous-quote', 
+      {
+        body: quoteData // Pasamos el DTO completo (que incluye los datos del form)
+      }
+    );
 
     if (error) {
       console.error("Error al invocar Edge Function:", error);
@@ -31,7 +34,7 @@ export class QuoteService {
       console.error("Error devuelto por la Edge Function:", data.error);
       throw new Error(`Error en el servidor: ${data.error}`);
     }
-
+    
     if (!data.success || !data.quoteId) {
       console.error("La función no devolvió una respuesta exitosa:", data);
       throw new Error("La función no devolvió una respuesta exitosa.");
@@ -45,13 +48,13 @@ export class QuoteService {
     const partialQuote: Quote = {
       id: data.quoteId,
       catalog_id: quoteData.catalog_id,
-      user_id: "", // No lo necesitamos en el frontend en este punto
+      user_id: '', // No lo necesitamos en el frontend en este punto
       customer_name: quoteData.customer_name,
       customer_email: quoteData.customer_email,
       customer_company: quoteData.customer_company || null,
       customer_phone: quoteData.customer_phone || null,
       notes: quoteData.notes || null,
-      status: "pending",
+      status: 'pending',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
@@ -177,7 +180,7 @@ export class QuoteService {
       .update({ status })
       .eq("id", quoteId)
       .eq("user_id", userId)
-      .select("id, status, customer_email, customer_name") // Seleccionamos solo lo necesario
+      .select('id, status, customer_email, customer_name') // Seleccionamos solo lo necesario
       .single();
 
     if (error) throw error;
@@ -188,15 +191,15 @@ export class QuoteService {
     if (updatedQuote) {
       try {
         console.log(`Intentando invocar send-quote-notification para quote ${quoteId} con status ${status}`);
-
+        
         const functionBody = {
-          quoteId: updatedQuote.id,
-          newStatus: status,
-          customerEmail: updatedQuote.customer_email,
-          customerName: updatedQuote.customer_name,
-          activationLink: activationLink || null,
+            quoteId: updatedQuote.id,
+            newStatus: status,
+            customerEmail: updatedQuote.customer_email,
+            customerName: updatedQuote.customer_name,
+            activationLink: activationLink || null
         };
-
+        
         console.log("Object being sent to Edge Function body:", JSON.stringify(functionBody));
 
         const { data: functionData, error: functionError } = await supabase.functions.invoke(
