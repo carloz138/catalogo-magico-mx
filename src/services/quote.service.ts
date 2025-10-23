@@ -26,7 +26,9 @@ export class QuoteService {
 
     if (error) {
       console.error("Error al invocar Edge Function:", error);
-      throw new Error(`Error al invocar la función: ${error.message}`);
+      // Intenta extraer un mensaje de error más útil si es posible
+      const message = (error as any).context?.message || error.message || "Error al contactar el servidor de cotizaciones.";
+      throw new Error(message);
     }
 
     // 2. Manejar la respuesta de la Edge Function
@@ -57,6 +59,10 @@ export class QuoteService {
       status: 'pending',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
+      // Nuevos campos de envío (agregados por si acaso, aunque el DTO los tiene)
+      delivery_method: quoteData.delivery_method, 
+      shipping_address: quoteData.shipping_address,
+      shipping_cost: 0
     };
 
     return partialQuote as Quote; // Cumplimos el contrato de tipo Promise<Quote>
@@ -259,8 +265,8 @@ export class QuoteService {
       if (quote.status === "pending") stats.pending++;
       if (quote.status === "accepted") stats.accepted++;
       if (quote.status === "rejected") stats.rejected++;
-
-      if (quote.status === "accepted") {
+      // Asume que 'shipped' se cuenta como 'accepted' para el total de monto
+      if (quote.status === "accepted" || quote.status === "shipped") { 
         const items = quote.quote_items || [];
         stats.total_amount_accepted += items.reduce((sum: number, item: any) => sum + (item.subtotal || 0), 0);
       }
