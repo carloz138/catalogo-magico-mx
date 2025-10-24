@@ -1,4 +1,7 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import {
   ChevronDown,
   Star,
@@ -43,12 +46,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
-// Mock data para demo - en producción esto vendría de tu contexto real
-const mockUser = null;
-const mockNavigate = (path: string) => console.log("Navigate to:", path);
-const mockSignOut = () => console.log("Sign out");
-const mockToast = (config: any) => console.log("Toast:", config);
-
 interface CreditPackage {
   id: string;
   name: string;
@@ -67,6 +64,8 @@ interface CreditPackage {
 }
 
 const Index = () => {
+  const navigate = useNavigate();
+  const [user, setUser] = useState<any>(null);
   const [monthlyPlans, setMonthlyPlans] = useState<CreditPackage[]>([]);
   const [creditPacks, setCreditPacks] = useState<CreditPackage[]>([]);
   const [loadingPlans, setLoadingPlans] = useState(false);
@@ -74,10 +73,18 @@ const Index = () => {
   const [monthlyLeads, setMonthlyLeads] = useState(100);
   const [avgQuote, setAvgQuote] = useState(50000);
 
-  const user = mockUser;
-  const navigate = mockNavigate;
-  const signOut = mockSignOut;
-  const toast = mockToast;
+  // Get current user
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   // Mock data de planes
   useEffect(() => {
@@ -261,9 +268,10 @@ const Index = () => {
     }
   };
 
-  const handleAuthButton = () => {
+  const handleAuthButton = async () => {
     if (user) {
-      signOut();
+      await supabase.auth.signOut();
+      toast.success("Sesión cerrada");
     } else {
       navigate("/login");
     }
@@ -596,6 +604,13 @@ const Index = () => {
               >
                 Casos de Éxito
               </Button>
+              <Button
+                variant="ghost"
+                onClick={() => navigate("/why-subscribe")}
+                className="text-gray-700 hover:text-gray-900"
+              >
+                ¿Por Qué Suscribirse?
+              </Button>
             </nav>
 
             <div className="hidden md:flex items-center gap-2">
@@ -623,6 +638,14 @@ const Index = () => {
             </div>
 
             <div className="flex md:hidden items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate("/why-subscribe")}
+                className="h-10 px-3 text-sm text-gray-700"
+              >
+                ¿Por Qué?
+              </Button>
               <Button
                 onClick={handleMainCTA}
                 size="sm"
