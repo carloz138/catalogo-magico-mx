@@ -297,7 +297,7 @@ const Index = () => {
         {
           icon: TrendingUp,
           title: "3x capacidad de ventas",
-          description: "Tu equipo vende hasta triple con el mismo personal por enfocarse en seguir prospectando",
+          description: "Tu equipo vende triple con el mismo personal",
           metric: "3x productividad",
         },
       ],
@@ -322,13 +322,13 @@ const Index = () => {
         {
           icon: Repeat,
           title: "Loop viral B2B2X",
-          description: "Tus distribuidores venden con tu catálogo y bloqueas la competencia",
+          description: "Tus distribuidores venden con una replica de tu catalogo y bloqueas la competencia",
           metric: "Crecimiento viral",
         },
         {
           icon: Package,
           title: "Venta sin inventario",
-          description: "Prueba demanda de nuevos productos sin invertir en stock",
+          description: "Con el rada de mercado prueba demanda de nuevos productos sin invertir en stock",
           metric: "Riesgo cero",
         },
       ],
