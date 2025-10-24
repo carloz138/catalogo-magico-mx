@@ -14,6 +14,14 @@ import { QuoteService } from "@/services/quote.service";
 import { toast } from "sonner";
 import { Separator } from "@/components/ui/separator";
 
+// Declaraciones de tipos para tracking
+declare global {
+  interface Window {
+    dataLayer?: any[];
+    fbq?: (...args: any[]) => void;
+  }
+}
+
 // --- Esquema de validación actualizado ---
 const schema = z
   .object({
@@ -102,6 +110,38 @@ export function QuoteForm({ catalogId, items, totalAmount, isOpen, onClose, onSu
 
       setSubmitted(true);
       toast.success("Cotización enviada correctamente");
+
+      // --- Disparar eventos de conversión ---
+      console.log("Disparando eventos de conversión...");
+
+      // 1. Para Google Tag Manager (GTM) -> Esto cubre GA4, Google Ads, LinkedIn, TikTok, etc.
+      try {
+        if (window.dataLayer) {
+          window.dataLayer.push({
+            event: "generate_quote",
+            value: totalAmount / 100, // Valor de la cotización
+            currency: "MXN",
+            items_count: items.length, // Cantidad de productos
+          });
+          console.log("Evento 'generate_quote' enviado a dataLayer (GTM).");
+        }
+      } catch (e) {
+        console.error("Error al disparar evento GTM:", e);
+      }
+
+      // 2. Para Meta Pixel (Facebook/Instagram) como fallback común
+      try {
+        if (typeof window.fbq === "function") {
+          window.fbq("track", "Lead", {
+            content_name: "Cotizacion Generada",
+            value: totalAmount / 100,
+            currency: "MXN",
+          });
+          console.log("Evento 'Lead' enviado a Meta Pixel (fbq).");
+        }
+      } catch (e) {
+        console.error("Error al disparar evento Meta Pixel:", e);
+      }
 
       setTimeout(() => {
         form.reset();
