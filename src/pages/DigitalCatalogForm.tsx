@@ -1075,6 +1075,72 @@ export default function DigitalCatalogForm() {
                       </AlertDescription>
                     </Alert>
                   )}
+
+                  {/* Accordion Item 8: Tracking y Píxeles */}
+                  <AccordionItem value="tracking" className="border rounded-lg overflow-hidden">
+                    <AccordionTrigger className="px-4 py-4 hover:no-underline hover:bg-muted/50 transition-colors">
+                      <div className="flex items-center gap-3 w-full">
+                        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-muted flex-shrink-0">
+                          <ChevronRight className="h-5 w-5" />
+                        </div>
+                        <div className="flex-1 text-left">
+                          <div className="font-semibold text-base">Tracking y Píxeles</div>
+                          <div className="text-sm text-muted-foreground">Analítica y conversión</div>
+                        </div>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="px-4 pb-4 space-y-4">
+                      <div className="text-sm text-muted-foreground mb-3">
+                        Conecta tus herramientas de analítica (Meta, Google, TikTok, LinkedIn). Recomendamos Google Tag Manager (GTM).
+                      </div>
+                      
+                      <FormField
+                        control={form.control}
+                        name="tracking_head_scripts"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-base">Scripts del Head (ej. GTM)</FormLabel>
+                            <FormControl>
+                              <Textarea
+                                placeholder="<!-- Pega tu script de GTM o Meta Pixel... -->"
+                                {...field}
+                                value={field.value || ""}
+                                rows={6}
+                                className="font-mono text-xs"
+                              />
+                            </FormControl>
+                            <FormDescription>
+                              Scripts que van en el &lt;head&gt; de tu catálogo
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={form.control}
+                        name="tracking_body_scripts"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-base">Scripts del Body (ej. GTM Noscript)</FormLabel>
+                            <FormControl>
+                              <Textarea
+                                placeholder="<!-- Pega la parte <noscript> de tu GTM... -->"
+                                {...field}
+                                value={field.value || ""}
+                                rows={4}
+                                className="font-mono text-xs"
+                              />
+                            </FormControl>
+                            <FormDescription>
+                              Scripts que van después del &lt;body&gt;
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </AccordionContent>
+                  </AccordionItem>
                 </Accordion>
               </TabsContent>
 
