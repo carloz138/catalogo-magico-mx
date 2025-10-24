@@ -311,7 +311,7 @@ const Index = () => {
       title: "Aceleración de Ingresos",
       subtitle: "Vende más y más rápido",
       problem: "Tu competencia tarda 42 horas en responder",
-      solution: "Tú cotizador está habilitado 24/7, listo atender a tus clientes",
+      solution: "Tú cotizador está habilitado 24/7, listo para atender a tus clientes",
       features: [
         {
           icon: Zap,
