@@ -1,290 +1,377 @@
-import { supabase } from "@/integrations/supabase/client";
-import { Quote, QuoteItem, CreateQuoteDTO, QuoteStatus } from "@/types/digital-catalog";
+// Tipos para el sistema de catálogos digitales
 
-// Definir el tipo de respuesta esperado de nuestra nueva Edge Function
-interface CreateQuoteResponse {
-  success: boolean;
-  quoteId?: string;
-  error?: string;
+export type PriceDisplay = "menudeo_only" | "mayoreo_only" | "both";
+export type QuoteStatus = "pending" | "accepted" | "rejected" | "shipped"; // <--- 'shipped' YA ESTÁ AQUÍ (¡Bien!)
+export type PriceType = "menudeo" | "mayoreo";
+export type DeliveryMethod = "pickup" | "shipping"; // <-- TIPO NUEVO PARA CLARIDAD
+
+export interface DigitalCatalog {
+  id: string;
+  user_id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  template_id: string | null;
+  web_template_id: string | null;
+  // Configuración de precios
+  price_display: PriceDisplay;
+  price_adjustment_menudeo: number;
+  price_adjustment_mayoreo: number;
+
+  // Configuración de visibilidad
+  show_sku: boolean;
+  show_tags: boolean;
+  show_description: boolean;
+  show_stock: boolean;
+
+  // Diseño
+  background_pattern: string | null;
+
+  // Información adicional
+  additional_info: string | null;
+
+  // Privacidad
+  is_private: boolean;
+  access_password: string | null;
+
+  // Control
+  expires_at: string | null;
+  is_active: boolean;
+  view_count: number;
+  enable_quotation: boolean;
+  enable_variants: boolean;
+  enable_distribution: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
-export class QuoteService {
-  /**
-   * Crear cotización (desde vista pública - cliente anónimo).
-   * AHORA LLAMA A LA EDGE FUNCTION 'create-anonymous-quote'
-   */
-  static async createQuote(quoteData: CreateQuoteDTO): Promise<Quote> {
-    console.log("Invocando Edge Function 'create-anonymous-quote'...");
+export interface CatalogProduct {
+  id: string;
+  catalog_id: string;
+  product_id: string;
+  sort_order: number;
+  created_at: string;
+}
 
-    // 1. Llamar a la nueva Edge Function segura
-    const { data, error } = await supabase.functions.invoke<CreateQuoteResponse>(
-      'create-anonymous-quote', 
-      {
-        body: quoteData // Pasamos el DTO completo (que incluye los datos del form)
-      }
-    );
+export interface Quote {
+  id: string;
+  catalog_id: string;
+  user_id: string;
 
-    if (error) {
-      console.error("Error al invocar Edge Function:", error);
-      // Intenta extraer un mensaje de error más útil si es posible
-      const message = (error as any).context?.message || error.message || "Error al contactar el servidor de cotizaciones.";
-      throw new Error(message);
-    }
+  // Datos del cliente
+  customer_name: string;
+  customer_email: string;
+  customer_company: string | null;
+  customer_phone: string | null;
+  notes: string | null;
 
-    // 2. Manejar la respuesta de la Edge Function
-    if (data.error) {
-      console.error("Error devuelto por la Edge Function:", data.error);
-      throw new Error(`Error en el servidor: ${data.error}`);
-    }
-    
-    if (!data.success || !data.quoteId) {
-      console.error("La función no devolvió una respuesta exitosa:", data);
-      throw new Error("La función no devolvió una respuesta exitosa.");
-    }
+  status: QuoteStatus;
+  created_at: string;
+  updated_at: string;
 
-    console.log(`Cotización creada exitosamente por Edge Function con ID: ${data.quoteId}`);
+  // --- 👇 CAMBIO 1: AÑADIR CAMPOS DE ENVÍO A LA INTERFAZ 'Quote' ---
+  delivery_method: DeliveryMethod;
+  shipping_address: string | null;
+  shipping_cost: number | null;
+}
 
-    // 3. Devolver un objeto 'Quote' parcial para cumplir con el tipo
-    // El frontend (QuoteForm) realmente no usa este objeto,
-    // solo necesita saber que la promesa se resolvió sin error.
-    const partialQuote: Quote = {
-      id: data.quoteId,
-      catalog_id: quoteData.catalog_id,
-      user_id: '', // No lo necesitamos en el frontend en este punto
-      customer_name: quoteData.customer_name,
-      customer_email: quoteData.customer_email,
-      customer_company: quoteData.customer_company || null,
-      customer_phone: quoteData.customer_phone || null,
-      notes: quoteData.notes || null,
-      status: 'pending',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      // Nuevos campos de envío (agregados por si acaso, aunque el DTO los tiene)
-      delivery_method: quoteData.delivery_method, 
-      shipping_address: quoteData.shipping_address,
-      shipping_cost: 0
-    };
+export interface QuoteItem {
+  id: string;
+  quote_id: string;
+  product_id: string | null;
+  variant_id?: string | null;
 
-    return partialQuote as Quote; // Cumplimos el contrato de tipo Promise<Quote>
-  }
+  // Snapshot
+  product_name: string;
+  product_sku: string | null;
+  product_image_url: string | null;
+  variant_description: string | null;
+  quantity: number;
+  unit_price: number;
+  price_type: PriceType;
+  subtotal: number;
 
-  // Obtener cotizaciones del usuario (con filtros)
-  static async getUserQuotes(
-    userId: string,
-    filters?: {
-      catalog_id?: string;
-      status?: QuoteStatus;
-      date_from?: string;
-      date_to?: string;
-      customer_search?: string;
-    },
-  ): Promise<Array<Quote & { items_count: number; total_amount: number }>> {
-    let query = supabase
-      .from("quotes")
-      .select(
-        `
-        *,
-        quote_items (
-          subtotal
-        )
-      `,
-      )
-      .eq("user_id", userId)
-      .order("created_at", { ascending: false });
+  created_at: string;
+}
 
-    // Aplicar filtros
-    if (filters?.catalog_id) {
-      query = query.eq("catalog_id", filters.catalog_id);
-    }
+export interface CatalogView {
+  id: string;
+  catalog_id: string;
+  ip_address: string | null;
+  user_agent: string | null;
+  referrer: string | null;
+  country: string | null;
+  city: string | null;
+  viewed_at: string;
+}
 
-    if (filters?.status) {
-      query = query.eq("status", filters.status);
-    }
+// DTOs para crear/actualizar
+export interface CreateDigitalCatalogDTO {
+  name: string;
+  description?: string;
+  template_id?: string;
+  web_template_id?: string;
+  price_display: PriceDisplay;
+  price_adjustment_menudeo: number;
+  price_adjustment_mayoreo: number;
+  show_sku: boolean;
+  show_tags: boolean;
+  show_description: boolean;
+  show_stock: boolean;
+  background_pattern?: string | null;
+  additional_info?: string;
+  is_private: boolean;
+  access_password?: string;
+  expires_at?: string;
+  product_ids: string[];
+  enable_quotation?: boolean;
+  enable_variants?: boolean;
+  enable_distribution?: boolean;
+}
 
-    if (filters?.date_from) {
-      query = query.gte("created_at", filters.date_from);
-    }
+export interface UpdateDigitalCatalogDTO {
+  name?: string;
+  description?: string;
+  template_id?: string;
+  web_template_id?: string;
+  price_display?: PriceDisplay;
+  price_adjustment_menudeo?: number;
+  price_adjustment_mayoreo?: number;
+  show_sku?: boolean;
+  show_tags?: boolean;
+  show_description?: boolean;
+  show_stock?: boolean;
+  background_pattern?: string | null;
+  additional_info?: string;
+  is_private?: boolean;
+  access_password?: string;
+  expires_at?: string;
+  is_active?: boolean;
+  product_ids?: string[];
+  enable_quotation?: boolean;
+  enable_variants?: boolean;
+  enable_distribution?: boolean;
+}
 
-    if (filters?.date_to) {
-      query = query.lte("created_at", filters.date_to);
-    }
+export interface CreateQuoteDTO {
+  catalog_id: string;
+  customer_name: string;
+  customer_email: string;
+  customer_company?: string;
+  customer_phone?: string;
+  notes?: string;
 
-    if (filters?.customer_search) {
-      query = query.or(
-        `customer_name.ilike.%${filters.customer_search}%,` +
-          `customer_email.ilike.%${filters.customer_search}%,` +
-          `customer_company.ilike.%${filters.customer_search}%`,
-      );
-    }
+  // --- 👇 CAMBIO 2: AÑADIR CAMPOS DE ENVÍO AL DTO 'CreateQuoteDTO' ---
+  delivery_method: DeliveryMethod;
+  shipping_address: string | null;
 
-    const { data, error } = await query;
+  items: {
+    product_id: string;
+    product_name: string;
+    product_sku: string | null;
+    product_image_url: string | null;
+    quantity: number;
+    unit_price: number;
+    price_type: PriceType;
+    variant_id?: string | null;
+    variant_description?: string | null;
+  }[];
+}
 
-    if (error) throw error;
+export interface CatalogLimitInfo {
+  can_create: boolean;
+  current_count: number;
+  max_allowed: number;
+  message: string;
+  plan_name: string;
+}
 
-    // Calcular totales
-    return (data || []).map((quote: any) => {
-      const items = quote.quote_items || [];
-      const total_amount = items.reduce((sum: number, item: any) => sum + (item.subtotal || 0), 0);
-      const items_count = items.length;
+// Tipo extendido para vista pública (incluye productos)
+export interface PublicCatalogView extends DigitalCatalog {
+  products: Array<{
+    id: string;
+    name: string;
+    sku: string | null;
+    description: string | null;
+    price_retail: number;
+    price_wholesale: number | null;
+    wholesale_min_qty: number | null;
+    image_url: string; // Ya calculado
+    tags: string[] | null;
+    category: string | null;
+    has_variants?: boolean;
+    variants?: Array<{
+      id: string;
+      variant_combination: Record<string, string>;
+      sku: string | null;
+      price_retail: number;
+      price_wholesale: number | null;
+      stock_quantity: number;
+      is_default: boolean;
+    }>;
+  }>;
+  business_info: {
+    business_name: string;
+    logo_url: string | null;
+    phone: string | null;
+    email: string | null;
+    website: string | null;
+    address: string | null; // <-- Ya estaba aquí, ¡perfecto!
+  };
+  enable_variants: boolean;
+  purchasedProductIds?: string[];
+  isReplicated?: boolean;
+  resellerInfo?: {
+    // <-- Necesario para el Market Radar en catálogos replicados
+    reseller_id: string;
+  };
+}
 
-      // Eliminar quote_items del objeto final
-      const { quote_items, ...quoteData } = quote;
+// ============================================
+// TIPOS PARA SISTEMA DE REPLICACIÓN
+// ============================================
 
-      return {
-        ...quoteData,
-        items_count,
-        total_amount,
-      } as Quote & { items_count: number; total_amount: number };
-    });
-  }
+export interface ReplicatedCatalog {
+  id: string;
+  original_catalog_id: string;
+  quote_id: string | null;
+  reseller_id: string | null;
+  distributor_id: string;
+  reseller_email: string | null; // <-- Añadido para el flujo de activación
 
-  // Obtener detalle completo de cotización
-  static async getQuoteDetail(quoteId: string, userId: string): Promise<Quote & { items: QuoteItem[]; catalog: any }> {
-    // Obtener cotización
-    const { data: quote, error: quoteError } = await supabase
-      .from("quotes")
-      .select(
-        `
-        *,
-        digital_catalogs (
-          id, name, slug, enable_distribution, enable_quotation
-        )
-      `,
-      )
-      .eq("id", quoteId)
-      .eq("user_id", userId)
-      .single();
+  // Estado
+  is_active: boolean;
+  activation_token: string;
+  activation_paid: boolean;
+  activated_at: string | null;
+  expires_at: string | null;
 
-    if (quoteError) throw quoteError;
-    if (!quote) throw new Error("Cotización no encontrada");
+  // Límites
+  product_limit: number | null;
 
-    // Obtener items
-    const { data: items, error: itemsError } = await supabase
-      .from("quote_items")
-      .select("*")
-      .eq("quote_id", quoteId)
-      .order("created_at");
+  // Metadata
+  created_at: string;
+  updated_at: string;
+}
 
-    if (itemsError) throw itemsError;
+export interface DistributionNetwork {
+  id: string;
+  distributor_id: string;
+  reseller_id: string | null;
+  replicated_catalog_id: string;
 
-    return {
-      ...quote,
-      items: items || [],
-      catalog: quote.digital_catalogs,
-    } as Quote & { items: QuoteItem[]; catalog: any };
-  }
+  // Estadísticas
+  total_quotes_generated: number;
+  total_quotes_accepted: number;
+  conversion_rate: number;
+  last_quote_at: string | null;
 
-  // Actualizar estado de cotización
-  static async updateQuoteStatus(
-    quoteId: string,
-    userId: string,
-    status: QuoteStatus,
-    activationLink?: string,
-  ): Promise<Quote> {
-    const { data: updatedQuote, error } = await supabase
-      .from("quotes")
-      .update({ status })
-      .eq("id", quoteId)
-      .eq("user_id", userId)
-      .select('id, status, customer_email, customer_name') // Seleccionamos solo lo necesario
-      .single();
+  // Metadata
+  created_at: string;
+  updated_at: string;
+}
 
-    if (error) throw error;
-    if (!updatedQuote) throw new Error("No se pudo actualizar la cotización");
+// DTOs para replicación
+export interface CreateReplicatedCatalogDTO {
+  original_catalog_id: string;
+  quote_id: string;
+  distributor_id: string;
+}
 
-    // --- INICIO CÓDIGO AÑADIDO ---
-    // Enviar notificación al cliente SOLO si la actualización fue exitosa
-    if (updatedQuote) {
-      try {
-        console.log(`Intentando invocar send-quote-notification para quote ${quoteId} con status ${status}`);
-        
-        const functionBody = {
-            quoteId: updatedQuote.id,
-            newStatus: status,
-            customerEmail: updatedQuote.customer_email,
-            customerName: updatedQuote.customer_name,
-            activationLink: activationLink || null
-        };
-        
-        console.log("Object being sent to Edge Function body:", JSON.stringify(functionBody));
+export interface ActivateReplicatedCatalogDTO {
+  token: string;
+  reseller_id: string;
+}
 
-        const { data: functionData, error: functionError } = await supabase.functions.invoke(
-          "send-quote-notification",
-          {
-            body: functionBody,
-          },
-        );
+// Respuesta de get_catalog_by_token
+export interface CatalogByTokenResponse {
+  catalog_id: string;
+  original_catalog_id: string;
+  distributor_id: string;
+  distributor_name: string | null;
+  distributor_company: string | null;
+  is_active: boolean;
+  product_limit: number | null;
+  expires_at: string | null;
+  product_count: number;
+  catalog_name: string;
+  catalog_description: string | null;
+  reseller_email?: string | null;
+}
 
-        if (functionError) {
-          // No lanzar un error fatal, pero sí registrarlo
-          console.error("Error al invocar la función de notificación:", functionError);
-        } else {
-          console.log("Función de notificación invocada con éxito:", functionData);
-        }
-      } catch (notificationError) {
-        // Captura cualquier otro error durante la invocación
-        console.error("Error inesperado al intentar notificar:", notificationError);
-      }
-    }
-    // --- FIN CÓDIGO AÑADIDO ---
+// Vista extendida para red de distribución
+export interface NetworkResellerView {
+  network_id: string;
+  reseller_id: string | null;
+  reseller_email: string | null;
+  reseller_name: string | null;
+  reseller_company: string | null;
+  catalog_id: string;
+  catalog_name: string;
+  is_active: boolean;
+  total_quotes: number;
+  conversion_rate: number;
+  created_at: string;
+  activated_at: string | null;
+}
 
-    return updatedQuote as Quote;
-  }
+// Estadísticas de red
+export interface NetworkStats {
+  total_catalogs_created: number;
+  active_resellers: number;
+  pending_activations: number;
+  total_quotes_generated: number;
+  total_revenue: number; // $29 x activaciones
+  conversion_rate: number;
+  top_product: {
+    name: string;
+    sales: number;
+  } | null;
+  top_reseller: {
+    name: string;
+    quotes: number;
+  } | null;
+}
 
-  // Obtener estadísticas de cotizaciones
-  static async getQuoteStats(userId: string): Promise<{
-    total: number;
-    pending: number;
-    accepted: number;
-    rejected: number;
-    total_amount_accepted: number;
-  }> {
-    const { data: quotes, error } = await supabase
-      .from("quotes")
-      .select(
-        `
-        status,
-        quote_items (
-          subtotal
-        )
-      `,
-      )
-      .eq("user_id", userId);
+// Tipos para activación híbrida con Magic Link
+export interface ActivateWithEmailDTO {
+  token: string;
+  email: string;
+  name?: string;
+}
 
-    if (error) throw error;
+export interface MagicLinkResponse {
+  success: boolean;
+  message: string;
+  magic_link?: string;
+}
 
-    const stats = {
-      total: quotes?.length || 0,
-      pending: 0,
-      accepted: 0,
-      rejected: 0,
-      total_amount_accepted: 0,
-    };
-
-    quotes?.forEach((quote: any) => {
-      if (quote.status === "pending") stats.pending++;
-      if (quote.status === "accepted") stats.accepted++;
-      if (quote.status === "rejected") stats.rejected++;
-      // Asume que 'shipped' se cuenta como 'accepted' para el total de monto
-      if (quote.status === "accepted" || quote.status === "shipped") { 
-        const items = quote.quote_items || [];
-        stats.total_amount_accepted += items.reduce((sum: number, item: any) => sum + (item.subtotal || 0), 0);
-      }
-    });
-
-    return stats;
-  }
-
-  // Obtener cotizaciones por catálogo
-  static async getQuotesByCatalog(catalogId: string, userId: string): Promise<Quote[]> {
-    const { data, error } = await supabase
-      .from("quotes")
-      .select("*")
-      .eq("catalog_id", catalogId)
-      .eq("user_id", userId)
-      .order("created_at", { ascending: false });
-
-    if (error) throw error;
-    return (data || []) as Quote[];
-  }
+export interface ResellerDashboardData {
+  catalog: {
+    id: string;
+    slug: string;
+    name: string;
+    product_count: number;
+    public_url: string;
+  };
+  original_quote: {
+    id: string;
+    status: string;
+    total_amount: number;
+    items_count: number;
+    created_at: string;
+  } | null;
+  received_quotes: Array<{
+    id: string;
+    customer_name: string;
+    customer_email: string;
+    status: string;
+    total_amount: number;
+    created_at: string;
+  }>;
+  stats: {
+    total_quotes: number;
+    pending_quotes: number;
+    accepted_quotes: number;
+  };
 }
