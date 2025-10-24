@@ -407,13 +407,13 @@ const Index = () => {
     {
       icon: <AlertCircle className="w-6 h-6" />,
       title: "Respuesta lenta = Ventas perdidas",
-      description: "Tu competencia responde en 42 horas. El cliente espera 10 minutos.",
+      description: "Tu competencia tarda 42 horas en cotizar. Tu cliente cotiza en 10 minutos.",
       stat: "42 horas promedio industria",
     },
     {
       icon: <DollarSign className="w-6 h-6" />,
       title: "ROI invisible",
-      description: "Gastas $20K en marketing sin poder probar cuánto generó en ventas.",
+      description: "Gastas mucho $$ en marketing sin poder probar cuánto generó en ventas.",
       stat: "$0 en atribución",
     },
     {
@@ -761,7 +761,7 @@ const Index = () => {
                   <div className="space-y-3">
                     <div className="bg-white p-3 rounded-lg border border-green-200">
                       <div className="text-3xl font-bold text-green-600 mb-1">0 seg</div>
-                      <div className="text-xs text-gray-600">Respuesta automática por cotizar desde el catalogo</div>
+                      <div className="text-xs text-gray-600">Respuesta automática</div>
                     </div>
                     <div className="bg-white p-3 rounded-lg border border-green-200">
                       <div className="text-2xl font-bold text-green-600 mb-1">+50%</div>
