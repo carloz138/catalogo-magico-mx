@@ -1,8 +1,9 @@
 // Tipos para el sistema de catálogos digitales
 
 export type PriceDisplay = "menudeo_only" | "mayoreo_only" | "both";
-export type QuoteStatus = "pending" | "accepted" | "rejected" | "shipped";
+export type QuoteStatus = "pending" | "accepted" | "rejected" | "shipped"; // <--- 'shipped' YA ESTÁ AQUÍ (¡Bien!)
 export type PriceType = "menudeo" | "mayoreo";
+export type DeliveryMethod = "pickup" | "shipping"; // <-- TIPO NUEVO PARA CLARIDAD
 
 export interface DigitalCatalog {
   id: string;
@@ -67,6 +68,11 @@ export interface Quote {
   status: QuoteStatus;
   created_at: string;
   updated_at: string;
+
+  // --- 👇 CAMBIO 1: AÑADIR CAMPOS DE ENVÍO A LA INTERFAZ 'Quote' ---
+  delivery_method: DeliveryMethod;
+  shipping_address: string | null;
+  shipping_cost: number | null;
 }
 
 export interface QuoteItem {
@@ -154,6 +160,11 @@ export interface CreateQuoteDTO {
   customer_company?: string;
   customer_phone?: string;
   notes?: string;
+
+  // --- 👇 CAMBIO 2: AÑADIR CAMPOS DE ENVÍO AL DTO 'CreateQuoteDTO' ---
+  delivery_method: DeliveryMethod;
+  shipping_address: string | null;
+
   items: {
     product_id: string;
     product_name: string;
@@ -185,7 +196,7 @@ export interface PublicCatalogView extends DigitalCatalog {
     price_retail: number;
     price_wholesale: number | null;
     wholesale_min_qty: number | null;
-    image_url: string;
+    image_url: string; // Ya calculado
     tags: string[] | null;
     category: string | null;
     has_variants?: boolean;
@@ -205,10 +216,15 @@ export interface PublicCatalogView extends DigitalCatalog {
     phone: string | null;
     email: string | null;
     website: string | null;
+    address: string | null; // <-- Ya estaba aquí, ¡perfecto!
   };
   enable_variants: boolean;
   purchasedProductIds?: string[];
   isReplicated?: boolean;
+  resellerInfo?: {
+    // <-- Necesario para el Market Radar en catálogos replicados
+    reseller_id: string;
+  };
 }
 
 // ============================================
@@ -221,6 +237,7 @@ export interface ReplicatedCatalog {
   quote_id: string | null;
   reseller_id: string | null;
   distributor_id: string;
+  reseller_email: string | null; // <-- Añadido para el flujo de activación
 
   // Estado
   is_active: boolean;
