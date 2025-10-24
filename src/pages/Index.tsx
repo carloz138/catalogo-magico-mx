@@ -439,6 +439,13 @@ const Index = () => {
               >
                 Casos de Éxito
               </Button>
+              <Button
+                variant="ghost"
+                onClick={() => navigate("/why-subscribe")}
+                className="text-gray-700 hover:text-gray-900"
+              >
+                ¿Por Qué Suscribirse?
+              </Button>
             </nav>
 
             {/* CTAs desktop */}
@@ -468,6 +475,14 @@ const Index = () => {
 
             {/* CTAs móvil */}
             <div className="flex md:hidden items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate("/why-subscribe")}
+                className="h-10 px-3 text-sm text-gray-700"
+              >
+                ¿Por Qué?
+              </Button>
               <Button
                 onClick={handleMainCTA}
                 size="sm"
