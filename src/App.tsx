@@ -23,6 +23,7 @@ import ResetPassword from "@/pages/ResetPassword";
 import Blog from "@/pages/Blog";
 import BlogPost from "@/pages/BlogPost";
 import NotFound from "@/pages/NotFound";
+import WhySubscribePage from "@/pages/WhySubscribePage";
 
 // Protected (Dashboard) Pages
 import MainDashboard from "@/pages/MainDashboard";
@@ -61,6 +62,7 @@ const App = () => (
             <Route path="/login" element={<LoginPage />} /> {/* 👈 2. Añade esta línea */}
             <Route path="/login" element={<LoginPage />} />
             <Route path="/creditos" element={<Navigate to="/checkout" replace />} />
+            <Route path="/why-subscribe" element={<WhySubscribePage />} />
             <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
             <Route path="/reset-password" element={<ResetPassword />} />
