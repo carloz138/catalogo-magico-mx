@@ -41,6 +41,11 @@ export interface DigitalCatalog {
   enable_quotation: boolean;
   enable_variants: boolean;
   enable_distribution: boolean;
+  
+  // Tracking
+  tracking_head_scripts: string | null;
+  tracking_body_scripts: string | null;
+  
   created_at: string;
   updated_at: string;
 }
@@ -127,6 +132,8 @@ export interface CreateDigitalCatalogDTO {
   enable_quotation?: boolean;
   enable_variants?: boolean;
   enable_distribution?: boolean;
+  tracking_head_scripts?: string | null;
+  tracking_body_scripts?: string | null;
 }
 
 export interface UpdateDigitalCatalogDTO {
@@ -151,6 +158,8 @@ export interface UpdateDigitalCatalogDTO {
   enable_quotation?: boolean;
   enable_variants?: boolean;
   enable_distribution?: boolean;
+  tracking_head_scripts?: string | null;
+  tracking_body_scripts?: string | null;
 }
 
 export interface CreateQuoteDTO {

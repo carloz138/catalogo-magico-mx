@@ -61,6 +61,8 @@ const catalogSchema = z
     enable_quotation: z.boolean().optional(),
     enable_variants: z.boolean().optional(),
     enable_distribution: z.boolean().optional(),
+    tracking_head_scripts: z.string().optional().nullable(),
+    tracking_body_scripts: z.string().optional().nullable(),
   })
   .refine(
     (data) => {
@@ -119,6 +121,8 @@ export default function DigitalCatalogForm() {
       enable_quotation: false,
       enable_variants: true,
       enable_distribution: false,
+      tracking_head_scripts: "",
+      tracking_body_scripts: "",
     },
   });
 
@@ -248,6 +252,8 @@ export default function DigitalCatalogForm() {
         enable_variants: catalog.enable_variants ?? true,
         enable_distribution: catalog.enable_distribution || false,
         show_stock: catalog.show_stock || false,
+        tracking_head_scripts: catalog.tracking_head_scripts || "",
+        tracking_body_scripts: catalog.tracking_body_scripts || "",
       });
 
       setSelectedProducts(catalog.products || []);
@@ -309,6 +315,8 @@ export default function DigitalCatalogForm() {
         enable_quotation: getPlanFeatures(userPlanTier).hasQuotation && data.enable_quotation,
         enable_variants: data.enable_variants ?? true,
         enable_distribution: data.enable_distribution ?? false,
+        tracking_head_scripts: data.tracking_head_scripts || null,
+        tracking_body_scripts: data.tracking_body_scripts || null,
       };
 
       if (isEditing && id) {
@@ -1588,19 +1596,76 @@ export default function DigitalCatalogForm() {
                        )}
                      </CardContent>
                    </Card>
-                ) : (
-                  <Alert>
-                    <Lock className="h-4 w-4" />
-                    <AlertDescription>
-                      El sistema de cotización está disponible en Plan Profesional y Empresarial.
-                      <Button variant="link" className="p-0 h-auto ml-1" onClick={() => navigate("/checkout")}>
-                        Actualizar plan
-                      </Button>
-                    </AlertDescription>
-                  </Alert>
-                )}
+                 ) : (
+                   <Alert>
+                     <Lock className="h-4 w-4" />
+                     <AlertDescription>
+                       El sistema de cotización está disponible en Plan Profesional y Empresarial.
+                       <Button variant="link" className="p-0 h-auto ml-1" onClick={() => navigate("/checkout")}>
+                         Actualizar plan
+                       </Button>
+                     </AlertDescription>
+                   </Alert>
+                 )}
 
-                {/* Botones de Acción Desktop */}
+                 {/* 8. Tracking y Píxeles */}
+                 <Card>
+                   <CardHeader>
+                     <CardTitle>Tracking y Píxeles</CardTitle>
+                     <CardDescription>
+                       Conecta tus herramientas de analítica (Meta, Google, TikTok, LinkedIn) para medir el rendimiento de tu catálogo.
+                       Recomendamos usar Google Tag Manager (GTM) en el script del Head.
+                     </CardDescription>
+                   </CardHeader>
+                   <CardContent className="space-y-4">
+                     <FormField
+                       control={form.control}
+                       name="tracking_head_scripts"
+                       render={({ field }) => (
+                         <FormItem>
+                           <FormLabel>Scripts del Head (ej. GTM, Google Analytics)</FormLabel>
+                           <FormControl>
+                             <Textarea
+                               placeholder="<!-- Pega aquí tu script de Google Tag Manager (GTM) o Meta Pixel... -->"
+                               {...field}
+                               value={field.value || ""}
+                               rows={8}
+                               className="font-mono text-xs"
+                             />
+                           </FormControl>
+                           <FormDescription>
+                             Scripts que deben ir en la etiqueta &lt;head&gt; de tu catálogo.
+                           </FormDescription>
+                           <FormMessage />
+                         </FormItem>
+                       )}
+                     />
+                     <FormField
+                       control={form.control}
+                       name="tracking_body_scripts"
+                       render={({ field }) => (
+                         <FormItem>
+                           <FormLabel>Scripts del Body (ej. GTM Noscript)</FormLabel>
+                           <FormControl>
+                             <Textarea
+                               placeholder="<!-- Pega aquí la parte <noscript> de tu GTM... -->"
+                               {...field}
+                               value={field.value || ""}
+                               rows={5}
+                               className="font-mono text-xs"
+                             />
+                           </FormControl>
+                           <FormDescription>
+                             Scripts que deben ir justo después de la etiqueta &lt;body&gt;.
+                           </FormDescription>
+                           <FormMessage />
+                         </FormItem>
+                       )}
+                     />
+                   </CardContent>
+                 </Card>
+
+                 {/* Botones de Acción Desktop */}
                 <div className="flex gap-4 sticky bottom-0 bg-background py-4 border-t">
                   <Button
                     type="button"

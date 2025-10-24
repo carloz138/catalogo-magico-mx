@@ -318,8 +318,7 @@ export class ReplicationService {
       // 👇 CAMBIO: Llamar a la RPC solo con el token
       const { data, error } = await supabase.rpc('complete_catalog_activation', {
         p_token: token,
-        // Ya no pasamos p_reseller_id, la función usa auth.uid()
-      });
+      } as any); // Cast para evitar error de tipos desactualizados
 
       if (error) {
         console.error("Error en RPC complete_catalog_activation:", error);
