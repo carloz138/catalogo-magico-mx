@@ -297,7 +297,7 @@ const Index = () => {
         {
           icon: TrendingUp,
           title: "3x capacidad de ventas",
-          description: "Tu equipo vende triple con el mismo personal",
+          description: "Tu equipo vende hasta triple con el mismo personal por enfocarse en seguir prospectando",
           metric: "3x productividad",
         },
       ],
@@ -407,13 +407,13 @@ const Index = () => {
     {
       icon: <AlertCircle className="w-6 h-6" />,
       title: "Respuesta lenta = Ventas perdidas",
-      description: "Tu competencia tarda 42 horas en cotizar. Tu cliente cotiza en 10 minutos.",
+      description: "Tu competencia responde en 42 horas. El cliente espera 10 minutos.",
       stat: "42 horas promedio industria",
     },
     {
       icon: <DollarSign className="w-6 h-6" />,
       title: "ROI invisible",
-      description: "Gastas mucho $$ en marketing sin poder probar cuánto generó en ventas.",
+      description: "Gastas $20K en marketing sin poder probar cuánto generó en ventas.",
       stat: "$0 en atribución",
     },
     {
