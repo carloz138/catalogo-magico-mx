@@ -761,7 +761,7 @@ const Index = () => {
                   <div className="space-y-3">
                     <div className="bg-white p-3 rounded-lg border border-green-200">
                       <div className="text-3xl font-bold text-green-600 mb-1">0 seg</div>
-                      <div className="text-xs text-gray-600">Respuesta automática</div>
+                      <div className="text-xs text-gray-600">Respuesta automática por cotizar desde el catalogo</div>
                     </div>
                     <div className="bg-white p-3 rounded-lg border border-green-200">
                       <div className="text-2xl font-bold text-green-600 mb-1">+50%</div>
