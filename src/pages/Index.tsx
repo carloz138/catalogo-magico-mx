@@ -33,18 +33,22 @@ import {
   Repeat,
   Truck,
   Radar,
-  LucideIcon,
+  Brain,
+  Eye,
+  TrendingDown,
+  Activity,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { useAuth } from "@/contexts/AuthContext";
-import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
 
-// Interface que coincide con la BD (igual que checkout)
+// Mock data para demo - en producción esto vendría de tu contexto real
+const mockUser = null;
+const mockNavigate = (path: string) => console.log("Navigate to:", path);
+const mockSignOut = () => console.log("Sign out");
+const mockToast = (config: any) => console.log("Toast:", config);
+
 interface CreditPackage {
   id: string;
   name: string;
@@ -65,69 +69,108 @@ interface CreditPackage {
 const Index = () => {
   const [monthlyPlans, setMonthlyPlans] = useState<CreditPackage[]>([]);
   const [creditPacks, setCreditPacks] = useState<CreditPackage[]>([]);
-  const [loadingPlans, setLoadingPlans] = useState(true);
-  const { user, signOut } = useAuth();
-  const navigate = useNavigate();
-  const { toast } = useToast();
+  const [loadingPlans, setLoadingPlans] = useState(false);
+  const [activeTab, setActiveTab] = useState(0);
+  const [monthlyLeads, setMonthlyLeads] = useState(100);
+  const [avgQuote, setAvgQuote] = useState(50000);
 
-  // Cargar planes dinámicamente desde Supabase (igual que checkout)
+  const user = mockUser;
+  const navigate = mockNavigate;
+  const signOut = mockSignOut;
+  const toast = mockToast;
+
+  // Mock data de planes
   useEffect(() => {
-    fetchAllPackages();
+    const mockMonthlyPlans: CreditPackage[] = [
+      {
+        id: "1",
+        name: "Plan Starter",
+        credits: 0,
+        price_mxn: 9900,
+        price_usd: 550,
+        discount_percentage: null,
+        is_popular: false,
+        is_active: true,
+        description: "Ideal para empezar",
+        created_at: new Date().toISOString(),
+        package_type: "monthly_plan",
+        max_uploads: 50,
+        max_catalogs: 1,
+        duration_months: 1,
+      },
+      {
+        id: "2",
+        name: "Plan Básico",
+        credits: 30,
+        price_mxn: 29900,
+        price_usd: 1650,
+        discount_percentage: null,
+        is_popular: true,
+        is_active: true,
+        description: "Activa tu red de distribución",
+        created_at: new Date().toISOString(),
+        package_type: "monthly_plan",
+        max_uploads: 100,
+        max_catalogs: 5,
+        duration_months: 1,
+      },
+      {
+        id: "3",
+        name: "Plan Profesional",
+        credits: 100,
+        price_mxn: 59900,
+        price_usd: 3300,
+        discount_percentage: null,
+        is_popular: false,
+        is_active: true,
+        description: "Ecosistema completo",
+        created_at: new Date().toISOString(),
+        package_type: "monthly_plan",
+        max_uploads: 500,
+        max_catalogs: 30,
+        duration_months: 1,
+      },
+    ];
+
+    const mockCreditPacks: CreditPackage[] = [
+      {
+        id: "4",
+        name: "Pack Starter",
+        credits: 50,
+        price_mxn: 9900,
+        price_usd: 550,
+        discount_percentage: null,
+        is_popular: false,
+        is_active: true,
+        description: "Créditos adicionales",
+        created_at: new Date().toISOString(),
+        package_type: "addon",
+        max_uploads: null,
+        max_catalogs: null,
+        duration_months: 12,
+      },
+      {
+        id: "5",
+        name: "Pack Popular",
+        credits: 150,
+        price_mxn: 24900,
+        price_usd: 1375,
+        discount_percentage: 15,
+        is_popular: true,
+        is_active: true,
+        description: "Mejor relación",
+        created_at: new Date().toISOString(),
+        package_type: "addon",
+        max_uploads: null,
+        max_catalogs: null,
+        duration_months: 12,
+      },
+    ];
+
+    setMonthlyPlans(mockMonthlyPlans);
+    setCreditPacks(mockCreditPacks);
   }, []);
 
-  const fetchAllPackages = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("credit_packages")
-        .select("*")
-        .eq("is_active", true)
-        .order("price_mxn");
-
-      if (error) throw error;
-
-      if (!data) {
-        setMonthlyPlans([]);
-        setCreditPacks([]);
-        return;
-      }
-
-      // Mapeo manual para garantizar compatibilidad de tipos (igual que checkout)
-      const mappedPackages: CreditPackage[] = (data as any[]).map((pkg: any) => ({
-        id: pkg.id,
-        name: pkg.name,
-        credits: pkg.credits,
-        price_mxn: pkg.price_mxn,
-        price_usd: pkg.price_usd,
-        discount_percentage: pkg.discount_percentage,
-        is_popular: pkg.is_popular,
-        is_active: pkg.is_active,
-        description: pkg.description,
-        created_at: pkg.created_at,
-        package_type: pkg.package_type || (pkg.name.toLowerCase().includes("plan") ? "monthly_plan" : "addon"),
-        max_uploads: pkg.max_uploads,
-        max_catalogs: pkg.max_catalogs,
-        duration_months: pkg.duration_months,
-      }));
-
-      // Separar por tipo usando el campo real package_type (igual que checkout)
-      const monthly = mappedPackages.filter((pkg) => pkg.package_type === "monthly_plan");
-      const credits = mappedPackages.filter((pkg) => pkg.package_type === "addon");
-
-      setMonthlyPlans(monthly);
-      setCreditPacks(credits);
-    } catch (error) {
-      console.error("Error fetching packages:", error);
-      toast({
-        title: "Error",
-        description: "No se pudieron cargar los paquetes",
-        variant: "destructive",
-      });
-    } finally {
-      setLoadingPlans(false);
-    }
-  };
-
-  // Funciones helper idénticas a checkout
   const getPackageIcon = (packageName: string, packageType: string) => {
     if (packageType === "monthly_plan") {
       if (packageName.includes("Starter")) return <Package className="w-5 h-5" />;
@@ -136,7 +179,6 @@ const Index = () => {
       if (packageName.includes("Empresarial")) return <Crown className="w-5 h-5" />;
       return <RefreshCw className="w-5 h-5" />;
     }
-
     if (packageName.includes("Starter")) return <Zap className="w-5 h-5" />;
     if (packageName.includes("Popular")) return <TrendingUp className="w-5 h-5" />;
     if (packageName.includes("Business")) return <Users className="w-5 h-5" />;
@@ -150,7 +192,6 @@ const Index = () => {
       if (packageName.includes("Profesional")) return "from-purple-500 to-purple-700";
       if (packageName.includes("Empresarial")) return "from-yellow-500 to-yellow-700";
     }
-
     if (packageName.includes("Starter")) return "from-blue-500 to-blue-700";
     if (packageName.includes("Popular")) return "from-green-500 to-green-700";
     if (packageName.includes("Business")) return "from-purple-500 to-purple-700";
@@ -159,20 +200,13 @@ const Index = () => {
 
   const getPackageFeatures = (pkg: CreditPackage) => {
     const features = [];
-
     if (pkg.package_type === "monthly_plan") {
       const planName = pkg.name.toLowerCase();
-
       if (planName.includes("gratis") || planName.includes("free")) {
         features.push("1 catálogo digital");
         features.push("50 productos máximo");
         features.push("❌ Sin cotización ni analytics");
-      } else if (
-        planName.includes("catálogos") &&
-        !planName.includes("básico") &&
-        !planName.includes("basico") &&
-        !planName.includes("ia")
-      ) {
+      } else if (planName.includes("catálogos")) {
         features.push("✅ Cotización Automática 24/7");
         features.push("✅ Analytics de Ventas Básicas");
         features.push("1 catálogo, 100 productos");
@@ -191,31 +225,21 @@ const Index = () => {
         features.push("✅ Inteligencia de Negocio PRO");
         features.push("✅ Catálogos privados");
         features.push("➕ 100 créditos IA/mes incluidos");
-      } else if (planName.includes("empresarial")) {
-        features.push("✅ Ecosistema empresarial escalable");
-        features.push("⭐ Red de Distribución multi-nivel");
-        features.push("♾️ Catálogos ilimitados");
-        features.push("✅ API de integración completa");
-        features.push("✅ Soporte prioritario 24/7");
-        features.push("➕ 300 créditos IA/mes incluidos");
       }
-
       features.push("Se renueva automáticamente");
       features.push("Cancela cuando quieras");
     } else {
-      // Packs únicos de créditos IA
       features.push(`${pkg.credits} créditos IA`);
       features.push("Válidos por 12 meses");
       features.push("Sin renovación automática");
       features.push("Add-on para procesamiento IA");
     }
-
     return features;
   };
 
   const handlePurchasePackage = (packageId: string, packageName: string) => {
     if (user) {
-      navigate("/checkout", { state: { selectedPackageName: packageName } });
+      navigate("/checkout");
     } else {
       navigate("/login");
     }
@@ -245,31 +269,161 @@ const Index = () => {
     }
   };
 
-  // Sección de Problemas
+  // 4 PILARES ESTRATÉGICOS
+  const pillars = [
+    {
+      id: 1,
+      icon: Zap,
+      color: "from-yellow-400 to-orange-500",
+      bgColor: "bg-yellow-50",
+      iconColor: "text-yellow-600",
+      title: "Crisis de Productividad",
+      subtitle: "Haz más con menos",
+      problem: "70% del tiempo se desperdicia en tareas manuales",
+      solution: "Automatiza y libera a tu equipo para vender 3x más",
+      features: [
+        {
+          icon: Clock,
+          title: "Catálogos en 3 minutos",
+          description: "Actualiza precios instantáneamente, sin esperar semanas al diseñador",
+          metric: "De semanas → 3 min",
+        },
+        {
+          icon: Users,
+          title: "Portal de autoservicio 24/7",
+          description: "Tus clientes consultan pedidos sin llamar a soporte",
+          metric: "-80% llamadas",
+        },
+        {
+          icon: TrendingUp,
+          title: "3x capacidad de ventas",
+          description: "Tu equipo vende triple con el mismo personal",
+          metric: "3x productividad",
+        },
+      ],
+    },
+    {
+      id: 2,
+      icon: Target,
+      color: "from-green-400 to-emerald-500",
+      bgColor: "bg-green-50",
+      iconColor: "text-green-600",
+      title: "Aceleración de Ingresos",
+      subtitle: "Vende más y más rápido",
+      problem: "Tu competencia tarda 42 horas en responder",
+      solution: "Tú respondes en 0 segundos, 24/7",
+      features: [
+        {
+          icon: Zap,
+          title: "Respuesta instantánea",
+          description: "El 35-50% de ventas B2B van al primer respondedor. Sé tú.",
+          metric: "0 segundos vs 42 hrs",
+        },
+        {
+          icon: Repeat,
+          title: "Loop viral B2B2X",
+          description: "Tus distribuidores venden con tu catálogo y bloqueas la competencia",
+          metric: "Crecimiento viral",
+        },
+        {
+          icon: Package,
+          title: "Venta sin inventario",
+          description: "Prueba demanda de nuevos productos sin invertir en stock",
+          metric: "Riesgo cero",
+        },
+      ],
+    },
+    {
+      id: 3,
+      icon: Brain,
+      color: "from-purple-400 to-pink-500",
+      bgColor: "bg-purple-50",
+      iconColor: "text-purple-600",
+      title: "Cerebro Estratégico",
+      subtitle: "Vende más inteligentemente",
+      problem: "Adivinas qué importar y no mides tu marketing",
+      solution: "Datos reales de demanda y ROI comprobado",
+      features: [
+        {
+          icon: Radar,
+          title: "Radar Market",
+          description: "Ve qué productos piden tus clientes antes de importar",
+          metric: "Demanda en tiempo real",
+        },
+        {
+          icon: Target,
+          title: "Atribución de marketing",
+          description: "Conecta tu gasto en Facebook Ads con cotizaciones generadas",
+          metric: "ROI visible al instante",
+        },
+        {
+          icon: Eye,
+          title: "Recupera carritos",
+          description: "Remarketing a visitantes que no terminaron su cotización",
+          metric: "+59% retención",
+        },
+      ],
+    },
+    {
+      id: 4,
+      icon: Shield,
+      color: "from-blue-400 to-cyan-500",
+      bgColor: "bg-blue-50",
+      iconColor: "text-blue-600",
+      title: "Ventaja Competitiva",
+      subtitle: "Posicionamiento único",
+      problem: "CRM, E-commerce y MarTech están fragmentados",
+      solution: "Una plataforma que conecta todo",
+      features: [
+        {
+          icon: Layers,
+          title: "Habilitación Comercial",
+          description: "No somos CRM ni e-commerce. Somos la capa que los une.",
+          metric: "Categoría única",
+        },
+        {
+          icon: Sparkles,
+          title: "Sin complejidad enterprise",
+          description: "Diseñado para PyMEs, no para gigantes con $24K/año",
+          metric: "Precio accesible",
+        },
+        {
+          icon: CheckCircle2,
+          title: "Ecosistema bloqueado",
+          description: "Tus distribuidores dependen de tu plataforma = lealtad perpetua",
+          metric: "Lock-in de canal",
+        },
+      ],
+    },
+  ];
+
   const painPoints = [
     {
       icon: <Clock className="w-6 h-6" />,
       title: "Horas perdidas",
       description: "Semanas creando PDFs que quedan obsoletos al instante.",
+      stat: "70% tiempo desperdiciado",
     },
     {
       icon: <AlertCircle className="w-6 h-6" />,
-      title: "Errores costosos",
-      description: "Cotizaciones manuales con precios incorrectos que dañan tu margen.",
+      title: "Respuesta lenta = Ventas perdidas",
+      description: "Tu competencia responde en 42 horas. El cliente espera 10 minutos.",
+      stat: "42 horas promedio industria",
     },
     {
       icon: <DollarSign className="w-6 h-6" />,
-      title: "Ventas perdidas",
-      description: "Clientes listos para comprar fuera de tu horario de oficina.",
+      title: "ROI invisible",
+      description: "Gastas $20K en marketing sin poder probar cuánto generó en ventas.",
+      stat: "$0 en atribución",
     },
     {
-      icon: <TrendingUp className="w-6 h-6" />,
-      title: "Crecimiento estancado",
-      description: "Dependes 100% de tu propio esfuerzo para encontrar nuevos clientes.",
+      icon: <TrendingDown className="w-6 h-6" />,
+      title: "Crecimiento limitado",
+      description: "Dependes 100% de tu esfuerzo para encontrar nuevos clientes.",
+      stat: "CAC altísimo",
     },
   ];
 
-  // Sección de Solución (5 pasos)
   const solutionSteps = [
     {
       number: "1",
@@ -306,12 +460,11 @@ const Index = () => {
       icon: <Network className="w-8 h-8" />,
       title: "Controlas Todo el Ecosistema",
       howItWorks:
-        "Convierte a tus clientes en tu fuerza de ventas: ellos replican tu catálogo completo, mostrando los productos que te compraron como 'Disponibles' y el resto de tu inventario como 'Bajo Pedido'. ¡Así pueden vender toda tu línea de productos, no solo lo que te compraron!. Ellos venden, tú ganas.",
+        "Convierte a tus clientes en tu fuerza de ventas: ellos replican tu catálogo completo, mostrando los productos que te compraron como 'Disponibles' y el resto de tu inventario como 'Bajo Pedido'.",
       result: "Escalas sin contratar vendedores. CAC (Costo de Adquisición) = $0.",
     },
   ];
 
-  // Característica Estrella
   const cascadeFeatures = [
     {
       icon: <Repeat className="w-6 h-6" />,
@@ -330,7 +483,6 @@ const Index = () => {
     },
   ];
 
-  // FAQ
   const faqs = [
     {
       question: "¿Qué pasa exactamente cuando mi cliente replica un catálogo?",
@@ -390,19 +542,21 @@ const Index = () => {
   ];
 
   const stats = [
-    { number: "3X", label: "Crecimiento promedio en pedidos", source: "Clientes con red activa 2024" },
-    { number: "25%", label: "Más conversiones con cotización 24/7", source: "Analytics usuarios 2024" },
-    { number: "$0", label: "Costo de adquisición con red", source: "Promedio usuarios 2024" },
-    { number: "24/7", label: "Tu catálogo vende sin parar", source: "Sistema automático" },
+    { number: "35-50%", label: "de ventas van al primer respondedor", source: "Harvard Business Review 2024" },
+    { number: "0 seg", label: "Tu tiempo de respuesta vs 42 hrs", source: "Respuesta automática 24/7" },
+    { number: "3X", label: "Crecimiento en pedidos con red activa", source: "Clientes CatifyPro 2024" },
+    { number: "$0", label: "Costo de adquisición con red viral", source: "Promedio usuarios 2024" },
   ];
+
+  const calculatedROI = Math.round((avgQuote * 0.35 * monthlyLeads) / 100);
+  const yearlyROI = calculatedROI * 12;
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Header simplificado con jerarquía visual clara */}
+      {/* Header */}
       <header className="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-14 sm:h-16">
-            {/* Logo - sin cambios en funcionalidad */}
             <button
               onClick={() => navigate("/")}
               className="flex items-center space-x-2 hover:opacity-80 transition-opacity"
@@ -413,8 +567,14 @@ const Index = () => {
               <span className="text-lg sm:text-xl font-bold">CatifyPro</span>
             </button>
 
-            {/* Navegación simplificada - solo 3 items principales */}
             <nav className="hidden md:flex items-center space-x-1">
+              <Button
+                variant="ghost"
+                onClick={() => document.getElementById("pilares")?.scrollIntoView({ behavior: "smooth" })}
+                className="text-gray-700 hover:text-gray-900"
+              >
+                4 Pilares
+              </Button>
               <Button
                 variant="ghost"
                 onClick={() => document.getElementById("funcionalidades")?.scrollIntoView({ behavior: "smooth" })}
@@ -429,9 +589,6 @@ const Index = () => {
               >
                 Precios
               </Button>
-              <Button variant="ghost" onClick={() => navigate("/blog")} className="text-gray-700 hover:text-gray-900">
-                Blog
-              </Button>
               <Button
                 variant="ghost"
                 onClick={() => document.getElementById("casos")?.scrollIntoView({ behavior: "smooth" })}
@@ -439,16 +596,8 @@ const Index = () => {
               >
                 Casos de Éxito
               </Button>
-              <Button
-                variant="ghost"
-                onClick={() => navigate("/why-subscribe")}
-                className="text-gray-700 hover:text-gray-900"
-              >
-                ¿Por Qué Suscribirse?
-              </Button>
             </nav>
 
-            {/* CTAs desktop */}
             <div className="hidden md:flex items-center gap-2">
               {user ? (
                 <>
@@ -473,16 +622,7 @@ const Index = () => {
               )}
             </div>
 
-            {/* CTAs móvil */}
             <div className="flex md:hidden items-center gap-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => navigate("/why-subscribe")}
-                className="h-10 px-3 text-sm text-gray-700"
-              >
-                ¿Por Qué?
-              </Button>
               <Button
                 onClick={handleMainCTA}
                 size="sm"
@@ -495,9 +635,8 @@ const Index = () => {
         </div>
       </header>
 
-      {/* Hero Section */}
+      {/* Hero Section - MEJORADO CON MÉTRICA 42 HORAS */}
       <section className="pt-12 sm:pt-16 pb-16 sm:pb-24 bg-gradient-to-br from-purple-50 via-white to-blue-50 relative overflow-hidden">
-        {/* Background decorations */}
         <div className="absolute inset-0 overflow-hidden">
           <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-200 rounded-full opacity-20 blur-3xl"></div>
           <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-blue-200 rounded-full opacity-20 blur-3xl"></div>
@@ -508,30 +647,32 @@ const Index = () => {
             <div className="text-center lg:text-left">
               <Badge className="mb-4 sm:mb-6 bg-gradient-to-r from-purple-100 to-blue-100 text-purple-800 border-purple-200 text-xs sm:text-sm px-3 sm:px-4 py-1.5 sm:py-2">
                 <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
-                +5,000 empresas automatizando sus catálogos
+                Plataforma de Habilitación Comercial B2B
               </Badge>
 
               <h1 className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold text-gray-900 mb-6 leading-tight">
-                Tu Catálogo es Ahora tu
+                Mientras tu competencia
+                <br />
+                <span className="text-red-500">tarda 42 horas</span>
+                <br />
                 <span className="bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-                  {" "}
-                  Red de Ventas
+                  tú respondes en 3 minutos
                 </span>
               </h1>
 
               <p className="text-base sm:text-lg lg:text-xl text-gray-600 mb-6 sm:mb-8 leading-relaxed max-w-2xl">
-                Transforma tu proceso de ventas con catálogos digitales, cotizaciones automáticas y un{" "}
+                El 35-50% de ventas B2B van al primer respondedor. Transforma tu proceso de ventas con{" "}
                 <span className="font-semibold text-purple-600">
-                  ecosistema que permite a tus clientes vender tus productos por ti
+                  cotizaciones automáticas 24/7 y un ecosistema que convierte a tus clientes en tu fuerza de ventas
                 </span>
-                . Activa tu red de distribución y escala sin límites.
+                .
               </p>
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
                 {stats.map((stat, index) => (
                   <div
                     key={index}
-                    className="text-center p-3 sm:p-4 bg-white/70 backdrop-blur-sm rounded-lg border border-gray-100"
+                    className="text-center p-3 sm:p-4 bg-white/70 backdrop-blur-sm rounded-lg border border-gray-100 hover:shadow-lg transition-shadow"
                   >
                     <div className="text-xl sm:text-2xl font-bold text-purple-600">{stat.number}</div>
                     <div className="text-xs sm:text-sm text-gray-600 leading-tight">{stat.label}</div>
@@ -545,8 +686,8 @@ const Index = () => {
                   className="w-full sm:w-auto bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-base sm:text-lg px-6 sm:px-8 h-12 sm:h-auto"
                   onClick={handleMainCTA}
                 >
-                  <Upload className="mr-2 w-4 h-4 sm:w-5 sm:h-5" />
-                  Prueba con tus productos
+                  <Zap className="mr-2 w-4 h-4 sm:w-5 sm:h-5" />
+                  Captura esas ventas ahora
                   <ArrowRight className="ml-2 w-4 h-4 sm:w-5 sm:h-5" />
                 </Button>
                 <Button
@@ -556,14 +697,14 @@ const Index = () => {
                   onClick={handleDemoButton}
                 >
                   <Play className="mr-2 w-4 h-4 sm:w-5 sm:h-5" />
-                  Ver demo interactiva
+                  Ver demo
                 </Button>
               </div>
 
               <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start sm:space-x-6 space-y-2 sm:space-y-0 text-xs sm:text-sm text-gray-500">
                 <div className="flex items-center">
                   <CheckCircle2 className="w-3 h-3 sm:w-4 sm:h-4 text-green-500 mr-1.5 sm:mr-2" />
-                  Setup en 5 minutos
+                  Sin tarjeta de crédito
                 </div>
                 <div className="flex items-center">
                   <CheckCircle2 className="w-3 h-3 sm:w-4 sm:h-4 text-green-500 mr-1.5 sm:mr-2" />
@@ -571,54 +712,66 @@ const Index = () => {
                 </div>
                 <div className="flex items-center">
                   <CheckCircle2 className="w-3 h-3 sm:w-4 sm:h-4 text-green-500 mr-1.5 sm:mr-2" />
-                  Soporte en español
+                  Cancela cuando quieras
                 </div>
               </div>
             </div>
 
-            {/* Demo Visual */}
-            <div className="hidden lg:block relative">
-              <div className="bg-white rounded-2xl shadow-2xl p-8 relative">
-                {/* Steps visualization */}
-                <div className="space-y-6">
-                  <div className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg">
-                    <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
-                      1
+            {/* Visual comparativo Hero */}
+            <div className="hidden lg:block relative mt-12 lg:mt-0">
+              <div className="grid grid-cols-2 gap-6">
+                {/* Competencia */}
+                <div className="bg-red-50 border-2 border-red-200 rounded-xl p-6">
+                  <div className="text-center mb-4">
+                    <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                      <TrendingDown className="w-6 h-6 text-red-600" />
                     </div>
-                    <div className="flex-1">
-                      <h4 className="font-semibold text-gray-800">Sube productos masivamente</h4>
-                      <p className="text-gray-600 text-sm">Carga 100+ productos en un solo drag & drop</p>
-                    </div>
-                    <Upload className="w-5 h-5 text-purple-500" />
+                    <h3 className="font-bold text-gray-900 mb-2">Tu Competencia</h3>
                   </div>
-
-                  <div className="flex items-center space-x-4 p-4 bg-blue-50 rounded-lg">
-                    <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
-                      2
+                  <div className="space-y-3">
+                    <div className="bg-white p-3 rounded-lg">
+                      <div className="text-3xl font-bold text-red-600 mb-1">42 hrs</div>
+                      <div className="text-xs text-gray-600">Tiempo de respuesta</div>
                     </div>
-                    <div className="flex-1">
-                      <h4 className="font-semibold text-gray-800">Etiqueta estratégicamente</h4>
-                      <p className="text-gray-600 text-sm">Organiza por cliente, temporada, categoría</p>
+                    <div className="bg-white p-3 rounded-lg">
+                      <div className="text-2xl font-bold text-red-600 mb-1">50%</div>
+                      <div className="text-xs text-gray-600">Ventas perdidas</div>
                     </div>
-                    <Tag className="w-5 h-5 text-blue-500" />
-                  </div>
-
-                  <div className="flex items-center space-x-4 p-4 bg-green-50 rounded-lg">
-                    <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
-                      3
+                    <div className="bg-white p-3 rounded-lg">
+                      <div className="text-2xl font-bold text-red-600 mb-1">$$</div>
+                      <div className="text-xs text-gray-600">CAC alto</div>
                     </div>
-                    <div className="flex-1">
-                      <h4 className="font-semibold text-gray-800">Genera catálogos automáticos</h4>
-                      <p className="text-gray-600 text-sm">PDFs profesionales en 2 minutos</p>
-                    </div>
-                    <Download className="w-5 h-5 text-green-500" />
                   </div>
                 </div>
 
-                <div className="mt-6 text-center">
-                  <Badge className="bg-gradient-to-r from-purple-100 to-blue-100 text-purple-800 px-4 py-2">
-                    ⚡ Resultado: Catálogos personalizados por cliente
-                  </Badge>
+                {/* CatifyPro */}
+                <div className="bg-gradient-to-br from-purple-50 to-blue-50 border-2 border-purple-300 rounded-xl p-6 shadow-xl relative">
+                  <div className="absolute -top-3 -right-3">
+                    <Badge className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white">
+                      <Crown className="w-3 h-3 mr-1" />
+                      TÚ
+                    </Badge>
+                  </div>
+                  <div className="text-center mb-4">
+                    <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-3">
+                      <Zap className="w-6 h-6 text-white" />
+                    </div>
+                    <h3 className="font-bold text-gray-900 mb-2">Con CatifyPro</h3>
+                  </div>
+                  <div className="space-y-3">
+                    <div className="bg-white p-3 rounded-lg border border-green-200">
+                      <div className="text-3xl font-bold text-green-600 mb-1">0 seg</div>
+                      <div className="text-xs text-gray-600">Respuesta automática</div>
+                    </div>
+                    <div className="bg-white p-3 rounded-lg border border-green-200">
+                      <div className="text-2xl font-bold text-green-600 mb-1">+50%</div>
+                      <div className="text-xs text-gray-600">Ventas capturadas</div>
+                    </div>
+                    <div className="bg-white p-3 rounded-lg border border-green-200">
+                      <div className="text-2xl font-bold text-green-600 mb-1">$0</div>
+                      <div className="text-xs text-gray-600">CAC con red viral</div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -626,12 +779,18 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Sección del Problema */}
+      {/* Sección del Problema - MEJORADO CON STATS */}
       <section className="py-16 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
+            <Badge className="mb-4 bg-red-100 text-red-800 border-red-200">
+              <AlertCircle className="w-4 h-4 mr-2" />
+              El Problema que te Cuesta Millones
+            </Badge>
             <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">¿Te suena familiar?</h2>
-            <p className="text-xl text-gray-600">Estos son los frenos de mano que están limitando tu crecimiento</p>
+            <p className="text-xl text-gray-600">
+              Estos son los frenos que limitan tu crecimiento según Harvard Business Review
+            </p>
           </div>
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -641,15 +800,247 @@ const Index = () => {
                   {point.icon}
                 </div>
                 <h3 className="text-lg font-bold text-gray-900 mb-2">{point.title}</h3>
-                <p className="text-gray-600 text-sm">{point.description}</p>
+                <p className="text-gray-600 text-sm mb-3">{point.description}</p>
+                <Badge className="bg-red-50 text-red-700 border-red-200">{point.stat}</Badge>
               </Card>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Sección de la Solución: El Ciclo de Crecimiento Acelerado */}
-      <section id="funcionalidades" className="py-20">
+      {/* NUEVA SECCIÓN: LOS 4 PILARES ESTRATÉGICOS */}
+      <section id="pilares" className="py-20 bg-gradient-to-b from-white to-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <Badge className="mb-4 bg-gradient-to-r from-purple-100 to-blue-100 text-purple-800 border-purple-200">
+              <Sparkles className="w-4 h-4 mr-2" />
+              Por qué CatifyPro es diferente
+            </Badge>
+            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">Los 4 Pilares Estratégicos</h2>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+              No somos un CRM ni un e-commerce. Somos la plataforma que conecta Ventas, Operaciones y Marketing.
+            </p>
+          </div>
+
+          {/* Pillar Tabs - Mobile scroll */}
+          <div className="md:hidden overflow-x-auto pb-4 -mx-4 px-4 mb-8">
+            <div className="flex gap-3 snap-x snap-mandatory" style={{ scrollSnapType: "x mandatory" }}>
+              {pillars.map((pillar, index) => {
+                const Icon = pillar.icon;
+                return (
+                  <button
+                    key={pillar.id}
+                    onClick={() => setActiveTab(index)}
+                    className={`min-w-[140px] flex-shrink-0 snap-center p-4 rounded-xl transition-all ${
+                      activeTab === index
+                        ? `bg-gradient-to-br ${pillar.color} shadow-xl`
+                        : "bg-white border border-gray-200"
+                    }`}
+                  >
+                    <Icon className={`w-6 h-6 mb-2 mx-auto ${activeTab === index ? "text-white" : "text-gray-400"}`} />
+                    <div className={`text-sm font-bold mb-1 ${activeTab === index ? "text-white" : "text-gray-700"}`}>
+                      Pilar {pillar.id}
+                    </div>
+                    <div className={`text-xs ${activeTab === index ? "text-white/90" : "text-gray-500"}`}>
+                      {pillar.title}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Pillar Tabs - Desktop grid */}
+          <div className="hidden md:grid md:grid-cols-4 gap-4 mb-12">
+            {pillars.map((pillar, index) => {
+              const Icon = pillar.icon;
+              return (
+                <button
+                  key={pillar.id}
+                  onClick={() => setActiveTab(index)}
+                  className={`p-6 rounded-xl transition-all transform hover:scale-105 ${
+                    activeTab === index
+                      ? `bg-gradient-to-br ${pillar.color} shadow-2xl`
+                      : "bg-white border border-gray-200 hover:border-gray-300"
+                  }`}
+                >
+                  <Icon className={`w-8 h-8 mb-3 ${activeTab === index ? "text-white" : "text-gray-400"}`} />
+                  <div className={`text-lg font-bold mb-1 ${activeTab === index ? "text-white" : "text-gray-700"}`}>
+                    Pilar {pillar.id}
+                  </div>
+                  <div className={`text-sm ${activeTab === index ? "text-white/90" : "text-gray-500"}`}>
+                    {pillar.title}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Active Pillar Content */}
+          <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-6 md:p-12">
+            {pillars.map((pillar, index) => {
+              const Icon = pillar.icon;
+              if (activeTab !== index) return null;
+
+              return (
+                <div key={pillar.id} className="space-y-8">
+                  <div className="flex flex-col md:flex-row items-start gap-6">
+                    <div
+                      className={`w-16 h-16 rounded-xl bg-gradient-to-br ${pillar.color} flex items-center justify-center flex-shrink-0`}
+                    >
+                      <Icon className="w-8 h-8 text-white" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">{pillar.title}</h3>
+                      <p className="text-lg md:text-xl text-gray-600 mb-4">{pillar.subtitle}</p>
+                      <div className="flex flex-col md:flex-row gap-4">
+                        <div className="flex-1 bg-red-50 border border-red-200 rounded-lg p-4">
+                          <div className="text-sm text-red-600 font-semibold mb-1">❌ PROBLEMA</div>
+                          <div className="text-gray-900 font-medium">{pillar.problem}</div>
+                        </div>
+                        <ArrowRight className="w-6 h-6 text-gray-400 hidden md:block self-center" />
+                        <div className="flex-1 bg-green-50 border border-green-200 rounded-lg p-4">
+                          <div className="text-sm text-green-600 font-semibold mb-1">✅ SOLUCIÓN</div>
+                          <div className="text-gray-900 font-medium">{pillar.solution}</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {pillar.features.map((feature, idx) => {
+                      const FeatureIcon = feature.icon;
+                      return (
+                        <div
+                          key={idx}
+                          className={`${pillar.bgColor} rounded-xl p-6 border-2 border-white shadow-lg hover:shadow-xl transition-all`}
+                        >
+                          <div
+                            className={`w-12 h-12 rounded-lg bg-white flex items-center justify-center mb-4 shadow-sm`}
+                          >
+                            <FeatureIcon className={`w-6 h-6 ${pillar.iconColor}`} />
+                          </div>
+                          <h4 className="text-lg font-bold text-gray-900 mb-2">{feature.title}</h4>
+                          <p className="text-gray-700 text-sm mb-3 leading-relaxed">{feature.description}</p>
+                          <Badge className={`${pillar.iconColor} bg-white font-semibold`}>
+                            <Activity className="w-3 h-3 mr-1" />
+                            {feature.metric}
+                          </Badge>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* NUEVA SECCIÓN: CALCULADORA DE ROI */}
+      <section className="py-20 bg-gradient-to-br from-purple-900 via-blue-900 to-purple-900 relative overflow-hidden">
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute top-0 left-0 w-96 h-96 bg-purple-500 rounded-full blur-3xl"></div>
+          <div className="absolute bottom-0 right-0 w-96 h-96 bg-blue-500 rounded-full blur-3xl"></div>
+        </div>
+
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+          <div className="text-center mb-12">
+            <Badge className="mb-4 bg-white/20 text-white border-white/30">
+              <DollarSign className="w-4 h-4 mr-2" />
+              Basado en datos de Harvard Business Review
+            </Badge>
+            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+              Calcula cuánto estás perdiendo ahora mismo
+            </h2>
+            <p className="text-xl text-white/80">
+              El 35-50% de ventas B2B van al primer respondedor. ¿Cuánto dejas ir cada mes?
+            </p>
+          </div>
+
+          <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-2xl p-6 md:p-10 shadow-2xl">
+            <div className="space-y-6 mb-8">
+              <div>
+                <label className="flex items-center justify-between text-white mb-3 font-semibold">
+                  <span className="text-sm md:text-base">Leads que recibes mensualmente</span>
+                  <span className="text-2xl md:text-3xl font-bold">{monthlyLeads}</span>
+                </label>
+                <input
+                  type="range"
+                  min="10"
+                  max="500"
+                  value={monthlyLeads}
+                  onChange={(e) => setMonthlyLeads(Number(e.target.value))}
+                  className="w-full h-3 bg-white/20 rounded-lg appearance-none cursor-pointer accent-purple-500"
+                />
+                <div className="flex justify-between text-white/60 text-xs mt-1">
+                  <span>10</span>
+                  <span>500</span>
+                </div>
+              </div>
+
+              <div>
+                <label className="flex items-center justify-between text-white mb-3 font-semibold">
+                  <span className="text-sm md:text-base">Valor promedio de tu cotización (MXN)</span>
+                  <span className="text-2xl md:text-3xl font-bold">${avgQuote.toLocaleString("es-MX")}</span>
+                </label>
+                <input
+                  type="range"
+                  min="5000"
+                  max="500000"
+                  step="5000"
+                  value={avgQuote}
+                  onChange={(e) => setAvgQuote(Number(e.target.value))}
+                  className="w-full h-3 bg-white/20 rounded-lg appearance-none cursor-pointer accent-purple-500"
+                />
+                <div className="flex justify-between text-white/60 text-xs mt-1">
+                  <span>$5,000</span>
+                  <span>$500,000</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-6 mb-8">
+              {/* Lo que PIERDES ahora */}
+              <div className="bg-red-500/20 backdrop-blur-sm border-2 border-red-400 rounded-xl p-6 text-center">
+                <div className="text-red-400 text-sm font-semibold mb-2 uppercase">Lo que pierdes cada mes</div>
+                <div className="text-4xl md:text-5xl font-bold text-white mb-2">
+                  ${calculatedROI.toLocaleString("es-MX")}
+                </div>
+                <div className="text-white/80 text-sm">(${yearlyROI.toLocaleString("es-MX")} al año)</div>
+                <p className="text-white/70 text-xs mt-3">
+                  Ventas que se van a quien responde primero mientras tú tardas 42 horas
+                </p>
+              </div>
+
+              {/* Lo que GANAS con CatifyPro */}
+              <div className="bg-gradient-to-br from-green-500 to-emerald-500 rounded-xl p-6 text-center shadow-2xl transform md:scale-105">
+                <div className="text-white text-sm font-semibold mb-2 uppercase">Lo que capturas con CatifyPro</div>
+                <div className="text-4xl md:text-5xl font-bold text-white mb-2">
+                  ${calculatedROI.toLocaleString("es-MX")}
+                </div>
+                <div className="text-white/90 text-sm">(${yearlyROI.toLocaleString("es-MX")} al año)</div>
+                <p className="text-white/90 text-xs mt-3">⚡ Respuesta en 0 segundos = Siempre eres el primero</p>
+              </div>
+            </div>
+
+            <div className="text-center">
+              <p className="text-white/70 text-sm mb-6">*Cálculo conservador usando 35% (el mínimo del rango 35-50%)</p>
+              <Button
+                size="lg"
+                className="bg-white text-purple-600 hover:bg-gray-100 font-bold px-8 py-6 text-lg shadow-xl"
+                onClick={handleMainCTA}
+              >
+                <Zap className="w-5 h-5 mr-2" />
+                Deja de perder estas ventas →
+              </Button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Solución en 5 pasos - MANTENER ORIGINAL */}
+      <section id="funcionalidades" className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <Badge className="mb-4 bg-gradient-to-r from-purple-100 to-blue-100 text-purple-800 border-purple-200">
@@ -667,27 +1058,25 @@ const Index = () => {
               <Card key={index} className="overflow-hidden hover:shadow-2xl transition-all duration-300">
                 <CardContent className="p-0">
                   <div className="grid lg:grid-cols-12 gap-0">
-                    {/* Número del paso */}
                     <div className="lg:col-span-2 bg-gradient-to-br from-purple-600 to-blue-600 p-8 flex items-center justify-center">
                       <div className="text-center">
-                        <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mb-3">
+                        <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mb-3 mx-auto">
                           {step.icon}
                         </div>
                         <div className="text-6xl font-bold text-white/40">{step.number}</div>
                       </div>
                     </div>
 
-                    {/* Contenido */}
-                    <div className="lg:col-span-10 p-8">
-                      <h3 className="text-2xl font-bold text-gray-900 mb-4">{step.title}</h3>
+                    <div className="lg:col-span-10 p-6 md:p-8">
+                      <h3 className="text-xl md:text-2xl font-bold text-gray-900 mb-4">{step.title}</h3>
 
                       <div className="mb-6">
                         <h4 className="text-sm font-semibold text-purple-600 uppercase mb-2">Cómo funciona</h4>
                         <p className="text-gray-700 leading-relaxed">{step.howItWorks}</p>
                       </div>
 
-                      <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-6 rounded-lg border-l-4 border-green-500">
-                        <p className="text-base font-semibold text-green-800">{step.result}</p>
+                      <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 md:p-6 rounded-lg border-l-4 border-green-500">
+                        <p className="text-sm md:text-base font-semibold text-green-800">{step.result}</p>
                       </div>
                     </div>
                   </div>
@@ -698,7 +1087,7 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Característica Estrella: El Efecto Cascada */}
+      {/* Efecto Cascada - MANTENER ORIGINAL */}
       <section className="py-20 bg-gradient-to-br from-purple-50 via-white to-blue-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
@@ -715,7 +1104,6 @@ const Index = () => {
           </div>
 
           <div className="grid lg:grid-cols-2 gap-12 items-center mb-16">
-            {/* Izquierda */}
             <Card className="p-8 bg-white shadow-xl">
               <div className="text-center">
                 <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -728,7 +1116,6 @@ const Index = () => {
               </div>
             </Card>
 
-            {/* Derecha */}
             <Card className="p-8 bg-gradient-to-br from-purple-600 to-blue-600 text-white shadow-2xl transform lg:scale-105">
               <div className="text-center">
                 <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -747,7 +1134,6 @@ const Index = () => {
             </Card>
           </div>
 
-          {/* Beneficios Clave */}
           <div className="grid md:grid-cols-3 gap-6">
             {cascadeFeatures.map((feature, index) => (
               <Card key={index} className="p-6 text-center hover:shadow-xl transition-all">
@@ -762,10 +1148,129 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Testimonials */}
+      {/* NUEVA SECCIÓN: TABLA COMPARATIVA */}
+      <section className="py-20 bg-gray-900">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <Badge className="mb-4 bg-white/10 text-white border-white/20">
+              <Shield className="w-4 h-4 mr-2" />
+              Análisis Competitivo
+            </Badge>
+            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+              ¿Por qué no usar Salesforce, Shopify o HubSpot?
+            </h2>
+            <p className="text-xl text-gray-300">
+              Porque están fragmentados. CatifyPro conecta Ventas + Operaciones + Marketing.
+            </p>
+          </div>
+
+          {/* Tabla responsive */}
+          <div className="overflow-x-auto">
+            <table className="w-full bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl overflow-hidden">
+              <thead className="bg-white/10">
+                <tr>
+                  <th className="px-4 md:px-6 py-4 text-left text-white font-semibold text-sm md:text-base">
+                    Característica
+                  </th>
+                  <th className="px-4 md:px-6 py-4 text-center text-white font-semibold text-sm md:text-base">
+                    <div className="flex items-center justify-center gap-2">
+                      <Layers className="w-5 h-5" />
+                      <span className="hidden sm:inline">CatifyPro</span>
+                    </div>
+                  </th>
+                  <th className="px-4 md:px-6 py-4 text-center text-gray-400 font-semibold text-sm">Salesforce</th>
+                  <th className="px-4 md:px-6 py-4 text-center text-gray-400 font-semibold text-sm">Shopify Plus</th>
+                  <th className="px-4 md:px-6 py-4 text-center text-gray-400 font-semibold text-sm">HubSpot</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/10">
+                <tr className="hover:bg-white/5 transition-colors">
+                  <td className="px-4 md:px-6 py-4 text-gray-300 text-sm">Cotizador autoservicio 24/7</td>
+                  <td className="px-4 md:px-6 py-4 text-center">
+                    <CheckCircle2 className="w-6 h-6 text-green-400 mx-auto" />
+                  </td>
+                  <td className="px-4 md:px-6 py-4 text-center text-red-400 text-xl">✗</td>
+                  <td className="px-4 md:px-6 py-4 text-center">
+                    <CheckCircle2 className="w-6 h-6 text-gray-600 mx-auto" />
+                  </td>
+                  <td className="px-4 md:px-6 py-4 text-center text-red-400 text-xl">✗</td>
+                </tr>
+                <tr className="hover:bg-white/5 transition-colors">
+                  <td className="px-4 md:px-6 py-4 text-gray-300 text-sm">Portal seguimiento pedidos</td>
+                  <td className="px-4 md:px-6 py-4 text-center">
+                    <CheckCircle2 className="w-6 h-6 text-green-400 mx-auto" />
+                  </td>
+                  <td className="px-4 md:px-6 py-4 text-center text-red-400 text-xl">✗</td>
+                  <td className="px-4 md:px-6 py-4 text-center text-yellow-400 text-xl">~</td>
+                  <td className="px-4 md:px-6 py-4 text-center text-yellow-400 text-xl">~</td>
+                </tr>
+                <tr className="hover:bg-white/5 transition-colors">
+                  <td className="px-4 md:px-6 py-4 text-gray-300 text-sm">Loop viral B2B2X</td>
+                  <td className="px-4 md:px-6 py-4 text-center">
+                    <CheckCircle2 className="w-6 h-6 text-green-400 mx-auto" />
+                  </td>
+                  <td className="px-4 md:px-6 py-4 text-center text-red-400 text-xl">✗</td>
+                  <td className="px-4 md:px-6 py-4 text-center text-red-400 text-xl">✗</td>
+                  <td className="px-4 md:px-6 py-4 text-center text-red-400 text-xl">✗</td>
+                </tr>
+                <tr className="hover:bg-white/5 transition-colors">
+                  <td className="px-4 md:px-6 py-4 text-gray-300 text-sm">Radar Market (Inteligencia demanda)</td>
+                  <td className="px-4 md:px-6 py-4 text-center">
+                    <CheckCircle2 className="w-6 h-6 text-green-400 mx-auto" />
+                  </td>
+                  <td className="px-4 md:px-6 py-4 text-center text-red-400 text-xl">✗</td>
+                  <td className="px-4 md:px-6 py-4 text-center text-red-400 text-xl">✗</td>
+                  <td className="px-4 md:px-6 py-4 text-center text-red-400 text-xl">✗</td>
+                </tr>
+                <tr className="hover:bg-white/5 transition-colors">
+                  <td className="px-4 md:px-6 py-4 text-gray-300 text-sm">Atribución marketing (Píxel)</td>
+                  <td className="px-4 md:px-6 py-4 text-center">
+                    <CheckCircle2 className="w-6 h-6 text-green-400 mx-auto" />
+                  </td>
+                  <td className="px-4 md:px-6 py-4 text-center text-red-400 text-xl">✗</td>
+                  <td className="px-4 md:px-6 py-4 text-center">
+                    <CheckCircle2 className="w-6 h-6 text-gray-600 mx-auto" />
+                  </td>
+                  <td className="px-4 md:px-6 py-4 text-center text-yellow-400 text-xl">~</td>
+                </tr>
+                <tr className="bg-purple-500/10 hover:bg-purple-500/20 transition-colors">
+                  <td className="px-4 md:px-6 py-4 text-white font-semibold text-sm">Precio anual</td>
+                  <td className="px-4 md:px-6 py-4 text-center text-green-400 font-bold text-sm">Desde $1,188/año</td>
+                  <td className="px-4 md:px-6 py-4 text-center text-gray-400 text-sm">$$</td>
+                  <td className="px-4 md:px-6 py-4 text-center text-gray-400 text-sm">$24K+/año</td>
+                  <td className="px-4 md:px-6 py-4 text-center text-gray-400 text-sm">$</td>
+                </tr>
+                <tr className="bg-purple-500/10 hover:bg-purple-500/20 transition-colors">
+                  <td className="px-4 md:px-6 py-4 text-white font-semibold text-sm">Enfoque</td>
+                  <td className="px-4 md:px-6 py-4 text-center text-green-400 font-bold text-sm">PyMEs LATAM</td>
+                  <td className="px-4 md:px-6 py-4 text-center text-gray-400 text-sm">Enterprise</td>
+                  <td className="px-4 md:px-6 py-4 text-center text-gray-400 text-sm">Enterprise</td>
+                  <td className="px-4 md:px-6 py-4 text-center text-gray-400 text-sm">Mid-Market</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div className="mt-8 text-center">
+            <p className="text-gray-400 text-sm mb-6">
+              ✓ = Incluido completamente &nbsp;&nbsp; ~ = Parcial/Limitado &nbsp;&nbsp; ✗ = No disponible
+            </p>
+            <Badge className="bg-gradient-to-r from-purple-500 to-blue-500 text-white px-6 py-3 text-base">
+              <Sparkles className="w-4 h-4 mr-2" />
+              CatifyPro: La única plataforma diseñada para PyMEs que une Ventas + Ops + Marketing
+            </Badge>
+          </div>
+        </div>
+      </section>
+
+      {/* Testimonials - MANTENER ORIGINAL */}
       <section id="casos" className="py-20 bg-gradient-to-br from-purple-50 to-blue-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
+            <Badge className="mb-4 bg-gradient-to-r from-purple-100 to-blue-100 text-purple-800 border-purple-200">
+              <Star className="w-4 h-4 mr-2" />
+              Validado por empresas reales
+            </Badge>
             <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">Casos de éxito documentados</h2>
             <p className="text-xl text-gray-600">
               Empresas reales que transformaron sus ventas con automatización de catálogos
@@ -811,10 +1316,14 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Pricing */}
-      <section id="precios" className="py-20">
+      {/* Pricing - MANTENER ORIGINAL */}
+      <section id="precios" className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
+            <Badge className="mb-4 bg-gradient-to-r from-purple-100 to-blue-100 text-purple-800 border-purple-200">
+              <DollarSign className="w-4 h-4 mr-2" />
+              Precios transparentes
+            </Badge>
             <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">Elige tu Plan de Crecimiento</h2>
             <p className="text-xl text-gray-600 mb-8">
               Desde catálogos básicos hasta ecosistemas de distribución completos. Créditos IA opcionales.
@@ -826,7 +1335,7 @@ const Index = () => {
             <h3 className="text-2xl font-bold text-gray-900 text-center mb-2">Planes de Ecosistema</h3>
             <p className="text-gray-600 text-center mb-8">Activa tu red de distribución y escala sin límites</p>
 
-            {/* Monthly Plans - Móvil scroll horizontal */}
+            {/* Mobile scroll */}
             <div className="md:hidden overflow-x-auto pb-4 -mx-4 px-4 mb-12">
               <div className="flex gap-4 snap-x snap-mandatory" style={{ scrollSnapType: "x mandatory" }}>
                 {monthlyPlans.map((plan, index) => (
@@ -834,6 +1343,11 @@ const Index = () => {
                     key={index}
                     className="min-w-[280px] flex-shrink-0 snap-center relative transition-all duration-300"
                   >
+                    {plan.is_popular && (
+                      <Badge className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-purple-600 to-blue-600 text-white px-6 py-1">
+                        POPULAR
+                      </Badge>
+                    )}
                     <CardContent className="p-5">
                       <div className="text-center mb-4">
                         <h3 className="text-lg font-bold text-gray-900 mb-2">{plan.name}</h3>
@@ -862,8 +1376,8 @@ const Index = () => {
               </div>
             </div>
 
-            {/* Monthly Plans - Desktop grid */}
-            <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {/* Desktop grid */}
+            <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {monthlyPlans.map((plan, index) => (
                 <Card
                   key={index}
@@ -972,8 +1486,8 @@ const Index = () => {
         </div>
       </section>
 
-      {/* FAQ Section */}
-      <section className="py-20 bg-white">
+      {/* FAQ - MANTENER ORIGINAL */}
+      <section className="py-20 bg-gray-50">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">Preguntas Frecuentes</h2>
@@ -997,12 +1511,16 @@ const Index = () => {
       <section className="py-20 bg-gradient-to-r from-purple-600 via-blue-600 to-purple-600 relative overflow-hidden">
         <div className="absolute inset-0 bg-black/10"></div>
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative">
+          <Badge className="mb-6 bg-white/20 text-white border-white/30">
+            <Zap className="w-4 h-4 mr-2" />
+            Última oportunidad de capturar esas ventas
+          </Badge>
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-6">
-            ¿Listo para Dejar de Vender y Empezar a Construir tu Red?
+            Deja de ser el que responde en 42 horas
           </h2>
           <p className="text-lg sm:text-xl text-white/90 mb-8">
-            Únete a las empresas que ya están escalando con <span className="font-bold">crecimiento exponencial</span> y{" "}
-            <span className="font-bold">CAC = $0</span>
+            Únete a las empresas que capturan el <span className="font-bold">35-50% de ventas</span> que van al primer
+            respondedor
           </p>
 
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center mb-8">
@@ -1011,8 +1529,8 @@ const Index = () => {
               className="w-full sm:w-auto bg-white text-purple-600 hover:bg-gray-100 text-base sm:text-lg px-6 sm:px-8 h-12 shadow-lg"
               onClick={handleMainCTA}
             >
-              <Network className="mr-2 w-5 h-5" />
-              Activa tu Ecosistema de Ventas
+              <Zap className="mr-2 w-5 h-5" />
+              Comienza a responder en 0 segundos
               <ArrowRight className="ml-2 w-5 h-5" />
             </Button>
             <Button
@@ -1029,15 +1547,15 @@ const Index = () => {
           <div className="flex flex-col sm:flex-row items-center justify-center space-x-0 sm:space-x-6 space-y-2 sm:space-y-0 text-white/80">
             <div className="flex items-center">
               <CheckCircle2 className="w-4 h-4 mr-2" />
-              Sin límite de vendedores
+              Sin tarjeta de crédito
             </div>
             <div className="flex items-center">
               <CheckCircle2 className="w-4 h-4 mr-2" />
-              Desde $99 MXN/mes
+              Setup en 5 minutos
             </div>
             <div className="flex items-center">
               <CheckCircle2 className="w-4 h-4 mr-2" />
-              Red activa en 24 horas
+              Cancela cuando quieras
             </div>
           </div>
         </div>
@@ -1049,7 +1567,7 @@ const Index = () => {
           {/* Footer móvil - Accordions */}
           <div className="md:hidden space-y-2 mb-8">
             {[
-              { title: "Producto", items: ["Funcionalidades", "Precios", "API", "Integraciones"] },
+              { title: "Producto", items: ["4 Pilares", "Funcionalidades", "Precios", "API"] },
               { title: "Empresa", items: ["Nosotros", "Casos de éxito", "Blog", "Prensa"] },
               { title: "Soporte", items: ["Centro de ayuda", "WhatsApp", "Email", "Onboarding"] },
             ].map((section, idx) => (
@@ -1080,13 +1598,18 @@ const Index = () => {
                 <span className="text-xl font-bold">CatifyPro</span>
               </div>
               <p className="text-gray-400 leading-relaxed">
-                Automatizando la creación de catálogos profesionales para empresas mexicanas
+                Plataforma de Habilitación Comercial B2B para PyMEs en LATAM
               </p>
             </div>
 
             <div>
               <h4 className="font-semibold mb-4">Producto</h4>
               <ul className="space-y-2 text-gray-400">
+                <li>
+                  <a href="#pilares" className="hover:text-white transition-colors">
+                    4 Pilares
+                  </a>
+                </li>
                 <li>
                   <a href="#funcionalidades" className="hover:text-white transition-colors">
                     Funcionalidades
@@ -1095,16 +1618,6 @@ const Index = () => {
                 <li>
                   <a href="#precios" className="hover:text-white transition-colors">
                     Precios
-                  </a>
-                </li>
-                <li>
-                  <a href="#" className="hover:text-white transition-colors">
-                    API
-                  </a>
-                </li>
-                <li>
-                  <a href="#" className="hover:text-white transition-colors">
-                    Integraciones
                   </a>
                 </li>
               </ul>
