@@ -1,4 +1,7 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import {
   ChevronDown,
   Star,
@@ -43,12 +46,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
-// Mock data para demo - en producción esto vendría de tu contexto real
-const mockUser = null;
-const mockNavigate = (path: string) => console.log("Navigate to:", path);
-const mockSignOut = () => console.log("Sign out");
-const mockToast = (config: any) => console.log("Toast:", config);
-
 interface CreditPackage {
   id: string;
   name: string;
@@ -67,6 +64,8 @@ interface CreditPackage {
 }
 
 const Index = () => {
+  const navigate = useNavigate();
+  const [user, setUser] = useState<any>(null);
   const [monthlyPlans, setMonthlyPlans] = useState<CreditPackage[]>([]);
   const [creditPacks, setCreditPacks] = useState<CreditPackage[]>([]);
   const [loadingPlans, setLoadingPlans] = useState(false);
@@ -74,10 +73,18 @@ const Index = () => {
   const [monthlyLeads, setMonthlyLeads] = useState(100);
   const [avgQuote, setAvgQuote] = useState(50000);
 
-  const user = mockUser;
-  const navigate = mockNavigate;
-  const signOut = mockSignOut;
-  const toast = mockToast;
+  // Get current user
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   // Mock data de planes
   useEffect(() => {
@@ -261,9 +268,10 @@ const Index = () => {
     }
   };
 
-  const handleAuthButton = () => {
+  const handleAuthButton = async () => {
     if (user) {
-      signOut();
+      await supabase.auth.signOut();
+      toast.success("Sesión cerrada");
     } else {
       navigate("/login");
     }
@@ -311,7 +319,7 @@ const Index = () => {
       title: "Aceleración de Ingresos",
       subtitle: "Vende más y más rápido",
       problem: "Tu competencia tarda 42 horas en responder",
-      solution: "Tú cotizador está habilitado 24/7, listo para atender a tus clientes",
+      solution: "Tú respondes en 0 segundos, 24/7",
       features: [
         {
           icon: Zap,
@@ -322,13 +330,13 @@ const Index = () => {
         {
           icon: Repeat,
           title: "Loop viral B2B2X",
-          description: "Tus distribuidores reciben una replica de tu catalogo/cotizador con sus precios ¡GRATIS!",
+          description: "Tus distribuidores venden con una replica de tu catalogo y bloqueas la competencia",
           metric: "Crecimiento viral",
         },
         {
           icon: Package,
           title: "Venta sin inventario",
-          description: "Prueba demanda de nuevos productos sin invertir en stock",
+          description: "Con el radar de mercado prueba demanda de nuevos productos sin invertir en stock",
           metric: "Riesgo cero",
         },
       ],
@@ -384,13 +392,13 @@ const Index = () => {
         {
           icon: Sparkles,
           title: "Sin complejidad enterprise",
-          description: "Diseñado para PyMEs, no para gigantes con $24K/año",
+          description: "Diseñado para PyMEs",
           metric: "Precio accesible",
         },
         {
           icon: CheckCircle2,
           title: "Ecosistema bloqueado",
-          description: "Tus distribuidores dependen de tu plataforma = lealtad perpetua",
+          description: "Tus distribuidores obtienen un catalogo/cotizador con tus productos de manera gratuita por comprarte",
           metric: "Lock-in de canal",
         },
       ],
@@ -596,6 +604,13 @@ const Index = () => {
               >
                 Casos de Éxito
               </Button>
+              <Button
+                variant="ghost"
+                onClick={() => navigate("/why-subscribe")}
+                className="text-gray-700 hover:text-gray-900"
+              >
+                ¿Por Qué Suscribirse?
+              </Button>
             </nav>
 
             <div className="hidden md:flex items-center gap-2">
@@ -623,6 +638,14 @@ const Index = () => {
             </div>
 
             <div className="flex md:hidden items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate("/why-subscribe")}
+                className="h-10 px-3 text-sm text-gray-700"
+              >
+                ¿Por Qué?
+              </Button>
               <Button
                 onClick={handleMainCTA}
                 size="sm"
