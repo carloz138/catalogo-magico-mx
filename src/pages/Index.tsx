@@ -322,7 +322,7 @@ const Index = () => {
         {
           icon: Repeat,
           title: "Loop viral B2B2X",
-          description: "Tus distribuidores venden con tu catálogo y bloqueas la competencia",
+          description: "Tus distribuidores reciben una replica de tu catalogo/cotizador con sus precios ¡GRATIS!",
           metric: "Crecimiento viral",
         },
         {
