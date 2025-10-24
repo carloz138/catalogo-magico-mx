@@ -308,23 +308,33 @@ export class ReplicationService {
   /**
    * Completar activación después de confirmar email
    */
-  static async completeActivation(token: string, userId: string): Promise<boolean> {
+    static async completeActivation(
+    token: string,
+    userId: string // <-- Aunque ya no lo pasamos a la RPC, lo guardamos por si lo necesitamos para logs
+  ): Promise<boolean> {
     try {
-      const { data, error } = await supabase.rpc("complete_catalog_activation", {
+      console.log(`Completando activación para token: ${token}, usuario: ${userId}`);
+      
+      // 👇 CAMBIO: Llamar a la RPC solo con el token
+      const { data, error } = await supabase.rpc('complete_catalog_activation', {
         p_token: token,
-        p_reseller_id: userId,
+        // Ya no pasamos p_reseller_id, la función usa auth.uid()
       });
 
       if (error) {
+        console.error("Error en RPC complete_catalog_activation:", error);
         throw new Error(`Error al completar activación: ${error.message}`);
       }
 
+      console.log("RPC complete_catalog_activation exitoso:", data);
       return true;
+
     } catch (error: any) {
-      console.error("Error completing activation:", error);
+      console.error('Error general en completeActivation:', error);
       throw error;
     }
   }
+
 
   /**
    * Obtener datos del dashboard del revendedor
