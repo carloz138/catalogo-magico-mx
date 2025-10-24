@@ -156,6 +156,7 @@ function PublicCatalogContent() {
       toast.info(`Solicita "${product.name}" en el formulario`);
     }
   };
+
   const handleAddFromModal = (
     quantity: number,
     priceType: "retail" | "wholesale",
@@ -181,10 +182,12 @@ function PublicCatalogContent() {
     setIsAddModalOpen(false);
     setSelectedProduct(null);
   };
+
   const handleRequestQuote = () => {
     setIsCartOpen(false);
     setIsQuoteFormOpen(true);
   };
+
   const handleQuoteSuccess = () => {
     clearCart();
     toast.success("¡Cotización enviada! Te contactaremos pronto.");
@@ -193,20 +196,15 @@ function PublicCatalogContent() {
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
-               {" "}
         <div className="container mx-auto px-4 py-8">
-                    <Skeleton className="h-24 w-full mb-8" />
-                    <Skeleton className="h-12 w-full mb-4" />         {" "}
+          <Skeleton className="h-24 w-full mb-8" />
+          <Skeleton className="h-12 w-full mb-4" />
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                       {" "}
             {[1, 2, 3, 4, 5, 6].map((i) => (
               <Skeleton key={i} className="h-64 w-full" />
             ))}
-                     {" "}
           </div>
-                 {" "}
         </div>
-             {" "}
       </div>
     );
   }
@@ -214,9 +212,7 @@ function PublicCatalogContent() {
   if (error) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-               {" "}
         <div className="text-center max-w-md px-4">
-                   {" "}
           <h2 className="text-2xl font-semibold mb-2">
             {error === "Catálogo no encontrado"
               ? "Catálogo no encontrado"
@@ -224,7 +220,6 @@ function PublicCatalogContent() {
                 ? "Catálogo no disponible"
                 : "Error"}
           </h2>
-                   {" "}
           <p className="text-muted-foreground">
             {error === "Catálogo no encontrado"
               ? "Este catálogo no existe o fue eliminado"
@@ -232,9 +227,7 @@ function PublicCatalogContent() {
                 ? "Este catálogo ya no está activo"
                 : error}
           </p>
-                 {" "}
         </div>
-             {" "}
       </div>
     );
   }
@@ -262,49 +255,54 @@ function PublicCatalogContent() {
 
   return (
     <>
-           {" "}
       <Helmet>
-               {" "}
         <title>
-                    {catalog.name} - {catalog.business_info?.business_name || "Catálogo"}       {" "}
+          {catalog.name} - {catalog.business_info?.business_name || "Catálogo"}
         </title>
-               {" "}
         <meta
           name="description"
           content={catalog.description || `Catálogo de productos de ${catalog.business_info?.business_name}`}
         />
-                <meta property="og:title" content={catalog.name} />
-                <meta property="og:description" content={catalog.description || ""} />       {" "}
+        <meta property="og:title" content={catalog.name} />
+        <meta property="og:description" content={catalog.description || ""} />
         {catalog.products[0]?.image_url && <meta property="og:image" content={catalog.products[0].image_url} />}
-                <meta property="og:type" content="website" />     {" "}
+        <meta property="og:type" content="website" />
       </Helmet>
-            <style>{templateCSS}</style>     {" "}
+
+      {/* Inyectar scripts del HEAD */}
+      {catalog.tracking_head_scripts && (
+        <div dangerouslySetInnerHTML={{ __html: catalog.tracking_head_scripts }} />
+      )}
+
+      {/* Inyectar scripts del BODY */}
+      {catalog.tracking_body_scripts && (
+        <div dangerouslySetInnerHTML={{ __html: catalog.tracking_body_scripts }} />
+      )}
+
+      <style>{templateCSS}</style>
+
       <div className="catalog-public-container min-h-screen">
-               {" "}
         <CatalogHeader
           businessName={catalog.business_info?.business_name || "Catálogo"}
           businessLogo={catalog.business_info?.logo_url}
           catalogName={catalog.name}
           catalogDescription={catalog.description}
         />
-               {" "}
+
         <div className="container mx-auto px-4 py-8">
-                   {" "}
           {catalog.additional_info ? (
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                           {" "}
               <TabsList className="grid w-full max-w-md mx-auto mb-6" style={{ gridTemplateColumns: "1fr 1fr" }}>
-                               {" "}
                 <TabsTrigger value="productos" className="flex items-center gap-2">
-                                    <Search className="h-4 w-4" />                  Productos                {" "}
+                  <Search className="h-4 w-4" />
+                  Productos
                 </TabsTrigger>
-                               {" "}
                 <TabsTrigger value="info" className="flex items-center gap-2">
-                                    <Info className="h-4 w-4" />                  Información                {" "}
+                  <Info className="h-4 w-4" />
+                  Información
                 </TabsTrigger>
-                             {" "}
               </TabsList>
-                           {" "}
+
               <TabsContent value="productos" className="space-y-6" style={{ pointerEvents: "auto" }}>
                 <ProductsContent
                   catalog={catalog}
@@ -323,32 +321,21 @@ function PublicCatalogContent() {
                   maxPrice={maxPrice}
                   purchasedProductIds={catalog.purchasedProductIds || []}
                 />
-                             {" "}
               </TabsContent>
-                           {" "}
+
               <TabsContent value="info" style={{ pointerEvents: "auto" }}>
-                               {" "}
                 <Card className="max-w-4xl mx-auto">
-                                   {" "}
                   <CardContent className="p-8">
-                                       {" "}
                     <div className="prose prose-slate max-w-none">
-                                           {" "}
                       <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
-                                                <Info className="h-6 w-6" />                        Información
-                        Adicional                      {" "}
+                        <Info className="h-6 w-6" />
+                        Información Adicional
                       </h2>
-                                           {" "}
-                      <div className="whitespace-pre-wrap text-base leading-relaxed">{catalog.additional_info}</div>   
-                                     {" "}
+                      <div className="whitespace-pre-wrap text-base leading-relaxed">{catalog.additional_info}</div>
                     </div>
-                                     {" "}
                   </CardContent>
-                                 {" "}
                 </Card>
-                             {" "}
               </TabsContent>
-                         {" "}
             </Tabs>
           ) : (
             <ProductsContent
@@ -369,7 +356,6 @@ function PublicCatalogContent() {
               purchasedProductIds={catalog.purchasedProductIds || []}
             />
           )}
-                 {" "}
         </div>
 
         {/* Grupo de Botones Flotantes */}
@@ -400,10 +386,9 @@ function PublicCatalogContent() {
             </DialogContent>
           </Dialog>
         </div>
-               {" "}
+
         {catalog.enable_quotation && (
           <>
-                       {" "}
             <AddToQuoteModal
               product={selectedProduct}
               priceConfig={{
@@ -419,13 +404,13 @@ function PublicCatalogContent() {
               }}
               onAdd={handleAddFromModal}
             />
-                                   {" "}
+
             <QuoteCartModal
               isOpen={isCartOpen}
               onClose={() => setIsCartOpen(false)}
               onRequestQuote={handleRequestQuote}
             />
-                                   {" "}
+
             <QuoteForm
               catalogId={catalog.id}
               items={items}
@@ -435,12 +420,9 @@ function PublicCatalogContent() {
               onSuccess={handleQuoteSuccess}
               businessAddress={(catalog.business_info as any)?.address || null}
             />
-                     {" "}
           </>
         )}
-             {" "}
       </div>
-         {" "}
     </>
   );
 }
@@ -449,7 +431,7 @@ export default function PublicCatalog() {
   return (
     <HelmetProvider>
       <QuoteCartProvider>
-            <PublicCatalogContent />
+        <PublicCatalogContent />
       </QuoteCartProvider>
     </HelmetProvider>
   );
