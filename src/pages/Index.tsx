@@ -447,7 +447,7 @@ const Index = () => {
                 <>
                   <Button variant="outline" onClick={() => navigate("/products")} className="hidden sm:inline-flex">
                     <Package className="w-4 h-4 mr-2" />
-                    Productos
+                    Menu
                   </Button>
                   <Button onClick={() => navigate("/upload")} className="bg-gradient-to-r from-purple-600 to-blue-600">
                     <Upload className="w-4 h-4 mr-2" />
