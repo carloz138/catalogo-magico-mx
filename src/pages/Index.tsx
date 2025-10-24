@@ -328,7 +328,7 @@ const Index = () => {
         {
           icon: Package,
           title: "Venta sin inventario",
-          description: "Con el rada de mercado prueba demanda de nuevos productos sin invertir en stock",
+          description: "Con el radar de mercado prueba demanda de nuevos productos sin invertir en stock",
           metric: "Riesgo cero",
         },
       ],
@@ -384,13 +384,13 @@ const Index = () => {
         {
           icon: Sparkles,
           title: "Sin complejidad enterprise",
-          description: "Diseñado para PyMEs, no para gigantes con $24K/año",
+          description: "Diseñado para PyMEs",
           metric: "Precio accesible",
         },
         {
           icon: CheckCircle2,
           title: "Ecosistema bloqueado",
-          description: "Tus distribuidores dependen de tu plataforma = lealtad perpetua",
+          description: "Tus distribuidores obtienen un catalogo/cotizador con tus productos de manera gratuita por comprarte",
           metric: "Lock-in de canal",
         },
       ],
