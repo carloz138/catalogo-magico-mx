@@ -20,6 +20,8 @@ import {
   ChevronDown,
   MessageSquare,
   Mail,
+  UserCheck,
+  ShieldCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -31,8 +33,14 @@ const Index = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState<any>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [monthlyLeads, setMonthlyLeads] = useState(100);
-  const [avgQuote, setAvgQuote] = useState(50000);
+  
+  // ROI Calculator States
+  const [roiLeads, setRoiLeads] = useState(100);
+  const [roiTicket, setRoiTicket] = useState(5000);
+  const [roiSalary, setRoiSalary] = useState(15000);
+  const [roiClients, setRoiClients] = useState(50);
+  const [roiOffHours, setRoiOffHours] = useState(30);
+  const [roiCost, setRoiCost] = useState(5000);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -57,8 +65,57 @@ const Index = () => {
     }
   };
 
-  const lossesPerMonth = Math.round((monthlyLeads * avgQuote * 0.35) / 100);
-  const capturedSales = lossesPerMonth;
+  // ROI Components Calculations
+  const roiComponents = {
+    // 1. Velocidad de Respuesta
+    velocidad: (() => {
+      const leadsCalientes = roiLeads * 0.3;
+      const leadsFrios = roiLeads * 0.7;
+      const conPlataforma = (leadsCalientes * 0.35) + (leadsFrios * 0.15);
+      const sinPlataforma = roiLeads * 0.15;
+      return Math.round((conPlataforma - sinPlataforma) * roiTicket);
+    })(),
+    
+    // 2. Disponibilidad 24/7
+    disponibilidad: (() => {
+      const leadsFueraHorario = roiLeads * (roiOffHours / 100);
+      return Math.round(leadsFueraHorario * 0.20 * roiTicket);
+    })(),
+    
+    // 3. Capacidad de Vendedor
+    capacidad: Math.round(roiSalary * 0.70),
+    
+    // 4. Reducción de Churn
+    churn: (() => {
+      const ltv = roiTicket * 12;
+      const clientesRetenidos = roiClients * 0.10;
+      return Math.round((clientesRetenidos * ltv) / 12);
+    })(),
+    
+    // 5. Upsell Pedido Especial
+    upsell: (() => {
+      const ticketEspecial = roiTicket * 0.60;
+      return Math.round(roiClients * 0.15 * ticketEspecial);
+    })(),
+    
+    // 6. Remarketing
+    remarketing: (() => {
+      const leadsAbandonados = roiLeads * 0.25;
+      return Math.round(leadsAbandonados * 0.15 * roiTicket);
+    })(),
+    
+    get total() {
+      return this.velocidad + this.disponibilidad + this.capacidad + this.churn + this.upsell + this.remarketing;
+    },
+    
+    get neto() {
+      return this.total - roiCost;
+    },
+    
+    get multiplo() {
+      return roiCost > 0 ? (this.total / roiCost).toFixed(1) : '0.0';
+    }
+  };
 
   const fadeIn = {
     initial: { opacity: 0, y: 20 },
@@ -339,61 +396,264 @@ const Index = () => {
       </motion.section>
 
       {/* 6. Calculadora de ROI */}
-      <motion.section className="py-20 px-4 sm:px-6 lg:px-8 bg-neutral-light" {...fadeIn}>
-        <div className="max-w-4xl mx-auto">
-          <h2 className="text-3xl sm:text-4xl font-bold text-center text-neutral mb-4">
-            Calcula cuánto estás dejando ir cada mes
-          </h2>
-          <p className="text-center text-gray-600 mb-12">
-            El 35-50% de las ventas van al primero que responde. Descubre cuánto pierdes cada mes por no automatizar
-            tus cotizaciones.
-          </p>
+      <motion.section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-white to-gray-50" {...fadeIn}>
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl sm:text-4xl font-bold text-neutral mb-4">
+              Calcula tu ROI real con CatifyPro
+            </h2>
+            <p className="text-xl text-gray-600">
+              Descubre el retorno de inversión desglosado en 6 componentes específicos
+            </p>
+          </div>
 
-          <Card className="p-8 bg-white shadow-lg">
-            <CardContent className="p-0 space-y-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Leads mensuales</label>
-                <Input
-                  type="number"
-                  value={monthlyLeads}
-                  onChange={(e) => setMonthlyLeads(Number(e.target.value))}
-                  className="w-full"
-                />
+          {/* Inputs Section */}
+          <Card className="p-6 md:p-8 mb-8 bg-white shadow-lg">
+            <CardContent className="p-0">
+              <h3 className="text-2xl font-bold mb-6 text-neutral">Datos de tu negocio</h3>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                    <Users className="w-4 h-4 text-primary" />
+                    Leads mensuales
+                  </label>
+                  <Input
+                    type="number"
+                    value={roiLeads}
+                    onChange={(e) => setRoiLeads(Number(e.target.value))}
+                    className="w-full"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                    <DollarSign className="w-4 h-4 text-primary" />
+                    Ticket promedio de venta
+                  </label>
+                  <Input
+                    type="number"
+                    value={roiTicket}
+                    onChange={(e) => setRoiTicket(Number(e.target.value))}
+                    className="w-full"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                    <UserCheck className="w-4 h-4 text-primary" />
+                    Salario mensual de vendedor
+                  </label>
+                  <Input
+                    type="number"
+                    value={roiSalary}
+                    onChange={(e) => setRoiSalary(Number(e.target.value))}
+                    className="w-full"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                    <Users className="w-4 h-4 text-primary" />
+                    Número de clientes actuales
+                  </label>
+                  <Input
+                    type="number"
+                    value={roiClients}
+                    onChange={(e) => setRoiClients(Number(e.target.value))}
+                    className="w-full"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                    <Clock className="w-4 h-4 text-primary" />
+                    % leads fuera de horario laboral
+                  </label>
+                  <Input
+                    type="number"
+                    value={roiOffHours}
+                    onChange={(e) => setRoiOffHours(Number(e.target.value))}
+                    className="w-full"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                    <DollarSign className="w-4 h-4 text-primary" />
+                    Costo mensual de CatifyPro
+                  </label>
+                  <Input
+                    type="number"
+                    value={roiCost}
+                    onChange={(e) => setRoiCost(Number(e.target.value))}
+                    className="w-full"
+                  />
+                </div>
               </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Valor promedio de cotización (MXN)
-                </label>
-                <Input
-                  type="number"
-                  value={avgQuote}
-                  onChange={(e) => setAvgQuote(Number(e.target.value))}
-                  className="w-full"
-                />
-              </div>
-
-              <div className="grid md:grid-cols-2 gap-6 mt-8">
-                <Card className="p-6 bg-red-50 border-2 border-red-200">
-                  <CardContent className="p-0">
-                    <p className="text-sm text-gray-600 mb-2">Pérdidas por respuesta lenta</p>
-                    <p className="text-3xl font-bold text-red-600">${lossesPerMonth.toLocaleString()} MXN/mes</p>
-                  </CardContent>
-                </Card>
-
-                <Card className="p-6 bg-green-50 border-2 border-green-200">
-                  <CardContent className="p-0">
-                    <p className="text-sm text-gray-600 mb-2">Ventas capturadas con CatifyPro</p>
-                    <p className="text-3xl font-bold text-green-600">${capturedSales.toLocaleString()} MXN/mes</p>
-                  </CardContent>
-                </Card>
-              </div>
-
-              <p className="text-center text-lg font-semibold text-gray-700 mt-6">
-                Con CatifyPro, esas ventas ya no se te escapan.
-              </p>
             </CardContent>
           </Card>
+
+          {/* ROI Components */}
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+            {/* Componente 1: Velocidad de Respuesta */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={{ once: true }}
+              className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-xl p-6 shadow-md hover:shadow-lg transition-all"
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <Zap className="w-8 h-8 text-green-600" />
+                <h4 className="text-lg font-bold text-neutral">Velocidad de Respuesta</h4>
+              </div>
+              <p className="text-4xl font-bold text-green-600 mb-2">
+                ${roiComponents.velocidad.toLocaleString('es-MX')} MXN
+              </p>
+              <p className="text-sm text-gray-600">
+                Conversión mejorada en leads calientes (35% vs 15%)
+              </p>
+            </motion.div>
+
+            {/* Componente 2: Disponibilidad 24/7 */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.1 }}
+              className="bg-gradient-to-br from-blue-50 to-cyan-50 border border-blue-200 rounded-xl p-6 shadow-md hover:shadow-lg transition-all"
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <Clock className="w-8 h-8 text-blue-600" />
+                <h4 className="text-lg font-bold text-neutral">Disponibilidad 24/7</h4>
+              </div>
+              <p className="text-4xl font-bold text-blue-600 mb-2">
+                ${roiComponents.disponibilidad.toLocaleString('es-MX')} MXN
+              </p>
+              <p className="text-sm text-gray-600">
+                Captura leads fuera de horario (20% conversión)
+              </p>
+            </motion.div>
+
+            {/* Componente 3: Ahorro en Capacidad */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.2 }}
+              className="bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-200 rounded-xl p-6 shadow-md hover:shadow-lg transition-all"
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <UserCheck className="w-8 h-8 text-purple-600" />
+                <h4 className="text-lg font-bold text-neutral">Capacidad de Vendedor</h4>
+              </div>
+              <p className="text-4xl font-bold text-purple-600 mb-2">
+                ${roiComponents.capacidad.toLocaleString('es-MX')} MXN
+              </p>
+              <p className="text-sm text-gray-600">
+                Libera 70% del tiempo del vendedor
+              </p>
+            </motion.div>
+
+            {/* Componente 4: Reducción de Churn */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.3 }}
+              className="bg-gradient-to-br from-orange-50 to-amber-50 border border-orange-200 rounded-xl p-6 shadow-md hover:shadow-lg transition-all"
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <ShieldCheck className="w-8 h-8 text-orange-600" />
+                <h4 className="text-lg font-bold text-neutral">Reducción de Churn</h4>
+              </div>
+              <p className="text-4xl font-bold text-orange-600 mb-2">
+                ${roiComponents.churn.toLocaleString('es-MX')} MXN
+              </p>
+              <p className="text-sm text-gray-600">
+                Portal de cliente mejora retención 10% anual
+              </p>
+            </motion.div>
+
+            {/* Componente 5: Upsell Pedido Especial */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.4 }}
+              className="bg-gradient-to-br from-teal-50 to-cyan-50 border border-teal-200 rounded-xl p-6 shadow-md hover:shadow-lg transition-all"
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <TrendingUp className="w-8 h-8 text-teal-600" />
+                <h4 className="text-lg font-bold text-neutral">Upsell Pedido Especial</h4>
+              </div>
+              <p className="text-4xl font-bold text-teal-600 mb-2">
+                ${roiComponents.upsell.toLocaleString('es-MX')} MXN
+              </p>
+              <p className="text-sm text-gray-600">
+                15% de clientes piden productos no en stock
+              </p>
+            </motion.div>
+
+            {/* Componente 6: Remarketing */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.5 }}
+              className="bg-gradient-to-br from-indigo-50 to-blue-50 border border-indigo-200 rounded-xl p-6 shadow-md hover:shadow-lg transition-all"
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <Target className="w-8 h-8 text-indigo-600" />
+                <h4 className="text-lg font-bold text-neutral">Remarketing</h4>
+              </div>
+              <p className="text-4xl font-bold text-indigo-600 mb-2">
+                ${roiComponents.remarketing.toLocaleString('es-MX')} MXN
+              </p>
+              <p className="text-sm text-gray-600">
+                Recupera 15% de cotizaciones abandonadas
+              </p>
+            </motion.div>
+          </div>
+
+          {/* Summary Section */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl p-6 md:p-8 text-white shadow-2xl"
+          >
+            <h3 className="text-2xl font-bold mb-6 text-center">Resumen Total</h3>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+              <div className="text-center">
+                <p className="text-xs md:text-sm text-gray-400 mb-2">ROI Total Mensual</p>
+                <p className="text-2xl md:text-3xl font-bold text-green-400">
+                  ${roiComponents.total.toLocaleString('es-MX')}
+                </p>
+                <p className="text-xs text-gray-400">MXN</p>
+              </div>
+              <div className="text-center">
+                <p className="text-xs md:text-sm text-gray-400 mb-2">Costo CatifyPro</p>
+                <p className="text-2xl md:text-3xl font-bold text-orange-400">
+                  ${roiCost.toLocaleString('es-MX')}
+                </p>
+                <p className="text-xs text-gray-400">MXN</p>
+              </div>
+              <div className="text-center">
+                <p className="text-xs md:text-sm text-gray-400 mb-2">ROI Neto Mensual</p>
+                <p className="text-2xl md:text-3xl font-bold text-emerald-400">
+                  ${roiComponents.neto.toLocaleString('es-MX')}
+                </p>
+                <p className="text-xs text-gray-400">MXN</p>
+              </div>
+              <div className="text-center">
+                <p className="text-xs md:text-sm text-gray-400 mb-2">Múltiplo de ROI</p>
+                <p className="text-2xl md:text-3xl font-bold text-blue-400">
+                  {roiComponents.multiplo}x
+                </p>
+              </div>
+            </div>
+            <div className="mt-6 md:mt-8 text-center border-t border-gray-700 pt-6">
+              <p className="text-xs md:text-sm text-gray-400 mb-2">ROI Anual Proyectado</p>
+              <p className="text-3xl md:text-5xl font-bold text-white">
+                ${(roiComponents.neto * 12).toLocaleString('es-MX')} MXN
+              </p>
+            </div>
+          </motion.div>
         </div>
       </motion.section>
 
