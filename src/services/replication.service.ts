@@ -308,28 +308,32 @@ export class ReplicationService {
   /**
    * Completar activación después de confirmar email
    */
-    static async completeActivation(
-    token: string,
-    userId: string // <-- Aunque ya no lo pasamos a la RPC, lo guardamos por si lo necesitamos para logs
-  ): Promise<boolean> {
+  static async completeActivation(token: string, userId: string): Promise<any> {
     try {
-      console.log(`Completando activación para token: ${token}, usuario: ${userId}`);
+      console.log('📞 Llamando a complete_catalog_activation');
+      console.log('Token:', token);
+      console.log('User ID:', userId);
       
-      // 👇 CAMBIO: Llamar a la RPC solo con el token
       const { data, error } = await supabase.rpc('complete_catalog_activation', {
         p_token: token,
-      } as any); // Cast para evitar error de tipos desactualizados
+      });
 
       if (error) {
-        console.error("Error en RPC complete_catalog_activation:", error);
+        console.error('❌ Error RPC complete_catalog_activation:', error);
         throw new Error(`Error al completar activación: ${error.message}`);
       }
 
-      console.log("RPC complete_catalog_activation exitoso:", data);
-      return true;
+      console.log('✅ RPC exitoso:', data);
+      
+      // Verificar que data tenga la estructura esperada
+      if (!data || typeof data !== 'object') {
+        console.warn('⚠️ Respuesta inesperada del RPC:', data);
+        throw new Error('Respuesta inválida del servidor');
+      }
 
+      return data;
     } catch (error: any) {
-      console.error('Error general en completeActivation:', error);
+      console.error('❌ Error general en completeActivation:', error);
       throw error;
     }
   }

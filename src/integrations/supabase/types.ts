@@ -607,6 +607,8 @@ export type Database = {
           slug: string
           template_config: Json | null
           template_id: string | null
+          tracking_body_scripts: string | null
+          tracking_head_scripts: string | null
           updated_at: string | null
           user_id: string
           view_count: number | null
@@ -636,6 +638,8 @@ export type Database = {
           slug: string
           template_config?: Json | null
           template_id?: string | null
+          tracking_body_scripts?: string | null
+          tracking_head_scripts?: string | null
           updated_at?: string | null
           user_id: string
           view_count?: number | null
@@ -665,6 +669,8 @@ export type Database = {
           slug?: string
           template_config?: Json | null
           template_id?: string | null
+          tracking_body_scripts?: string | null
+          tracking_head_scripts?: string | null
           updated_at?: string | null
           user_id?: string
           view_count?: number | null
@@ -2080,10 +2086,7 @@ export type Database = {
           message: string
         }[]
       }
-      complete_catalog_activation: {
-        Args: { p_reseller_id: string; p_token: string }
-        Returns: undefined
-      }
+      complete_catalog_activation: { Args: { p_token: string }; Returns: Json }
       complete_user_profile: {
         Args: {
           p_business_name?: string
