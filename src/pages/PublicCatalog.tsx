@@ -82,6 +82,32 @@ function PublicCatalogContent() {
     }
   }, [slug, isAuthenticated]);
 
+  // Debug: Verificar separación de productos
+  useEffect(() => {
+    if (!catalog) return;
+    
+    console.log('════════════════════════════════════');
+    console.log('🔍 DEBUG PublicCatalog:');
+    console.log('isReplicated:', catalog.isReplicated);
+    console.log('purchasedProductIds:', catalog.purchasedProductIds);
+    console.log('Total productos:', catalog.products?.length);
+    
+    if (catalog.isReplicated && catalog.purchasedProductIds) {
+      const purchased = catalog.products?.filter(p => 
+        catalog.purchasedProductIds.includes(p.id)
+      );
+      const special = catalog.products?.filter(p => 
+        !catalog.purchasedProductIds.includes(p.id)
+      );
+      
+      console.log('📦 Productos En Stock:', purchased?.length);
+      console.log('   IDs:', purchased?.map(p => p.id.substring(0, 8)));
+      console.log('📝 Productos Pedido Especial:', special?.length);
+      console.log('   IDs:', special?.map(p => p.id.substring(0, 8)));
+    }
+    console.log('════════════════════════════════════');
+  }, [catalog]);
+
   const searchFields = ["name"];
   if (catalog?.show_description) searchFields.push("description");
   if (catalog?.show_sku) searchFields.push("sku");
