@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useUserRole } from "@/contexts/RoleContext";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import {
@@ -31,6 +32,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 
 const Index = () => {
   const navigate = useNavigate();
+  const { userRole } = useUserRole();
   const [user, setUser] = useState<any>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   
@@ -56,10 +58,15 @@ const Index = () => {
     return () => subscription.unsubscribe();
   }, []);
 
-  const handleAuthButton = async () => {
+  const handleMenuButton = () => {
     if (user) {
-      await supabase.auth.signOut();
-      toast.success("Sesión cerrada");
+      // Si es reseller (L2 o BOTH), ir al dashboard de reseller
+      if (userRole === 'L2' || userRole === 'BOTH') {
+        navigate("/reseller-dashboard");
+      } else {
+        // Si es usuario normal (L1), ir a products
+        navigate("/products");
+      }
     } else {
       navigate("/login");
     }
@@ -148,8 +155,8 @@ const Index = () => {
 
             {/* Desktop Nav */}
             <div className="hidden md:flex items-center space-x-6">
-              <Button variant="ghost" onClick={handleAuthButton} className="text-neutral">
-                Login
+              <Button variant="ghost" onClick={handleMenuButton} className="text-neutral">
+                {user ? "Menú" : "Login"}
               </Button>
               <Button variant="ghost" onClick={() => navigate("/why-subscribe")} className="text-neutral">
                 Por qué suscribirse
@@ -171,12 +178,12 @@ const Index = () => {
               <Button
                 variant="ghost"
                 onClick={() => {
-                  handleAuthButton();
+                  handleMenuButton();
                   setMobileMenuOpen(false);
                 }}
                 className="w-full text-left"
               >
-                Login
+                {user ? "Menú" : "Login"}
               </Button>
               <Button
                 variant="ghost"
