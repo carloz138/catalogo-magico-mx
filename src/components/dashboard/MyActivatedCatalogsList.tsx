@@ -32,70 +32,80 @@ export function MyActivatedCatalogsList() {
     }
   }, [user]);
 
-  const fetchActivatedCatalogs = async () => {
-    if (!user?.id) return;
-    setLoading(true);
-    setError(null);
+const fetchActivatedCatalogs = async () => {
+  if (!user?.id) return;
+  setLoading(true);
+  setError(null);
+  
+  try {
+    console.log('🔍 Fetching activated catalogs for user:', user.id);
     
-    try {
-      console.log('🔍 Fetching activated catalogs for user:', user.id);
-      
-      // Query corregida usando los foreign keys correctos
-      const { data, error: fetchError } = await supabase
-        .from("replicated_catalogs")
-        .select(`
-          id,
-          activated_at,
-          original_catalog:digital_catalogs!replicated_catalogs_original_catalog_id_fkey(
-            id,
-            name,
-            slug
-          ),
-          distributor:users!replicated_catalogs_distributor_id_fkey(
-            id,
-            full_name,
-            business_name,
-            company_name
-          )
-        `)
-        .eq("reseller_id", user.id)
-        .eq("is_active", true)
-        .order("activated_at", { ascending: false });
+    // PASO 1: Obtener catálogos replicados del usuario
+    const { data: replicatedCatalogs, error: replicaError } = await supabase
+      .from("replicated_catalogs")
+      .select(`
+        id,
+        activated_at,
+        original_catalog_id,
+        distributor_id
+      `)
+      .eq("reseller_id", user.id)
+      .eq("is_active", true)
+      .order("activated_at", { ascending: false });
 
-      if (fetchError) {
-        console.error('❌ Error fetching catalogs:', fetchError);
-        throw fetchError;
-      }
+    if (replicaError) {
+      console.error('❌ Error fetching replicated catalogs:', replicaError);
+      throw replicaError;
+    }
 
-      console.log('✅ Catalogs fetched:', data);
+    if (!replicatedCatalogs || replicatedCatalogs.length === 0) {
+      console.log('ℹ️ No replicated catalogs found');
+      setCatalogs([]);
+      return;
+    }
 
-      // Transformar datos para el UI
-      const mappedData = data?.map((item) => {
-        const originalCatalog = item.original_catalog as any;
-        const distributor = item.distributor as any;
-        
+    console.log('✅ Replicated catalogs found:', replicatedCatalogs.length);
+
+    // PASO 2: Obtener datos relacionados manualmente
+    const catalogsWithDetails = await Promise.all(
+      replicatedCatalogs.map(async (catalog) => {
+        // Obtener catálogo original
+        const { data: originalCatalog } = await supabase
+          .from('digital_catalogs')
+          .select('id, name, slug')
+          .eq('id', catalog.original_catalog_id)
+          .single();
+
+        // Obtener datos del distribuidor (proveedor)
+        const { data: distributor } = await supabase
+          .from('users')
+          .select('id, full_name, business_name, company_name')
+          .eq('id', catalog.distributor_id)
+          .single();
+
         return {
-          id: item.id,
-          activated_at: item.activated_at,
-          original_catalog_name: originalCatalog?.name || "Catálogo Desconocido",
+          id: catalog.id,
+          activated_at: catalog.activated_at,
+          original_catalog_name: originalCatalog?.name || 'Catálogo Desconocido',
           distributor_name: 
             distributor?.company_name || 
             distributor?.business_name || 
             distributor?.full_name || 
-            "Proveedor Desconocido",
+            'Proveedor Desconocido',
         };
-      }) || [];
+      })
+    );
 
-      console.log('📊 Mapped catalogs:', mappedData);
-      setCatalogs(mappedData);
-      
-    } catch (err: any) {
-      console.error("Error fetching activated catalogs:", err);
-      setError(err.message || "No se pudo cargar tus catálogos activados.");
-    } finally {
-      setLoading(false);
-    }
-  };
+    console.log('📊 Catalogs with details:', catalogsWithDetails);
+    setCatalogs(catalogsWithDetails);
+    
+  } catch (err: any) {
+    console.error("Error fetching activated catalogs:", err);
+    setError(err.message || "No se pudo cargar tus catálogos activados.");
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleViewDashboard = (catalogId: string) => {
     navigate(`/dashboard/reseller?catalog_id=${catalogId}`);
