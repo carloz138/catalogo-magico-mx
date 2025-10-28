@@ -35,12 +35,12 @@ const Index = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   
   // ROI Calculator States
-  const [roiLeads, setRoiLeads] = useState(100);
-  const [roiTicket, setRoiTicket] = useState(5000);
-  const [roiSalary, setRoiSalary] = useState(15000);
-  const [roiClients, setRoiClients] = useState(50);
-  const [roiOffHours, setRoiOffHours] = useState(30);
-  const [roiCost, setRoiCost] = useState(5000);
+  const [roiLeads, setRoiLeads] = useState<number | "">(100);
+  const [roiTicket, setRoiTicket] = useState<number | "">(5000);
+  const [roiSalary, setRoiSalary] = useState<number | "">(15000);
+  const [roiClients, setRoiClients] = useState<number | "">(50);
+  const [roiOffHours, setRoiOffHours] = useState<number | "">(30);
+  const [roiCost, setRoiCost] = useState<number | "">(5000);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -66,42 +66,49 @@ const Index = () => {
   };
 
   // ROI Components Calculations
+  const leads = Number(roiLeads) || 0;
+  const ticket = Number(roiTicket) || 0;
+  const salary = Number(roiSalary) || 0;
+  const clients = Number(roiClients) || 0;
+  const offHours = Number(roiOffHours) || 0;
+  const cost = Number(roiCost) || 0;
+
   const roiComponents = {
     // 1. Velocidad de Respuesta
     velocidad: (() => {
-      const leadsCalientes = roiLeads * 0.3;
-      const leadsFrios = roiLeads * 0.7;
+      const leadsCalientes = leads * 0.3;
+      const leadsFrios = leads * 0.7;
       const conPlataforma = (leadsCalientes * 0.35) + (leadsFrios * 0.15);
-      const sinPlataforma = roiLeads * 0.15;
-      return Math.round((conPlataforma - sinPlataforma) * roiTicket);
+      const sinPlataforma = leads * 0.15;
+      return Math.round((conPlataforma - sinPlataforma) * ticket);
     })(),
     
     // 2. Disponibilidad 24/7
     disponibilidad: (() => {
-      const leadsFueraHorario = roiLeads * (roiOffHours / 100);
-      return Math.round(leadsFueraHorario * 0.20 * roiTicket);
+      const leadsFueraHorario = leads * (offHours / 100);
+      return Math.round(leadsFueraHorario * 0.20 * ticket);
     })(),
     
     // 3. Capacidad de Vendedor
-    capacidad: Math.round(roiSalary * 0.70),
+    capacidad: Math.round(salary * 0.70),
     
     // 4. Reducción de Churn
     churn: (() => {
-      const ltv = roiTicket * 12;
-      const clientesRetenidos = roiClients * 0.10;
+      const ltv = ticket * 12;
+      const clientesRetenidos = clients * 0.10;
       return Math.round((clientesRetenidos * ltv) / 12);
     })(),
     
     // 5. Upsell Pedido Especial
     upsell: (() => {
-      const ticketEspecial = roiTicket * 0.60;
-      return Math.round(roiClients * 0.15 * ticketEspecial);
+      const ticketEspecial = ticket * 0.60;
+      return Math.round(clients * 0.15 * ticketEspecial);
     })(),
     
     // 6. Remarketing
     remarketing: (() => {
-      const leadsAbandonados = roiLeads * 0.25;
-      return Math.round(leadsAbandonados * 0.15 * roiTicket);
+      const leadsAbandonados = leads * 0.25;
+      return Math.round(leadsAbandonados * 0.15 * ticket);
     })(),
     
     get total() {
@@ -109,11 +116,11 @@ const Index = () => {
     },
     
     get neto() {
-      return this.total - roiCost;
+      return this.total - cost;
     },
     
     get multiplo() {
-      return roiCost > 0 ? (this.total / roiCost).toFixed(1) : '0.0';
+      return cost > 0 ? (this.total / cost).toFixed(1) : '0.0';
     }
   };
 
@@ -420,7 +427,9 @@ const Index = () => {
                   <Input
                     type="number"
                     value={roiLeads}
-                    onChange={(e) => setRoiLeads(Number(e.target.value))}
+                    onChange={(e) => setRoiLeads(e.target.value === "" ? "" : Number(e.target.value))}
+                    placeholder="100"
+                    min="0"
                     className="w-full"
                   />
                 </div>
@@ -432,7 +441,9 @@ const Index = () => {
                   <Input
                     type="number"
                     value={roiTicket}
-                    onChange={(e) => setRoiTicket(Number(e.target.value))}
+                    onChange={(e) => setRoiTicket(e.target.value === "" ? "" : Number(e.target.value))}
+                    placeholder="5000"
+                    min="0"
                     className="w-full"
                   />
                 </div>
@@ -444,7 +455,9 @@ const Index = () => {
                   <Input
                     type="number"
                     value={roiSalary}
-                    onChange={(e) => setRoiSalary(Number(e.target.value))}
+                    onChange={(e) => setRoiSalary(e.target.value === "" ? "" : Number(e.target.value))}
+                    placeholder="15000"
+                    min="0"
                     className="w-full"
                   />
                 </div>
@@ -456,7 +469,9 @@ const Index = () => {
                   <Input
                     type="number"
                     value={roiClients}
-                    onChange={(e) => setRoiClients(Number(e.target.value))}
+                    onChange={(e) => setRoiClients(e.target.value === "" ? "" : Number(e.target.value))}
+                    placeholder="50"
+                    min="0"
                     className="w-full"
                   />
                 </div>
@@ -468,7 +483,10 @@ const Index = () => {
                   <Input
                     type="number"
                     value={roiOffHours}
-                    onChange={(e) => setRoiOffHours(Number(e.target.value))}
+                    onChange={(e) => setRoiOffHours(e.target.value === "" ? "" : Number(e.target.value))}
+                    placeholder="30"
+                    min="0"
+                    max="100"
                     className="w-full"
                   />
                 </div>
@@ -480,7 +498,9 @@ const Index = () => {
                   <Input
                     type="number"
                     value={roiCost}
-                    onChange={(e) => setRoiCost(Number(e.target.value))}
+                    onChange={(e) => setRoiCost(e.target.value === "" ? "" : Number(e.target.value))}
+                    placeholder="5000"
+                    min="0"
                     className="w-full"
                   />
                 </div>
