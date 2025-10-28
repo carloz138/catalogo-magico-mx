@@ -250,13 +250,28 @@ export class DigitalCatalogService {
 
       // Paso 4: Obtener los product_ids de la cotización asociada
       if (replicatedCatalog.quote_id) {
+        console.log('🔍 Buscando quote_items para quote_id:', replicatedCatalog.quote_id);
+        
         const { data: quoteItems, error: quoteItemsError } = await supabase
           .from("quote_items")
           .select("product_id")
           .eq("quote_id", replicatedCatalog.quote_id);
 
-        if (!quoteItemsError && quoteItems) {
-          purchasedProductIds = quoteItems.map((item: any) => item.product_id).filter(Boolean);
+        console.log('📦 Quote items encontrados:', quoteItems);
+        console.log('❌ Error en quote_items:', quoteItemsError);
+
+        if (quoteItemsError) {
+          console.error('Error obteniendo quote items:', quoteItemsError);
+        }
+
+        if (quoteItems && quoteItems.length > 0) {
+          purchasedProductIds = quoteItems
+            .map((item: any) => item.product_id)
+            .filter(id => id !== null && id !== undefined);
+          
+          console.log('✅ purchasedProductIds final:', purchasedProductIds);
+        } else {
+          console.warn('⚠️ No se encontraron quote_items para esta cotización');
         }
       }
     }
