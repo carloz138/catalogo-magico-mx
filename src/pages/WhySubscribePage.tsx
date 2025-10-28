@@ -1,221 +1,618 @@
-import { ArrowLeft, Rocket, Network, Brain, DollarSign } from "lucide-react";
+import { Zap, Users, TrendingUp, Clock, Network, BarChart3, Mail, Phone } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function WhySubscribePage() {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header Sencillo */}
-      <header className="bg-white border-b sticky top-0 z-40">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl">
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <header className="bg-card border-b sticky top-0 z-50 shadow-sm">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            <Button variant="ghost" onClick={() => navigate(-1)} className="text-muted-foreground">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Volver
-            </Button>
-            <Button onClick={() => navigate("/login")}>
-              Iniciar Sesión
-            </Button>
+            <div className="flex items-center gap-8">
+              <button 
+                onClick={() => navigate("/")}
+                className="text-2xl font-bold bg-gradient-to-r from-[#0070F3] to-[#FF9B50] bg-clip-text text-transparent"
+              >
+                CatifyPro
+              </button>
+              <nav className="hidden md:flex items-center gap-6">
+                <button 
+                  onClick={() => navigate("/")}
+                  className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Inicio
+                </button>
+                <button 
+                  className="text-sm font-medium text-[#0070F3] border-b-2 border-[#0070F3] pb-1"
+                >
+                  Por qué suscribirse
+                </button>
+                <button 
+                  onClick={() => navigate("/blog")}
+                  className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Blog
+                </button>
+              </nav>
+            </div>
+            <div className="flex items-center gap-3">
+              <Button 
+                variant="ghost" 
+                onClick={() => navigate("/login")}
+                className="hidden sm:inline-flex"
+              >
+                Login
+              </Button>
+              <Button 
+                onClick={() => navigate("/login")}
+                className="bg-[#0070F3] hover:bg-[#0070F3]/90 text-white"
+              >
+                Comienza Gratis
+              </Button>
+            </div>
           </div>
         </div>
       </header>
 
-      {/* Contenido Principal */}
-      <div className="container mx-auto max-w-4xl py-12 md:py-20 px-4 space-y-12">
-        
-        {/* --- Sección Hero --- */}
-        <div className="text-center space-y-4">
-          <Badge variant="outline" className="text-base py-1 px-4 rounded-full border-purple-300 bg-purple-50 text-purple-700">
-            La Ventaja Estratégica de CatifyPro
-          </Badge>
-          <h1 className="text-4xl md:text-5xl font-bold tracking-tighter text-gray-900">
-            No es un Gasto. Es tu Nuevo Motor de Ventas.
+      {/* SECCIÓN 1 — Introducción Expandida */}
+      <section className="container mx-auto px-4 py-16 md:py-24 max-w-5xl">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          className="text-center space-y-6"
+        >
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-foreground">
+            ¿Por Qué Suscribirte a CatifyPro?
           </h1>
-          <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto">
-            CatifyPro no es solo un "creador de catálogos". Es una Plataforma de Habilitación Comercial diseñada para PyMEs que resuelve tus tres mayores problemas: la lentitud en ventas, la incapacidad para medir tu publicidad y el alto riesgo de inventario.
+          <p className="text-xl md:text-2xl text-muted-foreground max-w-4xl mx-auto leading-relaxed">
+            Porque mientras tu competencia sigue enviando cotizaciones por correo y esperando días para responder, tú ya estás cerrando ventas automáticas las 24 horas.
           </p>
+          <div className="bg-muted/50 rounded-lg p-6 md:p-8 max-w-4xl mx-auto text-left space-y-4">
+            <p className="text-lg text-foreground leading-relaxed">
+              CatifyPro transforma tu proceso comercial en un sistema que vende solo.
+            </p>
+            <p className="text-lg text-muted-foreground leading-relaxed">
+              No necesitas ser experto en tecnología ni invertir miles en publicidad: tu catálogo se convierte en una herramienta de venta activa 24/7, tus clientes pueden generar sus propias cotizaciones al instante, y además pueden convertirse en tu fuerza de ventas distribuyendo tus productos a través de su propia red.
+            </p>
+            <p className="text-lg font-semibold text-foreground leading-relaxed">
+              Esto no es solo automatización. Es multiplicar tu capacidad de venta sin aumentar tu nómina.
+            </p>
+          </div>
+        </motion.div>
+      </section>
+
+      {/* SECCIÓN 2 — Ventaja 1: Velocidad que Genera Ventas */}
+      <section className="bg-muted/30 py-16 md:py-24">
+        <div className="container mx-auto px-4 max-w-5xl">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+          >
+            <Card className="overflow-hidden border-none shadow-lg">
+              <CardHeader className="bg-gradient-to-br from-[#0070F3]/10 to-[#0070F3]/5 p-8">
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 rounded-full bg-[#0070F3] flex items-center justify-center flex-shrink-0">
+                    <Zap className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-3xl md:text-4xl mb-3">
+                      1. Gana Ventas por Velocidad: La Regla del Primer Respondedor
+                    </CardTitle>
+                    <p className="text-xl font-semibold text-[#0070F3]">
+                      Entre el 35% y 50% de todas las ventas se las lleva quien responde primero.
+                    </p>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="p-8 space-y-6">
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="text-lg font-bold text-foreground mb-2">El problema:</h3>
+                    <p className="text-muted-foreground leading-relaxed">
+                      La empresa promedio tarda 42 horas en responder una solicitud de cotización. Para cuando envías tu PDF por correo, tu cliente ya compró con alguien más.
+                    </p>
+                  </div>
+                  
+                  <div>
+                    <h3 className="text-lg font-bold text-foreground mb-2">La expectativa del mercado:</h3>
+                    <p className="text-muted-foreground leading-relaxed">
+                      El 82% de los clientes espera respuesta en 10 minutos o menos. El 60% se va si no la recibe.
+                    </p>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-bold text-foreground mb-2">La solución de CatifyPro:</h3>
+                    <p className="text-muted-foreground leading-relaxed">
+                      Tus clientes generan su propia cotización en tiempo real desde tu catálogo digital, sin esperar a que tu equipo esté disponible. No importa si es domingo a las 11 PM o lunes a las 6 AM.
+                    </p>
+                    <p className="text-muted-foreground leading-relaxed mt-2">
+                      Tú recibes solo las solicitudes listas para cerrar, con productos seleccionados, cantidades definidas y precios calculados automáticamente.
+                    </p>
+                  </div>
+
+                  <div className="bg-[#0070F3]/5 rounded-lg p-6 border border-[#0070F3]/20">
+                    <h3 className="text-lg font-bold text-foreground mb-3">Resultado real:</h3>
+                    <ul className="space-y-2">
+                      <li className="flex items-start gap-2">
+                        <span className="text-[#0070F3] font-bold">•</span>
+                        <span className="text-muted-foreground">Tiempo de respuesta: De 42 horas a 0 segundos</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-[#0070F3] font-bold">•</span>
+                        <span className="text-muted-foreground">Más ventas capturadas mientras tu competencia duerme</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-[#0070F3] font-bold">•</span>
+                        <span className="text-muted-foreground">Cero oportunidades perdidas por lentitud</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-[#0070F3] font-bold">•</span>
+                        <span className="text-muted-foreground">Tu equipo dedica tiempo a cerrar, no a cotizar</span>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+
+                {/* Visual comparativo */}
+                <div className="grid md:grid-cols-2 gap-6 pt-4">
+                  <div className="bg-destructive/10 rounded-lg p-6 text-center border border-destructive/20">
+                    <Clock className="w-12 h-12 text-destructive mx-auto mb-3" />
+                    <div className="text-4xl font-bold text-destructive mb-2">42 horas</div>
+                    <p className="text-sm text-muted-foreground">Promedio de respuesta tradicional</p>
+                  </div>
+                  <div className="bg-[#0070F3]/10 rounded-lg p-6 text-center border border-[#0070F3]/20">
+                    <Zap className="w-12 h-12 text-[#0070F3] mx-auto mb-3" />
+                    <div className="text-4xl font-bold text-[#0070F3] mb-2">0 segundos</div>
+                    <p className="text-sm text-muted-foreground">Con CatifyPro</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
         </div>
+      </section>
 
-        {/* --- Sección 1: Velocidad --- */}
-        <Card className="shadow-lg overflow-hidden">
-          <CardHeader className="bg-gray-50/70 border-b p-6">
-            <div className="flex items-center gap-4">
-              <div className="flex-shrink-0 w-12 h-12 rounded-full bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center">
-                <Rocket className="w-6 h-6 text-blue-600" />
-              </div>
-              <div>
-                <CardTitle className="text-2xl">La Ventaja Injusta (Ganas por Velocidad)</CardTitle>
-                <CardDescription>Resuelve la "crisis de velocidad" y gana ventas 24/7.</CardDescription>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="p-6">
-            <Accordion type="single" collapsible defaultValue="item-1">
-              <AccordionItem value="item-1" className="border-b-0">
-                <AccordionTrigger className="text-lg font-semibold text-left hover:no-underline">
-                  P: Mi equipo de ventas es bueno, ¿por qué necesito un cotizador automático?
-                </AccordionTrigger>
-                <AccordionContent className="text-base text-muted-foreground pt-2">
-                  <strong className="text-gray-700">R:</strong> Porque tu equipo de ventas, como el 99% de los equipos B2B, está perdiendo. Los datos de 2025 muestran que tu competencia tarda un promedio de **42 horas** en responder a un nuevo prospecto. El problema es que **el 50% de las ventas se le otorgan al proveedor que responde primero**.
-                  <br /><br />
-                  El cotizador 24/7 de CatifyPro le permite a tu cliente generar su propia cotización en **cero segundos**. Mientras tu competencia duerme, tu catálogo está cerrando ventas. No estás reemplazando a tu equipo; les estás dando una herramienta para que solo se enfoquen en las cotizaciones que ya están listas para aceptarse, en lugar de perder el 70% de su día en tareas administrativas.
-                </AccordionContent>
-              </AccordionItem>
-            </Accordion>
-          </CardContent>
-        </Card>
+      {/* SECCIÓN 3 — Ventaja 2: Red de Ventas Viral */}
+      <section className="py-16 md:py-24">
+        <div className="container mx-auto px-4 max-w-5xl">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+          >
+            <Card className="overflow-hidden border-none shadow-lg">
+              <CardHeader className="bg-gradient-to-br from-[#FF9B50]/10 to-[#FF9B50]/5 p-8">
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 rounded-full bg-[#FF9B50] flex items-center justify-center flex-shrink-0">
+                    <Network className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-3xl md:text-4xl mb-3">
+                      2. Convierte a tus Clientes en tu Fuerza de Ventas Automática
+                    </CardTitle>
+                    <p className="text-xl font-semibold text-[#FF9B50]">
+                      Cada cliente que te compra puede activar su propio catálogo y vender tus productos a su red. Tú ganas cada vez que venden.
+                    </p>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="p-8 space-y-6">
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="text-lg font-bold text-foreground mb-2">El modelo tradicional:</h3>
+                    <p className="text-muted-foreground leading-relaxed">
+                      Vendes a un distribuidor y ahí termina tu alcance. Si quieres llegar a más clientes finales, necesitas contratar más vendedores o invertir más en publicidad.
+                    </p>
+                  </div>
 
-        {/* --- Sección 2: Ecosistema --- */}
-        <Card className="shadow-lg overflow-hidden">
-          <CardHeader className="bg-gray-50/70 border-b p-6">
-            <div className="flex items-center gap-4">
-              <div className="flex-shrink-0 w-12 h-12 rounded-full bg-gradient-to-br from-purple-100 to-purple-200 flex items-center justify-center">
-                <Network className="w-6 h-6 text-purple-600" />
-              </div>
-              <div>
-                <CardTitle className="text-2xl">El Ecosistema (Tu Verdadera Ventaja Competitiva)</CardTitle>
-                <CardDescription>Activa el "Ecosistema de Red" y convierte a tus clientes en tus vendedores.</CardDescription>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="p-6">
-            <Accordion type="single" collapsible>
-              <AccordionItem value="item-1" className="border-b">
-                <AccordionTrigger className="text-lg font-semibold text-left hover:no-underline">
-                  P: ¿Qué es eso del "Ecosistema" o "Red de Distribución"?
-                </AccordionTrigger>
-                <AccordionContent className="text-base text-muted-foreground pt-2">
-                  <strong className="text-gray-700">R:</strong> Esta es nuestra característica más poderosa. Es simple:
-                  <ul className="list-disc pl-5 mt-2 space-y-1">
-                    <li>**Flujo Tradicional:** Tú (L1) vendes a un distribuidor (L2). La venta termina ahí.</li>
-                    <li>**Flujo CatifyPro:** Tú (L1) vendes a un distribuidor (L2). Al aceptar tu cotización, el L2 recibe **GRATIS** su propio catálogo replicado, con **tu** inventario completo.</li>
-                    <li>**El Resultado:** Tu distribuidor (L2) ahora usa tu plataforma para venderle a *sus* clientes (L3). Has convertido a tu cliente en tu propia fuerza de ventas digital.</li>
-                  </ul>
-                </AccordionContent>
-              </AccordionItem>
-              <AccordionItem value="item-2" className="border-b">
-                <AccordionTrigger className="text-lg font-semibold text-left hover:no-underline">
-                  P: ¿Qué gana mi cliente (L2) con esto?
-                </AccordionTrigger>
-                <AccordionContent className="text-base text-muted-foreground pt-2">
-                  <strong className="text-gray-700">R:</strong> Le estás regalando un E-commerce B2B completo sin costo. Él ahora puede gestionar sus propios pedidos, compartir un link profesional y (lo más importante) vender productos **tuyos** que no tiene en stock (la función "Bajo Pedido"). Aumenta sus ventas y su profesionalismo.
-                </AccordionContent>
-              </AccordionItem>
-              <AccordionItem value="item-3" className="border-b-0">
-                <AccordionTrigger className="text-lg font-semibold text-left hover:no-underline">
-                  P: ¿Qué gano yo (L1)?
-                </AccordionTrigger>
-                <AccordionContent className="text-base text-muted-foreground pt-2">
-                  <strong className="text-gray-700">R:</strong> Ganas el juego.
-                  <ol className="list-decimal pl-5 mt-2 space-y-1">
-                    <li>**Costo de Adquisición Cero:** Cada cliente L3 que tu red L2 adquiere es un cliente nuevo para tus productos, sin que tú gastes un peso en marketing.</li>
-                    <li>**Venta Sin Inventario:** Tu L2 puede vender *todo* tu catálogo, no solo lo que te compró. Recibirás pedidos incrementales de productos que tu L2 no se atrevía a comprar por riesgo de inventario.</li>
-                    <li>**Lealtad Total (Channel Lock-in):** Tu distribuidor L2 ahora *depende* de tu plataforma para operar. El costo de cambiarse a tu competencia (que solo ofrece PDFs) es demasiado alto. Has asegurado tu cadena de distribución.</li>
-                  </ol>
-                </AccordionContent>
-              </AccordionItem>
-            </Accordion>
-          </CardContent>
-        </Card>
+                  <div>
+                    <h3 className="text-lg font-bold text-foreground mb-2">El modelo CatifyPro:</h3>
+                    <p className="text-muted-foreground leading-relaxed mb-3">
+                      Cuando aceptas una cotización de tu cliente, él recibe un enlace para activar su propio catálogo digital con tus productos. Su catálogo muestra:
+                    </p>
+                    <ul className="space-y-2 ml-4">
+                      <li className="flex items-start gap-2">
+                        <span className="text-[#FF9B50] font-bold">•</span>
+                        <span className="text-muted-foreground"><strong>Productos "En Stock":</strong> Lo que te compró y tiene disponible</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-[#FF9B50] font-bold">•</span>
+                        <span className="text-muted-foreground"><strong>Productos "Bajo Pedido":</strong> El resto de tu catálogo que puede ofrecer sin tener inventario</span>
+                      </li>
+                    </ul>
+                  </div>
 
-        {/* --- Sección 3: Cerebro --- */}
-        <Card className="shadow-lg overflow-hidden">
-          <CardHeader className="bg-gray-50/70 border-b p-6">
-            <div className="flex items-center gap-4">
-              <div className="flex-shrink-0 w-12 h-12 rounded-full bg-gradient-to-br from-green-100 to-green-200 flex items-center justify-center">
-                <Brain className="w-6 h-6 text-green-600" />
-              </div>
-              <div>
-                <CardTitle className="text-2xl">El "Cerebro" (Dejar de Adivinar)</CardTitle>
-                <CardDescription>Mide tu ROI con Píxeles y elimina el riesgo de inventario con el "Radar de Mercado".</CardDescription>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="p-6">
-            <Accordion type="single" collapsible>
-              <AccordionItem value="item-1" className="border-b">
-                <AccordionTrigger className="text-lg font-semibold text-left hover:no-underline">
-                  P: ¿Qué es la "Integración de Píxeles" y para qué sirve?
-                </AccordionTrigger>
-                <AccordionContent className="text-base text-muted-foreground pt-2">
-                  <strong className="text-gray-700">R:</strong> Es la solución al "agujero negro" del ROI de marketing en B2B.
-                  <ul className="list-disc pl-5 mt-2 space-y-1">
-                    <li>**El Problema:** Hoy, gastas $20,000 en LinkedIn o Meta. Los clientes ven tu anuncio, te piden el PDF por correo y la cotización ocurre "offline". **No puedes** saber si esa venta vino del anuncio.</li>
-                    <li>**La Solución:** Pegas tu script de Google Tag Manager (GTM) en tu catálogo CatifyPro. Cuando un cliente genera una cotización, nosotros disparamos un evento. Por primera vez, tu panel de Meta Ads y Google Analytics te dirá: "La campaña de LinkedIn generó 3 cotizaciones por $150,000".</li>
-                    <li>**Beneficio:** Dejas de adivinar tu gasto publicitario y empiezas a optimizarlo basado en qué campañas realmente generan ingresos.</li>
-                  </ul>
-                </AccordionContent>
-              </AccordionItem>
-              <AccordionItem value="item-2" className="border-b-0">
-                <AccordionTrigger className="text-lg font-semibold text-left hover:no-underline">
-                  P: ¿Qué es el "Radar de Mercado"?
-                </AccordionTrigger>
-                <AccordionContent className="text-base text-muted-foreground pt-2">
-                  <strong className="text-gray-700">R:</strong> Es tu herramienta para eliminar el riesgo de inventario.
-                  <ul className="list-disc pl-5 mt-2 space-y-1">
-                    <li>**El Problema:** Las PyMEs "adivinan" qué importar o fabricar, basándose en datos de mercado deficientes.</li>
-                    <li>**La Solución:** Tu red de L2 y L3 ahora usa el botón "¿No encuentras lo que buscas?". Tu dashboard te muestra un informe agregado: "75 clientes de 40 revendedores distintos pidieron el 'Tornillo X' este mes".</li>
-                    <li>**Beneficio:** Tomas decisiones de inventario basadas en **demanda real** de tu propia red, no en suposiciones.</li>
-                  </ul>
-                </AccordionContent>
-              </AccordionItem>
-            </Accordion>
-          </CardContent>
-        </Card>
-        
-        {/* --- Sección 4: Cierre (Por Qué Pagar) --- */}
-        <Card className="shadow-lg overflow-hidden bg-gradient-to-br from-purple-600 to-blue-600 text-white">
-          <CardHeader className="p-8">
-            <div className="flex items-center gap-4">
-              <div className="flex-shrink-0 w-12 h-12 rounded-full bg-white/20 flex items-center justify-center">
-                <DollarSign className="w-6 h-6" />
-              </div>
-              <div>
-                <CardTitle className="text-3xl text-white">¿Por Qué Pagar?</CardTitle>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="p-8 pt-0 text-purple-100 text-lg space-y-4">
-            <p>La versión gratuita es excelente para organizar tus productos. Pero las versiones de pago son las que **multiplican tus ingresos**:</p>
-            <ul className="list-none space-y-3">
-              <li className="flex items-start gap-3">
-                <Badge className="bg-purple-300 text-purple-900 mt-1">Plan Cotizador</Badge>
-                <span>Resuelve la "crisis de velocidad" y gana ventas 24/7.</span>
-              </li>
-              <li className="flex items-start gap-3">
-                <Badge className="bg-purple-300 text-purple-900 mt-1">Plan Ecosistema</Badge>
-                <span>Activa el "Ecosistema de Red" y convierte a tus clientes en tus vendedores.</span>
-              </li>
-              <li className="flex items-start gap-3">
-                <Badge className="bg-purple-300 text-purple-900 mt-1">Plan Inteligencia</Badge>
-                <span>Mide tu ROI con Píxeles y elimina el riesgo de inventario con el "Radar de Mercado".</span>
-              </li>
-            </ul>
-          </CardContent>
-          <CardFooter className="bg-black/10 p-8">
-            <div>
-              <h2 className="text-2xl font-bold text-white mb-4">La pregunta no es si puedes permitirte CatifyPro.</h2>
-              <p className="text-xl text-purple-200 mb-6">
-                La pregunta es: ¿cuánto dinero estás perdiendo *cada día* por responder 42 horas tarde, no poder medir tu marketing y adivinar tu inventario?
+                  <div>
+                    <h3 className="text-lg font-bold text-foreground mb-2">Así funciona el crecimiento:</h3>
+                    <ol className="space-y-3 ml-4">
+                      <li className="flex items-start gap-3">
+                        <span className="text-[#FF9B50] font-bold text-lg flex-shrink-0">1.</span>
+                        <span className="text-muted-foreground leading-relaxed">Tú vendes a tu Cliente B (distribuidor, mayorista, revendedor)</span>
+                      </li>
+                      <li className="flex items-start gap-3">
+                        <span className="text-[#FF9B50] font-bold text-lg flex-shrink-0">2.</span>
+                        <span className="text-muted-foreground leading-relaxed">Cliente B activa su catálogo replicado en un clic</span>
+                      </li>
+                      <li className="flex items-start gap-3">
+                        <span className="text-[#FF9B50] font-bold text-lg flex-shrink-0">3.</span>
+                        <span className="text-muted-foreground leading-relaxed">Cliente B vende a sus Clientes C (tiendas, usuarios finales) usando su catálogo digital</span>
+                      </li>
+                      <li className="flex items-start gap-3">
+                        <span className="text-[#FF9B50] font-bold text-lg flex-shrink-0">4.</span>
+                        <span className="text-muted-foreground leading-relaxed">Cuando Cliente C pide un producto "bajo pedido", el pedido llega directamente a ti</span>
+                      </li>
+                      <li className="flex items-start gap-3">
+                        <span className="text-[#FF9B50] font-bold text-lg flex-shrink-0">5.</span>
+                        <span className="text-muted-foreground leading-relaxed">Tú produces/envías y ganas, sin haber invertido nada extra</span>
+                      </li>
+                    </ol>
+                  </div>
+
+                  <div className="bg-[#FF9B50]/5 rounded-lg p-6 border border-[#FF9B50]/20">
+                    <h3 className="text-lg font-bold text-foreground mb-2">Lo mejor:</h3>
+                    <p className="text-muted-foreground leading-relaxed">
+                      Tu cliente no puede ver quién es tu proveedor. El catálogo es completamente anónimo, protegiendo tu cadena de suministro.
+                    </p>
+                  </div>
+
+                  <div className="bg-[#0070F3]/5 rounded-lg p-6 border border-[#0070F3]/20">
+                    <h3 className="text-lg font-bold text-foreground mb-3">Resultado real:</h3>
+                    <ul className="space-y-2">
+                      <li className="flex items-start gap-2">
+                        <span className="text-[#0070F3] font-bold">•</span>
+                        <span className="text-muted-foreground">Escalas ventas sin aumentar tu equipo</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-[#0070F3] font-bold">•</span>
+                        <span className="text-muted-foreground">Tus clientes trabajan para ti de forma natural</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-[#0070F3] font-bold">•</span>
+                        <span className="text-muted-foreground">Capturas demanda de clientes que nunca habrías alcanzado</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-[#0070F3] font-bold">•</span>
+                        <span className="text-muted-foreground">Cero inversión adicional en marketing o vendedores</span>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+
+                {/* Diagrama visual */}
+                <div className="flex items-center justify-center gap-4 py-6 flex-wrap">
+                  <div className="text-center">
+                    <div className="w-20 h-20 rounded-full bg-[#0070F3] flex items-center justify-center mx-auto mb-2">
+                      <Users className="w-10 h-10 text-white" />
+                    </div>
+                    <p className="text-sm font-semibold text-foreground">Usuario A</p>
+                    <p className="text-xs text-muted-foreground">(Fabricante)</p>
+                  </div>
+                  <div className="text-[#FF9B50] text-3xl">→</div>
+                  <div className="text-center">
+                    <div className="w-20 h-20 rounded-full bg-[#FF9B50] flex items-center justify-center mx-auto mb-2">
+                      <Users className="w-10 h-10 text-white" />
+                    </div>
+                    <p className="text-sm font-semibold text-foreground">Cliente B</p>
+                    <p className="text-xs text-muted-foreground">(Distribuidor)</p>
+                  </div>
+                  <div className="text-[#FF9B50] text-3xl">→</div>
+                  <div className="text-center">
+                    <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#0070F3] to-[#FF9B50] flex items-center justify-center mx-auto mb-2">
+                      <Users className="w-10 h-10 text-white" />
+                    </div>
+                    <p className="text-sm font-semibold text-foreground">Cliente C</p>
+                    <p className="text-xs text-muted-foreground">(Usuario final)</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* SECCIÓN 4 — Ventaja 3: Inteligencia de Mercado */}
+      <section className="bg-muted/30 py-16 md:py-24">
+        <div className="container mx-auto px-4 max-w-5xl">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+          >
+            <Card className="overflow-hidden border-none shadow-lg">
+              <CardHeader className="bg-gradient-to-br from-[#0070F3]/10 to-[#FF9B50]/5 p-8">
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#0070F3] to-[#FF9B50] flex items-center justify-center flex-shrink-0">
+                    <BarChart3 className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-3xl md:text-4xl mb-3">
+                      3. Toma Decisiones con Datos Reales: Deja de Adivinar qué Comprar
+                    </CardTitle>
+                    <p className="text-xl font-semibold text-[#0070F3]">
+                      Descubre qué están pidiendo tus clientes y los clientes de tus clientes antes de invertir en inventario.
+                    </p>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="p-8 space-y-6">
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="text-lg font-bold text-foreground mb-2">El problema del mercado latino:</h3>
+                    <p className="text-muted-foreground leading-relaxed">
+                      Los datos de mercado son costosos, desactualizados o simplemente no existen. Decides qué importar o producir basándote en intuición, y a veces pierdes miles en inventario que no se mueve.
+                    </p>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-bold text-foreground mb-2">La solución: Radar de Mercado integrado</h3>
+                    <p className="text-muted-foreground leading-relaxed mb-3">
+                      CatifyPro incluye un sistema de señales de demanda en tiempo real:
+                    </p>
+                    <ul className="space-y-2 ml-4">
+                      <li className="flex items-start gap-2">
+                        <span className="text-[#0070F3] font-bold">•</span>
+                        <span className="text-muted-foreground">Tus clientes pueden reportar productos que buscan y no encuentran en tu catálogo</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-[#0070F3] font-bold">•</span>
+                        <span className="text-muted-foreground">Los clientes de tus clientes (en catálogos replicados) también pueden pedir productos específicos</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-[#0070F3] font-bold">•</span>
+                        <span className="text-muted-foreground">Tú ves un dashboard con las solicitudes más frecuentes de toda tu red</span>
+                      </li>
+                    </ul>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-bold text-foreground mb-2">Cómo lo usas:</h3>
+                    <ol className="space-y-3 ml-4">
+                      <li className="flex items-start gap-3">
+                        <span className="text-[#FF9B50] font-bold text-lg flex-shrink-0">1.</span>
+                        <span className="text-muted-foreground leading-relaxed">Ves que 15 clientes están pidiendo "Cables USB-C de 3 metros"</span>
+                      </li>
+                      <li className="flex items-start gap-3">
+                        <span className="text-[#FF9B50] font-bold text-lg flex-shrink-0">2.</span>
+                        <span className="text-muted-foreground leading-relaxed">Decides importar ese producto con seguridad de que tiene demanda real</span>
+                      </li>
+                      <li className="flex items-start gap-3">
+                        <span className="text-[#FF9B50] font-bold text-lg flex-shrink-0">3.</span>
+                        <span className="text-muted-foreground leading-relaxed">Lo agregas a tu catálogo</span>
+                      </li>
+                      <li className="flex items-start gap-3">
+                        <span className="text-[#FF9B50] font-bold text-lg flex-shrink-0">4.</span>
+                        <span className="text-muted-foreground leading-relaxed">Automáticamente aparece en todos los catálogos replicados como "bajo pedido"</span>
+                      </li>
+                      <li className="flex items-start gap-3">
+                        <span className="text-[#FF9B50] font-bold text-lg flex-shrink-0">5.</span>
+                        <span className="text-muted-foreground leading-relaxed">Vendes con riesgo cero porque ya sabías que se iba a vender</span>
+                      </li>
+                    </ol>
+                  </div>
+
+                  <div className="bg-[#FF9B50]/5 rounded-lg p-6 border border-[#FF9B50]/20">
+                    <h3 className="text-lg font-bold text-foreground mb-2">Además, CatifyPro integra píxeles de seguimiento (Meta, Google):</h3>
+                    <p className="text-muted-foreground leading-relaxed mb-3">
+                      Directamente en tu catálogo digital. Así puedes:
+                    </p>
+                    <ul className="space-y-2 ml-4">
+                      <li className="flex items-start gap-2">
+                        <span className="text-[#FF9B50] font-bold">•</span>
+                        <span className="text-muted-foreground">Conectar tu inversión publicitaria con ventas reales</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-[#FF9B50] font-bold">•</span>
+                        <span className="text-muted-foreground">Ver qué campaña generó cada cotización</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-[#FF9B50] font-bold">•</span>
+                        <span className="text-muted-foreground">Recuperar clientes que vieron tu catálogo pero no cotizaron (remarketing automático)</span>
+                      </li>
+                    </ul>
+                  </div>
+
+                  <div className="bg-[#0070F3]/5 rounded-lg p-6 border border-[#0070F3]/20">
+                    <h3 className="text-lg font-bold text-foreground mb-3">Resultado real:</h3>
+                    <ul className="space-y-2">
+                      <li className="flex items-start gap-2">
+                        <span className="text-[#0070F3] font-bold">•</span>
+                        <span className="text-muted-foreground">Reduces inventario ocioso hasta 40%</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-[#0070F3] font-bold">•</span>
+                        <span className="text-muted-foreground">Inviertes solo en productos con demanda comprobada</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-[#0070F3] font-bold">•</span>
+                        <span className="text-muted-foreground">Justificas cada peso gastado en publicidad con ROI medible</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-[#0070F3] font-bold">•</span>
+                        <span className="text-muted-foreground">Aumentas rotación de inventario y flujo de efectivo</span>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* SECCIÓN 5 — Beneficio Emocional y Visión */}
+      <section className="py-16 md:py-24">
+        <div className="container mx-auto px-4 max-w-5xl">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="text-center space-y-8"
+          >
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-foreground">
+              Más que una Suscripción: Es una Estrategia de Crecimiento
+            </h2>
+            
+            <div className="bg-gradient-to-br from-[#0070F3]/5 to-[#FF9B50]/5 rounded-lg p-8 md:p-12 text-left space-y-6 max-w-4xl mx-auto">
+              <p className="text-xl font-semibold text-foreground">
+                CatifyPro no reemplaza a tu equipo, lo potencia.
               </p>
+              
+              <div className="space-y-3">
+                <p className="text-lg text-muted-foreground leading-relaxed">
+                  Mientras tú gestionas el negocio estratégico:
+                </p>
+                <ul className="space-y-2 ml-4">
+                  <li className="flex items-start gap-2">
+                    <span className="text-[#0070F3] font-bold">•</span>
+                    <span className="text-muted-foreground">Tu catálogo trabaja por ti 24/7 generando cotizaciones automáticas</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-[#0070F3] font-bold">•</span>
+                    <span className="text-muted-foreground">Tus clientes venden por ti multiplicando tu alcance sin costo</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-[#0070F3] font-bold">•</span>
+                    <span className="text-muted-foreground">Tus decisiones se basan en datos reales de demanda, no en suposiciones</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-[#0070F3] font-bold">•</span>
+                    <span className="text-muted-foreground">Tu inversión en marketing es medible y justificable</span>
+                  </li>
+                </ul>
+              </div>
+
+              <p className="text-lg font-semibold text-foreground">
+                Esto es cómo las PyMEs en LATAM están compitiendo contra empresas más grandes: con velocidad, inteligencia y redes que crecen solas.
+              </p>
+
+              <p className="text-lg text-muted-foreground">
+                No necesitas estructuras complejas ni presupuestos millonarios. Solo necesitas dejar que tu negocio opere de forma inteligente.
+              </p>
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* SECCIÓN 6 — Planes y CTA Final */}
+      <section className="bg-gradient-to-br from-[#0070F3] to-[#FF9B50] py-16 md:py-24">
+        <div className="container mx-auto px-4 max-w-4xl">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="text-center space-y-8 text-white"
+          >
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold">
+              Elige tu Plan y Empieza a Multiplicar Ventas Hoy
+            </h2>
+            
+            <p className="text-xl md:text-2xl leading-relaxed max-w-3xl mx-auto">
+              Prueba gratis durante 14 días y empieza a automatizar tus ventas desde el primer día. Sin tarjeta de crédito. Cancela cuando quieras. Sin compromisos.
+            </p>
+
+            <div className="pt-4">
               <Button 
-                size="lg" 
-                variant="secondary" 
-                className="bg-white text-purple-700 hover:bg-gray-100 text-base font-bold px-8 py-6"
-                onClick={() => navigate("/checkout")} // O '/pricing'
+                size="lg"
+                onClick={() => navigate("/login")}
+                className="bg-white text-[#0070F3] hover:bg-white/90 text-lg font-bold px-12 py-7 h-auto rounded-lg shadow-xl"
               >
-                Ver Planes y Precios
+                Comienza Gratis Ahora
               </Button>
             </div>
-          </CardFooter>
-        </Card>
 
-      </div>
+            <p className="text-lg pt-4 opacity-90">
+              Más de 500+ empresas ya están vendiendo más rápido con CatifyPro
+            </p>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* FOOTER */}
+      <footer className="bg-[#1E1E1E] text-white py-12">
+        <div className="container mx-auto px-4 max-w-6xl">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+            {/* Producto */}
+            <div>
+              <h3 className="font-bold text-lg mb-4">Producto</h3>
+              <ul className="space-y-2">
+                <li>
+                  <button onClick={() => navigate("/")} className="text-gray-400 hover:text-white transition-colors">
+                    Funcionalidades
+                  </button>
+                </li>
+                <li>
+                  <button onClick={() => navigate("/")} className="text-gray-400 hover:text-white transition-colors">
+                    Precios
+                  </button>
+                </li>
+                <li>
+                  <button onClick={() => navigate("/why-subscribe")} className="text-gray-400 hover:text-white transition-colors">
+                    4 Pilares
+                  </button>
+                </li>
+              </ul>
+            </div>
+
+            {/* Empresa */}
+            <div>
+              <h3 className="font-bold text-lg mb-4">Empresa</h3>
+              <ul className="space-y-2">
+                <li>
+                  <button onClick={() => navigate("/")} className="text-gray-400 hover:text-white transition-colors">
+                    Nosotros
+                  </button>
+                </li>
+                <li>
+                  <button onClick={() => navigate("/")} className="text-gray-400 hover:text-white transition-colors">
+                    Casos de Éxito
+                  </button>
+                </li>
+                <li>
+                  <button onClick={() => navigate("/blog")} className="text-gray-400 hover:text-white transition-colors">
+                    Blog
+                  </button>
+                </li>
+                <li>
+                  <button className="text-gray-400 hover:text-white transition-colors">
+                    Soporte
+                  </button>
+                </li>
+              </ul>
+            </div>
+
+            {/* Contacto */}
+            <div>
+              <h3 className="font-bold text-lg mb-4">Contacto</h3>
+              <ul className="space-y-2">
+                <li className="flex items-center gap-2 text-gray-400">
+                  <Mail className="w-4 h-4" />
+                  <span>contacto@catifypro.com</span>
+                </li>
+                <li className="flex items-center gap-2 text-gray-400">
+                  <Phone className="w-4 h-4" />
+                  <span>WhatsApp</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="border-t border-gray-700 pt-8 text-center text-gray-400">
+            <p>© 2024 CatifyPro. Todos los derechos reservados. Hecho con ❤️ en México.</p>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
