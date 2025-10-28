@@ -26,20 +26,20 @@ export default {
 				background: 'hsl(var(--background))',
 				foreground: 'hsl(var(--foreground))',
 				primary: {
-					DEFAULT: '#2563EB', // Azul Confianza
+					DEFAULT: '#0070F3', // Azul eléctrico CatifyPro
 					foreground: '#FFFFFF'
 				},
 				secondary: {
-					DEFAULT: '#059669', // Verde Éxito  
+					DEFAULT: '#FF9B50', // Naranja suave CatifyPro
 					foreground: '#FFFFFF'
 				},
 				accent: {
-					DEFAULT: '#EA580C', // Naranja Energía
+					DEFAULT: '#FF9B50', // Naranja CatifyPro
 					foreground: '#FFFFFF'
 				},
 				neutral: {
-					DEFAULT: '#374151', // Gris Elegante
-					light: '#F9FAFB', // Gris Claro
+					DEFAULT: '#1E1E1E', // Gris oscuro CatifyPro
+					light: '#F8F9FA', // Fondo CatifyPro
 					foreground: '#FFFFFF'
 				},
 				destructive: {
