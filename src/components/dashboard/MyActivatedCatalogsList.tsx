@@ -79,7 +79,7 @@ const fetchActivatedCatalogs = async () => {
         // Obtener datos del distribuidor (proveedor)
         const { data: distributor } = await supabase
           .from('users')
-          .select('id, full_name, business_name, company_name')
+          .select('id, full_name, business_name')
           .eq('id', catalog.distributor_id)
           .single();
 
@@ -88,7 +88,6 @@ const fetchActivatedCatalogs = async () => {
           activated_at: catalog.activated_at,
           original_catalog_name: originalCatalog?.name || 'Catálogo Desconocido',
           distributor_name: 
-            distributor?.company_name || 
             distributor?.business_name || 
             distributor?.full_name || 
             'Proveedor Desconocido',
