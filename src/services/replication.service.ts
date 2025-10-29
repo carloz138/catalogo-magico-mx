@@ -352,6 +352,7 @@ export class ReplicationService {
           id,
           original_catalog_id,
           quote_id,
+          activation_token,
           digital_catalogs!replicated_catalogs_original_catalog_id_fkey (
             name,
             slug
@@ -418,10 +419,10 @@ export class ReplicationService {
       return {
         catalog: {
           id: replicatedCatalog.id,
-          slug: originalCatalog.slug, // Por ahora usa el slug original
+          slug: originalCatalog.slug,
           name: originalCatalog.name,
           product_count: productCount || 0,
-          public_url: `${window.location.origin}/c/${originalCatalog.slug}`,
+          public_url: `${window.location.origin}/c/${replicatedCatalog.activation_token}`,
         },
         original_quote: originalQuote,
         received_quotes: receivedQuotes,
