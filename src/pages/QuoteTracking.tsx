@@ -278,7 +278,7 @@ export default function QuoteTracking() {
                   {quote.business_info.phone && (
                     <div>
                       <p className="text-sm text-gray-500">Teléfono</p>
-                      
+                      <a
                         href={`tel:${quote.business_info.phone}`}
                         className="font-semibold text-blue-600 hover:underline"
                       >
@@ -290,7 +290,7 @@ export default function QuoteTracking() {
                   {quote.business_info.email && (
                     <div>
                       <p className="text-sm text-gray-500">Email</p>
-                      
+                      <a
                         href={`mailto:${quote.business_info.email}`}
                         className="font-semibold text-blue-600 hover:underline"
                       >

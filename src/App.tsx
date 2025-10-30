@@ -24,6 +24,7 @@ import Blog from "@/pages/Blog";
 import BlogPost from "@/pages/BlogPost";
 import NotFound from "@/pages/NotFound";
 import WhySubscribePage from "@/pages/WhySubscribePage";
+import QuoteTracking from "@/pages/QuoteTracking";
 
 // Protected (Dashboard) Pages
 import MainDashboard from "@/pages/MainDashboard";
@@ -71,6 +72,7 @@ const App = () => (
             <Route path="/activar/:token" element={<ActivateCatalog />} />
             <Route path="/blog" element={<Blog />} />
             <Route path="/blog/:slug" element={<BlogPost />} />
+            <Route path="/tracking/:token" element={<QuoteTracking />} />
             {/* --- Rutas Protegidas Agrupadas --- */}
             <Route element={<ProtectedRoute />}>
               <Route path="/dashboard" element={<MainDashboard />} />
