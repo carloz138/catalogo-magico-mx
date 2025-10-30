@@ -46,6 +46,7 @@ import QuotesPage from "@/pages/quotes/index";
 import QuoteDetailPage from "@/pages/quotes/QuoteDetail";
 import DistributionNetwork from "@/pages/DistributionNetwork";
 import ResellerDashboard from "@/pages/ResellerDashboard";
+import ProductPriceEditor from "@/pages/reseller/ProductPriceEditor";
 
 const queryClient = new QueryClient();
 
@@ -88,6 +89,7 @@ const App = () => (
               <Route path="/quotes/:id" element={<QuoteDetailPage />} />
               <Route path="/network" element={<DistributionNetwork />} />
               <Route path="/dashboard/reseller" element={<ResellerDashboard />} />
+              <Route path="/reseller/edit-prices" element={<ProductPriceEditor />} />
               <Route path="/complete-activation" element={<CompleteActivation />} />
               <Route path="/business-info" element={<BusinessInfoPage />} />
               <Route path="/onboarding" element={<OnboardingPage />} />

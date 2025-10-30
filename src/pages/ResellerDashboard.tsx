@@ -18,6 +18,7 @@ import {
   CheckCircle,
   Package,
   Clock,
+  DollarSign,
 } from "lucide-react";
 import type { ResellerDashboardData } from "@/types/digital-catalog";
 
@@ -171,14 +172,26 @@ export default function ResellerDashboard() {
                   </Button>
                 </div>
               </div>
-              <Button
-                onClick={() => window.open(data.catalog.public_url, "_blank")}
-                variant="outline"
-                className="w-full"
-              >
-                <ExternalLink className="w-4 h-4 mr-2" />
-                Ver catálogo
-              </Button>
+              
+              {/* Botones de Acción */}
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  onClick={() => window.open(data.catalog.public_url, "_blank")}
+                  variant="outline"
+                  className="w-full"
+                >
+                  <ExternalLink className="w-4 h-4 mr-2" />
+                  Ver catálogo
+                </Button>
+                
+                <Button
+                  onClick={() => navigate(`/reseller/edit-prices?catalog_id=${catalogId}`)}
+                  className="w-full bg-purple-600 hover:bg-purple-700"
+                >
+                  <DollarSign className="w-4 h-4 mr-2" />
+                  Editar Precios
+                </Button>
+              </div>
             </CardContent>
           </Card>
 
