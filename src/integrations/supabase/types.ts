@@ -1093,6 +1093,41 @@ export type Database = {
           },
         ];
       };
+      quote_tracking_tokens: {
+        Row: {
+          created_at: string | null;
+          expires_at: string | null;
+          id: string;
+          last_accessed_at: string | null;
+          quote_id: string;
+          token: string;
+        };
+        Insert: {
+          created_at?: string | null;
+          expires_at?: string | null;
+          id?: string;
+          last_accessed_at?: string | null;
+          quote_id: string;
+          token: string;
+        };
+        Update: {
+          created_at?: string | null;
+          expires_at?: string | null;
+          id?: string;
+          last_accessed_at?: string | null;
+          quote_id?: string;
+          token?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "quote_tracking_tokens_quote_id_fkey";
+            columns: ["quote_id"];
+            isOneToOne: false;
+            referencedRelation: "quotes";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       quotes: {
         Row: {
           catalog_id: string | null;
@@ -1104,6 +1139,7 @@ export type Database = {
           delivery_method: Database["public"]["Enums"]["delivery_method_enum"] | null;
           id: string;
           notes: string | null;
+          order_number: string | null;
           shipping_address: string | null;
           shipping_cost: number | null;
           status: string | null;
@@ -1121,6 +1157,7 @@ export type Database = {
           delivery_method?: Database["public"]["Enums"]["delivery_method_enum"] | null;
           id?: string;
           notes?: string | null;
+          order_number?: string | null;
           shipping_address?: string | null;
           shipping_cost?: number | null;
           status?: string | null;
@@ -1138,6 +1175,7 @@ export type Database = {
           delivery_method?: Database["public"]["Enums"]["delivery_method_enum"] | null;
           id?: string;
           notes?: string | null;
+          order_number?: string | null;
           shipping_address?: string | null;
           shipping_cost?: number | null;
           status?: string | null;
@@ -2194,6 +2232,7 @@ export type Database = {
       };
       generate_activation_token: { Args: never; Returns: string };
       generate_catalog_slug: { Args: never; Returns: string };
+      generate_order_number: { Args: never; Returns: string };
       get_catalog_by_token: {
         Args: { p_token: string };
         Returns: {
