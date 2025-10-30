@@ -6,14 +6,14 @@ export interface TrackingQuoteData {
   status: "pending" | "accepted" | "rejected" | "shipped";
   created_at: string;
   updated_at: string;
-  
+
   // Datos del cliente
   customer_name: string;
   customer_email: string;
   customer_phone: string | null;
   customer_company: string | null;
   notes: string | null;
-  
+
   // Items
   items: Array<{
     id: string;
@@ -25,16 +25,16 @@ export interface TrackingQuoteData {
     subtotal: number;
     price_type: string;
   }>;
-  
+
   // Total
   total: number;
-  
+
   // Catálogo info
   catalog: {
     name: string;
     slug: string | null;
   } | null;
-  
+
   // Business info (del vendedor)
   business_info: {
     business_name: string;
@@ -79,7 +79,8 @@ export class QuoteTrackingService {
     // 3. Obtener cotización completa
     const { data: quote, error: quoteError } = await supabase
       .from("quotes")
-      .select(`
+      .select(
+        `
         id,
         order_number,
         status,
@@ -102,7 +103,8 @@ export class QuoteTrackingService {
           subtotal,
           price_type
         )
-      `)
+      `,
+      )
       .eq("id", trackingToken.quote_id)
       .single();
 
@@ -119,7 +121,7 @@ export class QuoteTrackingService {
         .select("name, slug")
         .eq("id", quote.catalog_id)
         .single();
-      
+
       catalog = catalogData;
     }
 
@@ -131,7 +133,7 @@ export class QuoteTrackingService {
         .select("business_name, phone, email, logo_url")
         .eq("user_id", quote.user_id)
         .single();
-      
+
       business_info = businessData;
     }
 
@@ -142,7 +144,7 @@ export class QuoteTrackingService {
     return {
       id: quote.id,
       order_number: quote.order_number,
-      status: quote.status,
+      status: quote.status as "pending" | "accepted" | "rejected" | "shipped",
       created_at: quote.created_at,
       updated_at: quote.updated_at,
       customer_name: quote.customer_name,
@@ -162,7 +164,7 @@ export class QuoteTrackingService {
    */
   static async searchByOrderNumber(orderNumber: string): Promise<string | null> {
     // Limpiar el input (remover espacios, guiones extras, convertir a mayúsculas)
-    const cleanOrderNumber = orderNumber.trim().toUpperCase().replace(/\s+/g, '');
+    const cleanOrderNumber = orderNumber.trim().toUpperCase().replace(/\s+/g, "");
 
     // Buscar la cotización
     const { data: quote } = await supabase
