@@ -22,7 +22,6 @@ declare global {
   }
 }
 
-// Esquema de validación
 const schema = z
   .object({
     name: z.string().min(2, "El nombre completo es requerido."),
@@ -50,9 +49,10 @@ const schema = z
 
 type FormData = z.infer<typeof schema>;
 
-interface Props {
+// ✅ INTERFACE EXPLÍCITA Y EXPORTADA
+export interface QuoteFormProps {
   catalogId: string;
-  replicatedCatalogId?: string; // ✅ NUEVO
+  replicatedCatalogId?: string | undefined;
   items: any[];
   totalAmount: number;
   isOpen: boolean;
@@ -61,16 +61,10 @@ interface Props {
   businessAddress: string | null;
 }
 
-export function QuoteForm({
-  catalogId,
-  replicatedCatalogId, // ✅ NUEVO
-  items,
-  totalAmount,
-  isOpen,
-  onClose,
-  onSuccess,
-  businessAddress,
-}: Props) {
+export function QuoteForm(props: QuoteFormProps) {
+  // Destructuring dentro del componente
+  const { catalogId, replicatedCatalogId, items, totalAmount, isOpen, onClose, onSuccess, businessAddress } = props;
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
@@ -93,7 +87,6 @@ export function QuoteForm({
     setIsSubmitting(true);
 
     try {
-      // ✅ NUEVO: Log para debug
       console.log("📤 Enviando cotización con:", {
         catalog_id: catalogId,
         replicated_catalog_id: replicatedCatalogId,
@@ -102,7 +95,7 @@ export function QuoteForm({
 
       await (QuoteService.createQuote as any)({
         catalog_id: catalogId,
-        replicated_catalog_id: replicatedCatalogId, // ✅ NUEVO
+        replicated_catalog_id: replicatedCatalogId,
         customer_name: data.name,
         customer_email: data.email,
         customer_company: data.company,
@@ -126,10 +119,8 @@ export function QuoteForm({
       setSubmitted(true);
       toast.success("Cotización enviada correctamente");
 
-      // Disparar eventos de conversión
       console.log("Disparando eventos de conversión...");
 
-      // Google Tag Manager (GTM)
       try {
         if (window.dataLayer) {
           window.dataLayer.push({
@@ -144,7 +135,6 @@ export function QuoteForm({
         console.error("Error al disparar evento GTM:", e);
       }
 
-      // Meta Pixel (Facebook/Instagram)
       try {
         if (typeof window.fbq === "function") {
           window.fbq("track", "Lead", {
