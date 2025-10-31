@@ -25,8 +25,10 @@ import {
   CheckCircle,
   AlertCircle,
   Info,
+  Percent,
 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { BulkPriceMarginModal } from "@/components/reseller/BulkPriceMarginModal";
 
 export default function ProductPriceEditor() {
   const { user } = useAuth();
@@ -39,6 +41,7 @@ export default function ProductPriceEditor() {
   const [saving, setSaving] = useState(false);
   const [products, setProducts] = useState<ProductWithCustomPrice[]>([]);
   const [changes, setChanges] = useState<Map<string, any>>(new Map());
+  const [showMarginModal, setShowMarginModal] = useState(false);
 
   useEffect(() => {
     if (!user || !catalogId) {
@@ -126,6 +129,48 @@ export default function ProductPriceEditor() {
     }
   };
 
+  const handleApplyMargin = (margin: number, applyTo: "all" | "in_stock" | "out_of_stock") => {
+    const newChanges = new Map(changes);
+    
+    products.forEach((product) => {
+      // Determinar si este producto debe ser afectado
+      let shouldApply = false;
+      
+      switch (applyTo) {
+        case "all":
+          shouldApply = true;
+          break;
+        case "in_stock":
+          shouldApply = getDisplayStock(product.id, product.is_in_stock);
+          break;
+        case "out_of_stock":
+          shouldApply = !getDisplayStock(product.id, product.is_in_stock);
+          break;
+      }
+      
+      if (!shouldApply) return;
+      
+      // Calcular nuevos precios basados en los precios ORIGINALES
+      const newRetailPrice = Math.round(product.original_price_retail * (1 + margin / 100));
+      const newWholesalePrice = Math.round(product.original_price_wholesale * (1 + margin / 100));
+      
+      // Agregar o actualizar cambios
+      const existing = newChanges.get(product.id) || {};
+      newChanges.set(product.id, {
+        ...existing,
+        custom_price_retail: newRetailPrice,
+        custom_price_wholesale: newWholesalePrice,
+      });
+    });
+    
+    setChanges(newChanges);
+    
+    toast({
+      title: "✅ Margen aplicado",
+      description: `Se actualizaron ${newChanges.size} productos con ${margin}% de margen`,
+    });
+  };
+
   const getDisplayPrice = (productId: string, field: string, originalValue: number) => {
     const change = changes.get(productId)?.[field];
     return change !== undefined ? change : originalValue;
@@ -175,20 +220,30 @@ export default function ProductPriceEditor() {
               </p>
             </div>
           </div>
-          <Button
-            onClick={handleSave}
-            disabled={changes.size === 0 || saving}
-            className="bg-green-600 hover:bg-green-700"
-          >
-            {saving ? (
-              <>Guardando...</>
-            ) : (
-              <>
-                <Save className="w-4 h-4 mr-2" />
-                Guardar Cambios ({changes.size})
-              </>
-            )}
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              onClick={() => setShowMarginModal(true)}
+              variant="outline"
+              className="border-purple-600 text-purple-600 hover:bg-purple-50"
+            >
+              <Percent className="w-4 h-4 mr-2" />
+              Margen Global
+            </Button>
+            <Button
+              onClick={handleSave}
+              disabled={changes.size === 0 || saving}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              {saving ? (
+                <>Guardando...</>
+              ) : (
+                <>
+                  <Save className="w-4 h-4 mr-2" />
+                  Guardar Cambios ({changes.size})
+                </>
+              )}
+            </Button>
+          </div>
         </div>
 
         {/* Info Alerts */}
@@ -358,6 +413,16 @@ export default function ProductPriceEditor() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Modal de Margen Global */}
+        <BulkPriceMarginModal
+          open={showMarginModal}
+          onClose={() => setShowMarginModal(false)}
+          onApply={handleApplyMargin}
+          totalProducts={products.length}
+          inStockCount={inStockCount}
+          outOfStockCount={outOfStockCount}
+        />
       </div>
     </div>
   );
