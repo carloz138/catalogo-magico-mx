@@ -21,7 +21,6 @@ export class DigitalCatalogService {
       throw new Error("No se pudo verificar límite de catálogos");
     }
 
-    // Tu función RPC retorna un RECORD, mapeamos los campos correctamente
     const limitData = Array.isArray(data) ? data[0] : data;
 
     return {
@@ -216,6 +215,7 @@ export class DigitalCatalogService {
 
     let isReplicated = false;
     let purchasedProductIds: string[] = [];
+    let replicatedCatalogId: string | null = null; // ✅ NUEVO
     let finalCatalog: any = catalog;
     let originalCatalogId: string = catalog?.id || "";
 
@@ -233,6 +233,7 @@ export class DigitalCatalogService {
       }
 
       isReplicated = true;
+      replicatedCatalogId = replicatedCatalog.id; // ✅ NUEVO: Guardar ID de réplica
       originalCatalogId = replicatedCatalog.original_catalog_id;
 
       // Paso 3: Obtener el catálogo original
@@ -250,28 +251,28 @@ export class DigitalCatalogService {
 
       // Paso 4: Obtener los product_ids de la cotización asociada
       if (replicatedCatalog.quote_id) {
-        console.log('🔍 Buscando quote_items para quote_id:', replicatedCatalog.quote_id);
-        
+        console.log("🔍 Buscando quote_items para quote_id:", replicatedCatalog.quote_id);
+
         const { data: quoteItems, error: quoteItemsError } = await supabase
           .from("quote_items")
           .select("product_id")
           .eq("quote_id", replicatedCatalog.quote_id);
 
-        console.log('📦 Quote items encontrados:', quoteItems);
-        console.log('❌ Error en quote_items:', quoteItemsError);
+        console.log("📦 Quote items encontrados:", quoteItems);
+        console.log("❌ Error en quote_items:", quoteItemsError);
 
         if (quoteItemsError) {
-          console.error('Error obteniendo quote items:', quoteItemsError);
+          console.error("Error obteniendo quote items:", quoteItemsError);
         }
 
         if (quoteItems && quoteItems.length > 0) {
           purchasedProductIds = quoteItems
             .map((item: any) => item.product_id)
-            .filter(id => id !== null && id !== undefined);
-          
-          console.log('✅ purchasedProductIds final:', purchasedProductIds);
+            .filter((id) => id !== null && id !== undefined);
+
+          console.log("✅ purchasedProductIds final:", purchasedProductIds);
         } else {
-          console.warn('⚠️ No se encontraron quote_items para esta cotización');
+          console.warn("⚠️ No se encontraron quote_items para esta cotización");
         }
       }
     }
@@ -331,6 +332,7 @@ export class DigitalCatalogService {
       },
       purchasedProductIds,
       isReplicated,
+      replicatedCatalogId, // ✅ NUEVO: Retornar ID de réplica
     } as unknown as PublicCatalogView;
   }
 
