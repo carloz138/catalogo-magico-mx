@@ -1,9 +1,9 @@
 // Tipos para el sistema de catálogos digitales
 
 export type PriceDisplay = "menudeo_only" | "mayoreo_only" | "both";
-export type QuoteStatus = "pending" | "accepted" | "rejected" | "shipped"; // <--- 'shipped' YA ESTÁ AQUÍ (¡Bien!)
+export type QuoteStatus = "pending" | "accepted" | "rejected" | "shipped";
 export type PriceType = "menudeo" | "mayoreo";
-export type DeliveryMethod = "pickup" | "shipping"; // <-- TIPO NUEVO PARA CLARIDAD
+export type DeliveryMethod = "pickup" | "shipping";
 
 export interface DigitalCatalog {
   id: string;
@@ -41,11 +41,11 @@ export interface DigitalCatalog {
   enable_quotation: boolean;
   enable_variants: boolean;
   enable_distribution: boolean;
-  
+
   // Tracking
   tracking_head_scripts: string | null;
   tracking_body_scripts: string | null;
-  
+
   created_at: string;
   updated_at: string;
 }
@@ -74,7 +74,6 @@ export interface Quote {
   created_at: string;
   updated_at: string;
 
-  // --- 👇 CAMBIO 1: AÑADIR CAMPOS DE ENVÍO A LA INTERFAZ 'Quote' ---
   delivery_method: DeliveryMethod;
   shipping_address: string | null;
   shipping_cost: number | null;
@@ -164,13 +163,13 @@ export interface UpdateDigitalCatalogDTO {
 
 export interface CreateQuoteDTO {
   catalog_id: string;
+  replicated_catalog_id?: string; // ✅ NUEVO: ID de la réplica (si aplica)
   customer_name: string;
   customer_email: string;
   customer_company?: string;
   customer_phone?: string;
   notes?: string;
 
-  // --- 👇 CAMBIO 2: AÑADIR CAMPOS DE ENVÍO AL DTO 'CreateQuoteDTO' ---
   delivery_method: DeliveryMethod;
   shipping_address: string | null;
 
@@ -205,7 +204,7 @@ export interface PublicCatalogView extends DigitalCatalog {
     price_retail: number;
     price_wholesale: number | null;
     wholesale_min_qty: number | null;
-    image_url: string; // Ya calculado
+    image_url: string;
     tags: string[] | null;
     category: string | null;
     has_variants?: boolean;
@@ -225,13 +224,13 @@ export interface PublicCatalogView extends DigitalCatalog {
     phone: string | null;
     email: string | null;
     website: string | null;
-    address: string | null; // <-- Ya estaba aquí, ¡perfecto!
+    address: string | null;
   };
   enable_variants: boolean;
   purchasedProductIds?: string[];
   isReplicated?: boolean;
+  replicatedCatalogId?: string; // ✅ NUEVO
   resellerInfo?: {
-    // <-- Necesario para el Market Radar en catálogos replicados
     reseller_id: string;
   };
 }
@@ -246,7 +245,7 @@ export interface ReplicatedCatalog {
   quote_id: string | null;
   reseller_id: string | null;
   distributor_id: string;
-  reseller_email: string | null; // <-- Añadido para el flujo de activación
+  reseller_email: string | null;
 
   // Estado
   is_active: boolean;
@@ -330,7 +329,7 @@ export interface NetworkStats {
   active_resellers: number;
   pending_activations: number;
   total_quotes_generated: number;
-  total_revenue: number; // $29 x activaciones
+  total_revenue: number;
   conversion_rate: number;
   top_product: {
     name: string;
