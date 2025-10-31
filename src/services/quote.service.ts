@@ -173,40 +173,31 @@ export class QuoteService {
       .update({ status })
       .eq("id", quoteId)
       .eq("user_id", userId)
-      .select("id, status, customer_email, customer_name") // Seleccionamos solo lo necesario
+      .select()
       .single();
 
     if (error) throw error;
     if (!updatedQuote) throw new Error("No se pudo actualizar la cotización");
 
-    if (updatedQuote) {
+    // Enviar notificación por email (solo cuando se acepta)
+    if (status === "accepted") {
       try {
-        console.log(`Intentando invocar send-quote-notification para quote ${quoteId} con status ${status}`);
-
-        const functionBody = {
-          quoteId: updatedQuote.id,
-          newStatus: status,
-          customerEmail: updatedQuote.customer_email,
-          customerName: updatedQuote.customer_name,
-          activationLink: activationLink || null,
-        };
-
-        console.log("Object being sent to Edge Function body:", JSON.stringify(functionBody));
+        console.log(`📧 Enviando notificación de cotización aceptada: ${quoteId}`);
 
         const { data: functionData, error: functionError } = await supabase.functions.invoke(
           "send-quote-notification",
           {
-            body: functionBody,
+            body: { quoteId }, // Solo enviar el quoteId
           },
         );
 
         if (functionError) {
-          console.error("Error al invocar la función de notificación:", functionError);
+          console.error("❌ Error al invocar la función de notificación:", functionError);
         } else {
-          console.log("Función de notificación invocada con éxito:", functionData);
+          console.log("✅ Notificación enviada exitosamente:", functionData);
         }
       } catch (notificationError) {
-        console.error("Error inesperado al intentar notificar:", notificationError);
+        console.error("❌ Error inesperado al intentar notificar:", notificationError);
       }
     }
 
