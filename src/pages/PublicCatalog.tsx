@@ -85,27 +85,30 @@ function PublicCatalogContent() {
   // Debug: Verificar separación de productos
   useEffect(() => {
     if (!catalog) return;
-    
-    console.log('════════════════════════════════════');
-    console.log('🔍 DEBUG PublicCatalog:');
-    console.log('isReplicated:', catalog.isReplicated);
-    console.log('purchasedProductIds:', catalog.purchasedProductIds);
-    console.log('Total productos:', catalog.products?.length);
-    
+
+    console.log("════════════════════════════════════");
+    console.log("🔍 DEBUG PublicCatalog:");
+    console.log("isReplicated:", catalog.isReplicated);
+    console.log("replicatedCatalogId:", catalog.replicatedCatalogId); // ✅ NUEVO
+    console.log("purchasedProductIds:", catalog.purchasedProductIds);
+    console.log("Total productos:", catalog.products?.length);
+
     if (catalog.isReplicated && catalog.purchasedProductIds) {
-      const purchased = catalog.products?.filter(p => 
-        catalog.purchasedProductIds.includes(p.id)
+      const purchased = catalog.products?.filter((p) => catalog.purchasedProductIds.includes(p.id));
+      const special = catalog.products?.filter((p) => !catalog.purchasedProductIds.includes(p.id));
+
+      console.log("📦 Productos En Stock:", purchased?.length);
+      console.log(
+        "   IDs:",
+        purchased?.map((p) => p.id.substring(0, 8)),
       );
-      const special = catalog.products?.filter(p => 
-        !catalog.purchasedProductIds.includes(p.id)
+      console.log("📝 Productos Pedido Especial:", special?.length);
+      console.log(
+        "   IDs:",
+        special?.map((p) => p.id.substring(0, 8)),
       );
-      
-      console.log('📦 Productos En Stock:', purchased?.length);
-      console.log('   IDs:', purchased?.map(p => p.id.substring(0, 8)));
-      console.log('📝 Productos Pedido Especial:', special?.length);
-      console.log('   IDs:', special?.map(p => p.id.substring(0, 8)));
     }
-    console.log('════════════════════════════════════');
+    console.log("════════════════════════════════════");
   }, [catalog]);
 
   const searchFields = ["name"];
@@ -296,14 +299,10 @@ function PublicCatalogContent() {
       </Helmet>
 
       {/* Inyectar scripts del HEAD */}
-      {catalog.tracking_head_scripts && (
-        <div dangerouslySetInnerHTML={{ __html: catalog.tracking_head_scripts }} />
-      )}
+      {catalog.tracking_head_scripts && <div dangerouslySetInnerHTML={{ __html: catalog.tracking_head_scripts }} />}
 
       {/* Inyectar scripts del BODY */}
-      {catalog.tracking_body_scripts && (
-        <div dangerouslySetInnerHTML={{ __html: catalog.tracking_body_scripts }} />
-      )}
+      {catalog.tracking_body_scripts && <div dangerouslySetInnerHTML={{ __html: catalog.tracking_body_scripts }} />}
 
       <style>{templateCSS}</style>
 
@@ -387,14 +386,16 @@ function PublicCatalogContent() {
         {/* Grupo de Botones Flotantes */}
         <div className="fixed bottom-4 right-4 z-50 flex flex-col items-end gap-3">
           {/* Botón de Cotización */}
-          {catalog.enable_quotation && items.length > 0 && (
-            <QuoteCartBadge onClick={() => setIsCartOpen(true)} />
-          )}
+          {catalog.enable_quotation && items.length > 0 && <QuoteCartBadge onClick={() => setIsCartOpen(true)} />}
 
           {/* Botón de Market Radar */}
           <Dialog open={isRequestFormOpen} onOpenChange={setIsRequestFormOpen}>
             <DialogTrigger asChild>
-              <Button variant="outline" size="lg" className="bg-white/80 backdrop-blur-sm shadow-lg gap-2 hover:bg-white">
+              <Button
+                variant="outline"
+                size="lg"
+                className="bg-white/80 backdrop-blur-sm shadow-lg gap-2 hover:bg-white"
+              >
                 <Search className="h-5 w-5 text-primary" />
                 <span className="hidden sm:inline">¿No encuentras algo?</span>
                 <span className="sm:hidden text-xs font-semibold">Buscar</span>
@@ -439,6 +440,7 @@ function PublicCatalogContent() {
 
             <QuoteForm
               catalogId={catalog.id}
+              replicatedCatalogId={catalog.replicatedCatalogId} // ✅ NUEVO
               items={items}
               totalAmount={totalAmount}
               isOpen={isQuoteFormOpen}
