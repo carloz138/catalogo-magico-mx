@@ -6,8 +6,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MyActivatedCatalogsList } from "@/components/dashboard/MyActivatedCatalogsList";
 import { UpsellBanner } from "@/components/dashboard/UpsellBanner";
+import { ResellerCatalogsSection } from "@/components/dashboard/ResellerCatalogsSection"; // ✅ NUEVO
 import KpiDashboard from "@/components/dashboard/KpiDashboard";
 import { QuotesSent } from "@/components/dashboard/QuotesSent";
 import { QuotesReceived } from "@/components/dashboard/QuotesReceived";
@@ -141,10 +141,13 @@ export default function MainDashboard() {
               {isL2 && (
                 <div>
                   <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-xl font-bold">📦 Catálogos Replicados</h2>
+                    <div>
+                      <h2 className="text-xl font-bold">🤝 Catálogos para Revender</h2>
+                      <p className="text-gray-600 text-sm">Catálogos que puedes distribuir y vender</p>
+                    </div>
                     <Badge variant="outline">Revendedor</Badge>
                   </div>
-                  <MyActivatedCatalogsList />
+                  <ResellerCatalogsSection /> {/* ✅ NUEVO COMPONENTE */}
                 </div>
               )}
 
