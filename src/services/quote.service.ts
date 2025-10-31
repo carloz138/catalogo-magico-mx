@@ -187,7 +187,7 @@ export class QuoteService {
         const { data: functionData, error: functionError } = await supabase.functions.invoke(
           "send-quote-notification",
           {
-            body: { quoteId }, // Solo enviar el quoteId
+            body: { quoteId, newStatus: status },
           },
         );
 
