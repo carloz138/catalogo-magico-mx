@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { UpsellBanner } from "@/components/dashboard/UpsellBanner";
-import { ResellerCatalogsSection } from "@/components/dashboard/ResellerCatalogsSection"; // ✅ NUEVO
+import { ResellerCatalogsSection } from "@/components/reseller/ResellerCatalogsSection";
 import KpiDashboard from "@/components/dashboard/KpiDashboard";
 import { QuotesSent } from "@/components/dashboard/QuotesSent";
 import { QuotesReceived } from "@/components/dashboard/QuotesReceived";
