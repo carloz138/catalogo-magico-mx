@@ -28,10 +28,12 @@ import { es } from "date-fns/locale";
 import { QuoteStatus } from "@/types/digital-catalog";
 import { QuoteService } from "@/services/quote.service";
 import { ReplicationService } from "@/services/replication.service";
+import { QuoteTrackingService } from "@/services/quote-tracking.service";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 import { ShareCatalogModal } from "@/components/replication/ShareCatalogModal";
+import { WhatsAppShareButton } from "@/components/quotes/WhatsAppShareButton";
 
 export default function QuoteDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -42,12 +44,14 @@ export default function QuoteDetailPage() {
   const [actionLoading, setActionLoading] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [activationLink, setActivationLink] = useState("");
+  const [trackingUrl, setTrackingUrl] = useState("");
+  const [showWhatsAppButton, setShowWhatsAppButton] = useState(false);
 
   const handleAcceptQuote = async () => {
     if (!quote || !user?.id) return;
 
     setActionLoading(true);
-    let generatedLink: string | null = null; // Variable para guardar el link.
+    let generatedLink: string | null = null;
 
     try {
       // 1. Crear la réplica y obtener el link SI la distribución está habilitada
@@ -58,11 +62,8 @@ export default function QuoteDetailPage() {
           quote_id: quote.id,
           distributor_id: user.id,
         });
-        // Guarda el link en la constante local 'link'
         const link = await ReplicationService.getActivationLink(replicatedCatalog.id);
-        // 👇 LOG 1: Verifica si el link se generó correctamente 👇
         console.log("Generated activation link in DetailPage:", link);
-        // Asigna el valor de 'link' a la variable 'generatedLink' que está fuera del if
         generatedLink = link;
         setActivationLink(generatedLink);
         setShowShareModal(true);
@@ -70,12 +71,20 @@ export default function QuoteDetailPage() {
         console.log("Distribution not enabled for this catalog.");
       }
 
-      // 2. Actualizar el estado de la cotización, PASANDO el link generado (o null)
-      // 👇 LOG 2: Verifica qué valor se pasa a la siguiente función 👇
+      // 2. Actualizar el estado de la cotización
       console.log("Passing activation link to QuoteService:", generatedLink ?? "undefined/null");
-      await QuoteService.updateQuoteStatus(quote.id, user.id, "accepted", generatedLink ?? undefined); // <-- PASAR EL LINK AQUÍ
+      await QuoteService.updateQuoteStatus(quote.id, user.id, "accepted", generatedLink ?? undefined);
 
-      // 3. Mostrar notificaciones Toast (sin cambios)
+      // 3. Obtener tracking URL
+      try {
+        const trackingLink = await QuoteTrackingService.getTrackingLink(quote.id);
+        setTrackingUrl(trackingLink);
+        setShowWhatsAppButton(true);
+      } catch (error) {
+        console.error("Error getting tracking link:", error);
+      }
+
+      // 4. Mostrar notificaciones Toast
       if (generatedLink) {
         toast({
           title: "✅ Cotización aceptada",
@@ -88,7 +97,7 @@ export default function QuoteDetailPage() {
         });
       }
 
-      refetch(); // Recargar datos de la cotización
+      refetch();
     } catch (error: any) {
       console.error("Error accepting quote:", error);
       toast({
@@ -406,6 +415,23 @@ export default function QuoteDetailPage() {
                   {actionLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Truck className="w-4 h-4 mr-2" />}
                   Marcar como Enviado
                 </Button>
+              </CardContent>
+            </Card>
+          )}
+
+          {quote.status === "accepted" && showWhatsAppButton && quote.customer_phone && trackingUrl && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Notificar Cliente</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <WhatsAppShareButton
+                  customerName={quote.customer_name}
+                  customerPhone={quote.customer_phone}
+                  orderNumber={quote.id.slice(0, 8)}
+                  trackingUrl={trackingUrl}
+                  activationLink={activationLink || undefined}
+                />
               </CardContent>
             </Card>
           )}
