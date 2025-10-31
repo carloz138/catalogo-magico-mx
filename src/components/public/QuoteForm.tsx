@@ -22,7 +22,7 @@ declare global {
   }
 }
 
-// --- Esquema de validación actualizado ---
+// Esquema de validación
 const schema = z
   .object({
     name: z.string().min(2, "El nombre completo es requerido."),
@@ -44,7 +44,7 @@ const schema = z
     },
     {
       message: "La dirección de envío es requerida y debe tener al menos 10 caracteres.",
-      path: ["shipping_address"], // Campo al que se aplica el error
+      path: ["shipping_address"],
     },
   );
 
@@ -52,15 +52,25 @@ type FormData = z.infer<typeof schema>;
 
 interface Props {
   catalogId: string;
+  replicatedCatalogId?: string; // ✅ NUEVO
   items: any[];
   totalAmount: number;
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
-  businessAddress: string | null; // Prop para la dirección del negocio
+  businessAddress: string | null;
 }
 
-export function QuoteForm({ catalogId, items, totalAmount, isOpen, onClose, onSuccess, businessAddress }: Props) {
+export function QuoteForm({
+  catalogId,
+  replicatedCatalogId, // ✅ NUEVO
+  items,
+  totalAmount,
+  isOpen,
+  onClose,
+  onSuccess,
+  businessAddress,
+}: Props) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
@@ -72,29 +82,34 @@ export function QuoteForm({ catalogId, items, totalAmount, isOpen, onClose, onSu
       company: "",
       phone: "",
       notes: "",
-      delivery_method: "shipping", // Por defecto, envío a domicilio
+      delivery_method: "shipping",
       shipping_address: "",
     },
   });
 
-  // Observar el valor del método de entrega para mostrar/ocultar campos
   const deliveryMethod = form.watch("delivery_method");
 
   const handleSubmit = async (data: FormData) => {
     setIsSubmitting(true);
 
     try {
-      // Pasar los nuevos datos al servicio de creación de cotizaciones
-      await (QuoteService.createQuote as any)({
-        // Usar 'as any' si el DTO no está actualizado
+      // ✅ NUEVO: Log para debug
+      console.log("📤 Enviando cotización con:", {
         catalog_id: catalogId,
+        replicated_catalog_id: replicatedCatalogId,
+        isReplicated: !!replicatedCatalogId,
+      });
+
+      await (QuoteService.createQuote as any)({
+        catalog_id: catalogId,
+        replicated_catalog_id: replicatedCatalogId, // ✅ NUEVO
         customer_name: data.name,
         customer_email: data.email,
         customer_company: data.company,
         customer_phone: data.phone,
         notes: data.notes,
-        delivery_method: data.delivery_method, // Nuevo campo
-        shipping_address: data.delivery_method === "shipping" ? data.shipping_address : null, // Nuevo campo, nulo si es pickup
+        delivery_method: data.delivery_method,
+        shipping_address: data.delivery_method === "shipping" ? data.shipping_address : null,
         items: items.map((item) => ({
           product_id: item.product.id,
           product_name: item.product.name,
@@ -111,17 +126,17 @@ export function QuoteForm({ catalogId, items, totalAmount, isOpen, onClose, onSu
       setSubmitted(true);
       toast.success("Cotización enviada correctamente");
 
-      // --- Disparar eventos de conversión ---
+      // Disparar eventos de conversión
       console.log("Disparando eventos de conversión...");
 
-      // 1. Para Google Tag Manager (GTM) -> Esto cubre GA4, Google Ads, LinkedIn, TikTok, etc.
+      // Google Tag Manager (GTM)
       try {
         if (window.dataLayer) {
           window.dataLayer.push({
             event: "generate_quote",
-            value: totalAmount / 100, // Valor de la cotización
+            value: totalAmount / 100,
             currency: "MXN",
-            items_count: items.length, // Cantidad de productos
+            items_count: items.length,
           });
           console.log("Evento 'generate_quote' enviado a dataLayer (GTM).");
         }
@@ -129,7 +144,7 @@ export function QuoteForm({ catalogId, items, totalAmount, isOpen, onClose, onSu
         console.error("Error al disparar evento GTM:", e);
       }
 
-      // 2. Para Meta Pixel (Facebook/Instagram) como fallback común
+      // Meta Pixel (Facebook/Instagram)
       try {
         if (typeof window.fbq === "function") {
           window.fbq("track", "Lead", {
@@ -157,7 +172,6 @@ export function QuoteForm({ catalogId, items, totalAmount, isOpen, onClose, onSu
     }
   };
 
-  // Vista de éxito no cambia
   if (submitted) {
     return (
       <Dialog open={isOpen} onOpenChange={onClose}>
@@ -195,7 +209,6 @@ export function QuoteForm({ catalogId, items, totalAmount, isOpen, onClose, onSu
 
           <Form {...form}>
             <form id="quote-form" onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-              {/* Campos de cliente no cambian */}
               <FormField
                 control={form.control}
                 name="name"
@@ -251,7 +264,6 @@ export function QuoteForm({ catalogId, items, totalAmount, isOpen, onClose, onSu
 
               <Separator className="my-6" />
 
-              {/* --- Nuevos campos de entrega --- */}
               <FormField
                 control={form.control}
                 name="delivery_method"
@@ -316,7 +328,6 @@ export function QuoteForm({ catalogId, items, totalAmount, isOpen, onClose, onSu
                   )}
                 />
               )}
-              {/* --- FIN CAMBIOS DE ENTREGA --- */}
 
               <Separator className="my-6" />
 
