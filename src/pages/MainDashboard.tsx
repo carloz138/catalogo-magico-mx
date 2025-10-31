@@ -99,48 +99,35 @@ export default function MainDashboard() {
           {/* TAB 1: MIS COTIZACIONES */}
           {/* ========================================= */}
           <TabsContent value="quotes" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <FileText className="w-5 h-5" />
-                  Mis Cotizaciones
-                </CardTitle>
-                <CardDescription>Cotizaciones que has enviado y recibido</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid md:grid-cols-2 gap-4">
-                  {/* Cotizaciones Enviadas */}
-                  <Card className="border-2 border-blue-100">
-                    <CardHeader>
-                      <CardTitle className="text-lg">📤 Enviadas</CardTitle>
-                      <CardDescription>Cotizaciones que TÚ solicitaste como cliente</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-center py-8 text-gray-500">
-                        <FileText className="w-12 h-12 mx-auto mb-3 text-gray-400" />
-                        <p>Aún no has enviado cotizaciones</p>
-                        <p className="text-sm mt-1">Navega por catálogos y solicita presupuestos</p>
-                      </div>
-                    </CardContent>
-                  </Card>
+            <div className="grid md:grid-cols-2 gap-6">
+              {/* Cotizaciones Enviadas */}
+              <Card className="border-2 border-blue-100">
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <FileText className="w-5 h-5 text-blue-600" />
+                    📤 Enviadas
+                  </CardTitle>
+                  <CardDescription>Cotizaciones que TÚ solicitaste como cliente</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <QuotesSent />
+                </CardContent>
+              </Card>
 
-                  {/* Cotizaciones Recibidas */}
-                  <Card className="border-2 border-green-100">
-                    <CardHeader>
-                      <CardTitle className="text-lg">📥 Recibidas</CardTitle>
-                      <CardDescription>Cotizaciones que te han enviado tus clientes</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-center py-8 text-gray-500">
-                        <FileText className="w-12 h-12 mx-auto mb-3 text-gray-400" />
-                        <p>Aún no has recibido cotizaciones</p>
-                        <p className="text-sm mt-1">Comparte tus catálogos para recibir solicitudes</p>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-              </CardContent>
-            </Card>
+              {/* Cotizaciones Recibidas */}
+              <Card className="border-2 border-green-100">
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <FileText className="w-5 h-5 text-green-600" />
+                    📥 Recibidas
+                  </CardTitle>
+                  <CardDescription>Cotizaciones que te han enviado tus clientes</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <QuotesReceived />
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
 
           {/* ========================================= */}
