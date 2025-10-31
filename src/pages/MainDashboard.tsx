@@ -9,6 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { MyActivatedCatalogsList } from "@/components/dashboard/MyActivatedCatalogsList";
 import { UpsellBanner } from "@/components/dashboard/UpsellBanner";
 import KpiDashboard from "@/components/dashboard/KpiDashboard";
+import { QuotesSent } from "@/components/dashboard/QuotesSent";
+import { QuotesReceived } from "@/components/dashboard/QuotesReceived";
 import { Loader2, FileText, Package, Network, TrendingUp, AlertCircle, Plus } from "lucide-react";
 
 export default function MainDashboard() {
