@@ -1,4 +1,4 @@
-// /src/components/layout/AppSidebar.tsx - DISEÑO SÓLIDO Y PROFESIONAL
+// /src/components/layout/AppSidebar.tsx - VERSIÓN CORREGIDA Y COMPLETA
 import React from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -14,41 +14,32 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarMenuSub,
-  SidebarMenuSubButton,
-  SidebarMenuSubItem,
 } from "@/components/ui/sidebar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
-  // Home, // Cambiado por LayoutDashboard
   Upload,
   Package,
-  Palette,
   BarChart3,
   Settings,
   LogOut,
-  User,
   CreditCard,
-  FileImage,
-  Layers,
-  Crown,
   Building2,
   FileText,
-  ChevronRight,
-  Bell,
-  PlayCircle,
-  AlertTriangle,
   BookOpen,
   PackageOpen,
   ClipboardList,
   Network,
-  LayoutDashboard, // <-- ✅ 1. IMPORTAR ICONO
+  LayoutDashboard,
+  PlayCircle,
+  AlertTriangle,
+  Sparkles,
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 // ==========================================
-// TIPOS E INTERFACES (Sin cambios)
+// TIPOS E INTERFACES
 // ==========================================
 interface MenuItem {
   title: string;
@@ -56,78 +47,143 @@ interface MenuItem {
   icon: React.ComponentType<any>;
   badge?: string;
   badgeColor?: string;
-  items?: MenuItem[];
-  primary?: boolean; // Añadido para claridad
+  primary?: boolean;
 }
 
 // ==========================================
-// NAVEGACIÓN PLANA Y CLARA
+// ✅ NAVEGACIÓN OPTIMIZADA (5-7 items principales según el reporte)
 // ==========================================
-
 const navigationItems: MenuItem[] = [
-  // Añadido tipo MenuItem[]
-  // GRUPO 1: Acciones Principales (44px altura mínima)
-  // 👇 ✅ 2. AÑADIR NUEVO ITEM AL PRINCIPIO 👇
-  { title: "Dashboard", path: "/dashboard", icon: LayoutDashboard, primary: true },
-  // 👆 FIN DEL NUEVO ITEM 👆
-  { title: "Subir Productos", path: "/upload", icon: Upload, primary: true },
-  { title: "Crear Catalogo", path: "/products", icon: Package, primary: true },
-  { title: "Mis Catálogos", path: "/catalogs", icon: BookOpen, primary: true },
-  { title: "Nuevo Catálogo Digital", path: "/catalogs/new", icon: FileText, primary: true },
-  { title: "Cotizaciones", path: "/quotes", icon: ClipboardList, primary: true },
-  { title: "Red de Distribución", path: "/network", icon: Network, primary: true, badge: "Nuevo" },
+  // GRUPO 1: Acciones Principales (5 items - dentro del rango óptimo)
+  {
+    title: "Dashboard",
+    path: "/dashboard",
+    icon: LayoutDashboard,
+    primary: true,
+  },
+  {
+    title: "Subir Productos",
+    path: "/upload",
+    icon: Upload,
+    primary: true,
+  },
+  {
+    title: "Crear Catálogo",
+    path: "/products",
+    icon: Package,
+    primary: true,
+  },
+  {
+    title: "Mis Catálogos",
+    path: "/catalogs",
+    icon: BookOpen,
+    primary: true,
+  },
+  {
+    title: "Cotizaciones",
+    path: "/quotes",
+    icon: ClipboardList,
+    primary: true,
+  },
 
-  // GRUPO 2: Acciones Secundarias
-  { title: "Carga Masiva", path: "/products/bulk-upload", icon: PackageOpen, badge: "Nuevo" },
-  { title: "Editar Productos", path: "/products-management", icon: Settings },
-  { title: "Analytics", path: "/analytics", icon: BarChart3 },
-  { title: "Comprar Créditos", path: "/checkout", icon: CreditCard },
+  // GRUPO 2: Herramientas (acciones secundarias)
+  {
+    title: "Red de Distribución",
+    path: "/network",
+    icon: Network,
+    badge: "Nuevo",
+  },
+  {
+    title: "Nuevo Catálogo Digital",
+    path: "/catalogs/new",
+    icon: FileText,
+  },
+  {
+    title: "Carga Masiva",
+    path: "/products/bulk-upload",
+    icon: PackageOpen,
+    badge: "Beta",
+  },
+  {
+    title: "Editar Productos",
+    path: "/products-management",
+    icon: Settings,
+  },
+  {
+    title: "Analytics",
+    path: "/analytics",
+    icon: BarChart3,
+  },
+  {
+    title: "Comprar Créditos",
+    path: "/checkout",
+    icon: CreditCard,
+  },
 
   // GRUPO 3: Configuración
-  { title: "Guía de Inicio", path: "/onboarding", icon: PlayCircle, badge: "5 min" },
-  { title: "Info del Negocio", path: "/business-info", icon: Building2 },
+  {
+    title: "Guía de Inicio",
+    path: "/onboarding",
+    icon: PlayCircle,
+    badge: "5 min",
+  },
+  {
+    title: "Info del Negocio",
+    path: "/business-info",
+    icon: Building2,
+  },
 ];
 
 // ==========================================
-// COMPONENTE PRINCIPAL CON DISEÑO SÓLIDO (Sin cambios en la lógica principal)
+// COMPONENTE PRINCIPAL
 // ==========================================
-
 export function AppSidebar() {
   const { user, signOut } = useAuth();
   const { businessInfo, hasBusinessInfo } = useBusinessInfo();
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Verificar si falta información importante del negocio
+  // ==========================================
+  // ✅ VERIFICACIÓN DE NEGOCIO
+  // ==========================================
   const isBusinessInfoIncomplete = () => {
     if (!businessInfo) return true;
     const requiredFields = [businessInfo.business_name, businessInfo.phone, businessInfo.email, businessInfo.address];
     return requiredFields.some((field) => !field || field.trim() === "");
   };
 
-  // ==========================================
-  // HANDLERS (Sin cambios)
-  // ==========================================
+  const showBusinessWarning = isBusinessInfoIncomplete();
 
+  // ==========================================
+  // HANDLERS
+  // ==========================================
   const handleLogout = async () => {
-    /* ... sin cambios ... */
+    try {
+      await signOut();
+      toast({
+        title: "Sesión cerrada",
+        description: "Has cerrado sesión correctamente",
+      });
+      navigate("/login");
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "No se pudo cerrar la sesión",
+        variant: "destructive",
+      });
+    }
   };
 
   const isActiveRoute = (path?: string) => {
-    // path es opcional
-    if (!path) return false; // Si no hay path, no puede estar activo
-    // Manejo especial para la ruta raíz si fuera necesario, aunque Dashboard es /dashboard
+    if (!path) return false;
     if (path === "/dashboard") return location.pathname === "/dashboard";
-    // Para otras rutas, verifica si el pathname comienza con la ruta del item
     return location.pathname.startsWith(path) && path !== "/";
   };
 
   // ==========================================
-  // RENDER NAVEGACIÓN PLANA (Sin cambios en la función, usará el nuevo item)
+  // ✅ RENDER NAVEGACIÓN (con objetivos táctiles de 48px según el reporte)
   // ==========================================
-
   const renderNavItem = (item: MenuItem) => {
-    // Usar tipo MenuItem
     const isActive = isActiveRoute(item.path);
     const isPrimary = item.primary;
 
@@ -135,20 +191,22 @@ export function AppSidebar() {
       <SidebarMenuItem key={item.path}>
         <SidebarMenuButton asChild isActive={isActive}>
           <button
-            onClick={() => item.path && navigate(item.path)} // Solo navega si hay path
-            disabled={!item.path} // Deshabilita si no hay path
+            onClick={() => item.path && navigate(item.path)}
+            disabled={!item.path}
             className={`
-              flex items-center gap-3 w-full px-3 rounded-lg transition-all
-              ${isPrimary ? "min-h-[44px] py-3" : "min-h-[40px] py-2"}
+              flex items-center gap-3 w-full px-3 rounded-lg transition-all duration-200
+              ${isPrimary ? "min-h-[48px] py-3" : "min-h-[44px] py-2.5"}
               ${
                 isActive
-                  ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600" // Ajustado border-l-4
+                  ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600 shadow-sm"
                   : "text-slate-700 hover:bg-slate-100 hover:text-slate-900"
               }
+              focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
             `}
+            aria-current={isActive ? "page" : undefined}
           >
-            <item.icon className={`flex-shrink-0 ${isPrimary ? "w-5 h-5" : "w-4 h-4"}`} /> {/* Añadido flex-shrink-0 */}
-            <span className="flex-1 text-left text-sm truncate">{item.title}</span> {/* Añadido truncate */}
+            <item.icon className={`flex-shrink-0 ${isPrimary ? "w-5 h-5" : "w-4 h-4"}`} aria-hidden="true" />
+            <span className="flex-1 text-left text-sm truncate">{item.title}</span>
             {item.badge && <Badge className="text-xs bg-green-100 text-green-700 border-green-200">{item.badge}</Badge>}
           </button>
         </SidebarMenuButton>
@@ -157,24 +215,95 @@ export function AppSidebar() {
   };
 
   // ==========================================
-  // ✅ RENDER PRINCIPAL CON DISEÑO SÓLIDO (Sin cambios estructurales)
+  // ✅ HELPER: OBTENER INICIALES DEL USUARIO
   // ==========================================
+  const getUserInitials = () => {
+    if (!user?.email) return "U";
+    const email = user.email;
+    const name = businessInfo?.business_name || email;
 
+    if (name.includes(" ")) {
+      const parts = name.split(" ");
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return name.substring(0, 2).toUpperCase();
+  };
+
+  // ==========================================
+  // ✅ RENDER PRINCIPAL CON ESTRUCTURA COMPLETA
+  // ==========================================
   return (
-    <Sidebar className="border-r border-slate-200 bg-white w-72 min-w-72">
-      {/* HEADER (Sin cambios) */}
-      <SidebarHeader className="border-b border-slate-200 bg-slate-50 p-4">{/* ... sin cambios ... */}</SidebarHeader>
+    <Sidebar className="border-r border-slate-200 bg-white w-72 min-w-72 flex flex-col h-screen">
+      {/* ============================================ */}
+      {/* ✅ HEADER - LOGO Y BRANDING */}
+      {/* ============================================ */}
+      <SidebarHeader className="border-b border-slate-200 bg-gradient-to-r from-blue-50 to-slate-50 p-4 flex-shrink-0">
+        <div className="flex items-center gap-3">
+          {/* Logo/Icon */}
+          <div className="w-10 h-10 rounded-lg bg-blue-600 flex items-center justify-center flex-shrink-0 shadow-md">
+            <Sparkles className="w-6 h-6 text-white" aria-hidden="true" />
+          </div>
 
-      {/* USER INFO (Sin cambios) */}
-      <SidebarGroup className="border-b border-slate-200 bg-slate-50">
-        <SidebarGroupContent>{/* ... sin cambios ... */}</SidebarGroupContent>
+          {/* Branding */}
+          <div className="flex-1 min-w-0">
+            <h1 className="text-lg font-bold text-slate-900 truncate">CatifyPro</h1>
+            <p className="text-xs text-slate-500 truncate">Tu catálogo profesional</p>
+          </div>
+        </div>
+      </SidebarHeader>
+
+      {/* ============================================ */}
+      {/* ✅ USER INFO - INFORMACIÓN DEL USUARIO */}
+      {/* ============================================ */}
+      <SidebarGroup className="border-b border-slate-200 bg-slate-50 flex-shrink-0">
+        <SidebarGroupContent className="px-4 py-3">
+          <div className="flex items-center gap-3">
+            {/* Avatar */}
+            <Avatar className="w-10 h-10 border-2 border-white shadow-sm flex-shrink-0">
+              <AvatarImage src={user?.user_metadata?.avatar_url} alt="Usuario" />
+              <AvatarFallback className="bg-blue-100 text-blue-700 font-semibold">{getUserInitials()}</AvatarFallback>
+            </Avatar>
+
+            {/* User Info */}
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-slate-900 truncate">
+                {businessInfo?.business_name || "Mi Negocio"}
+              </p>
+              <p className="text-xs text-slate-500 truncate">{user?.email || "usuario@email.com"}</p>
+            </div>
+          </div>
+
+          {/* ✅ WARNING: Información de negocio incompleta */}
+          {showBusinessWarning && (
+            <div
+              className="mt-3 p-2.5 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-2 cursor-pointer hover:bg-amber-100 transition-colors"
+              onClick={() => navigate("/business-info")}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  navigate("/business-info");
+                }
+              }}
+            >
+              <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" aria-hidden="true" />
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-medium text-amber-900">Completa tu perfil</p>
+                <p className="text-xs text-amber-700 mt-0.5">Falta información del negocio</p>
+              </div>
+            </div>
+          )}
+        </SidebarGroupContent>
       </SidebarGroup>
 
-      {/* NAVIGATION CONTENT (Renderizará el nuevo item automáticamente) */}
-      <SidebarContent className="px-3 py-4">
-        {/* Grupo Principal */}
+      {/* ============================================ */}
+      {/* ✅ NAVIGATION CONTENT - MENÚ PRINCIPAL */}
+      {/* ============================================ */}
+      <SidebarContent className="px-3 py-4 flex-1 overflow-y-auto">
+        {/* Grupo Principal (5-7 items según el reporte) */}
         <SidebarGroup>
-          <SidebarGroupLabel className="text-xs font-semibold text-slate-500 uppercase px-3 mb-2">
+          <SidebarGroupLabel className="text-xs font-semibold text-slate-500 uppercase px-3 mb-2 tracking-wider">
             Principal
           </SidebarGroupLabel>
           <SidebarMenu className="space-y-1">
@@ -182,12 +311,12 @@ export function AppSidebar() {
           </SidebarMenu>
         </SidebarGroup>
 
-        {/* Espaciador visual */}
-        <div className="h-px bg-slate-200 my-4 mx-3" />
+        {/* Separador visual */}
+        <div className="h-px bg-slate-200 my-4 mx-3" aria-hidden="true" />
 
         {/* Grupo Herramientas */}
         <SidebarGroup>
-          <SidebarGroupLabel className="text-xs font-semibold text-slate-500 uppercase px-3 mb-2">
+          <SidebarGroupLabel className="text-xs font-semibold text-slate-500 uppercase px-3 mb-2 tracking-wider">
             Herramientas
           </SidebarGroupLabel>
           <SidebarMenu className="space-y-1">
@@ -197,12 +326,12 @@ export function AppSidebar() {
           </SidebarMenu>
         </SidebarGroup>
 
-        {/* Espaciador visual */}
-        <div className="h-px bg-slate-200 my-4 mx-3" />
+        {/* Separador visual */}
+        <div className="h-px bg-slate-200 my-4 mx-3" aria-hidden="true" />
 
         {/* Grupo Configuración */}
         <SidebarGroup>
-          <SidebarGroupLabel className="text-xs font-semibold text-slate-500 uppercase px-3 mb-2">
+          <SidebarGroupLabel className="text-xs font-semibold text-slate-500 uppercase px-3 mb-2 tracking-wider">
             Configuración
           </SidebarGroupLabel>
           <SidebarMenu className="space-y-1">
@@ -213,8 +342,20 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      {/* FOOTER (Sin cambios) */}
-      <SidebarFooter className="border-t border-slate-200 bg-slate-50 p-4">{/* ... sin cambios ... */}</SidebarFooter>
+      {/* ============================================ */}
+      {/* ✅ FOOTER - LOGOUT BUTTON */}
+      {/* ============================================ */}
+      <SidebarFooter className="border-t border-slate-200 bg-slate-50 p-4 flex-shrink-0">
+        <Button
+          onClick={handleLogout}
+          variant="outline"
+          className="w-full justify-start gap-3 h-11 hover:bg-red-50 hover:text-red-700 hover:border-red-200 transition-colors"
+          aria-label="Cerrar sesión"
+        >
+          <LogOut className="w-4 h-4" aria-hidden="true" />
+          <span className="text-sm font-medium">Cerrar Sesión</span>
+        </Button>
+      </SidebarFooter>
     </Sidebar>
   );
 }
