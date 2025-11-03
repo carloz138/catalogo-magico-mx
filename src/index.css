@@ -123,3 +123,118 @@ img {
   max-width: 100%;
   height: auto;
 }
+
+/* ==========================================
+   SIDEBAR COLLAPSE FIX - Sin Overlap
+   ========================================== */
+
+/* Contenedor principal del sidebar */
+[data-sidebar] {
+  display: flex;
+  width: 100%;
+  min-height: 100vh;
+}
+
+/* Sidebar con transiciones suaves */
+[data-sidebar="sidebar"] {
+  flex-shrink: 0;
+  transition: width 300ms cubic-bezier(0.4, 0, 0.2, 1), 
+              min-width 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: width, min-width;
+}
+
+/* Estado colapsado - ancho mínimo */
+[data-sidebar="sidebar"][data-state="collapsed"] {
+  width: 3rem !important;
+  min-width: 3rem !important;
+}
+
+/* Estado expandido - ancho completo */
+[data-sidebar="sidebar"][data-state="expanded"] {
+  width: 18rem;
+  min-width: 18rem;
+}
+
+/* Contenido principal - se ajusta automáticamente */
+[data-sidebar="inset"] {
+  flex: 1;
+  width: 100%;
+  min-width: 0; /* Importante para flexbox */
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+/* Ocultar textos cuando está colapsado */
+[data-sidebar="sidebar"][data-state="collapsed"] span:not(.lucide):not([class*="icon"]) {
+  opacity: 0;
+  width: 0;
+  overflow: hidden;
+  transition: opacity 150ms ease-out;
+}
+
+/* Mostrar solo iconos en estado colapsado */
+[data-sidebar="sidebar"][data-state="collapsed"] .sidebar-group-label,
+[data-sidebar="sidebar"][data-state="collapsed"] .text-xs {
+  display: none;
+}
+
+/* ==========================================
+   RESPONSIVE: MOBILE SIDEBAR
+   ========================================== */
+
+@media (max-width: 768px) {
+  /* Sidebar como overlay en mobile */
+  [data-sidebar="sidebar"] {
+    position: fixed;
+    left: 0;
+    top: 0;
+    height: 100vh;
+    z-index: 100;
+    transform: translateX(-100%);
+    transition: transform 300ms cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.15);
+  }
+  
+  /* Sidebar visible en mobile */
+  [data-sidebar="sidebar"][data-state="expanded"] {
+    transform: translateX(0);
+  }
+  
+  /* Contenido ocupa todo el ancho en mobile */
+  [data-sidebar="inset"] {
+    width: 100% !important;
+    margin-left: 0 !important;
+  }
+  
+  /* Backdrop para cerrar sidebar en mobile */
+  [data-sidebar="sidebar"][data-state="expanded"]::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: -1;
+  }
+}
+
+/* ==========================================
+   TABLET & DESKTOP
+   ========================================== */
+
+@media (min-width: 769px) {
+  /* En desktop, sidebar siempre relativo */
+  [data-sidebar="sidebar"] {
+    position: relative;
+  }
+  
+  /* Evitar scroll horizontal en el contenido */
+  [data-sidebar="inset"] {
+    max-width: calc(100vw - 18rem); /* cuando está expandido */
+  }
+  
+  [data-sidebar="sidebar"][data-state="collapsed"] + [data-sidebar="inset"] {
+    max-width: calc(100vw - 3rem); /* cuando está colapsado */
+  }
+}

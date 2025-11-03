@@ -118,12 +118,12 @@ const AppLayout = ({
 
   return (
     <SidebarProvider defaultOpen={true}>
-      <div className="min-h-screen flex w-full">
+      <div className="min-h-screen flex w-full overflow-hidden">
         {/* SIDEBAR FIJO */}
         <AppSidebar />
         
         {/* CONTENIDO PRINCIPAL */}
-        <SidebarInset className="flex-1 min-h-screen">
+        <SidebarInset className="flex-1 min-h-screen overflow-auto">
           {/* HEADER */}
           <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-2 border-b bg-white px-4 shadow-sm">
             <div className="flex items-center gap-2 flex-1">

@@ -233,7 +233,7 @@ export function AppSidebar() {
   // ✅ RENDER PRINCIPAL CON ESTRUCTURA COMPLETA
   // ==========================================
   return (
-    <Sidebar className="border-r border-slate-200 bg-white w-72 min-w-72 flex flex-col h-screen">
+    <Sidebar className="border-r border-slate-200 bg-white flex flex-col h-screen">
       {/* ============================================ */}
       {/* ✅ HEADER - LOGO Y BRANDING */}
       {/* ============================================ */}
