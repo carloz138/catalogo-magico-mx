@@ -1,4 +1,4 @@
-// /src/components/layout/AppSidebar.tsx - VERSIÓN CORREGIDA SIN COLLAPSE
+// /src/components/layout/AppSidebar.tsx - CON COLLAPSE FUNCIONAL
 import React from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -14,6 +14,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -35,6 +36,8 @@ import {
   PlayCircle,
   AlertTriangle,
   Sparkles,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
@@ -46,92 +49,31 @@ interface MenuItem {
   path?: string;
   icon: React.ComponentType<any>;
   badge?: string;
-  badgeColor?: string;
   primary?: boolean;
 }
 
 // ==========================================
-// ✅ NAVEGACIÓN OPTIMIZADA (5-7 items principales)
+// NAVEGACIÓN
 // ==========================================
 const navigationItems: MenuItem[] = [
-  // GRUPO 1: Acciones Principales (5 items)
-  {
-    title: "Dashboard",
-    path: "/dashboard",
-    icon: LayoutDashboard,
-    primary: true,
-  },
-  {
-    title: "Subir Productos",
-    path: "/upload",
-    icon: Upload,
-    primary: true,
-  },
-  {
-    title: "Crear Catálogo",
-    path: "/products",
-    icon: Package,
-    primary: true,
-  },
-  {
-    title: "Mis Catálogos",
-    path: "/catalogs",
-    icon: BookOpen,
-    primary: true,
-  },
-  {
-    title: "Cotizaciones",
-    path: "/quotes",
-    icon: ClipboardList,
-    primary: true,
-  },
+  // Grupo Principal (5 items)
+  { title: "Dashboard", path: "/dashboard", icon: LayoutDashboard, primary: true },
+  { title: "Subir Productos", path: "/upload", icon: Upload, primary: true },
+  { title: "Crear Catálogo", path: "/products", icon: Package, primary: true },
+  { title: "Mis Catálogos", path: "/catalogs", icon: BookOpen, primary: true },
+  { title: "Cotizaciones", path: "/quotes", icon: ClipboardList, primary: true },
 
-  // GRUPO 2: Herramientas
-  {
-    title: "Red de Distribución",
-    path: "/network",
-    icon: Network,
-    badge: "Nuevo",
-  },
-  {
-    title: "Nuevo Catálogo Digital",
-    path: "/catalogs/new",
-    icon: FileText,
-  },
-  {
-    title: "Carga Masiva",
-    path: "/products/bulk-upload",
-    icon: PackageOpen,
-    badge: "Beta",
-  },
-  {
-    title: "Editar Productos",
-    path: "/products-management",
-    icon: Settings,
-  },
-  {
-    title: "Analytics",
-    path: "/analytics",
-    icon: BarChart3,
-  },
-  {
-    title: "Comprar Créditos",
-    path: "/checkout",
-    icon: CreditCard,
-  },
+  // Grupo Herramientas
+  { title: "Red de Distribución", path: "/network", icon: Network, badge: "Nuevo" },
+  { title: "Nuevo Catálogo Digital", path: "/catalogs/new", icon: FileText },
+  { title: "Carga Masiva", path: "/products/bulk-upload", icon: PackageOpen, badge: "Beta" },
+  { title: "Editar Productos", path: "/products-management", icon: Settings },
+  { title: "Analytics", path: "/analytics", icon: BarChart3 },
+  { title: "Comprar Créditos", path: "/checkout", icon: CreditCard },
 
-  // GRUPO 3: Configuración
-  {
-    title: "Guía de Inicio",
-    path: "/onboarding",
-    icon: PlayCircle,
-    badge: "5 min",
-  },
-  {
-    title: "Info del Negocio",
-    path: "/business-info",
-    icon: Building2,
-  },
+  // Grupo Configuración
+  { title: "Guía de Inicio", path: "/onboarding", icon: PlayCircle, badge: "5 min" },
+  { title: "Info del Negocio", path: "/business-info", icon: Building2 },
 ];
 
 // ==========================================
@@ -142,9 +84,10 @@ export function AppSidebar() {
   const { businessInfo } = useBusinessInfo();
   const navigate = useNavigate();
   const location = useLocation();
+  const { state, toggleSidebar } = useSidebar();
 
   // ==========================================
-  // VERIFICACIÓN DE NEGOCIO
+  // VERIFICACIÓN
   // ==========================================
   const isBusinessInfoIncomplete = () => {
     if (!businessInfo) return true;
@@ -186,10 +129,11 @@ export function AppSidebar() {
   const renderNavItem = (item: MenuItem) => {
     const isActive = isActiveRoute(item.path);
     const isPrimary = item.primary;
+    const isCollapsed = state === "collapsed";
 
     return (
       <SidebarMenuItem key={item.path}>
-        <SidebarMenuButton asChild isActive={isActive}>
+        <SidebarMenuButton asChild isActive={isActive} tooltip={isCollapsed ? item.title : undefined}>
           <button
             onClick={() => item.path && navigate(item.path)}
             disabled={!item.path}
@@ -202,12 +146,19 @@ export function AppSidebar() {
                   : "text-slate-700 hover:bg-slate-100 hover:text-slate-900"
               }
               focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
+              ${isCollapsed ? "justify-center" : ""}
             `}
             aria-current={isActive ? "page" : undefined}
           >
             <item.icon className={`flex-shrink-0 ${isPrimary ? "w-5 h-5" : "w-4 h-4"}`} aria-hidden="true" />
-            <span className="flex-1 text-left text-sm truncate">{item.title}</span>
-            {item.badge && <Badge className="text-xs bg-green-100 text-green-700 border-green-200">{item.badge}</Badge>}
+            {!isCollapsed && (
+              <>
+                <span className="flex-1 text-left text-sm truncate">{item.title}</span>
+                {item.badge && (
+                  <Badge className="text-xs bg-green-100 text-green-700 border-green-200">{item.badge}</Badge>
+                )}
+              </>
+            )}
           </button>
         </SidebarMenuButton>
       </SidebarMenuItem>
@@ -215,7 +166,7 @@ export function AppSidebar() {
   };
 
   // ==========================================
-  // HELPER: OBTENER INICIALES
+  // HELPER
   // ==========================================
   const getUserInitials = () => {
     if (!user?.email) return "U";
@@ -229,13 +180,15 @@ export function AppSidebar() {
     return name.substring(0, 2).toUpperCase();
   };
 
+  const isCollapsed = state === "collapsed";
+
   // ==========================================
-  // ✅ RENDER PRINCIPAL - SIN COLLAPSE
+  // RENDER PRINCIPAL
   // ==========================================
   return (
-    <Sidebar collapsible="none" className="border-r border-slate-200 bg-white">
+    <Sidebar collapsible="icon" className="border-r border-slate-200 bg-white">
       {/* ============================================ */}
-      {/* HEADER - LOGO Y BRANDING */}
+      {/* HEADER */}
       {/* ============================================ */}
       <SidebarHeader className="border-b border-slate-200 bg-gradient-to-r from-blue-50 to-slate-50 p-4">
         <div className="flex items-center gap-3">
@@ -244,11 +197,26 @@ export function AppSidebar() {
             <Sparkles className="w-6 h-6 text-white" aria-hidden="true" />
           </div>
 
-          {/* Branding */}
-          <div className="flex-1 min-w-0">
-            <h1 className="text-lg font-bold text-slate-900 truncate">CatifyPro</h1>
-            <p className="text-xs text-slate-500 truncate">Tu catálogo profesional</p>
-          </div>
+          {/* Branding - Se oculta cuando está colapsado */}
+          {!isCollapsed && (
+            <div className="flex-1 min-w-0">
+              <h1 className="text-lg font-bold text-slate-900 truncate">CatifyPro</h1>
+              <p className="text-xs text-slate-500 truncate">Tu catálogo profesional</p>
+            </div>
+          )}
+
+          {/* Botón de Toggle */}
+          <button
+            onClick={toggleSidebar}
+            className="ml-auto w-8 h-8 rounded-lg hover:bg-slate-200 flex items-center justify-center transition-colors"
+            aria-label={isCollapsed ? "Expandir sidebar" : "Colapsar sidebar"}
+          >
+            {isCollapsed ? (
+              <ChevronRight className="w-4 h-4 text-slate-600" />
+            ) : (
+              <ChevronLeft className="w-4 h-4 text-slate-600" />
+            )}
+          </button>
         </div>
       </SidebarHeader>
 
@@ -257,35 +225,31 @@ export function AppSidebar() {
       {/* ============================================ */}
       <SidebarGroup className="border-b border-slate-200 bg-slate-50">
         <SidebarGroupContent className="px-4 py-3">
-          <div className="flex items-center gap-3">
+          <div className={`flex items-center gap-3 ${isCollapsed ? "justify-center" : ""}`}>
             {/* Avatar */}
             <Avatar className="w-10 h-10 border-2 border-white shadow-sm flex-shrink-0">
               <AvatarImage src={user?.user_metadata?.avatar_url} alt="Usuario" />
               <AvatarFallback className="bg-blue-100 text-blue-700 font-semibold">{getUserInitials()}</AvatarFallback>
             </Avatar>
 
-            {/* User Info */}
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-slate-900 truncate">
-                {businessInfo?.business_name || "Mi Negocio"}
-              </p>
-              <p className="text-xs text-slate-500 truncate">{user?.email || "usuario@email.com"}</p>
-            </div>
+            {/* User Info - Se oculta cuando está colapsado */}
+            {!isCollapsed && (
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-slate-900 truncate">
+                  {businessInfo?.business_name || "Mi Negocio"}
+                </p>
+                <p className="text-xs text-slate-500 truncate">{user?.email || "usuario@email.com"}</p>
+              </div>
+            )}
           </div>
 
-          {/* WARNING: Perfil Incompleto */}
-          {showBusinessWarning && (
+          {/* WARNING - Solo visible cuando está expandido */}
+          {showBusinessWarning && !isCollapsed && (
             <div
               className="mt-3 p-2.5 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-2 cursor-pointer hover:bg-amber-100 transition-colors"
               onClick={() => navigate("/business-info")}
               role="button"
               tabIndex={0}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  navigate("/business-info");
-                }
-              }}
             >
               <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" aria-hidden="true" />
               <div className="flex-1 min-w-0">
@@ -298,14 +262,16 @@ export function AppSidebar() {
       </SidebarGroup>
 
       {/* ============================================ */}
-      {/* NAVIGATION CONTENT */}
+      {/* NAVIGATION */}
       {/* ============================================ */}
       <SidebarContent className="px-3 py-4">
         {/* Grupo Principal */}
         <SidebarGroup>
-          <SidebarGroupLabel className="text-xs font-semibold text-slate-500 uppercase px-3 mb-2 tracking-wider">
-            Principal
-          </SidebarGroupLabel>
+          {!isCollapsed && (
+            <SidebarGroupLabel className="text-xs font-semibold text-slate-500 uppercase px-3 mb-2 tracking-wider">
+              Principal
+            </SidebarGroupLabel>
+          )}
           <SidebarMenu className="space-y-1">
             {navigationItems.filter((item) => item.primary).map(renderNavItem)}
           </SidebarMenu>
@@ -316,9 +282,11 @@ export function AppSidebar() {
 
         {/* Grupo Herramientas */}
         <SidebarGroup>
-          <SidebarGroupLabel className="text-xs font-semibold text-slate-500 uppercase px-3 mb-2 tracking-wider">
-            Herramientas
-          </SidebarGroupLabel>
+          {!isCollapsed && (
+            <SidebarGroupLabel className="text-xs font-semibold text-slate-500 uppercase px-3 mb-2 tracking-wider">
+              Herramientas
+            </SidebarGroupLabel>
+          )}
           <SidebarMenu className="space-y-1">
             {navigationItems
               .filter((item) => !item.primary && item.path !== "/onboarding" && item.path !== "/business-info")
@@ -331,9 +299,11 @@ export function AppSidebar() {
 
         {/* Grupo Configuración */}
         <SidebarGroup>
-          <SidebarGroupLabel className="text-xs font-semibold text-slate-500 uppercase px-3 mb-2 tracking-wider">
-            Configuración
-          </SidebarGroupLabel>
+          {!isCollapsed && (
+            <SidebarGroupLabel className="text-xs font-semibold text-slate-500 uppercase px-3 mb-2 tracking-wider">
+              Configuración
+            </SidebarGroupLabel>
+          )}
           <SidebarMenu className="space-y-1">
             {navigationItems
               .filter((item) => item.path === "/onboarding" || item.path === "/business-info")
@@ -343,17 +313,19 @@ export function AppSidebar() {
       </SidebarContent>
 
       {/* ============================================ */}
-      {/* FOOTER - LOGOUT */}
+      {/* FOOTER */}
       {/* ============================================ */}
       <SidebarFooter className="border-t border-slate-200 bg-slate-50 p-4">
         <Button
           onClick={handleLogout}
           variant="outline"
-          className="w-full justify-start gap-3 h-11 hover:bg-red-50 hover:text-red-700 hover:border-red-200 transition-colors"
+          className={`w-full gap-3 h-11 hover:bg-red-50 hover:text-red-700 hover:border-red-200 transition-colors ${
+            isCollapsed ? "justify-center px-0" : "justify-start"
+          }`}
           aria-label="Cerrar sesión"
         >
           <LogOut className="w-4 h-4" aria-hidden="true" />
-          <span className="text-sm font-medium">Cerrar Sesión</span>
+          {!isCollapsed && <span className="text-sm font-medium">Cerrar Sesión</span>}
         </Button>
       </SidebarFooter>
     </Sidebar>
