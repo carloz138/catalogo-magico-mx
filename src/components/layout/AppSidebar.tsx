@@ -1,4 +1,4 @@
-// /src/components/layout/AppSidebar.tsx - VERSIÓN CORREGIDA Y COMPLETA
+// /src/components/layout/AppSidebar.tsx - VERSIÓN CORREGIDA SIN COLLAPSE
 import React from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -51,10 +51,10 @@ interface MenuItem {
 }
 
 // ==========================================
-// ✅ NAVEGACIÓN OPTIMIZADA (5-7 items principales según el reporte)
+// ✅ NAVEGACIÓN OPTIMIZADA (5-7 items principales)
 // ==========================================
 const navigationItems: MenuItem[] = [
-  // GRUPO 1: Acciones Principales (5 items - dentro del rango óptimo)
+  // GRUPO 1: Acciones Principales (5 items)
   {
     title: "Dashboard",
     path: "/dashboard",
@@ -86,7 +86,7 @@ const navigationItems: MenuItem[] = [
     primary: true,
   },
 
-  // GRUPO 2: Herramientas (acciones secundarias)
+  // GRUPO 2: Herramientas
   {
     title: "Red de Distribución",
     path: "/network",
@@ -139,12 +139,12 @@ const navigationItems: MenuItem[] = [
 // ==========================================
 export function AppSidebar() {
   const { user, signOut } = useAuth();
-  const { businessInfo, hasBusinessInfo } = useBusinessInfo();
+  const { businessInfo } = useBusinessInfo();
   const navigate = useNavigate();
   const location = useLocation();
 
   // ==========================================
-  // ✅ VERIFICACIÓN DE NEGOCIO
+  // VERIFICACIÓN DE NEGOCIO
   // ==========================================
   const isBusinessInfoIncomplete = () => {
     if (!businessInfo) return true;
@@ -181,7 +181,7 @@ export function AppSidebar() {
   };
 
   // ==========================================
-  // ✅ RENDER NAVEGACIÓN (con objetivos táctiles de 48px según el reporte)
+  // RENDER NAVEGACIÓN
   // ==========================================
   const renderNavItem = (item: MenuItem) => {
     const isActive = isActiveRoute(item.path);
@@ -215,7 +215,7 @@ export function AppSidebar() {
   };
 
   // ==========================================
-  // ✅ HELPER: OBTENER INICIALES DEL USUARIO
+  // HELPER: OBTENER INICIALES
   // ==========================================
   const getUserInitials = () => {
     if (!user?.email) return "U";
@@ -230,16 +230,16 @@ export function AppSidebar() {
   };
 
   // ==========================================
-  // ✅ RENDER PRINCIPAL CON ESTRUCTURA COMPLETA
+  // ✅ RENDER PRINCIPAL - SIN COLLAPSE
   // ==========================================
   return (
-    <Sidebar className="border-r border-slate-200 bg-white flex flex-col h-screen">
+    <Sidebar collapsible="none" className="border-r border-slate-200 bg-white">
       {/* ============================================ */}
-      {/* ✅ HEADER - LOGO Y BRANDING */}
+      {/* HEADER - LOGO Y BRANDING */}
       {/* ============================================ */}
-      <SidebarHeader className="border-b border-slate-200 bg-gradient-to-r from-blue-50 to-slate-50 p-4 flex-shrink-0">
+      <SidebarHeader className="border-b border-slate-200 bg-gradient-to-r from-blue-50 to-slate-50 p-4">
         <div className="flex items-center gap-3">
-          {/* Logo/Icon */}
+          {/* Logo */}
           <div className="w-10 h-10 rounded-lg bg-blue-600 flex items-center justify-center flex-shrink-0 shadow-md">
             <Sparkles className="w-6 h-6 text-white" aria-hidden="true" />
           </div>
@@ -253,9 +253,9 @@ export function AppSidebar() {
       </SidebarHeader>
 
       {/* ============================================ */}
-      {/* ✅ USER INFO - INFORMACIÓN DEL USUARIO */}
+      {/* USER INFO */}
       {/* ============================================ */}
-      <SidebarGroup className="border-b border-slate-200 bg-slate-50 flex-shrink-0">
+      <SidebarGroup className="border-b border-slate-200 bg-slate-50">
         <SidebarGroupContent className="px-4 py-3">
           <div className="flex items-center gap-3">
             {/* Avatar */}
@@ -273,7 +273,7 @@ export function AppSidebar() {
             </div>
           </div>
 
-          {/* ✅ WARNING: Información de negocio incompleta */}
+          {/* WARNING: Perfil Incompleto */}
           {showBusinessWarning && (
             <div
               className="mt-3 p-2.5 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-2 cursor-pointer hover:bg-amber-100 transition-colors"
@@ -298,10 +298,10 @@ export function AppSidebar() {
       </SidebarGroup>
 
       {/* ============================================ */}
-      {/* ✅ NAVIGATION CONTENT - MENÚ PRINCIPAL */}
+      {/* NAVIGATION CONTENT */}
       {/* ============================================ */}
-      <SidebarContent className="px-3 py-4 flex-1 overflow-y-auto">
-        {/* Grupo Principal (5-7 items según el reporte) */}
+      <SidebarContent className="px-3 py-4">
+        {/* Grupo Principal */}
         <SidebarGroup>
           <SidebarGroupLabel className="text-xs font-semibold text-slate-500 uppercase px-3 mb-2 tracking-wider">
             Principal
@@ -311,7 +311,7 @@ export function AppSidebar() {
           </SidebarMenu>
         </SidebarGroup>
 
-        {/* Separador visual */}
+        {/* Separador */}
         <div className="h-px bg-slate-200 my-4 mx-3" aria-hidden="true" />
 
         {/* Grupo Herramientas */}
@@ -326,7 +326,7 @@ export function AppSidebar() {
           </SidebarMenu>
         </SidebarGroup>
 
-        {/* Separador visual */}
+        {/* Separador */}
         <div className="h-px bg-slate-200 my-4 mx-3" aria-hidden="true" />
 
         {/* Grupo Configuración */}
@@ -343,9 +343,9 @@ export function AppSidebar() {
       </SidebarContent>
 
       {/* ============================================ */}
-      {/* ✅ FOOTER - LOGOUT BUTTON */}
+      {/* FOOTER - LOGOUT */}
       {/* ============================================ */}
-      <SidebarFooter className="border-t border-slate-200 bg-slate-50 p-4 flex-shrink-0">
+      <SidebarFooter className="border-t border-slate-200 bg-slate-50 p-4">
         <Button
           onClick={handleLogout}
           variant="outline"
