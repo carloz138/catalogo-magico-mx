@@ -1,36 +1,30 @@
 import { supabase } from "@/integrations/supabase/client";
 import { Quote, QuoteItem, CreateQuoteDTO, QuoteStatus } from "@/types/digital-catalog";
 
-// Definir el tipo de respuesta esperado de nuestra nueva Edge Function
 interface CreateQuoteResponse {
   success: boolean;
   quoteId?: string;
   error?: string;
 }
 
-// 👇 ¡AQUÍ ESTABA EL ERROR! Faltaba "export" 👇
 export class QuoteService {
   /**
    * Crear cotización (desde vista pública - cliente anónimo).
-   * AHORA LLAMA A LA EDGE FUNCTION 'create-anonymous-quote'
    */
   static async createQuote(quoteData: CreateQuoteDTO): Promise<Quote> {
     console.log("Invocando Edge Function 'create-anonymous-quote'...");
 
-    // 1. Llamar a la nueva Edge Function segura
     const { data, error } = await supabase.functions.invoke<CreateQuoteResponse>("create-anonymous-quote", {
-      body: quoteData, // Pasamos el DTO completo (que incluye los datos del form)
+      body: quoteData,
     });
 
     if (error) {
       console.error("Error al invocar Edge Function:", error);
-      // Intenta extraer un mensaje de error más útil si es posible
       const message =
         (error as any).context?.message || error.message || "Error al contactar el servidor de cotizaciones.";
       throw new Error(message);
     }
 
-    // 2. Manejar la respuesta de la Edge Function
     if (data.error) {
       console.error("Error devuelto por la Edge Function:", data.error);
       throw new Error(`Error en el servidor: ${data.error}`);
@@ -43,11 +37,10 @@ export class QuoteService {
 
     console.log(`Cotización creada exitosamente por Edge Function con ID: ${data.quoteId}`);
 
-    // 3. Devolver un objeto 'Quote' parcial para cumplir con el tipo
     const partialQuote: Quote = {
       id: data.quoteId,
       catalog_id: quoteData.catalog_id,
-      user_id: "", // No lo necesitamos en el frontend en este punto
+      user_id: "",
       customer_name: quoteData.customer_name,
       customer_email: quoteData.customer_email,
       customer_company: quoteData.customer_company || null,
@@ -61,10 +54,10 @@ export class QuoteService {
       shipping_cost: 0,
     };
 
-    return partialQuote as Quote; // Cumplimos el contrato de tipo Promise<Quote>
+    return partialQuote as Quote;
   }
 
-  // Obtener cotizaciones del usuario (con filtros)
+  // ✅ MODIFICADO: Obtener cotizaciones del usuario CON productos completos
   static async getUserQuotes(
     userId: string,
     filters?: {
@@ -74,14 +67,23 @@ export class QuoteService {
       date_to?: string;
       customer_search?: string;
     },
-  ): Promise<Array<Quote & { items_count: number; total_amount: number }>> {
+  ): Promise<Array<Quote & { items_count: number; total_amount: number; has_replicated_catalog: boolean }>> {
     let query = supabase
       .from("quotes")
       .select(
         `
         *,
         quote_items (
-          subtotal
+          *,
+          products (
+            name,
+            sku,
+            image_url
+          )
+        ),
+        digital_catalogs (
+          name,
+          enable_distribution
         )
       `,
       )
@@ -112,17 +114,38 @@ export class QuoteService {
     const { data, error } = await query;
     if (error) throw error;
 
-    // Calcular totales
+    // ✅ NUEVO: Verificar catálogos replicados para cada cotización
+    const quoteIds = data?.map((q: any) => q.id) || [];
+    const { data: replicatedCatalogs } = await supabase
+      .from("replicated_catalogs")
+      .select("quote_id, is_active")
+      .in("quote_id", quoteIds);
+
+    const replicatedCatalogMap = new Map(replicatedCatalogs?.map((rc: any) => [rc.quote_id, rc]) || []);
+
+    // Calcular totales y agregar info de catálogo replicado
     return (data || []).map((quote: any) => {
       const items = quote.quote_items || [];
       const total_amount = items.reduce((sum: number, item: any) => sum + (item.subtotal || 0), 0);
       const items_count = items.length;
-      const { quote_items, ...quoteData } = quote;
+      const replicaCatalog = replicatedCatalogMap.get(quote.id);
+
+      const { quote_items, digital_catalogs, ...quoteData } = quote;
+
       return {
         ...quoteData,
         items_count,
         total_amount,
-      } as Quote & { items_count: number; total_amount: number };
+        has_replicated_catalog: !!replicaCatalog,
+        catalog_activated: replicaCatalog?.is_active || false,
+        catalog_name: digital_catalogs?.name,
+      } as Quote & {
+        items_count: number;
+        total_amount: number;
+        has_replicated_catalog: boolean;
+        catalog_activated: boolean;
+        catalog_name: string;
+      };
     });
   }
 
@@ -145,10 +168,19 @@ export class QuoteService {
     if (quoteError) throw quoteError;
     if (!quote) throw new Error("Cotización no encontrada");
 
-    // Obtener items
+    // Obtener items con productos completos
     const { data: items, error: itemsError } = await supabase
       .from("quote_items")
-      .select("*")
+      .select(
+        `
+        *,
+        products (
+          name,
+          sku,
+          image_url
+        )
+      `,
+      )
       .eq("quote_id", quoteId)
       .order("created_at");
 
@@ -161,7 +193,7 @@ export class QuoteService {
     } as Quote & { items: QuoteItem[]; catalog: any };
   }
 
-  // Actualizar estado de cotización
+  // ✅ MODIFICADO: Actualizar estado y enviar email correcto
   static async updateQuoteStatus(
     quoteId: string,
     userId: string,
@@ -179,25 +211,38 @@ export class QuoteService {
     if (error) throw error;
     if (!updatedQuote) throw new Error("No se pudo actualizar la cotización");
 
-    // Enviar notificación por email (solo cuando se acepta)
+    // ✅ CAMBIO CRÍTICO: Enviar email de ACEPTACIÓN (no notificación genérica)
     if (status === "accepted") {
       try {
-        console.log(`📧 Enviando notificación de cotización aceptada: ${quoteId}`);
+        console.log(`📧 Enviando email de cotización aceptada: ${quoteId}`);
 
-        const { data: functionData, error: functionError } = await supabase.functions.invoke(
-          "send-quote-notification",
-          {
-            body: { quoteId, newStatus: status },
-          },
-        );
+        // Obtener datos del cliente para el email
+        const { data: quote } = await supabase
+          .from("quotes")
+          .select("customer_email, customer_name")
+          .eq("id", quoteId)
+          .single();
 
-        if (functionError) {
-          console.error("❌ Error al invocar la función de notificación:", functionError);
-        } else {
-          console.log("✅ Notificación enviada exitosamente:", functionData);
+        if (quote) {
+          const { data: functionData, error: functionError } = await supabase.functions.invoke(
+            "send-quote-accepted-email", // ✅ NUEVA FUNCIÓN
+            {
+              body: {
+                quoteId,
+                customerEmail: quote.customer_email,
+                customerName: quote.customer_name,
+              },
+            },
+          );
+
+          if (functionError) {
+            console.error("❌ Error al invocar la función de email:", functionError);
+          } else {
+            console.log("✅ Email enviado exitosamente:", functionData);
+          }
         }
       } catch (notificationError) {
-        console.error("❌ Error inesperado al intentar notificar:", notificationError);
+        console.error("❌ Error inesperado al intentar enviar email:", notificationError);
       }
     }
 
@@ -211,7 +256,7 @@ export class QuoteService {
     accepted: number;
     rejected: number;
     total_amount_accepted: number;
-    shipped: number; // <-- Añadido para el nuevo estado
+    shipped: number;
   }> {
     const { data: quotes, error } = await supabase
       .from("quotes")
@@ -232,7 +277,7 @@ export class QuoteService {
       pending: 0,
       accepted: 0,
       rejected: 0,
-      shipped: 0, // <-- Añadido
+      shipped: 0,
       total_amount_accepted: 0,
     };
 
@@ -240,9 +285,8 @@ export class QuoteService {
       if (quote.status === "pending") stats.pending++;
       if (quote.status === "accepted") stats.accepted++;
       if (quote.status === "rejected") stats.rejected++;
-      if (quote.status === "shipped") stats.shipped++; // <-- Añadido
+      if (quote.status === "shipped") stats.shipped++;
 
-      // Asume que 'shipped' se cuenta como 'accepted' para el total de monto
       if (quote.status === "accepted" || quote.status === "shipped") {
         const items = quote.quote_items || [];
         stats.total_amount_accepted += items.reduce((sum: number, item: any) => sum + (item.subtotal || 0), 0);
