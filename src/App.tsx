@@ -48,6 +48,7 @@ import QuoteDetailPage from "@/pages/quotes/QuoteDetail";
 import DistributionNetwork from "@/pages/DistributionNetwork";
 import ResellerDashboard from "@/pages/ResellerDashboard";
 import ProductPriceEditor from "@/pages/reseller/ProductPriceEditor";
+import TrackQuotePage from '@/pages/TrackQuotePage';
 
 const queryClient = new QueryClient();
 
