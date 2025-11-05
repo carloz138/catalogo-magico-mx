@@ -27,75 +27,88 @@ export default function TrackQuotePage() {
     loadQuote();
   }, [token]);
 
-  const loadQuote = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('quotes')
-        .select(`
-          *,
-          quote_items (*),
-          digital_catalogs (name, slug),
-          replicated_catalogs (id, is_active)
-        `)
-        .eq('tracking_token', token)
-        .single();
+const loadQuote = async () => {
+  try {
+    // 1. Obtener cotización
+    const { data, error } = await supabase
+      .from('quotes')
+      .select(`
+        *,
+        quote_items (*),
+        digital_catalogs (name, slug)
+      `)
+      .eq('tracking_token', token)
+      .single();
 
-      if (error) throw error;
-      setQuote(data);
-    } catch (error) {
-      console.error('Error loading quote:', error);
-      toast({
-        title: 'Error',
-        description: 'No se pudo cargar la cotización',
-        variant: 'destructive',
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+    if (error) throw error;
 
-  const handleReplicate = async () => {
-    if (!user) {
-      setShowAuthModal(true);
-      return;
-    }
+    // 2. Verificar si tiene catálogo replicado
+    const { data: replicaData } = await supabase
+      .from('replicated_catalogs')
+      .select('id, is_active')
+      .eq('quote_id', data.id)
+      .maybeSingle();
 
-    setReplicating(true);
-    try {
-      // Crear catálogo replicado
-      const { data: replicatedCatalog, error } = await supabase
-        .from('replicated_catalogs')
-        .insert({
-          original_catalog_id: quote.catalog_id,
-          quote_id: quote.id,
-          reseller_id: user.id,
-          is_active: true,
-          activated_at: new Date().toISOString(),
-        })
-        .select()
-        .single();
+    // 3. Combinar datos
+    setQuote({
+      ...data,
+      replicated_catalogs: replicaData
+    });
+  } catch (error) {
+    console.error('Error loading quote:', error);
+    toast({
+      title: 'Error',
+      description: 'No se pudo cargar la cotización',
+      variant: 'destructive',
+    });
+  } finally {
+    setLoading(false);
+  }
+};
 
-      if (error) throw error;
+const handleReplicate = async () => {
+  if (!user) {
+    setShowAuthModal(true);
+    return;
+  }
 
-      toast({
-        title: '🎉 ¡Catálogo creado!',
-        description: 'Ya puedes empezar a vender',
-      });
+  setReplicating(true);
+  try {
+    // Crear catálogo replicado
+    const { data: replicatedCatalog, error } = await supabase
+      .from('replicated_catalogs')
+      .insert({
+        original_catalog_id: quote.catalog_id,
+        quote_id: quote.id,
+        distributor_id: user.id,
+        is_active: true,
+        activated_at: new Date().toISOString(),
+        activation_token: crypto.randomUUID()
+      })
+      .select()
+      .single();
 
-      setTimeout(() => {
-        navigate('/catalogs');
-      }, 1500);
-    } catch (error: any) {
-      console.error('Error replicating:', error);
-      toast({
-        title: 'Error',
-        description: error.message || 'No se pudo crear el catálogo',
-        variant: 'destructive',
-      });
-    } finally {
-      setReplicating(false);
-    }
-  };
+    if (error) throw error;
+
+    toast({
+      title: '🎉 ¡Catálogo creado!',
+      description: 'Ya puedes empezar a vender',
+    });
+
+    setTimeout(() => {
+      navigate('/catalogs');
+    }, 1500);
+  } catch (error: any) {
+    console.error('Error replicating:', error);
+    toast({
+      title: 'Error',
+      description: error.message || 'No se pudo crear el catálogo',
+      variant: 'destructive',
+    });
+  } finally {
+    setReplicating(false);
+  }
+};
 
   if (loading) {
     return (
