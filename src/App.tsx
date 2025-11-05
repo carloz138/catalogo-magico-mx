@@ -98,6 +98,7 @@ const App = () => (
               <Route path="/checkout" element={<Checkout />} />
               <Route path="/payment-success" element={<PaymentSuccess />} />
               <Route path="/payment-instructions/:transactionId" element={<PaymentInstructions />} />
+              <Route path="/track/:token" element={<TrackQuotePage />} />
             </Route>
             {/* Ruta para Not Found al final */}
             <Route path="*" element={<NotFound />} />
