@@ -227,8 +227,9 @@ export function PublicProductCard({
       <ShoppingCart className="mr-2 h-4 w-4" />
       Agregar a cotización
     </Button>
-  ) : (
-          onRequestSpecialQuote && (
+  )
+) : (
+  onRequestSpecialQuote && (
             <Button 
               variant="outline"
               size="sm"
