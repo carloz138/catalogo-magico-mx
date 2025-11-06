@@ -180,18 +180,54 @@ export function PublicProductCard({
         </div>
         
         {/* Botón condicional basado en estado de compra */}
-        {isPurchased ? (
-          onAddToQuote && (
-            <Button 
-              size="sm"
-              onClick={() => onAddToQuote(product)}
-              className="w-full catalog-add-button"
-            >
-              <ShoppingCart className="mr-2 h-4 w-4" />
-              Agregar a cotización
-            </Button>
-          )
-        ) : (
+      {isPurchased ? (
+  onAddToQuote && (
+    <Button 
+      size="sm"
+      onClick={() => {
+        // ✅ Formatear descripción de variante
+        const variantDescription = selectedVariant 
+          ? Object.entries(selectedVariant.variant_combination)
+              .map(([key, value]) => {
+                const labelMap: Record<string, string> = {
+                  'color': 'Color',
+                  'color_calzado': 'Color',
+                  'color_electronico': 'Color',
+                  'color_fiesta': 'Color',
+                  'talla_ropa': 'Talla',
+                  'talla_calzado': 'Talla',
+                  'material': 'Material',
+                  'capacidad': 'Capacidad',
+                  'tamano': 'Tamaño',
+                  'tamano_arreglo': 'Tamaño',
+                  'tipo_flor': 'Tipo de Flor'
+                };
+                const label = labelMap[key] || key;
+                return `${label}: ${value}`;
+              })
+              .join(', ')
+          : null;
+
+        // ✅ Determinar SKU (variante o producto)
+        const sku = selectedVariant?.sku || product.sku;
+
+        // ✅ Pasar objeto completo con toda la info
+        onAddToQuote({
+          product: product,
+          variantId: selectedVariantId,
+          variantDescription: variantDescription,
+          sku: sku,
+          quantity: 1,
+          retailPrice: retailPrice,
+          wholesalePrice: wholesalePrice
+        });
+      }}
+      className="w-full catalog-add-button"
+    >
+      <ShoppingCart className="mr-2 h-4 w-4" />
+      Agregar a cotización
+    </Button>
+  ) : (
           onRequestSpecialQuote && (
             <Button 
               variant="outline"
