@@ -17,9 +17,18 @@ interface Props {
   selectedVariantId: string | null;
   onVariantChange: (variantId: string) => void;
   showStock?: boolean;
+  purchasedVariantIds?: string[]; // ✅ NUEVO
+  isReplicatedCatalog?: boolean; // ✅ NUEVO
 }
 
-export function VariantSelector({ variants, selectedVariantId, onVariantChange, showStock = true }: Props) {
+export function VariantSelector({ 
+  variants, 
+  selectedVariantId, 
+  onVariantChange, 
+  showStock = true,
+  purchasedVariantIds = [], // ✅ NUEVO
+  isReplicatedCatalog = false // ✅ NUEVO
+}: Props) {
   if (!variants || variants.length === 0) {
     return null;
   }
@@ -61,18 +70,35 @@ export function VariantSelector({ variants, selectedVariantId, onVariantChange, 
           </SelectValue>
         </SelectTrigger>
         <SelectContent className="bg-background z-50">
-          {variants.map((variant) => (
-            <SelectItem key={variant.id} value={variant.id}>
-              <div className="flex items-center justify-between gap-4 w-full">
-                <span>{formatVariantCombination(variant.variant_combination)}</span>
-                {variant.sku && (
-                  <Badge variant="outline" className="text-xs ml-2">
-                    {variant.sku}
-                  </Badge>
-                )}
-              </div>
-            </SelectItem>
-          ))}
+          {variants.map((variant) => {
+            const isPurchased = !isReplicatedCatalog || purchasedVariantIds.includes(variant.id);
+            
+            return (
+              <SelectItem key={variant.id} value={variant.id}>
+                <div className="flex items-center justify-between gap-2 w-full">
+                  <span className="flex-1">{formatVariantCombination(variant.variant_combination)}</span>
+                  <div className="flex items-center gap-1.5">
+                    {variant.sku && (
+                      <Badge variant="outline" className="text-xs">
+                        {variant.sku}
+                      </Badge>
+                    )}
+                    {isReplicatedCatalog && (
+                      isPurchased ? (
+                        <Badge variant="outline" className="text-xs border-green-500 text-green-700 bg-green-50">
+                          ✅ Disponible
+                        </Badge>
+                      ) : (
+                        <Badge variant="secondary" className="text-xs bg-amber-100 text-amber-800 border-amber-300">
+                          📝 Bajo Pedido
+                        </Badge>
+                      )
+                    )}
+                  </div>
+                </div>
+              </SelectItem>
+            );
+          })}
         </SelectContent>
       </Select>
 

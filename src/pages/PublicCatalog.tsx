@@ -89,8 +89,9 @@ function PublicCatalogContent() {
     console.log("════════════════════════════════════");
     console.log("🔍 DEBUG PublicCatalog:");
     console.log("isReplicated:", catalog.isReplicated);
-    console.log("replicatedCatalogId:", catalog.replicatedCatalogId); // ✅ NUEVO
+    console.log("replicatedCatalogId:", catalog.replicatedCatalogId);
     console.log("purchasedProductIds:", catalog.purchasedProductIds);
+    console.log("purchasedVariantIds:", catalog.purchasedVariantIds); // ✅ NUEVO
     console.log("Total productos:", catalog.products?.length);
 
     if (catalog.isReplicated && catalog.purchasedProductIds) {
@@ -345,6 +346,7 @@ function PublicCatalogContent() {
                   minPrice={minPrice}
                   maxPrice={maxPrice}
                   purchasedProductIds={catalog.purchasedProductIds || []}
+                  purchasedVariantIds={catalog.purchasedVariantIds || []} // ✅ NUEVO
                 />
               </TabsContent>
 
@@ -379,6 +381,7 @@ function PublicCatalogContent() {
               minPrice={minPrice}
               maxPrice={maxPrice}
               purchasedProductIds={catalog.purchasedProductIds || []}
+              purchasedVariantIds={catalog.purchasedVariantIds || []} // ✅ NUEVO
             />
           )}
         </div>

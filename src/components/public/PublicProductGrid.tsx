@@ -10,6 +10,7 @@ interface Props {
   enableVariants?: boolean;
   onAddToQuote?: (product: any) => void;
   purchasedProductIds: string[];
+  purchasedVariantIds?: string[]; // ✅ NUEVO
   onRequestSpecialQuote?: (product: any) => void;
   isReplicatedCatalog: boolean;
 }
@@ -23,6 +24,7 @@ export function PublicProductGrid({
   enableVariants = true,
   onAddToQuote,
   purchasedProductIds,
+  purchasedVariantIds = [], // ✅ NUEVO
   onRequestSpecialQuote,
   isReplicatedCatalog,
 }: Props) {
@@ -53,6 +55,7 @@ export function PublicProductGrid({
             visibilityConfig={visibilityConfig}
             enableVariants={enableVariants}
             purchasedProductIds={purchasedProductIds}
+            purchasedVariantIds={purchasedVariantIds} // ✅ NUEVO
             isReplicatedCatalog={isReplicatedCatalog}
             onAddToQuote={onAddToQuote ? () => onAddToQuote(product) : undefined}
             onRequestSpecialQuote={onRequestSpecialQuote ? () => onRequestSpecialQuote(product) : undefined}

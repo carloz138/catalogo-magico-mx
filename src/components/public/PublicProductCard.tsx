@@ -45,6 +45,7 @@ interface Props {
   };
   enableVariants?: boolean;
   purchasedProductIds: string[];
+  purchasedVariantIds?: string[]; // ✅ NUEVO
   isReplicatedCatalog: boolean;
   onAddToQuote?: (product: any) => void;
   onRequestSpecialQuote?: (product: any) => void;
@@ -56,6 +57,7 @@ export function PublicProductCard({
   visibilityConfig, 
   enableVariants = true, 
   purchasedProductIds,
+  purchasedVariantIds = [], // ✅ NUEVO
   isReplicatedCatalog,
   onAddToQuote,
   onRequestSpecialQuote 
@@ -70,8 +72,15 @@ export function PublicProductCard({
     }
   }, [product]);
 
-  // Determinar si el producto está en la lista de comprados
-  const isPurchased = !isReplicatedCatalog || purchasedProductIds.includes(product.id);
+  // ✅ NUEVO: Determinar si el producto/variante está comprado
+  const isPurchased = !isReplicatedCatalog || (() => {
+    // Si el producto tiene variantes, verificar si la variante seleccionada está comprada
+    if (product.has_variants && selectedVariantId) {
+      return purchasedVariantIds.includes(selectedVariantId);
+    }
+    // Si no tiene variantes, verificar si el producto está comprado
+    return purchasedProductIds.includes(product.id);
+  })();
 
   const imageUrl = product.processed_image_url || product.original_image_url;
   
@@ -138,6 +147,8 @@ export function PublicProductCard({
             selectedVariantId={selectedVariantId}
             onVariantChange={setSelectedVariantId}
             showStock={visibilityConfig.showStock}
+            purchasedVariantIds={purchasedVariantIds} // ✅ NUEVO
+            isReplicatedCatalog={isReplicatedCatalog} // ✅ NUEVO
           />
         )}
         

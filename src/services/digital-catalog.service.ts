@@ -235,17 +235,23 @@ export class DigitalCatalogService {
         throw new Error('Catálogo original no encontrado');
       }
 
-      // Get purchased products from quote
+      // Get purchased products AND variants from quote
       let purchasedProductIds: string[] = [];
+      let purchasedVariantIds: string[] = [];
       if (replicatedCatalog.quote_id) {
         const { data: quoteItems } = await supabase
           .from('quote_items')
-          .select('product_id')
+          .select('product_id, variant_id')
           .eq('quote_id', replicatedCatalog.quote_id);
 
         if (quoteItems && quoteItems.length > 0) {
           purchasedProductIds = quoteItems
             .map((item: any) => item.product_id)
+            .filter((id) => id !== null && id !== undefined);
+          
+          // ✅ NUEVO: Extraer variant_ids comprados
+          purchasedVariantIds = quoteItems
+            .map((item: any) => item.variant_id)
             .filter((id) => id !== null && id !== undefined);
         }
       }
@@ -295,6 +301,7 @@ export class DigitalCatalogService {
           address: null,
         },
         purchasedProductIds,
+        purchasedVariantIds, // ✅ NUEVO
         isReplicated: true,
         replicatedCatalogId: replicatedCatalog.id,
       } as unknown as PublicCatalogView;

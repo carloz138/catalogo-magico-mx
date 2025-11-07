@@ -229,8 +229,9 @@ export interface PublicCatalogView extends DigitalCatalog {
   };
   enable_variants: boolean;
   purchasedProductIds?: string[];
+  purchasedVariantIds?: string[]; // ✅ NUEVO: IDs de variantes compradas
   isReplicated?: boolean;
-  replicatedCatalogId?: string; // ✅ NUEVO
+  replicatedCatalogId?: string;
   resellerInfo?: {
     reseller_id: string;
   };

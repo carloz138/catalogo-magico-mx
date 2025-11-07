@@ -21,6 +21,7 @@ interface ProductsContentProps {
   minPrice: number;
   maxPrice: number;
   purchasedProductIds: string[];
+  purchasedVariantIds?: string[]; // ✅ NUEVO
 }
 
 export function ProductsContent({
@@ -38,7 +39,8 @@ export function ProductsContent({
   handleRequestSpecialQuote,
   minPrice,
   maxPrice,
-  purchasedProductIds, // <-- AÑADIR AQUÍ
+  purchasedProductIds,
+  purchasedVariantIds = [], // ✅ NUEVO
 }: ProductsContentProps) {
   return (
     <div className="flex flex-col lg:flex-row gap-8" style={{ pointerEvents: "auto" }}>
@@ -99,6 +101,7 @@ export function ProductsContent({
             enableVariants={catalog.enable_variants}
             onAddToQuote={catalog.enable_quotation ? handleAddToQuote : undefined}
             purchasedProductIds={purchasedProductIds}
+            purchasedVariantIds={purchasedVariantIds} // ✅ NUEVO
             onRequestSpecialQuote={catalog.enable_quotation ? handleRequestSpecialQuote : undefined}
             isReplicatedCatalog={catalog.isReplicated ?? false}
           />
