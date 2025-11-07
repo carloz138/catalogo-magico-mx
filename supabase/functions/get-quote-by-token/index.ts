@@ -51,11 +51,7 @@ serve(async (req) => {
           name,
           slug,
           enable_distribution,
-          user_id,
-          users (
-            business_name,
-            full_name
-          )
+          user_id
         ),
         replicated_catalogs (
           id,
@@ -76,7 +72,24 @@ serve(async (req) => {
 
     console.log('✅ Cotización encontrada:', quote.id);
     console.log('📦 Items:', quote.quote_items?.length || 0);
-    console.log('🏢 Business name:', quote.digital_catalogs?.users?.business_name);
+
+    // Obtener información del usuario del catálogo
+    let businessInfo = null;
+    if (quote.digital_catalogs?.user_id) {
+      const { data: businessData } = await supabase
+        .from('business_info')
+        .select('business_name')
+        .eq('user_id', quote.digital_catalogs.user_id)
+        .single();
+      
+      businessInfo = businessData;
+      console.log('🏢 Business name:', businessInfo?.business_name);
+    }
+
+    // Agregar business info al objeto catalog
+    if (quote.digital_catalogs && businessInfo) {
+      quote.digital_catalogs.users = businessInfo;
+    }
 
     return new Response(
       JSON.stringify({ success: true, quote }),
