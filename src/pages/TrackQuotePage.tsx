@@ -68,28 +68,57 @@ export default function TrackQuotePage() {
       setShowAuthModal(true);
       return;
     }
+    
+    if (!quote) return;
 
     setReplicating(true);
     try {
-      const { data: replicatedCatalog, error } = await supabase
-        .from("replicated_catalogs")
-        .insert({
-          original_catalog_id: quote.catalog_id,
-          quote_id: quote.id,
-          distributor_id: user.id,
-          is_active: true,
-          activated_at: new Date().toISOString(),
-          activation_token: crypto.randomUUID(),
-        })
-        .select()
-        .single();
+      // Verificar si ya existe una réplica inactiva
+      const replicaExists = !!quote.replicated_catalogs;
+      const isReplicaActive = quote.replicated_catalogs?.is_active === true;
+      
+      if (replicaExists && !isReplicaActive) {
+        // Activar la réplica existente
+        console.log("🔄 Activando réplica existente:", quote.replicated_catalogs.id);
+        
+        const { error } = await supabase
+          .from("replicated_catalogs")
+          .update({
+            is_active: true,
+            reseller_id: user.id,
+            activated_at: new Date().toISOString(),
+          })
+          .eq("id", quote.replicated_catalogs.id);
 
-      if (error) throw error;
+        if (error) throw error;
 
-      toast({
-        title: "🎉 ¡Catálogo activado!",
-        description: "Ya puedes empezar a vender",
-      });
+        toast({
+          title: "🎉 ¡Catálogo activado!",
+          description: "Ya puedes empezar a vender",
+        });
+      } else {
+        // Crear nueva réplica
+        console.log("✨ Creando nueva réplica para:", quote.catalog_id);
+        
+        const { error } = await supabase
+          .from("replicated_catalogs")
+          .insert({
+            original_catalog_id: quote.catalog_id,
+            quote_id: quote.id,
+            distributor_id: quote.digital_catalogs.user_id,
+            reseller_id: user.id,
+            is_active: true,
+            activated_at: new Date().toISOString(),
+            activation_token: crypto.randomUUID(),
+          });
+
+        if (error) throw error;
+
+        toast({
+          title: "🎉 ¡Catálogo activado!",
+          description: "Ya puedes empezar a vender",
+        });
+      }
 
       setTimeout(() => {
         navigate("/catalogs");
@@ -176,9 +205,18 @@ export default function TrackQuotePage() {
   }
 
   const total = quote.quote_items.reduce((sum: number, item: any) => sum + item.subtotal, 0);
-  const canReplicate =
-    quote.status === "accepted" && quote.digital_catalogs?.enable_distribution && !quote.replicated_catalogs;
-  const alreadyReplicated = !!quote.replicated_catalogs;
+  
+  // Verificar si el catálogo puede ser replicado/activado
+  const isQuoteAccepted = quote.status === "accepted";
+  const hasDistributionEnabled = quote.digital_catalogs?.enable_distribution;
+  const replicaExists = !!quote.replicated_catalogs;
+  const isReplicaActive = quote.replicated_catalogs?.is_active === true;
+  
+  // Puede replicar si: está aceptada, tiene distribución Y (no existe réplica O la réplica no está activa)
+  const canReplicate = isQuoteAccepted && hasDistributionEnabled && (!replicaExists || !isReplicaActive);
+  
+  // Ya está replicado y activo si: existe la réplica Y está activa
+  const alreadyReplicated = replicaExists && isReplicaActive;
   const providerName = 
     quote.digital_catalogs?.users?.business_name || 
     quote.digital_catalogs?.users?.full_name || 
