@@ -12,31 +12,6 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "12.2.12 (cd3cf9e)"
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       backup_view_definitions: {
@@ -1148,6 +1123,7 @@ export type Database = {
           id: string
           notes: string | null
           order_number: string | null
+          replicated_catalog_id: string | null
           shipping_address: string | null
           shipping_cost: number | null
           status: string | null
@@ -1169,6 +1145,7 @@ export type Database = {
           id?: string
           notes?: string | null
           order_number?: string | null
+          replicated_catalog_id?: string | null
           shipping_address?: string | null
           shipping_cost?: number | null
           status?: string | null
@@ -1190,6 +1167,7 @@ export type Database = {
           id?: string
           notes?: string | null
           order_number?: string | null
+          replicated_catalog_id?: string | null
           shipping_address?: string | null
           shipping_cost?: number | null
           status?: string | null
@@ -1204,6 +1182,13 @@ export type Database = {
             columns: ["catalog_id"]
             isOneToOne: false
             referencedRelation: "digital_catalogs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quotes_replicated_catalog_id_fkey"
+            columns: ["replicated_catalog_id"]
+            isOneToOne: false
+            referencedRelation: "replicated_catalogs"
             referencedColumns: ["id"]
           },
         ]
@@ -1223,6 +1208,7 @@ export type Database = {
           quote_id: string | null
           reseller_email: string | null
           reseller_id: string | null
+          slug: string | null
           updated_at: string | null
         }
         Insert: {
@@ -1239,6 +1225,7 @@ export type Database = {
           quote_id?: string | null
           reseller_email?: string | null
           reseller_id?: string | null
+          slug?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -1255,6 +1242,7 @@ export type Database = {
           quote_id?: string | null
           reseller_email?: string | null
           reseller_id?: string | null
+          slug?: string | null
           updated_at?: string | null
         }
         Relationships: [
@@ -2572,9 +2560,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       delivery_method_enum: ["pickup", "shipping"],
@@ -2594,4 +2579,3 @@ export const Constants = {
     },
   },
 } as const
-

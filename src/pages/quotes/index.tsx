@@ -382,6 +382,11 @@ export default function QuotesPage() {
                             <Clock className="w-4 h-4" />
                             {format(new Date(quote.created_at), "d 'de' MMMM, yyyy", { locale: es })}
                           </span>
+                          {(quote as any).is_from_replicated && (
+                            <Badge variant="outline" className="bg-teal-50 text-teal-700 border-teal-200">
+                              Catálogo Replicado
+                            </Badge>
+                          )}
                         </div>
 
                         {quote.notes && (

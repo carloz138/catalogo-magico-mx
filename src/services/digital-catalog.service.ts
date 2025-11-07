@@ -205,107 +205,69 @@ export class DigitalCatalogService {
   }
 
   static async getPublicCatalog(slugOrToken: string): Promise<PublicCatalogView> {
-    // Paso 1: Intentar buscar en digital_catalogs por slug
-    const { data: catalog, error: catalogError } = await supabase
-      .from("digital_catalogs")
-      .select("*")
-      .eq("slug", slugOrToken)
-      .eq("is_active", true)
-      .maybeSingle();
-
-    let isReplicated = false;
-    let purchasedProductIds: string[] = [];
-    let replicatedCatalogId: string | null = null; // ✅ NUEVO
-    let finalCatalog: any = catalog;
-    let originalCatalogId: string = catalog?.id || "";
-
-    // Paso 2: Si no se encuentra, buscar en replicated_catalogs por activation_token
-    if (!catalog) {
-      const { data: replicatedCatalog, error: replicatedError } = await supabase
-        .from("replicated_catalogs")
-        .select("id, original_catalog_id, quote_id, reseller_id, is_active")
-        .eq("activation_token", slugOrToken)
-        .eq("is_active", true)
-        .maybeSingle();
-
-      if (replicatedError || !replicatedCatalog) {
-        throw new Error("Catálogo no encontrado");
-      }
-
-      isReplicated = true;
-      replicatedCatalogId = replicatedCatalog.id; // ✅ NUEVO: Guardar ID de réplica
-      originalCatalogId = replicatedCatalog.original_catalog_id;
-
-      // Paso 3: Obtener el catálogo original
-      const { data: originalCatalog, error: originalError } = await supabase
-        .from("digital_catalogs")
-        .select("*")
-        .eq("id", originalCatalogId)
+    // Check if it's a replicated catalog slug (starts with 'r-')
+    if (slugOrToken.startsWith('r-')) {
+      const { data: replicatedCatalog, error: repError } = await supabase
+        .from('replicated_catalogs')
+        .select(`
+          id,
+          reseller_id,
+          original_catalog_id,
+          quote_id,
+          is_active
+        `)
+        .eq('slug', slugOrToken)
+        .eq('is_active', true)
         .single();
 
-      if (originalError || !originalCatalog) {
-        throw new Error("Catálogo original no encontrado");
+      if (repError || !replicatedCatalog) {
+        throw new Error('Catálogo no encontrado');
       }
 
-      finalCatalog = originalCatalog;
+      // Get original catalog
+      const { data: originalCatalog, error: origError } = await supabase
+        .from('digital_catalogs')
+        .select('*')
+        .eq('id', replicatedCatalog.original_catalog_id)
+        .single();
 
-      // Paso 4: Obtener los product_ids de la cotización asociada
+      if (origError || !originalCatalog) {
+        throw new Error('Catálogo original no encontrado');
+      }
+
+      // Get purchased products from quote
+      let purchasedProductIds: string[] = [];
       if (replicatedCatalog.quote_id) {
-        console.log("🔍 Buscando quote_items para quote_id:", replicatedCatalog.quote_id);
-
-        const { data: quoteItems, error: quoteItemsError } = await supabase
-          .from("quote_items")
-          .select("product_id")
-          .eq("quote_id", replicatedCatalog.quote_id);
-
-        console.log("📦 Quote items encontrados:", quoteItems);
-        console.log("❌ Error en quote_items:", quoteItemsError);
-
-        if (quoteItemsError) {
-          console.error("Error obteniendo quote items:", quoteItemsError);
-        }
+        const { data: quoteItems } = await supabase
+          .from('quote_items')
+          .select('product_id')
+          .eq('quote_id', replicatedCatalog.quote_id);
 
         if (quoteItems && quoteItems.length > 0) {
           purchasedProductIds = quoteItems
             .map((item: any) => item.product_id)
             .filter((id) => id !== null && id !== undefined);
-
-          console.log("✅ purchasedProductIds final:", purchasedProductIds);
-        } else {
-          console.warn("⚠️ No se encontraron quote_items para esta cotización");
         }
       }
-    }
 
-    if (!finalCatalog) {
-      throw new Error("Catálogo no encontrado");
-    }
-
-    if (finalCatalog.expires_at && new Date(finalCatalog.expires_at) < new Date()) {
-      throw new Error("Catálogo expirado");
-    }
-
-    // Paso 5: Obtener todos los productos del catálogo original
-    const { data: catalogProducts, error: productsError } = await supabase
-      .from("catalog_products")
-      .select(
-        `
-        products (
-          id, name, sku, description, price_retail, price_wholesale,
-          wholesale_min_qty, original_image_url, processed_image_url, tags, category, has_variants,
-          product_variants (
-            id, variant_combination, sku, price_retail, price_wholesale, stock_quantity, is_default
+      // Get catalog products
+      const { data: catalogProducts, error: productsError } = await supabase
+        .from('catalog_products')
+        .select(`
+          products (
+            id, name, sku, description, price_retail, price_wholesale,
+            wholesale_min_qty, original_image_url, processed_image_url, tags, category, has_variants,
+            product_variants (
+              id, variant_combination, sku, price_retail, price_wholesale, stock_quantity, is_default
+            )
           )
-        )
-      `,
-      )
-      .eq("catalog_id", originalCatalogId)
-      .order("sort_order");
+        `)
+        .eq('catalog_id', replicatedCatalog.original_catalog_id)
+        .order('sort_order');
 
-    if (productsError) throw productsError;
+      if (productsError) throw productsError;
 
-    const products =
-      catalogProducts
+      const products = catalogProducts
         ?.map((cp: any) => ({
           ...cp.products,
           image_url: cp.products.processed_image_url || cp.products.original_image_url,
@@ -313,37 +275,93 @@ export class DigitalCatalogService {
         }))
         .filter(Boolean) || [];
 
-    // Paso 6: Obtener business_info
-    // Si es replicado, usar reseller_id; si no, usar user_id del catálogo original
-    const businessUserId = isReplicated && replicatedCatalogId 
-      ? (await supabase
-          .from("replicated_catalogs")
-          .select("reseller_id")
-          .eq("id", replicatedCatalogId)
-          .single()
-        ).data?.reseller_id || finalCatalog.user_id
-      : finalCatalog.user_id;
+      // Get business info from RESELLER (L2)
+      const { data: businessInfo } = await supabase
+        .from('business_info')
+        .select('business_name, logo_url, phone, email, website, address')
+        .eq('user_id', replicatedCatalog.reseller_id)
+        .single();
 
+      return {
+        ...originalCatalog,
+        user_id: replicatedCatalog.reseller_id, // Override to L2's user_id
+        products,
+        business_info: businessInfo || {
+          business_name: 'Catálogo Digital',
+          logo_url: null,
+          phone: null,
+          email: null,
+          website: null,
+          address: null,
+        },
+        purchasedProductIds,
+        isReplicated: true,
+        replicatedCatalogId: replicatedCatalog.id,
+      } as unknown as PublicCatalogView;
+    }
+
+    // Original catalog flow (by slug)
+    const { data: catalog, error: catalogError } = await supabase
+      .from('digital_catalogs')
+      .select('*')
+      .eq('slug', slugOrToken)
+      .eq('is_active', true)
+      .single();
+
+    if (catalogError || !catalog) {
+      throw new Error('Catálogo no encontrado');
+    }
+
+    if (catalog.expires_at && new Date(catalog.expires_at) < new Date()) {
+      throw new Error('Catálogo expirado');
+    }
+
+    // Get catalog products
+    const { data: catalogProducts, error: productsError } = await supabase
+      .from('catalog_products')
+      .select(`
+        products (
+          id, name, sku, description, price_retail, price_wholesale,
+          wholesale_min_qty, original_image_url, processed_image_url, tags, category, has_variants,
+          product_variants (
+            id, variant_combination, sku, price_retail, price_wholesale, stock_quantity, is_default
+          )
+        )
+      `)
+      .eq('catalog_id', catalog.id)
+      .order('sort_order');
+
+    if (productsError) throw productsError;
+
+    const products = catalogProducts
+      ?.map((cp: any) => ({
+        ...cp.products,
+        image_url: cp.products.processed_image_url || cp.products.original_image_url,
+        variants: cp.products.product_variants || [],
+      }))
+      .filter(Boolean) || [];
+
+    // Get business info from catalog owner
     const { data: businessInfo } = await supabase
-      .from("business_info")
-      .select("business_name, logo_url, phone, email, website, address")
-      .eq("user_id", businessUserId)
+      .from('business_info')
+      .select('business_name, logo_url, phone, email, website, address')
+      .eq('user_id', catalog.user_id)
       .single();
 
     return {
-      ...finalCatalog,
+      ...catalog,
       products,
       business_info: businessInfo || {
-        business_name: "Catálogo Digital",
+        business_name: 'Catálogo Digital',
         logo_url: null,
         phone: null,
         email: null,
         website: null,
         address: null,
       },
-      purchasedProductIds,
-      isReplicated,
-      replicatedCatalogId, // ✅ NUEVO: Retornar ID de réplica
+      purchasedProductIds: [],
+      isReplicated: false,
+      replicatedCatalogId: null,
     } as unknown as PublicCatalogView;
   }
 

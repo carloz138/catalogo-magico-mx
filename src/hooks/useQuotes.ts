@@ -15,7 +15,8 @@ export interface QuoteWithMetadata extends Quote {
   items_count: number;
   total_amount: number;
   has_replicated_catalog: boolean;
-  catalog_activated: boolean;
+  is_from_replicated?: boolean;
+  catalog_activated?: boolean;
   catalog_name?: string;
 }
 

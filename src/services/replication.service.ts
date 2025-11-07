@@ -221,8 +221,17 @@ export class ReplicationService {
   static async getResellerCatalogs(resellerId: string): Promise<ReplicatedCatalog[]> {
     const { data, error } = await supabase
       .from("replicated_catalogs")
-      .select("*")
+      .select(`
+        *,
+        digital_catalogs!replicated_catalogs_original_catalog_id_fkey (
+          id,
+          name,
+          slug,
+          description
+        )
+      `)
       .eq("reseller_id", resellerId)
+      .eq("is_active", true)
       .order("created_at", { ascending: false });
 
     if (error) {

@@ -163,7 +163,8 @@ export interface UpdateDigitalCatalogDTO {
 
 export interface CreateQuoteDTO {
   catalog_id: string;
-  replicated_catalog_id?: string; // ✅ NUEVO: ID de la réplica (si aplica)
+  user_id: string;
+  replicated_catalog_id?: string;
   customer_name: string;
   customer_email: string;
   customer_company?: string;
