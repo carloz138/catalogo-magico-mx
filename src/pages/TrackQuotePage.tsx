@@ -7,10 +7,24 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Loader2, CheckCircle, Clock, XCircle, Rocket, Package, Sparkles, TrendingUp, Zap } from "lucide-react";
+// {/* MODIFICADO: Añadimos ChevronDown */}
+import {
+  Loader2,
+  CheckCircle,
+  Clock,
+  XCircle,
+  Rocket,
+  Package,
+  Sparkles,
+  TrendingUp,
+  Zap,
+  ChevronDown,
+} from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { useToast } from "@/hooks/use-toast";
+// {/* NUEVO: Importamos Collapsible */}
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 export default function TrackQuotePage() {
   const { token } = useParams();
@@ -22,6 +36,8 @@ export default function TrackQuotePage() {
   const [loading, setLoading] = useState(true);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [replicating, setReplicating] = useState(false);
+  // {/* NUEVO: Estado para controlar el Collapsible */}
+  const [isCtaOpen, setIsCtaOpen] = useState(false);
 
   useEffect(() => {
     loadQuote();
@@ -64,6 +80,7 @@ export default function TrackQuotePage() {
   };
 
   const handleReplicate = async () => {
+    // ... (Toda la función handleReplicate se mantiene exactamente igual)
     if (!user) {
       setShowAuthModal(true);
       return;
@@ -135,6 +152,7 @@ export default function TrackQuotePage() {
     }
   };
 
+  // ... (Todas las funciones helper como formatVariant, getSku, etc., se mantienen exactamente igual)
   const formatVariant = (item: any) => {
     if (!item.product_variants?.variant_combination) return null;
 
@@ -186,7 +204,9 @@ export default function TrackQuotePage() {
     return item.products?.image_url || item.product_image_url;
   };
 
+
   if (loading) {
+    // ... (El estado de Loading se mantiene igual)
     return (
       <div className="container mx-auto py-20 flex items-center justify-center min-h-screen">
         <Loader2 className="w-8 h-8 animate-spin text-emerald-600" />
@@ -195,6 +215,7 @@ export default function TrackQuotePage() {
   }
 
   if (!quote) {
+    // ... (El estado de Not Found se mantiene igual)
     return (
       <div className="container mx-auto py-20 text-center min-h-screen flex flex-col items-center justify-center px-4">
         <Package className="w-16 h-16 text-gray-400 mb-4" />
@@ -205,17 +226,15 @@ export default function TrackQuotePage() {
   }
 
   const total = quote.quote_items.reduce((sum: number, item: any) => sum + item.subtotal, 0);
-  
-  // Verificar si el catálogo puede ser replicado/activado
+
+  // ... (La lógica de canReplicate, alreadyReplicated, etc., se mantiene igual)
   const isQuoteAccepted = quote.status === "accepted";
   const hasDistributionEnabled = quote.digital_catalogs?.enable_distribution;
   const replicaExists = !!quote.replicated_catalogs;
   const isReplicaActive = quote.replicated_catalogs?.is_active === true;
   
-  // Puede replicar si: está aceptada, tiene distribución Y (no existe réplica O la réplica no está activa)
   const canReplicate = isQuoteAccepted && hasDistributionEnabled && (!replicaExists || !isReplicaActive);
   
-  // Ya está replicado y activo si: existe la réplica Y está activa
   const alreadyReplicated = replicaExists && isReplicaActive;
   const providerName = 
     quote.digital_catalogs?.users?.business_name || 
@@ -223,6 +242,7 @@ export default function TrackQuotePage() {
     quote.digital_catalogs?.name || 
     "tu proveedor";
 
+  // ... (statusConfig se mantiene igual)
   const statusConfig = {
     pending: {
       icon: Clock,
@@ -258,7 +278,7 @@ export default function TrackQuotePage() {
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Header minimalista */}
+      {/* Header minimalista (se mantiene igual) */}
       <div className="border-b border-gray-100 bg-white sticky top-0 z-10 shadow-sm">
         <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-4 flex items-center justify-between max-w-4xl">
           <div className="flex items-center gap-2">
@@ -273,7 +293,7 @@ export default function TrackQuotePage() {
       </div>
 
       <div className="container mx-auto px-4 py-8 max-w-4xl">
-        {/* Hero Section */}
+        {/* Hero Section (se mantiene igual) */}
         <div className="text-center mb-12">
           {quote.status === "accepted" ? (
             <>
@@ -301,112 +321,154 @@ export default function TrackQuotePage() {
           )}
         </div>
 
-        {/* CTA Section - Solo si aceptada y puede replicar */}
+        {/* // ===================================================================
+        // MODIFICACIÓN PRINCIPAL: Aquí está la nueva estructura Collapsible
+        // ===================================================================
+        */}
         {canReplicate && (
-          <Card className="mb-8 border-0 shadow-lg bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50">
-            <CardContent className="p-6 sm:p-8 md:p-12">
-              <div className="text-center mb-8">
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-emerald-100 mb-4">
-                  <Rocket className="w-8 h-8 text-emerald-600" />
-                </div>
-                <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-3">
-                  Activa tu catálogo y empieza a vender
-                </h2>
-                <p className="text-gray-600 text-base sm:text-lg max-w-xl mx-auto">
-                  Porque compraste con <strong>{providerName}</strong>, ahora tienes acceso a:
-                </p>
-              </div>
-
-              {/* Beneficios */}
-              <div className="grid sm:grid-cols-2 gap-4 mb-8 max-w-2xl mx-auto">
-                <div className="flex items-start gap-3 bg-white/80 backdrop-blur rounded-lg p-3 sm:p-4">
-                  <CheckCircle className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <p className="font-medium text-gray-900">Tu propio catálogo digital</p>
-                    <p className="text-sm text-gray-600">Personalizado con tu marca</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3 bg-white/80 backdrop-blur rounded-lg p-3 sm:p-4">
-                  <CheckCircle className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <p className="font-medium text-gray-900">Cotizador para tus clientes</p>
-                    <p className="text-sm text-gray-600">Automatizado 24/7</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3 bg-white/80 backdrop-blur rounded-lg p-3 sm:p-4">
-                  <CheckCircle className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <p className="font-medium text-gray-900">Posibilidad de revender</p>
-                    <p className="text-sm text-gray-600">Los mismos productos</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3 bg-white/80 backdrop-blur rounded-lg p-3 sm:p-4">
-                  <CheckCircle className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <p className="font-medium text-gray-900">Activación en 1 clic</p>
-                    <p className="text-sm text-gray-600">Sin configuraciones</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Info box */}
-              <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 sm:p-6 mb-8 max-w-2xl mx-auto">
-                <div className="flex items-start gap-3">
-                  <TrendingUp className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <p className="font-medium text-blue-900 mb-1">💡 ¿Sabías esto?</p>
-                    <p className="text-blue-700 text-sm leading-relaxed">
-                      Puedes compartir tu catálogo, recibir cotizaciones y dar seguimiento desde tu panel. Así empiezan
-                      muchas tiendas y distribuidores 📈
+          <Collapsible
+            open={isCtaOpen}
+            onOpenChange={setIsCtaOpen}
+            className="mb-8" // El margen se aplica al contenedor
+          >
+            {/* 1. EL GANCHO (TRIGGER) */}
+            <CollapsibleTrigger className="w-full">
+              <Alert className="border-emerald-300 bg-emerald-50 text-emerald-900 cursor-pointer hover:bg-emerald-100 transition-colors group text-left">
+                <Rocket className="h-5 w-5 text-emerald-600" />
+                <AlertDescription className="ml-2 flex flex-col sm:flex-row items-start sm:items-center sm:justify-between">
+                  <div className="flex-1">
+                    <strong className="font-semibold">¡Oportunidad! Activa tu catálogo y empieza a vender.</strong>
+                    <p className="text-sm text-emerald-800">
+                      Porque compraste con <strong>{providerName}</strong>, tienes un beneficio especial.
                     </p>
                   </div>
-                </div>
-              </div>
+                  <div className="flex items-center text-sm font-medium text-emerald-700 mt-2 sm:mt-0 sm:ml-4 flex-shrink-0">
+                    {isCtaOpen ? "Cerrar beneficios" : "Ver beneficios y activar"}
+                    <ChevronDown
+                      className={`w-4 h-4 ml-1 transition-transform duration-200 ${isCtaOpen ? "rotate-180" : ""}`}
+                    />
+                  </div>
+                </AlertDescription>
+              </Alert>
+            </CollapsibleTrigger>
 
-              {/* CTA Buttons */}
-              <div className="text-center space-y-3">
-                <Button
-                  size="lg"
-                  onClick={handleReplicate}
-                  disabled={replicating}
-                  className="w-full sm:w-auto px-8 py-6 text-lg font-semibold bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 shadow-lg hover:shadow-xl transition-all"
-                >
-                  {replicating ? (
-                    <>
-                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                      Activando...
-                    </>
-                  ) : (
-                    <>
-                      <Zap className="w-5 h-5 mr-2" />
-                      Activar mi catálogo gratis
-                    </>
-                  )}
-                </Button>
-                <p className="text-xs text-gray-500">Se replica automáticamente. Estará listo en segundos.</p>
-                <Button
-                  variant="link"
-                  className="text-gray-500 hover:text-gray-700 text-sm"
-                  onClick={() => {
-                    document.getElementById("quote-details")?.scrollIntoView({ behavior: "smooth" });
-                  }}
-                >
-                  Tal vez más tarde
-                </Button>
-              </div>
+            {/* 2. EL CONTENIDO (EL CARD ORIGINAL) */}
+            <CollapsibleContent>
+              {/* El Card original, pero con un `mt-6` para darle espacio */}
+              <Card className="mt-6 border-0 shadow-lg bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50">
+                <CardContent className="p-6 sm:p-8 md:p-12">
+                  {/* El contenido interno del Card se mantiene igual */}
+                  <div className="text-center mb-8">
+                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-emerald-100 mb-4">
+                      <Rocket className="w-8 h-8 text-emerald-600" />
+                    </div>
+                    <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-3">
+                      Activa tu catálogo y empieza a vender
+                    </h2>
+                    <p className="text-gray-600 text-base sm:text-lg max-w-xl mx-auto">
+                      Porque compraste con <strong>{providerName}</strong>, ahora tienes acceso a:
+                    </p>
+                  </div>
 
-              {/* Microcopy inspiracional */}
-              <div className="text-center mt-8 pt-8 border-t border-emerald-100">
-                <p className="text-sm text-gray-500 flex items-center justify-center gap-2">
-                  <Sparkles className="w-4 h-4 text-emerald-500" />
-                  Herramienta impulsada por CatifyPro — tú haces el negocio, nosotros la tecnología
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+                  {/* Beneficios (se mantiene igual) */}
+                  <div className="grid sm:grid-cols-2 gap-4 mb-8 max-w-2xl mx-auto">
+                    <div className="flex items-start gap-3 bg-white/80 backdrop-blur rounded-lg p-3 sm:p-4">
+                      <CheckCircle className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-medium text-gray-900">Tu propio catálogo digital</p>
+                        <p className="text-sm text-gray-600">Personalizado con tu marca</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3 bg-white/80 backdrop-blur rounded-lg p-3 sm:p-4">
+                      <CheckCircle className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-medium text-gray-900">Cotizador para tus clientes</p>
+                        <p className="text-sm text-gray-600">Automatizado 24/7</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3 bg-white/80 backdrop-blur rounded-lg p-3 sm:p-4">
+                      <CheckCircle className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-medium text-gray-900">Posibilidad de revender</p>
+                        <p className="text-sm text-gray-600">Los mismos productos</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3 bg-white/80 backdrop-blur rounded-lg p-3 sm:p-4">
+                      <CheckCircle className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-medium text-gray-900">Activación en 1 clic</p>
+                        <p className="text-sm text-gray-600">Sin configuraciones</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Info box (se mantiene igual) */}
+                  <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 sm:p-6 mb-8 max-w-2xl mx-auto">
+                    <div className="flex items-start gap-3">
+                      <TrendingUp className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-medium text-blue-900 mb-1">💡 ¿Sabías esto?</p>
+                        <p className="text-blue-700 text-sm leading-relaxed">
+                          Puedes compartir tu catálogo, recibir cotizaciones y dar seguimiento desde tu panel. Así empiezan
+                          muchas tiendas y distribuidores 📈
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* CTA Buttons (Botón "Tal vez más tarde" modificado) */}
+                  <div className="text-center space-y-3">
+                    <Button
+                      size="lg"
+                      onClick={handleReplicate}
+                      disabled={replicating}
+                      className="w-full sm:w-auto px-8 py-6 text-lg font-semibold bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 shadow-lg hover:shadow-xl transition-all"
+                    >
+                      {replicating ? (
+                        <>
+                          <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                          Activando...
+                        </>
+                      ) : (
+                        <>
+                          <Zap className="w-5 h-5 mr-2" />
+                          Activar mi catálogo gratis
+                        </>
+                      )}
+                    </Button>
+                    <p className="text-xs text-gray-500">Se replica automáticamente. Estará listo en segundos.</p>
+                    <Button
+                      variant="link"
+                      className="text-gray-500 hover:text-gray-700 text-sm"
+                      onClick={() => {
+                        // {/* MODIFICADO: Ahora también cierra el Collapsible */}
+                        setIsCtaOpen(false);
+                        document.getElementById("quote-details")?.scrollIntoView({ behavior: "smooth" });
+                      }}
+                    >
+                      Tal vez más tarde
+                    </Button>
+                  </div>
+
+                  {/* Microcopy inspiracional (se mantiene igual) */}
+                  <div className="text-center mt-8 pt-8 border-t border-emerald-100">
+                    <p className="text-sm text-gray-500 flex items-center justify-center gap-2">
+                      <Sparkles className="w-4 h-4 text-emerald-500" />
+                      Herramienta impulsada por CatifyPro — tú haces el negocio, nosotros la tecnología
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </CollapsibleContent>
+          </Collapsible>
         )}
+        {/* ===================================================================
+        // FIN DE LA MODIFICACIÓN
+        // ===================================================================
+        */}
 
-        {/* Mensaje de catálogo ya activado */}
+
+        {/* Mensaje de catálogo ya activado (se mantiene igual) */}
         {alreadyReplicated && (
           <Alert className="mb-8 bg-emerald-50 border-emerald-200">
             <CheckCircle className="h-5 w-5 text-emerald-600" />
@@ -424,7 +486,7 @@ export default function TrackQuotePage() {
           </Alert>
         )}
 
-        {/* Detalles de la cotización */}
+        {/* Detalles de la cotización (se mantiene igual y ahora es visible) */}
         <div id="quote-details">
           <Card className="shadow-sm border border-gray-200">
             <CardHeader className="border-b border-gray-100 bg-gray-50">
@@ -441,7 +503,7 @@ export default function TrackQuotePage() {
             </CardHeader>
 
             <CardContent className="p-6">
-              {/* Info del cliente */}
+              {/* Info del cliente (se mantiene igual) */}
               <div className="bg-gray-50 rounded-lg p-4 mb-6">
                 <h3 className="font-medium text-gray-900 mb-3 text-sm">Información de contacto</h3>
                 <div className="grid sm:grid-cols-2 gap-3 text-sm">
@@ -468,7 +530,7 @@ export default function TrackQuotePage() {
                 </div>
               </div>
 
-              {/* Productos */}
+              {/* Productos (se mantiene igual) */}
               <div className="space-y-3 mb-6">
                 <h3 className="font-medium text-gray-900 mb-3 text-sm">Productos ({quote.quote_items?.length || 0})</h3>
                 {quote.quote_items && quote.quote_items.length > 0 ? (
@@ -517,7 +579,7 @@ export default function TrackQuotePage() {
                 )}
               </div>
 
-              {/* Total */}
+              {/* Total (se mantiene igual) */}
               {quote.quote_items && quote.quote_items.length > 0 && (
                 <div className="flex justify-between items-center pt-6 border-t border-gray-200">
                   <span className="text-lg font-semibold text-gray-900">Total:</span>
@@ -530,7 +592,7 @@ export default function TrackQuotePage() {
           </Card>
         </div>
 
-        {/* Footer inspiracional */}
+        {/* Footer inspiracional (se mantiene igual) */}
         <div className="text-center mt-12 py-8 border-t border-gray-100">
           <div className="max-w-2xl mx-auto space-y-4">
             <p className="text-sm sm:text-base text-gray-600 leading-relaxed">
@@ -545,7 +607,7 @@ export default function TrackQuotePage() {
         </div>
       </div>
 
-      {/* Modal de Auth */}
+      {/* Modal de Auth (se mantiene igual) */}
       <Dialog open={showAuthModal} onOpenChange={setShowAuthModal}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
