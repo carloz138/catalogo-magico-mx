@@ -55,24 +55,10 @@ export default function TrackQuotePage() {
 
       console.log("✅ Cotización cargada:", data);
 
-      // 2. Obtener items CON productos y variantes opcionales
+      // 2. Obtener items SIN JOINS - usamos datos ya guardados en quote_items
       const { data: items, error: itemsError } = await supabase
         .from("quote_items")
-        .select(
-          `
-          *,
-          products (
-            name,
-            sku,
-            image_url
-          ),
-          product_variants (
-            variant_combination,
-            sku,
-            variant_images
-          )
-        `,
-        )
+        .select("*")
         .eq("quote_id", data.id)
         .order("created_at");
 
@@ -156,60 +142,25 @@ export default function TrackQuotePage() {
 
   // ✅ Función para formatear variantes legiblemente
   const formatVariant = (item: any) => {
-    if (!item.product_variants?.variant_combination) return null;
-
-    const combination = item.product_variants.variant_combination;
-    const parts = [];
-
-    const labelMap: Record<string, string> = {
-      color: "Color",
-      color_calzado: "Color",
-      color_electronico: "Color",
-      color_fiesta: "Color",
-      talla_ropa: "Talla",
-      talla_calzado: "Talla",
-      material: "Material",
-      capacidad: "Capacidad",
-      tamano: "Tamaño",
-      tamano_arreglo: "Tamaño",
-      tipo_flor: "Tipo de Flor",
-    };
-
-    for (const [key, value] of Object.entries(combination)) {
-      const label = labelMap[key] || key;
-      parts.push(`${label}: ${value}`);
-    }
-
-    return parts.join(", ");
+    // Usar variant_description directamente si existe
+    return item.variant_description || null;
   };
 
   // ✅ MEJORADO: Obtener SKU correcto manejando valores vacíos
   const getSku = (item: any) => {
-    // Prioridad: SKU de variante > SKU de producto > SKU guardado en quote_item
-    const variantSku = item.product_variants?.sku;
-    const productSku = item.products?.sku;
-    const quoteSku = item.product_sku;
-
-    // Filtrar strings vacíos
-    if (variantSku && variantSku.trim()) return variantSku;
-    if (productSku && productSku.trim()) return productSku;
-    if (quoteSku && quoteSku.trim()) return quoteSku;
-
+    const sku = item.product_sku;
+    if (sku && sku.trim()) return sku;
     return "Sin SKU";
   };
 
   // ✅ Obtener nombre correcto del producto
   const getProductName = (item: any) => {
-    return item.products?.name || item.product_name || "Producto";
+    return item.product_name || "Producto";
   };
 
   // ✅ Obtener imagen correcta
   const getProductImage = (item: any) => {
-    // Prioridad: imagen de variante > imagen de producto > imagen guardada en quote_item
-    if (item.product_variants?.variant_images?.[0]) {
-      return item.product_variants.variant_images[0];
-    }
-    return item.products?.image_url || item.product_image_url;
+    return item.product_image_url;
   };
 
   if (loading) {
