@@ -27,69 +27,37 @@ export default function TrackQuotePage() {
     loadQuote();
   }, [token]);
 
-  // ✅ CORREGIDO: Query en 3 pasos para evitar problemas con JOINs
   const loadQuote = async () => {
     try {
-      console.log("🔍 Cargando cotización con token:", token);
+      console.log('🔍 Cargando cotización con token:', token);
+      
+      // ✅ Llamar a Edge Function que usa Service Role (bypass RLS)
+      const { data, error } = await supabase.functions.invoke('get-quote-by-token', {
+        body: { tracking_token: token }
+      });
 
-      // 1. Obtener cotización básica
-      const { data, error } = await supabase
-        .from("quotes")
-        .select(
-          `
-          *,
-          digital_catalogs (
-            name, 
-            slug,
-            enable_distribution
-          )
-        `,
-        )
-        .eq("tracking_token", token)
-        .single();
+      console.log('📊 Respuesta de Edge Function:', data);
 
       if (error) {
-        console.error("❌ Error loading quote:", error);
+        console.error('❌ Error invocando función:', error);
         throw error;
       }
 
-      console.log("✅ Cotización cargada:", data);
-
-      // 2. Obtener items SIN JOINS - usamos datos ya guardados en quote_items
-      const { data: items, error: itemsError } = await supabase
-        .from("quote_items")
-        .select("*")
-        .eq("quote_id", data.id)
-        .order("created_at");
-
-      if (itemsError) {
-        console.error("❌ Error loading items:", itemsError);
-        throw itemsError;
+      if (!data || !data.success) {
+        throw new Error(data?.error || 'Error obteniendo cotización');
       }
 
-      console.log("📦 Items cargados:", items?.length || 0);
+      console.log('✅ Cotización cargada:', data.quote);
+      console.log('📦 Items recibidos:', data.quote.quote_items?.length || 0);
+      console.log('🔄 Catálogo replicado:', data.quote.replicated_catalogs);
 
-      // 3. Verificar si tiene catálogo replicado
-      const { data: replicaData } = await supabase
-        .from("replicated_catalogs")
-        .select("id, is_active")
-        .eq("quote_id", data.id)
-        .maybeSingle();
-
-      console.log("🔄 Catálogo replicado:", replicaData);
-
-      // Combinar todos los datos
-      setQuote({
-        ...data,
-        quote_items: items || [],
-        replicated_catalogs: replicaData,
-      });
-    } catch (error) {
-      console.error("❌ Error loading quote:", error);
+      setQuote(data.quote);
+    } catch (error: any) {
+      console.error('❌ Error loading quote:', error);
       toast({
-        title: "Error",
-        description: "No se pudo cargar la cotización",
-        variant: "destructive",
+        title: 'Error',
+        description: error.message || 'No se pudo cargar la cotización',
+        variant: 'destructive',
       });
     } finally {
       setLoading(false);
