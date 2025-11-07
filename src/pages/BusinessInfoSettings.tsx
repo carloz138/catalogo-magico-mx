@@ -102,9 +102,9 @@ export default function BusinessInfoSettings() {
       toast.success("Información guardada correctamente");
       await loadBusinessInfo();
       
-      // Redirigir si venía desde onboarding
+      // Redirigir si venía desde onboarding o activation
       const params = new URLSearchParams(window.location.search);
-      if (params.get('from') === 'onboarding') {
+      if (params.get('from') === 'onboarding' || params.get('from') === 'activation') {
         navigate('/catalogs');
       }
     } catch (error: any) {

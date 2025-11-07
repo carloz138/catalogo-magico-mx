@@ -314,6 +314,38 @@ const Catalogs = () => {
     enabled: !!user,
   });
 
+  // Fetch replicated catalogs (catálogos que el usuario activó como L2)
+  const { data: replicatedCatalogs = [], isLoading: loadingReplicated } = useQuery({
+    queryKey: ["replicated-catalogs", user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const { data, error } = await supabase
+        .from("replicated_catalogs")
+        .select(`
+          *,
+          digital_catalogs (
+            id,
+            name,
+            slug,
+            description,
+            is_private,
+            is_active,
+            expires_at,
+            view_count,
+            created_at
+          )
+        `)
+        .eq("reseller_id", user.id)
+        .eq("is_active", true)
+        .order("activated_at", { ascending: false });
+
+      if (error) throw error;
+      // Transformar a formato DigitalCatalog
+      return data.map(r => r.digital_catalogs).filter(Boolean) as DigitalCatalog[];
+    },
+    enabled: !!user,
+  });
+
   // Delete digital catalog mutation
   const deleteDigitalMutation = useMutation({
     mutationFn: async (catalogId: string) => {
@@ -363,8 +395,8 @@ const Catalogs = () => {
     navigate("/catalogs/new");
   };
 
-  const isLoading = loadingDigital || loadingPDF;
-  const totalCatalogs = digitalCatalogs.length + pdfCatalogs.length;
+  const isLoading = loadingDigital || loadingPDF || loadingReplicated;
+  const totalCatalogs = digitalCatalogs.length + pdfCatalogs.length + replicatedCatalogs.length;
 
   const actions = (
     <div className="flex items-center gap-3">
@@ -398,7 +430,8 @@ const Catalogs = () => {
 
     const hasDigital = showDigital && digitalCatalogs.length > 0;
     const hasPDF = showPDF && pdfCatalogs.length > 0;
-    const isEmpty = !hasDigital && !hasPDF;
+    const hasReplicated = showDigital && replicatedCatalogs.length > 0;
+    const isEmpty = !hasDigital && !hasPDF && !hasReplicated;
 
     if (isEmpty) {
       return (
@@ -440,6 +473,34 @@ const Catalogs = () => {
             </h2>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {digitalCatalogs.map((catalog) => (
+                <DigitalCatalogCard
+                  key={catalog.id}
+                  catalog={catalog}
+                  onShare={setShareModalCatalog}
+                  onDelete={setDeleteCatalog}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Replicated Catalogs Section */}
+        {showDigital && replicatedCatalogs.length > 0 && (
+          <div>
+            <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
+              <Share2 className="w-6 h-6 text-teal-500" />
+              Catálogos Replicados (Como Distribuidor)
+              <Badge variant="secondary" className="bg-teal-100 text-teal-700">
+                {replicatedCatalogs.length}
+              </Badge>
+            </h2>
+            <div className="bg-teal-50 border border-teal-200 rounded-lg p-4 mb-4">
+              <p className="text-sm text-teal-800">
+                💡 Estos son catálogos que activaste de otros proveedores. Puedes revenderlos con tu propia marca y precios.
+              </p>
+            </div>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {replicatedCatalogs.map((catalog) => (
                 <DigitalCatalogCard
                   key={catalog.id}
                   catalog={catalog}

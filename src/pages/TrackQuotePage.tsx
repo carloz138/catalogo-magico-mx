@@ -113,13 +113,30 @@ export default function TrackQuotePage() {
 
       if (error) throw error;
 
+      // Verificar si el usuario tiene información completa de negocio
+      const { data: businessInfo } = await supabase
+        .from("business_info")
+        .select("business_name, phone")
+        .eq("user_id", user.id)
+        .single();
+
+      console.log("📋 Business info del usuario:", businessInfo);
+
+      const hasCompleteInfo = businessInfo && businessInfo.business_name && businessInfo.phone;
+
       toast({
         title: "🎉 ¡Catálogo activado exitosamente!",
-        description: "Ahora puedes verlo en 'Mis Catálogos'",
+        description: hasCompleteInfo 
+          ? "Redirigiendo a tus catálogos..." 
+          : "Por favor completa tu información de negocio",
       });
 
-      // Recargar datos para actualizar el estado
-      await loadQuote();
+      // Redirigir según si tiene info completa o no
+      if (hasCompleteInfo) {
+        navigate("/catalogs");
+      } else {
+        navigate("/business-info?from=activation");
+      }
     } catch (error: any) {
       console.error("❌ Error activando catálogo:", error);
       toast({
