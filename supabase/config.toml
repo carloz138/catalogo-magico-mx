@@ -3,6 +3,9 @@ project_id = "ikbexcebcpmomfxraflz"
 [functions.create-payment-intent]
 verify_jwt = true
 
+[functions.get-quote-by-token]
+verify_jwt = false
+
 [functions.update-catalog-pdf]
 verify_jwt = false
 

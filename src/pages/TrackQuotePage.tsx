@@ -179,7 +179,11 @@ export default function TrackQuotePage() {
   const canReplicate =
     quote.status === "accepted" && quote.digital_catalogs?.enable_distribution && !quote.replicated_catalogs;
   const alreadyReplicated = !!quote.replicated_catalogs;
-  const providerName = quote.digital_catalogs?.name || "tu proveedor";
+  const providerName = 
+    quote.digital_catalogs?.users?.business_name || 
+    quote.digital_catalogs?.users?.full_name || 
+    quote.digital_catalogs?.name || 
+    "tu proveedor";
 
   const statusConfig = {
     pending: {
