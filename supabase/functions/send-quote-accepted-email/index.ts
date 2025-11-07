@@ -52,19 +52,31 @@ serve(async (req) => {
       .select(`
         *,
         quote_items (*),
-        digital_catalogs (
+        digital_catalogs!inner (
           name,
-          user_id,
-          users (
-            business_name,
-            full_name
-          )
+          user_id
         )
       `)
       .eq('id', quoteId)
       .single();
 
     if (quoteError) throw quoteError;
+
+    // Get user info separately
+    const { data: userData, error: userError } = await supabaseClient
+      .from('users')
+      .select('business_name, full_name')
+      .eq('id', quote.digital_catalogs.user_id)
+      .single();
+
+    if (userError) {
+      console.warn('⚠️ No se pudo obtener info del usuario:', userError);
+    }
+
+    // Merge user data into quote
+    if (userData) {
+      quote.digital_catalogs.users = userData;
+    }
 
     // Send email using Resend
     if (!Deno.env.get('RESEND_API_KEY')) {

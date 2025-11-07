@@ -29,14 +29,11 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { QuoteStatus } from "@/types/digital-catalog";
 import { QuoteService } from "@/services/quote.service";
-import { ReplicationService } from "@/services/replication.service";
 import { QuoteTrackingService } from "@/services/quote-tracking.service";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { useState, useEffect } from "react";
-import { ShareCatalogModal } from "@/components/replication/ShareCatalogModal";
+import { useState } from "react";
 import { WhatsAppShareButton } from "@/components/quotes/WhatsAppShareButton";
-import { supabase } from "@/integrations/supabase/client";
 
 export default function QuoteDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -45,120 +42,19 @@ export default function QuoteDetailPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [actionLoading, setActionLoading] = useState(false);
-  const [showShareModal, setShowShareModal] = useState(false);
-  const [activationLink, setActivationLink] = useState("");
   const [trackingUrl, setTrackingUrl] = useState("");
   const [showWhatsAppButton, setShowWhatsAppButton] = useState(false);
-  
-  // ✅ NUEVO: Estado para el banner de activación
-  const [replicatedCatalog, setReplicatedCatalog] = useState<any>(null);
-  const [loadingActivation, setLoadingActivation] = useState(false);
-
-  // ✅ NUEVO: Verificar si existe catálogo replicado para esta cotización
-  useEffect(() => {
-    const checkReplicatedCatalog = async () => {
-      if (!quote || !user) return;
-
-      try {
-        const { data, error } = await supabase
-          .from('replicated_catalogs')
-          .select('*')
-          .eq('quote_id', quote.id)
-          .single();
-
-        if (!error && data) {
-          console.log('📦 Catálogo replicado encontrado:', data);
-          setReplicatedCatalog(data);
-        }
-      } catch (error) {
-        console.error('Error verificando catálogo replicado:', error);
-      }
-    };
-
-    checkReplicatedCatalog();
-  }, [quote, user]);
-
-  // ✅ NUEVO: Función para activar el catálogo
-  const handleActivateCatalog = async () => {
-    if (!replicatedCatalog || !user) return;
-
-    setLoadingActivation(true);
-    try {
-      console.log('🚀 Activando catálogo replicado:', replicatedCatalog.id);
-
-      // Actualizar el catálogo replicado
-      const { data, error } = await supabase
-        .from('replicated_catalogs')
-        .update({
-          is_active: true,
-          reseller_id: user.id,
-          activated_at: new Date().toISOString(),
-        })
-        .eq('id', replicatedCatalog.id)
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      console.log('✅ Catálogo activado exitosamente:', data);
-
-      toast({
-        title: "🎉 ¡Catálogo activado!",
-        description: "Ya puedes empezar a vender estos productos a tus clientes.",
-      });
-
-      // Actualizar el estado local
-      setReplicatedCatalog(data);
-
-      // Refrescar la cotización
-      refetch();
-
-      // Navegar al catálogo después de 2 segundos
-      setTimeout(() => {
-        navigate('/dashboard');
-      }, 2000);
-
-    } catch (error: any) {
-      console.error('❌ Error activando catálogo:', error);
-      toast({
-        title: "Error",
-        description: error.message || "No se pudo activar el catálogo",
-        variant: "destructive",
-      });
-    } finally {
-      setLoadingActivation(false);
-    }
-  };
 
   const handleAcceptQuote = async () => {
     if (!quote || !user?.id) return;
 
     setActionLoading(true);
-    let generatedLink: string | null = null;
 
     try {
-      // 1. Crear la réplica y obtener el link SI la distribución está habilitada
-      if (quote.catalog?.enable_distribution) {
-        console.log("Distribution enabled, creating replica...");
-        const replicatedCatalogData = await ReplicationService.createReplica({
-          original_catalog_id: quote.catalog_id,
-          quote_id: quote.id,
-          distributor_id: user.id,
-        });
-        const link = await ReplicationService.getActivationLink(replicatedCatalogData.id);
-        console.log("Generated activation link in DetailPage:", link);
-        generatedLink = link;
-        setActivationLink(generatedLink);
-        setShowShareModal(true);
-      } else {
-        console.log("Distribution not enabled for this catalog.");
-      }
+      // Actualizar el estado de la cotización (el catálogo se crea cuando L2 hace clic en activar)
+      await QuoteService.updateQuoteStatus(quote.id, user.id, "accepted");
 
-      // 2. Actualizar el estado de la cotización
-      console.log("Passing activation link to QuoteService:", generatedLink ?? "undefined/null");
-      await QuoteService.updateQuoteStatus(quote.id, user.id, "accepted", generatedLink ?? undefined);
-
-      // 3. Obtener tracking URL
+      // Obtener tracking URL
       try {
         const trackingLink = await QuoteTrackingService.getTrackingLink(quote.id);
         setTrackingUrl(trackingLink);
@@ -167,18 +63,11 @@ export default function QuoteDetailPage() {
         console.error("Error getting tracking link:", error);
       }
 
-      // 4. Mostrar notificaciones Toast
-      if (generatedLink) {
-        toast({
-          title: "✅ Cotización aceptada",
-          description: "Se creó un catálogo para tu cliente y se envió el link de activación por correo.",
-        });
-      } else {
-        toast({
-          title: "✅ Cotización aceptada",
-          description: "La cotización fue aceptada y se notificó al cliente por correo.",
-        });
-      }
+      // Mostrar notificación
+      toast({
+        title: "✅ Cotización aceptada",
+        description: "La cotización fue aceptada y se notificó al cliente por correo.",
+      });
 
       refetch();
     } catch (error: any) {
@@ -280,13 +169,6 @@ export default function QuoteDetailPage() {
   const StatusIcon = statusConfig.icon;
   const total = quote.items.reduce((sum, item) => sum + item.subtotal, 0);
 
-  // ✅ NUEVO: Determinar si mostrar banner de activación
-  const showActivationBanner = 
-    quote.status === 'accepted' && 
-    replicatedCatalog && 
-    !replicatedCatalog.is_active &&
-    replicatedCatalog.reseller_email === user?.email; // Solo mostrar al L2 correcto
-
   return (
     <div className="container mx-auto py-8 px-4 max-w-5xl">
       <div className="mb-6">
@@ -308,48 +190,6 @@ export default function QuoteDetailPage() {
           </Badge>
         </div>
       </div>
-
-      {/* ✅ NUEVO: Banner de activación */}
-      {showActivationBanner && (
-        <Alert className="mb-6 bg-gradient-to-r from-green-50 to-emerald-50 border-green-200 shadow-lg">
-          <Sparkles className="h-5 w-5 text-green-600" />
-          <AlertDescription className="ml-2">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-              <div className="flex-1">
-                <h3 className="font-bold text-lg text-green-900 mb-1">
-                  🎉 ¡Tu cotización fue aceptada!
-                </h3>
-                <p className="text-green-800 text-sm mb-2">
-                  Ahora puedes vender estos productos con tu propio catálogo personalizado.
-                </p>
-                <ul className="text-xs text-green-700 space-y-1 list-disc list-inside">
-                  <li>Genera cotizaciones a tus clientes</li>
-                  <li>Personaliza tus precios</li>
-                  <li>Comparte tu catálogo por WhatsApp o redes sociales</li>
-                </ul>
-              </div>
-              <Button
-                onClick={handleActivateCatalog}
-                disabled={loadingActivation}
-                size="lg"
-                className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-md"
-              >
-                {loadingActivation ? (
-                  <>
-                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                    Activando...
-                  </>
-                ) : (
-                  <>
-                    <Rocket className="mr-2 h-5 w-5" />
-                    Activar Mi Catálogo Ahora
-                  </>
-                )}
-              </Button>
-            </div>
-          </AlertDescription>
-        </Alert>
-      )}
 
       <div className="grid lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
@@ -561,7 +401,6 @@ export default function QuoteDetailPage() {
                   customerPhone={quote.customer_phone}
                   orderNumber={quote.id.slice(0, 8)}
                   trackingUrl={trackingUrl}
-                  activationLink={activationLink || undefined}
                 />
               </CardContent>
             </Card>
@@ -620,13 +459,6 @@ export default function QuoteDetailPage() {
           </Card>
         </div>
       </div>
-
-      <ShareCatalogModal
-        open={showShareModal}
-        onClose={() => setShowShareModal(false)}
-        activationLink={activationLink}
-        customerName={quote?.customer_name || ""}
-      />
     </div>
   );
 }
