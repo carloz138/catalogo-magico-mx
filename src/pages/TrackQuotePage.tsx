@@ -27,30 +27,17 @@ export default function TrackQuotePage() {
     loadQuote();
   }, [token]);
 
-  // ✅ CORREGIDO: Query completo con productos y variantes
+  // ✅ CORREGIDO: Query en 3 pasos para evitar problemas con JOINs
   const loadQuote = async () => {
     try {
       console.log("🔍 Cargando cotización con token:", token);
 
-      // 1. Obtener cotización CON productos y variantes
+      // 1. Obtener cotización básica
       const { data, error } = await supabase
         .from("quotes")
         .select(
           `
           *,
-          quote_items (
-            *,
-            products (
-              name,
-              sku,
-              image_url
-            ),
-            product_variants!quote_items_variant_id_fkey (
-              variant_combination,
-              sku,
-              variant_images
-            )
-          ),
           digital_catalogs (
             name, 
             slug,
@@ -67,9 +54,36 @@ export default function TrackQuotePage() {
       }
 
       console.log("✅ Cotización cargada:", data);
-      console.log("📦 Items:", data.quote_items?.length || 0);
 
-      // 2. Verificar si tiene catálogo replicado
+      // 2. Obtener items CON productos y variantes opcionales
+      const { data: items, error: itemsError } = await supabase
+        .from("quote_items")
+        .select(
+          `
+          *,
+          products (
+            name,
+            sku,
+            image_url
+          ),
+          product_variants (
+            variant_combination,
+            sku,
+            variant_images
+          )
+        `,
+        )
+        .eq("quote_id", data.id)
+        .order("created_at");
+
+      if (itemsError) {
+        console.error("❌ Error loading items:", itemsError);
+        throw itemsError;
+      }
+
+      console.log("📦 Items cargados:", items?.length || 0);
+
+      // 3. Verificar si tiene catálogo replicado
       const { data: replicaData } = await supabase
         .from("replicated_catalogs")
         .select("id, is_active")
@@ -78,9 +92,10 @@ export default function TrackQuotePage() {
 
       console.log("🔄 Catálogo replicado:", replicaData);
 
-      // 3. Combinar datos
+      // Combinar todos los datos
       setQuote({
         ...data,
+        quote_items: items || [],
         replicated_catalogs: replicaData,
       });
     } catch (error) {
@@ -139,7 +154,7 @@ export default function TrackQuotePage() {
     }
   };
 
-  // ✅ NUEVA: Función para formatear variantes legiblemente
+  // ✅ Función para formatear variantes legiblemente
   const formatVariant = (item: any) => {
     if (!item.product_variants?.variant_combination) return null;
 
@@ -168,17 +183,27 @@ export default function TrackQuotePage() {
     return parts.join(", ");
   };
 
-  // ✅ NUEVA: Obtener SKU correcto (variante o producto)
+  // ✅ MEJORADO: Obtener SKU correcto manejando valores vacíos
   const getSku = (item: any) => {
-    return item.product_variants?.sku || item.products?.sku || item.product_sku || "N/A";
+    // Prioridad: SKU de variante > SKU de producto > SKU guardado en quote_item
+    const variantSku = item.product_variants?.sku;
+    const productSku = item.products?.sku;
+    const quoteSku = item.product_sku;
+
+    // Filtrar strings vacíos
+    if (variantSku && variantSku.trim()) return variantSku;
+    if (productSku && productSku.trim()) return productSku;
+    if (quoteSku && quoteSku.trim()) return quoteSku;
+
+    return "Sin SKU";
   };
 
-  // ✅ NUEVA: Obtener nombre correcto del producto
+  // ✅ Obtener nombre correcto del producto
   const getProductName = (item: any) => {
     return item.products?.name || item.product_name || "Producto";
   };
 
-  // ✅ NUEVA: Obtener imagen correcta
+  // ✅ Obtener imagen correcta
   const getProductImage = (item: any) => {
     // Prioridad: imagen de variante > imagen de producto > imagen guardada en quote_item
     if (item.product_variants?.variant_images?.[0]) {
@@ -294,7 +319,7 @@ export default function TrackQuotePage() {
               </div>
             </div>
 
-            {/* ✅ CORREGIDO: Lista de productos con toda la info */}
+            {/* ✅ Lista de productos con toda la info */}
             <div>
               <h3 className="font-semibold mb-3 flex items-center gap-2">
                 <Package className="w-4 h-4" />
@@ -324,7 +349,7 @@ export default function TrackQuotePage() {
                         {/* Info del producto */}
                         <div className="flex-1 min-w-0">
                           <p className="font-medium text-sm">{productName}</p>
-                          <p className="text-xs text-muted-foreground">SKU: {sku}</p>
+                          {sku !== "Sin SKU" && <p className="text-xs text-muted-foreground">SKU: {sku}</p>}
                           {variantText && <p className="text-xs text-purple-600 font-medium mt-1">📦 {variantText}</p>}
                           <p className="text-xs text-muted-foreground mt-1">
                             {item.quantity} × ${(item.unit_price / 100).toFixed(2)}
