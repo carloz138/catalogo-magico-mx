@@ -42,6 +42,7 @@ import Checkout from "@/pages/Checkout";
 import PaymentInstructions from "@/pages/PaymentInstructions";
 import PaymentSuccess from "@/pages/PaymentSuccess";
 import BusinessInfoPage from "@/pages/BusinessInfoPage";
+import BusinessInfoSettings from "@/pages/BusinessInfoSettings";
 import OnboardingPage from "@/pages/OnboardingPage";
 import BulkUpload from "@/pages/BulkUpload";
 import QuotesPage from "@/pages/quotes/index";
@@ -96,6 +97,7 @@ const App = () => (
               <Route path="/reseller/edit-prices" element={<ProductPriceEditor />} />
               <Route path="/complete-activation" element={<CompleteActivation />} />
               <Route path="/business-info" element={<BusinessInfoPage />} />
+              <Route path="/settings/business" element={<BusinessInfoSettings />} />
               <Route path="/onboarding" element={<OnboardingPage />} />
               <Route path="/checkout" element={<Checkout />} />
               <Route path="/payment-success" element={<PaymentSuccess />} />

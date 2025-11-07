@@ -16,6 +16,7 @@ import { CatalogShareModal } from "@/components/catalog/CatalogShareModal";
 import { DeleteCatalogDialog } from "@/components/catalog/DeleteCatalogDialog";
 import { DigitalCatalog } from "@/types/digital-catalog";
 import { supabase } from "@/integrations/supabase/client";
+import { BusinessInfoBanner } from "@/components/dashboard/BusinessInfoBanner";
 
 // ==========================================
 // TIPOS
@@ -476,6 +477,9 @@ const Catalogs = () => {
             <h1 className="text-3xl font-bold mb-2">Mis Catálogos</h1>
             <p className="text-muted-foreground">Gestiona tus catálogos digitales interactivos y PDFs descargables</p>
           </div>
+
+          {/* Business Info Banner */}
+          <BusinessInfoBanner />
 
           {/* Tabs */}
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as CatalogType)}>

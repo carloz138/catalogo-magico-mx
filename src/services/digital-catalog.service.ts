@@ -314,10 +314,20 @@ export class DigitalCatalogService {
         .filter(Boolean) || [];
 
     // Paso 6: Obtener business_info
+    // Si es replicado, usar reseller_id; si no, usar user_id del catálogo original
+    const businessUserId = isReplicated && replicatedCatalogId 
+      ? (await supabase
+          .from("replicated_catalogs")
+          .select("reseller_id")
+          .eq("id", replicatedCatalogId)
+          .single()
+        ).data?.reseller_id || finalCatalog.user_id
+      : finalCatalog.user_id;
+
     const { data: businessInfo } = await supabase
       .from("business_info")
-      .select("business_name, logo_url, phone, email, website")
-      .eq("user_id", finalCatalog.user_id)
+      .select("business_name, logo_url, phone, email, website, address")
+      .eq("user_id", businessUserId)
       .single();
 
     return {
@@ -329,6 +339,7 @@ export class DigitalCatalogService {
         phone: null,
         email: null,
         website: null,
+        address: null,
       },
       purchasedProductIds,
       isReplicated,
