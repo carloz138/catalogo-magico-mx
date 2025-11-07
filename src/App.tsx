@@ -25,6 +25,7 @@ import BlogPost from "@/pages/BlogPost";
 import NotFound from "@/pages/NotFound";
 import WhySubscribePage from "@/pages/WhySubscribePage";
 import QuoteTracking from "@/pages/QuoteTracking";
+import TrackQuotePage from "@/pages/TrackQuotePage";
 
 // Protected (Dashboard) Pages
 import MainDashboard from "@/pages/MainDashboard";
@@ -48,7 +49,6 @@ import QuoteDetailPage from "@/pages/quotes/QuoteDetail";
 import DistributionNetwork from "@/pages/DistributionNetwork";
 import ResellerDashboard from "@/pages/ResellerDashboard";
 import ProductPriceEditor from "@/pages/reseller/ProductPriceEditor";
-import TrackQuotePage from '@/pages/TrackQuotePage';
 
 const queryClient = new QueryClient();
 
@@ -74,6 +74,7 @@ const App = () => (
             <Route path="/blog" element={<Blog />} />
             <Route path="/blog/:slug" element={<BlogPost />} />
             <Route path="/tracking/:token" element={<QuoteTracking />} />
+            <Route path="/track/:token" element={<TrackQuotePage />} />
             {/* --- Rutas Protegidas Agrupadas --- */}
             <Route element={<ProtectedRoute />}>
               <Route path="/dashboard" element={<MainDashboard />} />
@@ -99,7 +100,6 @@ const App = () => (
               <Route path="/checkout" element={<Checkout />} />
               <Route path="/payment-success" element={<PaymentSuccess />} />
               <Route path="/payment-instructions/:transactionId" element={<PaymentInstructions />} />
-              <Route path="/track/:token" element={<TrackQuotePage />} />
             </Route>
             {/* Ruta para Not Found al final */}
             <Route path="*" element={<NotFound />} />
