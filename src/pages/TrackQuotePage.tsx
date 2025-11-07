@@ -221,8 +221,8 @@ export default function TrackQuotePage() {
   return (
     <div className="min-h-screen bg-white">
       {/* Header minimalista */}
-      <div className="border-b border-gray-100 bg-white sticky top-0 z-10">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between max-w-4xl">
+      <div className="border-b border-gray-100 bg-white sticky top-0 z-10 shadow-sm">
+        <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-4 flex items-center justify-between max-w-4xl">
           <div className="flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-emerald-500" />
             <span className="font-semibold text-gray-900">CatifyPro</span>
@@ -239,7 +239,7 @@ export default function TrackQuotePage() {
         <div className="text-center mb-12">
           {quote.status === "accepted" ? (
             <>
-              <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-3">🎉 {status.description}</h1>
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-3">🎉 {status.description}</h1>
               <p className="text-lg text-gray-600 max-w-2xl mx-auto">
                 Gracias por tu compra con <strong>{providerName}</strong>. Ya está en proceso. Aquí podrás ver el avance
                 y los detalles cuando quieras.
@@ -247,7 +247,7 @@ export default function TrackQuotePage() {
             </>
           ) : quote.status === "pending" ? (
             <>
-              <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-3">⏳ Tu cotización está en revisión</h1>
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-3">⏳ Tu cotización está en revisión</h1>
               <p className="text-lg text-gray-600 max-w-2xl mx-auto">
                 <strong>{providerName}</strong> está revisando tu cotización. Te notificaremos por email cuando haya
                 novedades.
@@ -255,7 +255,7 @@ export default function TrackQuotePage() {
             </>
           ) : (
             <>
-              <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-3">Cotización #{quote.id.slice(0, 8)}</h1>
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-3">Cotización #{quote.id.slice(0, 8)}</h1>
               <p className="text-lg text-gray-600 max-w-2xl mx-auto">
                 {status.description}. Contacta a <strong>{providerName}</strong> para más información.
               </p>
@@ -266,7 +266,7 @@ export default function TrackQuotePage() {
         {/* CTA Section - Solo si aceptada y puede replicar */}
         {canReplicate && (
           <Card className="mb-8 border-0 shadow-lg bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50">
-            <CardContent className="p-8 sm:p-12">
+            <CardContent className="p-6 sm:p-8 md:p-12">
               <div className="text-center mb-8">
                 <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-emerald-100 mb-4">
                   <Rocket className="w-8 h-8 text-emerald-600" />
@@ -281,28 +281,28 @@ export default function TrackQuotePage() {
 
               {/* Beneficios */}
               <div className="grid sm:grid-cols-2 gap-4 mb-8 max-w-2xl mx-auto">
-                <div className="flex items-start gap-3 bg-white/80 backdrop-blur rounded-lg p-4">
+                <div className="flex items-start gap-3 bg-white/80 backdrop-blur rounded-lg p-3 sm:p-4">
                   <CheckCircle className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" />
                   <div>
                     <p className="font-medium text-gray-900">Tu propio catálogo digital</p>
                     <p className="text-sm text-gray-600">Personalizado con tu marca</p>
                   </div>
                 </div>
-                <div className="flex items-start gap-3 bg-white/80 backdrop-blur rounded-lg p-4">
+                <div className="flex items-start gap-3 bg-white/80 backdrop-blur rounded-lg p-3 sm:p-4">
                   <CheckCircle className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" />
                   <div>
                     <p className="font-medium text-gray-900">Cotizador para tus clientes</p>
                     <p className="text-sm text-gray-600">Automatizado 24/7</p>
                   </div>
                 </div>
-                <div className="flex items-start gap-3 bg-white/80 backdrop-blur rounded-lg p-4">
+                <div className="flex items-start gap-3 bg-white/80 backdrop-blur rounded-lg p-3 sm:p-4">
                   <CheckCircle className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" />
                   <div>
                     <p className="font-medium text-gray-900">Posibilidad de revender</p>
                     <p className="text-sm text-gray-600">Los mismos productos</p>
                   </div>
                 </div>
-                <div className="flex items-start gap-3 bg-white/80 backdrop-blur rounded-lg p-4">
+                <div className="flex items-start gap-3 bg-white/80 backdrop-blur rounded-lg p-3 sm:p-4">
                   <CheckCircle className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" />
                   <div>
                     <p className="font-medium text-gray-900">Activación en 1 clic</p>
@@ -312,7 +312,7 @@ export default function TrackQuotePage() {
               </div>
 
               {/* Info box */}
-              <div className="bg-blue-50 border border-blue-100 rounded-lg p-6 mb-8 max-w-2xl mx-auto">
+              <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 sm:p-6 mb-8 max-w-2xl mx-auto">
                 <div className="flex items-start gap-3">
                   <TrendingUp className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
                   <div>
@@ -450,7 +450,7 @@ export default function TrackQuotePage() {
                             <img
                               src={imageUrl}
                               alt={productName}
-                              className="w-20 h-20 object-cover rounded border border-gray-200"
+                              className="w-16 h-16 sm:w-20 sm:h-20 object-cover rounded border border-gray-200"
                             />
                           </div>
                         )}
@@ -495,10 +495,10 @@ export default function TrackQuotePage() {
         {/* Footer inspiracional */}
         <div className="text-center mt-12 py-8 border-t border-gray-100">
           <div className="max-w-2xl mx-auto space-y-4">
-            <p className="text-gray-600 leading-relaxed">
+            <p className="text-sm sm:text-base text-gray-600 leading-relaxed">
               🌱 <strong>Tu compra no sólo trae producto. Trae una oportunidad de negocio.</strong>
             </p>
-            <p className="text-sm text-gray-500">CatifyPro te da la herramienta, tú el impulso.</p>
+            <p className="text-xs sm:text-sm text-gray-500">CatifyPro te da la herramienta, tú el impulso.</p>
             <div className="pt-4 flex items-center justify-center gap-2 text-xs text-gray-400">
               <Zap className="w-3 h-3" />
               <span>Powered by CatifyPro</span>
