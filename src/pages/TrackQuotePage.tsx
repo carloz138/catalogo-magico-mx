@@ -1,23 +1,23 @@
-import { useParams, useNavigate } from 'react-router-dom';
-import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Loader2, CheckCircle, Clock, XCircle, Rocket, Package } from 'lucide-react';
-import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
-import { useToast } from '@/hooks/use-toast';
+import { useParams, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Loader2, CheckCircle, Clock, XCircle, Rocket, Package } from "lucide-react";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
+import { useToast } from "@/hooks/use-toast";
 
 export default function TrackQuotePage() {
   const { token } = useParams();
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
-  
+
   const [quote, setQuote] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -27,88 +27,165 @@ export default function TrackQuotePage() {
     loadQuote();
   }, [token]);
 
-const loadQuote = async () => {
-  try {
-    // 1. Obtener cotización
-    const { data, error } = await supabase
-      .from('quotes')
-      .select(`
-        *,
-        quote_items (*),
-        digital_catalogs (name, slug)
-      `)
-      .eq('tracking_token', token)
-      .single();
+  // ✅ CORREGIDO: Query completo con productos y variantes
+  const loadQuote = async () => {
+    try {
+      console.log("🔍 Cargando cotización con token:", token);
 
-    if (error) throw error;
+      // 1. Obtener cotización CON productos y variantes
+      const { data, error } = await supabase
+        .from("quotes")
+        .select(
+          `
+          *,
+          quote_items (
+            *,
+            products (
+              name,
+              sku,
+              image_url
+            ),
+            product_variants!quote_items_variant_id_fkey (
+              variant_combination,
+              sku,
+              variant_images
+            )
+          ),
+          digital_catalogs (
+            name, 
+            slug,
+            enable_distribution
+          )
+        `,
+        )
+        .eq("tracking_token", token)
+        .single();
 
-    // 2. Verificar si tiene catálogo replicado
-    const { data: replicaData } = await supabase
-      .from('replicated_catalogs')
-      .select('id, is_active')
-      .eq('quote_id', data.id)
-      .maybeSingle();
+      if (error) {
+        console.error("❌ Error loading quote:", error);
+        throw error;
+      }
 
-    // 3. Combinar datos
-    setQuote({
-      ...data,
-      replicated_catalogs: replicaData
-    });
-  } catch (error) {
-    console.error('Error loading quote:', error);
-    toast({
-      title: 'Error',
-      description: 'No se pudo cargar la cotización',
-      variant: 'destructive',
-    });
-  } finally {
-    setLoading(false);
-  }
-};
+      console.log("✅ Cotización cargada:", data);
+      console.log("📦 Items:", data.quote_items?.length || 0);
 
-const handleReplicate = async () => {
-  if (!user) {
-    setShowAuthModal(true);
-    return;
-  }
+      // 2. Verificar si tiene catálogo replicado
+      const { data: replicaData } = await supabase
+        .from("replicated_catalogs")
+        .select("id, is_active")
+        .eq("quote_id", data.id)
+        .maybeSingle();
 
-  setReplicating(true);
-  try {
-    // Crear catálogo replicado
-    const { data: replicatedCatalog, error } = await supabase
-      .from('replicated_catalogs')
-      .insert({
-        original_catalog_id: quote.catalog_id,
-        quote_id: quote.id,
-        distributor_id: user.id,
-        is_active: true,
-        activated_at: new Date().toISOString(),
-        activation_token: crypto.randomUUID()
-      })
-      .select()
-      .single();
+      console.log("🔄 Catálogo replicado:", replicaData);
 
-    if (error) throw error;
+      // 3. Combinar datos
+      setQuote({
+        ...data,
+        replicated_catalogs: replicaData,
+      });
+    } catch (error) {
+      console.error("❌ Error loading quote:", error);
+      toast({
+        title: "Error",
+        description: "No se pudo cargar la cotización",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    toast({
-      title: '🎉 ¡Catálogo creado!',
-      description: 'Ya puedes empezar a vender',
-    });
+  const handleReplicate = async () => {
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
 
-    setTimeout(() => {
-      navigate('/catalogs');
-    }, 1500);
-  } catch (error: any) {
-    console.error('Error replicating:', error);
-    toast({
-      title: 'Error',
-      description: error.message || 'No se pudo crear el catálogo',
-      variant: 'destructive',
-    });
-  } finally {
-    setReplicating(false);
-  }
-};
+    setReplicating(true);
+    try {
+      // Crear catálogo replicado
+      const { data: replicatedCatalog, error } = await supabase
+        .from("replicated_catalogs")
+        .insert({
+          original_catalog_id: quote.catalog_id,
+          quote_id: quote.id,
+          distributor_id: user.id,
+          is_active: true,
+          activated_at: new Date().toISOString(),
+          activation_token: crypto.randomUUID(),
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      toast({
+        title: "🎉 ¡Catálogo creado!",
+        description: "Ya puedes empezar a vender",
+      });
+
+      setTimeout(() => {
+        navigate("/catalogs");
+      }, 1500);
+    } catch (error: any) {
+      console.error("Error replicating:", error);
+      toast({
+        title: "Error",
+        description: error.message || "No se pudo crear el catálogo",
+        variant: "destructive",
+      });
+    } finally {
+      setReplicating(false);
+    }
+  };
+
+  // ✅ NUEVA: Función para formatear variantes legiblemente
+  const formatVariant = (item: any) => {
+    if (!item.product_variants?.variant_combination) return null;
+
+    const combination = item.product_variants.variant_combination;
+    const parts = [];
+
+    const labelMap: Record<string, string> = {
+      color: "Color",
+      color_calzado: "Color",
+      color_electronico: "Color",
+      color_fiesta: "Color",
+      talla_ropa: "Talla",
+      talla_calzado: "Talla",
+      material: "Material",
+      capacidad: "Capacidad",
+      tamano: "Tamaño",
+      tamano_arreglo: "Tamaño",
+      tipo_flor: "Tipo de Flor",
+    };
+
+    for (const [key, value] of Object.entries(combination)) {
+      const label = labelMap[key] || key;
+      parts.push(`${label}: ${value}`);
+    }
+
+    return parts.join(", ");
+  };
+
+  // ✅ NUEVA: Obtener SKU correcto (variante o producto)
+  const getSku = (item: any) => {
+    return item.product_variants?.sku || item.products?.sku || item.product_sku || "N/A";
+  };
+
+  // ✅ NUEVA: Obtener nombre correcto del producto
+  const getProductName = (item: any) => {
+    return item.products?.name || item.product_name || "Producto";
+  };
+
+  // ✅ NUEVA: Obtener imagen correcta
+  const getProductImage = (item: any) => {
+    // Prioridad: imagen de variante > imagen de producto > imagen guardada en quote_item
+    if (item.product_variants?.variant_images?.[0]) {
+      return item.product_variants.variant_images[0];
+    }
+    return item.products?.image_url || item.product_image_url;
+  };
 
   if (loading) {
     return (
@@ -129,27 +206,28 @@ const handleReplicate = async () => {
   }
 
   const total = quote.quote_items.reduce((sum: number, item: any) => sum + item.subtotal, 0);
-  const canReplicate = quote.status === 'accepted' && !quote.replicated_catalogs;
+  const canReplicate =
+    quote.status === "accepted" && quote.digital_catalogs?.enable_distribution && !quote.replicated_catalogs;
   const alreadyReplicated = !!quote.replicated_catalogs;
 
   const statusConfig = {
-    pending: { 
-      icon: Clock, 
-      label: 'Pendiente', 
-      color: 'bg-yellow-50 text-yellow-700 border-yellow-200', 
-      description: 'Tu cotización está siendo revisada por el proveedor' 
+    pending: {
+      icon: Clock,
+      label: "Pendiente",
+      color: "bg-yellow-50 text-yellow-700 border-yellow-200",
+      description: "Tu cotización está siendo revisada por el proveedor",
     },
-    accepted: { 
-      icon: CheckCircle, 
-      label: 'Aceptada', 
-      color: 'bg-green-50 text-green-700 border-green-200', 
-      description: '¡Excelentes noticias! Tu cotización fue aceptada' 
+    accepted: {
+      icon: CheckCircle,
+      label: "Aceptada",
+      color: "bg-green-50 text-green-700 border-green-200",
+      description: "¡Excelentes noticias! Tu cotización fue aceptada",
     },
-    rejected: { 
-      icon: XCircle, 
-      label: 'Rechazada', 
-      color: 'bg-red-50 text-red-700 border-red-200', 
-      description: 'Tu cotización fue rechazada. Contacta al proveedor para más información' 
+    rejected: {
+      icon: XCircle,
+      label: "Rechazada",
+      color: "bg-red-50 text-red-700 border-red-200",
+      description: "Tu cotización fue rechazada. Contacta al proveedor para más información",
     },
   };
 
@@ -171,12 +249,8 @@ const handleReplicate = async () => {
           <CardHeader className="border-b">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
-                <CardTitle className="text-xl">
-                  Cotización #{quote.id.slice(0, 8)}
-                </CardTitle>
-                <p className="text-sm text-muted-foreground mt-1">
-                  📦 Catálogo: {quote.digital_catalogs.name}
-                </p>
+                <CardTitle className="text-xl">Cotización #{quote.id.slice(0, 8)}</CardTitle>
+                <p className="text-sm text-muted-foreground mt-1">📦 Catálogo: {quote.digital_catalogs.name}</p>
                 <p className="text-xs text-muted-foreground mt-1">
                   📅 Enviada: {format(new Date(quote.created_at), "d 'de' MMMM, yyyy", { locale: es })}
                 </p>
@@ -201,44 +275,83 @@ const handleReplicate = async () => {
             <div className="bg-gray-50 p-4 rounded-lg">
               <h3 className="font-semibold mb-3 text-sm text-gray-700">Tus datos</h3>
               <div className="space-y-1 text-sm">
-                <p><span className="text-muted-foreground">Nombre:</span> <strong>{quote.customer_name}</strong></p>
-                <p><span className="text-muted-foreground">Email:</span> <strong>{quote.customer_email}</strong></p>
+                <p>
+                  <span className="text-muted-foreground">Nombre:</span> <strong>{quote.customer_name}</strong>
+                </p>
+                <p>
+                  <span className="text-muted-foreground">Email:</span> <strong>{quote.customer_email}</strong>
+                </p>
                 {quote.customer_company && (
-                  <p><span className="text-muted-foreground">Empresa:</span> <strong>{quote.customer_company}</strong></p>
+                  <p>
+                    <span className="text-muted-foreground">Empresa:</span> <strong>{quote.customer_company}</strong>
+                  </p>
                 )}
                 {quote.customer_phone && (
-                  <p><span className="text-muted-foreground">Teléfono:</span> <strong>{quote.customer_phone}</strong></p>
+                  <p>
+                    <span className="text-muted-foreground">Teléfono:</span> <strong>{quote.customer_phone}</strong>
+                  </p>
                 )}
               </div>
             </div>
 
-            {/* Lista de productos */}
+            {/* ✅ CORREGIDO: Lista de productos con toda la info */}
             <div>
               <h3 className="font-semibold mb-3 flex items-center gap-2">
                 <Package className="w-4 h-4" />
-                Productos ({quote.quote_items.length})
+                Productos ({quote.quote_items?.length || 0})
               </h3>
-              <div className="space-y-2">
-                {quote.quote_items.map((item: any) => (
-                  <div key={item.id} className="flex justify-between items-start p-3 bg-gray-50 rounded-lg text-sm">
-                    <div className="flex-1">
-                      <p className="font-medium">{item.product_name}</p>
-                      <p className="text-muted-foreground text-xs">
-                        Cantidad: {item.quantity} × ${(item.unit_price / 100).toFixed(2)}
-                      </p>
-                    </div>
-                    <p className="font-semibold text-purple-600">
-                      ${(item.subtotal / 100).toFixed(2)}
-                    </p>
-                  </div>
-                ))}
+              <div className="space-y-3">
+                {quote.quote_items && quote.quote_items.length > 0 ? (
+                  quote.quote_items.map((item: any) => {
+                    const variantText = formatVariant(item);
+                    const sku = getSku(item);
+                    const productName = getProductName(item);
+                    const imageUrl = getProductImage(item);
+
+                    return (
+                      <div key={item.id} className="flex gap-3 p-3 bg-gray-50 rounded-lg">
+                        {/* Imagen del producto */}
+                        {imageUrl && (
+                          <div className="flex-shrink-0">
+                            <img
+                              src={imageUrl}
+                              alt={productName}
+                              className="w-16 h-16 object-cover rounded border border-gray-200"
+                            />
+                          </div>
+                        )}
+
+                        {/* Info del producto */}
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm">{productName}</p>
+                          <p className="text-xs text-muted-foreground">SKU: {sku}</p>
+                          {variantText && <p className="text-xs text-purple-600 font-medium mt-1">📦 {variantText}</p>}
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {item.quantity} × ${(item.unit_price / 100).toFixed(2)}
+                          </p>
+                        </div>
+
+                        {/* Subtotal */}
+                        <div className="flex-shrink-0 text-right">
+                          <p className="font-semibold text-purple-600">${(item.subtotal / 100).toFixed(2)}</p>
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <p className="text-sm text-muted-foreground text-center py-4">No hay productos en esta cotización</p>
+                )}
               </div>
-              <div className="flex justify-between text-lg font-bold mt-4 pt-4 border-t">
-                <span>Total:</span>
-                <span className="text-purple-600">
-                  ${(total / 100).toLocaleString('es-MX', { minimumFractionDigits: 2 })} MXN
-                </span>
-              </div>
+
+              {/* Total */}
+              {quote.quote_items && quote.quote_items.length > 0 && (
+                <div className="flex justify-between text-lg font-bold mt-4 pt-4 border-t">
+                  <span>Total:</span>
+                  <span className="text-purple-600">
+                    ${(total / 100).toLocaleString("es-MX", { minimumFractionDigits: 2 })} MXN
+                  </span>
+                </div>
+              )}
             </div>
 
             {/* CTA de replicación */}
@@ -270,8 +383,8 @@ const handleReplicate = async () => {
                       </li>
                     </ul>
                   </div>
-                  <Button 
-                    size="lg" 
+                  <Button
+                    size="lg"
                     onClick={handleReplicate}
                     disabled={replicating}
                     className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700"
@@ -299,10 +412,10 @@ const handleReplicate = async () => {
                 <AlertDescription className="ml-2">
                   <strong>¡Catálogo creado exitosamente!</strong>
                   <br />
-                  <Button 
-                    variant="link" 
+                  <Button
+                    variant="link"
                     className="p-0 h-auto text-green-700 hover:text-green-800"
-                    onClick={() => navigate('/catalogs')}
+                    onClick={() => navigate("/catalogs")}
                   >
                     Ver mis catálogos →
                   </Button>
@@ -311,12 +424,12 @@ const handleReplicate = async () => {
             )}
 
             {/* Mensaje para estado pendiente */}
-            {quote.status === 'pending' && (
+            {quote.status === "pending" && (
               <Alert>
                 <Clock className="h-4 w-4" />
                 <AlertDescription className="ml-2 text-sm">
-                  Te enviaremos un email cuando tu cotización sea revisada. 
-                  Puedes guardar este link para consultarla en cualquier momento.
+                  Te enviaremos un email cuando tu cotización sea revisada. Puedes guardar este link para consultarla en
+                  cualquier momento.
                 </AlertDescription>
               </Alert>
             )}
@@ -334,15 +447,13 @@ const handleReplicate = async () => {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 pt-4">
-            <Button 
-              className="w-full bg-gradient-to-r from-purple-600 to-indigo-600" 
-              onClick={() => navigate('/login?redirect=/track/' + token)}
+            <Button
+              className="w-full bg-gradient-to-r from-purple-600 to-indigo-600"
+              onClick={() => navigate("/login?redirect=/track/" + token)}
             >
               Crear cuenta / Iniciar sesión
             </Button>
-            <p className="text-xs text-center text-muted-foreground">
-              Es gratis y toma menos de 1 minuto
-            </p>
+            <p className="text-xs text-center text-muted-foreground">Es gratis y toma menos de 1 minuto</p>
           </div>
         </DialogContent>
       </Dialog>
