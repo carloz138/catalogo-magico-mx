@@ -1327,6 +1327,64 @@ export type Database = {
           },
         ]
       }
+      reseller_variant_prices: {
+        Row: {
+          created_at: string | null
+          custom_price_retail: number | null
+          custom_price_wholesale: number | null
+          id: string
+          is_in_stock: boolean | null
+          replicated_catalog_id: string
+          stock_quantity: number | null
+          updated_at: string | null
+          variant_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          custom_price_retail?: number | null
+          custom_price_wholesale?: number | null
+          id?: string
+          is_in_stock?: boolean | null
+          replicated_catalog_id: string
+          stock_quantity?: number | null
+          updated_at?: string | null
+          variant_id: string
+        }
+        Update: {
+          created_at?: string | null
+          custom_price_retail?: number | null
+          custom_price_wholesale?: number | null
+          id?: string
+          is_in_stock?: boolean | null
+          replicated_catalog_id?: string
+          stock_quantity?: number | null
+          updated_at?: string | null
+          variant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reseller_variant_prices_replicated_catalog_id_fkey"
+            columns: ["replicated_catalog_id"]
+            isOneToOne: false
+            referencedRelation: "replicated_catalogs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reseller_variant_prices_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "product_variants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reseller_variant_prices_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "products_with_variants"
+            referencedColumns: ["variant_id"]
+          },
+        ]
+      }
       solicitudes_mercado: {
         Row: {
           cantidad: number

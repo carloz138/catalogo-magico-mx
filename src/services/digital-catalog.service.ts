@@ -273,12 +273,45 @@ export class DigitalCatalogService {
 
       if (productsError) throw productsError;
 
+      // ✅ Obtener precios personalizados de productos
+      const { data: customProductPrices } = await supabase
+        .from('reseller_product_prices')
+        .select('*')
+        .eq('replicated_catalog_id', replicatedCatalog.id);
+
+      // ✅ Obtener precios personalizados de variantes
+      const { data: customVariantPrices } = await supabase
+        .from('reseller_variant_prices')
+        .select('*')
+        .eq('replicated_catalog_id', replicatedCatalog.id);
+
       const products = catalogProducts
-        ?.map((cp: any) => ({
-          ...cp.products,
-          image_url: cp.products.processed_image_url || cp.products.original_image_url,
-          variants: cp.products.product_variants || [],
-        }))
+        ?.map((cp: any) => {
+          const product = cp.products;
+          const customPrice = customProductPrices?.find(p => p.product_id === product.id);
+          
+          // Aplicar precios personalizados a variantes
+          const processedVariants = (product.product_variants || []).map((variant: any) => {
+            const customVariantPrice = customVariantPrices?.find(v => v.variant_id === variant.id);
+            
+            return {
+              ...variant,
+              price_retail: customVariantPrice?.custom_price_retail || variant.price_retail,
+              price_wholesale: customVariantPrice?.custom_price_wholesale || variant.price_wholesale,
+              stock_quantity: customVariantPrice?.stock_quantity || variant.stock_quantity,
+              is_in_stock: customVariantPrice?.is_in_stock ?? variant.stock_quantity > 0,
+            };
+          });
+          
+          return {
+            ...product,
+            // Aplicar precios personalizados del producto
+            price_retail: customPrice?.custom_price_retail || product.price_retail,
+            price_wholesale: customPrice?.custom_price_wholesale || product.price_wholesale,
+            image_url: product.processed_image_url || product.original_image_url,
+            variants: processedVariants,
+          };
+        })
         .filter(Boolean) || [];
 
       // Get business info from RESELLER (L2)
