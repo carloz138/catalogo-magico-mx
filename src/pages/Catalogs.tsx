@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Eye, Share2, Edit, Trash2, Plus, Lock, Globe, Calendar, FileText, Download, ExternalLink } from "lucide-react";
+import { Eye, Share2, Edit, Trash2, Plus, Lock, Globe, Calendar, FileText, Download, ExternalLink, DollarSign } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -147,6 +147,132 @@ const DigitalCatalogCard = ({
           </Button>
           <Button size="sm" variant="ghost" onClick={() => onDelete(catalog)}>
             <Trash2 className="w-4 h-4 text-destructive" />
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
+// ==========================================
+// COMPONENTE: CARD DE CATÁLOGO REPLICADO
+// ==========================================
+
+const ReplicatedCatalogCard = ({
+  catalog,
+  replicatedCatalogId,
+  replicatedSlug,
+  onShare,
+  onDelete,
+}: {
+  catalog: any;
+  replicatedCatalogId: string;
+  replicatedSlug: string;
+  onShare: (catalog: DigitalCatalog) => void;
+  onDelete: (catalog: DigitalCatalog) => void;
+}) => {
+  const navigate = useNavigate();
+  const isExpired = catalog.expires_at ? new Date(catalog.expires_at) < new Date() : false;
+  const isActive = catalog.is_active && !isExpired;
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString("es-MX", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
+  };
+
+  const handleViewCatalog = () => {
+    window.open(`/c/${replicatedSlug}`, "_blank");
+  };
+
+  const handleEditPrices = () => {
+    navigate(`/reseller/edit-prices?catalog_id=${replicatedCatalogId}`);
+  };
+
+  return (
+    <Card className="overflow-hidden hover:shadow-lg transition-shadow duration-200 group border-teal-200">
+      {/* Badge de tipo */}
+      <div className="absolute top-3 left-3 z-10">
+        <Badge className="bg-teal-500 text-white">
+          <Share2 className="w-3 h-3 mr-1" />
+          Replicado
+        </Badge>
+      </div>
+
+      {/* Imagen de portada */}
+      <div className="aspect-video bg-gradient-to-br from-teal-500/10 to-cyan-500/10 flex items-center justify-center relative overflow-hidden">
+        <Share2 className="w-16 h-16 text-teal-500/30 group-hover:scale-110 transition-transform" />
+        <div className="absolute top-2 right-2 flex gap-1">
+          {catalog.is_private && (
+            <Badge variant="secondary" className="bg-background/90 backdrop-blur">
+              <Lock className="w-3 h-3 mr-1" />
+              Privado
+            </Badge>
+          )}
+        </div>
+      </div>
+
+      <CardContent className="p-4 space-y-3">
+        {/* Header */}
+        <div className="space-y-1">
+          <div className="flex items-start justify-between gap-2">
+            <h3 className="font-semibold text-lg line-clamp-1">{catalog.name}</h3>
+            <Badge variant={isActive ? "default" : "destructive"} className="shrink-0 bg-teal-500">
+              {isActive ? "Activo" : "Expirado"}
+            </Badge>
+          </div>
+          {catalog.description && <p className="text-sm text-muted-foreground line-clamp-2">{catalog.description}</p>}
+        </div>
+
+        {/* Stats */}
+        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+          <div className="flex items-center gap-1">
+            <Eye className="w-4 h-4" />
+            <span>{catalog.view_count || 0} vistas</span>
+          </div>
+          <Badge variant="outline" className="text-xs bg-teal-50">
+            Tu catálogo
+          </Badge>
+        </div>
+
+        {/* Dates */}
+        <div className="space-y-1 text-xs text-muted-foreground">
+          <div className="flex items-center gap-1">
+            <Calendar className="w-3 h-3" />
+            <span>Creado: {formatDate(catalog.created_at)}</span>
+          </div>
+          {catalog.expires_at && (
+            <div className="flex items-center gap-1">
+              <Calendar className="w-3 h-3" />
+              <span className={isExpired ? "text-destructive" : ""}>Expira: {formatDate(catalog.expires_at)}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Actions */}
+        <div className="flex gap-2 pt-2 border-t">
+          <Button 
+            size="sm" 
+            variant="outline" 
+            className="flex-1" 
+            onClick={handleViewCatalog} 
+            disabled={!isActive}
+          >
+            <Eye className="w-4 h-4 mr-1" />
+            Ver
+          </Button>
+          <Button 
+            size="sm" 
+            className="flex-1 bg-purple-600 hover:bg-purple-700" 
+            onClick={handleEditPrices}
+          >
+            <DollarSign className="w-4 h-4 mr-1" />
+            Precios
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => onShare(catalog)}>
+            <Share2 className="w-4 h-4" />
           </Button>
         </div>
       </CardContent>
@@ -322,7 +448,8 @@ const Catalogs = () => {
       const { data, error } = await supabase
         .from("replicated_catalogs")
         .select(`
-          *,
+          id,
+          slug,
           digital_catalogs (
             id,
             name,
@@ -340,8 +467,12 @@ const Catalogs = () => {
         .order("activated_at", { ascending: false });
 
       if (error) throw error;
-      // Transformar a formato DigitalCatalog
-      return data.map(r => r.digital_catalogs).filter(Boolean) as DigitalCatalog[];
+      // Transformar a formato extendido con replicated_catalog_id
+      return data.map(r => ({
+        ...r.digital_catalogs,
+        replicatedCatalogId: r.id, // ID del catálogo replicado
+        replicatedSlug: r.slug, // Slug del catálogo replicado
+      })).filter(Boolean);
     },
     enabled: !!user,
   });
@@ -500,10 +631,12 @@ const Catalogs = () => {
               </p>
             </div>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {replicatedCatalogs.map((catalog) => (
-                <DigitalCatalogCard
+              {replicatedCatalogs.map((catalog: any) => (
+                <ReplicatedCatalogCard
                   key={catalog.id}
                   catalog={catalog}
+                  replicatedCatalogId={catalog.replicatedCatalogId}
+                  replicatedSlug={catalog.replicatedSlug}
                   onShare={setShareModalCatalog}
                   onDelete={setDeleteCatalog}
                 />
