@@ -80,7 +80,6 @@ export default function TrackQuotePage() {
   };
 
   const handleReplicate = async () => {
-    // ... (Toda la función handleReplicate se mantiene exactamente igual)
     if (!user) {
       setShowAuthModal(true);
       return;
@@ -88,60 +87,41 @@ export default function TrackQuotePage() {
     
     if (!quote) return;
 
+    // Validar que existe una réplica para activar
+    if (!quote.replicated_catalogs) {
+      toast({
+        title: "Error",
+        description: "No hay un catálogo disponible para activar. Contacta al proveedor.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setReplicating(true);
     try {
-      // Verificar si ya existe una réplica inactiva
-      const replicaExists = !!quote.replicated_catalogs;
-      const isReplicaActive = quote.replicated_catalogs?.is_active === true;
+      console.log("🔄 Activando réplica existente:", quote.replicated_catalogs.id);
       
-      if (replicaExists && !isReplicaActive) {
-        // Activar la réplica existente
-        console.log("🔄 Activando réplica existente:", quote.replicated_catalogs.id);
-        
-        const { error } = await supabase
-          .from("replicated_catalogs")
-          .update({
-            is_active: true,
-            reseller_id: user.id,
-            activated_at: new Date().toISOString(),
-          })
-          .eq("id", quote.replicated_catalogs.id);
+      // Solo activar la réplica existente
+      const { error } = await supabase
+        .from("replicated_catalogs")
+        .update({
+          is_active: true,
+          reseller_id: user.id,
+          activated_at: new Date().toISOString(),
+        })
+        .eq("id", quote.replicated_catalogs.id);
 
-        if (error) throw error;
+      if (error) throw error;
 
-        toast({
-          title: "🎉 ¡Catálogo activado!",
-          description: "Ya puedes empezar a vender",
-        });
-      } else {
-        // Crear nueva réplica
-        console.log("✨ Creando nueva réplica para:", quote.catalog_id);
-        
-        const { error } = await supabase
-          .from("replicated_catalogs")
-          .insert({
-            original_catalog_id: quote.catalog_id,
-            quote_id: quote.id,
-            distributor_id: quote.digital_catalogs.user_id,
-            reseller_id: user.id,
-            is_active: true,
-            activated_at: new Date().toISOString(),
-            activation_token: crypto.randomUUID(),
-          });
+      toast({
+        title: "🎉 ¡Catálogo activado exitosamente!",
+        description: "Ahora puedes verlo en 'Mis Catálogos'",
+      });
 
-        if (error) throw error;
-
-        toast({
-          title: "🎉 ¡Catálogo activado!",
-          description: "Ya puedes empezar a vender",
-        });
-      }
-
-      setTimeout(() => {
-        navigate("/catalogs");
-      }, 1500);
+      // Recargar datos para actualizar el estado
+      await loadQuote();
     } catch (error: any) {
-      console.error("Error replicating:", error);
+      console.error("❌ Error activando catálogo:", error);
       toast({
         title: "Error",
         description: error.message || "No se pudo activar el catálogo",
