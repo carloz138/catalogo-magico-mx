@@ -33,13 +33,13 @@ export interface PlanFeatures {
   analyticsLevel: 'none' | 'basic' | 'advanced' | 'pro';
 }
 
-// Mapeo de IDs de planes a tiers
+// Mapeo de IDs de planes a tiers (precios en DB están en centavos)
 export const PLAN_ID_TO_TIER: Record<string, PlanTier> = {
   '8d9c9971-53a4-4dfb-abe3-df531e31b1a3': 'free',           // Plan Gratis
-  '43fae58b-bb42-4752-8722-36be3fc863c8': 'catalogs',       // Plan Catálogos
-  '7f4ea9f7-2ea4-4dd6-bfc0-b9ee7df1ae53': 'basic',          // Plan Básico IA
-  'b4fd4d39-8225-46c6-904f-20815e7c0b4e': 'professional',   // Plan Profesional IA
-  '0bacec4c-1316-4890-a309-44ebd357552b': 'enterprise'      // Plan Empresarial IA
+  '43fae58b-bb42-4752-8722-36be3fc863c8': 'catalogs',       // Plan Catálogos - $4.95 USD / $99 MXN
+  '7f4ea9f7-2ea4-4dd6-bfc0-b9ee7df1ae53': 'basic',          // Plan Básico IA - $14.95 USD / $299 MXN
+  'b4fd4d39-8225-46c6-904f-20815e7c0b4e': 'professional',   // Plan Profesional IA - $29.95 USD / $599 MXN
+  '0bacec4c-1316-4890-a309-44ebd357552b': 'enterprise'      // Plan Empresarial IA - $64.95 USD / $1,299 MXN
 };
 
 // También por nombre (backup)
@@ -69,68 +69,72 @@ export const PLAN_FEATURES: Record<PlanTier, PlanFeatures> = {
     analyticsLevel: 'none'
   },
   
+  // Plan Catálogos - $4.95 USD - 1 catálogo, 30 uploads, 0 créditos IA
   catalogs: {
     tier: 'catalogs',
     displayName: 'Plan Catálogos',
-    allowedTemplateCategories: ['basic'], // 🆕 Solo básico
+    allowedTemplateCategories: ['basic'],
     canAccessAllTemplates: false,
     hasWatermark: true,
-    maxActiveCatalogs: 1,
-    hasQuotation: true,
+    maxActiveCatalogs: 1, // max_catalogs en DB
+    hasQuotation: true, // has_quotation en DB
     canCustomizeColors: false,
     canUsePrivateCatalogs: false,
     showPoweredBy: true,
     canRemoveBranding: false,
-    maxProductsPerCatalog: 100,
-    analyticsLevel: 'basic'
+    maxProductsPerCatalog: 30, // max_uploads en DB
+    analyticsLevel: 'basic' // analytics_level en DB
   },
   
+  // Plan Básico IA - $14.95 USD - 5 catálogos, 100 uploads, 30 créditos IA
   basic: {
     tier: 'basic',
     displayName: 'Plan Básico IA',
-    allowedTemplateCategories: ['basic', 'standard'], // 🆕 Básico + Estándar (9 templates)
+    allowedTemplateCategories: ['basic', 'standard'],
     canAccessAllTemplates: false,
     hasWatermark: false,
-    maxActiveCatalogs: 5,
-    hasQuotation: true,
+    maxActiveCatalogs: 5, // max_catalogs en DB
+    hasQuotation: true, // has_quotation en DB
     canCustomizeColors: false,
     canUsePrivateCatalogs: false,
     showPoweredBy: false,
     canRemoveBranding: true,
-    maxProductsPerCatalog: 200,
-    analyticsLevel: 'advanced'
+    maxProductsPerCatalog: 100, // max_uploads en DB
+    analyticsLevel: 'advanced' // analytics_level en DB
   },
   
+  // Plan Profesional IA - $29.95 USD - 30 catálogos, 300 uploads, 100 créditos IA
   professional: {
     tier: 'professional',
     displayName: 'Plan Profesional IA',
-    allowedTemplateCategories: ['basic', 'standard', 'seasonal'], // 🆕 Todos (16 templates)
+    allowedTemplateCategories: ['basic', 'standard', 'seasonal'],
     canAccessAllTemplates: true,
     hasWatermark: false,
-    maxActiveCatalogs: 30,
-    hasQuotation: true,
+    maxActiveCatalogs: 30, // max_catalogs en DB
+    hasQuotation: true, // has_quotation en DB
     canCustomizeColors: true,
     canUsePrivateCatalogs: true,
     showPoweredBy: false,
     canRemoveBranding: true,
-    maxProductsPerCatalog: 500,
-    analyticsLevel: 'pro'
+    maxProductsPerCatalog: 300, // max_uploads en DB
+    analyticsLevel: 'pro' // analytics_level en DB
   },
   
+  // Plan Empresarial IA - $64.95 USD - ilimitados, 1000 uploads, 300 créditos IA
   enterprise: {
     tier: 'enterprise',
     displayName: 'Plan Empresarial IA',
-    allowedTemplateCategories: ['basic', 'standard', 'seasonal'], // 🆕 Todos (16 templates)
+    allowedTemplateCategories: ['basic', 'standard', 'seasonal'],
     canAccessAllTemplates: true,
     hasWatermark: false,
-    maxActiveCatalogs: 0, // Ilimitado
-    hasQuotation: true,
+    maxActiveCatalogs: 0, // max_catalogs: 0 en DB = ilimitado
+    hasQuotation: true, // has_quotation en DB
     canCustomizeColors: true,
     canUsePrivateCatalogs: true,
     showPoweredBy: false,
     canRemoveBranding: true,
-    maxProductsPerCatalog: 0, // Ilimitado
-    analyticsLevel: 'pro'
+    maxProductsPerCatalog: 1000, // max_uploads en DB
+    analyticsLevel: 'pro' // analytics_level en DB
   }
 };
 

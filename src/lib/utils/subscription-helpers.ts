@@ -10,6 +10,7 @@ export type PlanLevel = 'free' | 'starter' | 'basic' | 'professional' | 'enterpr
 export const isPremiumPlan = (packageData: PackageData | null): boolean => {
   if (!packageData) return false;
   
+  // Precios en centavos: >= $12.50 USD es premium
   return packageData.package_type === 'monthly_plan' && 
          packageData.price_usd >= 1250;
 };
@@ -17,12 +18,20 @@ export const isPremiumPlan = (packageData: PackageData | null): boolean => {
 export const getPlanLevel = (packageData: PackageData | null): PlanLevel => {
   if (!packageData || packageData.package_type !== 'monthly_plan') return 'free';
   
-  const price = packageData.price_usd;
+  // Precios en centavos en la DB
+  const priceInCents = packageData.price_usd;
   
-  if (price >= 4500) return 'enterprise';
-  if (price >= 2500) return 'professional'; 
-  if (price >= 1250) return 'basic';
-  if (price >= 500) return 'starter';
+  // Plan Empresarial IA: $64.95+ USD (6495+ centavos)
+  if (priceInCents >= 6495) return 'enterprise';
+  
+  // Plan Profesional IA: $29.95+ USD (2995+ centavos)
+  if (priceInCents >= 2995) return 'professional'; 
+  
+  // Plan Básico IA: $14.95+ USD (1495+ centavos)
+  if (priceInCents >= 1495) return 'basic';
+  
+  // Plan Catálogos: $4.95+ USD (495+ centavos)
+  if (priceInCents >= 495) return 'starter';
   
   return 'free';
 };
