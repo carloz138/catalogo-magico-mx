@@ -264,38 +264,114 @@ export default function QuoteDetailPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {quote.items.map((item, index) => (
-                  <div key={item.id}>
-                    {index > 0 && <Separator className="my-4" />}
-                    <div className="flex gap-4">
-                      {item.product_image_url && (
-                        <img
-                          src={item.product_image_url}
-                          alt={item.product_name}
-                          className="w-20 h-20 object-cover rounded flex-shrink-0"
-                        />
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <h4 className="font-semibold mb-1">{item.product_name}</h4>
-                        {item.product_sku && <p className="text-sm text-muted-foreground">SKU: {item.product_sku}</p>}
-                        <div className="flex flex-wrap gap-4 mt-2 text-sm">
-                          <span>
-                            Cantidad: <strong>{item.quantity}</strong>
-                          </span>
-                          <span>
-                            Precio: <strong>${(item.unit_price / 100).toFixed(2)}</strong>
-                          </span>
-                          <Badge variant="secondary">{item.price_type === "menudeo" ? "Menudeo" : "Mayoreo"}</Badge>
+              {(() => {
+                // Separar productos en stock y bajo pedido
+                const inStockItems = quote.items.filter(item => item.is_in_stock);
+                const specialOrderItems = quote.items.filter(item => !item.is_in_stock);
+
+                return (
+                  <div className="space-y-6">
+                    {/* Productos en Stock */}
+                    {inStockItems.length > 0 && (
+                      <div>
+                        <div className="flex items-center gap-2 mb-4">
+                          <CheckCircle className="w-5 h-5 text-green-600" />
+                          <h3 className="font-semibold text-green-700">
+                            Productos Disponibles ({inStockItems.length})
+                          </h3>
+                        </div>
+                        <div className="space-y-4 pl-7">
+                          {inStockItems.map((item, index) => (
+                            <div key={item.id}>
+                              {index > 0 && <Separator className="my-4" />}
+                              <div className="flex gap-4">
+                                {item.product_image_url && (
+                                  <img
+                                    src={item.product_image_url}
+                                    alt={item.product_name}
+                                    className="w-20 h-20 object-cover rounded flex-shrink-0"
+                                  />
+                                )}
+                                <div className="flex-1 min-w-0">
+                                  <h4 className="font-semibold mb-1">{item.product_name}</h4>
+                                  {item.variant_description && (
+                                    <p className="text-sm text-muted-foreground mb-1">{item.variant_description}</p>
+                                  )}
+                                  {item.product_sku && <p className="text-sm text-muted-foreground">SKU: {item.product_sku}</p>}
+                                  <div className="flex flex-wrap gap-4 mt-2 text-sm">
+                                    <span>
+                                      Cantidad: <strong>{item.quantity}</strong>
+                                    </span>
+                                    <span>
+                                      Precio: <strong>${(item.unit_price / 100).toFixed(2)}</strong>
+                                    </span>
+                                    <Badge variant="secondary">{item.price_type === "menudeo" ? "Menudeo" : "Mayoreo"}</Badge>
+                                  </div>
+                                </div>
+                                <div className="text-right flex-shrink-0">
+                                  <p className="text-lg font-bold">${(item.subtotal / 100).toFixed(2)}</p>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
                         </div>
                       </div>
-                      <div className="text-right flex-shrink-0">
-                        <p className="text-lg font-bold">${(item.subtotal / 100).toFixed(2)}</p>
+                    )}
+
+                    {/* Productos Bajo Pedido Especial */}
+                    {specialOrderItems.length > 0 && (
+                      <div>
+                        <div className="flex items-center gap-2 mb-4">
+                          <Clock className="w-5 h-5 text-amber-600" />
+                          <h3 className="font-semibold text-amber-700">
+                            Productos Bajo Pedido Especial ({specialOrderItems.length})
+                          </h3>
+                        </div>
+                        <Alert className="mb-4 bg-amber-50 border-amber-200">
+                          <AlertDescription className="text-amber-900 text-sm">
+                            Estos productos necesitan ser solicitados al proveedor antes de confirmar la entrega.
+                          </AlertDescription>
+                        </Alert>
+                        <div className="space-y-4 pl-7">
+                          {specialOrderItems.map((item, index) => (
+                            <div key={item.id}>
+                              {index > 0 && <Separator className="my-4" />}
+                              <div className="flex gap-4">
+                                {item.product_image_url && (
+                                  <img
+                                    src={item.product_image_url}
+                                    alt={item.product_name}
+                                    className="w-20 h-20 object-cover rounded flex-shrink-0 opacity-75"
+                                  />
+                                )}
+                                <div className="flex-1 min-w-0">
+                                  <h4 className="font-semibold mb-1">{item.product_name}</h4>
+                                  {item.variant_description && (
+                                    <p className="text-sm text-muted-foreground mb-1">{item.variant_description}</p>
+                                  )}
+                                  {item.product_sku && <p className="text-sm text-muted-foreground">SKU: {item.product_sku}</p>}
+                                  <div className="flex flex-wrap gap-4 mt-2 text-sm">
+                                    <span>
+                                      Cantidad: <strong>{item.quantity}</strong>
+                                    </span>
+                                    <span>
+                                      Precio: <strong>${(item.unit_price / 100).toFixed(2)}</strong>
+                                    </span>
+                                    <Badge variant="secondary">{item.price_type === "menudeo" ? "Menudeo" : "Mayoreo"}</Badge>
+                                  </div>
+                                </div>
+                                <div className="text-right flex-shrink-0">
+                                  <p className="text-lg font-bold">${(item.subtotal / 100).toFixed(2)}</p>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
-                ))}
-              </div>
+                );
+              })()}
 
               <Separator className="my-6" />
 

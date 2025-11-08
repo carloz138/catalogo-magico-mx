@@ -96,6 +96,9 @@ export interface QuoteItem {
   subtotal: number;
 
   created_at: string;
+  
+  // ✅ Indica si el producto/variante está en stock para L2
+  is_in_stock?: boolean;
 }
 
 export interface CatalogView {

@@ -232,9 +232,59 @@ export class QuoteService {
 
     if (itemsError) throw itemsError;
 
+    // ✅ Si la cotización es de un catálogo replicado, enriquecer items con info de stock
+    let enrichedItems = items || [];
+    
+    if (quote.replicated_catalog_id) {
+      const replicatedCatalogId = quote.replicated_catalog_id;
+
+      // Obtener información de stock de productos y variantes
+      const { data: productPrices } = await supabase
+        .from("reseller_product_prices")
+        .select("product_id, is_in_stock")
+        .eq("replicated_catalog_id", replicatedCatalogId);
+
+      const { data: variantPrices } = await supabase
+        .from("reseller_variant_prices")
+        .select("variant_id, is_in_stock")
+        .eq("replicated_catalog_id", replicatedCatalogId);
+
+      // Crear mapas para búsqueda rápida
+      const productStockMap = new Map(
+        (productPrices || []).map((p) => [p.product_id, p.is_in_stock])
+      );
+      const variantStockMap = new Map(
+        (variantPrices || []).map((v) => [v.variant_id, v.is_in_stock])
+      );
+
+      // Enriquecer items con información de stock
+      enrichedItems = enrichedItems.map((item: any) => {
+        let isInStock = false;
+
+        if (item.variant_id) {
+          // Si tiene variante, buscar en variant_prices
+          isInStock = variantStockMap.get(item.variant_id) || false;
+        } else if (item.product_id) {
+          // Si no tiene variante, buscar en product_prices
+          isInStock = productStockMap.get(item.product_id) || false;
+        }
+
+        return {
+          ...item,
+          is_in_stock: isInStock,
+        };
+      });
+    } else {
+      // Si no es catálogo replicado, todos están "en stock" por defecto
+      enrichedItems = enrichedItems.map((item: any) => ({
+        ...item,
+        is_in_stock: true,
+      }));
+    }
+
     return {
       ...quote,
-      items: items || [],
+      items: enrichedItems,
       catalog: quote.digital_catalogs,
     } as Quote & { items: QuoteItem[]; catalog: any };
   }
