@@ -12,6 +12,7 @@ import { useForm, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 
+//Archivo en dashboard
 // Validación del formulario
 const formSchema = z.object({
   producto_nombre: z.string().min(3, "El nombre del producto es requerido"),
@@ -35,11 +36,16 @@ export function MarketRadarForm({ fabricanteId, revendedorId, catalogoId }: Mark
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const { register, handleSubmit, formState: { errors }, reset } = useForm<FormData>({
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    reset,
+  } = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       cantidad: 1,
-    }
+    },
   });
 
   const onSubmit: SubmitHandler<FormData> = async (data) => {
@@ -48,19 +54,17 @@ export function MarketRadarForm({ fabricanteId, revendedorId, catalogoId }: Mark
     setSuccess(false);
 
     try {
-      const { error: insertError } = await supabase
-        .from("solicitudes_mercado" as any)
-        .insert({
-          fabricante_id: fabricanteId,
-          revendedor_id: revendedorId || null,
-          catalogo_id: catalogoId,
-          cliente_final_nombre: data.cliente_final_nombre,
-          cliente_final_email: data.cliente_final_email,
-          producto_nombre: data.producto_nombre,
-          producto_marca: data.producto_marca || null,
-          producto_descripcion: data.producto_descripcion || null,
-          cantidad: data.cantidad,
-        } as any);
+      const { error: insertError } = await supabase.from("solicitudes_mercado" as any).insert({
+        fabricante_id: fabricanteId,
+        revendedor_id: revendedorId || null,
+        catalogo_id: catalogoId,
+        cliente_final_nombre: data.cliente_final_nombre,
+        cliente_final_email: data.cliente_final_email,
+        producto_nombre: data.producto_nombre,
+        producto_marca: data.producto_marca || null,
+        producto_descripcion: data.producto_descripcion || null,
+        cantidad: data.cantidad,
+      } as any);
 
       if (insertError) throw insertError;
 
@@ -89,9 +93,7 @@ export function MarketRadarForm({ fabricanteId, revendedorId, catalogoId }: Mark
     <Card className="w-full max-w-lg mx-auto">
       <CardHeader>
         <CardTitle>¿No encuentras lo que buscas?</CardTitle>
-        <p className="text-sm text-muted-foreground">
-          Dinos qué necesitas y haremos lo posible por conseguirlo.
-        </p>
+        <p className="text-sm text-muted-foreground">Dinos qué necesitas y haremos lo posible por conseguirlo.</p>
       </CardHeader>
       <form onSubmit={handleSubmit(onSubmit)}>
         <CardContent className="space-y-4">
@@ -99,21 +101,25 @@ export function MarketRadarForm({ fabricanteId, revendedorId, catalogoId }: Mark
             <div className="space-y-2">
               <Label htmlFor="cliente_final_nombre">Tu Nombre</Label>
               <Input id="cliente_final_nombre" {...register("cliente_final_nombre")} />
-              {errors.cliente_final_nombre && <p className="text-xs text-red-500">{errors.cliente_final_nombre.message}</p>}
+              {errors.cliente_final_nombre && (
+                <p className="text-xs text-red-500">{errors.cliente_final_nombre.message}</p>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="cliente_final_email">Tu Email</Label>
               <Input id="cliente_final_email" type="email" {...register("cliente_final_email")} />
-              {errors.cliente_final_email && <p className="text-xs text-red-500">{errors.cliente_final_email.message}</p>}
+              {errors.cliente_final_email && (
+                <p className="text-xs text-red-500">{errors.cliente_final_email.message}</p>
+              )}
             </div>
           </div>
-          
+
           <div className="space-y-2">
             <Label htmlFor="producto_nombre">Nombre del Producto</Label>
             <Input id="producto_nombre" {...register("producto_nombre")} />
             {errors.producto_nombre && <p className="text-xs text-red-500">{errors.producto_nombre.message}</p>}
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="producto_marca">Marca (Opcional)</Label>
@@ -128,7 +134,11 @@ export function MarketRadarForm({ fabricanteId, revendedorId, catalogoId }: Mark
 
           <div className="space-y-2">
             <Label htmlFor="producto_descripcion">Descripción (Opcional)</Label>
-            <Textarea id="producto_descripcion" placeholder="Ej. color, tamaño, modelo..." {...register("producto_descripcion")} />
+            <Textarea
+              id="producto_descripcion"
+              placeholder="Ej. color, tamaño, modelo..."
+              {...register("producto_descripcion")}
+            />
           </div>
 
           {error && (
@@ -137,7 +147,6 @@ export function MarketRadarForm({ fabricanteId, revendedorId, catalogoId }: Mark
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
-
         </CardContent>
         <CardFooter>
           <Button type="submit" className="w-full" disabled={loading}>
