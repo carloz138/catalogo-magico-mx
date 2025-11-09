@@ -38,6 +38,7 @@ import {
   Sparkles,
   ChevronLeft,
   ChevronRight,
+  Radar,
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
