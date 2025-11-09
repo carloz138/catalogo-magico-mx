@@ -50,6 +50,8 @@ import QuoteDetailPage from "@/pages/quotes/QuoteDetail";
 import DistributionNetwork from "@/pages/DistributionNetwork";
 import ResellerDashboard from "@/pages/ResellerDashboard";
 import ProductPriceEditor from "@/pages/reseller/ProductPriceEditor";
+import ConsolidateOrderPage from "@/pages/reseller/ConsolidateOrderPage";
+import ConsolidatedOrdersListPage from "@/pages/reseller/ConsolidatedOrdersListPage";
 
 const queryClient = new QueryClient();
 
@@ -95,6 +97,8 @@ const App = () => (
               <Route path="/network" element={<DistributionNetwork />} />
               <Route path="/dashboard/reseller" element={<ResellerDashboard />} />
               <Route path="/reseller/edit-prices" element={<ProductPriceEditor />} />
+              <Route path="/reseller/consolidated-orders" element={<ConsolidatedOrdersListPage />} />
+              <Route path="/reseller/consolidate/:supplierId" element={<ConsolidateOrderPage />} />
               <Route path="/complete-activation" element={<CompleteActivation />} />
               <Route path="/business-info" element={<BusinessInfoPage />} />
               <Route path="/settings/business" element={<BusinessInfoSettings />} />

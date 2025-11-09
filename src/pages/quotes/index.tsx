@@ -33,18 +33,21 @@ import {
   Sparkles,
   HelpCircle,
   ExternalLink,
+  PackagePlus,
 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUserRole } from "@/contexts/RoleContext";
 
 export default function QuotesPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
   const { user } = useAuth();
+  const { userRole } = useUserRole();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<QuoteStatus | "all">("all");
   const [activatingQuoteId, setActivatingQuoteId] = useState<string | null>(null);
@@ -55,6 +58,21 @@ export default function QuotesPage() {
     status: statusFilter === "all" ? undefined : statusFilter,
     autoLoad: true,
   });
+
+  // NUEVO: Calcular productos de cotizaciones aceptadas para L2
+  const acceptedQuotesForConsolidation = useMemo(() => {
+    if (userRole !== "L2" && userRole !== "BOTH") return null;
+    
+    const acceptedQuotes = quotes.filter((q) => q.status === "accepted" && (q as any).is_from_replicated);
+    if (acceptedQuotes.length === 0) return null;
+
+    const totalProducts = acceptedQuotes.reduce((sum, q) => sum + q.items_count, 0);
+    
+    return {
+      totalQuotes: acceptedQuotes.length,
+      totalProducts,
+    };
+  }, [quotes, userRole]);
 
   // ✅ NUEVO: Detectar si hay cotizaciones con catálogo pendiente
   const pendingActivations = useMemo(
@@ -217,6 +235,36 @@ export default function QuotesPage() {
   return (
     <AppLayout title="Cotizaciones" subtitle="Gestiona las solicitudes de cotización de tus clientes" actions={actions}>
       <div className="space-y-6">
+        {/* NUEVO: Banner de pedidos consolidados para L2 */}
+        {acceptedQuotesForConsolidation && (
+          <Alert className="bg-emerald-50 border-emerald-200 shadow-md">
+            <PackagePlus className="h-5 w-5 text-emerald-600" />
+            <AlertDescription>
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                <div className="flex-1">
+                  <h3 className="font-bold text-emerald-900 mb-1">
+                    💡 Tienes {acceptedQuotesForConsolidation.totalProducts} productos de{" "}
+                    {acceptedQuotesForConsolidation.totalQuotes} cotización
+                    {acceptedQuotesForConsolidation.totalQuotes > 1 ? "es" : ""} aceptada
+                    {acceptedQuotesForConsolidation.totalQuotes > 1 ? "s" : ""} que necesitas pedir a tus proveedores
+                  </h3>
+                  <p className="text-sm text-emerald-700">
+                    Agrupa tus pedidos por proveedor para optimizar tu logística y costos de envío.
+                  </p>
+                </div>
+                <Button
+                  variant="outline"
+                  className="border-emerald-300 text-emerald-700 hover:bg-emerald-100"
+                  onClick={() => navigate("/reseller/consolidated-orders")}
+                >
+                  <PackagePlus className="w-4 h-4 mr-2" />
+                  Ver Pedidos Consolidados
+                </Button>
+              </div>
+            </AlertDescription>
+          </Alert>
+        )}
+
         {/* ✅ NUEVO: Banner de catálogos pendientes */}
         {pendingActivations.length > 0 && (
           <Alert className="bg-gradient-to-r from-purple-50 to-indigo-50 border-purple-200 shadow-md">
