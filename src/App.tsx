@@ -52,6 +52,7 @@ import ResellerDashboard from "@/pages/ResellerDashboard";
 import ProductPriceEditor from "@/pages/reseller/ProductPriceEditor";
 import ConsolidateOrderPage from "@/pages/reseller/ConsolidateOrderPage";
 import ConsolidatedOrdersListPage from "@/pages/reseller/ConsolidatedOrdersListPage";
+import MarketRadar from "@/pages/MarketRadar";
 
 const queryClient = new QueryClient();
 
@@ -94,6 +95,7 @@ const App = () => (
               <Route path="/catalogs/:id/edit" element={<DigitalCatalogForm />} />
               <Route path="/quotes" element={<QuotesPage />} />
               <Route path="/quotes/:id" element={<QuoteDetailPage />} />
+              <Route path="/market-radar" element={<MarketRadar />} />
               <Route path="/network" element={<DistributionNetwork />} />
               <Route path="/dashboard/reseller" element={<ResellerDashboard />} />
               <Route path="/reseller/edit-prices" element={<ProductPriceEditor />} />
