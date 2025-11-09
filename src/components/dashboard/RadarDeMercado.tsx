@@ -7,23 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Radar,
-  Calendar,
-  TrendingUp,
-  Sparkles,
-  AlertCircle,
-  X,
-  Filter,
-} from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Radar, Calendar, TrendingUp, Sparkles, AlertCircle, X, Filter } from "lucide-react";
 import { format, subDays } from "date-fns";
 import { es } from "date-fns/locale";
 
@@ -163,8 +148,8 @@ export function RadarDeMercado() {
     padding: 2,
     rotations: 2,
     rotationAngles: [0, 0] as [number, number],
-    scale: "sqrt",
-    spiral: "archimedean",
+    scale: "sqrt" as const, // ← AGREGAR 'as const'
+    spiral: "archimedean" as const, // ← AGREGAR 'as const' también aquí
     transitionDuration: 1000,
   };
 
@@ -264,29 +249,20 @@ export function RadarDeMercado() {
             <Sparkles className="h-5 w-5 text-purple-600" />
             Términos Más Solicitados
           </CardTitle>
-          <CardDescription>
-            Haz clic en cualquier palabra para ver las solicitudes detalladas
-          </CardDescription>
+          <CardDescription>Haz clic en cualquier palabra para ver las solicitudes detalladas</CardDescription>
         </CardHeader>
         <CardContent>
           {wordCloudData.length > 0 ? (
             <div className="h-[400px] w-full bg-gradient-to-br from-purple-50/50 to-blue-50/50 rounded-lg p-4">
-              <ReactWordcloud
-                words={wordCloudData}
-                options={wordCloudOptions}
-                callbacks={wordCloudCallbacks}
-              />
+              <ReactWordcloud words={wordCloudData} options={wordCloudOptions} callbacks={wordCloudCallbacks} />
             </div>
           ) : (
             <div className="h-[400px] flex items-center justify-center text-center p-8">
               <div>
                 <Radar className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-gray-600 mb-2">
-                  No hay datos suficientes
-                </h3>
+                <h3 className="text-lg font-semibold text-gray-600 mb-2">No hay datos suficientes</h3>
                 <p className="text-sm text-gray-500">
-                  Cuando tus clientes empiecen a solicitar productos, verás aquí los términos más
-                  populares.
+                  Cuando tus clientes empiecen a solicitar productos, verás aquí los términos más populares.
                 </p>
               </div>
             </div>
@@ -326,16 +302,12 @@ export function RadarDeMercado() {
                         <TableCell>
                           <div className="font-medium">{sol.producto_nombre}</div>
                           {sol.producto_marca && (
-                            <div className="text-xs text-muted-foreground">
-                              {sol.producto_marca}
-                            </div>
+                            <div className="text-xs text-muted-foreground">{sol.producto_marca}</div>
                           )}
                         </TableCell>
                         <TableCell>{sol.cliente_final_nombre}</TableCell>
                         <TableCell>{sol.cantidad}</TableCell>
-                        <TableCell>
-                          {format(new Date(sol.creado_el), "dd MMM yyyy", { locale: es })}
-                        </TableCell>
+                        <TableCell>{format(new Date(sol.creado_el), "dd MMM yyyy", { locale: es })}</TableCell>
                         <TableCell>
                           <StatusBadge status={sol.estatus_fabricante} />
                         </TableCell>
@@ -345,9 +317,7 @@ export function RadarDeMercado() {
                 </Table>
               </div>
             ) : (
-              <p className="text-center text-muted-foreground py-8">
-                No se encontraron solicitudes para este término
-              </p>
+              <p className="text-center text-muted-foreground py-8">No se encontraron solicitudes para este término</p>
             )}
           </CardContent>
         </Card>
@@ -399,4 +369,3 @@ function StatusBadge({ status }: { status: string }) {
 
   return <Badge className={variant.className}>{variant.label}</Badge>;
 }
-
