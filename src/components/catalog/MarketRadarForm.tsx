@@ -3,12 +3,18 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, AlertCircle, Users, MoreHorizontal, Check, Clock, Send, SearchCheck } from "lucide-react";
 
+//Archivo en catalog
 // Tipos para los datos
 type SolicitudCliente = {
   id: string;
@@ -31,11 +37,11 @@ export function RevendedorRequestsDashboard() {
     setLoading(true);
     try {
       const { data, error } = await supabase
-        .from('vista_solicitudes_revendedor' as any)
-        .select('*')
-        .eq('revendedor_id', user.id)
-        .order('creado_el', { ascending: false });
-        
+        .from("vista_solicitudes_revendedor" as any)
+        .select("*")
+        .eq("revendedor_id", user.id)
+        .order("creado_el", { ascending: false });
+
       if (error) throw error;
       setSolicitudes(data as unknown as SolicitudCliente[]);
     } catch (err: any) {
@@ -52,11 +58,11 @@ export function RevendedorRequestsDashboard() {
   const handleStatusChange = async (id: string, newStatus: string) => {
     try {
       const { error } = await supabase
-        .from('solicitudes_mercado' as any)
+        .from("solicitudes_mercado" as any)
         .update({ estatus_revendedor: newStatus } as any)
-        .eq('id', id)
-        .eq('revendedor_id', user?.id);
-      
+        .eq("id", id)
+        .eq("revendedor_id", user?.id);
+
       if (error) throw error;
       fetchSolicitudes();
     } catch (err: any) {
@@ -66,19 +72,46 @@ export function RevendedorRequestsDashboard() {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'nuevo': return <Badge variant="secondary"><Clock className="mr-1 h-3 w-3" />Nuevo</Badge>;
-      case 'revisando': return <Badge variant="default" className="bg-blue-500">Revisando</Badge>;
-      case 'consultado_proveedor': return <Badge variant="default" className="bg-yellow-500 text-black"><Send className="mr-1 h-3 w-3" />Consultado</Badge>;
-      case 'conseguido': return <Badge variant="default" className="bg-green-600"><Check className="mr-1 h-3 w-3" />Conseguido</Badge>;
-      case 'rechazado': return <Badge variant="destructive">Rechazado</Badge>;
-      default: return <Badge variant="outline">{status}</Badge>;
+      case "nuevo":
+        return (
+          <Badge variant="secondary">
+            <Clock className="mr-1 h-3 w-3" />
+            Nuevo
+          </Badge>
+        );
+      case "revisando":
+        return (
+          <Badge variant="default" className="bg-blue-500">
+            Revisando
+          </Badge>
+        );
+      case "consultado_proveedor":
+        return (
+          <Badge variant="default" className="bg-yellow-500 text-black">
+            <Send className="mr-1 h-3 w-3" />
+            Consultado
+          </Badge>
+        );
+      case "conseguido":
+        return (
+          <Badge variant="default" className="bg-green-600">
+            <Check className="mr-1 h-3 w-3" />
+            Conseguido
+          </Badge>
+        );
+      case "rechazado":
+        return <Badge variant="destructive">Rechazado</Badge>;
+      default:
+        return <Badge variant="outline">{status}</Badge>;
     }
   };
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center"><Users className="mr-2 h-5 w-5" /> Solicitudes de mis Clientes</CardTitle>
+        <CardTitle className="flex items-center">
+          <Users className="mr-2 h-5 w-5" /> Solicitudes de mis Clientes
+        </CardTitle>
       </CardHeader>
       <CardContent>
         {error && (
@@ -88,9 +121,15 @@ export function RevendedorRequestsDashboard() {
           </Alert>
         )}
         {loading ? (
-          <div className="flex justify-center items-center h-40"><Loader2 className="h-8 w-8 animate-spin" /></div>
+          <div className="flex justify-center items-center h-40">
+            <Loader2 className="h-8 w-8 animate-spin" />
+          </div>
         ) : (
-          <RenderTableSolicitudes data={solicitudes} onStatusChange={handleStatusChange} getStatusBadge={getStatusBadge} />
+          <RenderTableSolicitudes
+            data={solicitudes}
+            onStatusChange={handleStatusChange}
+            getStatusBadge={getStatusBadge}
+          />
         )}
       </CardContent>
     </Card>
@@ -99,7 +138,8 @@ export function RevendedorRequestsDashboard() {
 
 // Componente para renderizar la tabla de Solicitudes de Clientes (optimizado para móvil)
 function RenderTableSolicitudes({ data, onStatusChange, getStatusBadge }: any) {
-  if (data.length === 0) return <p className="text-center text-muted-foreground py-4">No tienes solicitudes de clientes.</p>;
+  if (data.length === 0)
+    return <p className="text-center text-muted-foreground py-4">No tienes solicitudes de clientes.</p>;
 
   return (
     <div>
@@ -116,7 +156,9 @@ function RenderTableSolicitudes({ data, onStatusChange, getStatusBadge }: any) {
                 </div>
                 <StatusDropdownL2 item={item} onStatusChange={onStatusChange} getStatusBadge={getStatusBadge} />
               </div>
-              <p className="text-sm mt-2">Cantidad: <strong>{item.cantidad}</strong></p>
+              <p className="text-sm mt-2">
+                Cantidad: <strong>{item.cantidad}</strong>
+              </p>
             </CardContent>
           </Card>
         ))}
@@ -145,7 +187,12 @@ function RenderTableSolicitudes({ data, onStatusChange, getStatusBadge }: any) {
                 <TableCell>{item.cantidad}</TableCell>
                 <TableCell>{getStatusBadge(item.estatus_revendedor)}</TableCell>
                 <TableCell className="text-right">
-                  <StatusDropdownL2 item={item} onStatusChange={onStatusChange} getStatusBadge={getStatusBadge} isDesktop={true} />
+                  <StatusDropdownL2
+                    item={item}
+                    onStatusChange={onStatusChange}
+                    getStatusBadge={getStatusBadge}
+                    isDesktop={true}
+                  />
                 </TableCell>
               </TableRow>
             ))}
@@ -159,11 +206,11 @@ function RenderTableSolicitudes({ data, onStatusChange, getStatusBadge }: any) {
 // Dropdown para cambiar el estatus (L2)
 function StatusDropdownL2({ item, onStatusChange, getStatusBadge, isDesktop = false }: any) {
   const statuses = [
-    { value: 'nuevo', label: 'Nuevo', icon: <Clock className="mr-2 h-4 w-4" /> },
-    { value: 'revisando', label: 'Revisando', icon: <SearchCheck className="mr-2 h-4 w-4" /> },
-    { value: 'consultado_proveedor', label: 'Consultar Proveedor', icon: <Send className="mr-2 h-4 w-4" /> },
-    { value: 'conseguido', label: 'Conseguido', icon: <Check className="mr-2 h-4 w-4" /> },
-    { value: 'rechazado', label: 'Rechazado', icon: <AlertCircle className="mr-2 h-4 w-4" /> },
+    { value: "nuevo", label: "Nuevo", icon: <Clock className="mr-2 h-4 w-4" /> },
+    { value: "revisando", label: "Revisando", icon: <SearchCheck className="mr-2 h-4 w-4" /> },
+    { value: "consultado_proveedor", label: "Consultar Proveedor", icon: <Send className="mr-2 h-4 w-4" /> },
+    { value: "conseguido", label: "Conseguido", icon: <Check className="mr-2 h-4 w-4" /> },
+    { value: "rechazado", label: "Rechazado", icon: <AlertCircle className="mr-2 h-4 w-4" /> },
   ];
 
   return (
@@ -178,7 +225,7 @@ function StatusDropdownL2({ item, onStatusChange, getStatusBadge, isDesktop = fa
         )}
       </DropdownMenuTrigger>
       <DropdownMenuContent align={isDesktop ? "end" : "start"}>
-        {statuses.map(status => (
+        {statuses.map((status) => (
           <DropdownMenuItem key={status.value} onClick={() => onStatusChange(item.id, status.value)}>
             {status.icon}
             <span>{status.label}</span>
