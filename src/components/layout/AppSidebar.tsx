@@ -62,6 +62,7 @@ const navigationItems: MenuItem[] = [
   { title: "Crear Catálogo", path: "/products", icon: Package, primary: true },
   { title: "Mis Catálogos", path: "/catalogs", icon: BookOpen, primary: true },
   { title: "Cotizaciones", path: "/quotes", icon: ClipboardList, primary: true },
+  { title: "Radar de Mercado", path: "/market-radar", icon: Radar, badge: "IA", primary: true },
 
   // Grupo Herramientas
   { title: "Red de Distribución", path: "/network", icon: Network, badge: "Nuevo" },
