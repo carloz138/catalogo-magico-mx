@@ -932,6 +932,79 @@ export type Database = {
         };
         Relationships: [];
       };
+      product_associations: {
+        Row: {
+          co_occurrence_count: number;
+          confidence_score: number | null;
+          created_at: string | null;
+          id: string;
+          product_a_id: string;
+          product_b_id: string;
+          updated_at: string | null;
+        };
+        Insert: {
+          co_occurrence_count?: number;
+          confidence_score?: number | null;
+          created_at?: string | null;
+          id?: string;
+          product_a_id: string;
+          product_b_id: string;
+          updated_at?: string | null;
+        };
+        Update: {
+          co_occurrence_count?: number;
+          confidence_score?: number | null;
+          created_at?: string | null;
+          id?: string;
+          product_a_id?: string;
+          product_b_id?: string;
+          updated_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "product_associations_product_a_id_fkey";
+            columns: ["product_a_id"];
+            isOneToOne: false;
+            referencedRelation: "active_products";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "product_associations_product_a_id_fkey";
+            columns: ["product_a_id"];
+            isOneToOne: false;
+            referencedRelation: "products";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "product_associations_product_a_id_fkey";
+            columns: ["product_a_id"];
+            isOneToOne: false;
+            referencedRelation: "products_with_variants";
+            referencedColumns: ["product_id"];
+          },
+          {
+            foreignKeyName: "product_associations_product_b_id_fkey";
+            columns: ["product_b_id"];
+            isOneToOne: false;
+            referencedRelation: "active_products";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "product_associations_product_b_id_fkey";
+            columns: ["product_b_id"];
+            isOneToOne: false;
+            referencedRelation: "products";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "product_associations_product_b_id_fkey";
+            columns: ["product_b_id"];
+            isOneToOne: false;
+            referencedRelation: "products_with_variants";
+            referencedColumns: ["product_id"];
+          },
+        ];
+      };
       product_variants: {
         Row: {
           created_at: string | null;
