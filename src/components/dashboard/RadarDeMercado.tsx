@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import ReactWordcloud from "react-wordcloud";
@@ -11,7 +11,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Radar, Calendar, TrendingUp, Sparkles, AlertCircle, X, Filter } from "lucide-react";
 import { format, subDays } from "date-fns";
 import { es } from "date-fns/locale";
-import { useState, useEffect, useMemo } from "react";
 
 // Tipos
 type WordCloudData = {
