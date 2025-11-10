@@ -2,32 +2,29 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 
-// --- 👇 1. CORRECCIÓN DE TIPOS (Usando tu ruta) ---
-// ¡AJUSTA ESTA RUTA SI TU ARCHIVO se llama diferente o está en otro lugar!
+// Importamos los tipos desde tu ruta correcta
 import { type Tables } from "@/integrations/supabase/types";
 
-// Definimos nuestro tipo 'Product' usando los tipos generados de la tabla 'products'
-// Asumo que tu tabla se llama 'products'
+// Definimos nuestro tipo 'Product'
 type Product = Tables<"products">;
 
-// Tipo para el producto recomendado que devolveremos
+// Tipo para el producto recomendado
 type RecommendedProduct = Product & {
   reason: string;
   confidence: number;
 };
 
-// Tipo para la respuesta de la base de datos (con el producto anidado)
+// Tipo para la respuesta de la BDD
+// NOTA: Esta definición de tipo es nuestra "promesa" a TypeScript
 type AssociationResponse = {
   product_b_id: string;
   confidence_score: number;
   co_occurrence_count: number;
-  products: Product; // El objeto 'products' anidado
+  products: Product; // Le decimos que 'products' será un objeto Product
 };
-// --- FIN DE CORRECCIÓN DE TIPOS ---
 
 /**
- * Hook para obtener recomendaciones de productos basadas en el carrito actual
- * y el plan de suscripción del usuario.
+ * Hook para obtener recomendaciones de productos...
  */
 export const useProductRecommendations = (currentCartProductIds: string[] = []) => {
   const [recommendations, setRecommendations] = useState<RecommendedProduct[]>([]);
@@ -41,7 +38,6 @@ export const useProductRecommendations = (currentCartProductIds: string[] = []) 
       setRecommendations([]);
       return;
     }
-
     if (!currentCartProductIds || currentCartProductIds.length === 0) {
       setRecommendations([]);
       return;
@@ -52,6 +48,9 @@ export const useProductRecommendations = (currentCartProductIds: string[] = []) 
       try {
         const cartIds = currentCartProductIds;
 
+        // 👇 --- ¡LA CORRECCIÓN ESTÁ AQUÍ! ---
+        // Cambiamos 'products:product_b_id' por 'products!product_b_id'
+        // El '!' le dice a TypeScript: "Confía en mí, usa la relación 'product_b_id'"
         const { data: associations, error } = await supabase
           .from("product_associations")
           .select(
@@ -59,7 +58,7 @@ export const useProductRecommendations = (currentCartProductIds: string[] = []) 
             product_b_id,
             confidence_score,
             co_occurrence_count,
-            products:product_b_id (
+            products!product_b_id (
               id,
               name,
               price_retail,
@@ -75,6 +74,8 @@ export const useProductRecommendations = (currentCartProductIds: string[] = []) 
 
         if (error) throw error;
 
+        // Ahora el 'data' (associations) debería tener el tipo correcto
+        // y este 'reduce' no debería fallar.
         const uniqueRecommendations = (associations as AssociationResponse[]).reduce(
           (acc: RecommendedProduct[], item) => {
             if (item.products && !acc.find((r) => r.id === item.products.id)) {
