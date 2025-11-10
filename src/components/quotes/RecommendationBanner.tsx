@@ -1,18 +1,19 @@
 import React from "react";
-// Asumo que usas lucide-react para los iconos
 import { Sparkles, Plus } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-// Asumo que tienes un tipo Product en esta ruta
-import { type Product } from "@/types/product";
+
+// --- 👇 1. CORRECCIÓN DE TIPOS (Usando tu ruta) ---
+import { type Tables } from "@/integrations/supabase/types";
+type Product = Tables<"products">;
 
 // Definimos el tipo de producto recomendado que esperamos
-// Asumo que tu tipo 'Product' ya tiene: id, name, price_retail, processed_image_url
 type RecommendedProduct = Product & {
   reason: string;
   confidence: number;
 };
+// --- FIN DE CORRECCIÓN DE TIPOS ---
 
 interface RecommendationBannerProps {
   recommendations: RecommendedProduct[];
@@ -71,8 +72,7 @@ export const RecommendationBanner = ({ recommendations, onAddToCart, loading }: 
                   <p className="text-xs text-gray-500 mb-1 truncate">{product.reason}</p>
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-bold text-purple-600">
-                      {/* 👇 LA ACTUALIZACIÓN: Asumiendo que price_retail está en centavos */}$
-                      {(product.price_retail / 100).toFixed(2)}
+                      {/* Asumiendo que price_retail está en centavos */}${(product.price_retail / 100).toFixed(2)}
                     </span>
                     <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => onAddToCart(product)}>
                       <Plus className="w-3 h-3 mr-1" />
