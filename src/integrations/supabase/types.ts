@@ -12,31 +12,6 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "12.2.12 (cd3cf9e)"
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       backup_view_definitions: {
@@ -1386,7 +1361,7 @@ export type Database = {
           total_amount: number | null
           tracking_token: string | null
           updated_at: string | null
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           catalog_id?: string | null
@@ -1408,7 +1383,7 @@ export type Database = {
           total_amount?: number | null
           tracking_token?: string | null
           updated_at?: string | null
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           catalog_id?: string | null
@@ -1430,7 +1405,7 @@ export type Database = {
           total_amount?: number | null
           tracking_token?: string | null
           updated_at?: string | null
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -2885,9 +2860,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       delivery_method_enum: ["pickup", "shipping"],
@@ -2907,4 +2879,3 @@ export const Constants = {
     },
   },
 } as const
-
