@@ -259,7 +259,7 @@ export function RadarDeMercado() {
         </CardHeader>
         <CardContent>
           {wordCloudData.length > 0 ? (
-            <div className="h-[400px] w-full bg-gradient-to-br from-purple-50/50 to-blue-50/50 rounded-lg p-4">
+            <div className="h-[500px] w-full bg-gradient-to-br from-purple-50/50 to-blue-50/50 rounded-lg p-4">
               <ReactWordcloud words={wordCloudData} options={wordCloudOptions} callbacks={wordCloudCallbacks} />
             </div>
           ) : (
