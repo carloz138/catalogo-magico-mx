@@ -1,8 +1,8 @@
-import { useSubscription } from '@/contexts/SubscriptionContext';
-import { UpsellBanner } from '@/components/subscription/UpsellBanner'; // Crearemos este en el Paso 5
+import { useSubscription } from "@/contexts/SubscriptionContext";
+import { UpsellBanner } from "@/components/subscription/UpsellBanner"; // (Aún marcará error hasta el Paso 5)
 
 // Definimos las "llaves" de nuestras features premium
-export type FeatureKey = 'radar_inteligente' | 'recomendaciones' | 'predictivo';
+export type FeatureKey = "radar_inteligente" | "recomendaciones" | "predictivo";
 
 type FeatureConfig = {
   [key in FeatureKey]: {
@@ -16,19 +16,19 @@ type FeatureConfig = {
 // Esto hace que cambiar el texto de marketing sea muy fácil
 const FEATURE_CONFIG: FeatureConfig = {
   radar_inteligente: {
-    featureName: 'Radar de Mercado Inteligente',
-    requiredPlan: 'Básico IA ($299 MXN)',
-    description: 'Analiza tendencias, estacionalidad y demanda con nuestra Nube de Palabras IA.',
+    featureName: "Radar de Mercado Inteligente",
+    requiredPlan: "Básico IA ($299 MXN)",
+    description: "Analiza tendencias, estacionalidad y demanda con nuestra Nube de Palabras IA.",
   },
   recomendaciones: {
-    featureName: 'IA de Recomendaciones',
-    requiredPlan: 'Profesional IA ($599 MXN)',
-    description: 'Aumenta tus ventas con sugerencias de productos basadas en IA en cada cotización.',
+    featureName: "IA de Recomendaciones",
+    requiredPlan: "Profesional IA ($599 MXN)",
+    description: "Aumenta tus ventas con sugerencias de productos basadas en IA en cada cotización.",
   },
   predictivo: {
-    featureName: 'Análisis Predictivo',
-    requiredPlan: 'Empresarial IA ($1,299 MXN)',
-    description: 'Adelántate al mercado con análisis predictivo de demanda y estacionalidad.',
+    featureName: "Análisis Predictivo",
+    requiredPlan: "Empresarial IA ($1,299 MXN)",
+    description: "Adelántate al mercado con análisis predictivo de demanda y estacionalidad.",
   },
 };
 
@@ -39,7 +39,7 @@ const FEATURE_CONFIG: FeatureConfig = {
  */
 export const useFeatureAccess = (feature: FeatureKey) => {
   const { hasAccess, loading } = useSubscription();
-  
+
   // Obtenemos la configuración del banner para esta feature
   const config = FEATURE_CONFIG[feature];
 
@@ -47,8 +47,8 @@ export const useFeatureAccess = (feature: FeatureKey) => {
 
   return {
     isAllowed, // boolean: ¿Tiene acceso?
-    loading,   // boolean: ¿Está cargando el plan del usuario?
-    
+    loading, // boolean: ¿Está cargando el plan del usuario?
+
     // Un componente de "reemplazo" listo para usar
     UpsellComponent: (
       <UpsellBanner
@@ -58,4 +58,4 @@ export const useFeatureAccess = (feature: FeatureKey) => {
       />
     ),
   };
-};
+}; // <--- ¡¡ESTA LLAVE FALTABA!!
