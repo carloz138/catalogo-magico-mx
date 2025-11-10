@@ -155,9 +155,10 @@ export function QuoteForm(props: QuoteFormProps) {
         onSuccess();
         onClose();
       }, 3000);
-    } catch (error) {
-      console.error("Error:", error);
-      toast.error("No se pudo enviar la cotización");
+    } catch (error: any) {
+      console.error("Error al crear cotización:", error);
+      const errorMessage = error?.message || "No se pudo enviar la cotización";
+      toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
     }

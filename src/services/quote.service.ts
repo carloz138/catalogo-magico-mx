@@ -12,59 +12,82 @@ export class QuoteService {
    * Crear cotización (desde vista pública - cliente anónimo).
    */
   static async createQuote(quoteData: CreateQuoteDTO & { replicated_catalog_id?: string }): Promise<Quote> {
-    // Create quote directly in database
-    const { data: quote, error } = await supabase
-      .from('quotes')
-      .insert({
+    try {
+      console.log('📝 Creando cotización...', {
         catalog_id: quoteData.catalog_id,
-        user_id: quoteData.user_id || null,  // ← Explícitamente NULL si no hay usuario
-        customer_name: quoteData.customer_name,
+        replicated_catalog_id: quoteData.replicated_catalog_id,
         customer_email: quoteData.customer_email,
-        customer_phone: quoteData.customer_phone,
-        customer_company: quoteData.customer_company,
-        notes: quoteData.notes,
-        delivery_method: quoteData.delivery_method,
-        shipping_address: quoteData.shipping_address,
-        replicated_catalog_id: quoteData.replicated_catalog_id || null,
-        status: 'pending'
-      })
-      .select()
-      .single();
+        items_count: quoteData.items?.length || 0
+      });
 
-    if (error) {
-      console.error('Error creating quote:', error);
-      throw error;
-    }
+      // Create quote directly in database
+      const { data: quote, error } = await supabase
+        .from('quotes')
+        .insert({
+          catalog_id: quoteData.catalog_id,
+          user_id: quoteData.user_id || null,  // ← Explícitamente NULL si no hay usuario
+          customer_name: quoteData.customer_name,
+          customer_email: quoteData.customer_email,
+          customer_phone: quoteData.customer_phone,
+          customer_company: quoteData.customer_company,
+          notes: quoteData.notes,
+          delivery_method: quoteData.delivery_method,
+          shipping_address: quoteData.shipping_address,
+          replicated_catalog_id: quoteData.replicated_catalog_id || null,
+          status: 'pending'
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('❌ Error al crear cotización:', error);
+        throw new Error(`Error al crear cotización: ${error.message}`);
+      }
+
+      if (!quote) {
+        throw new Error('No se pudo crear la cotización');
+      }
+
+      console.log('✅ Cotización creada:', quote.id);
 
       // Create quote items
-    if (quoteData.items && quoteData.items.length > 0) {
-      const items = quoteData.items.map(item => ({
-        quote_id: quote.id,
-        product_id: item.product_id,
-        variant_id: item.variant_id,
-        product_name: item.product_name,
-        product_sku: item.product_sku,
-        quantity: item.quantity,
-        unit_price: item.unit_price,
-        subtotal: item.quantity * item.unit_price,
-        product_image_url: item.product_image_url,
-        variant_description: item.variant_description,
-        price_type: item.price_type
-      }));
+      if (quoteData.items && quoteData.items.length > 0) {
+        console.log('📦 Insertando items de cotización...', quoteData.items.length);
+        
+        const items = quoteData.items.map(item => ({
+          quote_id: quote.id,
+          product_id: item.product_id,
+          variant_id: item.variant_id,
+          product_name: item.product_name,
+          product_sku: item.product_sku,
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+          subtotal: item.quantity * item.unit_price,
+          product_image_url: item.product_image_url,
+          variant_description: item.variant_description,
+          price_type: item.price_type
+        }));
 
-      const { error: itemsError } = await supabase
-        .from('quote_items')
-        .insert(items);
+        const { error: itemsError } = await supabase
+          .from('quote_items')
+          .insert(items);
 
-      if (itemsError) {
-        console.error('Error creating quote items:', itemsError);
-        // Rollback quote if items fail
-        await supabase.from('quotes').delete().eq('id', quote.id);
-        throw itemsError;
+        if (itemsError) {
+          console.error('❌ Error al crear items de cotización:', itemsError);
+          // Rollback quote if items fail
+          await supabase.from('quotes').delete().eq('id', quote.id);
+          throw new Error(`Error al guardar los productos: ${itemsError.message}`);
+        }
+        
+        console.log('✅ Items de cotización creados');
       }
-    }
 
-    return quote as Quote;
+      console.log('✅ Cotización completada exitosamente');
+      return quote as Quote;
+    } catch (error: any) {
+      console.error('❌ Error general al crear cotización:', error);
+      throw new Error(error.message || 'Error al crear cotización');
+    }
   }
 
   static async getUserQuotes(

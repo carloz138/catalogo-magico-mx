@@ -166,7 +166,7 @@ export interface UpdateDigitalCatalogDTO {
 
 export interface CreateQuoteDTO {
   catalog_id: string;
-  user_id: string;
+  user_id: string | null;
   replicated_catalog_id?: string;
   customer_name: string;
   customer_email: string;
