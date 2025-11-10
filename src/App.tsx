@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 // Providers
 import { AuthProvider } from "@/contexts/AuthContext";
+// 👇 1. AÑADE ESTA LÍNEA (la moví aquí por orden)
 import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
 
 // Components & Layouts
@@ -59,65 +60,74 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <BrowserRouter>
+       {" "}
     <QueryClientProvider client={queryClient}>
+           {" "}
       <TooltipProvider>
-        <Toaster />
-        <Sonner />
+                <Toaster />
+                <Sonner />       {" "}
         <AuthProvider>
+          {/* 👇 2. ENVUELVE TUS RUTAS AQUÍ */}
           <SubscriptionProvider>
+                     {" "}
             <Routes>
-              {/* --- Rutas Públicas --- */}
-              <Route path="/" element={<Index />} />
-              <Route path="/login" element={<LoginPage />} /> {/* 👈 2. Añade esta línea */}
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/creditos" element={<Navigate to="/checkout" replace />} />
-              <Route path="/why-subscribe" element={<WhySubscribePage />} />
-              <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
-              <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-              <Route path="/reset-password" element={<ResetPassword />} />
-              <Route path="/c/:slug" element={<PublicCatalog />} />
-              <Route path="/activar/:token" element={<ActivateCatalog />} />
-              <Route path="/blog" element={<Blog />} />
-              <Route path="/blog/:slug" element={<BlogPost />} />
-              <Route path="/tracking/:token" element={<QuoteTracking />} />
-              <Route path="/track/:token" element={<TrackQuotePage />} />
-              {/* --- Rutas Protegidas Agrupadas --- */}
+                          {/* --- Rutas Públicas --- */}
+                          <Route path="/" element={<Index />} />
+                          <Route path="/login" element={<LoginPage />} />           {" "}
+              {/* Nota: Tenías /login duplicado, quité uno */}
+                          <Route path="/creditos" element={<Navigate to="/checkout" replace />} />
+                          <Route path="/why-subscribe" element={<WhySubscribePage />} />
+                          <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
+                          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+                          <Route path="/reset-password" element={<ResetPassword />} />
+                          <Route path="/c/:slug" element={<PublicCatalog />} />
+                          <Route path="/activar/:token" element={<ActivateCatalog />} />
+                          <Route path="/blog" element={<Blog />} />
+                          <Route path="/blog/:slug" element={<BlogPost />} />
+                          <Route path="/tracking/:token" element={<QuoteTracking />} />
+                          <Route path="/track/:token" element={<TrackQuotePage />} />           {" "}
+              {/* --- Rutas Protegidas Agrupadas --- */}           {" "}
               <Route element={<ProtectedRoute />}>
-                <Route path="/dashboard" element={<MainDashboard />} />
-                <Route path="/analytics" element={<Analytics />} />
-                <Route path="/upload" element={<Upload />} />
-                <Route path="/products" element={<Products />} />
-                <Route path="/products/bulk-upload" element={<BulkUpload />} />
-                <Route path="/products-management" element={<ProductsManagement />} />
-                <Route path="/deleted-products" element={<DeletedProducts />} />
-                <Route path="/image-review" element={<ImageReview />} />
-                <Route path="/template-selection" element={<TemplateSelectionEnhanced />} />
-                <Route path="/catalogs" element={<Catalogs />} />
-                <Route path="/catalogs/new" element={<DigitalCatalogForm />} />
-                <Route path="/catalogs/:id/edit" element={<DigitalCatalogForm />} />
-                <Route path="/quotes" element={<QuotesPage />} />
-                <Route path="/quotes/:id" element={<QuoteDetailPage />} />
-                <Route path="/market-radar" element={<MarketRadar />} />
-                <Route path="/network" element={<DistributionNetwork />} />
-                <Route path="/dashboard/reseller" element={<ResellerDashboard />} />
-                <Route path="/reseller/edit-prices" element={<ProductPriceEditor />} />
-                <Route path="/reseller/consolidated-orders" element={<ConsolidatedOrdersListPage />} />
-                <Route path="/reseller/consolidate/:supplierId" element={<ConsolidateOrderPage />} />
-                <Route path="/complete-activation" element={<CompleteActivation />} />
-                <Route path="/business-info" element={<BusinessInfoPage />} />
-                <Route path="/settings/business" element={<BusinessInfoSettings />} />
-                <Route path="/onboarding" element={<OnboardingPage />} />
-                <Route path="/checkout" element={<Checkout />} />
-                <Route path="/payment-success" element={<PaymentSuccess />} />
-                <Route path="/payment-instructions/:transactionId" element={<PaymentInstructions />} />
+                              <Route path="/dashboard" element={<MainDashboard />} />
+                              <Route path="/analytics" element={<Analytics />} />
+                              <Route path="/upload" element={<Upload />} />
+                              <Route path="/products" element={<Products />} />
+                              <Route path="/products/bulk-upload" element={<BulkUpload />} />
+                              <Route path="/products-management" element={<ProductsManagement />} />
+                              <Route path="/deleted-products" element={<DeletedProducts />} />
+                              <Route path="/image-review" element={<ImageReview />} />
+                              <Route path="/template-selection" element={<TemplateSelectionEnhanced />} />
+                              <Route path="/catalogs" element={<Catalogs />} />
+                              <Route path="/catalogs/new" element={<DigitalCatalogForm />} />
+                              <Route path="/catalogs/:id/edit" element={<DigitalCatalogForm />} />
+                              <Route path="/quotes" element={<QuotesPage />} />
+                              <Route path="/quotes/:id" element={<QuoteDetailPage />} />
+                              <Route path="/market-radar" element={<MarketRadar />} />
+                              <Route path="/network" element={<DistributionNetwork />} />
+                              <Route path="/dashboard/reseller" element={<ResellerDashboard />} />
+                              <Route path="/reseller/edit-prices" element={<ProductPriceEditor />} />
+                              <Route path="/reseller/consolidated-orders" element={<ConsolidatedOrdersListPage />} />
+                              <Route path="/reseller/consolidate/:supplierId" element={<ConsolidateOrderPage />} />
+                              <Route path="/complete-activation" element={<CompleteActivation />} />
+                              <Route path="/business-info" element={<BusinessInfoPage />} />
+                              <Route path="/settings/business" element={<BusinessInfoSettings />} />
+                              <Route path="/onboarding" element={<OnboardingPage />} />
+                              <Route path="/checkout" element={<Checkout />} />
+                              <Route path="/payment-success" element={<PaymentSuccess />} />
+                              <Route path="/payment-instructions/:transactionId" element={<PaymentInstructions />} />   
+                       {" "}
               </Route>
-              {/* Ruta para Not Found al final */}
-              <Route path="*" element={<NotFound />} />
+                          {/* Ruta para Not Found al final */}
+                          <Route path="*" element={<NotFound />} />         {" "}
             </Routes>
           </SubscriptionProvider>
+                 {" "}
         </AuthProvider>
+             {" "}
       </TooltipProvider>
+        d{" "}
     </QueryClientProvider>
+     {" "}
   </BrowserRouter>
 );
 
