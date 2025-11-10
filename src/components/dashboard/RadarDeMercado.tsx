@@ -105,15 +105,20 @@ export function RadarDeMercado() {
     try {
       const fechaInicio = subDays(new Date(), dateRange);
 
+      // SOLUCIÓN: Usar OR con múltiples estrategias de búsqueda
       const { data, error } = await supabase
         .from("solicitudes_mercado")
         .select("*")
         .gte("creado_el", fechaInicio.toISOString())
         .or(`fabricante_id.eq.${user.id},revendedor_id.eq.${user.id}`)
-        .textSearch("producto_nombre", term, {
-          type: "websearch",
-          config: "spanish",
-        })
+        .or(
+          // Estrategia 1: Buscar en producto_nombre (ILIKE para match parcial)
+          `producto_nombre.ilike.%${term}%,` +
+            // Estrategia 2: Buscar en producto_marca
+            `producto_marca.ilike.%${term}%,` +
+            // Estrategia 3: Buscar en descripción
+            `producto_descripcion.ilike.%${term}%`,
+        )
         .order("creado_el", { ascending: false });
 
       if (error) throw error;
