@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useSubscription } from '@/contexts/SubscriptionContext'; // Importamos nuestro hook del Paso 3
-import { type Product } from '@/types/product'; // Asumo que tienes un tipo Product en esta ruta
+// Asumo que tienes un tipo Product en esta ruta. Si no, ajusta la importación.
+import { type Product } from '@/types/product'; 
 
 // Tipo para el producto recomendado que devolveremos
+// Asumo que tu tipo 'Product' ya tiene: id, name, price_retail, processed_image_url
 type RecommendedProduct = Product & {
   reason: string;
   confidence: number;
@@ -68,7 +70,7 @@ export const useProductRecommendations = (
           `)
           .in('product_a_id', cartIds)
           // 3. CORRECCIÓN: Excluir productos que YA están en el carrito
-          .not('product_b_id', 'in', cartIds)
+          .not('product_b_id', 'in', `(${cartIds.join(',')})`) // Tu sintaxis original estaba bien
           .order('confidence_score', { ascending: false })
           .order('co_occurrence_count', { ascending: false })
           .limit(5); // Traemos máximo 5
@@ -80,6 +82,7 @@ export const useProductRecommendations = (
         //    por 'Producto A' y 'Producto B' que están en el carrito)
         const uniqueRecommendations = (associations as AssociationResponse[]).reduce(
           (acc: RecommendedProduct[], item) => {
+            // Asegurarnos de que el producto anidado exista
             if (item.products && !acc.find(r => r.id === item.products.id)) {
               acc.push({
                 ...item.products,
