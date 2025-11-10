@@ -63,27 +63,22 @@ export function QuoteCartModal({ isOpen, onClose, onRequestQuote }: Props) {
   // --- VISTA DE CARRITO LLENO (CORREGIDA) ---
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
-      {/* Este 'flex flex-col' es la clave. 
-        ScrollArea (con flex-1) empuja a SheetFooter (con mt-auto) hacia abajo.
-      */}
       <SheetContent className="w-full sm:max-w-lg flex flex-col">
         <SheetHeader>
           <SheetTitle>Tu Cotización</SheetTitle>
           <p className="text-sm text-muted-foreground">{items.length} producto(s)</p>
         </SheetHeader>
 
-        {/* Esta área ahora ocupará todo el espacio (flex-1) */}
         <ScrollArea className="flex-1 -mx-6 px-6">
           <div className="space-y-4 py-4">
             {items.map((item) => {
              const imageUrl = item.product.processed_image_url || item.product.original_image_url;
               
               return (
-              // ... (Tu código de item de carrito - sin cambios) ...
                 <div key={`${item.product.id}-${item.priceType}`} className="flex gap-3 pb-4 border-b">
                   <img
                     src={imageUrl || undefined}
-                    alt={item.product.name}
+                  _ alt={item.product.name}
                     className="w-20 h-20 object-cover rounded"
                   />
                   <div className="flex-1 min-w-0">
@@ -113,7 +108,7 @@ export function QuoteCartModal({ isOpen, onClose, onRequestQuote }: Props) {
                       </span>
                       <Button
                         variant="outline"
-              _         size="icon"
+                        size="icon"
                         className="h-7 w-7"
                         onClick={() => updateQuantity(item.product.id, item.priceType, item.quantity + 1, item.variantId)}
                       >
@@ -123,25 +118,24 @@ export function QuoteCartModal({ isOpen, onClose, onRequestQuote }: Props) {
                         variant="ghost"
                         size="icon"
                         className="h-7 w-7 ml-auto"
-                        onClick={() => removeItem(item.product.id, item.priceType, item.variantId)}
-                    _ >
+CSS_BREAK                       onClick={() => removeItem(item.product.id, item.priceType, item.variantId)}
+                      >
                         <Trash2 className="h-3 w-3 text-destructive" />
-A                   </Button>
+                      </Button>
                     </div>
                     <p className="text-sm font-semibold mt-2">
                       ${((item.unitPrice * item.quantity) / 100).toFixed(2)}
                     </p>
                   </div>
                 </div>
-A             );
+style            );
             })}
           </div>
         </ScrollArea>
 
-        {/* --- 👇 4. BANNER MOVIDO DENTRO DEL FOOTER --- */}
+        {/* --- 4. BANNER MOVIDO DENTRO DEL FOOTER --- */}
         <SheetFooter className="flex-col gap-3 mt-auto border-t pt-4">
           
-          {/* El banner de recomendaciones ahora vive aquí */}
           <div className="pb-4">
             <RecommendationBanner 
               loading={loadingRecommendations}
