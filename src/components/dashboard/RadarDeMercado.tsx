@@ -162,11 +162,14 @@ export function RadarDeMercado() {
     [],
   );
 
-  const wordCloudCallbacks = {
-    onWordClick: (word: WordCloudData) => {
-      setSelectedTerm(word.text);
-    },
-  };
+  const wordCloudCallbacks = useMemo(
+    () => ({
+      onWordClick: (word: WordCloudData) => {
+        setSelectedTerm(word.text);
+      },
+    }),
+    [],
+  );
 
   if (loading) {
     return (
