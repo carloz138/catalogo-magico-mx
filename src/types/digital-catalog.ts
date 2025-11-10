@@ -235,6 +235,7 @@ export interface PublicCatalogView extends DigitalCatalog {
   purchasedVariantIds?: string[]; // ✅ NUEVO: IDs de variantes compradas
   isReplicated?: boolean;
   replicatedCatalogId?: string;
+  originalOwnerId?: string;
   resellerInfo?: {
     reseller_id: string;
   };

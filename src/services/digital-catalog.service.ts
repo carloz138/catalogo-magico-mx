@@ -324,6 +324,7 @@ export class DigitalCatalogService {
       return {
         ...originalCatalog,
         user_id: replicatedCatalog.reseller_id, // Override to L2's user_id
+        originalOwnerId: originalCatalog.user_id,
         products,
         business_info: businessInfo || {
           business_name: 'Catálogo Digital',

@@ -409,9 +409,9 @@ function PublicCatalogContent() {
                 <DialogTitle>Solicita un Producto</DialogTitle>
               </DialogHeader>
               <MarketRadarForm
-                fabricanteId={catalog.user_id}
+                fabricanteId={catalog.originalOwnerId || catalog.user_id}
                 catalogoId={catalog.id}
-                revendedorId={catalog.isReplicated ? (catalog as any).resellerInfo?.reseller_id : null}
+                revendedorId={catalog.isReplicated ? catalog.user_id : null}
               />
             </DialogContent>
           </Dialog>
