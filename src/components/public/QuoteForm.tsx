@@ -93,7 +93,7 @@ export function QuoteForm(props: QuoteFormProps) {
         isReplicated: !!replicatedCatalogId,
       });
 
-      await (QuoteService.createQuote as any)({
+      await QuoteService.createQuote({
         catalog_id: catalogId,
         user_id: null,
         replicated_catalog_id: replicatedCatalogId,
