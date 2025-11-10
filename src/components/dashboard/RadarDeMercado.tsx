@@ -11,6 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Radar, Calendar, TrendingUp, Sparkles, AlertCircle, X, Filter } from "lucide-react";
 import { format, subDays } from "date-fns";
 import { es } from "date-fns/locale";
+import { useState, useEffect, useMemo } from "react";
 
 // Tipos
 type WordCloudData = {
@@ -142,22 +143,25 @@ export function RadarDeMercado() {
   }, [selectedTerm]);
 
   // Configuración de la nube de palabras
-  const wordCloudOptions = {
-    colors: ["#8b5cf6", "#6366f1", "#3b82f6", "#0ea5e9", "#06b6d4"],
-    enableTooltip: true,
-    deterministic: false,
-    fontFamily: "Inter, system-ui, sans-serif",
-    fontSizes: [14, 60] as [number, number], // ← REDUCIDO (era [16, 80])
-    fontStyle: "normal",
-    fontWeight: "600",
-    padding: 3, // ← AUMENTADO (era 2) para más espacio entre palabras
-    rotations: 2,
-    rotationAngles: [0, 0] as [number, number],
-    scale: "sqrt" as const,
-    spiral: "archimedean" as const,
-    transitionDuration: 1000,
-    enableOptimizations: true, // ← NUEVO: mejora el performance
-  };
+  const wordCloudOptions = useMemo(
+    () => ({
+      colors: ["#8b5cf6", "#6366f1", "#3b82f6", "#0ea5e9", "#06b6d4"],
+      enableTooltip: true,
+      deterministic: false,
+      fontFamily: "Inter, system-ui, sans-serif",
+      fontSizes: [14, 60] as [number, number],
+      fontStyle: "normal",
+      fontWeight: "600",
+      padding: 3,
+      rotations: 2,
+      rotationAngles: [0, 0] as [number, number],
+      scale: "sqrt" as const,
+      spiral: "archimedean" as const,
+      transitionDuration: 1000,
+      enableOptimizations: true,
+    }),
+    [],
+  );
 
   const wordCloudCallbacks = {
     onWordClick: (word: WordCloudData) => {
