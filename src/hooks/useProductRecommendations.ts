@@ -2,13 +2,12 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 
-// --- 👇 1. CORRECCIÓN DE TIPOS ---
-// Importamos el "helper" de tipos de Supabase.
+// --- 👇 1. CORRECCIÓN DE TIPOS (Usando tu ruta) ---
 // ¡AJUSTA ESTA RUTA SI TU ARCHIVO se llama diferente o está en otro lugar!
-import { type Tables } from "@/types/supabase";
+import { type Tables } from "@/integrations/supabase/types";
 
 // Definimos nuestro tipo 'Product' usando los tipos generados de la tabla 'products'
-// Esto nos da autocompletado y seguridad de tipos.
+// Asumo que tu tabla se llama 'products'
 type Product = Tables<"products">;
 
 // Tipo para el producto recomendado que devolveremos
