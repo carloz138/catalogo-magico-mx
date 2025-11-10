@@ -63,16 +63,7 @@ export interface QuoteFormProps {
 
 export function QuoteForm(props: QuoteFormProps) {
   // Destructuring dentro del componente
-  const {
-    catalogId,
-    replicatedCatalogId,
-    items,
-    totalAmount,
-    isOpen,
-    onClose,
-    onSuccess,
-    businessAddress,
-  } = props;
+  const { catalogId, replicatedCatalogId, items, totalAmount, isOpen, onClose, onSuccess, businessAddress } = props;
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -96,14 +87,15 @@ export function QuoteForm(props: QuoteFormProps) {
     setIsSubmitting(true);
 
     try {
-      console.log('📤 Enviando cotización con:', {
+      console.log("📤 Enviando cotización con:", {
         catalog_id: catalogId,
         replicated_catalog_id: replicatedCatalogId,
-        isReplicated: !!replicatedCatalogId
+        isReplicated: !!replicatedCatalogId,
       });
 
       await (QuoteService.createQuote as any)({
         catalog_id: catalogId,
+        user_id: null,
         replicated_catalog_id: replicatedCatalogId,
         customer_name: data.name,
         customer_email: data.email,
