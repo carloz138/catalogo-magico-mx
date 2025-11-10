@@ -17,7 +17,7 @@ export class QuoteService {
       .from('quotes')
       .insert({
         catalog_id: quoteData.catalog_id,
-        user_id: quoteData.user_id,
+        user_id: quoteData.user_id || null,  // ← Explícitamente NULL si no hay usuario
         customer_name: quoteData.customer_name,
         customer_email: quoteData.customer_email,
         customer_phone: quoteData.customer_phone,
