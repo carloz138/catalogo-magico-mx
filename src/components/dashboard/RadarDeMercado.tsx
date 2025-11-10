@@ -147,15 +147,16 @@ export function RadarDeMercado() {
     enableTooltip: true,
     deterministic: false,
     fontFamily: "Inter, system-ui, sans-serif",
-    fontSizes: [16, 80] as [number, number],
+    fontSizes: [14, 60] as [number, number], // ← REDUCIDO (era [16, 80])
     fontStyle: "normal",
     fontWeight: "600",
-    padding: 2,
+    padding: 3, // ← AUMENTADO (era 2) para más espacio entre palabras
     rotations: 2,
     rotationAngles: [0, 0] as [number, number],
-    scale: "sqrt" as const, // ← AGREGAR 'as const'
-    spiral: "archimedean" as const, // ← AGREGAR 'as const' también aquí
+    scale: "sqrt" as const,
+    spiral: "archimedean" as const,
     transitionDuration: 1000,
+    enableOptimizations: true, // ← NUEVO: mejora el performance
   };
 
   const wordCloudCallbacks = {
