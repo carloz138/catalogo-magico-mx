@@ -70,8 +70,8 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
           if (error) {
             console.warn("No active subscription found for L1/BOTH user.");
             setPaqueteUsuario(null);
-          } else if (data && data.package_id) {
-            setPaqueteUsuario(data.package_id as Package);
+          } else if (data && data.credit_packages) {
+            setPaqueteUsuario(data.credit_packages as Package);
           }
         } catch (error) {
           console.error("Error fetching subscription:", error);
