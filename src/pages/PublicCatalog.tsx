@@ -439,6 +439,10 @@ function PublicCatalogContent() {
               isOpen={isCartOpen}
               onClose={() => setIsCartOpen(false)}
               onRequestQuote={handleRequestQuote}
+              // 👇 ¡AQUÍ ESTÁ LA CORRECCIÓN! 👇
+              // Pasamos el user_id del catálogo actual (sea L1 o L2)
+              // Nuestro hook 'useProductRecommendations' se encargará de ver su plan
+              catalogOwnerId={catalog?.user_id || null}
             />
 
             <QuoteForm
