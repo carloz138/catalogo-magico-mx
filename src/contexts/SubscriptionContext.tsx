@@ -3,14 +3,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./AuthContext"; // Para saber el 'user'
 // 👇 1. CORRECCIÓN: Importamos el hook con el nombre correcto
 import { useUserRole } from "./RoleContext"; // Para saber el 'role' (L1/L2/BOTH)
+import { type Tables } from "@/integrations/supabase/types";
 
 // Este es el tipo de tu objeto 'packages' del JSON que me pasaste
-export type Package = {
-  id: string;
-  name: string;
-  analytics_level: "basic" | "advanced" | "pro";
-  // ...puedes añadir otros campos de tu JSON aquí si los necesitas en el frontend
-};
+export type Package = Tables<"credit_packages">;
 
 // Tipo para el 'rol' L2 gratuito que no tiene un plan de paga
 type FreeL2Plan = {
@@ -66,7 +62,7 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
           // y tiene un campo 'status'
           const { data, error } = await supabase
             .from("subscriptions") // <--- Revisa si tu tabla se llama así
-            .select("*, package_id(*)") // Carga el paquete anidado
+            .select("*, credit_packages:package_id(*)") // Carga el paquete anidado
             .eq("user_id", user.id)
             .eq("status", "active") // ¡Solo suscripciones activas!
             .single();
