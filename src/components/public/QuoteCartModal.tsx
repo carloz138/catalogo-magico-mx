@@ -13,14 +13,26 @@ interface Props {
   isOpen: boolean;
   onClose: () => void;
   onRequestQuote: () => void;
+  // 👇 NUEVO: Necesitamos saber de quién es este catálogo
+  catalogOwnerId: string | null;
 }
 
-export function QuoteCartModal({ isOpen, onClose, onRequestQuote }: Props) {
+export function QuoteCartModal({
+  isOpen,
+  onClose,
+  onRequestQuote,
+  catalogOwnerId, // 👇 Recibimos el ID del dueño
+}: Props) {
   const { items, updateQuantity, removeItem, clearCart, totalAmount } = useQuoteCart();
 
   // Obtener recomendaciones basadas en productos en el carrito
   const productIdsInCart = items.map((item) => item.product.id);
-  const { recommendations, loading: loadingRecommendations } = useProductRecommendations(productIdsInCart);
+
+  // 👇 ACTUALIZADO: Pasamos el catalogOwnerId al hook
+  const { recommendations, loading: loadingRecommendations } = useProductRecommendations(
+    productIdsInCart,
+    catalogOwnerId,
+  );
 
   // Handler para agregar productos desde el banner de recomendaciones
   const handleAddToCartFromBanner = (productToAdd: Product) => {
