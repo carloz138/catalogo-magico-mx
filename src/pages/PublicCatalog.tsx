@@ -1,14 +1,13 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Helmet, HelmetProvider } from "react-helmet-async";
-import { Calendar, Search, Info, MessageCircleQuestion } from "lucide-react";
+import { Calendar, Search, Info, ShoppingCart, ArrowRight } from "lucide-react"; // Añadí ShoppingCart y ArrowRight
 import { DigitalCatalogService } from "@/services/digital-catalog.service";
 import { PublicCatalogView } from "@/types/digital-catalog";
 import CatalogHeader from "@/components/public/CatalogHeader";
 import { ProductsContent } from "@/components/public/ProductsContent";
 import PasswordModal from "@/components/public/PasswordModal";
 import { AddToQuoteModal } from "@/components/public/AddToQuoteModal";
-import { QuoteCartBadge } from "@/components/public/QuoteCartBadge";
 import { QuoteCartModal } from "@/components/public/QuoteCartModal";
 import { QuoteForm } from "@/components/public/QuoteForm";
 import { MarketRadarForm } from "@/components/dashboard/MarketRadarForm";
@@ -24,6 +23,63 @@ import { calculateAdjustedPrice } from "@/lib/utils/price-calculator";
 import { toast } from "sonner";
 import { EXPANDED_WEB_TEMPLATES } from "@/lib/web-catalog/expanded-templates-catalog";
 import { WebTemplateAdapter } from "@/lib/templates/web-css-adapter";
+
+// Componente interno para la barra inferior móvil (para mantener el código limpio)
+const MobileStickyBar = ({
+  itemCount,
+  total,
+  onOpenCart,
+  onOpenRadar,
+}: {
+  itemCount: number;
+  total: number;
+  onOpenCart: () => void;
+  onOpenRadar: () => void;
+}) => {
+  if (itemCount === 0) {
+    // Si no hay items, mostramos solo el radar de forma sutil o nada
+    // Opción: Mostrar solo radar si se desea, pero a veces es mejor dejar la pantalla limpia
+    return (
+      <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-200 md:hidden z-50 flex justify-center">
+        <Button variant="outline" onClick={onOpenRadar} className="w-full shadow-sm">
+          <Search className="mr-2 h-4 w-4" /> ¿No encuentras lo que buscas?
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] p-4 md:hidden z-50 safe-area-bottom">
+      <div className="flex gap-3 items-center">
+        {/* Botón Radar (Pequeño) */}
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={onOpenRadar}
+          className="h-12 w-12 flex-shrink-0 border-gray-300"
+          title="Buscar producto no listado"
+        >
+          <Search className="h-5 w-5 text-gray-600" />
+        </Button>
+
+        {/* Botón Carrito (Grande / Principal) */}
+        <Button
+          onClick={onOpenCart}
+          className="flex-1 h-12 flex justify-between items-center px-4 bg-primary text-primary-foreground hover:bg-primary/90 shadow-md"
+        >
+          <div className="flex items-center gap-2">
+            <div className="bg-white/20 px-2 py-0.5 rounded text-xs font-bold">{itemCount}</div>
+            <span className="font-medium">Ver Cotización</span>
+          </div>
+          <div className="flex items-center gap-2 font-bold">
+            ${(total / 100).toLocaleString("es-MX", { minimumFractionDigits: 2 })}
+            <ArrowRight className="h-4 w-4 opacity-80" />
+          </div>
+        </Button>
+      </div>
+    </div>
+  );
+};
 
 function PublicCatalogContent() {
   const { slug } = useParams<{ slug: string }>();
@@ -51,24 +107,19 @@ function PublicCatalogContent() {
   useEffect(() => {
     async function loadCatalog() {
       if (!slug) return;
-
       try {
         setLoading(true);
         const data = await DigitalCatalogService.getPublicCatalog(slug);
-
         if (data.is_private && !isAuthenticated) {
           setCatalog(data);
           setLoading(false);
           return;
         }
-
         setCatalog(data);
-
         await DigitalCatalogService.trackView(data.id, {
           referrer: document.referrer,
           user_agent: navigator.userAgent,
         });
-
         setLoading(false);
       } catch (err: any) {
         console.error("Error loading catalog:", err);
@@ -76,51 +127,18 @@ function PublicCatalogContent() {
         setLoading(false);
       }
     }
-
     if (isAuthenticated || !catalog?.is_private) {
       loadCatalog();
     }
   }, [slug, isAuthenticated]);
-
-  // Debug: Verificar separación de productos
-  useEffect(() => {
-    if (!catalog) return;
-
-    console.log("════════════════════════════════════");
-    console.log("🔍 DEBUG PublicCatalog:");
-    console.log("isReplicated:", catalog.isReplicated);
-    console.log("replicatedCatalogId:", catalog.replicatedCatalogId);
-    console.log("purchasedProductIds:", catalog.purchasedProductIds);
-    console.log("purchasedVariantIds:", catalog.purchasedVariantIds); // ✅ NUEVO
-    console.log("Total productos:", catalog.products?.length);
-
-    if (catalog.isReplicated && catalog.purchasedProductIds) {
-      const purchased = catalog.products?.filter((p) => catalog.purchasedProductIds.includes(p.id));
-      const special = catalog.products?.filter((p) => !catalog.purchasedProductIds.includes(p.id));
-
-      console.log("📦 Productos En Stock:", purchased?.length);
-      console.log(
-        "   IDs:",
-        purchased?.map((p) => p.id.substring(0, 8)),
-      );
-      console.log("📝 Productos Pedido Especial:", special?.length);
-      console.log(
-        "   IDs:",
-        special?.map((p) => p.id.substring(0, 8)),
-      );
-    }
-    console.log("════════════════════════════════════");
-  }, [catalog]);
 
   const searchFields = ["name"];
   if (catalog?.show_description) searchFields.push("description");
   if (catalog?.show_sku) searchFields.push("sku");
 
   const { query, setQuery, results: searchResults } = useProductSearch(catalog?.products || [], searchFields);
-
   const { filteredProducts, selectedTags, setSelectedTags, priceRange, setPriceRange, clearFilters } =
     useProductFilters(searchResults);
-
   const availableTags = Array.from(new Set(catalog?.products.flatMap((p) => p.tags || []).filter(Boolean) || []));
 
   const prices = catalog?.products.map((p) => {
@@ -160,10 +178,8 @@ function PublicCatalogContent() {
         adjustmentMenudeo: catalog.price_adjustment_menudeo,
         adjustmentMayoreo: catalog.price_adjustment_mayoreo,
       };
-
       let priceType: "retail" | "wholesale" = "retail";
       let unitPrice = product.price_retail;
-
       if (priceConfig.display === "menudeo_only") {
         priceType = "retail";
         unitPrice = calculateAdjustedPrice(product.price_retail, priceConfig.adjustmentMenudeo);
@@ -174,7 +190,6 @@ function PublicCatalogContent() {
           priceConfig.adjustmentMayoreo,
         );
       }
-
       addItem(product, 1, priceType as any, unitPrice);
       toast.success(`${product.name} agregado a cotización`);
     }
@@ -243,28 +258,14 @@ function PublicCatalogContent() {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center max-w-md px-4">
-          <h2 className="text-2xl font-semibold mb-2">
-            {error === "Catálogo no encontrado"
-              ? "Catálogo no encontrado"
-              : error === "Catálogo expirado"
-                ? "Catálogo no disponible"
-                : "Error"}
-          </h2>
-          <p className="text-muted-foreground">
-            {error === "Catálogo no encontrado"
-              ? "Este catálogo no existe o fue eliminado"
-              : error === "Catálogo expirado"
-                ? "Este catálogo ya no está activo"
-                : error}
-          </p>
+          <h2 className="text-2xl font-semibold mb-2">Error</h2>
+          <p className="text-muted-foreground">{error}</p>
         </div>
       </div>
     );
   }
 
-  if (!catalog) {
-    return null;
-  }
+  if (!catalog) return null;
 
   if (catalog.is_private && !isAuthenticated) {
     return (
@@ -289,33 +290,46 @@ function PublicCatalogContent() {
         <title>
           {catalog.name} - {catalog.business_info?.business_name || "Catálogo"}
         </title>
-        <meta
-          name="description"
-          content={catalog.description || `Catálogo de productos de ${catalog.business_info?.business_name}`}
-        />
-        <meta property="og:title" content={catalog.name} />
-        <meta property="og:description" content={catalog.description || ""} />
+        <meta name="description" content={catalog.description || `Catálogo de productos`} />
         {catalog.products[0]?.image_url && <meta property="og:image" content={catalog.products[0].image_url} />}
-        <meta property="og:type" content="website" />
       </Helmet>
 
-      {/* Inyectar scripts del HEAD */}
       {catalog.tracking_head_scripts && <div dangerouslySetInnerHTML={{ __html: catalog.tracking_head_scripts }} />}
-
-      {/* Inyectar scripts del BODY */}
       {catalog.tracking_body_scripts && <div dangerouslySetInnerHTML={{ __html: catalog.tracking_body_scripts }} />}
 
       <style>{templateCSS}</style>
 
-      <div className="catalog-public-container min-h-screen">
+      <div className="catalog-public-container min-h-screen pb-24 md:pb-0">
+        {" "}
+        {/* Padding bottom extra para móvil */}
         <CatalogHeader
           businessName={catalog.business_info?.business_name || "Catálogo"}
           businessLogo={catalog.business_info?.logo_url}
           catalogName={catalog.name}
           catalogDescription={catalog.description}
         />
-
         <div className="container mx-auto px-4 py-8">
+          {/* --- DESKTOP ACTIONS (Visible solo en md+) --- */}
+          <div className="hidden md:flex justify-end gap-3 mb-6">
+            {/* Botón Radar Desktop */}
+            <Button variant="outline" onClick={() => setIsRequestFormOpen(true)} className="gap-2">
+              <Search className="h-4 w-4" />
+              ¿No encuentras algo?
+            </Button>
+
+            {/* Botón Cotización Desktop */}
+            {catalog.enable_quotation && items.length > 0 && (
+              <Button
+                onClick={() => setIsCartOpen(true)}
+                className="gap-2 bg-primary text-primary-foreground shadow-sm hover:bg-primary/90"
+              >
+                <ShoppingCart className="h-4 w-4" />
+                Ver Cotización ({items.length}) - $
+                {(totalAmount / 100).toLocaleString("es-MX", { minimumFractionDigits: 2 })}
+              </Button>
+            )}
+          </div>
+
           {catalog.additional_info ? (
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="grid w-full max-w-md mx-auto mb-6" style={{ gridTemplateColumns: "1fr 1fr" }}>
@@ -346,7 +360,7 @@ function PublicCatalogContent() {
                   minPrice={minPrice}
                   maxPrice={maxPrice}
                   purchasedProductIds={catalog.purchasedProductIds || []}
-                  purchasedVariantIds={catalog.purchasedVariantIds || []} // ✅ NUEVO
+                  purchasedVariantIds={catalog.purchasedVariantIds || []}
                 />
               </TabsContent>
 
@@ -381,42 +395,33 @@ function PublicCatalogContent() {
               minPrice={minPrice}
               maxPrice={maxPrice}
               purchasedProductIds={catalog.purchasedProductIds || []}
-              purchasedVariantIds={catalog.purchasedVariantIds || []} // ✅ NUEVO
+              purchasedVariantIds={catalog.purchasedVariantIds || []}
             />
           )}
         </div>
-
-        {/* Grupo de Botones Flotantes */}
-        <div className="fixed bottom-4 right-4 z-50 flex flex-col items-end gap-3">
-          {/* Botón de Cotización */}
-          {catalog.enable_quotation && items.length > 0 && <QuoteCartBadge onClick={() => setIsCartOpen(true)} />}
-
-          {/* Botón de Market Radar */}
-          <Dialog open={isRequestFormOpen} onOpenChange={setIsRequestFormOpen}>
-            <DialogTrigger asChild>
-              <Button
-                variant="outline"
-                size="lg"
-                className="bg-white/80 backdrop-blur-sm shadow-lg gap-2 hover:bg-white"
-              >
-                <Search className="h-5 w-5 text-primary" />
-                <span className="hidden sm:inline">¿No encuentras algo?</span>
-                <span className="sm:hidden text-xs font-semibold">Buscar</span>
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[500px]">
-              <DialogHeader>
-                <DialogTitle>Solicita un Producto</DialogTitle>
-              </DialogHeader>
-              <MarketRadarForm
-                fabricanteId={catalog.originalOwnerId || catalog.user_id}
-                catalogoId={catalog.id}
-                revendedorId={catalog.isReplicated ? catalog.user_id : null}
-              />
-            </DialogContent>
-          </Dialog>
-        </div>
-
+        {/* --- DIALOG DE RADAR (Común para Desktop y Móvil) --- */}
+        <Dialog open={isRequestFormOpen} onOpenChange={setIsRequestFormOpen}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>Solicita un Producto</DialogTitle>
+            </DialogHeader>
+            <MarketRadarForm
+              fabricanteId={catalog.originalOwnerId || catalog.user_id}
+              catalogoId={catalog.id}
+              revendedorId={catalog.isReplicated ? catalog.user_id : null}
+            />
+          </DialogContent>
+        </Dialog>
+        {/* --- STICKY BOTTOM BAR (Solo Móvil) --- */}
+        {catalog.enable_quotation && (
+          <MobileStickyBar
+            itemCount={items.length}
+            total={totalAmount}
+            onOpenCart={() => setIsCartOpen(true)}
+            onOpenRadar={() => setIsRequestFormOpen(true)}
+          />
+        )}
+        {/* Modales de Cotización */}
         {catalog.enable_quotation && (
           <>
             <AddToQuoteModal
@@ -439,15 +444,12 @@ function PublicCatalogContent() {
               isOpen={isCartOpen}
               onClose={() => setIsCartOpen(false)}
               onRequestQuote={handleRequestQuote}
-              // 👇 ¡AQUÍ ESTÁ LA CORRECCIÓN! 👇
-              // Pasamos el user_id del catálogo actual (sea L1 o L2)
-              // Nuestro hook 'useProductRecommendations' se encargará de ver su plan
               catalogOwnerId={catalog?.user_id || null}
             />
 
             <QuoteForm
               catalogId={catalog.id}
-              replicatedCatalogId={catalog.replicatedCatalogId} // ✅ NUEVO
+              replicatedCatalogId={catalog.replicatedCatalogId}
               items={items}
               totalAmount={totalAmount}
               isOpen={isQuoteFormOpen}
