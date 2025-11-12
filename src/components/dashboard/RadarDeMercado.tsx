@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import ReactWordcloud from "react-wordcloud";
@@ -8,9 +9,30 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Radar, Calendar, TrendingUp, Sparkles, AlertCircle, X, Filter } from "lucide-react";
+import { 
+  Radar, 
+  Calendar, 
+  TrendingUp, 
+  Sparkles, 
+  AlertCircle, 
+  X, 
+  Filter, 
+  MoreHorizontal, 
+  Mail, 
+  PlusCircle, 
+  CheckCircle 
+} from "lucide-react";
 import { format, subDays } from "date-fns";
 import { es } from "date-fns/locale";
+import { toast } from "sonner";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 // Tipos
 type WordCloudData = {
@@ -26,6 +48,7 @@ type Solicitud = {
   producto_descripcion: string | null;
   cantidad: number;
   cliente_final_nombre: string;
+  cliente_final_email: string; // Asegúrate de que tu vista/tabla traiga este campo
   estatus_fabricante: string;
   estatus_revendedor: string;
 };
@@ -40,6 +63,7 @@ const DATE_PRESETS = [
 
 export function RadarDeMercado() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [wordCloudData, setWordCloudData] = useState<WordCloudData[]>([]);
   const [selectedTerm, setSelectedTerm] = useState<string | null>(null);
@@ -105,24 +129,20 @@ export function RadarDeMercado() {
     try {
       const fechaInicio = subDays(new Date(), dateRange);
 
-      // SOLUCIÓN: Usar OR con múltiples estrategias de búsqueda
       const { data, error } = await supabase
         .from("solicitudes_mercado")
         .select("*")
         .gte("creado_el", fechaInicio.toISOString())
         .or(`fabricante_id.eq.${user.id},revendedor_id.eq.${user.id}`)
         .or(
-          // Estrategia 1: Buscar en producto_nombre (ILIKE para match parcial)
           `producto_nombre.ilike.%${term}%,` +
-            // Estrategia 2: Buscar en producto_marca
             `producto_marca.ilike.%${term}%,` +
-            // Estrategia 3: Buscar en descripción
-            `producto_descripcion.ilike.%${term}%`,
+            `producto_descripcion.ilike.%${term}%`
         )
         .order("creado_el", { ascending: false });
 
       if (error) throw error;
-      setSolicitudes(data || []);
+      setSolicitudes((data as any[]) || []);
     } catch (err: any) {
       console.error("Error fetching solicitudes:", err);
       setSolicitudes([]);
@@ -140,6 +160,27 @@ export function RadarDeMercado() {
       setSolicitudes([]);
     }
   }, [selectedTerm]);
+
+  // --- NUEVAS FUNCIONES DE ACCIÓN ---
+  const handleMarkAsHandled = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('solicitudes_mercado')
+        .update({ estatus_fabricante: 'atendido' } as any)
+        .eq('id', id);
+
+      if (error) throw error;
+      
+      toast.success("Solicitud marcada como atendida");
+      if(selectedTerm) fetchSolicitudesByTerm(selectedTerm);
+    } catch (error) {
+      toast.error("Error al actualizar");
+    }
+  };
+
+  const handleCreateProduct = (productName: string) => {
+    navigate(`/products?new=true&name=${encodeURIComponent(productName)}`);
+  };
 
   // Configuración de la nube de palabras
   const wordCloudOptions = useMemo(
@@ -306,22 +347,53 @@ export function RadarDeMercado() {
                       <TableHead>Cantidad</TableHead>
                       <TableHead>Fecha</TableHead>
                       <TableHead>Estado</TableHead>
+                      <TableHead className="text-right">Acciones</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {solicitudes.map((sol) => (
-                      <TableRow key={sol.id}>
+                      <TableRow key={sol.id} className={sol.estatus_fabricante === 'atendido' ? 'bg-gray-50' : ''}>
                         <TableCell>
                           <div className="font-medium">{sol.producto_nombre}</div>
                           {sol.producto_marca && (
                             <div className="text-xs text-muted-foreground">{sol.producto_marca}</div>
                           )}
                         </TableCell>
-                        <TableCell>{sol.cliente_final_nombre}</TableCell>
+                        <TableCell>
+                          <div className="flex flex-col">
+                            <span>{sol.cliente_final_nombre}</span>
+                            <span className="text-xs text-gray-500">{sol.cliente_final_email}</span>
+                          </div>
+                        </TableCell>
                         <TableCell>{sol.cantidad}</TableCell>
                         <TableCell>{format(new Date(sol.creado_el), "dd MMM yyyy", { locale: es })}</TableCell>
                         <TableCell>
                           <StatusBadge status={sol.estatus_fabricante} />
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" className="h-8 w-8 p-0">
+                                <span className="sr-only">Abrir menú</span>
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+                              <DropdownMenuItem onClick={() => window.location.href = `mailto:${sol.cliente_final_email}`}>
+                                <Mail className="mr-2 h-4 w-4" /> Contactar Cliente
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleCreateProduct(sol.producto_nombre)}>
+                                <PlusCircle className="mr-2 h-4 w-4" /> Crear Producto
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              {sol.estatus_fabricante !== 'atendido' && (
+                                <DropdownMenuItem onClick={() => handleMarkAsHandled(sol.id)}>
+                                  <CheckCircle className="mr-2 h-4 w-4" /> Marcar Atendido
+                                </DropdownMenuItem>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -375,6 +447,7 @@ function StatusBadge({ status }: { status: string }) {
     revisando: { label: "Revisando", className: "bg-yellow-100 text-yellow-800" },
     aprobado: { label: "Aprobado", className: "bg-green-100 text-green-800" },
     rechazado: { label: "Rechazado", className: "bg-red-100 text-red-800" },
+    atendido: { label: "Atendido", className: "bg-gray-100 text-gray-600 border-gray-200" },
   };
 
   const variant = variants[status] || variants.nuevo;
