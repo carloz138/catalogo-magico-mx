@@ -9,14 +9,7 @@ import { Upload as UploadIcon, Image, FileText, Package, PackageOpen } from "luc
 // 👇 IMPORTAR useSearchParams
 import { useNavigate, useSearchParams } from "react-router-dom";
 
-export type UploadedFile = {
-  id: string;
-  file: File;
-  preview: string;
-  url?: string;
-  analysis?: any;
-  productData?: any;
-};
+
 
 const Upload = () => {
   const navigate = useNavigate();
