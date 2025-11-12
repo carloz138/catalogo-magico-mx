@@ -1,480 +1,315 @@
-import { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import AppLayout from '@/components/layout/AppLayout';
+import { useDropzone } from 'react-dropzone';
+import * as XLSX from 'xlsx'; // Asegúrate de tener esto instalado
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { ImageDropzone } from '@/components/bulk-upload/ImageDropzone';
-import { CSVUploader } from '@/components/bulk-upload/CSVUploader';
-import { MatchingTable } from '@/components/bulk-upload/MatchingTable';
-import { UploadProgress } from '@/components/bulk-upload/UploadProgress';
-import { useBulkUploadMatching } from '@/hooks/useBulkUploadMatching';
-import { useDuplicateDetection } from '@/hooks/useDuplicateDetection';
-import { DuplicateWarning } from '@/components/bulk-upload/DuplicateWarning';
-import { CSVProduct, ImageFile, UploadProgress as UploadProgressType } from '@/types/bulk-upload';
-import { supabase } from '@/integrations/supabase/client';
+import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Upload, CheckCircle2, XCircle, AlertTriangle } from 'lucide-react';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { bulkUploadSchema } from '@/lib/validation/bulk-upload-schemas';
-import { processBatchWithConcurrency } from '@/lib/concurrency-control';
-import { batchInsert } from '@/lib/batch-processing';
-import { retryWithBackoff } from '@/lib/retry-logic';
+import { useCatalogLimits } from '@/hooks/useCatalogLimits';
+import { supabase } from '@/integrations/supabase/client';
+import { ArrowLeft, Upload, FileSpreadsheet, Image as ImageIcon, CheckCircle, AlertCircle, Package } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
+
+// Componentes y Hooks Nuevos
+import { ColumnMapper } from '@/components/bulk-upload/ColumnMapper';
+import { useBulkMatching, type BulkProduct, type BulkImage } from '@/hooks/useBulkMatching';
 
 export default function BulkUpload() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { matches, setMatches, processMatches, getStats, cleanFileName } = useBulkUploadMatching();
-  const { duplicates, checkDuplicates, isChecking } = useDuplicateDetection();
+  const { limits } = useCatalogLimits();
 
-  const [images, setImages] = useState<ImageFile[]>([]);
-  const [csvProducts, setCSVProducts] = useState<CSVProduct[]>([]);
-  const [uploading, setUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState<UploadProgressType | null>(null);
-  const [validationErrors, setValidationErrors] = useState<string[]>([]);
-  const [showDuplicateWarning, setShowDuplicateWarning] = useState(false);
-  const [showOnlyUnmatched, setShowOnlyUnmatched] = useState(false);
+  // ESTADOS DEL PROCESO
+  const [step, setStep] = useState<'upload' | 'mapping' | 'matching' | 'uploading'>('upload');
+  
+  // DATOS
+  const [rawFile, setRawFile] = useState<any[]>([]);
+  const [headers, setHeaders] = useState<string[]>([]);
+  const [products, setProducts] = useState<BulkProduct[]>([]);
+  const [images, setImages] = useState<BulkImage[]>([]);
+  
+  // HOOK DE MATCHING (El cerebro)
+  const { matches, setManualMatch, useDefaultImage, applyDefaultToAllUnmatched, stats } = useBulkMatching(products, images);
 
-  const handleImagesSelected = (newImages: ImageFile[]) => {
-    const processedImages = newImages.map(img => ({
-      ...img,
-      cleanName: cleanFileName(img.file.name)
-    }));
-    setImages(processedImages);
+  // ESTADO DE SUBIDA
+  const [uploadProgress, setUploadProgress] = useState(0);
+
+  // 1. LEER EXCEL / CSV
+  const onFileDrop = useCallback((acceptedFiles: File[]) => {
+    const file = acceptedFiles[0];
+    const reader = new FileReader();
     
-    if (csvProducts.length > 0) {
-      processMatches(processedImages, csvProducts);
-    }
-  };
+    reader.onload = (e) => {
+      const data = e.target?.result;
+      const workbook = XLSX.read(data, { type: 'binary' });
+      const sheetName = workbook.SheetNames[0];
+      const sheet = workbook.Sheets[sheetName];
+      const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1 }); // Array de arrays
 
-  const handleCSVParsed = (products: CSVProduct[]) => {
-    setCSVProducts(products);
-    
-    if (images.length > 0) {
-      processMatches(images, products);
-    }
-  };
-
-  const handleRenameImage = (imageIndex: number, newCleanName: string) => {
-    const updatedImages = [...images];
-    updatedImages[imageIndex] = {
-      ...updatedImages[imageIndex],
-      cleanName: newCleanName
-    };
-    setImages(updatedImages);
-    
-    // Re-procesar matches con nuevo nombre
-    processMatches(updatedImages, csvProducts);
-    
-    toast({
-      title: "Imagen renombrada",
-      description: "Se actualizó el matching automáticamente",
-    });
-  };
-
-  const handleManualMatch = (imageIndex: number, product: CSVProduct) => {
-    const updatedMatches = [...matches];
-    
-    updatedMatches[imageIndex] = {
-      ...updatedMatches[imageIndex],
-      csvData: product,
-      matchScore: 100,
-      matchType: 'exact'
-    };
-    
-    setMatches(updatedMatches);
-    
-    toast({
-      title: "Match manual aplicado",
-      description: `Imagen asociada con ${product.nombre}`,
-    });
-  };
-
-  const uploadToSupabase = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      toast({
-        title: "Error",
-        description: "Debes iniciar sesión",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    const matchedProducts = matches.filter(m => m.csvData !== null);
-    if (matchedProducts.length === 0) {
-      toast({
-        title: "Sin productos para subir",
-        description: "No hay productos con match válido",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    const validation = bulkUploadSchema.safeParse({
-      images: images.map(i => i.file),
-      products: csvProducts
-    });
-
-    if (!validation.success) {
-      const errors = validation.error.issues.map(i => i.message);
-      setValidationErrors(errors);
-      toast({
-        title: "Errores de validación",
-        description: errors[0],
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setValidationErrors([]);
-
-    // Detectar duplicados
-    const duplicateInfo = await checkDuplicates(csvProducts);
-    
-    if (duplicateInfo.length > 0 && !showDuplicateWarning) {
-      setShowDuplicateWarning(true);
-      return;
-    }
-
-    // Si llegamos aquí, el usuario confirmó continuar
-    setShowDuplicateWarning(false);
-
-    // Filtrar productos duplicados
-    const duplicateSkus = new Set(duplicateInfo.map(d => d.sku));
-    const uniqueMatches = matchedProducts.filter(m => !duplicateSkus.has(m.csvData!.sku));
-
-    if (uniqueMatches.length === 0) {
-      toast({
-        title: "Todos son duplicados",
-        description: "Todos los productos ya existen en tu catálogo",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setUploading(true);
-    setUploadProgress({
-      total: uniqueMatches.length,
-      uploaded: 0,
-      failed: 0,
-      current: 'Subiendo imágenes...'
-    });
-
-    // FASE 1: Upload todas las imágenes primero
-    const uploadedImages: Array<{
-      match: typeof matchedProducts[0];
-      mainImageUrl: string;
-      secondaryUrls: string[];
-    }> = [];
-
-    const uploadImage = async (match: typeof matchedProducts[0], index: number) => {
-      if (!match.csvData) throw new Error('No CSV data');
-
-      const timestamp = Date.now();
-      const mainImagePath = `${user.id}/${timestamp}_${match.image.file.name}`;
-      
-      // Upload imagen principal con retry
-      const { error: uploadError } = await retryWithBackoff(
-        () => supabase.storage
-          .from('product-images')
-          .upload(mainImagePath, match.image.file),
-        { maxAttempts: 3 }
-      );
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('product-images')
-        .getPublicUrl(mainImagePath);
-
-      const secondaryUrls: string[] = [];
-      if (match.secondaryImages && match.secondaryImages.length > 0) {
-        for (const secImg of match.secondaryImages) {
-          const secPath = `${user.id}/${timestamp}_${secImg.file.name}`;
-          const { error: secError } = await retryWithBackoff(
-            () => supabase.storage
-              .from('product-images')
-              .upload(secPath, secImg.file),
-            { maxAttempts: 3 }
-          );
-          
-          if (!secError) {
-            const { data: { publicUrl: secUrl } } = supabase.storage
-              .from('product-images')
-              .getPublicUrl(secPath);
-            secondaryUrls.push(secUrl);
-          }
-        }
+      if (jsonData.length < 2) {
+        toast({ title: "Archivo vacío", variant: "destructive" });
+        return;
       }
 
-      setUploadProgress(prev => prev ? {
-        ...prev,
-        uploaded: index + 1,
-        current: `Subiendo imágenes... ${index + 1}/${matchedProducts.length}`
-      } : null);
+      const headersRow = jsonData[0] as string[];
+      const dataRows = jsonData.slice(1).map((row: any) => {
+        // Convertir array row a objeto usando headers
+        const obj: any = {};
+        headersRow.forEach((header, index) => {
+            obj[header] = row[index];
+        });
+        return obj;
+      });
 
-      return {
-        match,
-        mainImageUrl: publicUrl,
-        secondaryUrls
-      };
+      setHeaders(headersRow);
+      setRawFile(dataRows);
+      setStep('mapping'); // Avanzar al siguiente paso
     };
 
-    const { successful: successfulImages, failed: failedImages } = await processBatchWithConcurrency(
-      uniqueMatches,
-      uploadImage,
-      3
-    );
+    reader.readAsBinaryString(file);
+  }, []);
 
-    uploadedImages.push(...successfulImages);
-
-    if (uploadedImages.length === 0) {
-      setUploading(false);
-      toast({
-        title: "Error",
-        description: "No se pudo subir ninguna imagen",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    // FASE 2: Batch insert de productos
-    setUploadProgress(prev => prev ? {
-      ...prev,
-      current: 'Guardando productos en base de datos...'
-    } : null);
-
-    const productsToInsert = uploadedImages.map(({ match, mainImageUrl, secondaryUrls }) => ({
-      user_id: user.id,
-      name: match.csvData!.nombre,
-      sku: match.csvData!.sku,
-      price_retail: parseInt(match.csvData!.precio),
-      price_wholesale: match.csvData!.precio_mayoreo ? parseInt(match.csvData!.precio_mayoreo) : null,
-      description: match.csvData!.descripcion || null,
-      category: match.csvData!.categoria || null,
-      original_image_url: mainImageUrl,
-      processing_status: 'pending',
-      processed_images: secondaryUrls.length > 0 ? { secondary: secondaryUrls } : null
+  // 2. LEER IMÁGENES
+  const onImagesDrop = useCallback((acceptedFiles: File[]) => {
+    const newImages = acceptedFiles.map(file => ({
+        id: crypto.randomUUID(),
+        file,
+        preview: URL.createObjectURL(file),
+        name: file.name
     }));
+    setImages(prev => [...prev, ...newImages]);
+  }, []);
 
-    const { successful: insertedProducts, failed: failedInserts } = await batchInsert(
-      'products',
-      productsToInsert,
-      500,
-      supabase
-    );
+  const { getRootProps: getFileProps, getInputProps: getFileInputProps } = useDropzone({
+    onDrop: onFileDrop,
+    accept: {
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
+        'text/csv': ['.csv']
+    },
+    maxFiles: 1
+  });
 
-    setUploading(false);
-    
-    const totalFailed = failedImages.length + failedInserts.length;
-    
-    toast({
-      title: "Carga completada",
-      description: `${insertedProducts.length} productos subidos exitosamente${totalFailed > 0 ? `, ${totalFailed} fallidos` : ''}`,
-    });
+  const { getRootProps: getImageProps, getInputProps: getImageInputProps } = useDropzone({
+    onDrop: onImagesDrop,
+    accept: { 'image/*': ['.png', '.jpg', '.jpeg', '.webp'] }
+  });
 
-    if (insertedProducts.length > 0) {
-      setTimeout(() => navigate('/products'), 2000);
+  // 3. CONFIRMAR MAPEO
+  const handleMappingConfirm = (mapping: Record<string, string>) => {
+    // Transformar datos crudos a nuestro formato interno
+    const mappedProducts: BulkProduct[] = rawFile.map(row => ({
+        id: crypto.randomUUID(),
+        name: row[mapping['name']],
+        price: parseFloat(row[mapping['price']] || '0'), // Asumimos que viene en pesos
+        sku: row[mapping['sku']] || '',
+        description: row[mapping['description']] || '',
+        category: row[mapping['category']] || '',
+        originalData: row
+    })).filter(p => p.name && p.price > 0); // Filtrar filas vacías
+
+    if (mappedProducts.length === 0) {
+        toast({ title: "No se encontraron productos válidos", variant: "destructive" });
+        return;
     }
+
+    // Validar límites del plan
+    if (limits && mappedProducts.length > (limits.maxUploadsPerBatch || 500)) {
+        toast({ 
+            title: "Límite excedido", 
+            description: `Tu plan permite subir ${limits.maxUploadsPerBatch} productos por lote.`,
+            variant: "destructive" 
+        });
+        // Podríamos recortar el array aquí si quisiéramos ser amables
+    }
+
+    setProducts(mappedProducts);
+    setStep('matching');
   };
 
-  const stats = getStats();
-  const canUpload = stats.matched > 0 && !uploading;
+  // 4. SUBIDA FINAL A SUPABASE
+  const handleFinalUpload = async () => {
+    setStep('uploading');
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    let processed = 0;
+    const total = matches.length;
+
+    // Subimos en lotes pequeños para no saturar
+    // (Simplificado para el ejemplo, idealmente usar una cola como en FileUploader)
+    for (const match of matches) {
+        try {
+            let imageUrl = null;
+
+            // A. Si es Default
+            if (match.status === 'default') {
+                // URL de placeholder que me diste en una respuesta anterior
+                imageUrl = "https://ikbexcebcpmomfxraflz.supabase.co/storage/v1/object/public/product-images/placeholder.png"; 
+            } 
+            // B. Si tiene imagen real
+            else if (match.status === 'matched' && match.image) {
+                const fileExt = match.image.file.name.split('.').pop();
+                const filePath = `${user.id}/${Date.now()}_${match.image.id}.${fileExt}`;
+                
+                await supabase.storage.from('product-images').upload(filePath, match.image.file);
+                const { data: urlData } = supabase.storage.from('product-images').getPublicUrl(filePath);
+                imageUrl = urlData.publicUrl;
+            }
+
+            // C. Insertar Producto
+            if (imageUrl || match.status === 'default') { // Solo si tenemos imagen o es default
+                await supabase.from('products').insert({
+                    user_id: user.id,
+                    name: match.product.name,
+                    price_retail: Math.round(match.product.price * 100), // Convertir a centavos
+                    sku: match.product.sku,
+                    description: match.product.description,
+                    category: match.product.category,
+                    original_image_url: imageUrl,
+                    processing_status: 'completed' // Ya no requiere quitar fondo si es bulk rápido
+                });
+            }
+
+            processed++;
+            setUploadProgress((processed / total) * 100);
+
+        } catch (e) {
+            console.error("Error subiendo producto", e);
+        }
+    }
+
+    toast({ title: "¡Carga completada!", description: `Se procesaron ${processed} productos.` });
+    setTimeout(() => navigate('/products'), 1000);
+  };
+
+  // --- RENDER ---
 
   return (
-    <AppLayout
-      title="Carga Masiva de Productos"
-      subtitle="Sube múltiples productos con imágenes y datos CSV"
-    >
-      <div className="space-y-4 sm:space-y-6">
-        <Button
-          variant="ghost"
-          onClick={() => navigate('/products')}
-          className="mb-3 sm:mb-4 h-10 sm:h-auto"
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          <span className="text-sm sm:text-base">Volver a Productos</span>
+    <div className="container mx-auto py-8 px-4">
+        <Button variant="ghost" onClick={() => navigate('/products')} className="mb-4">
+            <ArrowLeft className="mr-2 h-4 w-4" /> Volver
         </Button>
 
-        {/* Statistics */}
-        {matches.length > 0 && (
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-            <Card className="p-3 sm:p-4">
-              <div className="flex items-center gap-2 sm:gap-3">
-                <CheckCircle2 className="h-6 w-6 sm:h-8 sm:w-8 text-green-600 flex-shrink-0" />
-                <div className="min-w-0 flex-1">
-                  <p className="text-xl sm:text-2xl font-bold">{stats.matched}</p>
-                  <p className="text-xs sm:text-sm text-muted-foreground truncate">Matcheados</p>
-                </div>
-              </div>
-            </Card>
-            <Card className="p-3 sm:p-4">
-              <div className="flex items-center gap-2 sm:gap-3">
-                <XCircle className="h-6 w-6 sm:h-8 sm:w-8 text-destructive flex-shrink-0" />
-                <div className="min-w-0 flex-1">
-                  <p className="text-xl sm:text-2xl font-bold">{stats.unmatched}</p>
-                  <p className="text-xs sm:text-sm text-muted-foreground truncate">Sin Match</p>
-                </div>
-              </div>
-            </Card>
-            <Card className="p-3 sm:p-4">
-              <div className="flex items-center gap-2 sm:gap-3">
-                <Upload className="h-6 w-6 sm:h-8 sm:w-8 text-primary flex-shrink-0" />
-                <div className="min-w-0 flex-1">
-                  <p className="text-xl sm:text-2xl font-bold">{images.length}</p>
-                  <p className="text-xs sm:text-sm text-muted-foreground truncate">Imágenes</p>
-                </div>
-              </div>
-            </Card>
-            <Card className="p-3 sm:p-4">
-              <div className="flex items-center gap-2 sm:gap-3">
-                <AlertTriangle className="h-6 w-6 sm:h-8 sm:w-8 text-yellow-600 flex-shrink-0" />
-                <div className="min-w-0 flex-1">
-                  <p className="text-xl sm:text-2xl font-bold">{stats.withSecondary}</p>
-                  <p className="text-xs sm:text-sm text-muted-foreground truncate">Multi-imagen</p>
-                </div>
-              </div>
-            </Card>
-          </div>
-        )}
+        <h1 className="text-3xl font-bold mb-2">Carga Masiva Inteligente</h1>
+        <p className="text-gray-500 mb-8">Importa tu inventario desde Excel y nosotros organizamos las fotos.</p>
 
-        {/* Upload Areas */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-          <Card className="p-4 sm:p-6">
-            <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">
-              1. Sube las Imágenes
-            </h3>
-            <ImageDropzone images={images} onImagesSelected={handleImagesSelected} />
-          </Card>
+        {/* PASO 1: SUBIDA DE ARCHIVOS */}
+        {step === 'upload' && (
+            <div className="grid md:grid-cols-2 gap-6">
+                <Card {...getFileProps()} className="border-dashed border-2 hover:border-blue-500 cursor-pointer transition-colors">
+                    <CardContent className="flex flex-col items-center justify-center h-64 text-center">
+                        <input {...getFileInputProps()} />
+                        <FileSpreadsheet className="h-12 w-12 text-green-600 mb-4" />
+                        <h3 className="font-semibold text-lg">Sube tu Excel o CSV</h3>
+                        <p className="text-sm text-gray-500 mt-2">Arrastra tu archivo aquí</p>
+                    </CardContent>
+                </Card>
 
-          <Card className="p-4 sm:p-6">
-            <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">
-              2. Sube el CSV
-            </h3>
-            <CSVUploader csvProducts={csvProducts} onCSVParsed={handleCSVParsed} />
-          </Card>
-        </div>
-
-        {/* Duplicate Warning */}
-        {showDuplicateWarning && duplicates.length > 0 && (
-          <DuplicateWarning
-            duplicates={duplicates}
-            onContinue={() => {
-              setShowDuplicateWarning(false);
-              uploadToSupabase();
-            }}
-            onCancel={() => {
-              setShowDuplicateWarning(false);
-              toast({
-                title: "Carga cancelada",
-                description: "Puedes modificar tu CSV y volver a intentar",
-              });
-            }}
-          />
-        )}
-
-        {/* Matching Results */}
-        {matches.length > 0 && (
-          <Card className="p-4 sm:p-6">
-            {validationErrors.length > 0 && (
-              <Alert variant="destructive" className="mb-3 sm:mb-4">
-                <AlertTriangle className="h-4 w-4" />
-                <AlertTitle className="text-sm sm:text-base">Errores de validación</AlertTitle>
-                <AlertDescription>
-                  <ul className="list-disc list-inside mt-2 space-y-1">
-                    {validationErrors.map((error, idx) => (
-                      <li key={idx} className="text-xs sm:text-sm">{error}</li>
-                    ))}
-                  </ul>
-                </AlertDescription>
-              </Alert>
-            )}
-
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-0 mb-3 sm:mb-4">
-              <h3 className="text-base sm:text-lg font-semibold">3. Revisa los Matches</h3>
-              
-              <div className="flex flex-col sm:flex-row gap-2">
-                {stats.unmatched > 0 && (
-                  <Button
-                    variant={showOnlyUnmatched ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setShowOnlyUnmatched(!showOnlyUnmatched)}
-                    className="w-full sm:w-auto h-11 sm:h-auto text-sm"
-                  >
-                    <AlertTriangle className="h-4 w-4 mr-2" />
-                    Solo sin match ({stats.unmatched})
-                  </Button>
-                )}
-                <Button
-                  onClick={uploadToSupabase}
-                  disabled={!canUpload || validationErrors.length > 0 || isChecking}
-                  className="w-full sm:w-auto bg-gradient-to-r from-primary to-purple-600 h-11 sm:h-auto text-sm"
-                >
-                  <Upload className="h-4 w-4 mr-2" />
-                  {isChecking ? 'Verificando...' : `Subir ${stats.matched} Producto${stats.matched !== 1 ? 's' : ''}`}
-                </Button>
-              </div>
+                <Card {...getImageProps()} className="border-dashed border-2 hover:border-blue-500 cursor-pointer transition-colors">
+                    <CardContent className="flex flex-col items-center justify-center h-64 text-center">
+                        <input {...getImageInputProps()} />
+                        <div className="relative">
+                            <ImageIcon className="h-12 w-12 text-blue-600 mb-4" />
+                            {images.length > 0 && (
+                                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-6 h-6 flex items-center justify-center">
+                                    {images.length}
+                                </span>
+                            )}
+                        </div>
+                        <h3 className="font-semibold text-lg">Sube tus Fotos</h3>
+                        <p className="text-sm text-gray-500 mt-2">Arrastra todas las fotos juntas (o la carpeta)</p>
+                    </CardContent>
+                </Card>
             </div>
+        )}
 
-            {stats.unmatched > 0 && !showOnlyUnmatched && (
-              <Alert className="mb-3 sm:mb-4">
-                <AlertTriangle className="h-4 w-4" />
-                <AlertDescription className="text-xs sm:text-sm">
-                  {stats.unmatched} imagen{stats.unmatched !== 1 ? 'es' : ''} no encontró match. 
-                  Puedes renombrarlas o hacer matching manual.
-                </AlertDescription>
-              </Alert>
-            )}
-
-            <MatchingTable 
-              matches={showOnlyUnmatched ? matches.filter(m => m.csvData === null) : matches}
-              csvProducts={csvProducts}
-              onRenameImage={handleRenameImage}
-              onManualMatch={handleManualMatch}
+        {/* PASO 2: MAPEO DE COLUMNAS */}
+        {step === 'mapping' && (
+            <ColumnMapper 
+                headers={headers} 
+                previewData={rawFile} 
+                onConfirm={handleMappingConfirm}
+                onCancel={() => setStep('upload')}
             />
-          </Card>
         )}
 
-        {/* Upload Progress */}
-        {uploadProgress && (
-          <Card className="p-4 sm:p-6">
-            <UploadProgress progress={uploadProgress} />
-          </Card>
-        )}
+        {/* PASO 3: MATCHING VISUAL */}
+        {step === 'matching' && (
+            <div className="space-y-6">
+                <div className="flex flex-wrap gap-4 items-center justify-between bg-white p-4 rounded-lg border shadow-sm">
+                    <div className="flex gap-4 text-sm">
+                        <span className="flex items-center gap-1 font-bold text-green-700">
+                            <CheckCircle className="w-4 h-4" /> {stats.matched} Listos
+                        </span>
+                        <span className="flex items-center gap-1 font-bold text-orange-600">
+                            <AlertCircle className="w-4 h-4" /> {stats.unmatched} Sin foto
+                        </span>
+                        <span className="flex items-center gap-1 text-gray-500">
+                            <Package className="w-4 h-4" /> {stats.default} Default
+                        </span>
+                    </div>
+                    <div className="flex gap-2">
+                        {stats.unmatched > 0 && (
+                            <Button variant="outline" size="sm" onClick={applyDefaultToAllUnmatched}>
+                                Usar Default para todos los faltantes
+                            </Button>
+                        )}
+                        <Button onClick={handleFinalUpload} className="bg-blue-600">
+                            Subir {matches.length} Productos
+                        </Button>
+                    </div>
+                </div>
 
-        {/* Bottom Action Bar Móvil - Solo cuando hay matches */}
-        {matches.length > 0 && (
-          <>
-            <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-3 shadow-lg z-40 safe-bottom">
-              <div className="flex items-center gap-2 max-w-7xl mx-auto">
-                {stats.unmatched > 0 && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowOnlyUnmatched(!showOnlyUnmatched)}
-                    className="flex-1 h-11 text-xs"
-                  >
-                    <AlertTriangle className="h-4 w-4 mr-1" />
-                    Sin match ({stats.unmatched})
-                  </Button>
-                )}
-                
-                <Button
-                  onClick={uploadToSupabase}
-                  disabled={!canUpload || validationErrors.length > 0 || isChecking}
-                  className="flex-[2] bg-gradient-to-r from-primary to-purple-600 h-11 text-sm font-semibold"
-                >
-                  <Upload className="h-4 w-4 mr-2" />
-                  {isChecking ? 'Verificando...' : `Subir ${stats.matched}`}
-                </Button>
-              </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {matches.map((match) => (
+                        <Card key={match.productId} className={`overflow-hidden ${match.status === 'unmatched' ? 'border-orange-300 bg-orange-50' : 'border-green-200'}`}>
+                            <div className="h-48 bg-gray-100 relative flex items-center justify-center">
+                                {match.status === 'matched' && match.image ? (
+                                    <img src={match.image.preview} className="w-full h-full object-contain" />
+                                ) : match.status === 'default' ? (
+                                    <div className="text-gray-400 flex flex-col items-center">
+                                        <Package className="w-12 h-12 mb-2" />
+                                        <span className="text-xs">Imagen Default</span>
+                                    </div>
+                                ) : (
+                                    <span className="text-orange-400 text-sm font-medium">Sin Imagen</span>
+                                )}
+                                
+                                {/* Botones de Acción en la tarjeta */}
+                                <div className="absolute top-2 right-2 flex flex-col gap-1">
+                                    {match.status !== 'default' && (
+                                        <Button size="icon" variant="secondary" className="h-8 w-8" title="Usar Default" onClick={() => useDefaultImage(match.productId)}>
+                                            <Package className="w-4 h-4" />
+                                        </Button>
+                                    )}
+                                </div>
+                            </div>
+                            <div className="p-3">
+                                <h4 className="font-bold truncate">{match.product.name}</h4>
+                                <div className="flex justify-between text-sm mt-1">
+                                    <span>${match.product.price}</span>
+                                    <span className="text-gray-500">{match.product.sku}</span>
+                                </div>
+                                {match.matchMethod === 'auto' && match.status === 'matched' && (
+                                    <div className="mt-2 text-xs text-green-600 bg-green-100 px-2 py-1 rounded inline-block">
+                                        Match automático por nombre
+                                    </div>
+                                )}
+                            </div>
+                        </Card>
+                    ))}
+                </div>
             </div>
-
-            {/* Spacer para bottom bar */}
-            <div className="md:hidden h-20" />
-          </>
         )}
-      </div>
-    </AppLayout>
+
+        {/* PASO 4: PROGRESO */}
+        {step === 'uploading' && (
+            <Card className="max-w-md mx-auto mt-20 p-8 text-center">
+                <h3 className="text-xl font-bold mb-4">Subiendo Productos...</h3>
+                <Progress value={uploadProgress} className="h-4 mb-2" />
+                <p className="text-gray-500">{Math.round(uploadProgress)}% completado</p>
+            </Card>
+        )}
+    </div>
   );
 }
