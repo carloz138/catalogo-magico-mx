@@ -1,28 +1,19 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useMemo } from 'react';
 
 export function useProductSearch<T extends Record<string, any>>(
   products: T[],
-  searchFields: string[]
+  searchFields: string[],
+  externalQuery?: string
 ) {
-  const [query, setQuery] = useState('');
-  const [debouncedQuery, setDebouncedQuery] = useState('');
-
-  // Debounce search query
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedQuery(query);
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, [query]);
-
-  // Filter products based on search query
+  // Filter products based on search query (use external query if provided)
   const results = useMemo(() => {
-    if (!debouncedQuery.trim()) {
+    const searchQuery = externalQuery ?? '';
+    
+    if (!searchQuery.trim()) {
       return products;
     }
 
-    const searchTerm = debouncedQuery.toLowerCase();
+    const searchTerm = searchQuery.toLowerCase();
 
     return products.filter((product) =>
       searchFields.some((field) => {
@@ -31,11 +22,9 @@ export function useProductSearch<T extends Record<string, any>>(
         return String(value).toLowerCase().includes(searchTerm);
       })
     );
-  }, [products, debouncedQuery, searchFields]);
+  }, [products, searchFields, externalQuery]);
 
   return {
-    query,
-    setQuery,
     results,
   };
 }

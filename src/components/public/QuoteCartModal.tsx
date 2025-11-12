@@ -28,7 +28,7 @@ export function QuoteCartModal({
   catalogOwnerId,
   freeShippingThreshold, // 👇 Recibimos la regla
 }: Props) {
-  const { items, updateQuantity, removeItem, clearCart, totalAmount } = useQuoteCart();
+  const { items, updateQuantity, removeItem, clearCart, totalAmount, addItem } = useQuoteCart();
 
   // --- LÓGICA DE ENVÍO GRATIS ---
   // Calculamos cuánto falta (todo está en centavos)
@@ -44,16 +44,16 @@ export function QuoteCartModal({
   );
 
   const handleAddToCartFromBanner = (productToAdd: Product) => {
+    // Usar 'retail' como precio por defecto para recomendaciones
     const defaultPriceType = "retail";
-    const defaultVariantId = null;
-
-    const existingItem = items.find(
-      (i) => i.product.id === productToAdd.id && i.priceType === defaultPriceType && i.variantId === defaultVariantId,
+    const unitPrice = productToAdd.price_retail;
+    // Usar addItem para manejar la lógica de "crear o incrementar" automáticamente
+    addItem(
+      productToAdd,
+      1, // Cantidad inicial
+      defaultPriceType,
+      unitPrice
     );
-
-    const currentQuantity = existingItem?.quantity || 0;
-
-    updateQuantity(productToAdd.id, defaultPriceType, currentQuantity + 1, defaultVariantId);
   };
 
   // Vista de carrito vacío

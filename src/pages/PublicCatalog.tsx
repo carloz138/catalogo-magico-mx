@@ -14,6 +14,7 @@ import { QuoteForm } from "@/components/public/QuoteForm";
 import { MarketRadarForm } from "@/components/dashboard/MarketRadarForm";
 import { useProductSearch } from "@/hooks/useProductSearch";
 import { useProductFilters } from "@/hooks/useProductFilters";
+import { useDebounce } from "@/hooks/useDebounce";
 import { QuoteCartProvider, useQuoteCart } from "@/contexts/QuoteCartContext";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -115,6 +116,10 @@ function PublicCatalogContent() {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isQuoteFormOpen, setIsQuoteFormOpen] = useState(false);
   const [isRequestFormOpen, setIsRequestFormOpen] = useState(false);
+  const [localSearchTerm, setLocalSearchTerm] = useState("");
+
+  // Debounce para optimizar búsqueda
+  const debouncedQuery = useDebounce(localSearchTerm, 500);
 
   useEffect(() => {
     if (slug) {
@@ -157,17 +162,17 @@ function PublicCatalogContent() {
   if (catalog?.show_description) searchFields.push("description");
   if (catalog?.show_sku) searchFields.push("sku");
 
-  const { query, setQuery, results: searchResults } = useProductSearch(catalog?.products || [], searchFields);
+  const { results: searchResults } = useProductSearch(catalog?.products || [], searchFields, debouncedQuery);
   const { filteredProducts, selectedTags, setSelectedTags, priceRange, setPriceRange, clearFilters } =
     useProductFilters(searchResults);
 
   useEffect(() => {
-    if (!query || query.length < 3 || !catalog) return;
+    if (!debouncedQuery || debouncedQuery.length < 3 || !catalog) return;
     const timer = setTimeout(async () => {
       try {
         await supabase.from("search_logs" as any).insert({
           catalog_id: catalog.id,
-          search_term: query,
+          search_term: debouncedQuery,
           results_count: filteredProducts.length,
         });
       } catch (e) {
@@ -175,7 +180,7 @@ function PublicCatalogContent() {
       }
     }, 2000);
     return () => clearTimeout(timer);
-  }, [query, catalog, filteredProducts.length]); // Agregué filteredProducts.length a dependencias
+  }, [debouncedQuery, catalog, filteredProducts.length]); // Agregué filteredProducts.length a dependencias
 
   const availableTags = Array.from(new Set(catalog?.products.flatMap((p) => p.tags || []).filter(Boolean) || []));
 
@@ -337,15 +342,15 @@ function PublicCatalogContent() {
   const templateCSS = template ? WebTemplateAdapter.generateWebCSS(template, catalog.background_pattern) : "";
 
   const renderProducts = () => {
-    if (filteredProducts.length === 0 && query) {
-      return <ZeroResultsWithRadar query={query} onOpenRadar={() => setIsRequestFormOpen(true)} />;
+    if (filteredProducts.length === 0 && localSearchTerm) {
+      return <ZeroResultsWithRadar query={localSearchTerm} onOpenRadar={() => setIsRequestFormOpen(true)} />;
     }
 
     return (
       <ProductsContent
         catalog={catalog}
-        query={query}
-        setQuery={setQuery}
+        query={localSearchTerm}
+        setQuery={setLocalSearchTerm}
         availableTags={availableTags}
         selectedTags={selectedTags}
         setSelectedTags={setSelectedTags}
