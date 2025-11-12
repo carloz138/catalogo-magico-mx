@@ -8,8 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Upload as UploadIcon, Image, FileText, Package, PackageOpen } from "lucide-react";
 // 👇 IMPORTAR useSearchParams
 import { useNavigate, useSearchParams } from "react-router-dom";
-
-
+import { FileUploader, type UploadedFile } from "@/components/upload/FileUploader";
 
 const Upload = () => {
   const navigate = useNavigate();
