@@ -1,11 +1,14 @@
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Minus, Plus, Trash2, ShoppingCart } from "lucide-react";
+// 👇 1. NUEVOS IMPORTS (Truck para el envío)
+import { Minus, Plus, Trash2, ShoppingCart, Truck } from "lucide-react";
 import { useQuoteCart } from "@/contexts/QuoteCartContext";
 import { type Tables } from "@/integrations/supabase/types";
 import { useProductRecommendations } from "@/hooks/useProductRecommendations";
 import { RecommendationBanner } from "@/components/quotes/RecommendationBanner";
+// 👇 2. IMPORTAR PROGRESS
+import { Progress } from "@/components/ui/progress";
 
 type Product = Tables<"products">;
 
@@ -13,8 +16,8 @@ interface Props {
   isOpen: boolean;
   onClose: () => void;
   onRequestQuote: () => void;
-  // 👇 NUEVO: Necesitamos saber de quién es este catálogo
   catalogOwnerId: string | null;
+  // 👇 3. NUEVA PROP
   freeShippingThreshold: number | null;
 }
 
@@ -22,20 +25,24 @@ export function QuoteCartModal({
   isOpen,
   onClose,
   onRequestQuote,
-  catalogOwnerId, // 👇 Recibimos el ID del dueño
+  catalogOwnerId,
+  freeShippingThreshold, // 👇 Recibimos la regla
 }: Props) {
   const { items, updateQuantity, removeItem, clearCart, totalAmount } = useQuoteCart();
 
-  // Obtener recomendaciones basadas en productos en el carrito
-  const productIdsInCart = items.map((item) => item.product.id);
+  // --- LÓGICA DE ENVÍO GRATIS ---
+  // Calculamos cuánto falta (todo está en centavos)
+  const amountLeft = freeShippingThreshold ? Math.max(0, freeShippingThreshold - totalAmount) : 0;
+  const progressPercent = freeShippingThreshold ? Math.min(100, (totalAmount / freeShippingThreshold) * 100) : 0;
+  const isFreeShipping = freeShippingThreshold && totalAmount >= freeShippingThreshold;
 
-  // 👇 ACTUALIZADO: Pasamos el catalogOwnerId al hook
+  // --- LÓGICA DE RECOMENDACIONES ---
+  const productIdsInCart = items.map((item) => item.product.id);
   const { recommendations, loading: loadingRecommendations } = useProductRecommendations(
     productIdsInCart,
     catalogOwnerId,
   );
 
-  // Handler para agregar productos desde el banner de recomendaciones
   const handleAddToCartFromBanner = (productToAdd: Product) => {
     const defaultPriceType = "retail";
     const defaultVariantId = null;
@@ -68,7 +75,6 @@ export function QuoteCartModal({
     );
   }
 
-  // Vista de carrito con productos
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
       <SheetContent className="w-full sm:max-w-lg flex flex-col">
@@ -136,6 +142,30 @@ export function QuoteCartModal({
         </ScrollArea>
 
         <SheetFooter className="flex-col gap-3 mt-auto border-t pt-4">
+          {/* --- 👇 4. BARRA DE PROGRESO DE ENVÍO --- */}
+          {freeShippingThreshold !== null && (
+            <div className="w-full pb-2">
+              {isFreeShipping ? (
+                <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3 flex items-center gap-3 text-emerald-700 animate-in fade-in zoom-in duration-300">
+                  <div className="bg-emerald-100 p-2 rounded-full">
+                    <Truck className="w-5 h-5" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-bold text-sm">¡Felicidades! Tienes envío gratis 🎉</p>
+                    <Progress value={100} className="h-2 mt-2 bg-emerald-200" />
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-blue-50 border border-blue-100 rounded-lg p-3">
+                  <p className="text-sm text-blue-800 mb-2 text-center">
+                    Te faltan <strong>${(amountLeft / 100).toFixed(2)}</strong> para envío gratis
+                  </p>
+                  <Progress value={progressPercent} className="h-2 bg-blue-200" />
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Banner de recomendaciones */}
           <div className="w-full pb-4">
             <RecommendationBanner
