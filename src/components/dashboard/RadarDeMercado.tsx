@@ -9,18 +9,18 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { 
-  Radar, 
-  Calendar, 
-  TrendingUp, 
-  Sparkles, 
-  AlertCircle, 
-  X, 
-  Filter, 
-  MoreHorizontal, 
-  Mail, 
-  PlusCircle, 
-  CheckCircle 
+import {
+  Radar,
+  Calendar,
+  TrendingUp,
+  Sparkles,
+  AlertCircle,
+  X,
+  Filter,
+  MoreHorizontal,
+  Mail,
+  PlusCircle,
+  CheckCircle,
 } from "lucide-react";
 import { format, subDays } from "date-fns";
 import { es } from "date-fns/locale";
@@ -137,7 +137,7 @@ export function RadarDeMercado() {
         .or(
           `producto_nombre.ilike.%${term}%,` +
             `producto_marca.ilike.%${term}%,` +
-            `producto_descripcion.ilike.%${term}%`
+            `producto_descripcion.ilike.%${term}%`,
         )
         .order("creado_el", { ascending: false });
 
@@ -165,21 +165,21 @@ export function RadarDeMercado() {
   const handleMarkAsHandled = async (id: string) => {
     try {
       const { error } = await supabase
-        .from('solicitudes_mercado')
-        .update({ estatus_fabricante: 'atendido' } as any)
-        .eq('id', id);
+        .from("solicitudes_mercado")
+        .update({ estatus_fabricante: "atendido" } as any)
+        .eq("id", id);
 
       if (error) throw error;
-      
+
       toast.success("Solicitud marcada como atendida");
-      if(selectedTerm) fetchSolicitudesByTerm(selectedTerm);
+      if (selectedTerm) fetchSolicitudesByTerm(selectedTerm);
     } catch (error) {
       toast.error("Error al actualizar");
     }
   };
 
   const handleCreateProduct = (productName: string) => {
-    navigate(`/products?new=true&name=${encodeURIComponent(productName)}`);
+    navigate(`/upload?name=${encodeURIComponent(productName)}`);
   };
 
   // Configuración de la nube de palabras
@@ -352,7 +352,7 @@ export function RadarDeMercado() {
                   </TableHeader>
                   <TableBody>
                     {solicitudes.map((sol) => (
-                      <TableRow key={sol.id} className={sol.estatus_fabricante === 'atendido' ? 'bg-gray-50' : ''}>
+                      <TableRow key={sol.id} className={sol.estatus_fabricante === "atendido" ? "bg-gray-50" : ""}>
                         <TableCell>
                           <div className="font-medium">{sol.producto_nombre}</div>
                           {sol.producto_marca && (
@@ -380,14 +380,16 @@ export function RadarDeMercado() {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                              <DropdownMenuItem onClick={() => window.location.href = `mailto:${sol.cliente_final_email}`}>
+                              <DropdownMenuItem
+                                onClick={() => (window.location.href = `mailto:${sol.cliente_final_email}`)}
+                              >
                                 <Mail className="mr-2 h-4 w-4" /> Contactar Cliente
                               </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => handleCreateProduct(sol.producto_nombre)}>
                                 <PlusCircle className="mr-2 h-4 w-4" /> Crear Producto
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
-                              {sol.estatus_fabricante !== 'atendido' && (
+                              {sol.estatus_fabricante !== "atendido" && (
                                 <DropdownMenuItem onClick={() => handleMarkAsHandled(sol.id)}>
                                   <CheckCircle className="mr-2 h-4 w-4" /> Marcar Atendido
                                 </DropdownMenuItem>
