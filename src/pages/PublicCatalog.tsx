@@ -24,7 +24,7 @@ import { calculateAdjustedPrice } from "@/lib/utils/price-calculator";
 import { toast } from "sonner";
 import { EXPANDED_WEB_TEMPLATES } from "@/lib/web-catalog/expanded-templates-catalog";
 import { WebTemplateAdapter } from "@/lib/templates/web-css-adapter";
-import { supabase } from "@/integrations/supabase/client"; // Importante para guardar logs
+import { supabase } from "@/integrations/supabase/client";
 
 // --- COMPONENTE DE CERO RESULTADOS CON RADAR ---
 const ZeroResultsWithRadar = ({ query, onOpenRadar }: { query: string; onOpenRadar: () => void }) => (
@@ -62,7 +62,6 @@ const MobileStickyBar = ({
   onOpenCart: () => void;
   onOpenRadar: () => void;
 }) => {
-  // Si no hay items, mostramos el botón de Radar/Búsqueda
   if (itemCount === 0) {
     return (
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-200 md:hidden z-50">
@@ -75,7 +74,6 @@ const MobileStickyBar = ({
 
   return (
     <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] p-3 md:hidden z-50 safe-area-bottom flex gap-3 items-center">
-      {/* Botón Radar (Pequeño) */}
       <Button
         variant="secondary"
         size="icon"
@@ -85,7 +83,6 @@ const MobileStickyBar = ({
         <Search className="h-5 w-5 text-gray-600" />
       </Button>
 
-      {/* Botón Carrito (Grande) */}
       <Button
         onClick={onOpenCart}
         className="flex-1 h-12 flex justify-between items-center px-4 bg-primary text-primary-foreground hover:bg-primary/90 shadow-md"
@@ -164,14 +161,11 @@ function PublicCatalogContent() {
   const { filteredProducts, selectedTags, setSelectedTags, priceRange, setPriceRange, clearFilters } =
     useProductFilters(searchResults);
 
-  // --- LOGGING DE BÚSQUEDA (Debounced) ---
   useEffect(() => {
     if (!query || query.length < 3 || !catalog) return;
-
     const timer = setTimeout(async () => {
-      console.log("📝 Registrando búsqueda:", query);
       try {
-        await supabase.from("search_logs").insert({
+        await supabase.from("search_logs" as any).insert({
           catalog_id: catalog.id,
           search_term: query,
           results_count: filteredProducts.length,
@@ -179,11 +173,9 @@ function PublicCatalogContent() {
       } catch (e) {
         console.error("Error logueando búsqueda", e);
       }
-    }, 2000); // Esperar 2 segundos después de que deje de escribir
-
+    }, 2000);
     return () => clearTimeout(timer);
-  }, [query, catalog]); // Se ejecuta cuando cambia el query
-  // ----------------------------------------
+  }, [query, catalog, filteredProducts.length]); // Agregué filteredProducts.length a dependencias
 
   const availableTags = Array.from(new Set(catalog?.products.flatMap((p) => p.tags || []).filter(Boolean) || []));
 
@@ -324,13 +316,26 @@ function PublicCatalogContent() {
     );
   }
 
+  // --- 👇 LÓGICA DE CÁLCULO DE ENVÍO (NUEVO) ---
+  let currentShippingThreshold: number | null = null;
+
+  // Usamos 'as any' para acceder a las nuevas columnas sin errores de TS
+  // hasta que se regeneren los tipos
+  const rawCatalog = catalog as any;
+
+  // Si el campo enable_free_shipping está activo en el objeto catálogo
+  // (Este objeto ya viene filtrado por L1 o L2 desde el backend)
+  if (rawCatalog.enable_free_shipping) {
+    currentShippingThreshold = rawCatalog.free_shipping_min_amount;
+  }
+  // ---------------------------------------------
+
   const template = catalog.web_template_id
     ? EXPANDED_WEB_TEMPLATES.find((t) => t.id === catalog.web_template_id)
     : null;
 
   const templateCSS = template ? WebTemplateAdapter.generateWebCSS(template, catalog.background_pattern) : "";
 
-  // Renderizamos la lista de productos o el CERO RESULTADOS
   const renderProducts = () => {
     if (filteredProducts.length === 0 && query) {
       return <ZeroResultsWithRadar query={query} onOpenRadar={() => setIsRequestFormOpen(true)} />;
@@ -374,14 +379,13 @@ function PublicCatalogContent() {
       <style>{templateCSS}</style>
 
       <div className="catalog-public-container min-h-screen pb-24 md:pb-0">
-        {" "}
-        {/* Padding bottom para evitar que la barra tape contenido */}
         <CatalogHeader
           businessName={catalog.business_info?.business_name || "Catálogo"}
           businessLogo={catalog.business_info?.logo_url}
           catalogName={catalog.name}
           catalogDescription={catalog.description}
         />
+
         <div className="container mx-auto px-4 py-8">
           {/* Desktop Actions */}
           <div className="hidden md:flex justify-end gap-3 mb-6">
@@ -437,7 +441,7 @@ function PublicCatalogContent() {
             renderProducts()
           )}
         </div>
-        {/* Dialog Radar */}
+
         <Dialog open={isRequestFormOpen} onOpenChange={setIsRequestFormOpen}>
           <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
@@ -450,7 +454,7 @@ function PublicCatalogContent() {
             />
           </DialogContent>
         </Dialog>
-        {/* Barra Móvil Fija */}
+
         {catalog.enable_quotation && (
           <MobileStickyBar
             itemCount={items.length}
@@ -459,7 +463,7 @@ function PublicCatalogContent() {
             onOpenRadar={() => setIsRequestFormOpen(true)}
           />
         )}
-        {/* Modales */}
+
         {catalog.enable_quotation && (
           <>
             <AddToQuoteModal
@@ -483,6 +487,8 @@ function PublicCatalogContent() {
               onClose={() => setIsCartOpen(false)}
               onRequestQuote={handleRequestQuote}
               catalogOwnerId={catalog?.user_id || null}
+              // 👇 AQUÍ SE PASA LA NUEVA PROP
+              freeShippingThreshold={currentShippingThreshold}
             />
 
             <QuoteForm
