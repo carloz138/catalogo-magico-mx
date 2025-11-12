@@ -35,8 +35,8 @@ const Index = () => {
   const { userRole } = useUserRole();
   const [user, setUser] = useState<any>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  
-  // ROI Calculator States
+
+  // ROI Calculator Statess
   const [roiLeads, setRoiLeads] = useState<number | "">(100);
   const [roiTicket, setRoiTicket] = useState<number | "">(5000);
   const [roiSalary, setRoiSalary] = useState<number | "">(15000);
@@ -61,7 +61,7 @@ const Index = () => {
   const handleMenuButton = () => {
     if (user) {
       // Si es reseller (L2 o BOTH), ir al dashboard de reseller
-      if (userRole === 'L2' || userRole === 'BOTH') {
+      if (userRole === "L2" || userRole === "BOTH") {
         navigate("/reseller-dashboard");
       } else {
         // Si es usuario normal (L1), ir a products
@@ -85,50 +85,50 @@ const Index = () => {
     velocidad: (() => {
       const leadsCalientes = leads * 0.3;
       const leadsFrios = leads * 0.7;
-      const conPlataforma = (leadsCalientes * 0.35) + (leadsFrios * 0.15);
+      const conPlataforma = leadsCalientes * 0.35 + leadsFrios * 0.15;
       const sinPlataforma = leads * 0.15;
       return Math.round((conPlataforma - sinPlataforma) * ticket);
     })(),
-    
+
     // 2. Disponibilidad 24/7
     disponibilidad: (() => {
       const leadsFueraHorario = leads * (offHours / 100);
-      return Math.round(leadsFueraHorario * 0.20 * ticket);
+      return Math.round(leadsFueraHorario * 0.2 * ticket);
     })(),
-    
+
     // 3. Capacidad de Vendedor
-    capacidad: Math.round(salary * 0.70),
-    
+    capacidad: Math.round(salary * 0.7),
+
     // 4. Reducción de Churn
     churn: (() => {
       const ltv = ticket * 12;
-      const clientesRetenidos = clients * 0.10;
+      const clientesRetenidos = clients * 0.1;
       return Math.round((clientesRetenidos * ltv) / 12);
     })(),
-    
+
     // 5. Upsell Pedido Especial
     upsell: (() => {
-      const ticketEspecial = ticket * 0.60;
+      const ticketEspecial = ticket * 0.6;
       return Math.round(clients * 0.15 * ticketEspecial);
     })(),
-    
+
     // 6. Remarketing
     remarketing: (() => {
       const leadsAbandonados = leads * 0.25;
       return Math.round(leadsAbandonados * 0.15 * ticket);
     })(),
-    
+
     get total() {
       return this.velocidad + this.disponibilidad + this.capacidad + this.churn + this.upsell + this.remarketing;
     },
-    
+
     get neto() {
       return this.total - cost;
     },
-    
+
     get multiplo() {
-      return cost > 0 ? (this.total / cost).toFixed(1) : '0.0';
-    }
+      return cost > 0 ? (this.total / cost).toFixed(1) : "0.0";
+    },
   };
 
   const fadeIn = {
@@ -269,9 +269,7 @@ const Index = () => {
       {/* 3. Comparativa rápida */}
       <motion.section className="py-20 px-4 sm:px-6 lg:px-8 bg-white" {...slideUp}>
         <div className="max-w-6xl mx-auto">
-          <h2 className="text-3xl sm:text-4xl font-bold text-center text-neutral mb-12">
-            Tu competencia vs Tú
-          </h2>
+          <h2 className="text-3xl sm:text-4xl font-bold text-center text-neutral mb-12">Tu competencia vs Tú</h2>
           <div className="grid md:grid-cols-2 gap-8">
             {/* Tu Competencia */}
             <Card className="p-8 border-2 border-red-200 bg-red-50">
@@ -413,9 +411,7 @@ const Index = () => {
       <motion.section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-white to-gray-50" {...fadeIn}>
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-3xl sm:text-4xl font-bold text-neutral mb-4">
-              Calcula tu ROI real con CatifyPro
-            </h2>
+            <h2 className="text-3xl sm:text-4xl font-bold text-neutral mb-4">Calcula tu ROI real con CatifyPro</h2>
             <p className="text-xl text-gray-600">
               Descubre el retorno de inversión desglosado en 6 componentes específicos
             </p>
@@ -484,8 +480,7 @@ const Index = () => {
                 </div>
                 <div className="space-y-2">
                   <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
-                    <Clock className="w-4 h-4 text-primary" />
-                    % leads fuera de horario laboral
+                    <Clock className="w-4 h-4 text-primary" />% leads fuera de horario laboral
                   </label>
                   <Input
                     type="number"
@@ -529,11 +524,9 @@ const Index = () => {
                 <h4 className="text-lg font-bold text-neutral">Velocidad de Respuesta</h4>
               </div>
               <p className="text-4xl font-bold text-green-600 mb-2">
-                ${roiComponents.velocidad.toLocaleString('es-MX')} MXN
+                ${roiComponents.velocidad.toLocaleString("es-MX")} MXN
               </p>
-              <p className="text-sm text-gray-600">
-                Conversión mejorada en leads calientes (35% vs 15%)
-              </p>
+              <p className="text-sm text-gray-600">Conversión mejorada en leads calientes (35% vs 15%)</p>
             </motion.div>
 
             {/* Componente 2: Disponibilidad 24/7 */}
@@ -549,11 +542,9 @@ const Index = () => {
                 <h4 className="text-lg font-bold text-neutral">Disponibilidad 24/7</h4>
               </div>
               <p className="text-4xl font-bold text-blue-600 mb-2">
-                ${roiComponents.disponibilidad.toLocaleString('es-MX')} MXN
+                ${roiComponents.disponibilidad.toLocaleString("es-MX")} MXN
               </p>
-              <p className="text-sm text-gray-600">
-                Captura leads fuera de horario (20% conversión)
-              </p>
+              <p className="text-sm text-gray-600">Captura leads fuera de horario (20% conversión)</p>
             </motion.div>
 
             {/* Componente 3: Ahorro en Capacidad */}
@@ -569,11 +560,9 @@ const Index = () => {
                 <h4 className="text-lg font-bold text-neutral">Capacidad de Vendedor</h4>
               </div>
               <p className="text-4xl font-bold text-purple-600 mb-2">
-                ${roiComponents.capacidad.toLocaleString('es-MX')} MXN
+                ${roiComponents.capacidad.toLocaleString("es-MX")} MXN
               </p>
-              <p className="text-sm text-gray-600">
-                Libera 70% del tiempo del vendedor
-              </p>
+              <p className="text-sm text-gray-600">Libera 70% del tiempo del vendedor</p>
             </motion.div>
 
             {/* Componente 4: Reducción de Churn */}
@@ -589,11 +578,9 @@ const Index = () => {
                 <h4 className="text-lg font-bold text-neutral">Reducción de Churn</h4>
               </div>
               <p className="text-4xl font-bold text-orange-600 mb-2">
-                ${roiComponents.churn.toLocaleString('es-MX')} MXN
+                ${roiComponents.churn.toLocaleString("es-MX")} MXN
               </p>
-              <p className="text-sm text-gray-600">
-                Portal de cliente mejora retención 10% anual
-              </p>
+              <p className="text-sm text-gray-600">Portal de cliente mejora retención 10% anual</p>
             </motion.div>
 
             {/* Componente 5: Upsell Pedido Especial */}
@@ -609,11 +596,9 @@ const Index = () => {
                 <h4 className="text-lg font-bold text-neutral">Upsell Pedido Especial</h4>
               </div>
               <p className="text-4xl font-bold text-teal-600 mb-2">
-                ${roiComponents.upsell.toLocaleString('es-MX')} MXN
+                ${roiComponents.upsell.toLocaleString("es-MX")} MXN
               </p>
-              <p className="text-sm text-gray-600">
-                15% de clientes piden productos no en stock
-              </p>
+              <p className="text-sm text-gray-600">15% de clientes piden productos no en stock</p>
             </motion.div>
 
             {/* Componente 6: Remarketing */}
@@ -629,11 +614,9 @@ const Index = () => {
                 <h4 className="text-lg font-bold text-neutral">Remarketing</h4>
               </div>
               <p className="text-4xl font-bold text-indigo-600 mb-2">
-                ${roiComponents.remarketing.toLocaleString('es-MX')} MXN
+                ${roiComponents.remarketing.toLocaleString("es-MX")} MXN
               </p>
-              <p className="text-sm text-gray-600">
-                Recupera 15% de cotizaciones abandonadas
-              </p>
+              <p className="text-sm text-gray-600">Recupera 15% de cotizaciones abandonadas</p>
             </motion.div>
           </div>
 
@@ -649,35 +632,31 @@ const Index = () => {
               <div className="text-center">
                 <p className="text-xs md:text-sm text-gray-400 mb-2">ROI Total Mensual</p>
                 <p className="text-2xl md:text-3xl font-bold text-green-400">
-                  ${roiComponents.total.toLocaleString('es-MX')}
+                  ${roiComponents.total.toLocaleString("es-MX")}
                 </p>
                 <p className="text-xs text-gray-400">MXN</p>
               </div>
               <div className="text-center">
                 <p className="text-xs md:text-sm text-gray-400 mb-2">Costo CatifyPro</p>
-                <p className="text-2xl md:text-3xl font-bold text-orange-400">
-                  ${roiCost.toLocaleString('es-MX')}
-                </p>
+                <p className="text-2xl md:text-3xl font-bold text-orange-400">${roiCost.toLocaleString("es-MX")}</p>
                 <p className="text-xs text-gray-400">MXN</p>
               </div>
               <div className="text-center">
                 <p className="text-xs md:text-sm text-gray-400 mb-2">ROI Neto Mensual</p>
                 <p className="text-2xl md:text-3xl font-bold text-emerald-400">
-                  ${roiComponents.neto.toLocaleString('es-MX')}
+                  ${roiComponents.neto.toLocaleString("es-MX")}
                 </p>
                 <p className="text-xs text-gray-400">MXN</p>
               </div>
               <div className="text-center">
                 <p className="text-xs md:text-sm text-gray-400 mb-2">Múltiplo de ROI</p>
-                <p className="text-2xl md:text-3xl font-bold text-blue-400">
-                  {roiComponents.multiplo}x
-                </p>
+                <p className="text-2xl md:text-3xl font-bold text-blue-400">{roiComponents.multiplo}x</p>
               </div>
             </div>
             <div className="mt-6 md:mt-8 text-center border-t border-gray-700 pt-6">
               <p className="text-xs md:text-sm text-gray-400 mb-2">ROI Anual Proyectado</p>
               <p className="text-3xl md:text-5xl font-bold text-white">
-                ${(roiComponents.neto * 12).toLocaleString('es-MX')} MXN
+                ${(roiComponents.neto * 12).toLocaleString("es-MX")} MXN
               </p>
             </div>
           </motion.div>
@@ -738,14 +717,17 @@ const Index = () => {
       </motion.section>
 
       {/* 8. Tu Arma Secreta */}
-      <motion.section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-primary/10 to-secondary/10" {...fadeIn}>
+      <motion.section
+        className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-primary/10 to-secondary/10"
+        {...fadeIn}
+      >
         <div className="max-w-6xl mx-auto text-center">
           <h2 className="text-3xl sm:text-4xl font-bold text-neutral mb-6">
             Convierte a cada cliente en tu propio vendedor
           </h2>
           <p className="text-xl text-gray-700 mb-12 max-w-3xl mx-auto">
-            Con un clic, tu cliente replica tu catálogo con tus productos. Ellos venden a su red, tú ganas.
-            Crecimiento viral sin esfuerzo.
+            Con un clic, tu cliente replica tu catálogo con tus productos. Ellos venden a su red, tú ganas. Crecimiento
+            viral sin esfuerzo.
           </p>
 
           <div className="grid md:grid-cols-4 gap-6">
@@ -915,9 +897,7 @@ const Index = () => {
       {/* 11. Planes y precios */}
       <motion.section className="py-20 px-4 sm:px-6 lg:px-8 bg-white" {...slideUp}>
         <div className="max-w-7xl mx-auto">
-          <h2 className="text-3xl sm:text-4xl font-bold text-center text-neutral mb-4">
-            Elige tu plan de crecimiento
-          </h2>
+          <h2 className="text-3xl sm:text-4xl font-bold text-center text-neutral mb-4">Elige tu plan de crecimiento</h2>
           <p className="text-center text-gray-600 mb-12">
             Desde catálogos básicos hasta ecosistemas completos. Todos incluyen cotizador y soporte.
           </p>
@@ -1086,8 +1066,7 @@ const Index = () => {
               </AccordionTrigger>
               <AccordionContent className="text-gray-700">
                 Todos los planes incluyen soporte por email con respuesta en menos de 24 horas. Los planes Profesional
-                incluyen soporte prioritario con respuesta en menos de 4 horas y acceso a videollamadas de
-                capacitación.
+                incluyen soporte prioritario con respuesta en menos de 4 horas y acceso a videollamadas de capacitación.
               </AccordionContent>
             </AccordionItem>
           </Accordion>
