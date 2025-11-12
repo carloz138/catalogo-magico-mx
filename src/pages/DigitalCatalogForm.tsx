@@ -28,7 +28,7 @@ import { PriceAdjustmentInput } from "@/components/catalog/PriceAdjustmentInput"
 import { CatalogFormPreview } from "@/components/catalog/CatalogFormPreview";
 import { WebTemplateSelector } from "@/components/templates/WebTemplateSelector";
 import { BackgroundPatternSelector } from "@/components/catalog/BackgroundPatternSelector";
-import { ArrowLeft, CalendarIcon, Loader2, Lock, AlertCircle, Palette, Check, ChevronRight, Package, DollarSign, Eye, Settings, ExternalLink, AlertTriangle, Layers } from "lucide-react";
+import { ArrowLeft, CalendarIcon, Loader2, Lock, AlertCircle, Palette, Check, ChevronRight, Package, DollarSign, Eye, Settings, ExternalLink, AlertTriangle, Layers, Truck } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -61,6 +61,8 @@ const catalogSchema = z
     enable_quotation: z.boolean().optional(),
     enable_variants: z.boolean().optional(),
     enable_distribution: z.boolean().optional(),
+    enable_free_shipping: z.boolean().optional(),
+    free_shipping_min_amount: z.coerce.number().min(0).optional(),
     tracking_head_scripts: z.string().optional().nullable(),
     tracking_body_scripts: z.string().optional().nullable(),
   })
@@ -121,6 +123,8 @@ export default function DigitalCatalogForm() {
       enable_quotation: false,
       enable_variants: true,
       enable_distribution: false,
+      enable_free_shipping: false,
+      free_shipping_min_amount: 0,
       tracking_head_scripts: "",
       tracking_body_scripts: "",
     },
@@ -252,6 +256,8 @@ export default function DigitalCatalogForm() {
         enable_variants: catalog.enable_variants ?? true,
         enable_distribution: catalog.enable_distribution || false,
         show_stock: catalog.show_stock || false,
+        enable_free_shipping: catalog.enable_free_shipping || false,
+        free_shipping_min_amount: catalog.free_shipping_min_amount ? catalog.free_shipping_min_amount / 100 : 0,
         tracking_head_scripts: catalog.tracking_head_scripts || "",
         tracking_body_scripts: catalog.tracking_body_scripts || "",
       });
@@ -315,6 +321,8 @@ export default function DigitalCatalogForm() {
         enable_quotation: getPlanFeatures(userPlanTier).hasQuotation && data.enable_quotation,
         enable_variants: data.enable_variants ?? true,
         enable_distribution: data.enable_distribution ?? false,
+        enable_free_shipping: data.enable_free_shipping ?? false,
+        free_shipping_min_amount: data.enable_free_shipping && data.free_shipping_min_amount ? Math.round(data.free_shipping_min_amount * 100) : 0,
         tracking_head_scripts: data.tracking_head_scripts || null,
         tracking_body_scripts: data.tracking_body_scripts || null,
       };
@@ -699,6 +707,76 @@ export default function DigitalCatalogForm() {
                                 onChange={field.onChange}
                                 basePrice={100}
                               />
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      )}
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  {/* Accordion Item 4.5: Envíos */}
+                  <AccordionItem value="shipping" className="border rounded-lg overflow-hidden">
+                    <AccordionTrigger className="px-4 py-4 hover:no-underline hover:bg-muted/50 transition-colors">
+                      <div className="flex items-center gap-3 w-full">
+                        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-muted flex-shrink-0">
+                          <Truck className="h-5 w-5" />
+                        </div>
+                        <div className="flex-1 text-left">
+                          <div className="font-semibold text-base">Envíos</div>
+                          <div className="text-sm text-muted-foreground">Configuración de envío gratis</div>
+                        </div>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="px-4 pb-4 space-y-4">
+                      <FormField
+                        control={form.control}
+                        name="enable_free_shipping"
+                        render={({ field }) => (
+                          <div
+                            className="flex items-center justify-between p-4 rounded-lg border cursor-pointer active:scale-[0.98] transition-all"
+                            onClick={() => field.onChange(!field.value)}
+                          >
+                            <div className="flex-1">
+                              <div className="font-medium text-base">Habilitar Envío Gratis</div>
+                              <div className="text-sm text-muted-foreground">Ofrece envío gratis sobre un monto mínimo</div>
+                            </div>
+                            <Switch
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                              className="pointer-events-none"
+                            />
+                          </div>
+                        )}
+                      />
+
+                      {form.watch("enable_free_shipping") && (
+                        <FormField
+                          control={form.control}
+                          name="free_shipping_min_amount"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel htmlFor="free-shipping-min" className="text-base">
+                                Monto mínimo ($MXN)
+                              </FormLabel>
+                              <FormControl>
+                                <div className="relative">
+                                  <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                                  <Input
+                                    id="free-shipping-min"
+                                    type="number"
+                                    min="0"
+                                    step="100"
+                                    placeholder="5000"
+                                    className="h-12 text-base pl-10"
+                                    {...field}
+                                    onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                                  />
+                                </div>
+                              </FormControl>
+                              <FormDescription>
+                                Los clientes obtendrán envío gratis en compras superiores a este monto
+                              </FormDescription>
                               <FormMessage />
                             </FormItem>
                           )}
@@ -1392,6 +1470,69 @@ export default function DigitalCatalogForm() {
                               onChange={field.onChange}
                               basePrice={100}
                             />
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* 4.5. Configuración de Envíos */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Truck className="h-5 w-5" />
+                      Configuración de Envíos
+                    </CardTitle>
+                    <CardDescription>Define las opciones de envío gratis</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <FormField
+                      control={form.control}
+                      name="enable_free_shipping"
+                      render={({ field }) => (
+                        <FormItem className="flex items-center justify-between rounded-lg border p-4">
+                          <div className="space-y-0.5">
+                            <FormLabel className="text-base">Habilitar Envío Gratis</FormLabel>
+                            <FormDescription>
+                              Ofrece envío gratis sobre un monto mínimo
+                            </FormDescription>
+                          </div>
+                          <FormControl>
+                            <Switch
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                            />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+
+                    {form.watch("enable_free_shipping") && (
+                      <FormField
+                        control={form.control}
+                        name="free_shipping_min_amount"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Monto mínimo ($MXN)</FormLabel>
+                            <FormControl>
+                              <div className="relative">
+                                <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                <Input
+                                  type="number"
+                                  min="0"
+                                  step="100"
+                                  placeholder="5000"
+                                  className="pl-9"
+                                  {...field}
+                                  onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                                />
+                              </div>
+                            </FormControl>
+                            <FormDescription>
+                              Los clientes obtendrán envío gratis en compras superiores a este monto
+                            </FormDescription>
                             <FormMessage />
                           </FormItem>
                         )}

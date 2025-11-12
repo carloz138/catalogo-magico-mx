@@ -41,6 +41,8 @@ export interface DigitalCatalog {
   enable_quotation: boolean;
   enable_variants: boolean;
   enable_distribution: boolean;
+  enable_free_shipping: boolean;
+  free_shipping_min_amount: number;
 
   // Tracking
   tracking_head_scripts: string | null;
@@ -134,6 +136,8 @@ export interface CreateDigitalCatalogDTO {
   enable_quotation?: boolean;
   enable_variants?: boolean;
   enable_distribution?: boolean;
+  enable_free_shipping?: boolean;
+  free_shipping_min_amount?: number;
   tracking_head_scripts?: string | null;
   tracking_body_scripts?: string | null;
 }
@@ -160,6 +164,8 @@ export interface UpdateDigitalCatalogDTO {
   enable_quotation?: boolean;
   enable_variants?: boolean;
   enable_distribution?: boolean;
+  enable_free_shipping?: boolean;
+  free_shipping_min_amount?: number;
   tracking_head_scripts?: string | null;
   tracking_body_scripts?: string | null;
 }
