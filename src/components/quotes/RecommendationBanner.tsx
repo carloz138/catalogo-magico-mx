@@ -1,6 +1,5 @@
 import React from "react";
 import { Sparkles, Plus } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { type Tables } from "@/integrations/supabase/types";
@@ -20,15 +19,19 @@ interface RecommendationBannerProps {
 
 export const RecommendationBanner = ({ recommendations, onAddToCart, loading }: RecommendationBannerProps) => {
   if (loading) {
+    // Skeleton de carga horizontal
     return (
-      <Card className="border-purple-200 bg-gradient-to-r from-purple-50 to-blue-50">
-        <CardContent className="p-4">
-          <div className="flex items-center gap-2 text-purple-700">
-            <Sparkles className="w-5 h-5 animate-pulse flex-shrink-0" />
-            <span className="text-sm font-medium">Buscando recomendaciones...</span>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="py-4 border-t border-gray-100">
+        <div className="flex items-center gap-2 mb-3 text-purple-600">
+          <Sparkles className="w-4 h-4 animate-pulse" />
+          <span className="text-xs font-medium">Buscando sugerencias...</span>
+        </div>
+        <div className="flex gap-3 overflow-hidden">
+          {[1, 2].map((i) => (
+            <div key={i} className="w-40 h-20 bg-gray-50 rounded-lg animate-pulse flex-shrink-0" />
+          ))}
+        </div>
+      </div>
     );
   }
 
@@ -37,69 +40,54 @@ export const RecommendationBanner = ({ recommendations, onAddToCart, loading }: 
   }
 
   return (
-    <Card className="border-purple-200 bg-gradient-to-r from-purple-50 to-blue-50 overflow-hidden">
-      <CardContent className="p-4">
-        <div className="flex items-center justify-between gap-2 mb-3">
-          <div className="flex items-center gap-2 overflow-hidden">
-            <Sparkles className="w-5 h-5 text-purple-600 flex-shrink-0" />
-            <h3 className="text-sm font-semibold text-purple-900 truncate">Te podría interesar</h3>
-          </div>
-          <Badge variant="secondary" className="bg-purple-100 text-purple-700 flex-shrink-0">
-            IA
-          </Badge>
+    <div className="py-4 border-t border-gray-100 bg-gradient-to-b from-white to-purple-50/30 -mx-6 px-6">
+      {/* Encabezado pequeño y limpio */}
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-1.5">
+          <Sparkles className="w-4 h-4 text-purple-600" />
+          <h3 className="text-sm font-semibold text-purple-900">Te podría interesar</h3>
         </div>
+        <Badge variant="secondary" className="text-[10px] px-1.5 h-5 bg-purple-100 text-purple-700 border-0">
+          IA
+        </Badge>
+      </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {recommendations.map((product) => (
-            <div
-              key={product.id}
-              className="bg-white rounded-lg p-3 border border-purple-100 hover:border-purple-300 transition-all shadow-sm flex gap-3"
-            >
-              {/* Imagen: Tamaño fijo y no se encoge */}
-              <div className="flex-shrink-0">
-                {product.processed_image_url ? (
-                  <img
-                    src={product.processed_image_url}
-                    alt={product.name}
-                    className="w-16 h-16 object-cover rounded bg-gray-50"
-                  />
-                ) : (
-                  <div className="w-16 h-16 bg-gray-100 rounded flex items-center justify-center text-xs text-gray-400">
-                    Sin img
-                  </div>
-                )}
-              </div>
+      {/* Contenedor con Scroll Horizontal */}
+      <div className="flex gap-3 overflow-x-auto pb-2 -mx-6 px-6 scrollbar-hide snap-x">
+        {recommendations.map((product) => (
+          <div
+            key={product.id}
+            className="snap-start flex-shrink-0 w-64 bg-white rounded-lg border border-purple-100 shadow-sm p-2 flex gap-3 items-center"
+          >
+            {/* Imagen Pequeña */}
+            <div className="h-12 w-12 flex-shrink-0 bg-gray-50 rounded overflow-hidden border border-gray-100">
+              <img
+                src={product.processed_image_url || product.image_url || ""}
+                alt={product.name}
+                className="h-full w-full object-cover"
+                onError={(e) => (e.currentTarget.style.display = "none")}
+              />
+            </div>
 
-              {/* Contenido: Se adapta al espacio restante (min-w-0 es CLAVE) */}
-              <div className="flex-1 min-w-0 flex flex-col justify-between">
-                <div>
-                  <h4 className="text-sm font-medium text-gray-900 truncate" title={product.name}>
-                    {product.name}
-                  </h4>
-                  <p className="text-xs text-gray-500 line-clamp-1" title={product.reason}>
-                    {product.reason}
-                  </p>
-                </div>
-
-                <div className="flex items-center justify-between mt-2 gap-2">
-                  <span className="text-sm font-bold text-purple-600 flex-shrink-0">
-                    ${(product.price_retail / 100).toFixed(2)}
-                  </span>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-7 px-2 text-xs flex-shrink-0"
-                    onClick={() => onAddToCart(product)}
-                  >
-                    <Plus className="w-3 h-3 mr-1" />
-                    Agregar
-                  </Button>
-                </div>
+            {/* Info Compacta */}
+            <div className="flex-1 min-w-0">
+              <h4 className="text-xs font-medium text-gray-900 truncate mb-0.5">{product.name}</h4>
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-purple-700">${(product.price_retail / 100).toFixed(2)}</span>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-6 px-2 text-[10px] bg-purple-50 text-purple-700 hover:bg-purple-100 hover:text-purple-800"
+                  onClick={() => onAddToCart(product)}
+                >
+                  <Plus className="w-3 h-3 mr-1" />
+                  Agregar
+                </Button>
               </div>
             </div>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 };
