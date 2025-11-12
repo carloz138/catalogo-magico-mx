@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import AppLayout from "@/components/layout/AppLayout";
 import ProductsTableEditor from "@/components/products/ProductsTableEditor"; // Asegúrate que esta ruta sea correcta
 import { Button } from "@/components/ui/button";
 import { Plus, Settings, BarChart3, Package, Edit, Eye } from "lucide-react";
@@ -162,7 +161,6 @@ const ProductsManagement: React.FC = () => {
   );
 
   return (
-    <AppLayout title="Gestión de Productos" subtitle="Administra tu inventario" actions={actions}>
       {/* VISTA DESKTOP: EDITOR AVANZADO */}
       <div className="hidden lg:block bg-white rounded-xl border shadow-sm overflow-hidden">
         <ProductsTableEditor
@@ -201,7 +199,6 @@ const ProductsManagement: React.FC = () => {
         onConfirm={confirmDeleteProducts}
         variant="destructive"
       />
-    </AppLayout>
   );
 };
 
