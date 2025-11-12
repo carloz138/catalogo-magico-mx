@@ -10,7 +10,7 @@ import { toast } from "@/components/ui/use-toast";
 import { useUploadTracking } from "@/hooks/useUploadTracking";
 
 // 🎯 INTERFACE ACTUALIZADO CON URLs OPTIMIZADAS
-interface UploadedFile {
+export interface UploadedFile {
   id: string;
   file: File;
   preview: string;
