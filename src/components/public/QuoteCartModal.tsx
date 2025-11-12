@@ -15,6 +15,7 @@ interface Props {
   onRequestQuote: () => void;
   // 👇 NUEVO: Necesitamos saber de quién es este catálogo
   catalogOwnerId: string | null;
+  freeShippingThreshold: number | null;
 }
 
 export function QuoteCartModal({
