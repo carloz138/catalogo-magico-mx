@@ -113,12 +113,18 @@ export default function BulkUpload() {
     }
 
     // Validar límites del plan
-    if (limits && mappedProducts.length > (limits.maxUploadsPerBatch || 500)) {
-        toast({ 
-            title: "Límite excedido", 
-            description: `Tu plan permite subir ${limits.maxUploadsPerBatch} productos por lote.`,
-            variant: "destructive" 
-        });
+    // 1. Calculamos el límite usando 'as any' para evitar el error rojo
+        const limitMax = (limits as any)?.maxUploads || (limits as any)?.maxUploadsPerBatch || 50;
+    
+        // 2. Validamos usando esa variable nueva
+        if (limits && mappedProducts.length > limitMax) {
+            toast({ 
+                title: "Límite excedido", 
+                description: `Tu plan permite subir ${limitMax} productos por lote.`,
+                variant: "destructive" 
+            });
+            // Opcional: return; si quieres bloquear la subida
+        }
         // Podríamos recortar el array aquí si quisiéramos ser amables
     }
 
