@@ -11,7 +11,7 @@ import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
 
 // Components & Layouts
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
-import DashboardLayout from "@/components/layouts/DashboardLayout"; // 👈 El nuevo layout
+import DashboardLayout from "@/components/layout/DashboardLayout"; // 👈 El nuevo layout
 
 // --- Pages ---
 // Public Pages
