@@ -13,7 +13,7 @@ export default function MarketRadar() {
 
   if (!hasAccess) {
     return (
-      <div className="container mx-auto px-4 py-8">
+      <div className="p-4 md:p-8">
         <Alert>
           <Lock className="h-4 w-4" />
           <AlertDescription>
@@ -28,7 +28,7 @@ export default function MarketRadar() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="p-4 md:p-8">
       <RadarDeMercado />
     </div>
   );

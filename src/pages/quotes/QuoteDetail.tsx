@@ -170,7 +170,7 @@ export default function QuoteDetailPage() {
   const total = quote.items.reduce((sum, item) => sum + item.subtotal, 0);
 
   return (
-    <div className="container mx-auto py-8 px-4 max-w-5xl">
+    <div className="p-4 md:p-8 max-w-5xl mx-auto">
       <div className="mb-6">
         <Button variant="ghost" onClick={() => navigate("/dashboard")} className="mb-4">
           <ArrowLeft className="mr-2 h-4 w-4" />

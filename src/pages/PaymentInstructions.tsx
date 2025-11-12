@@ -154,7 +154,7 @@ const PaymentInstructions = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
           <p>Cargando información del pago...</p>
@@ -165,7 +165,7 @@ const PaymentInstructions = () => {
 
   if (!transaction) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
           <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
           <h2 className="text-xl font-semibold mb-2">Pago no encontrado</h2>
@@ -181,16 +181,13 @@ const PaymentInstructions = () => {
   const isExpired = new Date(transaction.expires_at) < new Date();
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b">
-        <div className="max-w-4xl mx-auto px-4 py-6">
-          <h1 className="text-2xl font-bold text-gray-900">Instrucciones de Pago SPEI</h1>
-          <p className="text-gray-600 mt-1">Realiza tu transferencia bancaria</p>
-        </div>
-      </header>
+    <div className="p-4 md:p-8">
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-gray-900">Instrucciones de Pago SPEI</h1>
+        <p className="text-gray-600 mt-1">Realiza tu transferencia bancaria</p>
+      </div>
 
-      <main className="max-w-4xl mx-auto px-4 py-8">
+      <main className="max-w-4xl mx-auto">
         <div className="grid md:grid-cols-2 gap-8">
           {/* Payment Instructions */}
           <div className="space-y-6">

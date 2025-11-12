@@ -382,7 +382,7 @@ export default function DigitalCatalogForm() {
   const webTemplateId = form.watch('web_template_id');
 
   return (
-    <div className="container mx-auto py-4 md:py-8 px-4">
+    <div className="p-4 md:p-8">
       {/* Header Responsive */}
       <div className="mb-4 md:mb-6">
         <Button 

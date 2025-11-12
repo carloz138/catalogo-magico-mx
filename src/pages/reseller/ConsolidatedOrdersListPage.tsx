@@ -52,7 +52,7 @@ export default function ConsolidatedOrdersListPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-4 md:p-8">
+      <div className="p-4 md:p-8">
         <div className="max-w-7xl mx-auto space-y-6">
           <Skeleton className="h-20 w-full" />
           <Skeleton className="h-12 w-full" />
@@ -63,7 +63,7 @@ export default function ConsolidatedOrdersListPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-4 md:p-8">
+    <div className="p-4 md:p-8">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between flex-wrap gap-4">

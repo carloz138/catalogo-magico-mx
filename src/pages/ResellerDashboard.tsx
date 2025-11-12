@@ -78,7 +78,7 @@ export default function ResellerDashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-4 md:p-8">
+      <div className="p-4 md:p-8">
         <div className="max-w-6xl mx-auto space-y-6">
           <Skeleton className="h-20 w-full" />
           <div className="grid md:grid-cols-2 gap-6">
@@ -92,7 +92,7 @@ export default function ResellerDashboard() {
 
   if (!data) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
+      <div className="flex items-center justify-center min-h-[60vh] p-4">
         <Card className="max-w-md">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -112,7 +112,7 @@ export default function ResellerDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-4 md:p-8">
+    <div className="p-4 md:p-8">
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Header con Banner de Upgrade */}
         <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg p-6 text-white shadow-lg">
