@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { FileUploader } from "@/components/upload/FileUploader";
 import { ProductFormWrapper } from "@/components/upload/ProductFormWrapper";
 import { ImageAnalysisComponent } from "@/components/upload/ImageAnalysisComponent";
 import { FinalStepComponent } from "@/components/upload/FinalStepComponent";
