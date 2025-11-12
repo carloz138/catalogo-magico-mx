@@ -2579,6 +2579,7 @@ export type Database = {
         Args: { product_description?: string; product_name: string };
         Returns: string;
       };
+      fn_get_dashboard_kpis: { Args: { p_user_id: string }; Returns: Json };
       fn_get_demand_opportunities: {
         Args: { p_catalog_id: string; p_similarity_threshold?: number };
         Returns: {
@@ -2622,6 +2623,13 @@ export type Database = {
           count: number;
           last_search: string;
           term: string;
+        }[];
+      };
+      fn_get_sales_chart_data: {
+        Args: { p_user_id: string };
+        Returns: {
+          amount: number;
+          date_label: string;
         }[];
       };
       fn_get_similar_products: {
