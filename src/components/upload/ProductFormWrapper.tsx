@@ -26,7 +26,7 @@ export const ProductFormWrapper = ({ files, onComplete }: ProductFormWrapperProp
       custom_description: "",
       original_image_url: file.url || file.preview,
       smart_analysis: file.analysis,
-      tags: (file as any).productData?.tags || [],
+      tags: (file as any).productData?.tags || []
     })),
   );
 
@@ -52,16 +52,16 @@ export const ProductFormWrapper = ({ files, onComplete }: ProductFormWrapperProp
           imageUrl={files[index].url || files[index].preview}
           onUpdate={(updatedProduct) => handleProductUpdate(index, updatedProduct)}
           // 👇 Aquí habilitamos que se vean AMBOS precios
-          priceDisplayMode="both"
+          priceDisplayMode="both" 
         />
       ))}
 
       <Card>
         <CardContent className="p-6 text-center">
-          <Button
-            onClick={handleSubmit}
-            disabled={!isValid}
-            size="lg"
+          <Button 
+            onClick={handleSubmit} 
+            disabled={!isValid} 
+            size="lg" 
             className="w-full md:w-auto bg-blue-600 hover:bg-blue-700"
           >
             Guardar Productos
