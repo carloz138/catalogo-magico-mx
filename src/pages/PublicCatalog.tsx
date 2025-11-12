@@ -1,13 +1,14 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { Helmet, HelmetProvider } from "react-helmet-async";
-import { Calendar, Search, Info, ShoppingCart, ArrowRight } from "lucide-react"; // Añadí ShoppingCart y ArrowRight
+import { Search, Info, ShoppingCart, ArrowRight, Radar } from "lucide-react";
 import { DigitalCatalogService } from "@/services/digital-catalog.service";
 import { PublicCatalogView } from "@/types/digital-catalog";
 import CatalogHeader from "@/components/public/CatalogHeader";
 import { ProductsContent } from "@/components/public/ProductsContent";
 import PasswordModal from "@/components/public/PasswordModal";
 import { AddToQuoteModal } from "@/components/public/AddToQuoteModal";
+import { QuoteCartBadge } from "@/components/public/QuoteCartBadge";
 import { QuoteCartModal } from "@/components/public/QuoteCartModal";
 import { QuoteForm } from "@/components/public/QuoteForm";
 import { MarketRadarForm } from "@/components/dashboard/MarketRadarForm";
@@ -23,8 +24,33 @@ import { calculateAdjustedPrice } from "@/lib/utils/price-calculator";
 import { toast } from "sonner";
 import { EXPANDED_WEB_TEMPLATES } from "@/lib/web-catalog/expanded-templates-catalog";
 import { WebTemplateAdapter } from "@/lib/templates/web-css-adapter";
+import { supabase } from "@/integrations/supabase/client"; // Importante para guardar logs
 
-// Componente interno para la barra inferior móvil (para mantener el código limpio)
+// --- COMPONENTE DE CERO RESULTADOS CON RADAR ---
+const ZeroResultsWithRadar = ({ query, onOpenRadar }: { query: string; onOpenRadar: () => void }) => (
+  <div className="text-center py-16 px-4">
+    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 mb-4">
+      <Search className="w-8 h-8 text-gray-400" />
+    </div>
+    <h3 className="text-lg font-semibold text-gray-900 mb-2">No encontramos "{query}"</h3>
+    <p className="text-gray-500 max-w-md mx-auto mb-8">
+      No tenemos este producto en el catálogo actualmente, pero podemos conseguirlo para ti.
+    </p>
+
+    <div className="bg-gradient-to-r from-purple-50 to-blue-50 p-6 rounded-xl border border-purple-100 max-w-lg mx-auto">
+      <h4 className="font-semibold text-purple-900 mb-2 flex items-center justify-center gap-2">
+        <Radar className="w-5 h-5" />
+        Radar de Mercado
+      </h4>
+      <p className="text-sm text-purple-700 mb-4">Regístralo en nuestro Radar y te notificaremos cuando lo tengamos.</p>
+      <Button onClick={onOpenRadar} className="bg-purple-600 hover:bg-purple-700 text-white w-full sm:w-auto">
+        Solicitar "{query}"
+      </Button>
+    </div>
+  </div>
+);
+
+// --- BARRA MÓVIL OPTIMIZADA ---
 const MobileStickyBar = ({
   itemCount,
   total,
@@ -36,47 +62,45 @@ const MobileStickyBar = ({
   onOpenCart: () => void;
   onOpenRadar: () => void;
 }) => {
+  // Si no hay items, mostramos el botón de Radar/Búsqueda
   if (itemCount === 0) {
-    // Si no hay items, mostramos solo el radar de forma sutil o nada
-    // Opción: Mostrar solo radar si se desea, pero a veces es mejor dejar la pantalla limpia
     return (
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-200 md:hidden z-50 flex justify-center">
-        <Button variant="outline" onClick={onOpenRadar} className="w-full shadow-sm">
-          <Search className="mr-2 h-4 w-4" /> ¿No encuentras lo que buscas?
+      <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-200 md:hidden z-50">
+        <Button variant="outline" onClick={onOpenRadar} className="w-full shadow-sm h-12 text-base">
+          <Search className="mr-2 h-4 w-4" /> ¿Buscas algo especial?
         </Button>
       </div>
     );
   }
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] p-4 md:hidden z-50 safe-area-bottom">
-      <div className="flex gap-3 items-center">
-        {/* Botón Radar (Pequeño) */}
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={onOpenRadar}
-          className="h-12 w-12 flex-shrink-0 border-gray-300"
-          title="Buscar producto no listado"
-        >
-          <Search className="h-5 w-5 text-gray-600" />
-        </Button>
+    <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] p-3 md:hidden z-50 safe-area-bottom flex gap-3 items-center">
+      {/* Botón Radar (Pequeño) */}
+      <Button
+        variant="secondary"
+        size="icon"
+        onClick={onOpenRadar}
+        className="h-12 w-12 flex-shrink-0 bg-gray-100 border border-gray-200"
+      >
+        <Search className="h-5 w-5 text-gray-600" />
+      </Button>
 
-        {/* Botón Carrito (Grande / Principal) */}
-        <Button
-          onClick={onOpenCart}
-          className="flex-1 h-12 flex justify-between items-center px-4 bg-primary text-primary-foreground hover:bg-primary/90 shadow-md"
-        >
-          <div className="flex items-center gap-2">
-            <div className="bg-white/20 px-2 py-0.5 rounded text-xs font-bold">{itemCount}</div>
-            <span className="font-medium">Ver Cotización</span>
+      {/* Botón Carrito (Grande) */}
+      <Button
+        onClick={onOpenCart}
+        className="flex-1 h-12 flex justify-between items-center px-4 bg-primary text-primary-foreground hover:bg-primary/90 shadow-md"
+      >
+        <div className="flex items-center gap-2">
+          <div className="bg-black/20 px-2 py-0.5 rounded-full text-xs font-bold min-w-[1.5rem] text-center">
+            {itemCount}
           </div>
-          <div className="flex items-center gap-2 font-bold">
-            ${(total / 100).toLocaleString("es-MX", { minimumFractionDigits: 2 })}
-            <ArrowRight className="h-4 w-4 opacity-80" />
-          </div>
-        </Button>
-      </div>
+          <span className="font-medium">Ver Carrito</span>
+        </div>
+        <div className="flex items-center gap-1 font-bold">
+          ${(total / 100).toLocaleString("es-MX", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+          <ArrowRight className="h-4 w-4 opacity-80 ml-1" />
+        </div>
+      </Button>
     </div>
   );
 };
@@ -139,6 +163,28 @@ function PublicCatalogContent() {
   const { query, setQuery, results: searchResults } = useProductSearch(catalog?.products || [], searchFields);
   const { filteredProducts, selectedTags, setSelectedTags, priceRange, setPriceRange, clearFilters } =
     useProductFilters(searchResults);
+
+  // --- LOGGING DE BÚSQUEDA (Debounced) ---
+  useEffect(() => {
+    if (!query || query.length < 3 || !catalog) return;
+
+    const timer = setTimeout(async () => {
+      console.log("📝 Registrando búsqueda:", query);
+      try {
+        await supabase.from("search_logs").insert({
+          catalog_id: catalog.id,
+          search_term: query,
+          results_count: filteredProducts.length,
+        });
+      } catch (e) {
+        console.error("Error logueando búsqueda", e);
+      }
+    }, 2000); // Esperar 2 segundos después de que deje de escribir
+
+    return () => clearTimeout(timer);
+  }, [query, catalog]); // Se ejecuta cuando cambia el query
+  // ----------------------------------------
+
   const availableTags = Array.from(new Set(catalog?.products.flatMap((p) => p.tags || []).filter(Boolean) || []));
 
   const prices = catalog?.products.map((p) => {
@@ -284,6 +330,34 @@ function PublicCatalogContent() {
 
   const templateCSS = template ? WebTemplateAdapter.generateWebCSS(template, catalog.background_pattern) : "";
 
+  // Renderizamos la lista de productos o el CERO RESULTADOS
+  const renderProducts = () => {
+    if (filteredProducts.length === 0 && query) {
+      return <ZeroResultsWithRadar query={query} onOpenRadar={() => setIsRequestFormOpen(true)} />;
+    }
+
+    return (
+      <ProductsContent
+        catalog={catalog}
+        query={query}
+        setQuery={setQuery}
+        availableTags={availableTags}
+        selectedTags={selectedTags}
+        setSelectedTags={setSelectedTags}
+        priceRange={priceRange}
+        setPriceRange={setPriceRange}
+        clearFilters={clearFilters}
+        filteredProducts={filteredProducts}
+        handleAddToQuote={handleAddToQuote}
+        handleRequestSpecialQuote={handleRequestSpecialQuote}
+        minPrice={minPrice}
+        maxPrice={maxPrice}
+        purchasedProductIds={catalog.purchasedProductIds || []}
+        purchasedVariantIds={catalog.purchasedVariantIds || []}
+      />
+    );
+  };
+
   return (
     <>
       <Helmet>
@@ -301,7 +375,7 @@ function PublicCatalogContent() {
 
       <div className="catalog-public-container min-h-screen pb-24 md:pb-0">
         {" "}
-        {/* Padding bottom extra para móvil */}
+        {/* Padding bottom para evitar que la barra tape contenido */}
         <CatalogHeader
           businessName={catalog.business_info?.business_name || "Catálogo"}
           businessLogo={catalog.business_info?.logo_url}
@@ -309,15 +383,13 @@ function PublicCatalogContent() {
           catalogDescription={catalog.description}
         />
         <div className="container mx-auto px-4 py-8">
-          {/* --- DESKTOP ACTIONS (Visible solo en md+) --- */}
+          {/* Desktop Actions */}
           <div className="hidden md:flex justify-end gap-3 mb-6">
-            {/* Botón Radar Desktop */}
             <Button variant="outline" onClick={() => setIsRequestFormOpen(true)} className="gap-2">
               <Search className="h-4 w-4" />
-              ¿No encuentras algo?
+              Radar de Mercado
             </Button>
 
-            {/* Botón Cotización Desktop */}
             {catalog.enable_quotation && items.length > 0 && (
               <Button
                 onClick={() => setIsCartOpen(true)}
@@ -344,24 +416,7 @@ function PublicCatalogContent() {
               </TabsList>
 
               <TabsContent value="productos" className="space-y-6" style={{ pointerEvents: "auto" }}>
-                <ProductsContent
-                  catalog={catalog}
-                  query={query}
-                  setQuery={setQuery}
-                  availableTags={availableTags}
-                  selectedTags={selectedTags}
-                  setSelectedTags={setSelectedTags}
-                  priceRange={priceRange}
-                  setPriceRange={setPriceRange}
-                  clearFilters={clearFilters}
-                  filteredProducts={filteredProducts}
-                  handleAddToQuote={handleAddToQuote}
-                  handleRequestSpecialQuote={handleRequestSpecialQuote}
-                  minPrice={minPrice}
-                  maxPrice={maxPrice}
-                  purchasedProductIds={catalog.purchasedProductIds || []}
-                  purchasedVariantIds={catalog.purchasedVariantIds || []}
-                />
+                {renderProducts()}
               </TabsContent>
 
               <TabsContent value="info" style={{ pointerEvents: "auto" }}>
@@ -379,27 +434,10 @@ function PublicCatalogContent() {
               </TabsContent>
             </Tabs>
           ) : (
-            <ProductsContent
-              catalog={catalog}
-              query={query}
-              setQuery={setQuery}
-              availableTags={availableTags}
-              selectedTags={selectedTags}
-              setSelectedTags={setSelectedTags}
-              priceRange={priceRange}
-              setPriceRange={setPriceRange}
-              clearFilters={clearFilters}
-              filteredProducts={filteredProducts}
-              handleAddToQuote={handleAddToQuote}
-              handleRequestSpecialQuote={handleRequestSpecialQuote}
-              minPrice={minPrice}
-              maxPrice={maxPrice}
-              purchasedProductIds={catalog.purchasedProductIds || []}
-              purchasedVariantIds={catalog.purchasedVariantIds || []}
-            />
+            renderProducts()
           )}
         </div>
-        {/* --- DIALOG DE RADAR (Común para Desktop y Móvil) --- */}
+        {/* Dialog Radar */}
         <Dialog open={isRequestFormOpen} onOpenChange={setIsRequestFormOpen}>
           <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
@@ -412,7 +450,7 @@ function PublicCatalogContent() {
             />
           </DialogContent>
         </Dialog>
-        {/* --- STICKY BOTTOM BAR (Solo Móvil) --- */}
+        {/* Barra Móvil Fija */}
         {catalog.enable_quotation && (
           <MobileStickyBar
             itemCount={items.length}
@@ -421,7 +459,7 @@ function PublicCatalogContent() {
             onOpenRadar={() => setIsRequestFormOpen(true)}
           />
         )}
-        {/* Modales de Cotización */}
+        {/* Modales */}
         {catalog.enable_quotation && (
           <>
             <AddToQuoteModal
