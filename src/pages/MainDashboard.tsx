@@ -5,8 +5,10 @@ import { useSubscription } from "@/contexts/SubscriptionContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+// 👇 Importamos los dos widgets de inteligencia
 import { MarketIntelligenceWidget } from "@/components/dashboard/MarketIntelligenceWidget";
-import { BarChart3, ShoppingBag, Users } from "lucide-react"; // Iconos de ejemplo
+import { SearchStatsWidget } from "@/components/dashboard/SearchStatsWidget";
+import { BarChart3, ShoppingBag, Users } from "lucide-react";
 
 export default function MainDashboard() {
   const { user } = useAuth();
@@ -22,6 +24,7 @@ export default function MainDashboard() {
       if (!user) return;
       try {
         // Buscamos el primer catálogo activo del usuario
+        // (Si tienes varios, aquí podrías poner un selector en el futuro)
         const { data } = await supabase.from("digital_catalogs").select("id").eq("user_id", user.id).limit(1).single();
 
         if (data) {
@@ -70,7 +73,6 @@ export default function MainDashboard() {
           </h1>
           <p className="text-gray-500">Aquí está lo que está pasando en tu negocio.</p>
         </div>
-        {/* Aquí podrías poner botones de acción rápida como "Crear Producto" */}
       </div>
 
       <Tabs defaultValue="resumen" className="w-full space-y-6">
@@ -88,10 +90,9 @@ export default function MainDashboard() {
           )}
         </TabsList>
 
-        {/* PESTAÑA 1: RESUMEN (Tus gráficas actuales irían aquí) */}
+        {/* PESTAÑA 1: RESUMEN */}
         <TabsContent value="resumen" className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Placeholders de KPIs actuales */}
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium text-gray-500">Ventas Totales</CardTitle>
@@ -120,34 +121,27 @@ export default function MainDashboard() {
             </Card>
           </div>
 
-          {/* Aquí irían tus gráficas grandes */}
           <div className="h-64 bg-gray-50 rounded-xl border border-dashed border-gray-200 flex items-center justify-center text-gray-400">
             Gráfica de Rendimiento (Placeholder)
           </div>
         </TabsContent>
 
-        {/* PESTAÑA 2: INTELIGENCIA (LO NUEVO) */}
+        {/* PESTAÑA 2: INTELIGENCIA (INTEGRACIÓN COMPLETA) */}
         <TabsContent value="inteligencia" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* 👇 AQUÍ ESTÁ TU WIDGET NUEVO */}
+            {/* Columna Izquierda: IA Avanzada (Empresarial) */}
             {catalogId ? (
               <MarketIntelligenceWidget catalogId={catalogId} />
             ) : (
-              <div className="p-8 text-center border rounded-lg bg-gray-50">Cargando datos de inteligencia...</div>
+              <div className="p-8 text-center border rounded-lg bg-gray-50">Cargando datos...</div>
             )}
 
-            {/* Espacio para futuros widgets (ej. "Términos sin resultados") */}
-            <Card className="border-dashed">
-              <CardContent className="flex flex-col items-center justify-center h-full min-h-[300px] text-center p-6">
-                <div className="bg-blue-50 p-3 rounded-full mb-4">
-                  <BarChart3 className="w-6 h-6 text-blue-500" />
-                </div>
-                <h3 className="font-semibold text-gray-900">Más Insights Próximamente</h3>
-                <p className="text-sm text-gray-500 mt-2 max-w-xs">
-                  Estamos recopilando datos de búsquedas fallidas y tendencias de precios para ti.
-                </p>
-              </CardContent>
-            </Card>
+            {/* Columna Derecha: Búsquedas Fallidas (Profesional) */}
+            {catalogId ? (
+              <SearchStatsWidget catalogId={catalogId} />
+            ) : (
+              <div className="p-8 text-center border rounded-lg bg-gray-50">Cargando datos...</div>
+            )}
           </div>
         </TabsContent>
 
