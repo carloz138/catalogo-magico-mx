@@ -1629,6 +1629,38 @@ export type Database = {
           },
         ];
       };
+      search_logs: {
+        Row: {
+          catalog_id: string;
+          created_at: string | null;
+          id: string;
+          results_count: number | null;
+          search_term: string;
+        };
+        Insert: {
+          catalog_id: string;
+          created_at?: string | null;
+          id?: string;
+          results_count?: number | null;
+          search_term: string;
+        };
+        Update: {
+          catalog_id?: string;
+          created_at?: string | null;
+          id?: string;
+          results_count?: number | null;
+          search_term?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "search_logs_catalog_id_fkey";
+            columns: ["catalog_id"];
+            isOneToOne: false;
+            referencedRelation: "digital_catalogs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       solicitudes_mercado: {
         Row: {
           cantidad: number;
