@@ -25,6 +25,8 @@ export interface UploadedFile {
     luxury: string;
     print: string;
   };
+  analysis?: any; 
+  productData?: any;
 }
 
 interface FileUploaderProps {
