@@ -2567,6 +2567,23 @@ export type Database = {
         Args: { product_description?: string; product_name: string };
         Returns: string;
       };
+      fn_get_demand_opportunities: {
+        Args: { p_catalog_id: string; p_similarity_threshold?: number };
+        Returns: {
+          confidence_score: number;
+          radar_requests: number;
+          search_volume: number;
+          term: string;
+        }[];
+      };
+      fn_get_failed_searches_stats: {
+        Args: { p_catalog_id: string; p_days_ago?: number };
+        Returns: {
+          last_searched_at: string;
+          search_count: number;
+          search_term: string;
+        }[];
+      };
       fn_get_owner_plan_details: { Args: { p_owner_id: string }; Returns: Json };
       fn_get_radar_terms: {
         Args: {
@@ -2853,6 +2870,8 @@ export type Database = {
         Args: { product_id: string; requesting_user_id: string };
         Returns: boolean;
       };
+      show_limit: { Args: never; Returns: number };
+      show_trgm: { Args: { "": string }; Returns: string[] };
       soft_delete_product: {
         Args: {
           product_id: string;
