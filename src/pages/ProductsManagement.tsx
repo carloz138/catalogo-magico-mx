@@ -161,6 +161,17 @@ const ProductsManagement: React.FC = () => {
   );
 
   return (
+    // 👇 AGREGAMOS ESTE DIV PADRE
+    <div className="container mx-auto p-4 md:p-6 space-y-6">
+      {/* Header y Acciones (Asegúrate de incluir esto que estaba en el AppLayout) */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Gestión de Productos</h1>
+          <p className="text-gray-500">Administra tu inventario</p>
+        </div>
+        {actions}
+      </div>
+
       {/* VISTA DESKTOP: EDITOR AVANZADO */}
       <div className="hidden lg:block bg-white rounded-xl border shadow-sm overflow-hidden">
         <ProductsTableEditor
@@ -168,7 +179,6 @@ const ProductsManagement: React.FC = () => {
           onProductsChange={setProducts}
           onEditVariants={handleEditVariants}
           onViewProduct={handleViewProduct}
-          // 👇 Pasamos las funciones nuevas
           onBulkDelete={initiateBulkDelete}
           onBulkCatalog={handleBulkCatalog}
           className="border-0 shadow-none rounded-none"
@@ -182,7 +192,7 @@ const ProductsManagement: React.FC = () => {
           <MobileProductCard
             key={product.id}
             product={product}
-            onEdit={(id) => console.log("Edit mobile", id)} // Puedes conectar un modal aquí
+            onEdit={(id) => console.log("Edit mobile", id)}
             onView={handleViewProduct}
           />
         ))}
@@ -199,6 +209,7 @@ const ProductsManagement: React.FC = () => {
         onConfirm={confirmDeleteProducts}
         variant="destructive"
       />
+    </div> // 👈 CERRAMOS EL DIV PADRE
   );
 };
 
