@@ -1,232 +1,139 @@
 import { useEffect, useState } from "react";
-import { useAuth } from "@/contexts/AuthContext";
-import { useUserRole } from "@/contexts/RoleContext";
-import { useSubscription } from "@/contexts/SubscriptionContext";
 import { supabase } from "@/integrations/supabase/client";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { MarketIntelligenceWidget } from "@/components/dashboard/MarketIntelligenceWidget";
-import { SearchStatsWidget } from "@/components/dashboard/SearchStatsWidget";
-// 👇 NUEVO IMPORT
-import { ResellerInsights } from "@/components/dashboard/ResellerInsights";
-import { BarChart3, ShoppingBag, Users, Zap } from "lucide-react";
+import { Search, Radar, Clock, User } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { formatDistanceToNow } from "date-fns";
+import { es } from "date-fns/locale";
 
-export default function MainDashboard() {
-  const { user } = useAuth();
-  const { userRole, isLoadingRole } = useUserRole();
-  const { paqueteUsuario } = useSubscription();
-  
-  // Estado para el catálogo principal (L1 o L2)
-  const [catalogId, setCatalogId] = useState<string | null>(null);
+interface SearchLog {
+  term: string;
+  count: number;
+  last_search: string;
+}
 
-  // Obtener el ID del catálogo del usuario actual (Funciona para L1 y L2)
+interface RadarRequest {
+  product_name: string;
+  customer_name: string;
+  created_at: string;
+}
+
+// 👇 CORRECCIÓN AQUÍ: "export function" (sin 'default')
+export function ResellerInsights({ catalogId, resellerId }: { catalogId: string | null; resellerId: string }) {
+  const [searches, setSearches] = useState<SearchLog[]>([]);
+  const [requests, setRequests] = useState<RadarRequest[]>([]);
+  const [loading, setLoading] = useState(true);
+
   useEffect(() => {
-    const fetchCatalog = async () => {
-      if (!user) return;
+    const fetchData = async () => {
+      setLoading(true);
       try {
-        // 1. Buscar en Digital Catalogs (L1)
-        let { data, error } = await supabase
-          .from('digital_catalogs')
-          .select('id')
-          .eq('user_id', user.id)
-          .limit(1)
-          .maybeSingle();
-        
-        // 2. Si no es L1, buscar en Replicated Catalogs (L2)
-        if (!data) {
-           const { data: replicaData } = await supabase
-            .from('replicated_catalogs')
-            .select('id') // Nota: necesitamos el ID de la TABLA digital_catalogs, no el ID de la replica
-            // Espera, el search_log se liga al 'catalog_id' original o al replicado?
-            // En PublicCatalog usamos 'catalog.id'. 
-            // Si es una réplica, PublicCatalog usa el ID de la réplica?
-            // Revisemos tu tabla search_logs... usa 'catalog_id' UUID references digital_catalogs.
-            // Ah! Aquí hay un detalle técnico importante.
-            // Si el L2 tiene una réplica, ¿los logs se guardan con el ID de la réplica o del original?
-            // ... En PublicCatalog, catalog.id es el ID del registro en digital_catalogs.
-            // Si es réplica, el "catálogo" visual es el de la réplica.
-            // Asumiremos que guardas el ID de la réplica en search_logs si la estructura lo permite,
-            // O si search_logs apunta a digital_catalogs, entonces el L2 comparte logs con L1.
-            
-            // CORRECCIÓN RÁPIDA: Para L2, buscaremos el ID de su réplica activa.
-            .eq('reseller_id', user.id)
-            .eq('is_active', true)
-            .limit(1)
-            .maybeSingle();
-            
-            // Nota: Esto asume que 'search_logs' puede guardar IDs de réplicas.
-            // Si no, solo mostraremos el Radar para L2.
-            if (replicaData) {
-                // Usamos el ID de la réplica
-                data = replicaData; 
-            }
+        // 1. Cargar Búsquedas (si hay catálogo)
+        if (catalogId) {
+          // Usamos 'as any' para evitar errores de tipo si no has regenerado types
+          const { data: searchData } = await supabase.rpc("fn_get_reseller_search_logs" as any, {
+            p_catalog_id: catalogId,
+          });
+          if (searchData) setSearches(searchData as any);
         }
-        
-        if (data) {
-          setCatalogId(data.id);
-        }
+
+        // 2. Cargar Solicitudes de Radar
+        const { data: radarData } = await supabase.rpc("fn_get_reseller_radar_requests" as any, {
+          p_reseller_id: resellerId,
+        });
+        if (radarData) setRequests(radarData as any);
       } catch (error) {
-        console.error("Error fetching catalog for dashboard:", error);
+        console.error("Error fetching reseller insights:", error);
+      } finally {
+        setLoading(false);
       }
     };
-    fetchCatalog();
-  }, [user]);
 
-  if (isLoadingRole) {
-    return <div className="p-8 text-center">Cargando tu panel...</div>;
-  }
+    fetchData();
+  }, [catalogId, resellerId]);
 
-  // --- VISTA 1: SOLO REVENDEDOR (L2) ---
-  if (userRole === 'L2') {
-    return (
-      <div className="p-6 space-y-6 container mx-auto">
-        <div className="flex flex-col gap-2">
-            <h1 className="text-2xl font-bold text-gray-900">Panel de Revendedor</h1>
-            <p className="text-gray-500">Bienvenido a tu negocio digital.</p>
-        </div>
+  if (loading) return <Skeleton className="h-64 w-full rounded-xl" />;
 
-        {/* KPIs Rápidos */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Actividad de Clientes</CardTitle>
-                    <Users className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                    <div className="text-2xl font-bold">--</div>
-                    <p className="text-xs text-muted-foreground">Visitas este mes</p>
-                </CardContent>
-            </Card>
-            
-            <Card className="bg-gradient-to-br from-purple-50 to-white border-purple-100">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium text-purple-900">Tu Catálogo</CardTitle>
-                    <Zap className="h-4 w-4 text-purple-600" />
-                </CardHeader>
-                <CardContent>
-                    <div className="text-sm font-medium text-purple-700 mb-2">
-                        {catalogId ? "Activo y visible ✅" : "No activado"}
-                    </div>
-                    {!catalogId && (
-                        <p className="text-xs text-muted-foreground">
-                            Solicita una cotización para activar tu catálogo.
-                        </p>
-                    )}
-                </CardContent>
-            </Card>
-        </div>
-
-        {/* 👇 AQUÍ ESTÁ EL COMPONENTE QUE LE DA VALOR AL L2 */}
-        <div className="mt-8">
-            {user && (
-                <ResellerInsights 
-                    catalogId={catalogId} 
-                    resellerId={user.id} 
-                />
-            )}
-        </div>
-      </div>
-    );
-  }
-
-  // --- VISTA 2: FABRICANTE (L1) O HÍBRIDO (BOTH) ---
   return (
-    <div className="p-6 space-y-8 container mx-auto">
-      <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
-        <div>
-            <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
-                Hola, {paqueteUsuario?.name ? 'Socio ' + paqueteUsuario.name.split(' ')[1] : 'Bienvenido'}
-            </h1>
-            <p className="text-gray-500">Aquí está lo que está pasando en tu negocio.</p>
-        </div>
-      </div>
+    <Card className="border-blue-100 shadow-sm">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-lg font-bold text-gray-800 flex items-center gap-2">
+          🔍 Actividad de tus Clientes
+        </CardTitle>
+        <CardDescription>Descubre qué buscan y qué necesitan tus clientes.</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Tabs defaultValue="searches" className="w-full">
+          <TabsList className="grid w-full grid-cols-2 mb-4">
+            <TabsTrigger value="searches" className="flex items-center gap-2">
+              <Search className="w-4 h-4" /> Lo que Buscan
+            </TabsTrigger>
+            <TabsTrigger value="radar" className="flex items-center gap-2">
+              <Radar className="w-4 h-4" /> Lo que Piden
+            </TabsTrigger>
+          </TabsList>
 
-      <Tabs defaultValue="resumen" className="w-full space-y-6">
-        <TabsList className="bg-gray-100 p-1">
-          <TabsTrigger value="resumen" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">
-            <BarChart3 className="w-4 h-4 mr-2" /> Resumen General
-          </TabsTrigger>
-          <TabsTrigger value="inteligencia" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">
-            <Users className="w-4 h-4 mr-2" /> Inteligencia de Mercado ✨
-          </TabsTrigger>
-          {userRole === 'BOTH' && (
-             <TabsTrigger value="mis_ventas" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">
-                Mis Ventas (L2)
-             </TabsTrigger>
-          )}
-        </TabsList>
-
-        {/* PESTAÑA 1: RESUMEN */}
-        <TabsContent value="resumen" className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <Card>
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-medium text-gray-500">Ventas Totales</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">$12,345</div>
-                        <p className="text-xs text-green-600 font-medium">↑ 12% vs mes anterior</p>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-medium text-gray-500">Cotizaciones</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">24</div>
-                        <p className="text-xs text-gray-500">5 pendientes de revisión</p>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-medium text-gray-500">Productos Activos</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">142</div>
-                    </CardContent>
-                </Card>
-            </div>
-            
-            <div className="h-64 bg-gray-50 rounded-xl border border-dashed border-gray-200 flex items-center justify-center text-gray-400">
-                Gráfica de Rendimiento (Placeholder)
-            </div>
-        </TabsContent>
-
-        {/* PESTAÑA 2: INTELIGENCIA */}
-        <TabsContent value="inteligencia" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Widget Enterprise */}
-                {catalogId ? (
-                    <MarketIntelligenceWidget catalogId={catalogId} />
-                ) : (
-                    <div className="p-8 text-center border rounded-lg bg-gray-50">
-                        Cargando datos...
+          {/* PESTAÑA 1: BÚSQUEDAS */}
+          <TabsContent value="searches" className="space-y-4">
+            {searches.length === 0 ? (
+              <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-lg border border-dashed">
+                <p>Aún no hay búsquedas registradas.</p>
+                <p className="text-xs mt-1">Comparte tu catálogo para generar datos.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {searches.map((item, idx) => (
+                  <div
+                    key={idx}
+                    className="flex items-center justify-between p-3 bg-white border border-gray-100 rounded-lg"
+                  >
+                    <div className="flex flex-col">
+                      <span className="font-medium text-gray-900 capitalize">{item.term}</span>
+                      <span className="text-xs text-gray-500 flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        {formatDistanceToNow(new Date(item.last_search), { addSuffix: true, locale: es })}
+                      </span>
                     </div>
-                )}
-
-                {/* Widget Profesional */}
-                {catalogId ? (
-                    <SearchStatsWidget catalogId={catalogId} />
-                ) : (
-                    <div className="p-8 text-center border rounded-lg bg-gray-50">
-                        Cargando datos...
+                    <div className="bg-blue-50 text-blue-700 px-2 py-1 rounded text-xs font-bold">
+                      {item.count} {item.count === 1 ? "vez" : "veces"}
                     </div>
-                )}
-            </div>
-        </TabsContent>
+                  </div>
+                ))}
+              </div>
+            )}
+          </TabsContent>
 
-        {userRole === 'BOTH' && (
-            <TabsContent value="mis_ventas">
-                {/* Reutilizamos el componente de Insights para la vista de revendedor del usuario BOTH */}
-                {user && (
-                    <ResellerInsights 
-                        catalogId={catalogId} // Ojo: Aquí idealmente buscaríamos el ID de SU réplica, no su original
-                        resellerId={user.id} 
-                    />
-                )}
-            </TabsContent>
-        )}
-      </Tabs>
-    </div>
+          {/* PESTAÑA 2: RADAR */}
+          <TabsContent value="radar" className="space-y-4">
+            {requests.length === 0 ? (
+              <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-lg border border-dashed">
+                <p>Nadie ha usado el Radar aún.</p>
+                <p className="text-xs mt-1">Tus clientes lo usarán cuando no encuentren algo.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {requests.map((item, idx) => (
+                  <div
+                    key={idx}
+                    className="flex items-center justify-between p-3 bg-white border border-gray-100 rounded-lg"
+                  >
+                    <div className="flex flex-col">
+                      <span className="font-medium text-gray-900 capitalize">{item.product_name}</span>
+                      <span className="text-xs text-gray-500 flex items-center gap-1">
+                        <User className="w-3 h-3" /> {item.customer_name}
+                      </span>
+                    </div>
+                    <span className="text-[10px] text-gray-400">
+                      {formatDistanceToNow(new Date(item.created_at), { addSuffix: true, locale: es })}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
+      </CardContent>
+    </Card>
   );
 }
