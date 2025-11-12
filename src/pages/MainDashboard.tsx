@@ -5,39 +5,53 @@ import { useSubscription } from "@/contexts/SubscriptionContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-// 👇 Importamos los dos widgets de inteligencia
 import { MarketIntelligenceWidget } from "@/components/dashboard/MarketIntelligenceWidget";
 import { SearchStatsWidget } from "@/components/dashboard/SearchStatsWidget";
-import { BarChart3, ShoppingBag, Users } from "lucide-react";
+import { ResellerInsights } from "@/components/dashboard/ResellerInsights";
+// 👇 IMPORTAMOS LOS NUEVOS GRÁFICOS
+import { DashboardKPIs, SalesChart } from "@/components/dashboard/DashboardCharts";
+import { BarChart3, ShoppingBag, Users, Zap } from "lucide-react";
 
 export default function MainDashboard() {
   const { user } = useAuth();
   const { userRole, isLoadingRole } = useUserRole();
   const { paqueteUsuario } = useSubscription();
 
-  // Estado para el catálogo principal del usuario
   const [catalogId, setCatalogId] = useState<string | null>(null);
 
-  // Obtener el ID del catálogo del usuario actual
   useEffect(() => {
     const fetchCatalog = async () => {
       if (!user) return;
       try {
-        // Buscamos el primer catálogo activo del usuario
-        // (Si tienes varios, aquí podrías poner un selector en el futuro)
-        const { data } = await supabase.from("digital_catalogs").select("id").eq("user_id", user.id).limit(1).single();
+        // Lógica híbrida para encontrar catálogo L1 o L2
+        let { data, error } = await supabase
+          .from("digital_catalogs")
+          .select("id")
+          .eq("user_id", user.id)
+          .limit(1)
+          .maybeSingle();
 
-        if (data) {
-          setCatalogId(data.id);
+        if (!data) {
+          const { data: replicaData } = await supabase
+            .from("replicated_catalogs")
+            .select("id") // Nota: Esto debería ser el ID de la réplica para propósitos de UI
+            .eq("reseller_id", user.id)
+            .eq("is_active", true)
+            .limit(1)
+            .maybeSingle();
+
+          if (replicaData) data = replicaData;
         }
+
+        if (data) setCatalogId(data.id);
       } catch (error) {
-        console.error("Error fetching catalog for dashboard:", error);
+        console.error("Error fetching catalog:", error);
       }
     };
     fetchCatalog();
   }, [user]);
 
-  if (isLoadingRole) {
+  if (isLoadingRole || !user) {
     return <div className="p-8 text-center">Cargando tu panel...</div>;
   }
 
@@ -45,19 +59,51 @@ export default function MainDashboard() {
   if (userRole === "L2") {
     return (
       <div className="p-6 space-y-6 container mx-auto">
-        <h1 className="text-2xl font-bold text-gray-900">Panel de Revendedor</h1>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Mis Ventas</CardTitle>
-              <ShoppingBag className="h-4 w-4 text-muted-foreground" />
+        <div className="flex flex-col gap-2">
+          <h1 className="text-2xl font-bold text-gray-900">Panel de Revendedor</h1>
+          <p className="text-gray-500">Bienvenido a tu negocio digital. Aquí tienes el pulso de tus ventas.</p>
+        </div>
+
+        {/* 1. KPIs Reales */}
+        <DashboardKPIs userId={user.id} />
+
+        {/* 2. Gráfica de Ventas */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <CardTitle>Rendimiento de Ventas</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">$0.00</div>
-              <p className="text-xs text-muted-foreground">+0% del mes pasado</p>
+              <SalesChart userId={user.id} />
             </CardContent>
           </Card>
-          {/* Aquí puedes agregar más KPIs para L2 */}
+
+          <Card className="bg-gradient-to-br from-purple-50 to-white border-purple-100">
+            <CardHeader>
+              <CardTitle className="text-sm font-medium text-purple-900 flex items-center gap-2">
+                <Zap className="h-4 w-4" /> Estado del Catálogo
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-lg font-bold text-purple-700 mb-2">
+                {catalogId ? "Activo y Vendiendo ✅" : "Inactivo ⚠️"}
+              </div>
+              {!catalogId ? (
+                <p className="text-sm text-muted-foreground">
+                  Solicita una cotización a tu proveedor para activar tu tienda hoy mismo.
+                </p>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  Tu tienda está visible. ¡Comparte el link para vender más!
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* 3. Inteligencia Básica (Raw Data) */}
+        <div className="mt-8">
+          <ResellerInsights catalogId={catalogId} resellerId={user.id} />
         </div>
       </div>
     );
@@ -71,7 +117,7 @@ export default function MainDashboard() {
           <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
             Hola, {paqueteUsuario?.name ? "Socio " + paqueteUsuario.name.split(" ")[1] : "Bienvenido"}
           </h1>
-          <p className="text-gray-500">Aquí está lo que está pasando en tu negocio.</p>
+          <p className="text-gray-500">Resumen de rendimiento de tu red de distribución.</p>
         </div>
       </div>
 
@@ -92,63 +138,42 @@ export default function MainDashboard() {
 
         {/* PESTAÑA 1: RESUMEN */}
         <TabsContent value="resumen" className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-gray-500">Ventas Totales</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">$12,345</div>
-                <p className="text-xs text-green-600 font-medium">↑ 12% vs mes anterior</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-gray-500">Cotizaciones</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">24</div>
-                <p className="text-xs text-gray-500">5 pendientes de revisión</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-gray-500">Productos Activos</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">142</div>
-              </CardContent>
-            </Card>
-          </div>
+          {/* KPIs Globales */}
+          <DashboardKPIs userId={user.id} />
 
-          <div className="h-64 bg-gray-50 rounded-xl border border-dashed border-gray-200 flex items-center justify-center text-gray-400">
-            Gráfica de Rendimiento (Placeholder)
-          </div>
+          {/* Gráfica Principal */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Tendencia de Ingresos</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <SalesChart userId={user.id} />
+            </CardContent>
+          </Card>
         </TabsContent>
 
-        {/* PESTAÑA 2: INTELIGENCIA (INTEGRACIÓN COMPLETA) */}
+        {/* PESTAÑA 2: INTELIGENCIA */}
         <TabsContent value="inteligencia" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Columna Izquierda: IA Avanzada (Empresarial) */}
             {catalogId ? (
-              <MarketIntelligenceWidget catalogId={catalogId} />
+              <>
+                <MarketIntelligenceWidget catalogId={catalogId} />
+                <SearchStatsWidget catalogId={catalogId} />
+              </>
             ) : (
-              <div className="p-8 text-center border rounded-lg bg-gray-50">Cargando datos...</div>
-            )}
-
-            {/* Columna Derecha: Búsquedas Fallidas (Profesional) */}
-            {catalogId ? (
-              <SearchStatsWidget catalogId={catalogId} />
-            ) : (
-              <div className="p-8 text-center border rounded-lg bg-gray-50">Cargando datos...</div>
+              <div className="col-span-2 p-12 text-center border rounded-lg bg-gray-50 text-gray-500">
+                Cargando datos de inteligencia...
+              </div>
             )}
           </div>
         </TabsContent>
 
         {userRole === "BOTH" && (
           <TabsContent value="mis_ventas">
-            <div className="p-12 text-center border rounded-lg bg-gray-50 text-gray-500">
-              Aquí verás tus estadísticas como revendedor.
+            <div className="space-y-6">
+              <h3 className="text-lg font-semibold">Tus Estadísticas Personales (Como Revendedor)</h3>
+              <DashboardKPIs userId={user.id} />
+              <ResellerInsights catalogId={catalogId} resellerId={user.id} />
             </div>
           </TabsContent>
         )}
