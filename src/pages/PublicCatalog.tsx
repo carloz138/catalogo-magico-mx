@@ -323,9 +323,9 @@ function PublicCatalogContent() {
   // hasta que se regeneren los tipos
   const rawCatalog = catalog as any;
 
-  // Si el campo enable_free_shipping está activo en el objeto catálogo
-  // (Este objeto ya viene filtrado por L1 o L2 desde el backend)
-  if (rawCatalog.enable_free_shipping) {
+  // REGLA DE NEGOCIO: El envío gratis solo aplica para catálogos ORIGINALES (L1).
+  // Si es una réplica (L2), ignoramos la configuración para proteger su margen.
+  if (!catalog.isReplicated && rawCatalog.enable_free_shipping) {
     currentShippingThreshold = rawCatalog.free_shipping_min_amount;
   }
   // ---------------------------------------------
