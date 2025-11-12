@@ -767,9 +767,11 @@ export type Database = {
           created_at: string | null;
           description: string | null;
           enable_distribution: boolean | null;
+          enable_free_shipping: boolean | null;
           enable_quotation: boolean | null;
           enable_variants: boolean | null;
           expires_at: string | null;
+          free_shipping_min_amount: number | null;
           id: string;
           is_active: boolean | null;
           is_private: boolean | null;
@@ -798,9 +800,11 @@ export type Database = {
           created_at?: string | null;
           description?: string | null;
           enable_distribution?: boolean | null;
+          enable_free_shipping?: boolean | null;
           enable_quotation?: boolean | null;
           enable_variants?: boolean | null;
           expires_at?: string | null;
+          free_shipping_min_amount?: number | null;
           id?: string;
           is_active?: boolean | null;
           is_private?: boolean | null;
@@ -829,9 +833,11 @@ export type Database = {
           created_at?: string | null;
           description?: string | null;
           enable_distribution?: boolean | null;
+          enable_free_shipping?: boolean | null;
           enable_quotation?: boolean | null;
           enable_variants?: boolean | null;
           expires_at?: string | null;
+          free_shipping_min_amount?: number | null;
           id?: string;
           is_active?: boolean | null;
           is_private?: boolean | null;
@@ -1444,7 +1450,9 @@ export type Database = {
           activation_token: string;
           created_at: string | null;
           distributor_id: string;
+          enable_free_shipping: boolean | null;
           expires_at: string | null;
+          free_shipping_min_amount: number | null;
           id: string;
           is_active: boolean | null;
           original_catalog_id: string;
@@ -1461,7 +1469,9 @@ export type Database = {
           activation_token: string;
           created_at?: string | null;
           distributor_id: string;
+          enable_free_shipping?: boolean | null;
           expires_at?: string | null;
+          free_shipping_min_amount?: number | null;
           id?: string;
           is_active?: boolean | null;
           original_catalog_id: string;
@@ -1478,7 +1488,9 @@ export type Database = {
           activation_token?: string;
           created_at?: string | null;
           distributor_id?: string;
+          enable_free_shipping?: boolean | null;
           expires_at?: string | null;
+          free_shipping_min_amount?: number | null;
           id?: string;
           is_active?: boolean | null;
           original_catalog_id?: string;
@@ -2594,6 +2606,22 @@ export type Database = {
         Returns: {
           text: string;
           value: number;
+        }[];
+      };
+      fn_get_reseller_radar_requests: {
+        Args: { p_reseller_id: string };
+        Returns: {
+          created_at: string;
+          customer_name: string;
+          product_name: string;
+        }[];
+      };
+      fn_get_reseller_search_logs: {
+        Args: { p_catalog_id: string };
+        Returns: {
+          count: number;
+          last_search: string;
+          term: string;
         }[];
       };
       fn_get_similar_products: {
