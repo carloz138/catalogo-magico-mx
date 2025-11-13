@@ -1233,4 +1233,167 @@ export const EXPANDED_WEB_TEMPLATES: WebCatalogTemplate[] = [
     popularity: 85,
     tags: ["año nuevo", "fiesta", "negro", "lujo"],
   },
+
+  // ============================================
+  // NUEVOS: BRAND-FIRST (Adaptables a la marca)
+  // ============================================
+
+  {
+    id: 'brand-minimal-clean',
+    name: 'Boutique Minimalista',
+    description: 'Diseño ultra-limpio donde tu marca resalta',
+    longDescription: 'Inspirado en tiendas de Shopify modernas. Fondo blanco puro, bordes sutiles en tu color primario y tipografía limpia. Ideal para que tus productos sean los protagonistas.',
+    thumbnail: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=600&h=400&fit=crop',
+    previewImages: [],
+    layout: 'modern-grid',
+    style: 'minimal',
+    category: 'standard',
+    isPremium: false,
+    bestFor: ['general', 'moda', 'accesorios'],
+    idealProductCount: { min: 10, max: 100 },
+    features: [
+      'Bordes delgados en tu color de marca',
+      'Botones "Outline" elegantes',
+      'Sombras muy suaves',
+      'Máxima legibilidad'
+    ],
+    config: {
+      columnsDesktop: 3,
+      columnsMobile: 1,
+      gap: 'normal',
+      cardStyle: 'outlined',
+      cardRadius: 'md',
+      imageRatio: 'square',
+      hoverEffect: 'lift',
+      clickAction: 'modal',
+      hasSearch: true,
+      hasFilters: true,
+      hasCart: true,
+      hasFavorites: false,
+      hasShareButtons: true,
+      hasZoom: true,
+      entranceAnimation: 'fade',
+      transitionSpeed: 'normal',
+      showLogo: true,
+      showWatermark: false
+    },
+    colorScheme: {
+      primary: '#000000',
+      secondary: '#333333',
+      accent: '#666666',
+      background: '#ffffff',
+      cardBackground: '#ffffff',
+      text: '#09090b',
+      textMuted: '#71717a',
+      border: '#e4e4e7'
+    },
+    popularity: 96,
+    tags: ['marca', 'limpio', 'shopify-style']
+  },
+
+  {
+    id: 'brand-modern-glass',
+    name: 'Cristal Corporativo',
+    description: 'Estilo moderno con efectos de transparencia',
+    longDescription: 'Un diseño contemporáneo que usa tus colores de marca para crear un fondo suave degradado, sobre el cual "flotan" tus productos en tarjetas blancas.',
+    thumbnail: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600&h=400&fit=crop',
+    previewImages: [],
+    layout: 'masonry',
+    style: 'modern',
+    category: 'standard',
+    isPremium: true,
+    bestFor: ['tecnologia', 'general'],
+    idealProductCount: { min: 6, max: 50 },
+    features: [
+      'Fondo con gradiente de tu marca',
+      'Tarjetas blancas flotantes',
+      'Esquinas redondeadas amigables',
+      'Aspecto de App móvil'
+    ],
+    config: {
+      columnsDesktop: 3,
+      columnsMobile: 2,
+      gap: 'loose',
+      cardStyle: 'elevated',
+      cardRadius: 'xl',
+      imageRatio: 'auto',
+      hoverEffect: 'zoom',
+      clickAction: 'modal',
+      hasSearch: true,
+      hasFilters: true,
+      hasCart: true,
+      hasFavorites: true,
+      hasShareButtons: true,
+      hasZoom: true,
+      entranceAnimation: 'stagger',
+      transitionSpeed: 'normal',
+      showLogo: true,
+      showWatermark: false
+    },
+    colorScheme: {
+      primary: '#2563eb',
+      secondary: '#1e40af',
+      accent: '#60a5fa',
+      background: '#f8fafc',
+      cardBackground: '#ffffff',
+      text: '#0f172a',
+      textMuted: '#64748b',
+      border: 'transparent'
+    },
+    popularity: 92,
+    tags: ['app-style', 'moderno', 'gradiente']
+  },
+
+  {
+    id: 'brand-bold-impact',
+    name: 'Impacto Visual',
+    description: 'Encabezados sólidos y tarjetas inmersivas',
+    longDescription: 'Usa tu color primario con fuerza en los encabezados y botones sólidos. Ideal para marcas con identidad fuerte (Rojo, Naranja, Negro).',
+    thumbnail: 'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?w=600&h=400&fit=crop',
+    previewImages: [],
+    layout: 'modern-grid',
+    style: 'bold',
+    category: 'seasonal',
+    isPremium: true,
+    bestFor: ['alimentos', 'ferreteria', 'general'],
+    idealProductCount: { min: 12, max: 80 },
+    features: [
+      'Header sólido con tu color',
+      'Botones de acción grandes',
+      'Tarjetas sin borde (Clean)',
+      'Tipografía fuerte'
+    ],
+    config: {
+      columnsDesktop: 4,
+      columnsMobile: 2,
+      gap: 'tight',
+      cardStyle: 'flat',
+      cardRadius: 'sm',
+      imageRatio: 'square',
+      hoverEffect: 'glow',
+      clickAction: 'modal',
+      hasSearch: true,
+      hasFilters: true,
+      hasCart: true,
+      hasFavorites: false,
+      hasShareButtons: true,
+      hasZoom: true,
+      entranceAnimation: 'slide',
+      transitionSpeed: 'fast',
+      showLogo: true,
+      showWatermark: false
+    },
+    colorScheme: {
+      primary: '#000000',
+      secondary: '#333333',
+      accent: '#ffffff',
+      background: '#ffffff',
+      cardBackground: '#f8f9fa',
+      text: '#212529',
+      textMuted: '#6c757d',
+      border: 'transparent'
+    },
+    popularity: 89,
+    tags: ['impacto', 'fuerte', 'ventas']
+  }
 ];

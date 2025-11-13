@@ -27,6 +27,8 @@ interface BusinessInfo {
     instagram?: string;
     twitter?: string;
   };
+  primary_color?: string;
+  secondary_color?: string;
 }
 
 // 🆕 NUEVA INTERFACE PARA CONFIGURACIÓN DINÁMICA
@@ -1470,6 +1472,26 @@ export class TemplateGenerator {
     productsPerPage: 4 | 6 | 9 = 6,
     showWholesalePrices: boolean = true // 🆕 Controlar si se muestran precios de mayoreo
   ): string {
+    
+    // 1. Obtener colores base
+    let colors = template.colors;
+
+    // 2. Inyectar colores de marca si existen
+    if (businessInfo.primary_color && businessInfo.secondary_color) {
+      colors = {
+        ...colors,
+        primary: businessInfo.primary_color,
+        secondary: businessInfo.secondary_color,
+        // Fondo de tarjetas muy sutil tintado con el color de marca
+        cardBackground: '#ffffff',
+      };
+      
+      // Actualizar los colores en el template
+      template = {
+        ...template,
+        colors
+      };
+    }
     
     const css = this.generateTemplateCSS(template, productsPerPage, showWholesalePrices);
     const productsHTML = this.generateProductsHTMLGrid(products, template, productsPerPage, showWholesalePrices);
