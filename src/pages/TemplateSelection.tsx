@@ -658,13 +658,13 @@ const TemplateSelection = () => {
   if (loading) {
     return (
       <AppLayout>
-          <div className="flex items-center justify-center py-12">
-            <div className="text-center">
-              <Loader2 className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-              <p className="text-gray-600">Cargando sistema de templates v2.0...</p>
-            </div>
+        <div className="flex items-center justify-center py-12">
+          <div className="text-center">
+            <Loader2 className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+            <p className="text-gray-600">Cargando sistema de templates v2.0...</p>
           </div>
-        </AppLayout>
+        </div>
+      </AppLayout>
     );
   }
 
@@ -723,100 +723,98 @@ const TemplateSelection = () => {
 
   return (
     <AppLayout actions={actions}>
-        <div className="space-y-6">
-          {/* Header con información mejorada */}
-          <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
-            <div>
-              <div className="flex items-center gap-3 mb-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => navigate("/products")}
-                  className="flex items-center gap-2"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                  Volver a Productos
-                </Button>
-                <Badge variant="secondary" className="text-xs">
-                  Sistema v2.0 - Layouts Dinámicos
-                </Badge>
-              </div>
-
-              <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-                Selecciona tu Template
-                <Shield className="w-5 h-5 text-green-500" />
-              </h1>
-              <p className="text-gray-600">
-                Elige el diseño perfecto para tu catálogo de {selectedProducts.length} productos (
-                {Math.ceil(selectedProducts.length / productsPerPage)} página
-                {Math.ceil(selectedProducts.length / productsPerPage) !== 1 ? "s" : ""} con {productsPerPage}/página)
-              </p>
+      <div className="space-y-6">
+        {/* Header con información mejorada */}
+        <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+          <div>
+            <div className="flex items-center gap-3 mb-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate("/products")}
+                className="flex items-center gap-2"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                Volver a Productos
+              </Button>
+              <Badge variant="secondary" className="text-xs">
+                Sistema v2.0 - Layouts Dinámicos
+              </Badge>
             </div>
 
-            {/* Info del plan en móvil */}
-            <div className="sm:hidden w-full">
-              <Card>
-                <CardContent className="p-3">
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-gray-600">{selectedProducts.length} productos seleccionados</span>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="default" className="bg-blue-600">
-                        {productsPerPage}/pág
-                      </Badge>
-                      {limits && (
-                        <Badge variant="outline">
-                          {limits.catalogsLimit === "unlimited"
-                            ? "Ilimitados"
-                            : `${limits.remainingCatalogs} restantes`}
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+              Selecciona tu Template
+              <Shield className="w-5 h-5 text-green-500" />
+            </h1>
+            <p className="text-gray-600">
+              Elige el diseño perfecto para tu catálogo de {selectedProducts.length} productos (
+              {Math.ceil(selectedProducts.length / productsPerPage)} página
+              {Math.ceil(selectedProducts.length / productsPerPage) !== 1 ? "s" : ""} con {productsPerPage}/página)
+            </p>
           </div>
 
-          {/* Alert de límites */}
-          {limits && !limits.canGenerate && (
-            <Alert className="border-red-200 bg-red-50">
-              <AlertTriangle className="h-4 w-4 text-red-600" />
-              <AlertDescription className="text-red-800">
-                <strong>Límite alcanzado:</strong> {limits.message}
-                <Button variant="link" className="h-auto p-0 ml-2 text-red-600" onClick={() => navigate("/pricing")}>
-                  Ver planes
-                </Button>
-              </AlertDescription>
-            </Alert>
-          )}
+          {/* Info del plan en móvil */}
+          <div className="sm:hidden w-full">
+            <Card>
+              <CardContent className="p-3">
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-gray-600">{selectedProducts.length} productos seleccionados</span>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="default" className="bg-blue-600">
+                      {productsPerPage}/pág
+                    </Badge>
+                    {limits && (
+                      <Badge variant="outline">
+                        {limits.catalogsLimit === "unlimited" ? "Ilimitados" : `${limits.remainingCatalogs} restantes`}
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
 
-          {/* 🆕 SELECTOR DE PRODUCTOS POR PÁGINA */}
-          <ProductsPerPageSelector
-            selectedCount={productsPerPage}
-            onCountChange={handleProductsPerPageChange}
-            totalProducts={selectedProducts.length}
-            disabled={generating || previewLoading}
-          />
+        {/* Alert de límites */}
+        {limits && !limits.canGenerate && (
+          <Alert className="border-red-200 bg-red-50">
+            <AlertTriangle className="h-4 w-4 text-red-600" />
+            <AlertDescription className="text-red-800">
+              <strong>Límite alcanzado:</strong> {limits.message}
+              <Button variant="link" className="h-auto p-0 ml-2 text-red-600" onClick={() => navigate("/pricing")}>
+                Ver planes
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
 
-          {/* Selector de Precios */}
-          <Card>
-            <CardContent className="p-4 space-y-3">
-              <div>
-                <Label className="text-sm font-medium flex items-center gap-2">
-                  Opciones de Precios
-                  <Badge variant="outline" className="text-xs">
-                    {selectedProducts.filter((p) => p.price_wholesale).length} con mayoreo
-                  </Badge>
-                </Label>
-                <p className="text-xs text-gray-600 mt-1">Elige qué precios mostrar en tu catálogo</p>
-              </div>
+        {/* 🆕 SELECTOR DE PRODUCTOS POR PÁGINA */}
+        <ProductsPerPageSelector
+          selectedCount={productsPerPage}
+          onCountChange={handleProductsPerPageChange}
+          totalProducts={selectedProducts.length}
+          disabled={generating || previewLoading}
+        />
 
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  onClick={() => setShowWholesalePrices(true)}
-                  disabled={generating || previewLoading}
-                  className={`
+        {/* Selector de Precios */}
+        <Card>
+          <CardContent className="p-4 space-y-3">
+            <div>
+              <Label className="text-sm font-medium flex items-center gap-2">
+                Opciones de Precios
+                <Badge variant="outline" className="text-xs">
+                  {selectedProducts.filter((p) => p.price_wholesale).length} con mayoreo
+                </Badge>
+              </Label>
+              <p className="text-xs text-gray-600 mt-1">Elige qué precios mostrar en tu catálogo</p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setShowWholesalePrices(true)}
+                disabled={generating || previewLoading}
+                className={`
                     relative flex flex-col items-center p-4 rounded-lg border-2 transition-all
                     ${
                       showWholesalePrices
@@ -825,29 +823,29 @@ const TemplateSelection = () => {
                     }
                     ${generating || previewLoading ? "opacity-50 cursor-not-allowed" : ""}
                   `}
-                >
-                  <div
-                    className={`
+              >
+                <div
+                  className={`
                     w-10 h-10 rounded-full flex items-center justify-center mb-2
                     ${showWholesalePrices ? "bg-purple-100" : "bg-gray-100"}
                   `}
-                  >
-                    <Package className={`w-5 h-5 ${showWholesalePrices ? "text-purple-600" : "text-gray-600"}`} />
+                >
+                  <Package className={`w-5 h-5 ${showWholesalePrices ? "text-purple-600" : "text-gray-600"}`} />
+                </div>
+                <div className="text-sm font-medium text-center">Mayoreo</div>
+                <div className="text-xs text-gray-500 mt-1 text-center">Con precios al por mayor</div>
+                {showWholesalePrices && (
+                  <div className="absolute top-2 right-2">
+                    <CheckCircle className="w-5 h-5 text-purple-600" />
                   </div>
-                  <div className="text-sm font-medium text-center">Mayoreo</div>
-                  <div className="text-xs text-gray-500 mt-1 text-center">Con precios al por mayor</div>
-                  {showWholesalePrices && (
-                    <div className="absolute top-2 right-2">
-                      <CheckCircle className="w-5 h-5 text-purple-600" />
-                    </div>
-                  )}
-                </button>
+                )}
+              </button>
 
-                <button
-                  type="button"
-                  onClick={() => setShowWholesalePrices(false)}
-                  disabled={generating || previewLoading}
-                  className={`
+              <button
+                type="button"
+                onClick={() => setShowWholesalePrices(false)}
+                disabled={generating || previewLoading}
+                className={`
                     relative flex flex-col items-center p-4 rounded-lg border-2 transition-all
                     ${
                       !showWholesalePrices
@@ -856,378 +854,376 @@ const TemplateSelection = () => {
                     }
                     ${generating || previewLoading ? "opacity-50 cursor-not-allowed" : ""}
                   `}
-                >
-                  <div
-                    className={`
+              >
+                <div
+                  className={`
                     w-10 h-10 rounded-full flex items-center justify-center mb-2
                     ${!showWholesalePrices ? "bg-purple-100" : "bg-gray-100"}
                   `}
-                  >
-                    <Zap className={`w-5 h-5 ${!showWholesalePrices ? "text-purple-600" : "text-gray-600"}`} />
+                >
+                  <Zap className={`w-5 h-5 ${!showWholesalePrices ? "text-purple-600" : "text-gray-600"}`} />
+                </div>
+                <div className="text-sm font-medium text-center">Retail</div>
+                <div className="text-xs text-gray-500 mt-1 text-center">Solo precio al público</div>
+                {!showWholesalePrices && (
+                  <div className="absolute top-2 right-2">
+                    <CheckCircle className="w-5 h-5 text-purple-600" />
                   </div>
-                  <div className="text-sm font-medium text-center">Retail</div>
-                  <div className="text-xs text-gray-500 mt-1 text-center">Solo precio al público</div>
-                  {!showWholesalePrices && (
-                    <div className="absolute top-2 right-2">
-                      <CheckCircle className="w-5 h-5 text-purple-600" />
-                    </div>
-                  )}
-                </button>
+                )}
+              </button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Progress Bar mejorada */}
+        {generating && (
+          <Card className="border-blue-200 bg-blue-50">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3 mb-3">
+                <Loader2 className="w-5 h-5 animate-spin text-blue-600" />
+                <div>
+                  <h4 className="font-medium text-blue-900">Generando catálogo con sistema v2.0...</h4>
+                  <p className="text-sm text-blue-700">
+                    Método:{" "}
+                    {generationMethod === "auto"
+                      ? "Selección Automática"
+                      : generationMethod === "puppeteer"
+                        ? "🚀 Puppeteer Service"
+                        : generationMethod === "dynamic"
+                          ? "⚡ Dynamic Engine"
+                          : "🎨 Classic Engine"}{" "}
+                    | Layout: {productsPerPage} productos/página | Auto-corrección: {autoFix ? "Activa" : "Inactiva"}
+                  </p>
+                </div>
+              </div>
+              <Progress value={generationProgress} className="h-2" />
+              <div className="flex justify-between text-xs text-blue-600 mt-1">
+                <span>{generationProgress}% completado</span>
+                <span>
+                  {selectedProducts.length} productos | {Math.ceil(selectedProducts.length / productsPerPage)} páginas |
+                  Layout {productsPerPage}/página
+                </span>
               </div>
             </CardContent>
           </Card>
-
-          {/* Progress Bar mejorada */}
-          {generating && (
-            <Card className="border-blue-200 bg-blue-50">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3 mb-3">
-                  <Loader2 className="w-5 h-5 animate-spin text-blue-600" />
-                  <div>
-                    <h4 className="font-medium text-blue-900">Generando catálogo con sistema v2.0...</h4>
-                    <p className="text-sm text-blue-700">
-                      Método:{" "}
-                      {generationMethod === "auto"
-                        ? "Selección Automática"
-                        : generationMethod === "puppeteer"
-                          ? "🚀 Puppeteer Service"
-                          : generationMethod === "dynamic"
-                            ? "⚡ Dynamic Engine"
-                            : "🎨 Classic Engine"}{" "}
-                      | Layout: {productsPerPage} productos/página | Auto-corrección: {autoFix ? "Activa" : "Inactiva"}
-                    </p>
-                  </div>
-                </div>
-                <Progress value={generationProgress} className="h-2" />
-                <div className="flex justify-between text-xs text-blue-600 mt-1">
-                  <span>{generationProgress}% completado</span>
-                  <span>
-                    {selectedProducts.length} productos | {Math.ceil(selectedProducts.length / productsPerPage)} páginas
-                    | Layout {productsPerPage}/página
-                  </span>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Selector de templates */}
-          <SmartTemplateSelector
-            selectedTemplate={selectedTemplate}
-            onTemplateSelect={handleTemplateSelect}
-            userPlan={userPlan}
-            userIndustry={userIndustry}
-            productCount={selectedProducts.length}
-          />
-
-          {/* Información del template seleccionado mejorada */}
-          {selectedTemplate && (
-            <Card
-              className={`border-2 ${
-                templateQuality?.status === "broken"
-                  ? "border-red-200 bg-red-50"
-                  : templateQuality?.status === "needs_fix"
-                    ? "border-yellow-200 bg-yellow-50"
-                    : "border-green-200 bg-green-50"
-              }`}
-            >
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3 mb-3">
-                  {templateQuality?.status === "broken" ? (
-                    <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
-                  ) : templateQuality?.status === "needs_fix" ? (
-                    <AlertTriangle className="w-5 h-5 text-yellow-600 flex-shrink-0" />
-                  ) : (
-                    <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
-                  )}
-                  <div className="flex-1">
-                    <h4
-                      className={`font-medium ${
-                        templateQuality?.status === "broken"
-                          ? "text-red-900"
-                          : templateQuality?.status === "needs_fix"
-                            ? "text-yellow-900"
-                            : "text-green-900"
-                      }`}
-                    >
-                      Template seleccionado
-                      {templateQuality && (
-                        <Badge variant="outline" className="ml-2">
-                          {templateQuality.score}/100
-                        </Badge>
-                      )}
-                    </h4>
-                    <p
-                      className={`text-sm ${
-                        templateQuality?.status === "broken"
-                          ? "text-red-700"
-                          : templateQuality?.status === "needs_fix"
-                            ? "text-yellow-700"
-                            : "text-green-700"
-                      }`}
-                    >
-                      Layout actual: {productsPerPage} productos/página •
-                      {Math.ceil(selectedProducts.length / productsPerPage)} páginas totales •
-                      {getTemplateInfo(selectedTemplate).recommendedFor}
-                      {templateQuality && templateQuality.status === "broken" && (
-                        <span className="font-semibold"> • REQUIERE CORRECCIÓN</span>
-                      )}
-                    </p>
-                  </div>
-
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setShowAdvancedOptions(!showAdvancedOptions)}
-                    className={`${
-                      templateQuality?.status === "broken"
-                        ? "text-red-700 hover:bg-red-100"
-                        : templateQuality?.status === "needs_fix"
-                          ? "text-yellow-700 hover:bg-yellow-100"
-                          : "text-green-700 hover:bg-green-100"
-                    }`}
-                  >
-                    <Info className="w-4 h-4" />
-                  </Button>
-                </div>
-
-                {/* Mostrar issues si los hay */}
-                {templateQuality && templateQuality.issues.length > 0 && (
-                  <div className="mb-3 p-3 bg-white rounded border">
-                    <h5 className="text-sm font-medium mb-2">Issues detectados:</h5>
-                    <ul className="text-xs space-y-1">
-                      {templateQuality.issues.slice(0, 3).map((issue, index) => (
-                        <li key={index} className="flex items-start gap-1">
-                          <span className="text-gray-400">•</span>
-                          <span>{issue}</span>
-                        </li>
-                      ))}
-                      {templateQuality.issues.length > 3 && (
-                        <li className="text-gray-500 italic">+{templateQuality.issues.length - 3} más...</li>
-                      )}
-                    </ul>
-                  </div>
-                )}
-
-                {/* Opciones avanzadas */}
-                {showAdvancedOptions && (
-                  <div className="border-t border-gray-300 pt-3 mt-3">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                      <div>
-                        <label className="text-xs font-medium text-gray-800">Método de Generación</label>
-                        <select
-                          value={generationMethod}
-                          onChange={(e) => setGenerationMethod(e.target.value as GenerationMethod)}
-                          className="w-full mt-1 text-sm border border-gray-300 rounded px-2 py-1"
-                          disabled={generating || previewLoading}
-                        >
-                          <option value="auto">🧠 Auto (Recomendado: {getRecommendedMethod()})</option>
-                          <option value="puppeteer">🚀 Puppeteer (Mejor calidad)</option>
-                          <option value="dynamic">⚡ Dynamic (Rápido)</option>
-                          <option value="classic">🎨 Classic (Compatible)</option>
-                        </select>
-                      </div>
-
-                      <div>
-                        <label className="text-xs font-medium text-gray-800">Auto-corrección</label>
-                        <div className="mt-1">
-                          <label className="flex items-center text-sm">
-                            <input
-                              type="checkbox"
-                              checked={autoFix}
-                              onChange={(e) => setAutoFix(e.target.checked)}
-                              className="mr-2"
-                              disabled={generating || previewLoading}
-                            />
-                            Corregir automáticamente
-                          </label>
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="text-xs font-medium text-gray-800">Layout Dinámico</label>
-                        <div className="text-sm text-gray-700 mt-1">
-                          {productsPerPage === 4
-                            ? "2×2 - Cards Grandes"
-                            : productsPerPage === 6
-                              ? "3×2 - Balanceado"
-                              : "3×3 - Compacto"}{" "}
-                          • {getTemplateInfo(selectedTemplate).spacing}
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="text-xs font-medium text-gray-800">Compatibilidad</label>
-                        <div className="text-sm text-gray-700 mt-1">
-                          {getTemplateInfo(selectedTemplate).supportsDynamic ? (
-                            <span className="flex items-center gap-1">
-                              <Star className="w-3 h-3 text-yellow-500" />
-                              Avanzado
-                            </span>
-                          ) : (
-                            <span className="flex items-center gap-1">
-                              <Shield className="w-3 h-3 text-blue-500" />
-                              Estándar
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Campo para el título del catálogo */}
-                <div className="mt-4 space-y-2">
-                  <Label htmlFor="catalogTitle" className="text-sm font-medium text-gray-800">
-                    Nombre del catálogo (opcional)
-                  </Label>
-                  <Input
-                    id="catalogTitle"
-                    value={catalogTitle}
-                    onChange={(e) => setCatalogTitle(e.target.value)}
-                    placeholder="Ej: Catálogo Primavera 2024, Productos Nuevos..."
-                    className="bg-white border-gray-300 focus:border-green-500 text-base h-12"
-                    disabled={generating || previewLoading}
-                    style={{ fontSize: "16px" }}
-                  />
-                  <p className="text-xs text-gray-600">Si no especificas un nombre, se generará automáticamente</p>
-                </div>
-
-                {/* Botones de acción */}
-                {limits?.canGenerate && templateQuality?.status !== "broken" && (
-                  <div className="flex items-center justify-between mt-4">
-                    <div className="text-sm text-gray-700">
-                      Listo para generar {selectedProducts.length} productos (
-                      {Math.ceil(selectedProducts.length / productsPerPage)} páginas con {productsPerPage}/página)
-                      {templateQuality && autoFix && templateQuality.status === "needs_fix" && (
-                        <span className="text-blue-600"> • Con auto-corrección</span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        onClick={handlePreviewCatalog}
-                        disabled={generating || previewLoading}
-                        variant="outline"
-                        className="border-gray-300 text-gray-700 hover:bg-gray-100"
-                      >
-                        {previewLoading ? (
-                          <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                        ) : (
-                          <Eye className="w-4 h-4 mr-2" />
-                        )}
-                        Preview
-                      </Button>
-
-                      <Button
-                        onClick={handleGenerateCatalog}
-                        disabled={generating || previewLoading}
-                        className="bg-green-600 hover:bg-green-700"
-                      >
-                        {generating ? (
-                          <>
-                            <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                            Generando...
-                          </>
-                        ) : (
-                          <>
-                            {generationMethod === "puppeteer" ? (
-                              <Rocket className="w-4 h-4 mr-2" />
-                            ) : generationMethod === "dynamic" ? (
-                              <Zap className="w-4 h-4 mr-2" />
-                            ) : generationMethod === "classic" ? (
-                              <Palette className="w-4 h-4 mr-2" />
-                            ) : (
-                              <Sparkles className="w-4 h-4 mr-2" />
-                            )}
-                            Generar PDF v2.0
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
-        </div>
-
-        {/* Modal de Preview */}
-        {showPreview && (
-          <CatalogPreview
-            htmlContent={previewHTML}
-            templateId={selectedTemplate || ""}
-            productCount={selectedProducts.length}
-            onGeneratePDF={handleGenerateCatalog}
-            onClose={() => setShowPreview(false)}
-            loading={generating}
-          />
         )}
 
-        {/* 📱 BOTTOM ACTION BAR - SOLO MÓVIL/TABLET */}
-        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-50 safe-area-bottom">
-          <div className="px-4 py-3 max-w-7xl mx-auto">
-            <div className="flex items-center gap-3">
-              {/* Preview Button */}
-              <Button
-                onClick={handlePreviewCatalog}
-                disabled={!selectedTemplate || generating || previewLoading}
-                variant="outline"
-                className="flex-1 h-12 text-base font-medium"
-              >
-                {previewLoading ? (
-                  <>
-                    <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                    Cargando...
-                  </>
-                ) : (
-                  <>
-                    <Eye className="h-5 w-5 mr-2" />
-                    Preview
-                  </>
-                )}
-              </Button>
+        {/* Selector de templates */}
+        <SmartTemplateSelector
+          selectedTemplate={selectedTemplate}
+          onTemplateSelect={handleTemplateSelect}
+          userPlan={userPlan}
+          userIndustry={userIndustry}
+          productCount={selectedProducts.length}
+        />
 
-              {/* Generate Button */}
-              <Button
-                onClick={handleGenerateCatalog}
-                disabled={!selectedTemplate || generating || !limits?.canGenerate}
-                className="flex-[2] h-12 text-base font-medium bg-purple-600 hover:bg-purple-700"
-              >
-                {generating ? (
-                  <>
-                    <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                    {generationProgress > 0 ? `${generationProgress}%` : "Generando..."}
-                  </>
+        {/* Información del template seleccionado mejorada */}
+        {selectedTemplate && (
+          <Card
+            className={`border-2 ${
+              templateQuality?.status === "broken"
+                ? "border-red-200 bg-red-50"
+                : templateQuality?.status === "needs_fix"
+                  ? "border-yellow-200 bg-yellow-50"
+                  : "border-green-200 bg-green-50"
+            }`}
+          >
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3 mb-3">
+                {templateQuality?.status === "broken" ? (
+                  <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
+                ) : templateQuality?.status === "needs_fix" ? (
+                  <AlertTriangle className="w-5 h-5 text-yellow-600 flex-shrink-0" />
                 ) : (
-                  <>
-                    <Palette className="h-5 w-5 mr-2" />
-                    Generar PDF
-                  </>
+                  <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
                 )}
-              </Button>
-            </div>
+                <div className="flex-1">
+                  <h4
+                    className={`font-medium ${
+                      templateQuality?.status === "broken"
+                        ? "text-red-900"
+                        : templateQuality?.status === "needs_fix"
+                          ? "text-yellow-900"
+                          : "text-green-900"
+                    }`}
+                  >
+                    Template seleccionado
+                    {templateQuality && (
+                      <Badge variant="outline" className="ml-2">
+                        {templateQuality.score}/100
+                      </Badge>
+                    )}
+                  </h4>
+                  <p
+                    className={`text-sm ${
+                      templateQuality?.status === "broken"
+                        ? "text-red-700"
+                        : templateQuality?.status === "needs_fix"
+                          ? "text-yellow-700"
+                          : "text-green-700"
+                    }`}
+                  >
+                    Layout actual: {productsPerPage} productos/página •
+                    {Math.ceil(selectedProducts.length / productsPerPage)} páginas totales •
+                    {getTemplateInfo(selectedTemplate).recommendedFor}
+                    {templateQuality && templateQuality.status === "broken" && (
+                      <span className="font-semibold"> • REQUIERE CORRECCIÓN</span>
+                    )}
+                  </p>
+                </div>
 
-            {/* Info contextual compacta */}
-            <div className="flex items-center justify-between mt-2 text-xs text-gray-600">
-              <span className="flex items-center gap-1">
-                <Package className="w-3 h-3" />
-                {selectedProducts.length} productos
-              </span>
-              <span className="flex items-center gap-1">
-                <Settings className="w-3 h-3" />
-                {productsPerPage}/página
-              </span>
-              {limits && (
-                <span>
-                  {limits.catalogsLimit === "unlimited" ? "∞ catálogos" : `${limits.remainingCatalogs} rest.`}
-                </span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowAdvancedOptions(!showAdvancedOptions)}
+                  className={`${
+                    templateQuality?.status === "broken"
+                      ? "text-red-700 hover:bg-red-100"
+                      : templateQuality?.status === "needs_fix"
+                        ? "text-yellow-700 hover:bg-yellow-100"
+                        : "text-green-700 hover:bg-green-100"
+                  }`}
+                >
+                  <Info className="w-4 h-4" />
+                </Button>
+              </div>
+
+              {/* Mostrar issues si los hay */}
+              {templateQuality && templateQuality.issues.length > 0 && (
+                <div className="mb-3 p-3 bg-white rounded border">
+                  <h5 className="text-sm font-medium mb-2">Issues detectados:</h5>
+                  <ul className="text-xs space-y-1">
+                    {templateQuality.issues.slice(0, 3).map((issue, index) => (
+                      <li key={index} className="flex items-start gap-1">
+                        <span className="text-gray-400">•</span>
+                        <span>{issue}</span>
+                      </li>
+                    ))}
+                    {templateQuality.issues.length > 3 && (
+                      <li className="text-gray-500 italic">+{templateQuality.issues.length - 3} más...</li>
+                    )}
+                  </ul>
+                </div>
               )}
-            </div>
+
+              {/* Opciones avanzadas */}
+              {showAdvancedOptions && (
+                <div className="border-t border-gray-300 pt-3 mt-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div>
+                      <label className="text-xs font-medium text-gray-800">Método de Generación</label>
+                      <select
+                        value={generationMethod}
+                        onChange={(e) => setGenerationMethod(e.target.value as GenerationMethod)}
+                        className="w-full mt-1 text-sm border border-gray-300 rounded px-2 py-1"
+                        disabled={generating || previewLoading}
+                      >
+                        <option value="auto">🧠 Auto (Recomendado: {getRecommendedMethod()})</option>
+                        <option value="puppeteer">🚀 Puppeteer (Mejor calidad)</option>
+                        <option value="dynamic">⚡ Dynamic (Rápido)</option>
+                        <option value="classic">🎨 Classic (Compatible)</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-medium text-gray-800">Auto-corrección</label>
+                      <div className="mt-1">
+                        <label className="flex items-center text-sm">
+                          <input
+                            type="checkbox"
+                            checked={autoFix}
+                            onChange={(e) => setAutoFix(e.target.checked)}
+                            className="mr-2"
+                            disabled={generating || previewLoading}
+                          />
+                          Corregir automáticamente
+                        </label>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-medium text-gray-800">Layout Dinámico</label>
+                      <div className="text-sm text-gray-700 mt-1">
+                        {productsPerPage === 4
+                          ? "2×2 - Cards Grandes"
+                          : productsPerPage === 6
+                            ? "3×2 - Balanceado"
+                            : "3×3 - Compacto"}{" "}
+                        • {getTemplateInfo(selectedTemplate).spacing}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-medium text-gray-800">Compatibilidad</label>
+                      <div className="text-sm text-gray-700 mt-1">
+                        {getTemplateInfo(selectedTemplate).supportsDynamic ? (
+                          <span className="flex items-center gap-1">
+                            <Star className="w-3 h-3 text-yellow-500" />
+                            Avanzado
+                          </span>
+                        ) : (
+                          <span className="flex items-center gap-1">
+                            <Shield className="w-3 h-3 text-blue-500" />
+                            Estándar
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Campo para el título del catálogo */}
+              <div className="mt-4 space-y-2">
+                <Label htmlFor="catalogTitle" className="text-sm font-medium text-gray-800">
+                  Nombre del catálogo (opcional)
+                </Label>
+                <Input
+                  id="catalogTitle"
+                  value={catalogTitle}
+                  onChange={(e) => setCatalogTitle(e.target.value)}
+                  placeholder="Ej: Catálogo Primavera 2024, Productos Nuevos..."
+                  className="bg-white border-gray-300 focus:border-green-500 text-base h-12"
+                  disabled={generating || previewLoading}
+                  style={{ fontSize: "16px" }}
+                />
+                <p className="text-xs text-gray-600">Si no especificas un nombre, se generará automáticamente</p>
+              </div>
+
+              {/* Botones de acción */}
+              {limits?.canGenerate && templateQuality?.status !== "broken" && (
+                <div className="flex items-center justify-between mt-4">
+                  <div className="text-sm text-gray-700">
+                    Listo para generar {selectedProducts.length} productos (
+                    {Math.ceil(selectedProducts.length / productsPerPage)} páginas con {productsPerPage}/página)
+                    {templateQuality && autoFix && templateQuality.status === "needs_fix" && (
+                      <span className="text-blue-600"> • Con auto-corrección</span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      onClick={handlePreviewCatalog}
+                      disabled={generating || previewLoading}
+                      variant="outline"
+                      className="border-gray-300 text-gray-700 hover:bg-gray-100"
+                    >
+                      {previewLoading ? (
+                        <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                      ) : (
+                        <Eye className="w-4 h-4 mr-2" />
+                      )}
+                      Preview
+                    </Button>
+
+                    <Button
+                      onClick={handleGenerateCatalog}
+                      disabled={generating || previewLoading}
+                      className="bg-green-600 hover:bg-green-700"
+                    >
+                      {generating ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                          Generando...
+                        </>
+                      ) : (
+                        <>
+                          {generationMethod === "puppeteer" ? (
+                            <Rocket className="w-4 h-4 mr-2" />
+                          ) : generationMethod === "dynamic" ? (
+                            <Zap className="w-4 h-4 mr-2" />
+                          ) : generationMethod === "classic" ? (
+                            <Palette className="w-4 h-4 mr-2" />
+                          ) : (
+                            <Sparkles className="w-4 h-4 mr-2" />
+                          )}
+                          Generar PDF v2.0
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+      </div>
+
+      {/* Modal de Preview */}
+      {showPreview && (
+        <CatalogPreview
+          htmlContent={previewHTML}
+          templateId={selectedTemplate || ""}
+          productCount={selectedProducts.length}
+          onGeneratePDF={handleGenerateCatalog}
+          onClose={() => setShowPreview(false)}
+          loading={generating}
+        />
+      )}
+
+      {/* 📱 BOTTOM ACTION BAR - SOLO MÓVIL/TABLET */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-50 safe-area-bottom">
+        <div className="px-4 py-3 max-w-7xl mx-auto">
+          <div className="flex items-center gap-3">
+            {/* Preview Button */}
+            <Button
+              onClick={handlePreviewCatalog}
+              disabled={!selectedTemplate || generating || previewLoading}
+              variant="outline"
+              className="flex-1 h-12 text-base font-medium"
+            >
+              {previewLoading ? (
+                <>
+                  <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                  Cargando...
+                </>
+              ) : (
+                <>
+                  <Eye className="h-5 w-5 mr-2" />
+                  Preview
+                </>
+              )}
+            </Button>
+
+            {/* Generate Button */}
+            <Button
+              onClick={handleGenerateCatalog}
+              disabled={!selectedTemplate || generating || !limits?.canGenerate}
+              className="flex-[2] h-12 text-base font-medium bg-purple-600 hover:bg-purple-700"
+            >
+              {generating ? (
+                <>
+                  <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                  {generationProgress > 0 ? `${generationProgress}%` : "Generando..."}
+                </>
+              ) : (
+                <>
+                  <Palette className="h-5 w-5 mr-2" />
+                  Generar PDF
+                </>
+              )}
+            </Button>
+          </div>
+
+          {/* Info contextual compacta */}
+          <div className="flex items-center justify-between mt-2 text-xs text-gray-600">
+            <span className="flex items-center gap-1">
+              <Package className="w-3 h-3" />
+              {selectedProducts.length} productos
+            </span>
+            <span className="flex items-center gap-1">
+              <Settings className="w-3 h-3" />
+              {productsPerPage}/página
+            </span>
+            {limits && (
+              <span>{limits.catalogsLimit === "unlimited" ? "∞ catálogos" : `${limits.remainingCatalogs} rest.`}</span>
+            )}
           </div>
         </div>
+      </div>
 
-        {/* Spacer para evitar que contenido quede detrás de bottom bar */}
-        <div className="lg:hidden h-28" />
-      </AppLayout>
+      {/* Spacer para evitar que contenido quede detrás de bottom bar */}
+      <div className="lg:hidden h-28" />
+    </AppLayout>
   );
 };
 
