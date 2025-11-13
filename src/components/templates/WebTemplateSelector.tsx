@@ -1,28 +1,23 @@
 // src/components/templates/WebTemplateSelector.tsx
 // Selector de templates web con restricciones por plan
 
-import React, { useEffect, useState } from 'react';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Lock, Check, Sparkles, Crown, Zap, AlertCircle } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import React, { useEffect, useState } from "react";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Lock, Check, Sparkles, Crown, Zap, AlertCircle, Star, LayoutGrid } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-// Imports del sistema web-catalog
-import { EXPANDED_WEB_TEMPLATES } from '@/lib/web-catalog/expanded-templates-catalog';
-import { 
-  getAvailableTemplatesForPlan, 
+import { EXPANDED_WEB_TEMPLATES } from "@/lib/web-catalog/expanded-templates-catalog";
+import {
+  getAvailableTemplatesForPlan,
   getLockedTemplatesForPlan,
-  getTemplateStatsByPlan,
   isTemplateAvailable,
-  getTemplateBlockedMessage
-} from '@/lib/web-catalog/template-filters';
-import { 
-  getUserPlanTier, 
-  getPlanFeatures, 
-  type PlanTier 
-} from '@/lib/web-catalog/plan-restrictions';
-import type { WebCatalogTemplate } from '@/lib/web-catalog/types';
+  getTemplateBlockedMessage,
+} from "@/lib/web-catalog/template-filters";
+import { getUserPlanTier, getPlanFeatures, type PlanTier } from "@/lib/web-catalog/plan-restrictions";
+import type { WebCatalogTemplate } from "@/lib/web-catalog/types";
 
 interface WebTemplateSelectorProps {
   selectedTemplate?: string;
@@ -32,248 +27,159 @@ interface WebTemplateSelectorProps {
   productCount?: number;
 }
 
-const getCategoryIcon = (category: string) => {
-  switch (category) {
-    case 'basic': return Zap;
-    case 'standard': return Sparkles;
-    case 'seasonal': return Crown;
-    default: return Sparkles;
-  }
-};
-
-const getCategoryColor = (category: string) => {
-  switch (category) {
-    case 'basic': return 'bg-blue-100 text-blue-700 border-blue-200';
-    case 'standard': return 'bg-purple-100 text-purple-700 border-purple-200';
-    case 'seasonal': return 'bg-amber-100 text-amber-700 border-amber-200';
-    default: return 'bg-gray-100 text-gray-700 border-gray-200';
-  }
-};
-
 export const WebTemplateSelector: React.FC<WebTemplateSelectorProps> = ({
   selectedTemplate,
   onTemplateSelect,
   userPlanId,
   userPlanName,
-  productCount = 0
+  productCount = 0,
 }) => {
-  const [userTier, setUserTier] = useState<PlanTier>('free');
-  const [availableTemplates, setAvailableTemplates] = useState<WebCatalogTemplate[]>([]);
-  const [lockedTemplates, setLockedTemplates] = useState<WebCatalogTemplate[]>([]);
-  const [stats, setStats] = useState<any>(null);
+  const [userTier, setUserTier] = useState<PlanTier>("free");
+  const [allTemplates, setAllTemplates] = useState<WebCatalogTemplate[]>([]);
 
   useEffect(() => {
-    loadTemplatesForUser();
-  }, [userPlanId, userPlanName]);
-
-  const loadTemplatesForUser = () => {
-    // Determinar el tier del usuario
     const tier = getUserPlanTier(userPlanId, userPlanName);
     setUserTier(tier);
-
-    // Obtener features del plan
-    const features = getPlanFeatures(tier);
-    
-    // Filtrar templates disponibles y bloqueados
-    const available = getAvailableTemplatesForPlan(EXPANDED_WEB_TEMPLATES, tier);
-    const locked = getLockedTemplatesForPlan(EXPANDED_WEB_TEMPLATES, tier);
-    const templateStats = getTemplateStatsByPlan(EXPANDED_WEB_TEMPLATES, tier);
-
-    setAvailableTemplates(available);
-    setLockedTemplates(locked);
-    setStats(templateStats);
-
-    console.log('📊 Templates cargados:', {
-      tier,
-      features,
-      disponibles: available.length,
-      bloqueados: locked.length,
-      stats: templateStats
-    });
-  };
+    setAllTemplates(EXPANDED_WEB_TEMPLATES);
+  }, [userPlanId, userPlanName]);
 
   const handleSelectTemplate = (template: WebCatalogTemplate) => {
-    const available = isTemplateAvailable(template, userTier);
-    
-    if (!available) {
-      console.log('❌ Template bloqueado:', template.id);
-      return;
-    }
-
+    if (!isTemplateAvailable(template, userTier)) return;
     onTemplateSelect(template.id);
   };
 
-  const renderTemplateCard = (template: WebCatalogTemplate, isLocked: boolean) => {
-    const Icon = getCategoryIcon(template.category);
+  const renderTemplateCard = (template: WebCatalogTemplate) => {
+    const isLocked = !isTemplateAvailable(template, userTier);
     const isSelected = selectedTemplate === template.id;
 
     return (
       <Card
         key={template.id}
         className={cn(
-          'cursor-pointer transition-all hover:shadow-lg border-2',
-          isSelected ? 'border-primary ring-2 ring-primary/20' : 'border-border hover:border-primary/50',
-          isLocked && 'opacity-60 cursor-not-allowed'
+          "cursor-pointer transition-all group relative overflow-hidden border-2",
+          isSelected ? "border-primary ring-2 ring-primary/20 shadow-md" : "border-border hover:border-primary/50",
+          isLocked && "opacity-80",
         )}
-        onClick={() => !isLocked && handleSelectTemplate(template)}
+        onClick={() => handleSelectTemplate(template)}
       >
-        <CardContent className="p-4">
-          {/* Preview Image */}
-          <div className="relative aspect-video mb-3 rounded-lg overflow-hidden bg-muted">
-            {template.thumbnail ? (
-              <img 
-                src={template.thumbnail} 
-                alt={template.name}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-                Preview
-              </div>
-            )}
-            
-            {/* Lock overlay */}
-            {isLocked && (
-              <div className="absolute inset-0 bg-black/40 flex items-center justify-center backdrop-blur-sm">
-                <div className="text-center text-white">
-                  <Lock className="h-8 w-8 mx-auto mb-2" />
-                  <p className="text-xs font-medium">Actualiza tu plan</p>
-                </div>
-              </div>
-            )}
-
-            {/* Selected indicator */}
-            {isSelected && !isLocked && (
-              <div className="absolute top-2 right-2 bg-primary text-primary-foreground rounded-full p-1">
-                <Check className="h-4 w-4" />
-              </div>
-            )}
-
-            {/* Category badge */}
-            <div className="absolute top-2 left-2">
-              <Badge 
-                variant="secondary" 
-                className={cn('text-xs', getCategoryColor(template.category))}
-              >
-                <Icon className="h-3 w-3 mr-1" />
-                {template.category}
-              </Badge>
-            </div>
-          </div>
-
-          {/* Template info */}
-          <div className="space-y-2">
-            <div className="flex items-start justify-between gap-2">
-              <h4 className="font-semibold text-sm leading-tight">
-                {template.name}
-              </h4>
-              {template.isPremium && (
-                <Crown className="h-4 w-4 text-amber-500 flex-shrink-0" />
+        {/* Image Container */}
+        <div className="relative aspect-[16/10] bg-muted overflow-hidden">
+          {template.thumbnail ? (
+            <img
+              src={template.thumbnail}
+              alt={template.name}
+              className={cn(
+                "w-full h-full object-cover transition-transform duration-500 group-hover:scale-105",
+                isLocked && "grayscale-[0.5]",
               )}
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center bg-gray-100 text-muted-foreground">
+              <LayoutGrid className="h-10 w-10 opacity-20" />
             </div>
-            
-            <p className="text-xs text-muted-foreground line-clamp-2">
-              {template.description}
-            </p>
+          )}
 
-            {/* Features badges */}
-            {template.features && template.features.length > 0 && (
-              <div className="flex flex-wrap gap-1">
-                {template.features.slice(0, 2).map((feature, idx) => (
-                  <Badge key={idx} variant="outline" className="text-xs">
-                    {feature}
-                  </Badge>
-                ))}
+          {/* Overlays */}
+          {isLocked && (
+            <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center backdrop-blur-[2px] text-white p-4 text-center transition-opacity">
+              <Lock className="h-8 w-8 mb-2" />
+              <span className="font-bold text-sm">Plan {template.category === "seasonal" ? "Pro" : "Básico"}</span>
+            </div>
+          )}
+
+          {isSelected && (
+            <div className="absolute inset-0 bg-primary/10 border-4 border-primary flex items-center justify-center">
+              <div className="bg-primary text-primary-foreground rounded-full p-2 shadow-lg animate-in zoom-in">
+                <Check className="h-6 w-6" />
               </div>
+            </div>
+          )}
+
+          {/* Badges */}
+          <div className="absolute top-2 left-2 flex flex-col gap-1">
+            {template.category === "seasonal" && (
+              <Badge variant="default" className="bg-amber-500 hover:bg-amber-600 border-none shadow-sm text-[10px]">
+                <Crown className="h-3 w-3 mr-1" /> Premium
+              </Badge>
+            )}
+            {(template as any).isNew && (
+              <Badge variant="default" className="bg-blue-500 hover:bg-blue-600 border-none shadow-sm text-[10px]">
+                Nuevo
+              </Badge>
             )}
           </div>
+        </div>
 
-          {/* Locked message */}
+        {/* Content */}
+        <CardContent className="p-3">
+          <div className="flex justify-between items-start mb-1">
+            <h4 className={cn("font-bold text-sm", isLocked ? "text-muted-foreground" : "text-foreground")}>
+              {template.name}
+            </h4>
+          </div>
+          <p className="text-xs text-muted-foreground line-clamp-2 h-8 leading-tight">{template.description}</p>
+
           {isLocked && (
-            <div className="mt-3 pt-3 border-t">
-              <p className="text-xs text-muted-foreground">
-                {getTemplateBlockedMessage(template, userTier)}
-              </p>
-            </div>
+            <p className="text-[10px] text-amber-600 font-medium mt-2 flex items-center">
+              <Sparkles className="h-3 w-3 mr-1" />
+              {getTemplateBlockedMessage(template, userTier)}
+            </p>
           )}
         </CardContent>
       </Card>
     );
   };
 
+  // Agrupar templates
+  const basicTemplates = allTemplates.filter((t) => t.category === "basic");
+  const standardTemplates = allTemplates.filter((t) => t.category === "standard");
+  const premiumTemplates = allTemplates.filter((t) => t.category === "seasonal");
+
   return (
-    <div className="space-y-6">
-      {/* Header con stats */}
-      <div className="flex items-start justify-between">
-        <div>
-          <h3 className="font-semibold text-lg">Templates Web Disponibles</h3>
-          <p className="text-sm text-muted-foreground mt-1">
-            Selecciona el diseño para tu catálogo digital de {productCount} productos
-          </p>
+    <div className="space-y-4">
+      <Tabs defaultValue="all" className="w-full">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="font-semibold text-lg">Diseño de tu Catálogo</h3>
+            <p className="text-sm text-muted-foreground">Elige cómo verán tus clientes tus productos</p>
+          </div>
+          <TabsList>
+            <TabsTrigger value="all">Todos</TabsTrigger>
+            <TabsTrigger value="standard" className="hidden sm:inline-flex">
+              Estándar
+            </TabsTrigger>
+            <TabsTrigger value="premium" className="flex items-center gap-1">
+              <Crown className="h-3 w-3" /> Premium
+            </TabsTrigger>
+          </TabsList>
         </div>
-        {stats && (
-          <div className="text-right">
-            <p className="text-sm font-medium">
-              {stats.available.total} de {EXPANDED_WEB_TEMPLATES.length} disponibles
-            </p>
-            <p className="text-xs text-muted-foreground">
-              Plan: {getPlanFeatures(userTier).displayName}
-            </p>
-          </div>
-        )}
-      </div>
 
-      {/* Alert si hay templates bloqueados */}
-      {lockedTemplates.length > 0 && (
-        <Alert>
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            Tienes {lockedTemplates.length} template{lockedTemplates.length > 1 ? 's' : ''} bloqueado{lockedTemplates.length > 1 ? 's' : ''}. 
-            Actualiza tu plan para acceder a más diseños.
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {/* Templates disponibles */}
-      {availableTemplates.length > 0 && (
-        <div>
-          <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-primary" />
-            Disponibles en tu plan
-          </h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {availableTemplates.map(template => renderTemplateCard(template, false))}
+        <TabsContent value="all" className="space-y-6 mt-0">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {allTemplates.map((t) => renderTemplateCard(t))}
           </div>
-        </div>
-      )}
+        </TabsContent>
 
-      {/* Templates bloqueados (mostrar solo algunos para no saturar) */}
-      {lockedTemplates.length > 0 && (
-        <div>
-          <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
-            <Lock className="h-4 w-4 text-muted-foreground" />
-            Templates Premium ({lockedTemplates.length})
-          </h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {lockedTemplates.slice(0, 6).map(template => renderTemplateCard(template, true))}
+        <TabsContent value="standard" className="mt-0">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[...basicTemplates, ...standardTemplates].map((t) => renderTemplateCard(t))}
           </div>
-          {lockedTemplates.length > 6 && (
-            <p className="text-center text-sm text-muted-foreground mt-4">
-              Y {lockedTemplates.length - 6} templates más...
-            </p>
+        </TabsContent>
+
+        <TabsContent value="premium" className="mt-0">
+          {!["professional", "enterprise"].includes(userTier) && (
+            <Alert className="mb-4 border-amber-200 bg-amber-50">
+              <Crown className="h-4 w-4 text-amber-600" />
+              <AlertDescription className="text-amber-800">
+                Estos diseños de alto impacto requieren Plan Profesional o superior.
+              </AlertDescription>
+            </Alert>
           )}
-        </div>
-      )}
-
-      {/* No hay templates disponibles (no debería pasar) */}
-      {availableTemplates.length === 0 && lockedTemplates.length === 0 && (
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            No hay templates disponibles. Por favor contacta a soporte.
-          </AlertDescription>
-        </Alert>
-      )}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {premiumTemplates.map((t) => renderTemplateCard(t))}
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
