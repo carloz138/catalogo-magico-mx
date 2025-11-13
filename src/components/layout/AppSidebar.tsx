@@ -219,13 +219,13 @@ export function AppSidebar() {
         </div>
         {/* Botón Toggle móvil/colapsado */}
         {isCollapsed && (
-          <button
-            onClick={toggleSidebar}
-            className="w-full mt-2 py-1 flex justify-center hover:bg-slate-200 rounded transition-colors"
-            aria-label="Expandir sidebar"
-          >
-            <ChevronRight className="w-4 h-4 text-slate-600" />
-          </button>
+             <button
+              onClick={toggleSidebar}
+              className="w-full mt-2 py-1 flex justify-center hover:bg-slate-200 rounded transition-colors"
+              aria-label="Expandir sidebar"
+            >
+              <ChevronRight className="w-4 h-4 text-slate-600" />
+            </button>
         )}
       </SidebarHeader>
 
