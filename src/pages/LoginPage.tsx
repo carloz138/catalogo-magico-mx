@@ -1,18 +1,17 @@
 import { useState } from "react";
-import { supabase } from "../integrations/supabase/client"; // Corregido
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "../components/ui/card"; // Corregido
-import { Input } from "../components/ui/input"; // Corregido
-import { Button } from "../components/ui/button"; // Corregido
-import { Alert, AlertDescription } from "../components/ui/alert"; // Corregido
-import { Label } from "../components/ui/label"; // Corregido
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select"; // Corregido
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs"; // Corregido
-import { useAuth } from "../contexts/AuthContext"; // Corregido
-import { toast } from "../components/ui/use-toast"; // Corregido
+import { supabase } from "../integrations/supabase/client";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "../components/ui/card";
+import { Input } from "../components/ui/input";
+import { Button } from "../components/ui/button";
+import { Alert, AlertDescription } from "../components/ui/alert";
+import { Label } from "../components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
+import { useAuth } from "../contexts/AuthContext";
+import { toast } from "../components/ui/use-toast";
 import { Mail, Loader2, CheckCircle, AlertCircle, ArrowLeft, Lock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
-// Opciones de tipo de negocio (copiadas de tu LoginModal)
 const businessTypeOptions = [
   { value: "pyme", label: "PyME / Pequeña Empresa" },
   { value: "ecommerce", label: "Tienda en Línea / E-commerce" },
@@ -43,7 +42,7 @@ export default function LoginPage() {
     phone: "",
   });
 
-  // --- Funciones de LoginModal ---
+  // ✅ CAMBIO 1: Redirigir a /products después de login exitoso
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -53,7 +52,7 @@ export default function LoginPage() {
       setFeedback({ type: "error", message: error.message });
     } else {
       toast({ title: "¡Bienvenido!", description: "Has iniciado sesión correctamente" });
-      navigate("/dashboard"); // Redirigir al dashboard al iniciar sesión
+      navigate("/products"); // ✅ CAMBIADO DE /dashboard A /products
     }
     setLoading(false);
   };
@@ -72,7 +71,6 @@ export default function LoginPage() {
       setFeedback({ type: "error", message: error.message });
     } else {
       setFeedback({ type: "success", message: "¡Cuenta creada! Revisa tu email para confirmar tu cuenta." });
-      // Ocultar formularios después de éxito
     }
     setLoading(false);
   };
@@ -110,13 +108,13 @@ export default function LoginPage() {
     }
   };
 
-  // --- Función de Magic Link (de LoginPage) ---
+  // ✅ CAMBIO 2: Magic Link redirige a /products
   const handleMagicLink = async (e: React.FormEvent) => {
     e.preventDefault();
     setMagicLinkLoading(true);
     setFeedback({ type: "", message: "" });
 
-    const emailToUse = loginData.email; // Usar el email del campo de login
+    const emailToUse = loginData.email;
     if (!emailToUse || !emailToUse.includes("@")) {
       setFeedback({ type: "error", message: "Por favor ingresa un email válido para el link mágico." });
       setMagicLinkLoading(false);
@@ -126,7 +124,7 @@ export default function LoginPage() {
     const { error } = await supabase.auth.signInWithOtp({
       email: emailToUse,
       options: {
-        emailRedirectTo: `${window.location.origin}/dashboard`,
+        emailRedirectTo: `${window.location.origin}/products`, // ✅ CAMBIADO DE /dashboard A /products
       },
     });
 
@@ -170,7 +168,6 @@ export default function LoginPage() {
         </CardHeader>
 
         {showResetPassword ? (
-          // --- Vista de Restablecer Contraseña ---
           <form onSubmit={handleResetPassword} className="space-y-4 p-6 pt-0">
             {feedback.type && (
               <Alert
@@ -215,7 +212,6 @@ export default function LoginPage() {
             </Button>
           </form>
         ) : (
-          // --- Vista Principal con Pestañas ---
           <>
             {feedback.type && feedback.type !== "success" && (
               <div className="px-6">
@@ -240,7 +236,6 @@ export default function LoginPage() {
                 <TabsTrigger value="signup">Crear Cuenta</TabsTrigger>
               </TabsList>
 
-              {/* --- Pestaña de Iniciar Sesión --- */}
               <TabsContent value="login">
                 <div className="space-y-4">
                   <Button
@@ -281,7 +276,6 @@ export default function LoginPage() {
                     </div>
                   </div>
 
-                  {/* --- Formulario de Email/Contraseña --- */}
                   <form onSubmit={handleLogin} className="space-y-4">
                     <div>
                       <Label htmlFor="login-email">Email</Label>
@@ -331,7 +325,6 @@ export default function LoginPage() {
                     </div>
                   </div>
 
-                  {/* --- Formulario de Magic Link --- */}
                   <form onSubmit={handleMagicLink} className="space-y-4">
                     <p className="text-sm text-center text-muted-foreground">
                       ¿Vienes a revisar un pedido o tu catálogo activado?
@@ -364,7 +357,6 @@ export default function LoginPage() {
                 </div>
               </TabsContent>
 
-              {/* --- Pestaña de Crear Cuenta --- */}
               <TabsContent value="signup">
                 <div className="space-y-4">
                   <Button
@@ -406,7 +398,6 @@ export default function LoginPage() {
                   </div>
 
                   <form onSubmit={handleSignup} className="space-y-4">
-                    {/* ... (Campos de registro copiados de tu modal) ... */}
                     <div>
                       <Label htmlFor="full-name">Nombre Completo</Label>
                       <Input
