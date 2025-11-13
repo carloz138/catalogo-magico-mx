@@ -62,7 +62,7 @@ const Index = () => {
     if (user) {
       // Si es reseller (L2 o BOTH), ir al dashboard de reseller
       if (userRole === "L2" || userRole === "BOTH") {
-        navigate("/reseller-dashboard");
+        navigate("/products");
       } else {
         // Si es usuario normal (L1), ir a products
         navigate("/products");
