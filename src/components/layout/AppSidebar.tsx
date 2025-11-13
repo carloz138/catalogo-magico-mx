@@ -1,4 +1,4 @@
-// /src/components/layout/AppSidebar.tsx - CON COLLAPSE FUNCIONAL
+// /src/components/layout/AppSidebar.tsx - FIX ICONOS CENTRADOS
 import React from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -125,13 +125,14 @@ export function AppSidebar() {
     return location.pathname.startsWith(path) && path !== "/";
   };
 
+  const isCollapsed = state === "collapsed";
+
   // ==========================================
   // RENDER NAVEGACIÓN
   // ==========================================
   const renderNavItem = (item: MenuItem) => {
     const isActive = isActiveRoute(item.path);
     const isPrimary = item.primary;
-    const isCollapsed = state === "collapsed";
 
     return (
       <SidebarMenuItem key={item.path}>
@@ -140,15 +141,15 @@ export function AppSidebar() {
             onClick={() => item.path && navigate(item.path)}
             disabled={!item.path}
             className={`
-              flex items-center gap-3 w-full px-3 rounded-lg transition-all duration-200
+              flex items-center gap-3 w-full rounded-lg transition-all duration-200
               ${isPrimary ? "min-h-[48px] py-3" : "min-h-[44px] py-2.5"}
+              ${isCollapsed ? "justify-center px-0" : "px-3"} 
               ${
                 isActive
-                  ? "bg-blue-50 text-blue-700 font-semibold border-l-4 border-blue-600 shadow-sm"
+                  ? `bg-blue-50 text-blue-700 font-semibold shadow-sm ${!isCollapsed ? "border-l-4 border-blue-600" : ""}`
                   : "text-slate-700 hover:bg-slate-100 hover:text-slate-900"
               }
               focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
-              ${isCollapsed ? "justify-center" : ""}
             `}
             aria-current={isActive ? "page" : undefined}
           >
@@ -182,8 +183,6 @@ export function AppSidebar() {
     return name.substring(0, 2).toUpperCase();
   };
 
-  const isCollapsed = state === "collapsed";
-
   // ==========================================
   // RENDER PRINCIPAL
   // ==========================================
@@ -193,7 +192,7 @@ export function AppSidebar() {
       {/* HEADER */}
       {/* ============================================ */}
       <SidebarHeader className="border-b border-slate-200 bg-gradient-to-r from-blue-50 to-slate-50 p-4">
-        <div className="flex items-center gap-3">
+        <div className={`flex items-center gap-3 ${isCollapsed ? "justify-center" : ""}`}>
           {/* Logo */}
           <div className="w-10 h-10 rounded-lg bg-blue-600 flex items-center justify-center flex-shrink-0 shadow-md">
             <Sparkles className="w-6 h-6 text-white" aria-hidden="true" />
@@ -207,19 +206,27 @@ export function AppSidebar() {
             </div>
           )}
 
-          {/* Botón de Toggle */}
+          {/* Botón de Toggle (Solo visible expandido o absoluto) */}
+          {!isCollapsed && (
+            <button
+              onClick={toggleSidebar}
+              className="ml-auto w-8 h-8 rounded-lg hover:bg-slate-200 flex items-center justify-center transition-colors"
+              aria-label="Colapsar sidebar"
+            >
+              <ChevronLeft className="w-4 h-4 text-slate-600" />
+            </button>
+          )}
+        </div>
+        {/* Botón Toggle móvil/colapsado */}
+        {isCollapsed && (
           <button
             onClick={toggleSidebar}
-            className="ml-auto w-8 h-8 rounded-lg hover:bg-slate-200 flex items-center justify-center transition-colors"
-            aria-label={isCollapsed ? "Expandir sidebar" : "Colapsar sidebar"}
+            className="w-full mt-2 py-1 flex justify-center hover:bg-slate-200 rounded transition-colors"
+            aria-label="Expandir sidebar"
           >
-            {isCollapsed ? (
-              <ChevronRight className="w-4 h-4 text-slate-600" />
-            ) : (
-              <ChevronLeft className="w-4 h-4 text-slate-600" />
-            )}
+            <ChevronRight className="w-4 h-4 text-slate-600" />
           </button>
-        </div>
+        )}
       </SidebarHeader>
 
       {/* ============================================ */}
