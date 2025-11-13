@@ -4,7 +4,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import "@/styles/template-selection-mobile.css";
 import { useNavigate } from "react-router-dom";
-import AppLayout from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -657,7 +656,7 @@ const TemplateSelection = () => {
 
   if (loading) {
     return (
-      <AppLayout>
+      <div className="container mx-auto p-4 md:p-6 space-y-6">
         <div className="flex items-center justify-center py-12">
           <div className="text-center">
             <Loader2 className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
@@ -1223,7 +1222,7 @@ const TemplateSelection = () => {
 
       {/* Spacer para evitar que contenido quede detrás de bottom bar */}
       <div className="lg:hidden h-28" />
-    </AppLayout>
+    </div>
   );
 };
 
