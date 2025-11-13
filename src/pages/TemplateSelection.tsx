@@ -38,27 +38,25 @@ import { getAvailableTemplatesForPlan, getTemplateStatsByPlan } from "@/lib/web-
 import { EXPANDED_WEB_TEMPLATES } from "@/lib/web-catalog/expanded-templates-catalog";
 import type { WebCatalogTemplate } from "@/lib/web-catalog/types";
 
-// 🆕 IMPORTAR SELECTOR DE PRODUCTOS POR PÁGINA
+// IMPORTAR SELECTOR DE PRODUCTOS POR PÁGINA
 import { ProductsPerPageSelector } from "@/components/templates/ProductsPerPageSelector";
 
 import {
   ArrowLeft,
-  ArrowRight,
   Palette,
   Loader2,
   AlertTriangle,
   CheckCircle,
-  Sparkles,
   Package,
   Zap,
   Info,
-  Rocket,
-  Clock,
   Eye,
   Shield,
   Star,
   AlertCircle,
   Settings,
+  Sparkles,
+  Rocket,
 } from "lucide-react";
 
 interface Product {
@@ -123,7 +121,7 @@ const TemplateSelection = () => {
   const [generationProgress, setGenerationProgress] = useState(0);
   const [generationMethod, setGenerationMethod] = useState<GenerationMethod>("auto");
 
-  // 🆕 ESTADO PARA PRODUCTOS POR PÁGINA
+  // ESTADO PARA PRODUCTOS POR PÁGINA
   const [productsPerPage, setProductsPerPage] = useState<4 | 6 | 9>(6);
   const [showWholesalePrices, setShowWholesalePrices] = useState(true);
 
@@ -185,13 +183,13 @@ const TemplateSelection = () => {
       setSelectedProducts(products);
       console.log("Productos cargados:", products.length);
 
-      // 🆕 SUGERIR PRODUCTOS POR PÁGINA BASADO EN CANTIDAD
+      // SUGERIR PRODUCTOS POR PÁGINA BASADO EN CANTIDAD
       if (products.length <= 12) {
-        setProductsPerPage(4); // Pocos productos, usar layout grande
+        setProductsPerPage(4);
       } else if (products.length >= 50) {
-        setProductsPerPage(9); // Muchos productos, usar layout compacto
+        setProductsPerPage(9);
       } else {
-        setProductsPerPage(6); // Cantidad media, usar layout estándar
+        setProductsPerPage(6);
       }
     } else if (productsIds) {
       const ids = JSON.parse(productsIds);
@@ -275,17 +273,12 @@ const TemplateSelection = () => {
         const planId = pkg.id;
         const planName = pkg.name;
 
-        // Obtener tier del plan
         const tier = getUserPlanTier(planId, planName);
-        const features = getPlanFeatures(tier);
-
         setUserPlanTier(tier);
 
-        // Obtener templates disponibles para este plan
         const templates = getAvailableTemplatesForPlan(EXPANDED_WEB_TEMPLATES, tier);
         setAvailableTemplates(templates);
 
-        // Obtener estadísticas
         const stats = getTemplateStatsByPlan(EXPANDED_WEB_TEMPLATES, tier);
         setTemplateStats(stats);
 
@@ -309,7 +302,6 @@ const TemplateSelection = () => {
     }
   };
 
-  // NUEVA FUNCIÓN: Auditar template al seleccionarlo
   const handleTemplateSelect = useCallback(async (templateId: string) => {
     setSelectedTemplate(templateId);
     setTemplateQuality(null);
@@ -348,12 +340,10 @@ const TemplateSelection = () => {
     }
   }, []);
 
-  // 🆕 FUNCIÓN: Manejar cambio de productos por página
   const handleProductsPerPageChange = (count: 4 | 6 | 9) => {
     setProductsPerPage(count);
     console.log(`📋 Productos por página cambiado a: ${count}`);
 
-    // Mostrar información útil
     const pages = Math.ceil(selectedProducts.length / count);
     toast({
       title: `Layout actualizado: ${count} productos/página`,
@@ -361,7 +351,6 @@ const TemplateSelection = () => {
     });
   };
 
-  // FUNCIÓN MEJORADA: Generar preview HTML
   const handlePreviewCatalog = async () => {
     if (!selectedTemplate || !user || !businessInfo) {
       toast({
@@ -394,7 +383,6 @@ const TemplateSelection = () => {
         throw new Error(`Template ${selectedTemplate} no encontrado`);
       }
 
-      // 🆕 GENERAR HTML CON PRODUCTOS POR PÁGINA DINÁMICOS
       const htmlContent = TemplateGenerator.generateCatalogHTML(
         selectedProducts,
         businessData,
@@ -419,7 +407,6 @@ const TemplateSelection = () => {
     }
   };
 
-  // FUNCIÓN MEJORADA: Generar catálogo con productos por página dinámicos
   const handleGenerateCatalog = async () => {
     if (!selectedTemplate || !user || !businessInfo) {
       toast({
@@ -472,7 +459,6 @@ const TemplateSelection = () => {
 
       let result;
 
-      // 🆕 SELECCIONAR MÉTODO DE GENERACIÓN CON PRODUCTOS POR PÁGINA
       switch (generationMethod) {
         case "puppeteer":
           console.log(`🚀 Usando Puppeteer Service (${productsPerPage}/página)`);
@@ -611,7 +597,6 @@ const TemplateSelection = () => {
     }
   };
 
-  // Obtener información del template mejorada
   const getTemplateInfo = (templateId: string) => {
     const dynamicTemplate = getDynamicTemplate(templateId);
 
@@ -636,16 +621,14 @@ const TemplateSelection = () => {
     };
   };
 
-  // Recomendar método de generación inteligente
   const getRecommendedMethod = (): GenerationMethod => {
     const productCount = selectedProducts.length;
     const templateScore = templateQuality?.score || 100;
 
     if (templateScore < 60) return "classic";
 
-    // 🆕 CONSIDERAR PRODUCTOS POR PÁGINA EN LA RECOMENDACIÓN
     if (productsPerPage === 4 || productsPerPage === 9) {
-      return "puppeteer"; // Layouts especiales son mejores con Puppeteer
+      return "puppeteer";
     }
 
     if (productCount > 50 || templateScore >= 90) return "puppeteer";
@@ -663,14 +646,13 @@ const TemplateSelection = () => {
             <p className="text-gray-600">Cargando sistema de templates v2.0...</p>
           </div>
         </div>
-      </AppLayout>
+      </div>
     );
   }
 
-  // Header actions simplificado con jerarquía visual clara
+  // Actions para el header
   const actions = (
     <div className="hidden lg:flex items-center gap-3">
-      {/* Información contextual clara */}
       <div className="flex items-center gap-3 border-r pr-3">
         <Badge variant="outline" className="flex items-center gap-1">
           <Package className="w-3 h-3" />
@@ -688,7 +670,6 @@ const TemplateSelection = () => {
         )}
       </div>
 
-      {/* Acciones principales - orden de importancia */}
       <Button
         onClick={handlePreviewCatalog}
         disabled={!selectedTemplate || generating || previewLoading}
@@ -721,57 +702,59 @@ const TemplateSelection = () => {
   );
 
   return (
-    <AppLayout actions={actions}>
+    <div className="container mx-auto p-4 md:p-6 space-y-6">
+      {/* Header Manual */}
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-2">
+        <div>
+          <div className="flex items-center gap-3 mb-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate("/products")}
+              className="flex items-center gap-2 pl-0 hover:pl-1 transition-all"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Volver a Productos
+            </Button>
+            <Badge variant="secondary" className="text-xs">
+              Sistema v2.0 - Layouts Dinámicos
+            </Badge>
+          </div>
+
+          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+            Selecciona tu Template
+            <Shield className="w-5 h-5 text-green-500" />
+          </h1>
+          <p className="text-gray-600">
+            Elige el diseño perfecto para tu catálogo de {selectedProducts.length} productos (
+            {Math.ceil(selectedProducts.length / productsPerPage)} página
+            {Math.ceil(selectedProducts.length / productsPerPage) !== 1 ? "s" : ""} con {productsPerPage}/página)
+          </p>
+        </div>
+        {actions}
+      </div>
+
+      {/* Contenido */}
       <div className="space-y-6">
-        {/* Header con información mejorada */}
-        <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
-          <div>
-            <div className="flex items-center gap-3 mb-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => navigate("/products")}
-                className="flex items-center gap-2"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                Volver a Productos
-              </Button>
-              <Badge variant="secondary" className="text-xs">
-                Sistema v2.0 - Layouts Dinámicos
-              </Badge>
-            </div>
-
-            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-              Selecciona tu Template
-              <Shield className="w-5 h-5 text-green-500" />
-            </h1>
-            <p className="text-gray-600">
-              Elige el diseño perfecto para tu catálogo de {selectedProducts.length} productos (
-              {Math.ceil(selectedProducts.length / productsPerPage)} página
-              {Math.ceil(selectedProducts.length / productsPerPage) !== 1 ? "s" : ""} con {productsPerPage}/página)
-            </p>
-          </div>
-
-          {/* Info del plan en móvil */}
-          <div className="sm:hidden w-full">
-            <Card>
-              <CardContent className="p-3">
-                <div className="flex justify-between items-center text-sm">
-                  <span className="text-gray-600">{selectedProducts.length} productos seleccionados</span>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="default" className="bg-blue-600">
-                      {productsPerPage}/pág
+        {/* Info móvil */}
+        <div className="sm:hidden w-full">
+          <Card>
+            <CardContent className="p-3">
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-gray-600">{selectedProducts.length} productos</span>
+                <div className="flex items-center gap-2">
+                  <Badge variant="default" className="bg-blue-600">
+                    {productsPerPage}/pág
+                  </Badge>
+                  {limits && (
+                    <Badge variant="outline">
+                      {limits.catalogsLimit === "unlimited" ? "Ilimitados" : `${limits.remainingCatalogs} restantes`}
                     </Badge>
-                    {limits && (
-                      <Badge variant="outline">
-                        {limits.catalogsLimit === "unlimited" ? "Ilimitados" : `${limits.remainingCatalogs} restantes`}
-                      </Badge>
-                    )}
-                  </div>
+                  )}
                 </div>
-              </CardContent>
-            </Card>
-          </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Alert de límites */}
@@ -787,7 +770,7 @@ const TemplateSelection = () => {
           </Alert>
         )}
 
-        {/* 🆕 SELECTOR DE PRODUCTOS POR PÁGINA */}
+        {/* SELECTOR DE PRODUCTOS POR PÁGINA */}
         <ProductsPerPageSelector
           selectedCount={productsPerPage}
           onCountChange={handleProductsPerPageChange}
@@ -814,20 +797,17 @@ const TemplateSelection = () => {
                 onClick={() => setShowWholesalePrices(true)}
                 disabled={generating || previewLoading}
                 className={`
-                    relative flex flex-col items-center p-4 rounded-lg border-2 transition-all
-                    ${
-                      showWholesalePrices
-                        ? "border-purple-600 bg-purple-50 shadow-sm"
-                        : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
-                    }
-                    ${generating || previewLoading ? "opacity-50 cursor-not-allowed" : ""}
-                  `}
+                  relative flex flex-col items-center p-4 rounded-lg border-2 transition-all
+                  ${
+                    showWholesalePrices
+                      ? "border-purple-600 bg-purple-50 shadow-sm"
+                      : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+                  }
+                  ${generating || previewLoading ? "opacity-50 cursor-not-allowed" : ""}
+                `}
               >
                 <div
-                  className={`
-                    w-10 h-10 rounded-full flex items-center justify-center mb-2
-                    ${showWholesalePrices ? "bg-purple-100" : "bg-gray-100"}
-                  `}
+                  className={`w-10 h-10 rounded-full flex items-center justify-center mb-2 ${showWholesalePrices ? "bg-purple-100" : "bg-gray-100"}`}
                 >
                   <Package className={`w-5 h-5 ${showWholesalePrices ? "text-purple-600" : "text-gray-600"}`} />
                 </div>
@@ -845,20 +825,17 @@ const TemplateSelection = () => {
                 onClick={() => setShowWholesalePrices(false)}
                 disabled={generating || previewLoading}
                 className={`
-                    relative flex flex-col items-center p-4 rounded-lg border-2 transition-all
-                    ${
-                      !showWholesalePrices
-                        ? "border-purple-600 bg-purple-50 shadow-sm"
-                        : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
-                    }
-                    ${generating || previewLoading ? "opacity-50 cursor-not-allowed" : ""}
-                  `}
+                  relative flex flex-col items-center p-4 rounded-lg border-2 transition-all
+                  ${
+                    !showWholesalePrices
+                      ? "border-purple-600 bg-purple-50 shadow-sm"
+                      : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+                  }
+                  ${generating || previewLoading ? "opacity-50 cursor-not-allowed" : ""}
+                `}
               >
                 <div
-                  className={`
-                    w-10 h-10 rounded-full flex items-center justify-center mb-2
-                    ${!showWholesalePrices ? "bg-purple-100" : "bg-gray-100"}
-                  `}
+                  className={`w-10 h-10 rounded-full flex items-center justify-center mb-2 ${!showWholesalePrices ? "bg-purple-100" : "bg-gray-100"}`}
                 >
                   <Zap className={`w-5 h-5 ${!showWholesalePrices ? "text-purple-600" : "text-gray-600"}`} />
                 </div>
@@ -874,7 +851,7 @@ const TemplateSelection = () => {
           </CardContent>
         </Card>
 
-        {/* Progress Bar mejorada */}
+        {/* Progress Bar */}
         {generating && (
           <Card className="border-blue-200 bg-blue-50">
             <CardContent className="p-4">
@@ -916,7 +893,7 @@ const TemplateSelection = () => {
           productCount={selectedProducts.length}
         />
 
-        {/* Información del template seleccionado mejorada */}
+        {/* Información del template seleccionado */}
         {selectedTemplate && (
           <Card
             className={`border-2 ${
@@ -987,7 +964,7 @@ const TemplateSelection = () => {
                 </Button>
               </div>
 
-              {/* Mostrar issues si los hay */}
+              {/* Issues */}
               {templateQuality && templateQuality.issues.length > 0 && (
                 <div className="mb-3 p-3 bg-white rounded border">
                   <h5 className="text-sm font-medium mb-2">Issues detectados:</h5>
@@ -1072,7 +1049,7 @@ const TemplateSelection = () => {
                 </div>
               )}
 
-              {/* Campo para el título del catálogo */}
+              {/* Campo título */}
               <div className="mt-4 space-y-2">
                 <Label htmlFor="catalogTitle" className="text-sm font-medium text-gray-800">
                   Nombre del catálogo (opcional)
@@ -1159,11 +1136,10 @@ const TemplateSelection = () => {
         />
       )}
 
-      {/* 📱 BOTTOM ACTION BAR - SOLO MÓVIL/TABLET */}
+      {/* Bottom Action Bar (Móvil) */}
       <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-50 safe-area-bottom">
         <div className="px-4 py-3 max-w-7xl mx-auto">
           <div className="flex items-center gap-3">
-            {/* Preview Button */}
             <Button
               onClick={handlePreviewCatalog}
               disabled={!selectedTemplate || generating || previewLoading}
@@ -1183,7 +1159,6 @@ const TemplateSelection = () => {
               )}
             </Button>
 
-            {/* Generate Button */}
             <Button
               onClick={handleGenerateCatalog}
               disabled={!selectedTemplate || generating || !limits?.canGenerate}
@@ -1203,7 +1178,6 @@ const TemplateSelection = () => {
             </Button>
           </div>
 
-          {/* Info contextual compacta */}
           <div className="flex items-center justify-between mt-2 text-xs text-gray-600">
             <span className="flex items-center gap-1">
               <Package className="w-3 h-3" />
@@ -1220,7 +1194,6 @@ const TemplateSelection = () => {
         </div>
       </div>
 
-      {/* Spacer para evitar que contenido quede detrás de bottom bar */}
       <div className="lg:hidden h-28" />
     </div>
   );
