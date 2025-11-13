@@ -1470,19 +1470,20 @@ export class TemplateGenerator {
     businessInfo: BusinessInfo,
     template: IndustryTemplate,
     productsPerPage: 4 | 6 | 9 = 6,
-    showWholesalePrices: boolean = true // 🆕 Controlar si se muestran precios de mayoreo
+    showWholesalePrices: boolean = true, // 🆕 Controlar si se muestran precios de mayoreo
+    useBrandColors: boolean = true // 🆕 NUEVO PARÁMETRO - Brand-Aware System
   ): string {
     
     // 1. Obtener colores base
     let colors = template.colors;
 
     // 2. Inyectar colores de marca si existen
-    if (businessInfo.primary_color && businessInfo.secondary_color) {
+    if (useBrandColors && businessInfo.primary_color && businessInfo.secondary_color) {
       colors = {
         ...colors,
         primary: businessInfo.primary_color,
         secondary: businessInfo.secondary_color,
-        // Fondo de tarjetas muy sutil tintado con el color de marca
+        // Fondo de tarjetas blanco limpio
         cardBackground: '#ffffff',
       };
       
@@ -1491,6 +1492,13 @@ export class TemplateGenerator {
         ...template,
         colors
       };
+      
+      // 🆕 Debug log
+      console.log('✅ Brand-Aware activado:', {
+        template: template.id,
+        primary: businessInfo.primary_color,
+        secondary: businessInfo.secondary_color
+      });
     }
     
     const css = this.generateTemplateCSS(template, productsPerPage, showWholesalePrices);
@@ -1498,15 +1506,17 @@ export class TemplateGenerator {
     const footerHTML = this.generateFooterHTML(businessInfo);
     
     const businessName = businessInfo.business_name || 'Mi Negocio';
+    const brandAwareIndicator = (useBrandColors && businessInfo.primary_color) ? ' 🎨 Brand-Aware' : '';
     
     return `<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=210mm, initial-scale=1.0">
-    <title>Catálogo - ${businessName} (${productsPerPage} productos/página)${productsPerPage === 4 ? ' - 2x2 Fixed' : ''}</title>
+    <title>Catálogo - ${businessName} (${productsPerPage} productos/página)${productsPerPage === 4 ? ' - 2x2 Fixed' : ''}${brandAwareIndicator}</title>
     <meta name="products-per-page" content="${productsPerPage}">
     <meta name="grid-fix" content="${productsPerPage === 4 ? '2x2-fixed' : 'original'}">
+    <meta name="brand-aware" content="${useBrandColors}">
     <style>
         ${css}
     </style>
@@ -1515,7 +1525,7 @@ export class TemplateGenerator {
     <div class="catalog-container">
         <header class="catalog-header page-break-avoid">
             <h1 class="business-name">${businessName}</h1>
-            <p class="catalog-subtitle">Catálogo de Productos (${productsPerPage} por página)${productsPerPage === 4 ? ' - Grid 2x2 Corregido' : ''}</p>
+            <p class="catalog-subtitle">Catálogo de Productos (${productsPerPage} por página)${productsPerPage === 4 ? ' - Grid 2x2 Corregido' : ''}${brandAwareIndicator}</p>
         </header>
         
         <main class="products-section">
@@ -1690,7 +1700,7 @@ export class TemplateGenerator {
       return `
         <footer class="catalog-footer page-break-avoid">
           <div class="footer-branding">
-            Generado con CatifyPro v2.0 - Grid 2x2 Corregido
+            Generado con CatifyPro v2.0 - Brand-Aware System
           </div>
         </footer>
       `;
@@ -1702,7 +1712,7 @@ export class TemplateGenerator {
           ${contactItems.join('')}
         </div>
         <div class="footer-branding">
-          Generado con CatifyPro v2.0 - Grid 2x2 Corregido
+          Generado con CatifyPro v2.0 - Brand-Aware System
         </div>
       </footer>
     `;

@@ -65,9 +65,6 @@ export interface WebTemplateConfig {
   columnsMobile: 1 | 2;
   gap: "tight" | "normal" | "loose";
 
-  use_brand_colors?: boolean; // Flag para activar Brand-Aware
-  brand_colors?: BrandColors; // Colores del usuario
-
   // Card appearance
   // 👇 ACTUALIZADO: Agregado 'soft'
   cardStyle: "flat" | "elevated" | "outlined" | "glass" | "neumorphic" | "soft";
@@ -228,6 +225,10 @@ export interface WebCatalogConfig {
 
   // Personalización de colores (override del template)
   custom_colors?: Partial<WebTemplateColors>;
+
+  // 🆕 Brand-Aware System
+  use_brand_colors?: boolean;
+  brand_colors?: BrandColors;
 
   // Patrón de fondo
   background_pattern?: string | null;
