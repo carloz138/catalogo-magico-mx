@@ -28,7 +28,25 @@ import { PriceAdjustmentInput } from "@/components/catalog/PriceAdjustmentInput"
 import { CatalogFormPreview } from "@/components/catalog/CatalogFormPreview";
 import { WebTemplateSelector } from "@/components/templates/WebTemplateSelector";
 import { BackgroundPatternSelector } from "@/components/catalog/BackgroundPatternSelector";
-import { ArrowLeft, CalendarIcon, Loader2, Lock, AlertCircle, Palette, Check, ChevronRight, Package, DollarSign, Eye, Settings, ExternalLink, AlertTriangle, Layers, Truck } from "lucide-react";
+import {
+  ArrowLeft,
+  CalendarIcon,
+  Loader2,
+  Lock,
+  AlertCircle,
+  Palette,
+  Check,
+  ChevronRight,
+  Package,
+  DollarSign,
+  Eye,
+  Settings,
+  ExternalLink,
+  AlertTriangle,
+  Layers,
+  Truck,
+  Radar,
+} from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -38,6 +56,7 @@ import { getAvailableTemplatesForPlan, getTemplateStatsByPlan } from "@/lib/web-
 import { EXPANDED_WEB_TEMPLATES } from "@/lib/web-catalog/expanded-templates-catalog";
 import type { WebCatalogTemplate } from "@/lib/web-catalog/types";
 
+// --- 1. SCHEMA ACTUALIZADO CON TRACKING_CONFIG ---
 const catalogSchema = z
   .object({
     name: z.string().min(3, "Mínimo 3 caracteres").max(100, "Máximo 100 caracteres"),
@@ -63,8 +82,24 @@ const catalogSchema = z
     enable_distribution: z.boolean().optional(),
     enable_free_shipping: z.boolean().optional(),
     free_shipping_min_amount: z.coerce.number().min(0).optional(),
+
+    // Scripts Legacy
     tracking_head_scripts: z.string().optional().nullable(),
     tracking_body_scripts: z.string().optional().nullable(),
+
+    // Configuración CAPI Nueva
+    tracking_config: z
+      .object({
+        meta_capi: z
+          .object({
+            enabled: z.boolean().default(false),
+            pixel_id: z.string().optional(),
+            access_token: z.string().optional(),
+            test_code: z.string().optional(),
+          })
+          .optional(),
+      })
+      .optional(),
   })
   .refine(
     (data) => {
@@ -101,6 +136,9 @@ export default function DigitalCatalogForm() {
   const isEditing = !!id;
   const canCreatePrivate = limits?.planName !== "Básico" && limits?.planName !== "Starter";
 
+  // --- 2. LÓGICA PARA HABILITAR CAPI ---
+  const canUseCAPI = userPlanTier === "professional" || userPlanTier === "enterprise";
+
   const form = useForm<CatalogFormData>({
     resolver: zodResolver(catalogSchema),
     defaultValues: {
@@ -127,6 +165,15 @@ export default function DigitalCatalogForm() {
       free_shipping_min_amount: 0,
       tracking_head_scripts: "",
       tracking_body_scripts: "",
+      // Valores por defecto para tracking config
+      tracking_config: {
+        meta_capi: {
+          enabled: false,
+          pixel_id: "",
+          access_token: "",
+          test_code: "",
+        },
+      },
     },
   });
 
@@ -174,35 +221,35 @@ export default function DigitalCatalogForm() {
         const pkg = subscription.credit_packages as any;
         setUserPlanId(pkg.id);
         setUserPlanName(pkg.name);
-        
+
         // Determinar tier usando el sistema de web-catalog
         const tier = getUserPlanTier(pkg.id, pkg.name);
         setUserPlanTier(tier);
-        
-        console.log('📊 Plan del usuario detectado:', {
+
+        console.log("📊 Plan del usuario detectado:", {
           id: pkg.id,
           name: pkg.name,
           tier,
-          features: getPlanFeatures(tier)
+          features: getPlanFeatures(tier),
         });
       } else {
-        setUserPlanTier('free');
+        setUserPlanTier("free");
       }
     } catch (error) {
       console.error("Error loading user plan:", error);
-      setUserPlanTier('free');
+      setUserPlanTier("free");
     }
   };
 
-  // Establecer valor por defecto de enable_quotation basado en el plan del usuario (solo para nuevos catálogos)
+  // Establecer valor por defecto de enable_quotation basado en el plan
   useEffect(() => {
     if (!isEditing && userPlanTier) {
       const hasQuotation = getPlanFeatures(userPlanTier).hasQuotation;
-      form.setValue('enable_quotation', hasQuotation);
-      
+      form.setValue("enable_quotation", hasQuotation);
+
       // Si tiene cotizaciones, habilitar variantes por defecto
       if (hasQuotation) {
-        form.setValue('enable_variants', true);
+        form.setValue("enable_variants", true);
       }
     }
   }, [userPlanTier, isEditing]);
@@ -213,14 +260,13 @@ export default function DigitalCatalogForm() {
     }
   }, [isEditing, user, id]);
 
-  // Validar productos sin wholesale_min_qty cuando se selecciona mostrar precios de mayoreo
   const productsWithoutWholesaleMin = useMemo(() => {
     const priceDisplay = watchedValues.price_display;
     if (priceDisplay !== "mayoreo_only" && priceDisplay !== "both") {
       return [];
     }
-    
-    return selectedProducts.filter(product => {
+
+    return selectedProducts.filter((product) => {
       const hasWholesalePrice = product.price_wholesale && product.price_wholesale > 0;
       const hasWholesaleMin = product.wholesale_min_qty && product.wholesale_min_qty > 0;
       return hasWholesalePrice && !hasWholesaleMin;
@@ -260,6 +306,10 @@ export default function DigitalCatalogForm() {
         free_shipping_min_amount: catalog.free_shipping_min_amount ? catalog.free_shipping_min_amount / 100 : 0,
         tracking_head_scripts: catalog.tracking_head_scripts || "",
         tracking_body_scripts: catalog.tracking_body_scripts || "",
+        // Carga la configuración CAPI o usa default
+        tracking_config: catalog.tracking_config || {
+          meta_capi: { enabled: false, pixel_id: "", access_token: "", test_code: "" },
+        },
       });
 
       setSelectedProducts(catalog.products || []);
@@ -322,9 +372,14 @@ export default function DigitalCatalogForm() {
         enable_variants: data.enable_variants ?? true,
         enable_distribution: data.enable_distribution ?? false,
         enable_free_shipping: data.enable_free_shipping ?? false,
-        free_shipping_min_amount: data.enable_free_shipping && data.free_shipping_min_amount ? Math.round(data.free_shipping_min_amount * 100) : 0,
+        free_shipping_min_amount:
+          data.enable_free_shipping && data.free_shipping_min_amount
+            ? Math.round(data.free_shipping_min_amount * 100)
+            : 0,
         tracking_head_scripts: data.tracking_head_scripts || null,
         tracking_body_scripts: data.tracking_body_scripts || null,
+        // Enviamos la configuración JSON
+        tracking_config: data.tracking_config || null,
       };
 
       if (isEditing && id) {
@@ -354,6 +409,163 @@ export default function DigitalCatalogForm() {
     }
   };
 
+  // --- RENDERIZADO DE SECCIÓN CAPI (Para reutilizar) ---
+  const renderTrackingSection = () => (
+    <div className="space-y-6">
+      {/* SECCIÓN CAPI DE META - Solo para Pro/Enterprise */}
+      <div
+        className={cn(
+          "border rounded-lg p-4 space-y-4 transition-all",
+          canUseCAPI ? "bg-blue-50/50 border-blue-100" : "bg-gray-50 opacity-75 relative",
+        )}
+      >
+        {!canUseCAPI && (
+          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-white/60 backdrop-blur-[1px] rounded-lg text-center p-4">
+            <Lock className="h-8 w-8 text-muted-foreground mb-2" />
+            <h4 className="font-semibold text-gray-900">Tracking Server-Side (CAPI)</h4>
+            <p className="text-sm text-gray-600 mb-3 max-w-xs">
+              Mejora tu ROAS enviando eventos directamente desde el servidor. Evita bloqueos de iOS 14+.
+            </p>
+            <Button size="sm" variant="outline" onClick={() => navigate("/checkout")}>
+              Actualizar a Profesional
+            </Button>
+          </div>
+        )}
+
+        <div className="flex items-center justify-between">
+          <div>
+            <h4 className="font-semibold text-base flex items-center gap-2">
+              Meta (Facebook) CAPI
+              {userPlanTier === "enterprise" && (
+                <Badge variant="secondary" className="text-xs">
+                  Full Sales Tracking
+                </Badge>
+              )}
+            </h4>
+            <p className="text-sm text-muted-foreground">Conexión directa servidor-a-servidor.</p>
+          </div>
+          <FormField
+            control={form.control}
+            name="tracking_config.meta_capi.enabled"
+            render={({ field }) => (
+              <Switch checked={field.value} onCheckedChange={field.onChange} disabled={!canUseCAPI} />
+            )}
+          />
+        </div>
+
+        {/* Inputs de CAPI (Solo visibles si está habilitado) */}
+        {form.watch("tracking_config.meta_capi.enabled") && (
+          <div className="grid gap-4 pl-1 border-l-2 border-blue-200 ml-1">
+            <FormField
+              control={form.control}
+              name="tracking_config.meta_capi.pixel_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Pixel ID</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Ej: 1234567890" {...field} className="bg-white" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="tracking_config.meta_capi.access_token"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-xs font-bold uppercase text-muted-foreground flex items-center justify-between">
+                    Access Token (CAPI)
+                    <a
+                      href="https://developers.facebook.com/docs/marketing-api/conversions-api/get-started"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-blue-600 hover:underline font-normal normal-case flex items-center"
+                    >
+                      ¿Cómo obtenerlo? <ExternalLink className="h-3 w-3 ml-1" />
+                    </a>
+                  </FormLabel>
+                  <FormControl>
+                    <Input type="password" placeholder="EAA..." {...field} className="bg-white font-mono text-xs" />
+                  </FormControl>
+                  <FormDescription>Token de larga duración generado en el Business Manager.</FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="tracking_config.meta_capi.test_code"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-xs font-bold uppercase text-muted-foreground">
+                    Test Event Code (Opcional)
+                  </FormLabel>
+                  <FormControl>
+                    <Input placeholder="Ej: TEST1234" {...field} className="bg-white" />
+                  </FormControl>
+                  <FormDescription>Úsalo solo para probar eventos en tiempo real.</FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+        )}
+      </div>
+
+      {/* SECCIÓN CLÁSICA (Fallback) */}
+      <div className="pt-4 border-t">
+        <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
+          Scripts personalizados
+          <Badge variant="outline" className="text-[10px] h-5">
+            Legacy
+          </Badge>
+        </h4>
+        <FormField
+          control={form.control}
+          name="tracking_head_scripts"
+          render={({ field }) => (
+            <FormItem className="mb-4">
+              <FormLabel className="text-xs">Head Scripts (Google Analytics, Chat, etc.)</FormLabel>
+              <FormControl>
+                <Textarea
+                  placeholder=""
+                  {...field}
+                  value={field.value || ""}
+                  rows={4}
+                  className="font-mono text-xs resize-none"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="tracking_body_scripts"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="text-xs">Body Scripts</FormLabel>
+              <FormControl>
+                <Textarea
+                  placeholder=""
+                  {...field}
+                  value={field.value || ""}
+                  rows={4}
+                  className="font-mono text-xs resize-none"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </div>
+    </div>
+  );
+
   if (isLoading || limitsLoading) {
     return (
       <div className="container mx-auto py-4 md:py-8 px-4">
@@ -378,26 +590,24 @@ export default function DigitalCatalogForm() {
     );
   }
 
-  const productIds = form.watch('product_ids') || [];
-  const webTemplateId = form.watch('web_template_id');
+  const productIds = form.watch("product_ids") || [];
+  const webTemplateId = form.watch("web_template_id");
 
   return (
     <div className="p-4 md:p-8">
       {/* Header Responsive */}
       <div className="mb-4 md:mb-6">
-        <Button 
-          variant="ghost" 
+        <Button
+          variant="ghost"
           size={isMobile ? "sm" : "default"}
-          onClick={() => navigate("/catalogs")} 
+          onClick={() => navigate("/catalogs")}
           className="mb-3 md:mb-4 -ml-2"
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
           {isMobile ? "Volver" : "Volver a catálogos"}
         </Button>
 
-        <h1 className="text-2xl md:text-3xl font-bold">
-          {isEditing ? "Editar Catálogo" : "Crear Catálogo Digital"}
-        </h1>
+        <h1 className="text-2xl md:text-3xl font-bold">{isEditing ? "Editar Catálogo" : "Crear Catálogo Digital"}</h1>
         {!isMobile && (
           <p className="text-muted-foreground mt-2">
             {isEditing ? "Actualiza la configuración de tu catálogo" : "Configura y publica tu catálogo de productos"}
@@ -429,7 +639,7 @@ export default function DigitalCatalogForm() {
                         <div
                           className={cn(
                             "flex items-center justify-center w-10 h-10 rounded-full flex-shrink-0 transition-all",
-                            productIds.length > 0 ? "bg-green-100 text-green-700" : "bg-muted"
+                            productIds.length > 0 ? "bg-green-100 text-green-700" : "bg-muted",
                           )}
                         >
                           {productIds.length > 0 ? <Check className="h-5 w-5" /> : <Package className="h-5 w-5" />}
@@ -474,7 +684,7 @@ export default function DigitalCatalogForm() {
                         <div
                           className={cn(
                             "flex items-center justify-center w-10 h-10 rounded-full flex-shrink-0 transition-all",
-                            webTemplateId ? "bg-green-100 text-green-700" : "bg-muted"
+                            webTemplateId ? "bg-green-100 text-green-700" : "bg-muted",
                           )}
                         >
                           {webTemplateId ? <Check className="h-5 w-5" /> : <Palette className="h-5 w-5" />}
@@ -529,7 +739,7 @@ export default function DigitalCatalogForm() {
                         <div
                           className={cn(
                             "flex items-center justify-center w-10 h-10 rounded-full flex-shrink-0 transition-all",
-                            form.watch("name") ? "bg-green-100 text-green-700" : "bg-muted"
+                            form.watch("name") ? "bg-green-100 text-green-700" : "bg-muted",
                           )}
                         >
                           {form.watch("name") ? <Check className="h-5 w-5" /> : "3"}
@@ -615,7 +825,7 @@ export default function DigitalCatalogForm() {
                                 htmlFor="menudeo_only"
                                 className={cn(
                                   "flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all active:scale-[0.98]",
-                                  field.value === "menudeo_only" && "border-primary bg-primary/5"
+                                  field.value === "menudeo_only" && "border-primary bg-primary/5",
                                 )}
                               >
                                 <RadioGroupItem value="menudeo_only" id="menudeo_only" className="h-5 w-5" />
@@ -628,7 +838,7 @@ export default function DigitalCatalogForm() {
                                 htmlFor="mayoreo_only"
                                 className={cn(
                                   "flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all active:scale-[0.98]",
-                                  field.value === "mayoreo_only" && "border-primary bg-primary/5"
+                                  field.value === "mayoreo_only" && "border-primary bg-primary/5",
                                 )}
                               >
                                 <RadioGroupItem value="mayoreo_only" id="mayoreo_only" className="h-5 w-5" />
@@ -641,7 +851,7 @@ export default function DigitalCatalogForm() {
                                 htmlFor="both"
                                 className={cn(
                                   "flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all active:scale-[0.98]",
-                                  field.value === "both" && "border-primary bg-primary/5"
+                                  field.value === "both" && "border-primary bg-primary/5",
                                 )}
                               >
                                 <RadioGroupItem value="both" id="both" className="h-5 w-5" />
@@ -661,18 +871,21 @@ export default function DigitalCatalogForm() {
                           <AlertTriangle className="h-4 w-4" />
                           <AlertDescription className="flex flex-col gap-2">
                             <span>
-                              {productsWithoutWholesaleMin.length} {productsWithoutWholesaleMin.length === 1 ? 'producto tiene' : 'productos tienen'} precio de mayoreo pero no {productsWithoutWholesaleMin.length === 1 ? 'tiene' : 'tienen'} cantidad mínima asignada.
+                              {productsWithoutWholesaleMin.length}{" "}
+                              {productsWithoutWholesaleMin.length === 1 ? "producto tiene" : "productos tienen"} precio
+                              de mayoreo pero no {productsWithoutWholesaleMin.length === 1 ? "tiene" : "tienen"}{" "}
+                              cantidad mínima asignada.
                             </span>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            className="w-fit"
-                            onClick={() => window.open('https://catifypro.com/products-management', '_blank')}
-                          >
-                            <ExternalLink className="h-4 w-4 mr-2" />
-                            Ir a Gestión de Productos
-                          </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="w-fit"
+                              onClick={() => window.open("https://catifypro.com/products-management", "_blank")}
+                            >
+                              <ExternalLink className="h-4 w-4 mr-2" />
+                              Ir a Gestión de Productos
+                            </Button>
                           </AlertDescription>
                         </Alert>
                       )}
@@ -739,7 +952,9 @@ export default function DigitalCatalogForm() {
                           >
                             <div className="flex-1">
                               <div className="font-medium text-base">Habilitar Envío Gratis</div>
-                              <div className="text-sm text-muted-foreground">Ofrece envío gratis sobre un monto mínimo</div>
+                              <div className="text-sm text-muted-foreground">
+                                Ofrece envío gratis sobre un monto mínimo
+                              </div>
                             </div>
                             <Switch
                               checked={field.value}
@@ -872,7 +1087,9 @@ export default function DigitalCatalogForm() {
                           >
                             <div className="flex-1">
                               <div className="font-medium text-base">Mostrar Stock</div>
-                              <div className="text-sm text-muted-foreground">Mostrar cantidad disponible de variantes</div>
+                              <div className="text-sm text-muted-foreground">
+                                Mostrar cantidad disponible de variantes
+                              </div>
                             </div>
                             <Switch
                               checked={field.value}
@@ -918,7 +1135,7 @@ export default function DigitalCatalogForm() {
                                     variant="outline"
                                     className={cn(
                                       "w-full h-12 justify-start text-left font-normal text-base",
-                                      !field.value && "text-muted-foreground"
+                                      !field.value && "text-muted-foreground",
                                     )}
                                   >
                                     <CalendarIcon className="mr-2 h-4 w-4" />
@@ -972,7 +1189,7 @@ export default function DigitalCatalogForm() {
                                   className={cn(
                                     "flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all active:scale-[0.98]",
                                     !field.value && "border-primary bg-primary/5",
-                                    !canCreatePrivate && "opacity-50"
+                                    !canCreatePrivate && "opacity-50",
                                   )}
                                 >
                                   <RadioGroupItem value="public" id="public" className="h-5 w-5" />
@@ -989,7 +1206,9 @@ export default function DigitalCatalogForm() {
                                   className={cn(
                                     "flex items-center gap-3 p-4 rounded-lg border-2 transition-all",
                                     field.value && "border-primary bg-primary/5",
-                                    canCreatePrivate ? "cursor-pointer active:scale-[0.98]" : "opacity-50 cursor-not-allowed"
+                                    canCreatePrivate
+                                      ? "cursor-pointer active:scale-[0.98]"
+                                      : "opacity-50 cursor-not-allowed",
                                   )}
                                 >
                                   <RadioGroupItem
@@ -1056,7 +1275,7 @@ export default function DigitalCatalogForm() {
                           </div>
                         </div>
                       </AccordionTrigger>
-                       <AccordionContent className="px-4 pb-4">
+                      <AccordionContent className="px-4 pb-4">
                         <FormField
                           control={form.control}
                           name="enable_quotation"
@@ -1079,7 +1298,7 @@ export default function DigitalCatalogForm() {
                             </div>
                           )}
                         />
-                        
+
                         {form.watch("enable_quotation") && (
                           <FormField
                             control={form.control}
@@ -1097,51 +1316,45 @@ export default function DigitalCatalogForm() {
                                     </div>
                                   </div>
                                   <FormControl>
-                                    <Switch
-                                      checked={field.value}
-                                      onCheckedChange={field.onChange}
-                                    />
+                                    <Switch checked={field.value} onCheckedChange={field.onChange} />
                                   </FormControl>
                                 </div>
                                 <FormMessage />
                               </FormItem>
-                             )}
-                           />
-                         )}
+                            )}
+                          />
+                        )}
 
-                         {form.watch("enable_quotation") && (
-                           <FormField
-                             control={form.control}
-                             name="enable_distribution"
-                             render={({ field }) => (
-                               <FormItem>
-                                 <div
-                                   className="flex items-center justify-between p-4 rounded-lg border cursor-pointer active:scale-[0.98] transition-all bg-indigo-50 border-indigo-200 mt-3"
-                                   onClick={() => field.onChange(!field.value)}
-                                 >
-                                    <div className="flex-1">
-                                      <div className="font-medium text-base flex items-center gap-2">
-                                        Permitir que mis clientes creen catálogos
-                                        <Badge variant="secondary">Nuevo</Badge>
-                                      </div>
-                                       <div className="text-sm text-muted-foreground">
-                                         Al aceptar cotizaciones, tus clientes podrán activar su propio catálogo GRATIS
-                                       </div>
+                        {form.watch("enable_quotation") && (
+                          <FormField
+                            control={form.control}
+                            name="enable_distribution"
+                            render={({ field }) => (
+                              <FormItem>
+                                <div
+                                  className="flex items-center justify-between p-4 rounded-lg border cursor-pointer active:scale-[0.98] transition-all bg-indigo-50 border-indigo-200 mt-3"
+                                  onClick={() => field.onChange(!field.value)}
+                                >
+                                  <div className="flex-1">
+                                    <div className="font-medium text-base flex items-center gap-2">
+                                      Permitir que mis clientes creen catálogos
+                                      <Badge variant="secondary">Nuevo</Badge>
                                     </div>
-                                    <FormControl>
-                                      <Switch
-                                        checked={field.value}
-                                        onCheckedChange={field.onChange}
-                                      />
-                                    </FormControl>
-                                 </div>
-                                 <FormMessage />
-                               </FormItem>
-                             )}
-                           />
-                         )}
-                       </AccordionContent>
-                     </AccordionItem>
+                                    <div className="text-sm text-muted-foreground">
+                                      Al aceptar cotizaciones, tus clientes podrán activar su propio catálogo GRATIS
+                                    </div>
+                                  </div>
+                                  <FormControl>
+                                    <Switch checked={field.value} onCheckedChange={field.onChange} />
+                                  </FormControl>
+                                </div>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        )}
+                      </AccordionContent>
+                    </AccordionItem>
                   ) : (
                     <Alert>
                       <Lock className="h-4 w-4" />
@@ -1154,70 +1367,31 @@ export default function DigitalCatalogForm() {
                     </Alert>
                   )}
 
-                  {/* Accordion Item 8: Tracking y Píxeles */}
+                  {/* Accordion Item 8: Tracking y Píxeles (Mobile) */}
                   <AccordionItem value="tracking" className="border rounded-lg overflow-hidden">
                     <AccordionTrigger className="px-4 py-4 hover:no-underline hover:bg-muted/50 transition-colors">
                       <div className="flex items-center gap-3 w-full">
                         <div className="flex items-center justify-center w-10 h-10 rounded-full bg-muted flex-shrink-0">
-                          <ChevronRight className="h-5 w-5" />
+                          <Radar className="h-5 w-5" />
                         </div>
                         <div className="flex-1 text-left">
-                          <div className="font-semibold text-base">Tracking y Píxeles</div>
-                          <div className="text-sm text-muted-foreground">Analítica y conversión</div>
+                          <div className="font-semibold text-base flex items-center gap-2">
+                            Tracking Avanzado
+                            {canUseCAPI ? (
+                              <Badge variant="default" className="bg-green-600 h-5 text-[10px]">
+                                Pro
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="h-5 text-[10px]">
+                                <Lock className="w-3 h-3 mr-1" /> Pro
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="text-sm text-muted-foreground">Pixel y API</div>
                         </div>
                       </div>
                     </AccordionTrigger>
-                    <AccordionContent className="px-4 pb-4 space-y-4">
-                      <div className="text-sm text-muted-foreground mb-3">
-                        Conecta tus herramientas de analítica (Meta, Google, TikTok, LinkedIn). Recomendamos Google Tag Manager (GTM).
-                      </div>
-                      
-                      <FormField
-                        control={form.control}
-                        name="tracking_head_scripts"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-base">Scripts del Head (ej. GTM)</FormLabel>
-                            <FormControl>
-                              <Textarea
-                                placeholder="<!-- Pega tu script de GTM o Meta Pixel... -->"
-                                {...field}
-                                value={field.value || ""}
-                                rows={6}
-                                className="font-mono text-xs"
-                              />
-                            </FormControl>
-                            <FormDescription>
-                              Scripts que van en el &lt;head&gt; de tu catálogo
-                            </FormDescription>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <FormField
-                        control={form.control}
-                        name="tracking_body_scripts"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-base">Scripts del Body (ej. GTM Noscript)</FormLabel>
-                            <FormControl>
-                              <Textarea
-                                placeholder="<!-- Pega la parte <noscript> de tu GTM... -->"
-                                {...field}
-                                value={field.value || ""}
-                                rows={4}
-                                className="font-mono text-xs"
-                              />
-                            </FormControl>
-                            <FormDescription>
-                              Scripts que van después del &lt;body&gt;
-                            </FormDescription>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </AccordionContent>
+                    <AccordionContent className="px-4 pb-4 pt-2">{renderTrackingSection()}</AccordionContent>
                   </AccordionItem>
                 </Accordion>
               </TabsContent>
@@ -1360,10 +1534,10 @@ export default function DigitalCatalogForm() {
                         <FormItem>
                           <FormLabel>Información Adicional (opcional)</FormLabel>
                           <FormControl>
-                            <Textarea 
-                              placeholder="Preguntas frecuentes, términos y condiciones, información importante..." 
-                              className="resize-none min-h-[120px]" 
-                              {...field} 
+                            <Textarea
+                              placeholder="Preguntas frecuentes, términos y condiciones, información importante..."
+                              className="resize-none min-h-[120px]"
+                              {...field}
                             />
                           </FormControl>
                           <FormDescription>
@@ -1424,18 +1598,21 @@ export default function DigitalCatalogForm() {
                         <AlertTriangle className="h-4 w-4" />
                         <AlertDescription className="flex flex-col gap-2">
                           <span>
-                            {productsWithoutWholesaleMin.length} {productsWithoutWholesaleMin.length === 1 ? 'producto tiene' : 'productos tienen'} precio de mayoreo pero no {productsWithoutWholesaleMin.length === 1 ? 'tiene' : 'tienen'} cantidad mínima asignada.
+                            {productsWithoutWholesaleMin.length}{" "}
+                            {productsWithoutWholesaleMin.length === 1 ? "producto tiene" : "productos tienen"} precio de
+                            mayoreo pero no {productsWithoutWholesaleMin.length === 1 ? "tiene" : "tienen"} cantidad
+                            mínima asignada.
                           </span>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              className="w-fit"
-                              onClick={() => window.open('https://catifypro.com/products-management', '_blank')}
-                            >
-                              <ExternalLink className="h-4 w-4 mr-2" />
-                              Ir a Gestión de Productos
-                            </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="w-fit"
+                            onClick={() => window.open("https://catifypro.com/products-management", "_blank")}
+                          >
+                            <ExternalLink className="h-4 w-4 mr-2" />
+                            Ir a Gestión de Productos
+                          </Button>
                         </AlertDescription>
                       </Alert>
                     )}
@@ -1495,15 +1672,10 @@ export default function DigitalCatalogForm() {
                         <FormItem className="flex items-center justify-between rounded-lg border p-4">
                           <div className="space-y-0.5">
                             <FormLabel className="text-base">Habilitar Envío Gratis</FormLabel>
-                            <FormDescription>
-                              Ofrece envío gratis sobre un monto mínimo
-                            </FormDescription>
+                            <FormDescription>Ofrece envío gratis sobre un monto mínimo</FormDescription>
                           </div>
                           <FormControl>
-                            <Switch
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
+                            <Switch checked={field.value} onCheckedChange={field.onChange} />
                           </FormControl>
                         </FormItem>
                       )}
@@ -1637,7 +1809,7 @@ export default function DigitalCatalogForm() {
                                   variant="outline"
                                   className={cn(
                                     "w-full pl-3 text-left font-normal",
-                                    !field.value && "text-muted-foreground"
+                                    !field.value && "text-muted-foreground",
                                   )}
                                 >
                                   {field.value ? format(field.value, "PPP") : <span>Selecciona una fecha</span>}
@@ -1691,7 +1863,9 @@ export default function DigitalCatalogForm() {
                                 <FormControl>
                                   <RadioGroupItem value="public" />
                                 </FormControl>
-                                <FormLabel className="font-normal">Público - Cualquiera con el link puede verlo</FormLabel>
+                                <FormLabel className="font-normal">
+                                  Público - Cualquiera con el link puede verlo
+                                </FormLabel>
                               </FormItem>
                               <FormItem className="flex items-center space-x-3 space-y-0">
                                 <FormControl>
@@ -1755,7 +1929,7 @@ export default function DigitalCatalogForm() {
                           </FormItem>
                         )}
                       />
-                      
+
                       {form.watch("enable_quotation") && (
                         <FormField
                           control={form.control}
@@ -1775,104 +1949,71 @@ export default function DigitalCatalogForm() {
                                 <Switch checked={field.value} onCheckedChange={field.onChange} />
                               </FormControl>
                             </FormItem>
-                           )}
-                         />
-                       )}
+                          )}
+                        />
+                      )}
 
-                       {form.watch("enable_quotation") && (
-                         <FormField
-                           control={form.control}
-                           name="enable_distribution"
-                           render={({ field }) => (
-                              <FormItem className="flex items-center justify-between rounded-lg border p-4 bg-indigo-50 border-indigo-200">
-                                <div className="space-y-0.5">
-                                  <FormLabel className="text-base flex items-center gap-2">
-                                    Permitir que mis clientes creen catálogos
-                                    <Badge variant="secondary">Nuevo</Badge>
-                                  </FormLabel>
-                                   <FormDescription>
-                                     Al aceptar una cotización, tu cliente recibirá un link para activar su propio catálogo GRATIS y empezar a vender estos productos
-                                   </FormDescription>
-                                </div>
-                               <FormControl>
-                                 <Switch checked={field.value} onCheckedChange={field.onChange} />
-                               </FormControl>
-                             </FormItem>
-                           )}
-                         />
-                       )}
-                     </CardContent>
-                   </Card>
-                 ) : (
-                   <Alert>
-                     <Lock className="h-4 w-4" />
-                     <AlertDescription>
-                       El sistema de cotización está disponible en Plan Profesional y Empresarial.
-                       <Button variant="link" className="p-0 h-auto ml-1" onClick={() => navigate("/checkout")}>
-                         Actualizar plan
-                       </Button>
-                     </AlertDescription>
-                   </Alert>
-                 )}
+                      {form.watch("enable_quotation") && (
+                        <FormField
+                          control={form.control}
+                          name="enable_distribution"
+                          render={({ field }) => (
+                            <FormItem className="flex items-center justify-between rounded-lg border p-4 bg-indigo-50 border-indigo-200">
+                              <div className="space-y-0.5">
+                                <FormLabel className="text-base flex items-center gap-2">
+                                  Permitir que mis clientes creen catálogos
+                                  <Badge variant="secondary">Nuevo</Badge>
+                                </FormLabel>
+                                <FormDescription>
+                                  Al aceptar una cotización, tu cliente recibirá un link para activar su propio catálogo
+                                  GRATIS y empezar a vender estos productos
+                                </FormDescription>
+                              </div>
+                              <FormControl>
+                                <Switch checked={field.value} onCheckedChange={field.onChange} />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
+                      )}
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <Alert>
+                    <Lock className="h-4 w-4" />
+                    <AlertDescription>
+                      El sistema de cotización está disponible en Plan Profesional y Empresarial.
+                      <Button variant="link" className="p-0 h-auto ml-1" onClick={() => navigate("/checkout")}>
+                        Actualizar plan
+                      </Button>
+                    </AlertDescription>
+                  </Alert>
+                )}
 
-                 {/* 8. Tracking y Píxeles */}
-                 <Card>
-                   <CardHeader>
-                     <CardTitle>Tracking y Píxeles</CardTitle>
-                     <CardDescription>
-                       Conecta tus herramientas de analítica (Meta, Google, TikTok, LinkedIn) para medir el rendimiento de tu catálogo.
-                       Recomendamos usar Google Tag Manager (GTM) en el script del Head.
-                     </CardDescription>
-                   </CardHeader>
-                   <CardContent className="space-y-4">
-                     <FormField
-                       control={form.control}
-                       name="tracking_head_scripts"
-                       render={({ field }) => (
-                         <FormItem>
-                           <FormLabel>Scripts del Head (ej. GTM, Google Analytics)</FormLabel>
-                           <FormControl>
-                             <Textarea
-                               placeholder="<!-- Pega aquí tu script de Google Tag Manager (GTM) o Meta Pixel... -->"
-                               {...field}
-                               value={field.value || ""}
-                               rows={8}
-                               className="font-mono text-xs"
-                             />
-                           </FormControl>
-                           <FormDescription>
-                             Scripts que deben ir en la etiqueta &lt;head&gt; de tu catálogo.
-                           </FormDescription>
-                           <FormMessage />
-                         </FormItem>
-                       )}
-                     />
-                     <FormField
-                       control={form.control}
-                       name="tracking_body_scripts"
-                       render={({ field }) => (
-                         <FormItem>
-                           <FormLabel>Scripts del Body (ej. GTM Noscript)</FormLabel>
-                           <FormControl>
-                             <Textarea
-                               placeholder="<!-- Pega aquí la parte <noscript> de tu GTM... -->"
-                               {...field}
-                               value={field.value || ""}
-                               rows={5}
-                               className="font-mono text-xs"
-                             />
-                           </FormControl>
-                           <FormDescription>
-                             Scripts que deben ir justo después de la etiqueta &lt;body&gt;.
-                           </FormDescription>
-                           <FormMessage />
-                         </FormItem>
-                       )}
-                     />
-                   </CardContent>
-                 </Card>
+                {/* 8. Tracking y Píxeles (Desktop) */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Radar className="h-5 w-5" />
+                      Tracking Avanzado y Píxeles
+                      {canUseCAPI ? (
+                        <Badge variant="default" className="bg-green-600">
+                          Pro
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline">
+                          <Lock className="w-3 h-3 mr-1" /> Pro
+                        </Badge>
+                      )}
+                    </CardTitle>
+                    <CardDescription>
+                      Conecta tus herramientas de analítica y conversión (Meta CAPI, Pixel, GTM).
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>{renderTrackingSection()}</CardContent>
+                </Card>
 
-                 {/* Botones de Acción Desktop */}
+                {/* Botones de Acción Desktop */}
                 <div className="flex gap-4 sticky bottom-0 bg-background py-4 border-t">
                   <Button
                     type="button"
