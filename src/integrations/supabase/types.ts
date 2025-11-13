@@ -787,6 +787,7 @@ export type Database = {
           template_config: Json | null;
           template_id: string | null;
           tracking_body_scripts: string | null;
+          tracking_config: Json | null;
           tracking_head_scripts: string | null;
           updated_at: string | null;
           user_id: string;
@@ -820,6 +821,7 @@ export type Database = {
           template_config?: Json | null;
           template_id?: string | null;
           tracking_body_scripts?: string | null;
+          tracking_config?: Json | null;
           tracking_head_scripts?: string | null;
           updated_at?: string | null;
           user_id: string;
@@ -853,6 +855,7 @@ export type Database = {
           template_config?: Json | null;
           template_id?: string | null;
           tracking_body_scripts?: string | null;
+          tracking_config?: Json | null;
           tracking_head_scripts?: string | null;
           updated_at?: string | null;
           user_id?: string;
