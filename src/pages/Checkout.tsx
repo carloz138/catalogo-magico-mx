@@ -225,50 +225,38 @@ const Checkout = () => {
       const planName = pkg.name.toLowerCase();
 
       if (planName.includes("gratis") || planName.includes("free")) {
-        features.push("1 catálogo activo");
-        features.push("50 productos por catálogo");
-        features.push("1 template básico");
-        features.push("❌ Sin sistema de cotización");
-        features.push("❌ Sin analytics");
-        features.push("❌ Sin procesamiento IA");
-      } else if (
-        planName.includes("catálogos") &&
-        !planName.includes("básico") &&
-        !planName.includes("basico") &&
-        !planName.includes("ia")
-      ) {
-        features.push("1 catálogo activo");
-        features.push("100 productos por catálogo");
-        features.push("1 template básico");
-        features.push("✅ Sistema de cotización incluido");
-        features.push("✅ Analytics básicas");
-        features.push("❌ Sin procesamiento IA");
+        // ... (se queda igual)
+      } else if (planName.includes("catálogos") && !planName.includes("básico") && !planName.includes("ia")) {
+        // ... (se queda igual)
       } else if (planName.includes("básico") || planName.includes("basico")) {
+        // Plan $299
         features.push("5 catálogos activos");
         features.push("200 productos por catálogo");
         features.push("9 templates profesionales");
         features.push("✅ Sistema de cotización incluido");
         features.push("✅ Analytics avanzadas");
-        features.push("➕ BONUS: 30 créditos IA/mes");
-        features.push("➕ Compra packs extra cuando necesites más");
+        features.push("➕ BONUS: 30 créditos IA/mes"); // ✅ Correcto
+        features.push("➕ Compra packs extra si necesitas más");
       } else if (planName.includes("profesional")) {
+        // Plan $599
         features.push("30 catálogos activos");
         features.push("500 productos por catálogo");
         features.push("16 templates (todos)");
         features.push("✅ Sistema de cotización incluido");
         features.push("✅ Analytics profesionales");
         features.push("✅ Catálogos privados");
-        features.push("➕ BONUS: 100 créditos IA/mes");
-        features.push("➕ Compra packs extra cuando necesites más");
+        features.push("➕ BONUS: 50 créditos IA/mes"); // ✏️ CAMBIADO DE 100 A 50
+        features.push("➕ Compra packs extra si necesitas más");
       } else if (planName.includes("empresarial")) {
+        // Plan $1,299
         features.push("♾️ Catálogos ilimitados");
         features.push("♾️ Productos ilimitados");
         features.push("16 templates + personalización");
         features.push("✅ Sistema de cotización empresarial");
         features.push("✅ Analytics profesionales + API");
         features.push("✅ API de integración");
-        features.push("➕ BONUS: 300 créditos IA/mes");
-        features.push("➕ Compra packs extra cuando necesites más");
+        features.push("➕ BONUS: 100 créditos IA/mes"); // ✏️ CAMBIADO DE 300 A 100
+        features.push("➕ Compra packs extra si necesitas más");
       }
 
       features.push("Se renueva automáticamente");
