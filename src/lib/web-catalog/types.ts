@@ -1,5 +1,4 @@
 // lib/web-catalog/types.ts
-// Sistema completamente separado para catálogos digitales web
 
 export type WebCatalogLayout =
   | "modern-grid" // Grid moderno con cards
@@ -10,48 +9,56 @@ export type WebCatalogLayout =
   | "showcase" // Fullscreen showcase
   | "carousel"; // Slider principal
 
-export type WebCatalogStyle = "modern" | "elegant" | "minimal" | "bold" | "luxury" | "playful"; // Este ya estaba, es correcto
+export type WebCatalogStyle = "modern" | "elegant" | "minimal" | "bold" | "luxury" | "playful";
 
-// 👇 AQUÍ ESTABA EL PRINCIPAL ERROR: Faltaban muchas industrias
+// Lista expandida de industrias
 export type IndustryMatch =
   | "joyeria"
   | "moda"
   | "electronica"
-  | "tecnologia" // Nuevo
+  | "tecnologia"
   | "ferreteria"
   | "floreria"
   | "cosmeticos"
-  | "skincare" // Nuevo
+  | "skincare"
   | "decoracion"
   | "muebles"
   | "alimentos"
-  | "postres" // Nuevo
-  | "artesania" // Nuevo
-  | "niños" // Nuevo
-  | "juguetes" // Nuevo
-  | "mascotas" // Nuevo
-  | "regalos" // Nuevo
-  | "eventos" // Nuevo
-  | "licores" // Nuevo
-  | "arte" // Nuevo
-  | "fotografia" // Nuevo
-  | "lenceria" // Nuevo
-  | "calzado" // Nuevo
-  | "accesorios" // Nuevo
-  | "oficina" // Nuevo
-  | "arquitectura" // Nuevo
-  | "vip" // Nuevo
-  | "gala" // Nuevo
-  | "relojes" // Nuevo
-  | "navidad" // Nuevo
-  | "fiestas" // Nuevo
-  | "general";
+  | "postres"
+  | "artesania"
+  | "niños"
+  | "juguetes"
+  | "mascotas"
+  | "regalos"
+  | "eventos"
+  | "licores"
+  | "arte"
+  | "fotografia"
+  | "lenceria"
+  | "calzado"
+  | "accesorios"
+  | "oficina"
+  | "arquitectura"
+  | "vip"
+  | "gala"
+  | "relojes"
+  | "navidad"
+  | "fiestas"
+  | "general"
+  | "marca"
+  | "corporativo"
+  | "retail"
+  | "impacto"
+  | "app"
+  | "tech"
+  | "servicios"
+  | "entretenimiento";
 
 // Categoría de template
 export type TemplateCategory =
   | "basic" // Template básico gratuito
-  | "standard" // Templates estándar (incluidos en Básico IA)
-  | "seasonal"; // Templates de temporada/especiales (solo Profesional+)
+  | "standard" // Templates estándar
+  | "seasonal"; // Templates de temporada/especiales (Premium)
 
 export interface BrandColors {
   primary: string;
@@ -62,20 +69,19 @@ export interface BrandColors {
 export interface WebTemplateConfig {
   // Layout
   columnsDesktop: 2 | 3 | 4 | 5;
-  columnsMobile: 1 | 2;
+  columnsMobile: 1 | 2 | 3; // Agregado 3 para Instagram style
   gap: "tight" | "normal" | "loose";
 
   // Card appearance
-  // 👇 ACTUALIZADO: Agregado 'soft'
+  // 'glass' y 'soft' son nuevos para los templates premium
   cardStyle: "flat" | "elevated" | "outlined" | "glass" | "neumorphic" | "soft";
 
-  // 👇 ACTUALIZADO: Agregados '2xl' y 'full'
-  cardRadius: "none" | "sm" | "md" | "lg" | "xl" | "2xl" | "full";
+  // '2xl', '3xl' y 'full' son nuevos para estilos muy redondos
+  cardRadius: "none" | "sm" | "md" | "lg" | "xl" | "2xl" | "3xl" | "full";
 
   imageRatio: "square" | "portrait" | "landscape" | "auto";
 
   // Interactions
-  // 👇 ACTUALIZADO: Agregados 'bounce' y 'scale'
   hoverEffect: "none" | "lift" | "zoom" | "glow" | "tilt" | "bounce" | "scale";
 
   clickAction: "modal" | "expand" | "sidebar" | "navigate";
@@ -83,7 +89,7 @@ export interface WebTemplateConfig {
   // Features
   hasSearch: boolean;
   hasFilters: boolean;
-  hasCart: boolean; // Para cotización
+  hasCart: boolean;
   hasFavorites: boolean;
   hasShareButtons: boolean;
   hasZoom: boolean;
@@ -95,7 +101,7 @@ export interface WebTemplateConfig {
   // Branding
   showLogo: boolean;
   showWatermark: boolean;
-  customFonts?: string[];
+  customFonts?: string[]; // Para importar fuentes de Google Fonts
 }
 
 export interface WebTemplateColors {
@@ -123,8 +129,8 @@ export interface WebCatalogTemplate {
 
   // Visual
   thumbnail: string;
-  previewImages: string[]; // Múltiples screenshots
-  demoUrl?: string; // Link a demo en vivo
+  previewImages: string[];
+  demoUrl?: string;
 
   // Clasificación
   layout: WebCatalogLayout;
@@ -133,14 +139,13 @@ export interface WebCatalogTemplate {
   // Categoría del template
   category: TemplateCategory;
 
-  // isPremium ahora se calcula desde category
   isPremium: boolean;
 
   // Para templates de temporada
   seasonalInfo?: {
     season: "spring" | "summer" | "fall" | "winter" | "christmas" | "valentine" | "custom";
     year?: number;
-    validUntil?: string; // ISO date
+    validUntil?: string;
   };
 
   // Recomendaciones
@@ -152,14 +157,14 @@ export interface WebCatalogTemplate {
 
   // Features destacados
   features: string[];
-  proFeatures?: string[]; // Features solo en premium
+  proFeatures?: string[];
 
   // Configuración
   config: WebTemplateConfig;
   colorScheme: WebTemplateColors;
 
   // Meta
-  popularity: number; // Para ordenar por más usado
+  popularity: number;
   isNew?: boolean;
   tags: string[];
 }
@@ -172,49 +177,30 @@ export interface WebCatalogProduct {
   sku?: string;
   category?: string;
   tags?: string[];
-
-  // Precios
   price_menudeo?: number;
   price_mayoreo?: number;
-
-  // Imágenes
   image_url?: string;
   additional_images?: string[];
-
-  // Metadata para el catálogo
   is_featured?: boolean;
   sort_order?: number;
-  badge?: string; // "NUEVO", "OFERTA", etc.
+  badge?: string;
 }
 
 // Configuración completa del catálogo web
 export interface WebCatalogConfig {
-  // Info básica
   name: string;
   description?: string;
-
-  // Template
   template_id: string;
-
-  // Productos
   products: WebCatalogProduct[];
-
-  // Precios
   price_display: "menudeo_only" | "mayoreo_only" | "both" | "hidden";
   price_adjustment_menudeo: number;
   price_adjustment_mayoreo: number;
-
-  // Visibilidad
   show_sku: boolean;
   show_tags: boolean;
   show_description: boolean;
   show_category: boolean;
-
-  // Cotización
   enable_quotation: boolean;
   quotation_button_text?: string;
-
-  // Branding
   business_name?: string;
   business_logo?: string;
   business_contact?: {
@@ -222,19 +208,12 @@ export interface WebCatalogConfig {
     email?: string;
     phone?: string;
   };
-
-  // Personalización de colores (override del template)
   custom_colors?: Partial<WebTemplateColors>;
-
-  // 🆕 Brand-Aware System
   use_brand_colors?: boolean;
   brand_colors?: BrandColors;
-
-  // Patrón de fondo
   background_pattern?: string | null;
 }
 
-// Para el preview en tiempo real
 export interface WebCatalogPreviewData {
   template: WebCatalogTemplate;
   config: WebCatalogConfig;
