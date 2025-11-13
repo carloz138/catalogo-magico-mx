@@ -4,7 +4,7 @@ import { WebCatalogTemplate, TemplateCategory } from "./types";
 export const EXPANDED_WEB_TEMPLATES: WebCatalogTemplate[] = [
   // ============================================
   // CATEGORÍA: BASIC (1 template)
-  // Disponible para: Gratis, Catálogos, Básico IA, Profesional, Empresarial
+  // Disponible para: Gratis, Catálogos, Básico IA, Profesional, Empresariales
   // ============================================
 
   {
