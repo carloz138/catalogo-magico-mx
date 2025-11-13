@@ -307,7 +307,7 @@ export default function DigitalCatalogForm() {
         tracking_head_scripts: catalog.tracking_head_scripts || "",
         tracking_body_scripts: catalog.tracking_body_scripts || "",
         // Carga la configuración CAPI o usa default
-        tracking_config: catalog.tracking_config || {
+        tracking_config: (catalog as any).tracking_config || {
           meta_capi: { enabled: false, pixel_id: "", access_token: "", test_code: "" },
         },
       });
