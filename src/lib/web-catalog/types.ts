@@ -1,17 +1,17 @@
 // lib/web-catalog/types.ts
 
 export type WebCatalogLayout =
-  | "modern-grid" // Grid moderno con cards
-  | "masonry" // Pinterest style
-  | "horizontal-scroll" // Scroll horizontal
-  | "magazine" // Editorial style
-  | "minimal-list" // Lista simple
-  | "showcase" // Fullscreen showcase
-  | "carousel"; // Slider principal
+  | "modern-grid"
+  | "masonry"
+  | "horizontal-scroll"
+  | "magazine"
+  | "minimal-list"
+  | "showcase"
+  | "carousel";
 
 export type WebCatalogStyle = "modern" | "elegant" | "minimal" | "bold" | "luxury" | "playful";
 
-// Lista expandida de industrias
+// 👇 LISTA CORREGIDA Y COMPLETADA
 export type IndustryMatch =
   | "joyeria"
   | "moda"
@@ -23,6 +23,7 @@ export type IndustryMatch =
   | "skincare"
   | "decoracion"
   | "muebles"
+  | "hogar" // Nuevo
   | "alimentos"
   | "postres"
   | "artesania"
@@ -44,6 +45,11 @@ export type IndustryMatch =
   | "relojes"
   | "navidad"
   | "fiestas"
+  | "salud" // Nuevo
+  | "deportes" // Nuevo
+  | "gaming" // Nuevo
+  | "autos" // Nuevo
+  | "propiedades" // Nuevo
   | "general"
   | "marca"
   | "corporativo"
@@ -54,11 +60,7 @@ export type IndustryMatch =
   | "servicios"
   | "entretenimiento";
 
-// Categoría de template
-export type TemplateCategory =
-  | "basic" // Template básico gratuito
-  | "standard" // Templates estándar
-  | "seasonal"; // Templates de temporada/especiales (Premium)
+export type TemplateCategory = "basic" | "standard" | "seasonal";
 
 export interface BrandColors {
   primary: string;
@@ -67,41 +69,25 @@ export interface BrandColors {
 }
 
 export interface WebTemplateConfig {
-  // Layout
   columnsDesktop: 2 | 3 | 4 | 5;
-  columnsMobile: 1 | 2 | 3; // Agregado 3 para Instagram style
+  columnsMobile: 1 | 2 | 3;
   gap: "tight" | "normal" | "loose";
-
-  // Card appearance
-  // 'glass' y 'soft' son nuevos para los templates premium
   cardStyle: "flat" | "elevated" | "outlined" | "glass" | "neumorphic" | "soft";
-
-  // '2xl', '3xl' y 'full' son nuevos para estilos muy redondos
   cardRadius: "none" | "sm" | "md" | "lg" | "xl" | "2xl" | "3xl" | "full";
-
   imageRatio: "square" | "portrait" | "landscape" | "auto";
-
-  // Interactions
   hoverEffect: "none" | "lift" | "zoom" | "glow" | "tilt" | "bounce" | "scale";
-
   clickAction: "modal" | "expand" | "sidebar" | "navigate";
-
-  // Features
   hasSearch: boolean;
   hasFilters: boolean;
   hasCart: boolean;
   hasFavorites: boolean;
   hasShareButtons: boolean;
   hasZoom: boolean;
-
-  // Animations
   entranceAnimation: "none" | "fade" | "slide" | "scale" | "stagger";
   transitionSpeed: "fast" | "normal" | "slow";
-
-  // Branding
   showLogo: boolean;
   showWatermark: boolean;
-  customFonts?: string[]; // Para importar fuentes de Google Fonts
+  customFonts?: string[];
 }
 
 export interface WebTemplateColors {
@@ -113,7 +99,6 @@ export interface WebTemplateColors {
   text: string;
   textMuted: string;
   border: string;
-  // Para gradientes y efectos
   gradient?: {
     from: string;
     to: string;
@@ -126,50 +111,32 @@ export interface WebCatalogTemplate {
   name: string;
   description: string;
   longDescription?: string;
-
-  // Visual
   thumbnail: string;
   previewImages: string[];
   demoUrl?: string;
-
-  // Clasificación
   layout: WebCatalogLayout;
   style: WebCatalogStyle;
-
-  // Categoría del template
   category: TemplateCategory;
-
   isPremium: boolean;
-
-  // Para templates de temporada
   seasonalInfo?: {
     season: "spring" | "summer" | "fall" | "winter" | "christmas" | "valentine" | "custom";
     year?: number;
     validUntil?: string;
   };
-
-  // Recomendaciones
   bestFor: IndustryMatch[];
   idealProductCount: {
     min: number;
     max?: number;
   };
-
-  // Features destacados
   features: string[];
   proFeatures?: string[];
-
-  // Configuración
   config: WebTemplateConfig;
   colorScheme: WebTemplateColors;
-
-  // Meta
   popularity: number;
   isNew?: boolean;
   tags: string[];
 }
 
-// Configuración del producto en el catálogo
 export interface WebCatalogProduct {
   id: string;
   name: string;
@@ -186,7 +153,6 @@ export interface WebCatalogProduct {
   badge?: string;
 }
 
-// Configuración completa del catálogo web
 export interface WebCatalogConfig {
   name: string;
   description?: string;
