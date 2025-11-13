@@ -2,14 +2,13 @@ import { WebCatalogTemplate } from "./types";
 
 export const EXPANDED_WEB_TEMPLATES: WebCatalogTemplate[] = [
   // ============================================
-  // CATEGORÍA: BASIC (1 template)
+  // CATEGORÍA: BASIC
   // ============================================
   {
     id: "basic-catalog-free",
     name: "Tienda Minimalista",
     description: "Diseño limpio y esencial, estilo boutique",
-    longDescription:
-      "Un diseño ultra-limpio que pone toda la atención en tus fotos. Sin distracciones, bordes suaves y tipografía clara.",
+    longDescription: "Un diseño ultra-limpio que pone toda la atención en tus fotos. Sin distracciones.",
     thumbnail: "https://images.unsplash.com/photo-1441984904996-e0b6ba687e04?w=600&h=400&fit=crop",
     previewImages: [],
     layout: "modern-grid",
@@ -40,7 +39,7 @@ export const EXPANDED_WEB_TEMPLATES: WebCatalogTemplate[] = [
       showWatermark: true,
     },
     colorScheme: {
-      primary: "#18181b", // Zinc-950 (Neutro)
+      primary: "#18181b",
       secondary: "#71717a",
       accent: "#2563eb",
       background: "#ffffff",
@@ -54,24 +53,22 @@ export const EXPANDED_WEB_TEMPLATES: WebCatalogTemplate[] = [
   },
 
   // ============================================
-  // CATEGORÍA: STANDARD (Variedad de Colores)
+  // CATEGORÍA: STANDARD
   // ============================================
-
   {
     id: "modern-grid-clean",
     name: "Tech Blue",
     description: "Estilo E-commerce clásico y confiable",
-    longDescription:
-      "El estándar de oro del comercio electrónico. Tarjetas con sombra suave y tonos azules corporativos.",
+    longDescription: "El estándar de oro. Inspira confianza con tonos azules corporativos.",
     thumbnail: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=600&h=400&fit=crop",
     previewImages: [],
     layout: "modern-grid",
     style: "modern",
     category: "standard",
     isPremium: false,
-    bestFor: ["tecnologia", "servicios"],
+    bestFor: ["tecnologia", "servicios", "oficina"],
     idealProductCount: { min: 12, max: 100 },
-    features: ["Tarjetas con elevación", "Filtros de categoría"],
+    features: ["Tarjetas con elevación", "Botón de compra rápido"],
     config: {
       columnsDesktop: 3,
       columnsMobile: 2,
@@ -93,7 +90,7 @@ export const EXPANDED_WEB_TEMPLATES: WebCatalogTemplate[] = [
       showWatermark: false,
     },
     colorScheme: {
-      primary: "#0284c7", // Sky-600 (Azul Vibrante)
+      primary: "#0284c7",
       secondary: "#38bdf8",
       accent: "#f59e0b",
       background: "#f0f9ff",
@@ -118,7 +115,7 @@ export const EXPANDED_WEB_TEMPLATES: WebCatalogTemplate[] = [
     style: "elegant",
     category: "standard",
     isPremium: false,
-    bestFor: ["plantas", "comida", "organico"],
+    bestFor: ["floreria", "alimentos", "artesania"], // Corregido: plantas->floreria, comida->alimentos
     idealProductCount: { min: 6, max: 40 },
     features: ["Layout dinámico", "Estilo orgánico"],
     config: {
@@ -142,10 +139,10 @@ export const EXPANDED_WEB_TEMPLATES: WebCatalogTemplate[] = [
       showWatermark: false,
     },
     colorScheme: {
-      primary: "#15803d", // Green-700 (Verde Hoja)
+      primary: "#15803d",
       secondary: "#86efac",
       accent: "#d97706",
-      background: "#f0fdf4", // Menta suave
+      background: "#f0fdf4",
       cardBackground: "#ffffff",
       text: "#14532d",
       textMuted: "#166534",
@@ -160,14 +157,14 @@ export const EXPANDED_WEB_TEMPLATES: WebCatalogTemplate[] = [
     name: "Berry Pop",
     description: "Vibrante, divertido y juvenil",
     longDescription:
-      "Tarjetas muy redondeadas con sombras de color rosa y violeta. Perfecto para juguetes, regalos o marcas femeninas.",
+      "Tarjetas muy redondeadas con sombras de color rosa y violeta. Perfecto para accesorios, regalos o marcas femeninas.",
     thumbnail: "https://images.unsplash.com/photo-1472851294608-062f824d29cc?w=600&h=400&fit=crop",
     previewImages: [],
     layout: "modern-grid",
     style: "playful",
     category: "standard",
     isPremium: false,
-    bestFor: ["niños", "regalos", "postres"],
+    bestFor: ["juguetes", "regalos", "postres"],
     idealProductCount: { min: 12, max: 100 },
     features: ["Cards burbuja", "Sombras de color"],
     config: {
@@ -175,7 +172,7 @@ export const EXPANDED_WEB_TEMPLATES: WebCatalogTemplate[] = [
       columnsMobile: 2,
       gap: "loose",
       cardStyle: "soft",
-      cardRadius: "3xl", // Muy redondo
+      cardRadius: "2xl",
       imageRatio: "square",
       hoverEffect: "bounce",
       clickAction: "modal",
@@ -191,10 +188,10 @@ export const EXPANDED_WEB_TEMPLATES: WebCatalogTemplate[] = [
       showWatermark: false,
     },
     colorScheme: {
-      primary: "#be185d", // Pink-700 (Frambuesa)
+      primary: "#be185d",
       secondary: "#f472b6",
-      accent: "#8b5cf6", // Violeta
-      background: "#fff1f2", // Rosa pálido
+      accent: "#8b5cf6",
+      background: "#fff1f2",
       cardBackground: "#ffffff",
       text: "#831843",
       textMuted: "#9d174d",
@@ -208,17 +205,16 @@ export const EXPANDED_WEB_TEMPLATES: WebCatalogTemplate[] = [
     id: "sidebar-detail-warm",
     name: "Sunset Orange",
     description: "Cálido y acogedor para hogar",
-    longDescription:
-      "Layout con sidebar y tonos terracota/naranja. Ideal para muebles, decoración, panaderías o cafeterías.",
+    longDescription: "Layout con sidebar y tonos terracota/naranja. Ideal para muebles, decoración o panaderías.",
     thumbnail: "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=600&h=400&fit=crop",
     previewImages: [],
     layout: "magazine",
     style: "modern",
     category: "standard",
     isPremium: false,
-    bestFor: ["hogar", "panaderia", "decoracion"],
+    bestFor: ["muebles", "alimentos", "decoracion"], // Corregido: hogar->decoracion, panaderia->alimentos
     idealProductCount: { min: 8, max: 50 },
-    features: ["Sidebar lateral", "Vista detallada"],
+    features: ["Sidebar lateral", "Tonos tierra"],
     config: {
       columnsDesktop: 4,
       columnsMobile: 2,
@@ -240,10 +236,10 @@ export const EXPANDED_WEB_TEMPLATES: WebCatalogTemplate[] = [
       showWatermark: false,
     },
     colorScheme: {
-      primary: "#c2410c", // Orange-700 (Terracota)
+      primary: "#c2410c",
       secondary: "#fdba74",
       accent: "#ea580c",
-      background: "#fff7ed", // Naranja muy suave
+      background: "#fff7ed",
       cardBackground: "#ffffff",
       text: "#431407",
       textMuted: "#9a3412",
@@ -265,7 +261,7 @@ export const EXPANDED_WEB_TEMPLATES: WebCatalogTemplate[] = [
     style: "modern",
     category: "standard",
     isPremium: false,
-    bestFor: ["salud", "farmacia", "servicios"],
+    bestFor: ["salud", "servicios", "tecnologia"], // Corregido: farmacia->salud
     idealProductCount: { min: 8, max: 50 },
     features: ["Sidebar lateral", "Especificaciones"],
     config: {
@@ -289,7 +285,7 @@ export const EXPANDED_WEB_TEMPLATES: WebCatalogTemplate[] = [
       showWatermark: false,
     },
     colorScheme: {
-      primary: "#0f766e", // Teal-700
+      primary: "#0f766e",
       secondary: "#2dd4bf",
       accent: "#0d9488",
       background: "#f0fdfa",
@@ -313,12 +309,12 @@ export const EXPANDED_WEB_TEMPLATES: WebCatalogTemplate[] = [
     style: "modern",
     category: "standard",
     isPremium: false,
-    bestFor: ["moda", "cosmeticos", "influencers"],
+    bestFor: ["moda", "cosmeticos", "joyeria"], // influencers->joyeria/moda
     idealProductCount: { min: 9, max: 60 },
     features: ["Grid cuadrado", "Estilo app"],
     config: {
       columnsDesktop: 3,
-      columnsMobile: 3, // 3 columnas en movil como insta
+      columnsMobile: 2, // Corregido a 2
       gap: "tight",
       cardStyle: "flat",
       cardRadius: "none",
@@ -337,7 +333,7 @@ export const EXPANDED_WEB_TEMPLATES: WebCatalogTemplate[] = [
       showWatermark: false,
     },
     colorScheme: {
-      primary: "#d946ef", // Fuchsia
+      primary: "#d946ef",
       secondary: "#f0abfc",
       accent: "#8b5cf6",
       background: "#faf5ff",
@@ -367,7 +363,7 @@ export const EXPANDED_WEB_TEMPLATES: WebCatalogTemplate[] = [
     style: "playful",
     category: "standard",
     isPremium: false,
-    bestFor: ["artesania", "recuerdos"],
+    bestFor: ["artesania", "regalos"], // recuerdos->regalos
     idealProductCount: { min: 6, max: 36 },
     features: ["Rotación aleatoria", "Estilo papel"],
     config: {
@@ -391,10 +387,10 @@ export const EXPANDED_WEB_TEMPLATES: WebCatalogTemplate[] = [
       showWatermark: false,
     },
     colorScheme: {
-      primary: "#78350f", // Amber-900
+      primary: "#78350f",
       secondary: "#d97706",
       accent: "#b45309",
-      background: "#fffbeb", // Amber-50
+      background: "#fffbeb",
       cardBackground: "#ffffff",
       text: "#451a03",
       textMuted: "#92400e",
@@ -415,7 +411,7 @@ export const EXPANDED_WEB_TEMPLATES: WebCatalogTemplate[] = [
     style: "playful",
     category: "standard",
     isPremium: false,
-    bestFor: ["deportes", "comida", "promociones"],
+    bestFor: ["deportes", "alimentos", "general"], // comida->alimentos, promociones->general
     idealProductCount: { min: 4, max: 24 },
     features: ["Auto-play", "Touch swipe"],
     config: {
@@ -439,7 +435,7 @@ export const EXPANDED_WEB_TEMPLATES: WebCatalogTemplate[] = [
       showWatermark: false,
     },
     colorScheme: {
-      primary: "#dc2626", // Red-600
+      primary: "#dc2626",
       secondary: "#ef4444",
       accent: "#f87171",
       background: "#fef2f2",
@@ -450,150 +446,6 @@ export const EXPANDED_WEB_TEMPLATES: WebCatalogTemplate[] = [
     },
     popularity: 72,
     tags: ["rojo", "dinámico", "carousel"],
-  },
-
-  {
-    id: "architect-studio",
-    name: "Estudio Arquitecto",
-    description: "Líneas finas, Blanco y Negro",
-    longDescription: "Inspirado en planos arquitectónicos. Bordes negros finos, sin sombras. Brutalista y limpio.",
-    thumbnail: "https://images.unsplash.com/photo-1493663284031-b7e3aefcae8e?w=600&h=400&fit=crop",
-    previewImages: [],
-    layout: "modern-grid",
-    style: "minimal",
-    category: "standard",
-    isPremium: false,
-    bestFor: ["muebles", "arquitectura", "arte"],
-    idealProductCount: { min: 6, max: 50 },
-    features: ["Estilo Wireframe", "Bordes definidos"],
-    config: {
-      columnsDesktop: 3,
-      columnsMobile: 1,
-      gap: "normal",
-      cardStyle: "outlined",
-      cardRadius: "none",
-      imageRatio: "square",
-      hoverEffect: "none",
-      clickAction: "modal",
-      hasSearch: true,
-      hasFilters: true,
-      hasCart: true,
-      hasFavorites: false,
-      hasShareButtons: true,
-      hasZoom: true,
-      entranceAnimation: "none",
-      transitionSpeed: "fast",
-      showLogo: true,
-      showWatermark: false,
-    },
-    colorScheme: {
-      primary: "#000000",
-      secondary: "#404040",
-      accent: "#000000",
-      background: "#ffffff",
-      cardBackground: "#ffffff",
-      text: "#000000",
-      textMuted: "#525252",
-      border: "#000000",
-    },
-    popularity: 80,
-    tags: ["b&w", "wireframe", "técnico"],
-  },
-
-  {
-    id: "boutique-line-art",
-    name: "Nude Boutique",
-    description: "Delicado y femenino en tonos tierra",
-    longDescription: "Elegancia minimalista en tonos beige y taupe. Ideal para skincare, lencería o ropa.",
-    thumbnail: "https://images.unsplash.com/photo-1445205170230-053b83016050?w=600&h=400&fit=crop",
-    previewImages: [],
-    layout: "masonry",
-    style: "elegant",
-    category: "standard",
-    isPremium: false,
-    bestFor: ["moda", "skincare", "lenceria"],
-    idealProductCount: { min: 10, max: 60 },
-    features: ["Bordes finos", "Paleta nude"],
-    config: {
-      columnsDesktop: 4,
-      columnsMobile: 2,
-      gap: "loose",
-      cardStyle: "outlined",
-      cardRadius: "sm",
-      imageRatio: "portrait",
-      hoverEffect: "lift",
-      clickAction: "modal",
-      hasSearch: true,
-      hasFilters: true,
-      hasCart: true,
-      hasFavorites: true,
-      hasShareButtons: true,
-      hasZoom: true,
-      entranceAnimation: "fade",
-      transitionSpeed: "slow",
-      showLogo: true,
-      showWatermark: false,
-    },
-    colorScheme: {
-      primary: "#a8a29e", // Stone-400
-      secondary: "#d6d3d1",
-      accent: "#78716c",
-      background: "#fafaf9", // Stone-50
-      cardBackground: "#ffffff",
-      text: "#44403c",
-      textMuted: "#a8a29e",
-      border: "#e7e5e4",
-    },
-    popularity: 87,
-    tags: ["nude", "boutique", "suave"],
-  },
-
-  {
-    id: "gallery-frame",
-    name: "Museum Grey",
-    description: "Marco ancho tipo galería de arte",
-    longDescription: "Fondo gris museo y marcos blancos anchos. Resalta la fotografía artística.",
-    thumbnail: "https://images.unsplash.com/photo-1513519245088-0e12902e5a38?w=600&h=400&fit=crop",
-    previewImages: [],
-    layout: "modern-grid",
-    style: "minimal",
-    category: "standard",
-    isPremium: false, // Lo cambié a standard para dar más valor al plan medio
-    bestFor: ["arte", "fotografia"],
-    idealProductCount: { min: 1, max: 30 },
-    features: ["Efecto paspartú", "Sombra profunda"],
-    config: {
-      columnsDesktop: 3,
-      columnsMobile: 1,
-      gap: "loose",
-      cardStyle: "flat",
-      cardRadius: "none",
-      imageRatio: "square",
-      hoverEffect: "glow",
-      clickAction: "modal",
-      hasSearch: true,
-      hasFilters: false,
-      hasCart: true,
-      hasFavorites: true,
-      hasShareButtons: true,
-      hasZoom: true,
-      entranceAnimation: "scale",
-      transitionSpeed: "normal",
-      showLogo: true,
-      showWatermark: false,
-    },
-    colorScheme: {
-      primary: "#262626",
-      secondary: "#525252",
-      accent: "#000000",
-      background: "#e5e5e5", // Gris más oscuro
-      cardBackground: "#ffffff", // Marco blanco
-      text: "#171717",
-      textMuted: "#737373",
-      border: "transparent",
-    },
-    popularity: 78,
-    tags: ["gris", "arte", "marco"],
   },
 
   // ============================================
@@ -611,9 +463,9 @@ export const EXPANDED_WEB_TEMPLATES: WebCatalogTemplate[] = [
     style: "luxury",
     category: "seasonal",
     isPremium: true,
-    bestFor: ["joyeria", "vip"],
+    bestFor: ["joyeria", "vip", "relojes"],
     idealProductCount: { min: 6, max: 40 },
-    features: ["Modo oscuro", "Detalles dorados", "Glassmorphism"],
+    features: ["Modo oscuro", "Detalles dorados"],
     config: {
       columnsDesktop: 3,
       columnsMobile: 1,
@@ -635,10 +487,10 @@ export const EXPANDED_WEB_TEMPLATES: WebCatalogTemplate[] = [
       showWatermark: false,
     },
     colorScheme: {
-      primary: "#fbbf24", // Dorado
+      primary: "#fbbf24",
       secondary: "#525252",
       accent: "#f59e0b",
-      background: "#09090b", // Negro
+      background: "#09090b",
       cardBackground: "rgba(255, 255, 255, 0.03)",
       text: "#f8fafc",
       textMuted: "#a3a3a3",
@@ -647,7 +499,7 @@ export const EXPANDED_WEB_TEMPLATES: WebCatalogTemplate[] = [
     },
     popularity: 98,
     isNew: true,
-    tags: ["lujo", "oscuro", "gold"],
+    tags: ["lujo", "oscuro", "premium"],
   },
 
   {
@@ -661,7 +513,7 @@ export const EXPANDED_WEB_TEMPLATES: WebCatalogTemplate[] = [
     style: "modern",
     category: "seasonal",
     isPremium: true,
-    bestFor: ["gaming", "tech"],
+    bestFor: ["gaming", "tecnologia"],
     idealProductCount: { min: 8, max: 32 },
     features: ["Gradientes modernos", "Layout Bento"],
     config: {
@@ -685,10 +537,10 @@ export const EXPANDED_WEB_TEMPLATES: WebCatalogTemplate[] = [
       showWatermark: false,
     },
     colorScheme: {
-      primary: "#8b5cf6", // Violeta
+      primary: "#8b5cf6",
       secondary: "#c4b5fd",
       accent: "#3b82f6",
-      background: "#2e1065", // Violeta oscuro
+      background: "#2e1065",
       cardBackground: "#ffffff",
       text: "#ffffff",
       textMuted: "#ddd6fe",
@@ -697,7 +549,7 @@ export const EXPANDED_WEB_TEMPLATES: WebCatalogTemplate[] = [
     },
     popularity: 92,
     isNew: true,
-    tags: ["violeta", "tech", "bento"],
+    tags: ["violeta", "tech", "cyber"],
   },
 
   {
@@ -711,7 +563,7 @@ export const EXPANDED_WEB_TEMPLATES: WebCatalogTemplate[] = [
     style: "luxury",
     category: "seasonal",
     isPremium: true,
-    bestFor: ["relojes", "trajes", "corporativo"],
+    bestFor: ["joyeria", "muebles", "corporativo"], // trajes->corporativo
     idealProductCount: { min: 8, max: 50 },
     features: ["Tema oscuro elegante", "Detalles dorados"],
     config: {
@@ -738,7 +590,7 @@ export const EXPANDED_WEB_TEMPLATES: WebCatalogTemplate[] = [
       primary: "#fbbf24",
       secondary: "#f59e0b",
       accent: "#fde047",
-      background: "#172554", // Blue-950
+      background: "#172554",
       cardBackground: "rgba(255, 255, 255, 0.05)",
       text: "#f8fafc",
       textMuted: "#94a3b8",
@@ -752,16 +604,16 @@ export const EXPANDED_WEB_TEMPLATES: WebCatalogTemplate[] = [
 
   {
     id: "grid-compact-pro",
-    name: "Slate Industrial",
-    description: "Gris azulado serio y denso",
-    longDescription: "Para catálogos industriales con muchos productos. Alta densidad de información.",
+    name: "Slate Professional",
+    description: "Gris azulado corporativo y serio",
+    longDescription: "Para catálogos industriales, ferreterías o venta al por mayor. Sobrio y eficiente.",
     thumbnail: "https://images.unsplash.com/photo-1445205170230-053b83016050?w=600&h=400&fit=crop",
     previewImages: [],
     layout: "modern-grid",
     style: "minimal",
     category: "seasonal",
     isPremium: true,
-    bestFor: ["ferreteria", "mayoreo"],
+    bestFor: ["ferreteria", "general"], // mayoreo->general
     idealProductCount: { min: 50, max: 500 },
     features: ["Alta densidad", "Colores sobrios"],
     config: {
@@ -785,17 +637,17 @@ export const EXPANDED_WEB_TEMPLATES: WebCatalogTemplate[] = [
       showWatermark: false,
     },
     colorScheme: {
-      primary: "#334155", // Slate-700
+      primary: "#334155",
       secondary: "#94a3b8",
       accent: "#475569",
-      background: "#f1f5f9",
+      background: "#f8fafc",
       cardBackground: "#ffffff",
       text: "#0f172a",
       textMuted: "#64748b",
       border: "#cbd5e1",
     },
     popularity: 76,
-    tags: ["gris", "industrial", "compacto"],
+    tags: ["gris", "serio", "industrial"],
   },
 
   {
@@ -809,7 +661,7 @@ export const EXPANDED_WEB_TEMPLATES: WebCatalogTemplate[] = [
     style: "bold",
     category: "seasonal",
     isPremium: true,
-    bestFor: ["moda", "editorial"],
+    bestFor: ["moda", "arte"], // editorial->arte
     idealProductCount: { min: 6, max: 30 },
     features: ["Tipografía grande", "Imágenes full-bleed"],
     config: {
@@ -834,7 +686,7 @@ export const EXPANDED_WEB_TEMPLATES: WebCatalogTemplate[] = [
       customFonts: ["Playfair Display", "Montserrat"],
     },
     colorScheme: {
-      primary: "#991b1b", // Red-800
+      primary: "#991b1b",
       secondary: "#dc2626",
       accent: "#000000",
       background: "#ffffff",
@@ -859,7 +711,7 @@ export const EXPANDED_WEB_TEMPLATES: WebCatalogTemplate[] = [
     style: "modern",
     category: "seasonal",
     isPremium: true,
-    bestFor: ["peliculas", "juegos", "series"],
+    bestFor: ["entretenimiento", "tecnologia"], // peliculas/juegos -> entretenimiento
     idealProductCount: { min: 20, max: 100 },
     features: ["Carousels horizontales", "Scroll fluido"],
     config: {
@@ -883,10 +735,10 @@ export const EXPANDED_WEB_TEMPLATES: WebCatalogTemplate[] = [
       showWatermark: false,
     },
     colorScheme: {
-      primary: "#ef4444", // Red-500
+      primary: "#ef4444",
       secondary: "#b91c1c",
       accent: "#ffffff",
-      background: "#141414", // Netflix Black
+      background: "#141414",
       cardBackground: "#262626",
       text: "#f8fafc",
       textMuted: "#a3a3a3",
@@ -932,7 +784,7 @@ export const EXPANDED_WEB_TEMPLATES: WebCatalogTemplate[] = [
       showWatermark: false,
     },
     colorScheme: {
-      primary: "#d4af37", // Metallic Gold
+      primary: "#d4af37",
       secondary: "#fbbf24",
       accent: "#ffffff",
       background: "#1a1a1a",
@@ -947,10 +799,6 @@ export const EXPANDED_WEB_TEMPLATES: WebCatalogTemplate[] = [
     tags: ["fullscreen", "gold", "showcase"],
   },
 
-  // ============================================
-  // TEMPORADA: FIESTAS
-  // ============================================
-
   {
     id: "christmas-classic",
     name: "Navidad Clásica",
@@ -962,7 +810,7 @@ export const EXPANDED_WEB_TEMPLATES: WebCatalogTemplate[] = [
     style: "playful",
     category: "seasonal",
     isPremium: false,
-    bestFor: ["regalos", "navidad"],
+    bestFor: ["regalos", "navidad", "juguetes"],
     idealProductCount: { min: 8, max: 50 },
     features: ["Paleta navideña", "Textura sutil"],
     config: {
@@ -986,9 +834,9 @@ export const EXPANDED_WEB_TEMPLATES: WebCatalogTemplate[] = [
       showWatermark: false,
     },
     colorScheme: {
-      primary: "#dc2626", // Rojo
-      secondary: "#166534", // Verde
-      accent: "#f59e0b", // Dorado
+      primary: "#dc2626",
+      secondary: "#166534",
+      accent: "#f59e0b",
       background: "#fef2f2",
       cardBackground: "#ffffff",
       text: "#7f1d1d",
@@ -1010,7 +858,7 @@ export const EXPANDED_WEB_TEMPLATES: WebCatalogTemplate[] = [
     style: "elegant",
     category: "seasonal",
     isPremium: true,
-    bestFor: ["invierno", "joyeria plata"],
+    bestFor: ["joyeria", "moda"], // invierno/plata -> joyeria/moda
     idealProductCount: { min: 6, max: 40 },
     features: ["Estilo Frozen", "Glassmorphism"],
     config: {
@@ -1034,7 +882,7 @@ export const EXPANDED_WEB_TEMPLATES: WebCatalogTemplate[] = [
       showWatermark: false,
     },
     colorScheme: {
-      primary: "#0ea5e9", // Sky-500
+      primary: "#0ea5e9",
       secondary: "#64748b",
       accent: "#38bdf8",
       background: "#f0f9ff",
@@ -1058,7 +906,7 @@ export const EXPANDED_WEB_TEMPLATES: WebCatalogTemplate[] = [
     style: "luxury",
     category: "seasonal",
     isPremium: true,
-    bestFor: ["fiesta", "licores"],
+    bestFor: ["fiestas", "licores"], // fiesta->fiestas
     idealProductCount: { min: 4, max: 20 },
     features: ["Negro y Champagne", "Showcase"],
     config: {
@@ -1082,7 +930,7 @@ export const EXPANDED_WEB_TEMPLATES: WebCatalogTemplate[] = [
       showWatermark: false,
     },
     colorScheme: {
-      primary: "#fcd34d", // Champagne Gold
+      primary: "#fcd34d",
       secondary: "#d4d4d8",
       accent: "#f59e0b",
       background: "#000000",
@@ -1095,10 +943,6 @@ export const EXPANDED_WEB_TEMPLATES: WebCatalogTemplate[] = [
     tags: ["gala", "año nuevo", "champagne"],
   },
 
-  // ============================================
-  // NUEVOS: BRAND-FIRST (Para "Tu Marca")
-  // ============================================
-
   {
     id: "brand-minimal-clean",
     name: "Tu Marca: Minimalista",
@@ -1110,7 +954,7 @@ export const EXPANDED_WEB_TEMPLATES: WebCatalogTemplate[] = [
     style: "minimal",
     category: "standard",
     isPremium: false,
-    bestFor: ["marca", "corporativo"],
+    bestFor: ["general", "moda"],
     idealProductCount: { min: 10, max: 100 },
     features: ["Adaptable", "Limpio"],
     config: {
@@ -1134,7 +978,7 @@ export const EXPANDED_WEB_TEMPLATES: WebCatalogTemplate[] = [
       showWatermark: false,
     },
     colorScheme: {
-      primary: "#000000", // Placeholder, se sobrescribe
+      primary: "#000000",
       secondary: "#333333",
       accent: "#666666",
       background: "#ffffff",
@@ -1158,7 +1002,7 @@ export const EXPANDED_WEB_TEMPLATES: WebCatalogTemplate[] = [
     style: "modern",
     category: "standard",
     isPremium: true,
-    bestFor: ["app", "tech"],
+    bestFor: ["tecnologia", "general"],
     idealProductCount: { min: 6, max: 50 },
     features: ["Gradiente de marca", "Glass effect"],
     config: {
@@ -1206,7 +1050,7 @@ export const EXPANDED_WEB_TEMPLATES: WebCatalogTemplate[] = [
     style: "bold",
     category: "seasonal",
     isPremium: true,
-    bestFor: ["retail", "impacto"],
+    bestFor: ["retail", "general"],
     idealProductCount: { min: 12, max: 80 },
     features: ["Header sólido", "Alto impacto"],
     config: {
