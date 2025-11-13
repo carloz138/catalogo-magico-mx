@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuotes } from "@/hooks/useQuotes";
 import { QuoteStatus } from "@/types/digital-catalog";
-import AppLayout from "@/components/layout/AppLayout";
+// ❌ AppLayout eliminado
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -31,7 +31,6 @@ import {
   Eye,
   Rocket,
   Sparkles,
-  HelpCircle,
   ExternalLink,
   PackagePlus,
 } from "lucide-react";
@@ -59,34 +58,24 @@ export default function QuotesPage() {
     autoLoad: true,
   });
 
-  // NUEVO: Calcular productos de cotizaciones aceptadas para L2
+  // Lógica de negocio (se mantiene igual)
   const acceptedQuotesForConsolidation = useMemo(() => {
     if (userRole !== "L2" && userRole !== "BOTH") return null;
-    
     const acceptedQuotes = quotes.filter((q) => q.status === "accepted" && (q as any).is_from_replicated);
     if (acceptedQuotes.length === 0) return null;
-
     const totalProducts = acceptedQuotes.reduce((sum, q) => sum + q.items_count, 0);
-    
-    return {
-      totalQuotes: acceptedQuotes.length,
-      totalProducts,
-    };
+    return { totalQuotes: acceptedQuotes.length, totalProducts };
   }, [quotes, userRole]);
 
-  // ✅ NUEVO: Detectar si hay cotizaciones con catálogo pendiente
   const pendingActivations = useMemo(
     () => quotes.filter((q) => q.status === "accepted" && q.has_replicated_catalog && !q.catalog_activated),
     [quotes],
   );
 
-  // ✅ NUEVO: Resaltar cotización si viene del email
   const highlightQuoteId = searchParams.get("highlight");
 
-  // Filtrado local por búsqueda
   const filteredQuotes = quotes.filter((quote) => {
     if (!searchQuery) return true;
-
     const query = searchQuery.toLowerCase();
     return (
       quote.customer_name.toLowerCase().includes(query) ||
@@ -95,15 +84,11 @@ export default function QuotesPage() {
     );
   });
 
-  // ✅ NUEVO: Función para activar catálogo
   const handleActivateCatalog = async (quoteId: string) => {
     if (!user) return;
-
     setActivatingQuoteId(quoteId);
     try {
       console.log("🚀 Activando catálogo para cotización:", quoteId);
-
-      // Buscar el catálogo replicado
       const { data: replicaCatalog, error: findError } = await supabase
         .from("replicated_catalogs")
         .select("id")
@@ -113,7 +98,6 @@ export default function QuotesPage() {
       if (findError) throw findError;
       if (!replicaCatalog) throw new Error("No se encontró el catálogo replicado");
 
-      // Activar el catálogo
       const { error: updateError } = await supabase
         .from("replicated_catalogs")
         .update({
@@ -125,17 +109,12 @@ export default function QuotesPage() {
 
       if (updateError) throw updateError;
 
-      console.log("✅ Catálogo activado exitosamente");
-
       toast({
         title: "🎉 ¡Catálogo activado!",
         description: "Ya puedes empezar a vender estos productos. Te redirigimos a tus catálogos...",
       });
 
-      // Refrescar la lista
       await refetch();
-
-      // Redirect después de 2 segundos
       setTimeout(() => {
         navigate("/catalogs");
       }, 2000);
@@ -155,26 +134,12 @@ export default function QuotesPage() {
 
   const getStatusBadge = (status: QuoteStatus) => {
     const config = {
-      pending: {
-        label: "Pendiente",
-        color: "text-yellow-600 bg-yellow-50",
-      },
-      accepted: {
-        label: "Aceptada",
-        color: "text-green-600 bg-green-50",
-      },
-      rejected: {
-        label: "Rechazada",
-        color: "text-red-600 bg-red-50",
-      },
-      shipped: {
-        label: "Enviado",
-        color: "text-blue-600 bg-blue-50",
-      },
+      pending: { label: "Pendiente", color: "text-yellow-600 bg-yellow-50" },
+      accepted: { label: "Aceptada", color: "text-green-600 bg-green-50" },
+      rejected: { label: "Rechazada", color: "text-red-600 bg-red-50" },
+      shipped: { label: "Enviado", color: "text-blue-600 bg-blue-50" },
     };
-
     const { label, color } = config[status] || config.pending;
-
     return <Badge className={color}>{label}</Badge>;
   };
 
@@ -220,22 +185,26 @@ export default function QuotesPage() {
 
   if (loading) {
     return (
-      <AppLayout
-        title="Cotizaciones"
-        subtitle="Gestiona las solicitudes de cotización de tus clientes"
-        actions={actions}
-      >
-        <div className="flex items-center justify-center min-h-[400px]">
-          <Loader2 className="h-8 w-8 animate-spin" />
-        </div>
-      </AppLayout>
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
     );
   }
 
   return (
-    <AppLayout title="Cotizaciones" subtitle="Gestiona las solicitudes de cotización de tus clientes" actions={actions}>
+    // 👇 NUEVO CONTENEDOR PRINCIPAL
+    <div className="container mx-auto p-4 md:p-6 space-y-6">
+      {/* 👇 HEADER MANUAL */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-2">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Cotizaciones</h1>
+          <p className="text-gray-500">Gestiona las solicitudes de cotización de tus clientes</p>
+        </div>
+        {actions}
+      </div>
+
       <div className="space-y-6">
-        {/* NUEVO: Banner de pedidos consolidados para L2 */}
+        {/* Banner de pedidos consolidados para L2 */}
         {acceptedQuotesForConsolidation && (
           <Alert className="bg-emerald-50 border-emerald-200 shadow-md">
             <PackagePlus className="h-5 w-5 text-emerald-600" />
@@ -265,7 +234,7 @@ export default function QuotesPage() {
           </Alert>
         )}
 
-        {/* ✅ NUEVO: Banner de catálogos pendientes */}
+        {/* Banner de catálogos pendientes */}
         {pendingActivations.length > 0 && (
           <Alert className="bg-gradient-to-r from-purple-50 to-indigo-50 border-purple-200 shadow-md">
             <Sparkles className="h-5 w-5 text-purple-600" />
@@ -362,7 +331,7 @@ export default function QuotesPage() {
 
         {/* Tabs por estado */}
         <Tabs value={statusFilter} onValueChange={(v) => setStatusFilter(v as any)}>
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-4 bg-gray-100 p-1 rounded-lg">
             <TabsTrigger value="all">Todas ({stats.total})</TabsTrigger>
             <TabsTrigger value="pending">Pendientes ({stats.pending})</TabsTrigger>
             <TabsTrigger value="accepted">Aceptadas ({stats.accepted})</TabsTrigger>
@@ -456,7 +425,7 @@ export default function QuotesPage() {
                           Ver detalle
                         </Button>
 
-                        {/* ✅ NUEVO: Botón de activación */}
+                        {/* Botón de activación */}
                         {canActivate && (
                           <TooltipProvider>
                             <Tooltip>
@@ -507,7 +476,7 @@ export default function QuotesPage() {
         )}
       </div>
 
-      {/* ✅ NUEVO: Modal de confirmación */}
+      {/* Modal de confirmación */}
       <Dialog open={showActivationModal} onOpenChange={setShowActivationModal}>
         <DialogContent>
           <DialogHeader>
@@ -574,6 +543,6 @@ export default function QuotesPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </AppLayout>
+    </div>
   );
 }
