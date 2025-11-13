@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import AppLayout from "@/components/layout/AppLayout";
+// ❌ AppLayout eliminado
 import {
   CreditCard,
   Building2,
@@ -107,7 +107,7 @@ const Checkout = () => {
 
   const fetchAllPackages = async () => {
     try {
-      // Query completa con todos los campos - solución para problema de tipos de Lovable
+      // Query completa con todos los campos
       const { data, error } = await supabase
         .from("credit_packages")
         .select("*")
@@ -410,46 +410,37 @@ const Checkout = () => {
     }
   };
 
-  const PageHeader = () => (
-    <div className="text-center mb-6 sm:mb-8">
-      <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">Selecciona tu plan</h1>
-      <p className="text-sm sm:text-base text-gray-600 px-4">Elige entre suscripciones mensuales o packs únicos</p>
-    </div>
-  );
-
-  const actions = (
-    <Button onClick={() => navigate(-1)} variant="outline" size="sm">
-      <ArrowLeft className="h-4 w-4 mr-2" />
-      Volver
-    </Button>
-  );
-
   if (loading) {
     return (
-      <AppLayout actions={actions}>
-        <div className="flex items-center justify-center py-12">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-            <p>Cargando opciones de pago...</p>
-          </div>
+      <div className="flex items-center justify-center py-12 min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p>Cargando opciones de pago...</p>
         </div>
-      </AppLayout>
+      </div>
     );
   }
 
   const isSubscription = selectedPackage?.package_type === "monthly_plan";
-  const recommendedMethod = selectedPackage
-    ? getRecommendedPaymentMethod(selectedPackage.price_mxn, isSubscription)
-    : "stripe";
-  const selectedFees = selectedPackage
-    ? calculateFees(selectedPackage.price_mxn, paymentMethod as keyof typeof PAYMENT_PROCESSORS)
-    : null;
 
   return (
-    <AppLayout actions={actions}>
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <PageHeader />
+    // 👇 CONTENEDOR PRINCIPAL
+    <div className="container mx-auto p-4 md:p-6 space-y-6">
+      {/* Header */}
+      <div className="flex flex-col items-center mb-6 sm:mb-8 relative">
+        <div className="absolute left-0 top-0">
+          <Button onClick={() => navigate(-1)} variant="outline" size="sm">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Volver
+          </Button>
+        </div>
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">Selecciona tu plan</h1>
+        <p className="text-sm sm:text-base text-gray-600 px-4 text-center">
+          Elige entre suscripciones mensuales o packs únicos
+        </p>
+      </div>
 
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Tabs mejorados */}
         <Tabs
           value={activeTab}
@@ -471,7 +462,9 @@ const Checkout = () => {
               <Coins className="w-4 h-4 flex-shrink-0" />
               <div className="text-left flex-1 min-w-0">
                 <div className="font-semibold text-xs sm:text-sm">Comprar créditos</div>
-                <div className="text-[10px] sm:text-xs text-muted-foreground line-clamp-1">Recarga tu saldo para remover fondos</div>
+                <div className="text-[10px] sm:text-xs text-muted-foreground line-clamp-1">
+                  Recarga tu saldo para remover fondos
+                </div>
               </div>
             </TabsTrigger>
           </TabsList>
@@ -498,14 +491,14 @@ const Checkout = () => {
                       ${pkg.is_popular ? "ring-2 ring-blue-200" : ""}
                     `}
                   >
-                    {/* Badge popular */}
                     {pkg.is_popular && (
                       <div className="absolute -top-2 left-1/2 -translate-x-1/2 z-10">
-                        <span className="bg-blue-600 text-white px-2 sm:px-3 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-bold whitespace-nowrap">POPULAR</span>
+                        <span className="bg-blue-600 text-white px-2 sm:px-3 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-bold whitespace-nowrap">
+                          POPULAR
+                        </span>
                       </div>
                     )}
 
-                    {/* Icono */}
                     <div
                       className={`
                       w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-r ${getPackageColor(pkg.name, pkg.package_type)}
@@ -515,16 +508,17 @@ const Checkout = () => {
                       {getPackageIcon(pkg.name, pkg.package_type)}
                     </div>
 
-                    {/* Nombre */}
-                    <h3 className="font-bold text-base sm:text-lg mb-2 line-clamp-2">{pkg.name.replace("Plan ", "")}</h3>
+                    <h3 className="font-bold text-base sm:text-lg mb-2 line-clamp-2">
+                      {pkg.name.replace("Plan ", "")}
+                    </h3>
 
-                    {/* Precio */}
                     <div className="mb-3 sm:mb-4">
-                      <div className="text-2xl sm:text-3xl font-bold text-gray-900">${(pkg.price_mxn / 100).toLocaleString()}</div>
+                      <div className="text-2xl sm:text-3xl font-bold text-gray-900">
+                        ${(pkg.price_mxn / 100).toLocaleString()}
+                      </div>
                       <div className="text-xs sm:text-sm text-gray-600">/mes</div>
                     </div>
 
-                    {/* Características clave (solo 3 más importantes) */}
                     <div className="space-y-1.5 sm:space-y-2">
                       {getPackageFeatures(pkg)
                         .slice(0, 5)
@@ -536,7 +530,6 @@ const Checkout = () => {
                         ))}
                     </div>
 
-                    {/* Checkmark si está seleccionado */}
                     {selectedPackage?.id === pkg.id && (
                       <div className="absolute top-3 right-3 sm:top-4 sm:right-4">
                         <div className="w-5 h-5 sm:w-6 sm:h-6 bg-purple-600 rounded-full flex items-center justify-center">
@@ -572,14 +565,14 @@ const Checkout = () => {
                       ${pkg.is_popular ? "ring-2 ring-blue-200" : ""}
                     `}
                   >
-                    {/* Badge popular */}
                     {pkg.is_popular && (
                       <div className="absolute -top-2 left-1/2 -translate-x-1/2 z-10">
-                        <span className="bg-blue-600 text-white px-2 sm:px-3 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-bold whitespace-nowrap">POPULAR</span>
+                        <span className="bg-blue-600 text-white px-2 sm:px-3 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-bold whitespace-nowrap">
+                          POPULAR
+                        </span>
                       </div>
                     )}
 
-                    {/* Icono */}
                     <div
                       className={`
                       w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-r ${getPackageColor(pkg.name, pkg.package_type)}
@@ -589,16 +582,17 @@ const Checkout = () => {
                       {getPackageIcon(pkg.name, pkg.package_type)}
                     </div>
 
-                    {/* Nombre */}
-                    <h3 className="font-bold text-base sm:text-lg mb-2 line-clamp-2">{pkg.name.replace("Pack ", "")}</h3>
+                    <h3 className="font-bold text-base sm:text-lg mb-2 line-clamp-2">
+                      {pkg.name.replace("Pack ", "")}
+                    </h3>
 
-                    {/* Precio */}
                     <div className="mb-3 sm:mb-4">
-                      <div className="text-2xl sm:text-3xl font-bold text-gray-900">${(pkg.price_mxn / 100).toLocaleString()}</div>
+                      <div className="text-2xl sm:text-3xl font-bold text-gray-900">
+                        ${(pkg.price_mxn / 100).toLocaleString()}
+                      </div>
                       <div className="text-xs sm:text-sm text-gray-600">{pkg.credits} créditos</div>
                     </div>
 
-                    {/* Características clave (solo 3 más importantes) */}
                     <div className="space-y-1.5 sm:space-y-2">
                       {getPackageFeatures(pkg)
                         .slice(0, 5)
@@ -610,7 +604,6 @@ const Checkout = () => {
                         ))}
                     </div>
 
-                    {/* Checkmark si está seleccionado */}
                     {selectedPackage?.id === pkg.id && (
                       <div className="absolute top-3 right-3 sm:top-4 sm:right-4">
                         <div className="w-5 h-5 sm:w-6 sm:h-6 bg-purple-600 rounded-full flex items-center justify-center">
@@ -648,7 +641,9 @@ const Checkout = () => {
                     <div className="font-semibold text-sm sm:text-base">Tarjeta</div>
                     <div className="text-xs sm:text-sm text-gray-600 line-clamp-1">Visa, Mastercard • Instantáneo</div>
                   </div>
-                  {paymentMethod === "stripe" && <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 flex-shrink-0" />}
+                  {paymentMethod === "stripe" && (
+                    <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 flex-shrink-0" />
+                  )}
                 </button>
 
                 {/* SPEI - solo para packs únicos */}
@@ -669,7 +664,9 @@ const Checkout = () => {
                       <div className="font-semibold text-sm sm:text-base">Transferencia SPEI</div>
                       <div className="text-xs sm:text-sm text-gray-600 line-clamp-1">Instantáneo • $5 MXN comisión</div>
                     </div>
-                    {paymentMethod === "spei" && <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 flex-shrink-0" />}
+                    {paymentMethod === "spei" && (
+                      <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 flex-shrink-0" />
+                    )}
                   </button>
                 )}
               </div>
@@ -679,25 +676,25 @@ const Checkout = () => {
             <div className="bg-white rounded-lg border p-4 sm:p-6">
               <h3 className="text-base sm:text-lg font-bold mb-3 sm:mb-4">Resumen</h3>
               <div className="space-y-2 sm:space-y-3">
-                {/* Paquete */}
                 <div className="flex justify-between gap-2">
                   <span className="text-xs sm:text-sm text-gray-600">Paquete</span>
-                  <span className="font-semibold text-xs sm:text-sm text-right line-clamp-2">{selectedPackage.name}</span>
+                  <span className="font-semibold text-xs sm:text-sm text-right line-clamp-2">
+                    {selectedPackage.name}
+                  </span>
                 </div>
 
-                {/* Créditos o tipo */}
                 <div className="flex justify-between gap-2">
                   <span className="text-xs sm:text-sm text-gray-600">{isSubscription ? "Tipo" : "Créditos"}</span>
-                  <span className="text-xs sm:text-sm">{isSubscription ? "Mensual" : `${selectedPackage.credits.toLocaleString()}`}</span>
+                  <span className="text-xs sm:text-sm">
+                    {isSubscription ? "Mensual" : `${selectedPackage.credits.toLocaleString()}`}
+                  </span>
                 </div>
 
-                {/* Precio */}
                 <div className="flex justify-between gap-2">
                   <span className="text-xs sm:text-sm text-gray-600">Precio</span>
                   <span className="text-xs sm:text-sm">${(selectedPackage.price_mxn / 100).toLocaleString()}</span>
                 </div>
 
-                {/* Comisión SPEI si aplica */}
                 {paymentMethod === "spei" && !isSubscription && (
                   <div className="flex justify-between gap-2 text-xs sm:text-sm">
                     <span className="text-gray-600">Comisión SPEI</span>
@@ -705,7 +702,6 @@ const Checkout = () => {
                   </div>
                 )}
 
-                {/* Total */}
                 <div className="flex justify-between items-center pt-2 sm:pt-3 border-t gap-2">
                   <span className="text-base sm:text-lg font-bold">Total</span>
                   <div className="text-right">
@@ -721,8 +717,11 @@ const Checkout = () => {
                 </div>
               </div>
 
-              {/* CTA de pago */}
-              <Button onClick={handlePayment} disabled={processingPayment} className="w-full mt-4 sm:mt-6 py-4 sm:py-6 text-base sm:text-lg">
+              <Button
+                onClick={handlePayment}
+                disabled={processingPayment}
+                className="w-full mt-4 sm:mt-6 py-4 sm:py-6 text-base sm:text-lg"
+              >
                 {processingPayment ? (
                   <>
                     <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2 inline-block"></div>
@@ -733,7 +732,6 @@ const Checkout = () => {
                 )}
               </Button>
 
-              {/* Nota de seguridad */}
               <p className="text-center text-[10px] sm:text-xs text-gray-500 mt-3 sm:mt-4 px-2">
                 🔒 Pago seguro y encriptado
                 {isSubscription && " • Cancela cuando quieras"}
@@ -742,7 +740,7 @@ const Checkout = () => {
           </div>
         )}
       </div>
-    </AppLayout>
+    </div>
   );
 };
 
