@@ -121,6 +121,10 @@ function PublicCatalogContent() {
   // Debounce para optimizar búsqueda
   const debouncedQuery = useDebounce(localSearchTerm, 500);
 
+  // Asumimos que 'tracking_config' vendrá en el objeto catalog desde Supabase
+  // Si aún no tienes la columna, pasará undefined y no hará nada (seguro)
+  useCatalogTracking(catalog?.id || "", (catalog as any)?.tracking_config || null, catalog?.products || []);
+
   useEffect(() => {
     if (slug) {
       const auth = sessionStorage.getItem(`catalog_${slug}`);
