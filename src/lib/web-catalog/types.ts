@@ -53,11 +53,20 @@ export type TemplateCategory =
   | "standard" // Templates estándar (incluidos en Básico IA)
   | "seasonal"; // Templates de temporada/especiales (solo Profesional+)
 
+export interface BrandColors {
+  primary: string;
+  secondary?: string;
+  accent?: string;
+}
+
 export interface WebTemplateConfig {
   // Layout
   columnsDesktop: 2 | 3 | 4 | 5;
   columnsMobile: 1 | 2;
   gap: "tight" | "normal" | "loose";
+
+  use_brand_colors?: boolean; // Flag para activar Brand-Aware
+  brand_colors?: BrandColors; // Colores del usuario
 
   // Card appearance
   // 👇 ACTUALIZADO: Agregado 'soft'
