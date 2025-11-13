@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Tag } from "lucide-react";
 
 interface ColumnMapperProps {
   headers: string[];
@@ -21,6 +21,13 @@ export const ColumnMapper = ({ headers, previewData, onConfirm, onCancel }: Colu
     { key: "description", label: "Descripción", required: false },
     { key: "category", label: "Categoría", required: false },
     { key: "wholesale_price", label: "Precio Mayoreo", required: false },
+    // 👇 CAMPO NUEVO
+    {
+      key: "tags",
+      label: "Etiquetas / Tags",
+      required: false,
+      description: "Separa las etiquetas con comas (ej: verano, oferta, nuevo)",
+    },
   ];
 
   const [mapping, setMapping] = useState<Record<string, string>>({});
@@ -40,14 +47,20 @@ export const ColumnMapper = ({ headers, previewData, onConfirm, onCancel }: Colu
       <CardContent className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Formulario de Mapeo */}
-          <div className="space-y-4">
+          <div className="space-y-5">
             {requiredFields.map((field) => (
               <div key={field.key} className="flex flex-col space-y-1.5">
-                <label className="text-sm font-medium">{field.label}</label>
+                <label className="text-sm font-medium flex items-center gap-2">
+                  {field.key === "tags" && <Tag className="w-3 h-3 text-purple-600" />}
+                  {field.label}
+                </label>
+
+                {/* Ayuda visual */}
+                {field.description && <p className="text-[11px] text-gray-500 -mt-1 mb-1">{field.description}</p>}
+
                 <Select
                   onValueChange={(val) => handleMapChange(field.key, val)}
-                  // 👇 CORRECCIÓN DE SEGURIDAD AQUÍ:
-                  // Validamos que 'h' exista y lo convertimos a String antes de usar toLowerCase
+                  // Validación de seguridad para el defaultValue
                   defaultValue={headers.find((h) => h && String(h).toLowerCase().includes(field.key.split("_")[0]))}
                 >
                   <SelectTrigger className={!mapping[field.key] && field.required ? "border-red-300" : ""}>
@@ -55,7 +68,6 @@ export const ColumnMapper = ({ headers, previewData, onConfirm, onCancel }: Colu
                   </SelectTrigger>
                   <SelectContent>
                     {headers.map((h, idx) => (
-                      // Usamos idx como key de respaldo por si h está vacío
                       <SelectItem key={`${h}-${idx}`} value={String(h)}>
                         {String(h) || <span className="italic text-gray-400">(Columna sin nombre)</span>}
                       </SelectItem>
@@ -67,7 +79,7 @@ export const ColumnMapper = ({ headers, previewData, onConfirm, onCancel }: Colu
           </div>
 
           {/* Previsualización de Datos */}
-          <div className="border rounded-md overflow-hidden bg-gray-50">
+          <div className="border rounded-md overflow-hidden bg-gray-50 h-fit">
             <div className="p-3 bg-gray-100 text-xs font-bold text-gray-500 border-b">
               Vista previa de tu archivo (Primeras 3 filas)
             </div>
