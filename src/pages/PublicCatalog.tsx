@@ -26,6 +26,7 @@ import { toast } from "sonner";
 import { EXPANDED_WEB_TEMPLATES } from "@/lib/web-catalog/expanded-templates-catalog";
 import { WebTemplateAdapter } from "@/lib/templates/web-css-adapter";
 import { supabase } from "@/integrations/supabase/client";
+import { useCatalogTracking } from "@/hooks/useCatalogTracking";
 
 // --- COMPONENTE DE CERO RESULTADOS CON RADAR ---
 const ZeroResultsWithRadar = ({ query, onOpenRadar }: { query: string; onOpenRadar: () => void }) => (
