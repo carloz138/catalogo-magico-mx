@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 
-// Componentes y Hooks Nuevos
+// Componentes y Hooks
 import { ColumnMapper } from "@/components/bulk-upload/ColumnMapper";
 import { useBulkMatching, type BulkProduct, type BulkImage } from "@/hooks/useBulkMatching";
 
@@ -27,22 +27,19 @@ export default function BulkUpload() {
   const { toast } = useToast();
   const { limits } = useCatalogLimits();
 
-  // ESTADOS DEL PROCESO
+  // ESTADOS
   const [step, setStep] = useState<"upload" | "mapping" | "matching" | "uploading">("upload");
-
-  // DATOS
   const [rawFile, setRawFile] = useState<any[]>([]);
   const [headers, setHeaders] = useState<string[]>([]);
   const [products, setProducts] = useState<BulkProduct[]>([]);
   const [images, setImages] = useState<BulkImage[]>([]);
 
-  // HOOK DE MATCHING (El cerebro)
+  // MATCHING HOOK
   const { matches, setManualMatch, useDefaultImage, applyDefaultToAllUnmatched, stats } = useBulkMatching(
     products,
     images,
   );
 
-  // ESTADO DE SUBIDA
   const [uploadProgress, setUploadProgress] = useState(0);
 
   // 1. LEER EXCEL / CSV
@@ -55,7 +52,7 @@ export default function BulkUpload() {
       const workbook = XLSX.read(data, { type: "binary" });
       const sheetName = workbook.SheetNames[0];
       const sheet = workbook.Sheets[sheetName];
-      const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1 }); // Array de arrays
+      const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1 });
 
       if (jsonData.length < 2) {
         toast({ title: "Archivo vacío", variant: "destructive" });
@@ -64,7 +61,6 @@ export default function BulkUpload() {
 
       const headersRow = jsonData[0] as string[];
       const dataRows = jsonData.slice(1).map((row: any) => {
-        // Convertir array row a objeto usando headers
         const obj: any = {};
         headersRow.forEach((header, index) => {
           obj[header] = row[index];
@@ -74,7 +70,7 @@ export default function BulkUpload() {
 
       setHeaders(headersRow);
       setRawFile(dataRows);
-      setStep("mapping"); // Avanzar al siguiente paso
+      setStep("mapping");
     };
 
     reader.readAsBinaryString(file);
@@ -107,25 +103,36 @@ export default function BulkUpload() {
 
   // 3. CONFIRMAR MAPEO
   const handleMappingConfirm = (mapping: Record<string, string>) => {
-    // Transformar datos crudos a nuestro formato interno
     const mappedProducts: BulkProduct[] = rawFile
-      .map((row) => ({
-        id: crypto.randomUUID(),
-        name: row[mapping["name"]],
-        price: parseFloat(row[mapping["price"]] || "0"), // Asumimos que viene en pesos
-        sku: row[mapping["sku"]] || "",
-        description: row[mapping["description"]] || "",
-        category: row[mapping["category"]] || "",
-        originalData: row,
-      }))
-      .filter((p) => p.name && p.price > 0); // Filtrar filas vacías
+      .map((row) => {
+        // 👇 Lógica de procesamiento de TAGS
+        const tagsRaw = row[mapping["tags"]];
+        const tagsArray = tagsRaw
+          ? String(tagsRaw)
+              .split(",")
+              .map((t) => t.trim())
+              .filter((t) => t.length > 0)
+          : [];
+
+        return {
+          id: crypto.randomUUID(),
+          name: row[mapping["name"]],
+          price: parseFloat(row[mapping["price"]] || "0"),
+          sku: row[mapping["sku"]] || "",
+          description: row[mapping["description"]] || "",
+          category: row[mapping["category"]] || "",
+          tags: tagsArray, // 👈 Asignamos los tags
+          originalData: row,
+        };
+      })
+      .filter((p) => p.name && p.price > 0);
 
     if (mappedProducts.length === 0) {
       toast({ title: "No se encontraron productos válidos", variant: "destructive" });
       return;
     }
 
-    // 👇 AQUÍ ESTÁ EL ARREGLO DEL LÍMITE (usando 'as any' para evitar el error TS)
+    // Validación de límites segura
     const limitMax = (limits as any)?.maxUploads || (limits as any)?.maxUploadsPerBatch || 50;
 
     if (limits && mappedProducts.length > limitMax) {
@@ -134,14 +141,13 @@ export default function BulkUpload() {
         description: `Tu plan permite subir ${limitMax} productos por lote.`,
         variant: "destructive",
       });
-      // Opcional: Podríamos recortar el array o retornar
     }
 
     setProducts(mappedProducts);
     setStep("matching");
   };
 
-  // 4. SUBIDA FINAL A SUPABASE
+  // 4. SUBIDA FINAL
   const handleFinalUpload = async () => {
     setStep("uploading");
     const {
@@ -152,17 +158,15 @@ export default function BulkUpload() {
     let processed = 0;
     const total = matches.length;
 
-    // Subimos en lotes pequeños para no saturar
     for (const match of matches) {
       try {
         let imageUrl = null;
 
-        // A. Si es Default
+        // A. Default
         if (match.status === "default") {
-          // URL de placeholder
           imageUrl = "https://ikbexcebcpmomfxraflz.supabase.co/storage/v1/object/public/product-images/placeholder.png";
         }
-        // B. Si tiene imagen real
+        // B. Imagen real
         else if (match.status === "matched" && match.image) {
           const fileExt = match.image.file.name.split(".").pop();
           const filePath = `${user.id}/${Date.now()}_${match.image.id}.${fileExt}`;
@@ -174,16 +178,16 @@ export default function BulkUpload() {
 
         // C. Insertar Producto
         if (imageUrl || match.status === "default") {
-          // Solo si tenemos imagen o es default
           await supabase.from("products").insert({
             user_id: user.id,
             name: match.product.name,
-            price_retail: Math.round(match.product.price * 100), // Convertir a centavos
+            price_retail: Math.round(match.product.price * 100),
             sku: match.product.sku,
             description: match.product.description,
             category: match.product.category,
+            tags: match.product.tags, // 👈 Guardamos los tags en Supabase
             original_image_url: imageUrl,
-            processing_status: "completed", // Ya no requiere quitar fondo si es bulk rápido
+            processing_status: "completed",
           });
         }
 
@@ -198,8 +202,6 @@ export default function BulkUpload() {
     setTimeout(() => navigate("/products"), 1000);
   };
 
-  // --- RENDER ---
-
   return (
     <div className="container mx-auto py-8 px-4">
       <Button variant="ghost" onClick={() => navigate("/products")} className="mb-4">
@@ -209,7 +211,7 @@ export default function BulkUpload() {
       <h1 className="text-3xl font-bold mb-2">Carga Masiva Inteligente</h1>
       <p className="text-gray-500 mb-8">Importa tu inventario desde Excel y nosotros organizamos las fotos.</p>
 
-      {/* PASO 1: SUBIDA DE ARCHIVOS */}
+      {/* PASO 1: SUBIDA */}
       {step === "upload" && (
         <div className="grid md:grid-cols-2 gap-6">
           <Card
@@ -245,7 +247,7 @@ export default function BulkUpload() {
         </div>
       )}
 
-      {/* PASO 2: MAPEO DE COLUMNAS */}
+      {/* PASO 2: MAPEO */}
       {step === "mapping" && (
         <ColumnMapper
           headers={headers}
@@ -255,7 +257,7 @@ export default function BulkUpload() {
         />
       )}
 
-      {/* PASO 3: MATCHING VISUAL */}
+      {/* PASO 3: MATCHING */}
       {step === "matching" && (
         <div className="space-y-6">
           <div className="flex flex-wrap gap-4 items-center justify-between bg-white p-4 rounded-lg border shadow-sm">
@@ -300,7 +302,6 @@ export default function BulkUpload() {
                     <span className="text-orange-400 text-sm font-medium">Sin Imagen</span>
                   )}
 
-                  {/* Botones de Acción en la tarjeta */}
                   <div className="absolute top-2 right-2 flex flex-col gap-1">
                     {match.status !== "default" && (
                       <Button
@@ -324,6 +325,16 @@ export default function BulkUpload() {
                   {match.matchMethod === "auto" && match.status === "matched" && (
                     <div className="mt-2 text-xs text-green-600 bg-green-100 px-2 py-1 rounded inline-block">
                       Match automático por nombre
+                    </div>
+                  )}
+                  {/* Mostrar tags preview */}
+                  {match.product.tags && match.product.tags.length > 0 && (
+                    <div className="mt-2 flex gap-1 overflow-hidden h-5">
+                      {match.product.tags.map((t) => (
+                        <span key={t} className="text-[10px] bg-gray-100 px-1 rounded text-gray-600">
+                          {t}
+                        </span>
+                      ))}
                     </div>
                   )}
                 </div>
