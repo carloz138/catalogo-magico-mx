@@ -1,31 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import AppLayout from '@/components/layout/AppLayout';
-import { UsageDashboard } from '@/components/dashboard/UsageDashboard';
-import KpiDashboard from '@/components/dashboard/KpiDashboard';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
-import { toast } from '@/components/ui/use-toast';
-import { useNavigate } from 'react-router-dom';
-import {
-  BarChart3,
-  TrendingUp,
-  TrendingDown,
-  Package,
-  FileText,
-  Zap,
-  Calendar,
-  Clock,
-  CheckCircle,
-  AlertCircle,
-  Target,
-  Award,
-  Layers,
-  RefreshCw
-} from 'lucide-react';
+import React, { useState, useEffect } from "react";
+import { UsageDashboard } from "@/components/dashboard/UsageDashboard";
+import KpiDashboard from "@/components/dashboard/KpiDashboard";
+import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "@/components/ui/use-toast";
+import { useNavigate } from "react-router-dom";
+import { TrendingUp, TrendingDown, Package, Calendar, RefreshCw } from "lucide-react";
 
 interface AnalyticsData {
   products: {
@@ -67,8 +48,7 @@ const Analytics = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
-  const [activeTab, setActiveTab] = useState('overview');
-  const [dateRange, setDateRange] = useState('30'); // días
+  const [dateRange, setDateRange] = useState("30"); // días
 
   useEffect(() => {
     if (user) {
@@ -81,12 +61,12 @@ const Analytics = () => {
 
     try {
       setLoading(true);
-      
+
       // Cargar datos en paralelo
       const [productsData, catalogsData, userStats] = await Promise.all([
         loadProductsAnalytics(),
         loadCatalogsAnalytics(),
-        loadUserStats()
+        loadUserStats(),
       ]);
 
       // Procesar y combinar datos
@@ -99,19 +79,19 @@ const Analytics = () => {
           remaining: userStats.credits || 0,
           thisMonth: userStats.monthlyCreditsUsed || 0,
           avgPerProduct: productsData.completed > 0 ? Math.round(userStats.creditsUsed / productsData.completed) : 0,
-          efficiency: calculateEfficiency(userStats.creditsUsed, productsData.completed)
+          efficiency: calculateEfficiency(userStats.creditsUsed, productsData.completed),
         },
         performance: {
           processingSuccess: calculateProcessingSuccess(productsData),
           catalogGeneration: catalogsData.total > 0 ? 95 : 0, // Asumiendo 95% éxito
           userSatisfaction: 4.8, // Score simulado
-          monthlyGrowth: calculateMonthlyGrowth(productsData.thisMonth, productsData.lastMonth)
-        }
+          monthlyGrowth: calculateMonthlyGrowth(productsData.thisMonth, productsData.lastMonth),
+        },
       };
 
       setAnalyticsData(analytics);
     } catch (error) {
-      console.error('Error loading analytics:', error);
+      console.error("Error loading analytics:", error);
       toast({
         title: "Error",
         description: "No se pudieron cargar las métricas",
@@ -124,9 +104,9 @@ const Analytics = () => {
 
   const loadProductsAnalytics = async () => {
     const { data: products, error } = await supabase
-      .from('products')
-      .select('id, processing_status, category, created_at, processed_at')
-      .eq('user_id', user!.id);
+      .from("products")
+      .select("id, processing_status, category, created_at, processed_at")
+      .eq("user_id", user!.id);
 
     if (error) throw error;
 
@@ -135,58 +115,64 @@ const Analytics = () => {
     const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
 
-    const thisMonthProducts = products?.filter(p => new Date(p.created_at) >= thisMonth) || [];
-    const lastMonthProducts = products?.filter(p => {
-      const date = new Date(p.created_at);
-      return date >= lastMonth && date <= lastMonthEnd;
-    }) || [];
+    const thisMonthProducts = products?.filter((p) => new Date(p.created_at) >= thisMonth) || [];
+    const lastMonthProducts =
+      products?.filter((p) => {
+        const date = new Date(p.created_at);
+        return date >= lastMonth && date <= lastMonthEnd;
+      }) || [];
 
     // Calcular categorías más populares
-    const categoryCount = products?.reduce((acc, product) => {
-      const category = product.category || 'Sin categoría';
-      acc[category] = (acc[category] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>) || {};
+    const categoryCount =
+      products?.reduce(
+        (acc, product) => {
+          const category = product.category || "Sin categoría";
+          acc[category] = (acc[category] || 0) + 1;
+          return acc;
+        },
+        {} as Record<string, number>,
+      ) || {};
 
     const topCategories = Object.entries(categoryCount)
       .map(([category, count]) => ({
         category,
         count,
-        percentage: Math.round((count / (products?.length || 1)) * 100)
+        percentage: Math.round((count / (products?.length || 1)) * 100),
       }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 5);
 
     // Calcular tiempo promedio de procesamiento
-    const processedProducts = products?.filter(p => 
-      p.processing_status === 'completed' && p.processed_at
-    ) || [];
-    
-    const avgProcessingTime = processedProducts.length > 0 
-      ? processedProducts.reduce((acc, product) => {
-          const created = new Date(product.created_at).getTime();
-          const processed = new Date(product.processed_at!).getTime();
-          return acc + (processed - created);
-        }, 0) / processedProducts.length / (1000 * 60) // En minutos
-      : 0;
+    const processedProducts = products?.filter((p) => p.processing_status === "completed" && p.processed_at) || [];
+
+    const avgProcessingTime =
+      processedProducts.length > 0
+        ? processedProducts.reduce((acc, product) => {
+            const created = new Date(product.created_at).getTime();
+            const processed = new Date(product.processed_at!).getTime();
+            return acc + (processed - created);
+          }, 0) /
+          processedProducts.length /
+          (1000 * 60) // En minutos
+        : 0;
 
     return {
       total: products?.length || 0,
-      pending: products?.filter(p => p.processing_status === 'pending').length || 0,
-      processing: products?.filter(p => p.processing_status === 'processing').length || 0,
-      completed: products?.filter(p => p.processing_status === 'completed').length || 0,
+      pending: products?.filter((p) => p.processing_status === "pending").length || 0,
+      processing: products?.filter((p) => p.processing_status === "processing").length || 0,
+      completed: products?.filter((p) => p.processing_status === "completed").length || 0,
       thisMonth: thisMonthProducts.length,
       lastMonth: lastMonthProducts.length,
       avgProcessingTime: Math.round(avgProcessingTime),
-      topCategories
+      topCategories,
     };
   };
 
   const loadCatalogsAnalytics = async () => {
     const { data: catalogs, error } = await supabase
-      .from('catalogs')
-      .select('id, name, total_products, created_at, template_style')
-      .eq('user_id', user!.id);
+      .from("catalogs")
+      .select("id, name, total_products, created_at, template_style")
+      .eq("user_id", user!.id);
 
     if (error) throw error;
 
@@ -195,23 +181,27 @@ const Analytics = () => {
     const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
 
-    const thisMonthCatalogs = catalogs?.filter(c => new Date(c.created_at) >= thisMonth) || [];
-    const lastMonthCatalogs = catalogs?.filter(c => {
-      const date = new Date(c.created_at);
-      return date >= lastMonth && date <= lastMonthEnd;
-    }) || [];
+    const thisMonthCatalogs = catalogs?.filter((c) => new Date(c.created_at) >= thisMonth) || [];
+    const lastMonthCatalogs =
+      catalogs?.filter((c) => {
+        const date = new Date(c.created_at);
+        return date >= lastMonth && date <= lastMonthEnd;
+      }) || [];
 
     // Template más usado
-    const templateCount = catalogs?.reduce((acc, catalog) => {
-      const template = catalog.template_style || 'professional';
-      acc[template] = (acc[template] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>) || {};
+    const templateCount =
+      catalogs?.reduce(
+        (acc, catalog) => {
+          const template = catalog.template_style || "professional";
+          acc[template] = (acc[template] || 0) + 1;
+          return acc;
+        },
+        {} as Record<string, number>,
+      ) || {};
 
-    const mostUsedTemplate = Object.entries(templateCount)
-      .sort(([,a], [,b]) => b - a)[0]?.[0] || 'professional';
+    const mostUsedTemplate = Object.entries(templateCount).sort(([, a], [, b]) => b - a)[0]?.[0] || "professional";
 
-    const avgProductsPerCatalog = catalogs?.length 
+    const avgProductsPerCatalog = catalogs?.length
       ? Math.round(catalogs.reduce((acc, cat) => acc + (cat.total_products || 0), 0) / catalogs.length)
       : 0;
 
@@ -221,31 +211,33 @@ const Analytics = () => {
       lastMonth: lastMonthCatalogs.length,
       totalDownloads: (catalogs?.length || 0) * 3, // Simulado: 3 descargas promedio por catálogo
       avgProductsPerCatalog,
-      mostUsedTemplate
+      mostUsedTemplate,
     };
   };
 
   const loadUserStats = async () => {
     const { data: user_data, error } = await supabase
-      .from('users')
-      .select('credits, total_credits_purchased')
-      .eq('id', user!.id)
+      .from("users")
+      .select("credits, total_credits_purchased")
+      .eq("id", user!.id)
       .single();
 
     if (error) throw error;
 
     // Obtener uso de créditos
     const { data: creditUsage, error: creditError } = await supabase
-      .from('credit_usage')
-      .select('credits_used, created_at')
-      .eq('user_id', user!.id);
+      .from("credit_usage")
+      .select("credits_used, created_at")
+      .eq("user_id", user!.id);
 
-    if (creditError) console.error('Error loading credit usage:', creditError);
+    if (creditError) console.error("Error loading credit usage:", creditError);
 
     const now = new Date();
     const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const monthlyCreditsUsed = creditUsage?.filter(c => new Date(c.created_at) >= thisMonth)
-      .reduce((acc, usage) => acc + usage.credits_used, 0) || 0;
+    const monthlyCreditsUsed =
+      creditUsage
+        ?.filter((c) => new Date(c.created_at) >= thisMonth)
+        .reduce((acc, usage) => acc + usage.credits_used, 0) || 0;
 
     const totalCreditsUsed = creditUsage?.reduce((acc, usage) => acc + usage.credits_used, 0) || 0;
 
@@ -253,7 +245,7 @@ const Analytics = () => {
       credits: user_data.credits || 0,
       totalCredits: user_data.total_credits_purchased || 0,
       creditsUsed: totalCreditsUsed,
-      monthlyCreditsUsed
+      monthlyCreditsUsed,
     };
   };
 
@@ -276,35 +268,7 @@ const Analytics = () => {
     return Math.round(((thisMonth - lastMonth) / lastMonth) * 100);
   };
 
-  const formatNumber = (num: number) => {
-    return new Intl.NumberFormat('es-MX').format(num);
-  };
-
-  const getGrowthIcon = (growth: number) => {
-    if (growth > 0) return <TrendingUp className="h-4 w-4 text-green-500" />;
-    if (growth < 0) return <TrendingDown className="h-4 w-4 text-red-500" />;
-    return <TrendingUp className="h-4 w-4 text-gray-400" />;
-  };
-
-  const getGrowthColor = (growth: number) => {
-    if (growth > 0) return 'text-green-600';
-    if (growth < 0) return 'text-red-600';
-    return 'text-gray-500';
-  };
-
-  // Header simplificado
-  const PageHeader = () => (
-    <div className="mb-4 sm:mb-6">
-      <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-1 sm:mb-2">
-        Analytics
-      </h1>
-      <p className="text-sm sm:text-base text-gray-600">
-        Métricas y rendimiento de tu cuenta
-      </p>
-    </div>
-  );
-
-  // Actions para el header
+  // Actions para el header (Extraído como variable)
   const actions = (
     <div className="flex items-center gap-2 w-full md:w-auto">
       {/* Móvil: Solo selector + refresh */}
@@ -329,16 +293,11 @@ const Analytics = () => {
           size="sm"
           className="h-10 w-10 p-0 flex-shrink-0"
         >
-          <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+          <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
         </Button>
 
         {/* Link productos - solo desktop */}
-        <Button
-          onClick={() => navigate('/products')}
-          variant="ghost"
-          size="sm"
-          className="hidden md:flex"
-        >
+        <Button onClick={() => navigate("/products")} variant="ghost" size="sm" className="hidden md:flex">
           <Package className="h-4 w-4 mr-2" />
           Productos
         </Button>
@@ -348,33 +307,36 @@ const Analytics = () => {
 
   if (loading || !analyticsData) {
     return (
-      <AppLayout actions={actions}>
-          <div className="flex items-center justify-center py-12">
-            <div className="text-center">
-              <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-              <p className="text-neutral/60">Cargando métricas...</p>
-            </div>
-          </div>
-        </AppLayout>
+      <div className="flex items-center justify-center py-12 min-h-screen">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-neutral/60">Cargando métricas...</p>
+        </div>
+      </div>
     );
   }
 
   return (
-    <AppLayout actions={actions}>
-        <div className="space-y-6">
-          {/* Header simplificado */}
-          <PageHeader />
-
-          {/* Dashboard de Uso */}
-          <UsageDashboard />
-
-          {/* KPIs de Ventas */}
-          <div className="mt-8">
-            <h2 className="text-2xl font-bold mb-4">Métricas de Ventas</h2>
-            <KpiDashboard />
-          </div>
+    // 👇 CONTENEDOR PRINCIPAL (Reemplaza AppLayout)
+    <div className="container mx-auto p-4 md:p-6 space-y-6">
+      {/* Header Manual */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Analytics</h1>
+          <p className="text-gray-500">Métricas y rendimiento de tu cuenta</p>
         </div>
-      </AppLayout>
+        {actions}
+      </div>
+
+      {/* Dashboard de Uso */}
+      <UsageDashboard />
+
+      {/* KPIs de Ventas */}
+      <div className="mt-8">
+        <h2 className="text-2xl font-bold mb-4">Métricas de Ventas</h2>
+        <KpiDashboard />
+      </div>
+    </div>
   );
 };
 
