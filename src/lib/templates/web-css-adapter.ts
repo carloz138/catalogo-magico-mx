@@ -12,7 +12,6 @@ export class WebTemplateAdapter {
 
     if (config.customFonts && config.customFonts.length > 0) {
       const fontName = config.customFonts[0];
-      // Reemplazar espacios con + para la URL
       const fontUrlName = fontName.replace(/\s+/g, "+");
       fontImport = `@import url('https://fonts.googleapis.com/css2?family=${fontUrlName}:wght@300;400;600;700&display=swap');`;
       fontFamily = `'${fontName}', sans-serif`;
@@ -22,7 +21,7 @@ export class WebTemplateAdapter {
     } else if (template.style === "minimal") {
       fontFamily = `'Inter', system-ui, sans-serif`;
     } else if (template.style === "bold") {
-      fontFamily = `'Oswald', sans-serif`; // Ejemplo, podrías parametrizarlo más
+      fontFamily = `'Oswald', sans-serif`;
     }
 
     // 2. Mapeo de configuraciones
@@ -33,7 +32,7 @@ export class WebTemplateAdapter {
       lg: "12px",
       xl: "16px",
       "2xl": "24px",
-      "3xl": "32px", // Bubble effect
+      "3xl": "32px",
       full: "9999px",
     };
     const borderRadius = borderRadiusMap[config.cardRadius] || "8px";
@@ -41,7 +40,7 @@ export class WebTemplateAdapter {
     const gapMap: Record<string, string> = {
       tight: "0.5rem",
       normal: "1rem",
-      loose: "2rem", // Más espacio para lujo
+      loose: "2rem",
     };
     const gap = gapMap[config.gap] || "1rem";
 
@@ -50,17 +49,9 @@ export class WebTemplateAdapter {
       taco: "/patterns/pattern-taco.png",
       ghost: "/patterns/pattern-ghost.png",
       pumpkin: "/patterns/pattern-pumpkin.png",
-      // Agrega un patrón genérico sutil si quieres
-      dots: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMSIgY3k9IjEiIHI9IjEiIGZpbGw9InJnYmEoMCwwLDAsMC4wNSkiLz48L3N2Zz4=",
     };
 
     const patternUrl = backgroundPattern ? patternUrls[backgroundPattern] : null;
-
-    // Filtro para colorear patrones SVG/PNG negros
-    const getColorFilter = (hexColor: string) => {
-      // Simplificación: usa opacidad si no puedes calcular el filtro exacto en runtime
-      return `opacity: 0.05; mix-blend-mode: multiply;`;
-    };
 
     // 4. ESTILOS DE TARJETA AVANZADOS (Glass, Soft, etc)
     let cardStylesCSS = "";
@@ -132,8 +123,7 @@ export class WebTemplateAdapter {
         break;
     }
 
-    // Convertir HEX a RGB para usar con opacidad (hack simple)
-    // Esto es útil para el efecto 'soft' shadow
+    // Helper para convertir HEX a RGB con alpha (para sombras de color)
     const hexToRgbAlpha = (hex: string, alpha: number) => {
       let c: any;
       if (/^#([A-Fa-f0-9]{3}){1,2}$/.test(hex)) {
