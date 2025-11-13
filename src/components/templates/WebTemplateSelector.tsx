@@ -1,21 +1,14 @@
-// src/components/templates/WebTemplateSelector.tsx
-// Selector de templates web con restricciones por plan
-
 import React, { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Lock, Check, Sparkles, Crown, Zap, AlertCircle, Star, LayoutGrid } from "lucide-react";
+import { Lock, Check, Sparkles, Crown, Palette, LayoutGrid, Paintbrush } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useBusinessInfo } from "@/hooks/useBusinessInfo"; // Importamos el hook del negocio
 
 import { EXPANDED_WEB_TEMPLATES } from "@/lib/web-catalog/expanded-templates-catalog";
-import {
-  getAvailableTemplatesForPlan,
-  getLockedTemplatesForPlan,
-  isTemplateAvailable,
-  getTemplateBlockedMessage,
-} from "@/lib/web-catalog/template-filters";
+import { getTemplateBlockedMessage, isTemplateAvailable } from "@/lib/web-catalog/template-filters";
 import { getUserPlanTier, getPlanFeatures, type PlanTier } from "@/lib/web-catalog/plan-restrictions";
 import type { WebCatalogTemplate } from "@/lib/web-catalog/types";
 
@@ -36,6 +29,7 @@ export const WebTemplateSelector: React.FC<WebTemplateSelectorProps> = ({
 }) => {
   const [userTier, setUserTier] = useState<PlanTier>("free");
   const [allTemplates, setAllTemplates] = useState<WebCatalogTemplate[]>([]);
+  const { businessInfo } = useBusinessInfo(); // Obtenemos colores del negocio
 
   useEffect(() => {
     const tier = getUserPlanTier(userPlanId, userPlanName);
@@ -48,13 +42,26 @@ export const WebTemplateSelector: React.FC<WebTemplateSelectorProps> = ({
     onTemplateSelect(template.id);
   };
 
-  const renderTemplateCard = (template: WebCatalogTemplate) => {
+  // Función para renderizar card (normal o con override de marca)
+  const renderTemplateCard = (template: WebCatalogTemplate, useBrandColors = false) => {
     const isLocked = !isTemplateAvailable(template, userTier);
     const isSelected = selectedTemplate === template.id;
 
+    // Si estamos en modo "Tu Marca", mostramos los colores del negocio visualmente
+    // Nota: Esto es solo visual para el selector. La lógica real de aplicar los colores
+    // se haría en el PublicCatalog si tuviéramos un flag 'use_brand_colors'.
+    // Por ahora, esto sirve para que el usuario vea "cómo se vería".
+    const displayColors =
+      useBrandColors && businessInfo?.primary_color
+        ? {
+            primary: businessInfo.primary_color,
+            background: "#ffffff",
+          }
+        : template.colorScheme;
+
     return (
       <Card
-        key={template.id}
+        key={`${template.id}-${useBrandColors ? "brand" : "std"}`}
         className={cn(
           "cursor-pointer transition-all group relative overflow-hidden border-2",
           isSelected ? "border-primary ring-2 ring-primary/20 shadow-md" : "border-border hover:border-primary/50",
@@ -62,24 +69,47 @@ export const WebTemplateSelector: React.FC<WebTemplateSelectorProps> = ({
         )}
         onClick={() => handleSelectTemplate(template)}
       >
-        {/* Image Container */}
+        {/* Image Container con simulación de color */}
         <div className="relative aspect-[16/10] bg-muted overflow-hidden">
           {template.thumbnail ? (
-            <img
-              src={template.thumbnail}
-              alt={template.name}
-              className={cn(
-                "w-full h-full object-cover transition-transform duration-500 group-hover:scale-105",
-                isLocked && "grayscale-[0.5]",
+            <>
+              <img
+                src={template.thumbnail}
+                alt={template.name}
+                className={cn(
+                  "w-full h-full object-cover transition-transform duration-500 group-hover:scale-105",
+                  isLocked && "grayscale-[0.5]",
+                )}
+              />
+              {/* Overlay de color si es "Tu Marca" para simular el efecto */}
+              {useBrandColors && (
+                <div
+                  className="absolute inset-0 mix-blend-overlay opacity-60 pointer-events-none"
+                  style={{ backgroundColor: displayColors.primary }}
+                />
               )}
-            />
+            </>
           ) : (
             <div className="w-full h-full flex items-center justify-center bg-gray-100 text-muted-foreground">
               <LayoutGrid className="h-10 w-10 opacity-20" />
             </div>
           )}
 
-          {/* Overlays */}
+          {/* Badges */}
+          <div className="absolute top-2 left-2 flex flex-col gap-1">
+            {template.category === "seasonal" && (
+              <Badge variant="default" className="bg-amber-500 hover:bg-amber-600 border-none shadow-sm text-[10px]">
+                <Crown className="h-3 w-3 mr-1" /> Premium
+              </Badge>
+            )}
+            {useBrandColors && (
+              <Badge variant="default" className="bg-white text-black border-none shadow-sm text-[10px]">
+                <Paintbrush className="h-3 w-3 mr-1 text-purple-600" /> Tu Marca
+              </Badge>
+            )}
+          </div>
+
+          {/* Locked Overlay */}
           {isLocked && (
             <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center backdrop-blur-[2px] text-white p-4 text-center transition-opacity">
               <Lock className="h-8 w-8 mb-2" />
@@ -94,20 +124,6 @@ export const WebTemplateSelector: React.FC<WebTemplateSelectorProps> = ({
               </div>
             </div>
           )}
-
-          {/* Badges */}
-          <div className="absolute top-2 left-2 flex flex-col gap-1">
-            {template.category === "seasonal" && (
-              <Badge variant="default" className="bg-amber-500 hover:bg-amber-600 border-none shadow-sm text-[10px]">
-                <Crown className="h-3 w-3 mr-1" /> Premium
-              </Badge>
-            )}
-            {(template as any).isNew && (
-              <Badge variant="default" className="bg-blue-500 hover:bg-blue-600 border-none shadow-sm text-[10px]">
-                Nuevo
-              </Badge>
-            )}
-          </div>
         </div>
 
         {/* Content */}
@@ -116,6 +132,17 @@ export const WebTemplateSelector: React.FC<WebTemplateSelectorProps> = ({
             <h4 className={cn("font-bold text-sm", isLocked ? "text-muted-foreground" : "text-foreground")}>
               {template.name}
             </h4>
+            {/* Muestra de colores */}
+            <div className="flex gap-1">
+              <div
+                className="w-3 h-3 rounded-full border border-gray-200"
+                style={{ background: displayColors.primary }}
+              />
+              <div
+                className="w-3 h-3 rounded-full border border-gray-200"
+                style={{ background: displayColors.background }}
+              />
+            </div>
           </div>
           <p className="text-xs text-muted-foreground line-clamp-2 h-8 leading-tight">{template.description}</p>
 
@@ -131,22 +158,25 @@ export const WebTemplateSelector: React.FC<WebTemplateSelectorProps> = ({
   };
 
   // Agrupar templates
-  const basicTemplates = allTemplates.filter((t) => t.category === "basic");
-  const standardTemplates = allTemplates.filter((t) => t.category === "standard");
+  const standardTemplates = allTemplates.filter((t) => t.category !== "seasonal");
   const premiumTemplates = allTemplates.filter((t) => t.category === "seasonal");
+
+  // Detectar si puede usar "Tu Marca" (Asumimos Pro/Enterprise)
+  const canUseBrandColors = ["professional", "enterprise"].includes(userTier);
+  const hasBrandColors = !!businessInfo?.primary_color;
 
   return (
     <div className="space-y-4">
       <Tabs defaultValue="all" className="w-full">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-4">
           <div>
             <h3 className="font-semibold text-lg">Diseño de tu Catálogo</h3>
-            <p className="text-sm text-muted-foreground">Elige cómo verán tus clientes tus productos</p>
+            <p className="text-sm text-muted-foreground">Elige el estilo que mejor se adapte a tus productos</p>
           </div>
-          <TabsList>
+          <TabsList className="flex-wrap h-auto p-1">
             <TabsTrigger value="all">Todos</TabsTrigger>
-            <TabsTrigger value="standard" className="hidden sm:inline-flex">
-              Estándar
+            <TabsTrigger value="brand" className="flex items-center gap-1">
+              <Palette className="h-3 w-3" /> Tu Marca
             </TabsTrigger>
             <TabsTrigger value="premium" className="flex items-center gap-1">
               <Crown className="h-3 w-3" /> Premium
@@ -154,18 +184,51 @@ export const WebTemplateSelector: React.FC<WebTemplateSelectorProps> = ({
           </TabsList>
         </div>
 
+        {/* TAB: TODOS */}
         <TabsContent value="all" className="space-y-6 mt-0">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {allTemplates.map((t) => renderTemplateCard(t))}
           </div>
         </TabsContent>
 
-        <TabsContent value="standard" className="mt-0">
+        {/* TAB: TU MARCA (Feature Solicitada) */}
+        <TabsContent value="brand" className="mt-0">
+          {!canUseBrandColors ? (
+            <Alert className="mb-4 border-amber-200 bg-amber-50">
+              <Lock className="h-4 w-4 text-amber-600" />
+              <AlertDescription className="text-amber-800">
+                La personalización con colores de marca requiere Plan Profesional.
+              </AlertDescription>
+            </Alert>
+          ) : !hasBrandColors ? (
+            <Alert className="mb-4 border-blue-200 bg-blue-50">
+              <Paintbrush className="h-4 w-4 text-blue-600" />
+              <AlertDescription className="text-blue-800">
+                Configura los colores de tu negocio en "Perfil" para ver estos diseños adaptados a tu marca.
+              </AlertDescription>
+            </Alert>
+          ) : (
+            <div className="mb-4 p-3 bg-purple-50 border border-purple-100 rounded-lg flex items-center gap-3">
+              <div
+                className="w-8 h-8 rounded-full shadow-sm border-2 border-white"
+                style={{ backgroundColor: businessInfo.primary_color || "#000" }}
+              />
+              <div>
+                <p className="text-sm font-medium text-purple-900">Adaptados a tu marca</p>
+                <p className="text-xs text-purple-700">Viendo diseños con tus colores corporativos</p>
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[...basicTemplates, ...standardTemplates].map((t) => renderTemplateCard(t))}
+            {/* Mostramos una selección de los mejores templates adaptables */}
+            {allTemplates
+              .filter((t) => ["basic-catalog-free", "modern-grid-clean", "brand-minimal-clean"].includes(t.id))
+              .map((t) => renderTemplateCard(t, true))}
           </div>
         </TabsContent>
 
+        {/* TAB: PREMIUM */}
         <TabsContent value="premium" className="mt-0">
           {!["professional", "enterprise"].includes(userTier) && (
             <Alert className="mb-4 border-amber-200 bg-amber-50">
