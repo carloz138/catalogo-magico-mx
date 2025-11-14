@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDropzone } from "react-dropzone";
 import * as XLSX from "xlsx";
@@ -15,6 +15,9 @@ import {
   CheckCircle,
   AlertCircle,
   Package,
+  Link as LinkIcon,
+  Plus,
+  RefreshCw,
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 
@@ -27,26 +30,23 @@ export default function BulkUpload() {
   const { toast } = useToast();
   const { limits } = useCatalogLimits();
 
-  // ESTADOS
   const [step, setStep] = useState<"upload" | "mapping" | "matching" | "uploading">("upload");
   const [rawFile, setRawFile] = useState<any[]>([]);
   const [headers, setHeaders] = useState<string[]>([]);
   const [products, setProducts] = useState<BulkProduct[]>([]);
   const [images, setImages] = useState<BulkImage[]>([]);
 
-  // MATCHING HOOK
+  // Hook de Matching
   const { matches, setManualMatch, useDefaultImage, applyDefaultToAllUnmatched, stats } = useBulkMatching(
     products,
     images,
   );
-
   const [uploadProgress, setUploadProgress] = useState(0);
 
-  // 1. LEER EXCEL / CSV
+  // 1. LEER EXCEL
   const onFileDrop = useCallback((acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
     const reader = new FileReader();
-
     reader.onload = (e) => {
       const data = e.target?.result;
       const workbook = XLSX.read(data, { type: "binary" });
@@ -58,7 +58,6 @@ export default function BulkUpload() {
         toast({ title: "Archivo vacío", variant: "destructive" });
         return;
       }
-
       const headersRow = jsonData[0] as string[];
       const dataRows = jsonData.slice(1).map((row: any) => {
         const obj: any = {};
@@ -67,16 +66,14 @@ export default function BulkUpload() {
         });
         return obj;
       });
-
       setHeaders(headersRow);
       setRawFile(dataRows);
       setStep("mapping");
     };
-
     reader.readAsBinaryString(file);
   }, []);
 
-  // 2. LEER IMÁGENES
+  // 2. LEER IMÁGENES (Función reutilizable para Paso 1 y Paso 3)
   const onImagesDrop = useCallback((acceptedFiles: File[]) => {
     const newImages = acceptedFiles.map((file) => ({
       id: crypto.randomUUID(),
@@ -84,28 +81,44 @@ export default function BulkUpload() {
       preview: URL.createObjectURL(file),
       name: file.name,
     }));
-    setImages((prev) => [...prev, ...newImages]);
+
+    setImages((prev) => {
+      const updated = [...prev, ...newImages];
+      toast({
+        title: "Imágenes agregadas",
+        description: `Se añadieron ${newImages.length} imágenes. Buscando coincidencias...`,
+      });
+      return updated;
+    });
   }, []);
 
   const { getRootProps: getFileProps, getInputProps: getFileInputProps } = useDropzone({
     onDrop: onFileDrop,
-    accept: {
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [".xlsx"],
-      "text/csv": [".csv"],
-    },
+    accept: { "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [".xlsx"], "text/csv": [".csv"] },
     maxFiles: 1,
   });
 
+  // Dropzone principal (Paso 1)
   const { getRootProps: getImageProps, getInputProps: getImageInputProps } = useDropzone({
     onDrop: onImagesDrop,
     accept: { "image/*": [".png", ".jpg", ".jpeg", ".webp"] },
+  });
+
+  // Dropzone secundario (Paso 3 - "Rescue Dropzone")
+  const {
+    getRootProps: getExtraImageProps,
+    getInputProps: getExtraImageInputProps,
+    isDragActive: isExtraDragActive,
+  } = useDropzone({
+    onDrop: onImagesDrop,
+    accept: { "image/*": [".png", ".jpg", ".jpeg", ".webp"] },
+    noClick: true, // Para que solo funcione el botón, no toda el área si no quieres
   });
 
   // 3. CONFIRMAR MAPEO
   const handleMappingConfirm = (mapping: Record<string, string>) => {
     const mappedProducts: BulkProduct[] = rawFile
       .map((row) => {
-        // 👇 Lógica de procesamiento de TAGS
         const tagsRaw = row[mapping["tags"]];
         const tagsArray = tagsRaw
           ? String(tagsRaw)
@@ -121,20 +134,13 @@ export default function BulkUpload() {
           sku: row[mapping["sku"]] || "",
           description: row[mapping["description"]] || "",
           category: row[mapping["category"]] || "",
-          tags: tagsArray, // 👈 Asignamos los tags
+          tags: tagsArray,
           originalData: row,
         };
       })
       .filter((p) => p.name && p.price > 0);
 
-    if (mappedProducts.length === 0) {
-      toast({ title: "No se encontraron productos válidos", variant: "destructive" });
-      return;
-    }
-
-    // Validación de límites segura
-    const limitMax = (limits as any)?.maxUploads || (limits as any)?.maxUploadsPerBatch || 50;
-
+    const limitMax = (limits as any)?.maxUploads || 50;
     if (limits && mappedProducts.length > limitMax) {
       toast({
         title: "Límite excedido",
@@ -142,7 +148,6 @@ export default function BulkUpload() {
         variant: "destructive",
       });
     }
-
     setProducts(mappedProducts);
     setStep("matching");
   };
@@ -161,22 +166,16 @@ export default function BulkUpload() {
     for (const match of matches) {
       try {
         let imageUrl = null;
-
-        // A. Default
         if (match.status === "default") {
           imageUrl = "https://ikbexcebcpmomfxraflz.supabase.co/storage/v1/object/public/product-images/placeholder.png";
-        }
-        // B. Imagen real
-        else if (match.status === "matched" && match.image) {
+        } else if (match.status === "matched" && match.image) {
           const fileExt = match.image.file.name.split(".").pop();
           const filePath = `${user.id}/${Date.now()}_${match.image.id}.${fileExt}`;
-
           await supabase.storage.from("product-images").upload(filePath, match.image.file);
           const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(filePath);
           imageUrl = urlData.publicUrl;
         }
 
-        // C. Insertar Producto
         if (imageUrl || match.status === "default") {
           await supabase.from("products").insert({
             user_id: user.id,
@@ -185,19 +184,17 @@ export default function BulkUpload() {
             sku: match.product.sku,
             description: match.product.description,
             category: match.product.category,
-            tags: match.product.tags, // 👈 Guardamos los tags en Supabase
+            tags: match.product.tags,
             original_image_url: imageUrl,
             processing_status: "completed",
           });
         }
-
         processed++;
         setUploadProgress((processed / total) * 100);
       } catch (e) {
         console.error("Error subiendo producto", e);
       }
     }
-
     toast({ title: "¡Carga completada!", description: `Se procesaron ${processed} productos.` });
     setTimeout(() => navigate("/products"), 1000);
   };
@@ -241,7 +238,7 @@ export default function BulkUpload() {
                 )}
               </div>
               <h3 className="font-semibold text-lg">Sube tus Fotos</h3>
-              <p className="text-sm text-gray-500 mt-2">Arrastra todas las fotos juntas (o la carpeta)</p>
+              <p className="text-sm text-gray-500 mt-2">Arrastra todas las fotos juntas</p>
             </CardContent>
           </Card>
         </div>
@@ -257,10 +254,32 @@ export default function BulkUpload() {
         />
       )}
 
-      {/* PASO 3: MATCHING */}
+      {/* PASO 3: MATCHING CON SELECTOR MANUAL Y UPLOAD EXTRA */}
       {step === "matching" && (
         <div className="space-y-6">
-          <div className="flex flex-wrap gap-4 items-center justify-between bg-white p-4 rounded-lg border shadow-sm">
+          {/* 👇 ZONA DE CARGA DE IMÁGENES EXTRA (RESCUE DROPZONE) */}
+          <div
+            {...getExtraImageProps()}
+            className={`border-2 border-dashed rounded-xl p-6 text-center transition-colors ${isExtraDragActive ? "border-blue-500 bg-blue-50" : "border-gray-300 hover:border-gray-400"}`}
+          >
+            <input {...getExtraImageInputProps()} />
+            <div className="flex flex-col items-center gap-2">
+              <div className="p-3 bg-blue-100 rounded-full text-blue-600">
+                <Upload className="w-6 h-6" />
+              </div>
+              <h3 className="font-semibold text-gray-900">
+                {images.length === 0 ? "¿Olvidaste las fotos? Súbelas aquí" : "¿Faltan imágenes? Agrega más"}
+              </h3>
+              <p className="text-sm text-gray-500">
+                Arrastra las fotos aquí y el sistema intentará unirlas automáticamente.
+              </p>
+              <Button variant="outline" size="sm" className="mt-2">
+                Seleccionar archivos
+              </Button>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-4 items-center justify-between bg-white p-4 rounded-lg border shadow-sm sticky top-4 z-10">
             <div className="flex gap-4 text-sm">
               <span className="flex items-center gap-1 font-bold text-green-700">
                 <CheckCircle className="w-4 h-4" /> {stats.matched} Listos
@@ -268,14 +287,12 @@ export default function BulkUpload() {
               <span className="flex items-center gap-1 font-bold text-orange-600">
                 <AlertCircle className="w-4 h-4" /> {stats.unmatched} Sin foto
               </span>
-              <span className="flex items-center gap-1 text-gray-500">
-                <Package className="w-4 h-4" /> {stats.default} Default
-              </span>
             </div>
             <div className="flex gap-2">
               {stats.unmatched > 0 && (
                 <Button variant="outline" size="sm" onClick={applyDefaultToAllUnmatched}>
-                  Usar Default para todos los faltantes
+                  <Package className="w-4 h-4 mr-2" />
+                  Usar Default para todos
                 </Button>
               )}
               <Button onClick={handleFinalUpload} className="bg-blue-600">
@@ -288,9 +305,10 @@ export default function BulkUpload() {
             {matches.map((match) => (
               <Card
                 key={match.productId}
-                className={`overflow-hidden ${match.status === "unmatched" ? "border-orange-300 bg-orange-50" : "border-green-200"}`}
+                className={`overflow-hidden flex flex-col ${match.status === "unmatched" ? "border-orange-300 bg-orange-50" : "border-green-200"}`}
               >
-                <div className="h-48 bg-gray-100 relative flex items-center justify-center">
+                {/* Área de Imagen */}
+                <div className="h-48 bg-gray-100 relative flex items-center justify-center group">
                   {match.status === "matched" && match.image ? (
                     <img src={match.image.preview} className="w-full h-full object-contain" />
                   ) : match.status === "default" ? (
@@ -299,44 +317,68 @@ export default function BulkUpload() {
                       <span className="text-xs">Imagen Default</span>
                     </div>
                   ) : (
-                    <span className="text-orange-400 text-sm font-medium">Sin Imagen</span>
+                    <div className="flex flex-col items-center justify-center text-orange-400 p-4 text-center">
+                      <ImageIcon className="w-10 h-10 mb-2 opacity-50" />
+                      <span className="text-sm font-medium">Sin coincidencia</span>
+                    </div>
                   )}
 
-                  <div className="absolute top-2 right-2 flex flex-col gap-1">
-                    {match.status !== "default" && (
+                  {/* Botón Flotante: Usar Default */}
+                  {match.status !== "default" && (
+                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
                       <Button
                         size="icon"
                         variant="secondary"
-                        className="h-8 w-8"
+                        className="h-8 w-8 shadow-sm"
                         title="Usar Default"
                         onClick={() => useDefaultImage(match.productId)}
                       >
                         <Package className="w-4 h-4" />
                       </Button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Área de Datos y Selector Manual */}
+                <div className="p-3 flex-1 flex flex-col">
+                  <div className="mb-3">
+                    <h4 className="font-bold truncate" title={match.product.name}>
+                      {match.product.name}
+                    </h4>
+                    <div className="flex justify-between text-sm mt-1">
+                      <span className="font-mono">${match.product.price}</span>
+                      <span className="text-gray-500 text-xs truncate max-w-[100px]">{match.product.sku}</span>
+                    </div>
+                  </div>
+
+                  {/* 👇 SELECTOR MANUAL DE IMAGEN 👇 */}
+                  <div className="mt-auto">
+                    <select
+                      className="w-full text-xs border rounded p-1.5 bg-white text-gray-700 focus:ring-2 focus:ring-blue-500 outline-none"
+                      value={match.image?.id || ""}
+                      onChange={(e) => {
+                        if (e.target.value) {
+                          setManualMatch(match.productId, e.target.value);
+                        }
+                      }}
+                      disabled={images.length === 0} // Deshabilitado si no hay fotos
+                    >
+                      <option value="">
+                        {images.length === 0 ? "🚫 Sube imágenes primero" : "-- Seleccionar imagen manual --"}
+                      </option>
+                      {images.map((img) => (
+                        <option key={img.id} value={img.id}>
+                          {img.name.length > 25 ? img.name.substring(0, 22) + "..." : img.name}
+                        </option>
+                      ))}
+                    </select>
+
+                    {match.matchMethod === "auto" && match.status === "matched" && (
+                      <div className="mt-1 text-[10px] text-green-600 flex items-center gap-1">
+                        <LinkIcon className="w-3 h-3" /> Match automático
+                      </div>
                     )}
                   </div>
-                </div>
-                <div className="p-3">
-                  <h4 className="font-bold truncate">{match.product.name}</h4>
-                  <div className="flex justify-between text-sm mt-1">
-                    <span>${match.product.price}</span>
-                    <span className="text-gray-500">{match.product.sku}</span>
-                  </div>
-                  {match.matchMethod === "auto" && match.status === "matched" && (
-                    <div className="mt-2 text-xs text-green-600 bg-green-100 px-2 py-1 rounded inline-block">
-                      Match automático por nombre
-                    </div>
-                  )}
-                  {/* Mostrar tags preview */}
-                  {match.product.tags && match.product.tags.length > 0 && (
-                    <div className="mt-2 flex gap-1 overflow-hidden h-5">
-                      {match.product.tags.map((t) => (
-                        <span key={t} className="text-[10px] bg-gray-100 px-1 rounded text-gray-600">
-                          {t}
-                        </span>
-                      ))}
-                    </div>
-                  )}
                 </div>
               </Card>
             ))}
