@@ -383,7 +383,10 @@ export default function DigitalCatalogForm() {
         tracking_head_scripts: data.tracking_head_scripts || null,
         tracking_body_scripts: data.tracking_body_scripts || null,
         // Enviamos la configuración JSON
-        tracking_config: data.tracking_config || null,
+        tracking_config: {
+          pixelId: data.pixelId,
+          accessToken: data.accessToken,
+        },
       };
 
       if (isEditing && id) {
