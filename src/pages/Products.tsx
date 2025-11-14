@@ -54,9 +54,17 @@ const Products = () => {
     showDeleteConfirm,
     setShowDeleteConfirm,
     productToDelete,
+    // 👇 AQUÍ AGREGUÉ LAS VARIABLES QUE FALTABAN 👇
+    showBusinessInfoBanner,
+    setShowBusinessInfoBanner,
+    showViewModal,
+    setShowViewModal,
+    showCatalogPreview,
+    setShowCatalogPreview,
+    selectedProduct,
   } = useProductsLogic();
 
-  // --- Lógica de Búsqueda ---
+  // --- Lógica de Búsqueda Optimimzada ---
   const [localSearchTerm, setLocalSearchTerm] = useState("");
   const debouncedSearchTerm = useDebounce(localSearchTerm, 300);
 
@@ -64,8 +72,6 @@ const Products = () => {
     setHookSearchTerm(debouncedSearchTerm);
   }, [debouncedSearchTerm, setHookSearchTerm]);
 
-  // 👇 CORRECCIÓN AQUÍ: Solo traemos 'limits', 'canGenerate' y 'catalogsUsed'
-  // Ya no pedimos 'validation' ni 'catalogsLimit' por separado
   const { limits, canGenerate, catalogsUsed } = useCatalogLimits();
 
   const { businessInfo, loading: businessInfoLoading } = useBusinessInfo();
@@ -84,7 +90,6 @@ const Products = () => {
 
   // Banner de Límites
   const LimitsAlert = () => {
-    // 👇 CORRECCIÓN: Usamos 'limits' en lugar de 'validation'
     if (!limits) return null;
     const isAtCatalogLimit = !canGenerate;
 
@@ -96,7 +101,6 @@ const Products = () => {
               <AlertTriangle className="w-4 h-4 text-red-600 flex-shrink-0" />
               <div className="flex-1 min-w-0">
                 <p className="text-xs sm:text-sm font-medium text-red-900">
-                  {/* 👇 CORRECCIÓN: Accedemos a catalogsLimit a través de limits */}
                   Límite alcanzado ({catalogsUsed}/{limits.catalogsLimit})
                 </p>
               </div>
