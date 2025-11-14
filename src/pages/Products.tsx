@@ -1,11 +1,9 @@
-// /src/pages/Products.tsx - Componente Principal con Buscador Mejorado
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useCatalogLimits } from "@/hooks/useCatalogLimits";
 import { useBusinessInfo } from "@/hooks/useBusinessInfo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -15,6 +13,7 @@ import { BusinessInfoBanner, isBusinessInfoCompleteForCatalog } from "@/componen
 import { ProductModals } from "@/components/products/ProductModals";
 import { useProductsLogic } from "@/hooks/useProductsLogic";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
+import { useDebounce } from "@/hooks/useDebounce";
 
 import {
   Package,
@@ -24,17 +23,12 @@ import {
   Plus,
   Loader2,
   CheckCircle,
-  Palette,
   AlertTriangle,
   BarChart3,
   ImageIcon,
   Sparkles,
-  BookOpen,
-  ArrowRight,
   HelpCircle,
-  Filter,
-  X,
-  RotateCcw,
+  ArrowLeft,
 } from "lucide-react";
 
 const Products = () => {
@@ -43,27 +37,15 @@ const Products = () => {
     selectedProducts,
     loading,
     processing,
-    searchTerm,
-    setSearchTerm,
-    filterCategory,
-    setFilterCategory,
-    showCatalogPreview,
-    setShowCatalogPreview,
-    showViewModal,
-    setShowViewModal,
-    selectedProduct,
-    showBusinessInfoBanner,
-    setShowBusinessInfoBanner,
+    setSearchTerm: setHookSearchTerm,
     activeTab,
     filteredProducts,
-    categories,
     stats,
     handleTabChange,
     toggleProductSelection,
     selectAllProducts,
     handleViewProduct,
     handleRemoveBackground,
-    resetProcessingProducts,
     handleCreateCatalog,
     confirmCreateCatalog,
     handleDeleteProduct,
@@ -74,14 +56,36 @@ const Products = () => {
     productToDelete,
   } = useProductsLogic();
 
-  const { validation, canGenerate, catalogsUsed, catalogsLimit } = useCatalogLimits();
+  // --- Lógica de Búsqueda ---
+  const [localSearchTerm, setLocalSearchTerm] = useState("");
+  const debouncedSearchTerm = useDebounce(localSearchTerm, 300);
+
+  useEffect(() => {
+    setHookSearchTerm(debouncedSearchTerm);
+  }, [debouncedSearchTerm, setHookSearchTerm]);
+
+  // 👇 CORRECCIÓN AQUÍ: Solo traemos 'limits', 'canGenerate' y 'catalogsUsed'
+  // Ya no pedimos 'validation' ni 'catalogsLimit' por separado
+  const { limits, canGenerate, catalogsUsed } = useCatalogLimits();
 
   const { businessInfo, loading: businessInfoLoading } = useBusinessInfo();
   const isBusinessInfoComplete = isBusinessInfoCompleteForCatalog(businessInfo);
 
-  // Banner compacto de límites SOLO cuando sea crítico
+  // --- Detección de Nuevo Producto ---
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const isNew = params.get("new");
+    const name = params.get("name");
+
+    if (isNew === "true" && name) {
+      navigate(`/upload?name=${encodeURIComponent(name)}`);
+    }
+  }, []);
+
+  // Banner de Límites
   const LimitsAlert = () => {
-    if (!validation) return null;
+    // 👇 CORRECCIÓN: Usamos 'limits' en lugar de 'validation'
+    if (!limits) return null;
     const isAtCatalogLimit = !canGenerate;
 
     if (isAtCatalogLimit) {
@@ -92,7 +96,8 @@ const Products = () => {
               <AlertTriangle className="w-4 h-4 text-red-600 flex-shrink-0" />
               <div className="flex-1 min-w-0">
                 <p className="text-xs sm:text-sm font-medium text-red-900">
-                  Límite alcanzado ({catalogsUsed}/{catalogsLimit})
+                  {/* 👇 CORRECCIÓN: Accedemos a catalogsLimit a través de limits */}
+                  Límite alcanzado ({catalogsUsed}/{limits.catalogsLimit})
                 </p>
               </div>
               <div className="flex items-center gap-2 w-full sm:w-auto">
@@ -122,7 +127,7 @@ const Products = () => {
     return null;
   };
 
-  // Header simplificado con jerarquía visual clara
+  // Header
   const PageHeader = () => (
     <div className="mb-4 sm:mb-6">
       <div className="mb-3 sm:mb-4">
@@ -130,7 +135,6 @@ const Products = () => {
         <p className="text-sm sm:text-base text-gray-600">{products.length} productos en total</p>
       </div>
 
-      {/* Grid 1 col móvil, 3 cols tablet+ */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
         <Card className="border-orange-200 bg-orange-50">
           <CardContent className="p-3">
@@ -171,17 +175,16 @@ const Products = () => {
     </div>
   );
 
-  // Barra de acciones simplificada con jerarquía visual clara
+  // Actions
   const actions = (
     <div className="flex items-center gap-2 w-full md:w-auto">
-      {/* Móvil: Solo search + upload */}
       <div className="md:hidden flex items-center gap-2 w-full">
         <div className="relative flex-1 min-w-0">
           <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           <Input
             placeholder="Buscar..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            value={localSearchTerm}
+            onChange={(e) => setLocalSearchTerm(e.target.value)}
             className="pl-8 h-10 text-sm"
           />
         </div>
@@ -190,18 +193,16 @@ const Products = () => {
         </Button>
       </div>
 
-      {/* Desktop: Búsqueda normal */}
       <div className="hidden md:block relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
         <Input
           placeholder="Buscar productos..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
+          value={localSearchTerm}
+          onChange={(e) => setLocalSearchTerm(e.target.value)}
           className="pl-9 w-64"
         />
       </div>
 
-      {/* Acciones contextuales - solo desktop */}
       {selectedProducts.length > 0 && (
         <div className="hidden md:flex items-center gap-2 border-l pl-2">
           <Badge variant="secondary" className="text-sm">
@@ -214,7 +215,7 @@ const Products = () => {
             className="bg-purple-600 hover:bg-purple-700"
             disabled={!canGenerate}
           >
-            <BookOpen className="h-4 w-4 mr-2" />
+            <Package className="h-4 w-4 mr-2" />
             Crear Catálogo
           </Button>
 
@@ -232,7 +233,6 @@ const Products = () => {
         </div>
       )}
 
-      {/* Acciones primarias - solo desktop */}
       <div className="hidden md:flex items-center gap-2 border-l pl-2">
         <Button onClick={() => navigate("/upload")} size="sm" className="bg-blue-600 hover:bg-blue-700">
           <Plus className="h-4 w-4 mr-2" />
@@ -254,12 +254,10 @@ const Products = () => {
 
   if (loading) {
     return (
-      <div className="container mx-auto p-4 md:p-6 space-y-6">
-        <div className="flex items-center justify-center py-12">
-          <div className="text-center">
-            <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <p className="text-neutral/60">Cargando tu biblioteca...</p>
-          </div>
+      <div className="flex items-center justify-center py-12 min-h-screen">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-neutral/60">Cargando tu biblioteca...</p>
         </div>
       </div>
     );
@@ -267,18 +265,13 @@ const Products = () => {
 
   return (
     <div className="container mx-auto p-4 md:p-6 space-y-6">
-      {/* Header con Actions */}
-      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-6">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-2">
         <PageHeader />
-        <div className="hidden lg:block">{actions}</div>
+        {actions}
       </div>
-
-      {/* Mobile Actions */}
-      <div className="lg:hidden">{actions}</div>
 
       <LimitsAlert />
 
-      {/* Banner de información del negocio */}
       {!businessInfoLoading && !isBusinessInfoComplete && showBusinessInfoBanner && (
         <BusinessInfoBanner onDismiss={() => setShowBusinessInfoBanner(false)} />
       )}
@@ -420,7 +413,7 @@ const Products = () => {
                         toggleProductSelection={toggleProductSelection}
                         handleDeleteProduct={handleDeleteProduct}
                         handleViewProduct={handleViewProduct}
-                        processing={processing}
+                        processing={false}
                       />
                     ))}
                   </div>
@@ -565,7 +558,7 @@ const Products = () => {
                   className="flex-1 bg-purple-600 hover:bg-purple-700 h-11"
                   disabled={!canGenerate}
                 >
-                  <BookOpen className="h-4 w-4 mr-2" />
+                  <Package className="h-4 w-4 mr-2" />
                   Catálogo
                 </Button>
 
