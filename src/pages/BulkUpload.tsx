@@ -115,10 +115,12 @@ export default function BulkUpload() {
     noClick: true, // Para que solo funcione el botón, no toda el área si no quieres
   });
 
-  // 3. CONFIRMAR MAPEO
+  // 3. CONFIRMAR MAPEO (Función completa)
   const handleMappingConfirm = (mapping: Record<string, string>) => {
+    // A. Transformar datos del Excel a nuestra estructura
     const mappedProducts: BulkProduct[] = rawFile
       .map((row) => {
+        // Procesar etiquetas (separar por comas y limpiar espacios)
         const tagsRaw = row[mapping["tags"]];
         const tagsArray = tagsRaw
           ? String(tagsRaw)
@@ -130,7 +132,7 @@ export default function BulkUpload() {
         return {
           id: crypto.randomUUID(),
           name: row[mapping["name"]],
-          price: parseFloat(row[mapping["price"]] || "0"),
+          price: parseFloat(row[mapping["price"]] || "0"), // Asegurar que sea número
           sku: row[mapping["sku"]] || "",
           description: row[mapping["description"]] || "",
           category: row[mapping["category"]] || "",
@@ -138,16 +140,31 @@ export default function BulkUpload() {
           originalData: row,
         };
       })
-      .filter((p) => p.name && p.price > 0);
+      .filter((p) => p.name && p.price > 0); // Eliminar filas vacías o sin precio
 
-    const limitMax = (limits as any)?.maxUploads || 50;
-    if (limits && mappedProducts.length > limitMax) {
-      toast({
-        title: "Límite excedido",
-        description: `Tu plan permite subir ${limitMax} productos por lote.`,
-        variant: "destructive",
-      });
+    // B. Validar que haya al menos un producto válido
+    if (mappedProducts.length === 0) {
+      toast({ title: "No se encontraron productos válidos", variant: "destructive" });
+      return;
     }
+
+    // C. VALIDACIÓN DE LÍMITES DEL PLAN
+    // Obtenemos el límite del hook (que ya corregimos en useCatalogLimits)
+    const maxUploads = limits?.maxUploads || 50; // 50 es el fallback de seguridad
+
+    // Solo validamos el número si NO es 'unlimited'
+    if (maxUploads !== "unlimited") {
+      if (mappedProducts.length > (maxUploads as number)) {
+        toast({
+          title: "Límite del Plan Excedido",
+          description: `Tu plan (${limits?.planName || "Básico"}) permite subir máximo ${maxUploads} productos por lote. Estás intentando subir ${mappedProducts.length}.`,
+          variant: "destructive",
+        });
+        return; // 🛑 CRÍTICO: Detenemos la función aquí para no avanzar
+      }
+    }
+
+    // D. Si todo está bien, guardamos y avanzamos
     setProducts(mappedProducts);
     setStep("matching");
   };
