@@ -86,6 +86,8 @@ const catalogSchema = z
     // Scripts Legacy
     tracking_head_scripts: z.string().optional().nullable(),
     tracking_body_scripts: z.string().optional().nullable(),
+    pixelId: z.string().optional(),
+    accessToken: z.string().optional(), // Solo para CAPI
 
     // Configuración CAPI Nueva
     tracking_config: z
