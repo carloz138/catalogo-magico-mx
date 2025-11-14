@@ -522,8 +522,47 @@ export default function DigitalCatalogForm() {
         )}
       </div>
 
+      {/* NUEVOS CAMPOS: Pixel ID y Access Token */}
+      <div className="pt-4 border-t space-y-4">
+        <FormField
+          control={form.control}
+          name="pixelId"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Facebook Pixel ID</FormLabel>
+              <FormControl>
+                <Input placeholder="Ej: 1234567890" {...field} />
+              </FormControl>
+              <FormDescription>
+                El ID numérico de tu Pixel. Necesario para el rastreo básico y CAPI.
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="accessToken"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>API Access Token (Opcional)</FormLabel>
+              <FormControl>
+                <Input type="password" placeholder="Token de conversión (CAPI)" {...field} />
+              </FormControl>
+              <FormDescription>
+                Requerido para enviar eventos servidor-servidor (Plan Empresarial).
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <div className="my-4 border-t border-border" />
+      </div>
+
       {/* SECCIÓN CLÁSICA (Fallback) */}
-      <div className="pt-4 border-t">
+      <div className="pt-4">
         <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
           Scripts personalizados
           <Badge variant="outline" className="text-[10px] h-5">
