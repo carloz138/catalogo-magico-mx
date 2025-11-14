@@ -13,6 +13,13 @@ export interface DigitalCatalog {
   description: string | null;
   template_id: string | null;
   web_template_id: string | null;
+  background_pattern: string | null;
+  logo_url?: string | null;
+  brand_colors?: {
+    primary: string;
+    secondary: string;
+  } | null;
+  
   // Configuración de precios
   price_display: PriceDisplay;
   price_adjustment_menudeo: number;
@@ -23,9 +30,6 @@ export interface DigitalCatalog {
   show_tags: boolean;
   show_description: boolean;
   show_stock: boolean;
-
-  // Diseño
-  background_pattern: string | null;
 
   // Información adicional
   additional_info: string | null;
@@ -47,6 +51,13 @@ export interface DigitalCatalog {
   // Tracking
   tracking_head_scripts: string | null;
   tracking_body_scripts: string | null;
+  tracking_config?: {
+    pixelId?: string;
+    accessToken?: string;
+  } | null;
+
+  // Productos (opcional para vistas extendidas)
+  products?: any[];
 
   created_at: string;
   updated_at: string;

@@ -4,8 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Search, ShoppingCart, Filter, X } from "lucide-react";
 import { DigitalCatalog } from "@/types/digital-catalog";
-// Asegúrate de tener estos componentes o ajusta los imports
-import { ProductCard } from "@/components/products/ProductCard"; 
+// Usamos PublicProductCard para la vista pública
+import { PublicProductCard } from "@/components/public/PublicProductCard"; 
 import { QuoteCartModal } from "@/components/public/QuoteCartModal";
 import { useDebounce } from "@/hooks/useDebounce";
 
@@ -91,18 +91,34 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
         ) : (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
                 {filteredProducts.map(product => (
-                    <ProductCard 
+                    <div 
                         key={product.id}
-                        product={product}
-                        // Aquí conectamos el evento del Pixel/CAPI
-                        onAddToCart={() => onTrackEvent('AddToCart', { 
+                        onClick={() => onTrackEvent('AddToCart', { 
                             content_ids: [product.id],
                             content_name: product.name,
                             value: product.price_retail,
                             currency: 'MXN'
                         })}
-                        showPrice={true} // Opcional: Según config del catálogo
-                    />
+                    >
+                        <PublicProductCard 
+                            product={product}
+                            priceConfig={{
+                                display: catalog.price_display,
+                                adjustmentMenudeo: catalog.price_adjustment_menudeo,
+                                adjustmentMayoreo: catalog.price_adjustment_mayoreo
+                            }}
+                            visibilityConfig={{
+                                showSku: catalog.show_sku,
+                                showTags: catalog.show_tags,
+                                showDescription: catalog.show_description,
+                                showStock: catalog.show_stock
+                            }}
+                            enableVariants={catalog.enable_variants}
+                            purchasedProductIds={[]}
+                            purchasedVariantIds={[]}
+                            isReplicatedCatalog={catalog.isReplicated || false}
+                        />
+                    </div>
                 ))}
             </div>
         )}
@@ -122,10 +138,13 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
 
       {/* Modal del Carrito */}
       <QuoteCartModal 
-        open={isCartOpen} 
-        onClose={() => setIsCartOpen(false)}
-        catalog={catalog}
-        onSubmitQuote={() => onTrackEvent('Lead', { currency: 'MXN', value: 0 })} // Track Lead al enviar
+        {...{
+          open: isCartOpen,
+          isOpen: isCartOpen,
+          onClose: () => setIsCartOpen(false),
+          catalog: catalog,
+          onSubmitQuote: () => onTrackEvent('Lead', { currency: 'MXN', value: 0 })
+        } as any}
       />
     </div>
   );

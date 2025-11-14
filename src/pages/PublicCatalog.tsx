@@ -96,7 +96,7 @@ export default function PublicCatalog() {
             ...replica.digital_catalogs,
             isReplicated: true, // Flag interno
             resellerId: replica.reseller_id,
-          };
+          } as any;
         }
       }
 
@@ -105,7 +105,7 @@ export default function PublicCatalog() {
 
       // Contar visita (Incrementar view_count)
       // Lo hacemos "fire and forget" para no bloquear la carga
-      supabase.rpc("increment_view_count", { row_id: data.id }).then();
+      supabase.rpc("increment_view_count" as any, { row_id: data.id }).then();
 
       return data as DigitalCatalog & { isReplicated?: boolean; resellerId?: string };
     },

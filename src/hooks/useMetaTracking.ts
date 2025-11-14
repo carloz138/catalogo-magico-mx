@@ -1,6 +1,13 @@
 import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
+declare global {
+  interface Window {
+    fbq?: any;
+    _fbq?: any;
+  }
+}
+
 interface MetaConfig {
   pixelId?: string;
   accessToken?: string; // Solo para Enterprise
