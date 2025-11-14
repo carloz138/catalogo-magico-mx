@@ -33,14 +33,14 @@ export default function BlogPost() {
       setError(false);
 
       // Importar el archivo específico
-      const markdownFiles = import.meta.glob('/src/content/blog/*.md', { as: 'raw' });
-      
+      const markdownFiles = import.meta.glob("/src/content/blog/*.md", { as: "raw" });
+
       let foundPost: BlogPostData | null = null;
 
       for (const path in markdownFiles) {
         const content = await markdownFiles[path]();
         const parsed = parseMarkdown(content);
-        
+
         if (parsed && parsed.slug === slug) {
           foundPost = parsed;
           break;
@@ -65,18 +65,21 @@ export default function BlogPost() {
       // Extraer frontmatter
       const frontmatterRegex = /^---\s*\n([\s\S]*?)\n---\s*\n([\s\S]*)$/;
       const match = content.match(frontmatterRegex);
-      
+
       if (!match) return null;
-      
+
       const frontmatterText = match[1];
       const markdownContent = match[2];
-      
+
       const frontmatter: any = {};
-      
-      frontmatterText.split('\n').forEach(line => {
-        const [key, ...valueParts] = line.split(':');
+
+      frontmatterText.split("\n").forEach((line) => {
+        const [key, ...valueParts] = line.split(":");
         if (key && valueParts.length > 0) {
-          const value = valueParts.join(':').trim().replace(/^["']|["']$/g, '');
+          const value = valueParts
+            .join(":")
+            .trim()
+            .replace(/^["']|["']$/g, "");
           frontmatter[key.trim()] = value;
         }
       });
@@ -101,7 +104,7 @@ export default function BlogPost() {
   const shareOnSocial = (platform: string) => {
     const url = window.location.href;
     const text = post?.title || "";
-    
+
     const shareUrls: { [key: string]: string } = {
       facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`,
       twitter: `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`,
@@ -110,7 +113,7 @@ export default function BlogPost() {
     };
 
     if (shareUrls[platform]) {
-      window.open(shareUrls[platform], '_blank', 'width=600,height=400');
+      window.open(shareUrls[platform], "_blank", "width=600,height=400");
     }
   };
 
@@ -131,8 +134,8 @@ export default function BlogPost() {
         <div className="text-center max-w-md mx-auto px-4">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">404</h1>
           <p className="text-xl text-gray-600 mb-8">Artículo no encontrado</p>
-          <Link 
-            to="/blog" 
+          <Link
+            to="/blog"
             className="inline-flex items-center gap-2 bg-primary text-white px-6 py-3 rounded-lg hover:bg-primary/90 transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
@@ -158,28 +161,28 @@ export default function BlogPost() {
         <meta name="twitter:title" content={post.title} />
         <meta name="twitter:description" content={post.description} />
         <meta name="twitter:image" content={post.image} />
-        
+
         {/* Schema.org Article */}
         <script type="application/ld+json">
           {JSON.stringify({
             "@context": "https://schema.org",
             "@type": "BlogPosting",
-            "headline": post.title,
-            "description": post.description,
-            "image": post.image,
-            "datePublished": post.date,
-            "author": {
+            headline: post.title,
+            description: post.description,
+            image: post.image,
+            datePublished: post.date,
+            author: {
               "@type": "Person",
-              "name": post.author
+              name: post.author,
             },
-            "publisher": {
+            publisher: {
               "@type": "Organization",
-              "name": "CatifyPro",
-              "logo": {
+              name: "CatifyPro",
+              logo: {
                 "@type": "ImageObject",
-                "url": "https://catifypro.com/logo.png"
-              }
-            }
+                url: "https://catifypro.com/logo.png",
+              },
+            },
           })}
         </script>
       </Helmet>
@@ -188,8 +191,8 @@ export default function BlogPost() {
         {/* Botón volver */}
         <div className="bg-white border-b">
           <div className="container mx-auto px-4 max-w-4xl py-4">
-            <Link 
-              to="/blog" 
+            <Link
+              to="/blog"
               className="inline-flex items-center gap-2 text-gray-600 hover:text-primary transition-colors"
             >
               <ArrowLeft className="w-4 h-4" />
@@ -209,9 +212,7 @@ export default function BlogPost() {
             </div>
 
             {/* Título */}
-            <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6 leading-tight">
-              {post.title}
-            </h1>
+            <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6 leading-tight">{post.title}</h1>
 
             {/* Meta info */}
             <div className="flex flex-wrap items-center gap-4 text-gray-600 mb-8">
@@ -222,10 +223,10 @@ export default function BlogPost() {
               <div className="flex items-center gap-2">
                 <Calendar className="w-5 h-5" />
                 <span>
-                  {new Date(post.date).toLocaleDateString('es-MX', { 
-                    year: 'numeric', 
-                    month: 'long', 
-                    day: 'numeric' 
+                  {new Date(post.date).toLocaleDateString("es-MX", {
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
                   })}
                 </span>
               </div>
@@ -238,33 +239,33 @@ export default function BlogPost() {
                 Compartir:
               </span>
               <button
-                onClick={() => shareOnSocial('facebook')}
+                onClick={() => shareOnSocial("facebook")}
                 className="p-2 rounded-full hover:bg-blue-50 text-blue-600 transition-colors"
                 aria-label="Compartir en Facebook"
               >
                 <Facebook className="w-5 h-5" />
               </button>
               <button
-                onClick={() => shareOnSocial('twitter')}
+                onClick={() => shareOnSocial("twitter")}
                 className="p-2 rounded-full hover:bg-sky-50 text-sky-600 transition-colors"
                 aria-label="Compartir en Twitter"
               >
                 <Twitter className="w-5 h-5" />
               </button>
               <button
-                onClick={() => shareOnSocial('linkedin')}
+                onClick={() => shareOnSocial("linkedin")}
                 className="p-2 rounded-full hover:bg-blue-50 text-blue-700 transition-colors"
                 aria-label="Compartir en LinkedIn"
               >
                 <Linkedin className="w-5 h-5" />
               </button>
               <button
-                onClick={() => shareOnSocial('whatsapp')}
+                onClick={() => shareOnSocial("whatsapp")}
                 className="p-2 rounded-full hover:bg-green-50 text-green-600 transition-colors"
                 aria-label="Compartir en WhatsApp"
               >
                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
                 </svg>
               </button>
             </div>
@@ -272,21 +273,15 @@ export default function BlogPost() {
 
           {/* Contenido del artículo */}
           <div className="prose prose-lg max-w-none prose-headings:font-bold prose-h2:text-3xl prose-h2:mt-12 prose-h2:mb-6 prose-h3:text-2xl prose-h3:mt-8 prose-h3:mb-4 prose-p:text-gray-700 prose-p:leading-relaxed prose-a:text-primary prose-a:no-underline hover:prose-a:underline prose-strong:text-gray-900 prose-ul:my-6 prose-li:my-2 prose-img:rounded-lg prose-img:shadow-md">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-              {post.content}
-            </ReactMarkdown>
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{post.content}</ReactMarkdown>
           </div>
 
           {/* CTA al final */}
           <div className="mt-16 bg-gradient-to-br from-primary to-primary/80 text-white rounded-2xl p-8 md:p-12">
-            <h2 className="text-3xl font-bold mb-4">
-              ¿Listo para crear tu catálogo digital?
-            </h2>
-            <p className="text-xl text-white/90 mb-6">
-              Prueba CatifyPro gratis por 14 días. Sin tarjeta de crédito.
-            </p>
+            <h2 className="text-3xl font-bold mb-4">¿Listo para crear tu catálogo digital?</h2>
+            <p className="text-xl text-white/90 mb-6">Prueba CatifyPro gratis por 14 días. Sin tarjeta de crédito.</p>
             <Link
-              to="/registro"
+              to="/"
               className="inline-block bg-white text-primary px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors"
             >
               Empezar gratis →
