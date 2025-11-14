@@ -308,6 +308,8 @@ export default function DigitalCatalogForm() {
         free_shipping_min_amount: catalog.free_shipping_min_amount ? catalog.free_shipping_min_amount / 100 : 0,
         tracking_head_scripts: catalog.tracking_head_scripts || "",
         tracking_body_scripts: catalog.tracking_body_scripts || "",
+        pixelId: (catalog.tracking_config as any)?.pixelId || "",
+        accessToken: (catalog.tracking_config as any)?.accessToken || "",
         // Carga la configuración CAPI o usa default
         tracking_config: (catalog as any).tracking_config || {
           meta_capi: { enabled: false, pixel_id: "", access_token: "", test_code: "" },
