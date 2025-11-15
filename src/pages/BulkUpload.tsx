@@ -25,8 +25,6 @@ import { Progress } from "@/components/ui/progress";
 // Componentes y Hooks
 import { ColumnMapper } from "@/components/bulk-upload/ColumnMapper";
 import { useBulkMatching, type BulkProduct, type BulkImage } from "@/hooks/useBulkMatching";
-
-// Importación de tu utilidad de imágenes blindada
 import { uploadImageToSupabase } from "@/utils/imageProcessing";
 
 export default function BulkUpload() {
@@ -46,7 +44,7 @@ export default function BulkUpload() {
   // Estados visuales y de reporte
   const [isProcessingImages, setIsProcessingImages] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [failedReport, setFailedReport] = useState<any[]>([]); // Aquí guardamos los errores
+  const [failedReport, setFailedReport] = useState<any[]>([]);
   const [successCount, setSuccessCount] = useState(0);
 
   // Hook de Matching
@@ -92,8 +90,6 @@ export default function BulkUpload() {
   const onImagesDrop = useCallback(
     (acceptedFiles: File[]) => {
       setIsProcessingImages(true);
-
-      // Timeout pequeño para permitir que React renderice el Spinner
       setTimeout(() => {
         const newImages = acceptedFiles.map((file) => ({
           id: crypto.randomUUID(),
@@ -116,25 +112,31 @@ export default function BulkUpload() {
     [toast],
   );
 
+  // DROPZONE 1: Excel (Paso 1)
   const { getRootProps: getFileProps, getInputProps: getFileInputProps } = useDropzone({
     onDrop: onFileDrop,
     accept: { "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [".xlsx"], "text/csv": [".csv"] },
     maxFiles: 1,
   });
 
+  // DROPZONE 2: Imágenes Principal (Paso 1)
+  // Aquí 'noClick' es false (default), así que al hacer click en la Card se abre.
   const { getRootProps: getImageProps, getInputProps: getImageInputProps } = useDropzone({
     onDrop: onImagesDrop,
     accept: { "image/*": [".png", ".jpg", ".jpeg", ".webp"] },
   });
 
+  // DROPZONE 3: Imágenes Extra "Rescue" (Paso 3)
+  // ⚠️ FIX APLICADO AQUÍ: Extraemos la función 'open' y la renombramos 'openExtraFileDialog'
   const {
     getRootProps: getExtraImageProps,
     getInputProps: getExtraImageInputProps,
     isDragActive: isExtraDragActive,
+    open: openExtraFileDialog, // 👈 ESTA ES LA CLAVE
   } = useDropzone({
     onDrop: onImagesDrop,
     accept: { "image/*": [".png", ".jpg", ".jpeg", ".webp"] },
-    noClick: true,
+    noClick: true, // Esto desactiva el click en el div contenedor, necesitamos el botón
   });
 
   // 3. CONFIRMAR MAPEO
@@ -157,7 +159,7 @@ export default function BulkUpload() {
           description: row[mapping["description"]] || "",
           category: row[mapping["category"]] || "",
           tags: tagsArray,
-          originalData: row, // GUARDAMOS DATA ORIGINAL PARA EL REPORTE DE ERROR
+          originalData: row,
         };
       })
       .filter((p) => p.name && p.price > 0);
@@ -185,35 +187,39 @@ export default function BulkUpload() {
 
   // 4. SUBIDA FINAL (CON REPORTE DE ERRORES)
   const handleFinalUpload = async () => {
+    const unmatchedCount = matches.filter((m) => m.status === "unmatched").length;
+    if (unmatchedCount > 0) {
+      const confirmUpload = window.confirm(
+        `⚠️ ATENCIÓN: Hay ${unmatchedCount} productos sin imagen asignada.\n\n` +
+          `Si continúas, estos productos NO se guardarán en la base de datos.\n` +
+          `¿Deseas continuar de todos modos?`,
+      );
+      if (!confirmUpload) return;
+    }
+
     const {
       data: { user },
     } = await supabase.auth.getUser();
-
     if (!user) {
       toast({ title: "Error de sesión", description: "No se encontró usuario activo", variant: "destructive" });
       return;
     }
 
     setStep("uploading");
-
-    // Configuración
     const BATCH_SIZE = 3;
     const PLACEHOLDER_URL =
       "https://ikbexcebcpmomfxraflz.supabase.co/storage/v1/object/public/product-images/placeholder.png";
 
     let processedCount = 0;
     const total = matches.length;
-    const localFailedItems: any[] = []; // Acumulador local de fallos
+    const localFailedItems: any[] = [];
     let localSuccessCount = 0;
 
-    // Bucle por lotes
     for (let i = 0; i < matches.length; i += BATCH_SIZE) {
       const batch = matches.slice(i, i + BATCH_SIZE);
-
       const batchResults = await Promise.all(
         batch.map(async (match) => {
           try {
-            // CASO 1: SIN MATCH Y SIN DEFAULT -> ERROR
             if (match.status === "unmatched") {
               localFailedItems.push({
                 ...match.product.originalData,
@@ -230,17 +236,14 @@ export default function BulkUpload() {
               print: PLACEHOLDER_URL,
             };
 
-            // CASO 2: IMAGEN REAL
             if (match.status === "matched" && match.image) {
               const fileExt = match.image.file.name.split(".").pop();
               const rawFilePath = `${user.id}/${Date.now()}_${match.image.id}.${fileExt}`;
 
-              // Subida Original (Backup)
               await supabase.storage.from("product-images").upload(rawFilePath, match.image.file);
               const { data: rawUrlData } = supabase.storage.from("product-images").getPublicUrl(rawFilePath);
               imageUrls.original = rawUrlData.publicUrl;
 
-              // Optimización (Tu función importada)
               try {
                 const optimizedUrls = await uploadImageToSupabase(
                   supabase,
@@ -261,7 +264,6 @@ export default function BulkUpload() {
               }
             }
 
-            // Retornar objeto listo
             return {
               id: match.productId,
               user_id: user.id,
@@ -277,7 +279,6 @@ export default function BulkUpload() {
               luxury_image_url: imageUrls.luxury,
               print_image_url: imageUrls.print,
               processing_status: "completed",
-              // Guardamos referencia temporal para saber cuál falló en el insert
               _originalData: match.product.originalData,
             };
           } catch (e) {
@@ -291,18 +292,13 @@ export default function BulkUpload() {
         }),
       );
 
-      // Filtrar nulos y preparar para insert
       const validProductsToInsert = batchResults.filter((p) => p !== null);
 
       if (validProductsToInsert.length > 0) {
-        // Separamos la data real de la metadata temporal (_originalData)
         const dbPayload = validProductsToInsert.map(({ _originalData, ...rest }) => rest);
-
         const { error: insertError } = await supabase.from("products").insert(dbPayload);
 
         if (insertError) {
-          console.error("Error insertando lote en DB:", insertError);
-          // Si falla el lote completo, agregamos todos al reporte
           validProductsToInsert.forEach((p: any) => {
             localFailedItems.push({
               ...p._originalData,
@@ -313,21 +309,17 @@ export default function BulkUpload() {
           localSuccessCount += validProductsToInsert.length;
         }
       }
-
       processedCount += batch.length;
       setUploadProgress((processedCount / total) * 100);
     }
 
-    // FINALIZACIÓN
     setFailedReport(localFailedItems);
     setSuccessCount(localSuccessCount);
-    setStep("finished"); // Nuevo paso final
+    setStep("finished");
   };
 
-  // 5. FUNCIÓN DE DESCARGA DE REPORTE
   const downloadErrorReport = () => {
     if (failedReport.length === 0) return;
-
     const ws = XLSX.utils.json_to_sheet(failedReport);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Errores de Carga");
@@ -420,6 +412,17 @@ export default function BulkUpload() {
               <p className="text-sm text-gray-500">
                 Arrastra las fotos aquí y el sistema intentará unirlas automáticamente.
               </p>
+
+              {/* 👇 BOTÓN ARREGLADO: AHORA SÍ ABRE EL SELECTOR */}
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-2"
+                type="button" // Importante para no enviar formularios si hubiera
+                onClick={openExtraFileDialog}
+              >
+                Seleccionar archivos
+              </Button>
             </div>
           </div>
 
@@ -550,12 +553,11 @@ export default function BulkUpload() {
         </Card>
       )}
 
-      {/* PASO 5: RESULTADO FINAL (NUEVO) */}
+      {/* PASO 5: RESULTADO FINAL */}
       {step === "finished" && (
         <Card className="max-w-2xl mx-auto mt-10 border-t-4 border-t-blue-600 shadow-lg">
           <CardContent className="pt-8 pb-8 flex flex-col items-center text-center space-y-6">
             {failedReport.length === 0 ? (
-              // ÉXITO TOTAL
               <>
                 <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center">
                   <CheckCircle className="w-10 h-10 text-green-600" />
@@ -566,7 +568,6 @@ export default function BulkUpload() {
                 </div>
               </>
             ) : (
-              // CON ERRORES
               <>
                 <div className="w-20 h-20 bg-orange-100 rounded-full flex items-center justify-center">
                   <FileWarning className="w-10 h-10 text-orange-600" />
