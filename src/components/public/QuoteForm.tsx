@@ -18,7 +18,8 @@ import { Separator } from "@/components/ui/separator";
 declare global {
   interface Window {
     dataLayer?: any[];
-    fbq: any;
+    // Eliminamos 'fbq' de aquí para evitar el conflicto (Error TS2717)
+    // Lo usaremos como 'any' directamente en el código
   }
 }
 
@@ -136,9 +137,11 @@ export function QuoteForm(props: QuoteFormProps) {
         console.error("Error al disparar evento GTM:", e);
       }
 
+      // CORRECCIÓN AQUÍ: Usamos (window as any) para evitar el error de TS
       try {
-        if (typeof window.fbq === "function") {
-          window.fbq("track", "Lead", {
+        const fbq = (window as any).fbq; // Casteo explícito para evitar conflictos
+        if (typeof fbq === "function") {
+          fbq("track", "Lead", {
             content_name: "Cotizacion Generada",
             value: totalAmount / 100,
             currency: "MXN",
