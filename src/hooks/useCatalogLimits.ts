@@ -46,6 +46,11 @@ export const useCatalogLimits = () => {
         .eq("status", "active")
         .maybeSingle();
 
+      console.log("🔍 DEBUG LIMITS:");
+      console.log("User ID:", user.id);
+      console.log("Data devuelta:", subData);
+      console.log("Error devuelto:", subError);
+
       // Si no tiene plan, el default es 50. Si es enterprise (999999), lo tratamos como unlimited
       let maxUploadsRaw = subData?.credit_packages?.max_uploads || 50;
       const maxUploads = maxUploadsRaw > 10000 ? "unlimited" : maxUploadsRaw;
