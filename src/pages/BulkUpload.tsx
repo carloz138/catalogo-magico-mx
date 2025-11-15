@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDropzone } from "react-dropzone";
 import * as XLSX from "xlsx";
@@ -42,16 +42,13 @@ export default function BulkUpload() {
   const [images, setImages] = useState<BulkImage[]>([]);
 
   // Estados visuales y de reporte
-  const [isProcessingImages, setIsProcessingImages] = useState(false);
+  const [isProcessingImages, setIsProcessingImages] = useState(false); // 👈 NUESTRO SPINNER
   const [uploadProgress, setUploadProgress] = useState(0);
   const [failedReport, setFailedReport] = useState<any[]>([]);
   const [successCount, setSuccessCount] = useState(0);
 
   // Hook de Matching
-  const { matches, setManualMatch, useDefaultImage, applyDefaultToAllUnmatched, stats } = useBulkMatching(
-    products,
-    images,
-  );
+  const { matches, setManualMatch, useDefaultImage, applyDefaultToAllUnmatched } = useBulkMatching(products, images);
 
   // 1. LEER EXCEL
   const onFileDrop = useCallback(
@@ -89,7 +86,13 @@ export default function BulkUpload() {
   // 2. LEER IMÁGENES (Con Feedback de Carga)
   const onImagesDrop = useCallback(
     (acceptedFiles: File[]) => {
-      setIsProcessingImages(true);
+      setIsProcessingImages(true); // 1. MOSTRAR SPINNER
+      toast({
+        title: `Procesando ${acceptedFiles.length} imágenes...`,
+        description: "Buscando coincidencias, esto puede tardar...",
+      });
+
+      // 2. Usar timeout para permitir que React renderice el spinner
       setTimeout(() => {
         const newImages = acceptedFiles.map((file) => ({
           id: crypto.randomUUID(),
@@ -99,18 +102,27 @@ export default function BulkUpload() {
         }));
 
         setImages((prev) => {
+          // 3. Setear estado (esto dispara el hook de matching)
           const updated = [...prev, ...newImages];
-          toast({
-            title: "Imágenes procesadas",
-            description: `Se han preparado ${newImages.length} imágenes para coincidencia.`,
-          });
           return updated;
         });
-        setIsProcessingImages(false);
-      }, 100);
+        // 4. NO quitamos el spinner aquí. El useEffect [matches] lo hará.
+      }, 50);
     },
     [toast],
   );
+
+  // 👇 NUEVO HOOK: Se dispara cuando 'useBulkMatching' termina y actualiza 'matches'
+  useEffect(() => {
+    if (isProcessingImages) {
+      setIsProcessingImages(false); // 5. QUITAR SPINNER
+      toast({
+        title: "¡Coincidencias listas!",
+        description: "Las imágenes se han procesado.",
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [matches]); // Se ejecuta solo cuando 'matches' cambia
 
   // DROPZONE 1: Excel (Paso 1)
   const { getRootProps: getFileProps, getInputProps: getFileInputProps } = useDropzone({
@@ -120,23 +132,23 @@ export default function BulkUpload() {
   });
 
   // DROPZONE 2: Imágenes Principal (Paso 1)
-  // Aquí 'noClick' es false (default), así que al hacer click en la Card se abre.
   const { getRootProps: getImageProps, getInputProps: getImageInputProps } = useDropzone({
     onDrop: onImagesDrop,
     accept: { "image/*": [".png", ".jpg", ".jpeg", ".webp"] },
+    disabled: isProcessingImages, // Desactivar si está cargando
   });
 
   // DROPZONE 3: Imágenes Extra "Rescue" (Paso 3)
-  // ⚠️ FIX APLICADO AQUÍ: Extraemos la función 'open' y la renombramos 'openExtraFileDialog'
   const {
     getRootProps: getExtraImageProps,
     getInputProps: getExtraImageInputProps,
     isDragActive: isExtraDragActive,
-    open: openExtraFileDialog, // 👈 ESTA ES LA CLAVE
+    open: openExtraFileDialog,
   } = useDropzone({
     onDrop: onImagesDrop,
     accept: { "image/*": [".png", ".jpg", ".jpeg", ".webp"] },
-    noClick: true, // Esto desactiva el click en el div contenedor, necesitamos el botón
+    noClick: true,
+    disabled: isProcessingImages, // Desactivar si está cargando
   });
 
   // 3. CONFIRMAR MAPEO
@@ -189,12 +201,14 @@ export default function BulkUpload() {
   const handleFinalUpload = async () => {
     const unmatchedCount = matches.filter((m) => m.status === "unmatched").length;
     if (unmatchedCount > 0) {
-      const confirmUpload = window.confirm(
-        `⚠️ ATENCIÓN: Hay ${unmatchedCount} productos sin imagen asignada.\n\n` +
-          `Si continúas, estos productos NO se guardarán en la base de datos.\n` +
-          `¿Deseas continuar de todos modos?`,
-      );
-      if (!confirmUpload) return;
+      // No usamos window.confirm, usamos el toast (más amigable en iframes)
+      toast({
+        title: `⚠️ Tienes ${unmatchedCount} productos sin imagen`,
+        description: "Se omitirán de la carga. Asígnales 'Default' si quieres subirlos.",
+        variant: "destructive",
+        duration: 6000,
+      });
+      // Permitimos continuar, pero solo subirá los que tienen 'matched' o 'default'
     }
 
     const {
@@ -327,7 +341,16 @@ export default function BulkUpload() {
   };
 
   return (
-    <div className="container mx-auto py-8 px-4">
+    <div className="container mx-auto py-8 px-4 relative">
+      {/* 👇 NUEVO OVERLAY DE PÁGINA COMPLETA */}
+      {isProcessingImages && (
+        <div className="absolute inset-0 bg-white/80 z-[100] flex flex-col items-center justify-center backdrop-blur-sm rounded-lg -m-8">
+          <RefreshCw className="h-10 w-10 text-blue-600 animate-spin mb-4" />
+          <p className="font-semibold text-blue-700 text-lg">Procesando Imágenes...</p>
+          <p className="text-sm text-gray-500">Creando vistas previas y buscando coincidencias...</p>
+        </div>
+      )}
+
       {step !== "finished" && (
         <Button variant="ghost" onClick={() => navigate("/products")} className="mb-4">
           <ArrowLeft className="mr-2 h-4 w-4" /> Volver
@@ -357,16 +380,8 @@ export default function BulkUpload() {
 
           <Card
             {...getImageProps()}
-            className={`border-dashed border-2 transition-colors relative overflow-hidden ${
-              isProcessingImages ? "bg-gray-50 border-gray-300 cursor-wait" : "hover:border-blue-500 cursor-pointer"
-            }`}
+            className="border-dashed border-2 hover:border-blue-500 cursor-pointer transition-colors"
           >
-            {isProcessingImages && (
-              <div className="absolute inset-0 bg-white/80 z-50 flex flex-col items-center justify-center backdrop-blur-sm">
-                <RefreshCw className="h-10 w-10 text-blue-600 animate-spin mb-2" />
-                <p className="font-semibold text-blue-700">Procesando {images.length} imágenes...</p>
-              </div>
-            )}
             <CardContent className="flex flex-col items-center justify-center h-64 text-center">
               <input {...getImageInputProps()} />
               <div className="relative">
@@ -399,7 +414,9 @@ export default function BulkUpload() {
         <div className="space-y-6">
           <div
             {...getExtraImageProps()}
-            className={`border-2 border-dashed rounded-xl p-6 text-center transition-colors ${isExtraDragActive ? "border-blue-500 bg-blue-50" : "border-gray-300 hover:border-gray-400"}`}
+            className={`border-2 border-dashed rounded-xl p-6 text-center transition-colors ${
+              isExtraDragActive ? "border-blue-500 bg-blue-50" : "border-gray-300 hover:border-gray-400"
+            } ${isProcessingImages ? "opacity-50 cursor-not-allowed" : ""}`}
           >
             <input {...getExtraImageInputProps()} />
             <div className="flex flex-col items-center gap-2">
@@ -413,40 +430,66 @@ export default function BulkUpload() {
                 Arrastra las fotos aquí y el sistema intentará unirlas automáticamente.
               </p>
 
-              {/* 👇 BOTÓN ARREGLADO: AHORA SÍ ABRE EL SELECTOR */}
               <Button
                 variant="outline"
                 size="sm"
                 className="mt-2"
-                type="button" // Importante para no enviar formularios si hubiera
+                type="button"
                 onClick={openExtraFileDialog}
+                disabled={isProcessingImages}
               >
                 Seleccionar archivos
               </Button>
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-4 items-center justify-between bg-white p-4 rounded-lg border shadow-sm sticky top-4 z-10">
-            <div className="flex gap-4 text-sm">
-              <span className="flex items-center gap-1 font-bold text-green-700">
-                <CheckCircle className="w-4 h-4" /> {stats.matched} Listos
-              </span>
-              <span className="flex items-center gap-1 font-bold text-orange-600">
-                <AlertCircle className="w-4 h-4" /> {stats.unmatched} Sin foto
-              </span>
-            </div>
-            <div className="flex gap-2">
-              {stats.unmatched > 0 && (
-                <Button variant="outline" size="sm" onClick={applyDefaultToAllUnmatched}>
-                  <Package className="w-4 h-4 mr-2" />
-                  Usar Default para todos
-                </Button>
-              )}
-              <Button onClick={handleFinalUpload} className="bg-blue-600">
-                Subir {matches.length} Productos
-              </Button>
-            </div>
-          </div>
+          {/* 👇 BARRA DE ESTADO CORREGIDA */}
+          {(() => {
+            const countMatched = matches.filter((m) => m.status === "matched").length;
+            const countDefault = matches.filter((m) => m.status === "default").length;
+            const countUnmatched = matches.filter((m) => m.status === "unmatched").length;
+            const total = matches.length;
+
+            return (
+              <div className="flex flex-wrap gap-4 items-center justify-between bg-white p-4 rounded-lg border shadow-sm sticky top-4 z-10">
+                <div className="flex gap-4 text-sm items-center flex-wrap">
+                  <span className="flex items-center gap-1 font-bold text-green-700" title="Tienen foto asignada">
+                    <CheckCircle className="w-4 h-4" /> {countMatched} Con Foto
+                  </span>
+                  <span className="flex items-center gap-1 font-bold text-gray-600" title="Usarán la imagen genérica">
+                    <Package className="w-4 h-4" /> {countDefault} Default
+                  </span>
+                  <span
+                    className={`flex items-center gap-1 font-bold ${countUnmatched > 0 ? "text-orange-600" : "text-gray-400"}`}
+                  >
+                    <AlertCircle className="w-4 h-4" /> {countUnmatched} Sin foto
+                  </span>
+                  <span className="text-xs text-gray-400 border-l pl-4 ml-2">Total: {total}</span>
+                </div>
+
+                <div className="flex gap-2">
+                  {countUnmatched > 0 && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={applyDefaultToAllUnmatched}
+                      disabled={isProcessingImages}
+                    >
+                      <Package className="w-4 h-4 mr-2" />
+                      Usar Default en {countUnmatched}
+                    </Button>
+                  )}
+                  <Button
+                    onClick={handleFinalUpload}
+                    className="bg-blue-600"
+                    disabled={isProcessingImages || total === 0}
+                  >
+                    Subir {total} Productos
+                  </Button>
+                </div>
+              </div>
+            );
+          })()}
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {matches.map((match) => (
@@ -477,6 +520,7 @@ export default function BulkUpload() {
                         className="h-8 w-8 shadow-sm"
                         title="Usar Default"
                         onClick={() => useDefaultImage(match.productId)}
+                        disabled={isProcessingImages}
                       >
                         <Package className="w-4 h-4" />
                       </Button>
@@ -511,7 +555,7 @@ export default function BulkUpload() {
                           setManualMatch(match.productId, e.target.value);
                         }
                       }}
-                      disabled={images.length === 0}
+                      disabled={images.length === 0 || isProcessingImages}
                     >
                       <option value="">
                         {images.length === 0 ? "🚫 Sin imágenes disponibles" : "-- Seleccionar de la lista --"}
