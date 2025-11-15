@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDropzone } from "react-dropzone";
 import * as XLSX from "xlsx";
@@ -16,8 +16,9 @@ import {
   AlertCircle,
   Package,
   Link as LinkIcon,
-  Plus,
   RefreshCw,
+  FileWarning,
+  Download,
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 
@@ -25,72 +26,95 @@ import { Progress } from "@/components/ui/progress";
 import { ColumnMapper } from "@/components/bulk-upload/ColumnMapper";
 import { useBulkMatching, type BulkProduct, type BulkImage } from "@/hooks/useBulkMatching";
 
+// Importación de tu utilidad de imágenes blindada
+import { uploadImageToSupabase } from "@/utils/imageProcessing";
+
 export default function BulkUpload() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { limits } = useCatalogLimits();
 
-  const [step, setStep] = useState<"upload" | "mapping" | "matching" | "uploading">("upload");
+  // Estados del flujo
+  const [step, setStep] = useState<"upload" | "mapping" | "matching" | "uploading" | "finished">("upload");
+
+  // Datos
   const [rawFile, setRawFile] = useState<any[]>([]);
   const [headers, setHeaders] = useState<string[]>([]);
   const [products, setProducts] = useState<BulkProduct[]>([]);
   const [images, setImages] = useState<BulkImage[]>([]);
+
+  // Estados visuales y de reporte
+  const [isProcessingImages, setIsProcessingImages] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [failedReport, setFailedReport] = useState<any[]>([]); // Aquí guardamos los errores
+  const [successCount, setSuccessCount] = useState(0);
 
   // Hook de Matching
   const { matches, setManualMatch, useDefaultImage, applyDefaultToAllUnmatched, stats } = useBulkMatching(
     products,
     images,
   );
-  const [uploadProgress, setUploadProgress] = useState(0);
 
   // 1. LEER EXCEL
-  const onFileDrop = useCallback((acceptedFiles: File[]) => {
-    const file = acceptedFiles[0];
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const data = e.target?.result;
-      const workbook = XLSX.read(data, { type: "binary" });
-      const sheetName = workbook.SheetNames[0];
-      const sheet = workbook.Sheets[sheetName];
-      const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+  const onFileDrop = useCallback(
+    (acceptedFiles: File[]) => {
+      const file = acceptedFiles[0];
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const data = e.target?.result;
+        const workbook = XLSX.read(data, { type: "binary" });
+        const sheetName = workbook.SheetNames[0];
+        const sheet = workbook.Sheets[sheetName];
+        const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1 });
 
-      if (jsonData.length < 2) {
-        toast({ title: "Archivo vacío", variant: "destructive" });
-        return;
-      }
-      const headersRow = jsonData[0] as string[];
-      const dataRows = jsonData.slice(1).map((row: any) => {
-        const obj: any = {};
-        headersRow.forEach((header, index) => {
-          obj[header] = row[index];
+        if (jsonData.length < 2) {
+          toast({ title: "Archivo vacío", variant: "destructive" });
+          return;
+        }
+        const headersRow = jsonData[0] as string[];
+        const dataRows = jsonData.slice(1).map((row: any) => {
+          const obj: any = {};
+          headersRow.forEach((header, index) => {
+            obj[header] = row[index];
+          });
+          return obj;
         });
-        return obj;
-      });
-      setHeaders(headersRow);
-      setRawFile(dataRows);
-      setStep("mapping");
-    };
-    reader.readAsBinaryString(file);
-  }, []);
+        setHeaders(headersRow);
+        setRawFile(dataRows);
+        setStep("mapping");
+      };
+      reader.readAsBinaryString(file);
+    },
+    [toast],
+  );
 
-  // 2. LEER IMÁGENES (Función reutilizable para Paso 1 y Paso 3)
-  const onImagesDrop = useCallback((acceptedFiles: File[]) => {
-    const newImages = acceptedFiles.map((file) => ({
-      id: crypto.randomUUID(),
-      file,
-      preview: URL.createObjectURL(file),
-      name: file.name,
-    }));
+  // 2. LEER IMÁGENES (Con Feedback de Carga)
+  const onImagesDrop = useCallback(
+    (acceptedFiles: File[]) => {
+      setIsProcessingImages(true);
 
-    setImages((prev) => {
-      const updated = [...prev, ...newImages];
-      toast({
-        title: "Imágenes agregadas",
-        description: `Se añadieron ${newImages.length} imágenes. Buscando coincidencias...`,
-      });
-      return updated;
-    });
-  }, []);
+      // Timeout pequeño para permitir que React renderice el Spinner
+      setTimeout(() => {
+        const newImages = acceptedFiles.map((file) => ({
+          id: crypto.randomUUID(),
+          file,
+          preview: URL.createObjectURL(file),
+          name: file.name,
+        }));
+
+        setImages((prev) => {
+          const updated = [...prev, ...newImages];
+          toast({
+            title: "Imágenes procesadas",
+            description: `Se han preparado ${newImages.length} imágenes para coincidencia.`,
+          });
+          return updated;
+        });
+        setIsProcessingImages(false);
+      }, 100);
+    },
+    [toast],
+  );
 
   const { getRootProps: getFileProps, getInputProps: getFileInputProps } = useDropzone({
     onDrop: onFileDrop,
@@ -98,13 +122,11 @@ export default function BulkUpload() {
     maxFiles: 1,
   });
 
-  // Dropzone principal (Paso 1)
   const { getRootProps: getImageProps, getInputProps: getImageInputProps } = useDropzone({
     onDrop: onImagesDrop,
     accept: { "image/*": [".png", ".jpg", ".jpeg", ".webp"] },
   });
 
-  // Dropzone secundario (Paso 3 - "Rescue Dropzone")
   const {
     getRootProps: getExtraImageProps,
     getInputProps: getExtraImageInputProps,
@@ -112,15 +134,13 @@ export default function BulkUpload() {
   } = useDropzone({
     onDrop: onImagesDrop,
     accept: { "image/*": [".png", ".jpg", ".jpeg", ".webp"] },
-    noClick: true, // Para que solo funcione el botón, no toda el área si no quieres
+    noClick: true,
   });
 
-  // 3. CONFIRMAR MAPEO (Función completa)
+  // 3. CONFIRMAR MAPEO
   const handleMappingConfirm = (mapping: Record<string, string>) => {
-    // A. Transformar datos del Excel a nuestra estructura
     const mappedProducts: BulkProduct[] = rawFile
       .map((row) => {
-        // Procesar etiquetas (separar por comas y limpiar espacios)
         const tagsRaw = row[mapping["tags"]];
         const tagsArray = tagsRaw
           ? String(tagsRaw)
@@ -132,98 +152,201 @@ export default function BulkUpload() {
         return {
           id: crypto.randomUUID(),
           name: row[mapping["name"]],
-          price: parseFloat(row[mapping["price"]] || "0"), // Asegurar que sea número
+          price: parseFloat(row[mapping["price"]] || "0"),
           sku: row[mapping["sku"]] || "",
           description: row[mapping["description"]] || "",
           category: row[mapping["category"]] || "",
           tags: tagsArray,
-          originalData: row,
+          originalData: row, // GUARDAMOS DATA ORIGINAL PARA EL REPORTE DE ERROR
         };
       })
-      .filter((p) => p.name && p.price > 0); // Eliminar filas vacías o sin precio
+      .filter((p) => p.name && p.price > 0);
 
-    // B. Validar que haya al menos un producto válido
     if (mappedProducts.length === 0) {
       toast({ title: "No se encontraron productos válidos", variant: "destructive" });
       return;
     }
 
-    // C. VALIDACIÓN DE LÍMITES DEL PLAN
-    // Obtenemos el límite del hook (que ya corregimos en useCatalogLimits)
-    const maxUploads = limits?.maxUploads || 50; // 50 es el fallback de seguridad
-
-    // Solo validamos el número si NO es 'unlimited'
+    const maxUploads = limits?.maxUploads || 50;
     if (maxUploads !== "unlimited") {
       if (mappedProducts.length > (maxUploads as number)) {
         toast({
           title: "Límite del Plan Excedido",
-          description: `Tu plan (${limits?.planName || "Básico"}) permite subir máximo ${maxUploads} productos por lote. Estás intentando subir ${mappedProducts.length}.`,
+          description: `Tu plan permite subir máximo ${maxUploads} productos. Estás intentando subir ${mappedProducts.length}.`,
           variant: "destructive",
         });
-        return; // 🛑 CRÍTICO: Detenemos la función aquí para no avanzar
+        return;
       }
     }
 
-    // D. Si todo está bien, guardamos y avanzamos
     setProducts(mappedProducts);
     setStep("matching");
   };
 
-  // 4. SUBIDA FINAL
+  // 4. SUBIDA FINAL (CON REPORTE DE ERRORES)
   const handleFinalUpload = async () => {
-    setStep("uploading");
     const {
       data: { user },
     } = await supabase.auth.getUser();
-    if (!user) return;
 
-    let processed = 0;
-    const total = matches.length;
-
-    for (const match of matches) {
-      try {
-        let imageUrl = null;
-        if (match.status === "default") {
-          imageUrl = "https://ikbexcebcpmomfxraflz.supabase.co/storage/v1/object/public/product-images/placeholder.png";
-        } else if (match.status === "matched" && match.image) {
-          const fileExt = match.image.file.name.split(".").pop();
-          const filePath = `${user.id}/${Date.now()}_${match.image.id}.${fileExt}`;
-          await supabase.storage.from("product-images").upload(filePath, match.image.file);
-          const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(filePath);
-          imageUrl = urlData.publicUrl;
-        }
-
-        if (imageUrl || match.status === "default") {
-          await supabase.from("products").insert({
-            user_id: user.id,
-            name: match.product.name,
-            price_retail: Math.round(match.product.price * 100),
-            sku: match.product.sku,
-            description: match.product.description,
-            category: match.product.category,
-            tags: match.product.tags,
-            original_image_url: imageUrl,
-            processing_status: "completed",
-          });
-        }
-        processed++;
-        setUploadProgress((processed / total) * 100);
-      } catch (e) {
-        console.error("Error subiendo producto", e);
-      }
+    if (!user) {
+      toast({ title: "Error de sesión", description: "No se encontró usuario activo", variant: "destructive" });
+      return;
     }
-    toast({ title: "¡Carga completada!", description: `Se procesaron ${processed} productos.` });
-    setTimeout(() => navigate("/products"), 1000);
+
+    setStep("uploading");
+
+    // Configuración
+    const BATCH_SIZE = 3;
+    const PLACEHOLDER_URL =
+      "https://ikbexcebcpmomfxraflz.supabase.co/storage/v1/object/public/product-images/placeholder.png";
+
+    let processedCount = 0;
+    const total = matches.length;
+    const localFailedItems: any[] = []; // Acumulador local de fallos
+    let localSuccessCount = 0;
+
+    // Bucle por lotes
+    for (let i = 0; i < matches.length; i += BATCH_SIZE) {
+      const batch = matches.slice(i, i + BATCH_SIZE);
+
+      const batchResults = await Promise.all(
+        batch.map(async (match) => {
+          try {
+            // CASO 1: SIN MATCH Y SIN DEFAULT -> ERROR
+            if (match.status === "unmatched") {
+              localFailedItems.push({
+                ...match.product.originalData,
+                ERROR_REASON: "No se asignó imagen y no se seleccionó Default",
+              });
+              return null;
+            }
+
+            let imageUrls = {
+              original: PLACEHOLDER_URL,
+              thumb: PLACEHOLDER_URL,
+              catalog: PLACEHOLDER_URL,
+              luxury: PLACEHOLDER_URL,
+              print: PLACEHOLDER_URL,
+            };
+
+            // CASO 2: IMAGEN REAL
+            if (match.status === "matched" && match.image) {
+              const fileExt = match.image.file.name.split(".").pop();
+              const rawFilePath = `${user.id}/${Date.now()}_${match.image.id}.${fileExt}`;
+
+              // Subida Original (Backup)
+              await supabase.storage.from("product-images").upload(rawFilePath, match.image.file);
+              const { data: rawUrlData } = supabase.storage.from("product-images").getPublicUrl(rawFilePath);
+              imageUrls.original = rawUrlData.publicUrl;
+
+              // Optimización (Tu función importada)
+              try {
+                const optimizedUrls = await uploadImageToSupabase(
+                  supabase,
+                  match.productId,
+                  match.image.file,
+                  match.image.name,
+                );
+                imageUrls.thumb = optimizedUrls.thumbnail;
+                imageUrls.catalog = optimizedUrls.catalog;
+                imageUrls.luxury = optimizedUrls.luxury;
+                imageUrls.print = optimizedUrls.print;
+              } catch (optError) {
+                console.error("Fallo optimización, usando fallback", optError);
+                imageUrls.thumb = imageUrls.original;
+                imageUrls.catalog = imageUrls.original;
+                imageUrls.luxury = imageUrls.original;
+                imageUrls.print = imageUrls.original;
+              }
+            }
+
+            // Retornar objeto listo
+            return {
+              id: match.productId,
+              user_id: user.id,
+              name: match.product.name,
+              price_retail: Math.round(match.product.price * 100),
+              sku: match.product.sku,
+              description: match.product.description,
+              category: match.product.category,
+              tags: match.product.tags,
+              original_image_url: imageUrls.original,
+              thumbnail_image_url: imageUrls.thumb,
+              catalog_image_url: imageUrls.catalog,
+              luxury_image_url: imageUrls.luxury,
+              print_image_url: imageUrls.print,
+              processing_status: "completed",
+              // Guardamos referencia temporal para saber cuál falló en el insert
+              _originalData: match.product.originalData,
+            };
+          } catch (e) {
+            console.error(`Error procesando producto ${match.product.name}:`, e);
+            localFailedItems.push({
+              ...match.product.originalData,
+              ERROR_REASON: "Error interno al procesar imagen",
+            });
+            return null;
+          }
+        }),
+      );
+
+      // Filtrar nulos y preparar para insert
+      const validProductsToInsert = batchResults.filter((p) => p !== null);
+
+      if (validProductsToInsert.length > 0) {
+        // Separamos la data real de la metadata temporal (_originalData)
+        const dbPayload = validProductsToInsert.map(({ _originalData, ...rest }) => rest);
+
+        const { error: insertError } = await supabase.from("products").insert(dbPayload);
+
+        if (insertError) {
+          console.error("Error insertando lote en DB:", insertError);
+          // Si falla el lote completo, agregamos todos al reporte
+          validProductsToInsert.forEach((p: any) => {
+            localFailedItems.push({
+              ...p._originalData,
+              ERROR_REASON: `Error Base de Datos: ${insertError.message}`,
+            });
+          });
+        } else {
+          localSuccessCount += validProductsToInsert.length;
+        }
+      }
+
+      processedCount += batch.length;
+      setUploadProgress((processedCount / total) * 100);
+    }
+
+    // FINALIZACIÓN
+    setFailedReport(localFailedItems);
+    setSuccessCount(localSuccessCount);
+    setStep("finished"); // Nuevo paso final
+  };
+
+  // 5. FUNCIÓN DE DESCARGA DE REPORTE
+  const downloadErrorReport = () => {
+    if (failedReport.length === 0) return;
+
+    const ws = XLSX.utils.json_to_sheet(failedReport);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Errores de Carga");
+    XLSX.writeFile(wb, `reporte_errores_${new Date().toISOString().slice(0, 10)}.xlsx`);
   };
 
   return (
     <div className="container mx-auto py-8 px-4">
-      <Button variant="ghost" onClick={() => navigate("/products")} className="mb-4">
-        <ArrowLeft className="mr-2 h-4 w-4" /> Volver
-      </Button>
+      {step !== "finished" && (
+        <Button variant="ghost" onClick={() => navigate("/products")} className="mb-4">
+          <ArrowLeft className="mr-2 h-4 w-4" /> Volver
+        </Button>
+      )}
 
       <h1 className="text-3xl font-bold mb-2">Carga Masiva Inteligente</h1>
-      <p className="text-gray-500 mb-8">Importa tu inventario desde Excel y nosotros organizamos las fotos.</p>
+
+      {step !== "finished" && (
+        <p className="text-gray-500 mb-8">Importa tu inventario desde Excel y nosotros organizamos las fotos.</p>
+      )}
 
       {/* PASO 1: SUBIDA */}
       {step === "upload" && (
@@ -242,8 +365,16 @@ export default function BulkUpload() {
 
           <Card
             {...getImageProps()}
-            className="border-dashed border-2 hover:border-blue-500 cursor-pointer transition-colors"
+            className={`border-dashed border-2 transition-colors relative overflow-hidden ${
+              isProcessingImages ? "bg-gray-50 border-gray-300 cursor-wait" : "hover:border-blue-500 cursor-pointer"
+            }`}
           >
+            {isProcessingImages && (
+              <div className="absolute inset-0 bg-white/80 z-50 flex flex-col items-center justify-center backdrop-blur-sm">
+                <RefreshCw className="h-10 w-10 text-blue-600 animate-spin mb-2" />
+                <p className="font-semibold text-blue-700">Procesando {images.length} imágenes...</p>
+              </div>
+            )}
             <CardContent className="flex flex-col items-center justify-center h-64 text-center">
               <input {...getImageInputProps()} />
               <div className="relative">
@@ -271,10 +402,9 @@ export default function BulkUpload() {
         />
       )}
 
-      {/* PASO 3: MATCHING CON SELECTOR MANUAL Y UPLOAD EXTRA */}
+      {/* PASO 3: MATCHING */}
       {step === "matching" && (
         <div className="space-y-6">
-          {/* 👇 ZONA DE CARGA DE IMÁGENES EXTRA (RESCUE DROPZONE) */}
           <div
             {...getExtraImageProps()}
             className={`border-2 border-dashed rounded-xl p-6 text-center transition-colors ${isExtraDragActive ? "border-blue-500 bg-blue-50" : "border-gray-300 hover:border-gray-400"}`}
@@ -290,9 +420,6 @@ export default function BulkUpload() {
               <p className="text-sm text-gray-500">
                 Arrastra las fotos aquí y el sistema intentará unirlas automáticamente.
               </p>
-              <Button variant="outline" size="sm" className="mt-2">
-                Seleccionar archivos
-              </Button>
             </div>
           </div>
 
@@ -324,7 +451,6 @@ export default function BulkUpload() {
                 key={match.productId}
                 className={`overflow-hidden flex flex-col ${match.status === "unmatched" ? "border-orange-300 bg-orange-50" : "border-green-200"}`}
               >
-                {/* Área de Imagen */}
                 <div className="h-48 bg-gray-100 relative flex items-center justify-center group">
                   {match.status === "matched" && match.image ? (
                     <img src={match.image.preview} className="w-full h-full object-contain" />
@@ -340,7 +466,6 @@ export default function BulkUpload() {
                     </div>
                   )}
 
-                  {/* Botón Flotante: Usar Default */}
                   {match.status !== "default" && (
                     <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
                       <Button
@@ -356,7 +481,6 @@ export default function BulkUpload() {
                   )}
                 </div>
 
-                {/* Área de Datos y Selector Manual */}
                 <div className="p-3 flex-1 flex flex-col">
                   <div className="mb-3">
                     <h4 className="font-bold truncate" title={match.product.name}>
@@ -368,29 +492,37 @@ export default function BulkUpload() {
                     </div>
                   </div>
 
-                  {/* 👇 SELECTOR MANUAL DE IMAGEN 👇 */}
                   <div className="mt-auto">
+                    <label className="text-[10px] text-gray-400 uppercase font-bold mb-1 block">
+                      Asignar Imagen Manualmente:
+                    </label>
                     <select
-                      className="w-full text-xs border rounded p-1.5 bg-white text-gray-700 focus:ring-2 focus:ring-blue-500 outline-none"
+                      className={`w-full text-xs border rounded p-1.5 bg-white text-gray-700 focus:ring-2 outline-none ${
+                        match.status === "unmatched"
+                          ? "border-orange-400 focus:ring-orange-500"
+                          : "border-gray-200 focus:ring-blue-500"
+                      }`}
                       value={match.image?.id || ""}
                       onChange={(e) => {
                         if (e.target.value) {
                           setManualMatch(match.productId, e.target.value);
                         }
                       }}
-                      disabled={images.length === 0} // Deshabilitado si no hay fotos
+                      disabled={images.length === 0}
                     >
                       <option value="">
-                        {images.length === 0 ? "🚫 Sube imágenes primero" : "-- Seleccionar imagen manual --"}
+                        {images.length === 0 ? "🚫 Sin imágenes disponibles" : "-- Seleccionar de la lista --"}
                       </option>
-                      {images.map((img) => (
-                        <option key={img.id} value={img.id}>
-                          {img.name.length > 25 ? img.name.substring(0, 22) + "..." : img.name}
-                        </option>
-                      ))}
+                      {images
+                        .sort((a, b) => a.name.localeCompare(b.name))
+                        .map((img) => (
+                          <option key={img.id} value={img.id}>
+                            {img.name.length > 30 ? "..." + img.name.slice(-28) : img.name}
+                          </option>
+                        ))}
                     </select>
 
-                    {match.matchMethod === "auto" && match.status === "matched" && (
+                    {match.status === "matched" && match.matchMethod === "auto" && (
                       <div className="mt-1 text-[10px] text-green-600 flex items-center gap-1">
                         <LinkIcon className="w-3 h-3" /> Match automático
                       </div>
@@ -406,9 +538,76 @@ export default function BulkUpload() {
       {/* PASO 4: PROGRESO */}
       {step === "uploading" && (
         <Card className="max-w-md mx-auto mt-20 p-8 text-center">
-          <h3 className="text-xl font-bold mb-4">Subiendo Productos...</h3>
+          <div className="mb-4 relative">
+            <div className="absolute inset-0 flex items-center justify-center">
+              <RefreshCw className="h-8 w-8 text-blue-500 animate-spin" />
+            </div>
+          </div>
+          <h3 className="text-xl font-bold mb-2 mt-10">Procesando Catálogo...</h3>
+          <p className="text-sm text-gray-500 mb-6">Optimizando imágenes y generando versiones...</p>
           <Progress value={uploadProgress} className="h-4 mb-2" />
-          <p className="text-gray-500">{Math.round(uploadProgress)}% completado</p>
+          <p className="text-xs text-gray-400">{Math.round(uploadProgress)}% completado</p>
+        </Card>
+      )}
+
+      {/* PASO 5: RESULTADO FINAL (NUEVO) */}
+      {step === "finished" && (
+        <Card className="max-w-2xl mx-auto mt-10 border-t-4 border-t-blue-600 shadow-lg">
+          <CardContent className="pt-8 pb-8 flex flex-col items-center text-center space-y-6">
+            {failedReport.length === 0 ? (
+              // ÉXITO TOTAL
+              <>
+                <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center">
+                  <CheckCircle className="w-10 h-10 text-green-600" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900">¡Carga Completada con Éxito!</h2>
+                  <p className="text-gray-500 mt-2">Se han subido {successCount} productos correctamente.</p>
+                </div>
+              </>
+            ) : (
+              // CON ERRORES
+              <>
+                <div className="w-20 h-20 bg-orange-100 rounded-full flex items-center justify-center">
+                  <FileWarning className="w-10 h-10 text-orange-600" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900">Carga Parcialmente Completada</h2>
+                  <p className="text-gray-600 mt-2">
+                    Se subieron <span className="font-bold text-green-600">{successCount} productos</span> exitosamente.
+                  </p>
+                  <p className="text-red-600 font-medium mt-1">
+                    {failedReport.length} productos no se pudieron cargar.
+                  </p>
+                </div>
+
+                <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 w-full text-left text-sm">
+                  <p className="font-semibold text-orange-800 mb-2">¿Qué pasó?</p>
+                  <p className="text-orange-700">
+                    Algunos productos no tenían imagen asignada o hubo un error de conexión. Descarga el reporte, revisa
+                    la columna <strong>"ERROR_REASON"</strong>, corrige el archivo y vuélvelo a subir.
+                  </p>
+                </div>
+
+                <Button
+                  onClick={downloadErrorReport}
+                  className="w-full md:w-auto gap-2 bg-orange-600 hover:bg-orange-700"
+                >
+                  <Download className="w-4 h-4" />
+                  Descargar Reporte de Errores (.xlsx)
+                </Button>
+              </>
+            )}
+
+            <div className="flex gap-3 mt-6 w-full justify-center">
+              <Button variant="outline" onClick={() => navigate("/products")}>
+                Ir a Mis Productos
+              </Button>
+              <Button variant="secondary" onClick={() => window.location.reload()}>
+                Cargar otro archivo
+              </Button>
+            </div>
+          </CardContent>
         </Card>
       )}
     </div>
