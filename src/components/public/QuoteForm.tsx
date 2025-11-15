@@ -18,7 +18,7 @@ import { Separator } from "@/components/ui/separator";
 declare global {
   interface Window {
     dataLayer?: any[];
-    fbq?: (...args: any[]) => void;
+    fbq: any;
   }
 }
 
