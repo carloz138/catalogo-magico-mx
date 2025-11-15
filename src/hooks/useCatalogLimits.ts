@@ -9,7 +9,6 @@ interface CatalogLimits {
   catalogsUsed: number;
   catalogsLimit: number | "unlimited";
   remainingCatalogs: number;
-  // 👇 NUEVO: Agregamos info de uploads
   maxUploads: number | "unlimited";
   planName?: string;
 }
@@ -38,20 +37,22 @@ export const useCatalogLimits = () => {
       if (rpcError) throw rpcError;
       const result = typeof rpcData === "string" ? JSON.parse(rpcData) : rpcData;
 
-      // 2. 👇 NUEVO: Obtenemos la info del Plan (Uploads) directamente
-      const { data: subData } = await supabase
+      // 2. CORRECCIÓN AQUÍ: Agregamos 'error: subError' para capturarlo
+      const { data: subData, error: subError } = await supabase
         .from("subscriptions")
         .select("credit_packages(max_uploads)")
         .eq("user_id", user.id)
         .eq("status", "active")
         .maybeSingle();
 
+      // Logs de Debug (Ahora sí funcionarán)
       console.log("🔍 DEBUG LIMITS:");
       console.log("User ID:", user.id);
-      console.log("Data devuelta:", subData);
+      console.log("Data devuelta (Suscripción):", subData);
       console.log("Error devuelto:", subError);
 
-      // Si no tiene plan, el default es 50. Si es enterprise (999999), lo tratamos como unlimited
+      // Si no tiene plan, el default es 50.
+      // El ?. sirve para que no truene si subData es null
       let maxUploadsRaw = subData?.credit_packages?.max_uploads || 50;
       const maxUploads = maxUploadsRaw > 10000 ? "unlimited" : maxUploadsRaw;
 
@@ -63,7 +64,6 @@ export const useCatalogLimits = () => {
         catalogsLimit: result.catalogs_limit === "unlimited" ? "unlimited" : result.catalogs_limit || 0,
         remainingCatalogs: result.remaining,
         planName: result.plan_name,
-        // 👇 Exponemos el límite correcto
         maxUploads: maxUploads,
       });
     } catch (error) {
@@ -77,9 +77,8 @@ export const useCatalogLimits = () => {
     limits,
     loading,
     checkLimits,
-    // Exponer helpers directos
     canGenerate: limits?.canGenerate || false,
     catalogsUsed: limits?.catalogsUsed || 0,
-    maxUploads: limits?.maxUploads || 50, // Fallback visual
+    maxUploads: limits?.maxUploads || 50,
   };
 };
