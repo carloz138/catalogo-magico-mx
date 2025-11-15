@@ -46,15 +46,28 @@ serve(async (req) => {
         const session = event.data.object as Stripe.Checkout.Session;
         console.log('💳 Processing checkout.session.completed:', session.id);
 
-        // Actualizar transacción
+        // Buscar transacción por user_id + subscription_plan_id + pending status
+        const userId = session.client_reference_id || session.metadata?.user_id;
+        const packageId = session.metadata?.package_id;
+        
+        if (!userId || !packageId) {
+          console.error('❌ Missing user_id or package_id in session metadata');
+          return new Response('Invalid session metadata', { status: 400 });
+        }
+
         const { data: transaction, error: txError } = await supabase
           .from('transactions')
           .update({
             payment_status: 'completed',
             stripe_payment_intent_id: session.payment_intent as string,
+            stripe_charge_id: session.id,
             completed_at: new Date().toISOString()
           })
-          .eq('stripe_payment_intent_id', session.id)
+          .eq('user_id', userId)
+          .eq('subscription_plan_id', packageId)
+          .eq('payment_status', 'pending')
+          .order('created_at', { ascending: false })
+          .limit(1)
           .select()
           .single();
 

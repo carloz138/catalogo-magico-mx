@@ -26,7 +26,7 @@ export const useBusinessInfo = () => {
         .from('business_info')
         .select('*')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
       console.log('🔍 DEBUG - useBusinessInfo - query result:', { data, fetchError });
 
