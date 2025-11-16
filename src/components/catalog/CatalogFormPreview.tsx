@@ -1,46 +1,21 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useMemo, useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Eye, Monitor, Tablet, Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { calculateAdjustedPrice, formatPrice } from "@/lib/utils/price-calculator";
+import { Eye, Monitor, Tablet, Smartphone, ExternalLink } from "lucide-react";
 import { EXPANDED_WEB_TEMPLATES } from "@/lib/web-catalog/expanded-templates-catalog";
 import { WebTemplateAdapter } from "@/lib/templates/web-css-adapter";
-import { useState, useMemo } from "react";
 import { cn } from "@/lib/utils";
-
-interface Product {
-  id: string;
-  name: string;
-  sku: string | null;
-  description: string | null;
-  price_retail: number;
-  price_wholesale: number | null;
-  image_url: string;
-  processed_image_url: string | null;
-  catalog_image_url?: string | null;
-  thumbnail_image_url?: string | null;
-  tags?: string[] | null;
-}
-
-interface PriceConfig {
-  display: "menudeo_only" | "mayoreo_only" | "both";
-  adjustmentMenudeo: number;
-  adjustmentMayoreo: number;
-}
-
-interface VisibilityConfig {
-  showSku: boolean;
-  showTags: boolean;
-  showDescription: boolean;
-}
+// 👇 Importamos el nuevo componente
+import { CatalogProductCard } from "./preview/CatalogProductCard";
 
 interface CatalogFormPreviewProps {
   name: string;
   description?: string;
   webTemplateId?: string;
-  products: Product[];
-  priceConfig: PriceConfig;
-  visibilityConfig: VisibilityConfig;
+  products: any[];
+  priceConfig: any;
+  visibilityConfig: any;
   backgroundPattern?: string | null;
 }
 
@@ -54,8 +29,7 @@ export function CatalogFormPreview({
   backgroundPattern,
 }: CatalogFormPreviewProps) {
   const [viewMode, setViewMode] = useState<"desktop" | "tablet" | "mobile">("desktop");
-  // Mostramos hasta 6 productos para que el preview no sea eterno
-  const displayProducts = products.slice(0, 6);
+  const displayProducts = products.slice(0, 8); // Mostrar más productos
 
   const template = useMemo(
     () => (webTemplateId ? EXPANDED_WEB_TEMPLATES.find((t) => t.id === webTemplateId) : null),
@@ -69,228 +43,101 @@ export function CatalogFormPreview({
 
   const getGridColumns = () => {
     if (!template) return "grid-cols-2";
-    switch (viewMode) {
-      case "mobile":
-        return template.config.columnsMobile === 1 ? "grid-cols-1" : "grid-cols-2";
-      case "tablet":
-        return "grid-cols-2";
-      case "desktop":
-        const cols = template.config.columnsDesktop;
-        if (cols === 3) return "grid-cols-3";
-        if (cols === 4) return "grid-cols-4";
-        if (cols === 5) return "grid-cols-5";
-        return "grid-cols-2";
-    }
-  };
-
-  const getPriceDisplay = (product: Product) => {
-    const { display, adjustmentMenudeo, adjustmentMayoreo } = priceConfig;
-    const menudeoPrice = calculateAdjustedPrice(product.price_retail / 100, adjustmentMenudeo);
-    const mayoreoPrice = product.price_wholesale
-      ? calculateAdjustedPrice(product.price_wholesale / 100, adjustmentMayoreo)
-      : null;
-
-    switch (display) {
-      case "menudeo_only":
-        return <div className="catalog-product-price text-xl font-bold">{formatPrice(menudeoPrice)}</div>;
-      case "mayoreo_only":
-        return (
-          <div className="catalog-product-price text-xl font-bold">
-            {mayoreoPrice ? formatPrice(mayoreoPrice) : formatPrice(menudeoPrice)}
-          </div>
-        );
-      case "both":
-        return (
-          <div className="space-y-1">
-            <div className="catalog-product-price text-xl font-bold">{formatPrice(menudeoPrice)}</div>
-            {mayoreoPrice && (
-              <div className="text-sm text-muted-foreground font-medium">Mayoreo: {formatPrice(mayoreoPrice)}</div>
-            )}
-          </div>
-        );
-    }
+    if (viewMode === "mobile") return template.config.columnsMobile === 1 ? "grid-cols-1" : "grid-cols-2";
+    return `grid-cols-${Math.min(template.config.columnsDesktop, viewMode === "tablet" ? 3 : 4)}`;
   };
 
   return (
-    <Card className="sticky top-8 shadow-md border-muted">
-      <CardHeader className="pb-4">
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-2">
-            <Eye className="h-5 w-5 text-muted-foreground" />
-            <CardTitle className="text-lg">Vista Previa en Vivo</CardTitle>
-          </div>
-
-          <div className="flex items-center gap-1 bg-secondary/50 rounded-lg p-1">
-            <Button
-              variant={viewMode === "desktop" ? "secondary" : "ghost"}
-              size="sm"
-              onClick={() => setViewMode("desktop")}
-              className="h-8 w-8 p-0"
-            >
-              <Monitor className="h-4 w-4" />
-            </Button>
-            <Button
-              variant={viewMode === "tablet" ? "secondary" : "ghost"}
-              size="sm"
-              onClick={() => setViewMode("tablet")}
-              className="h-8 w-8 p-0"
-            >
-              <Tablet className="h-4 w-4" />
-            </Button>
-            <Button
-              variant={viewMode === "mobile" ? "secondary" : "ghost"}
-              size="sm"
-              onClick={() => setViewMode("mobile")}
-              className="h-8 w-8 p-0"
-            >
-              <Smartphone className="h-4 w-4" />
-            </Button>
-          </div>
+    <Card className="sticky top-6 shadow-xl border-gray-200 overflow-hidden flex flex-col h-[calc(100vh-120px)]">
+      {/* Header de Control */}
+      <div className="bg-white border-b p-3 flex items-center justify-between shrink-0 z-10">
+        <div className="flex items-center gap-2">
+          <Eye className="h-4 w-4 text-purple-600" />
+          <span className="font-semibold text-sm">Vista Previa</span>
         </div>
 
-        <CardDescription>
-          {template ? (
-            <div className="flex items-center gap-2 flex-wrap">
-              <Badge variant="outline" className="font-normal">
-                {template.name}
-              </Badge>
-              {template.isPremium && (
-                <Badge variant="secondary" className="bg-amber-100 text-amber-800 border-amber-200">
-                  Premium
-                </Badge>
-              )}
-            </div>
-          ) : (
-            "Selecciona un diseño para previsualizar tu catálogo"
-          )}
-        </CardDescription>
-      </CardHeader>
+        <div className="flex bg-gray-100 p-1 rounded-lg">
+          <Button
+            variant={viewMode === "desktop" ? "white" : "ghost"}
+            size="icon"
+            className="h-7 w-7"
+            onClick={() => setViewMode("desktop")}
+          >
+            <Monitor className="h-4 w-4" />
+          </Button>
+          <Button
+            variant={viewMode === "tablet" ? "white" : "ghost"}
+            size="icon"
+            className="h-7 w-7"
+            onClick={() => setViewMode("tablet")}
+          >
+            <Tablet className="h-4 w-4" />
+          </Button>
+          <Button
+            variant={viewMode === "mobile" ? "white" : "ghost"}
+            size="icon"
+            className="h-7 w-7"
+            onClick={() => setViewMode("mobile")}
+          >
+            <Smartphone className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
 
-      <CardContent className="bg-gray-100/50 p-4 min-h-[500px] flex items-center justify-center overflow-hidden rounded-b-lg">
-        {/* Contenedor simulador de dispositivo */}
+      {/* Área de Preview con Scroll */}
+      <div className="flex-1 bg-gray-100/50 overflow-y-auto p-4 md:p-8 flex justify-center items-start relative">
+        {/* Marco del Dispositivo */}
         <div
           className={cn(
-            "transition-all duration-500 ease-in-out bg-white shadow-2xl overflow-hidden border-4 border-gray-800 flex flex-col relative",
-            viewMode === "mobile" && "w-[375px] h-[667px] rounded-[2rem] border-[8px]",
-            viewMode === "tablet" && "w-[768px] h-[1024px] rounded-[1.5rem] border-[8px]",
-            viewMode === "desktop" && "w-full aspect-video rounded-lg border-b-[12px] max-h-[600px]",
+            "bg-white shadow-2xl transition-all duration-500 ease-in-out flex flex-col relative overflow-hidden origin-top",
+            viewMode === "mobile" && "w-[375px] min-h-[667px] rounded-[2.5rem] border-[12px] border-gray-900",
+            viewMode === "tablet" && "w-[768px] min-h-[1024px] rounded-[1.5rem] border-[12px] border-gray-900",
+            viewMode === "desktop" && "w-full min-h-[600px] rounded-lg border border-gray-200 shadow-lg",
           )}
         >
           <style>{templateCSS}</style>
 
-          {/* Estilos para ocultar scrollbar nativo pero permitir scroll */}
-          <style>{`
-            .no-scrollbar::-webkit-scrollbar {
-              display: none;
-            }
-            .no-scrollbar {
-              -ms-overflow-style: none;
-              scrollbar-width: none;
-            }
-            .preview-internal-header {
-               background: ${
-                 template?.colorScheme.gradient
-                   ? `linear-gradient(135deg, ${template.colorScheme.gradient.from}, ${template.colorScheme.gradient.to})`
-                   : template?.colorScheme.primary || "#000"
-               };
-               color: ${template?.colorScheme.background === "#ffffff" || template?.colorScheme.background === "#f8fafc" ? "#ffffff" : "#ffffff"};
-            }
-          `}</style>
-
-          {/* Scroll area interna SIN barra visual */}
-          <div className="flex-1 overflow-y-auto no-scrollbar catalog-public-container h-full w-full">
-            {/* Header del Catálogo */}
-            <div className="preview-internal-header px-4 py-6 text-center relative overflow-hidden shrink-0">
-              <div className="relative z-10">
-                <h2 className={cn("font-bold mb-1", viewMode === "mobile" ? "text-xl" : "text-2xl")}>
-                  {name || "Tu Catálogo"}
-                </h2>
-                {description && <p className="opacity-90 text-sm max-w-md mx-auto line-clamp-2">{description}</p>}
-              </div>
-              {backgroundPattern && (
-                <div
-                  className="absolute inset-0 opacity-10 bg-repeat"
-                  style={{ backgroundImage: `url(/patterns/pattern-${backgroundPattern}.png)`, backgroundSize: "50px" }}
-                />
-              )}
+          {/* Header Interno del Catálogo */}
+          <div className="preview-internal-header py-8 px-6 text-center relative overflow-hidden">
+            <div className="relative z-10">
+              <h1 className={cn("font-bold mb-2 text-white", viewMode === "mobile" ? "text-2xl" : "text-4xl")}>
+                {name || "Tu Catálogo"}
+              </h1>
+              {description && <p className="text-white/80 max-w-lg mx-auto text-sm">{description}</p>}
             </div>
+            {/* Patrón de fondo sutil */}
+            {backgroundPattern && (
+              <div
+                className="absolute inset-0 opacity-10 bg-repeat"
+                style={{ backgroundImage: `url(/patterns/${backgroundPattern}.png)` }}
+              />
+            )}
+          </div>
 
-            {/* Contenido / Grid */}
+          {/* Grid de Productos */}
+          <div className="flex-1 bg-gray-50 p-4 md:p-8">
             {displayProducts.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-64 text-muted-foreground p-6 text-center">
-                <Eye className="h-8 w-8 opacity-20 mb-4" />
-                <p className="text-sm font-medium">Agrega productos para ver cómo lucen</p>
+              <div className="flex flex-col items-center justify-center h-48 text-gray-400 border-2 border-dashed rounded-xl">
+                <Package className="h-8 w-8 mb-2 opacity-50" />
+                <p>Agrega productos para verlos aquí</p>
               </div>
             ) : (
-              <div
-                className={cn(
-                  "grid gap-4 p-4 pb-20", // Padding bottom extra para asegurar que lo último se vea
-                  getGridColumns(),
-                )}
-              >
-                {displayProducts.map((product) => {
-                  const imageUrl =
-                    product.catalog_image_url ||
-                    product.processed_image_url ||
-                    product.thumbnail_image_url ||
-                    product.image_url;
-
-                  const imageRatio = template?.config.imageRatio || "square";
-
-                  return (
-                    <div key={product.id} className="catalog-product-card group relative flex flex-col overflow-hidden">
-                      {/* Imagen - SIN BADGES NI TAGS */}
-                      <div className="relative overflow-hidden bg-gray-100">
-                        <img
-                          src={imageUrl}
-                          alt={product.name}
-                          className={cn(
-                            "w-full object-cover catalog-product-image",
-                            imageRatio === "square" && "aspect-square",
-                            imageRatio === "portrait" && "aspect-[3/4]",
-                            imageRatio === "landscape" && "aspect-video",
-                            imageRatio === "auto" && "aspect-square",
-                          )}
-                        />
-                      </div>
-
-                      {/* Info del Producto */}
-                      <div className={cn("flex flex-col flex-1", viewMode === "mobile" ? "p-2" : "p-3")}>
-                        <h3
-                          className={cn(
-                            "catalog-product-name font-medium leading-tight mb-1",
-                            viewMode === "mobile" ? "text-xs" : "text-sm",
-                          )}
-                        >
-                          {product.name}
-                        </h3>
-
-                        {visibilityConfig.showSku && product.sku && (
-                          <p className="text-[10px] text-muted-foreground font-mono mb-1 opacity-70">{product.sku}</p>
-                        )}
-
-                        {visibilityConfig.showDescription && product.description && viewMode !== "mobile" && (
-                          <p className="text-xs text-muted-foreground line-clamp-2 mb-2 opacity-80">
-                            {product.description}
-                          </p>
-                        )}
-
-                        <div className="mt-auto pt-2 flex items-end justify-between gap-2">
-                          {getPriceDisplay(product)}
-
-                          <div className="catalog-add-button h-6 w-6 rounded-full flex items-center justify-center shadow-sm shrink-0">
-                            <span className="text-xs font-bold">+</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
+              <div className={cn("grid gap-4 md:gap-6", getGridColumns())}>
+                {displayProducts.map((product) => (
+                  <CatalogProductCard
+                    key={product.id}
+                    product={product}
+                    priceConfig={priceConfig}
+                    visibilityConfig={visibilityConfig}
+                    imageRatio={template?.config.imageRatio || "square"}
+                    isMobile={viewMode === "mobile"}
+                  />
+                ))}
               </div>
             )}
           </div>
         </div>
-      </CardContent>
+      </div>
     </Card>
   );
 }
