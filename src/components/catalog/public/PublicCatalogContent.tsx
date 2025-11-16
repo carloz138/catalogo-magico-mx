@@ -13,13 +13,33 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Label } from "@/components/ui/label";
 import { Search, ShoppingCart, Radar, DollarSign, Plus, ChevronDown, Minus, X, Eye } from "lucide-react";
-import { DigitalCatalog, Product } from "@/types/digital-catalog";
+import { DigitalCatalog } from "@/types/digital-catalog";
 import { QuoteCartModal } from "@/components/public/QuoteCartModal";
 import { useDebounce } from "@/hooks/useDebounce";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useQuoteCart } from "@/contexts/QuoteCartContext";
+
+// 👇 DEFINICIÓN LOCAL PARA EVITAR ERROR DE IMPORTACIÓN
+interface Product {
+  id: string;
+  name: string;
+  sku?: string | null;
+  description?: string | null;
+  price_retail: number;
+  price_wholesale?: number | null;
+  wholesale_min_qty?: number | null;
+  category?: string | null;
+  image_url?: string;
+  original_image_url?: string | null;
+  has_variants?: boolean;
+  variants?: Array<{
+    id: string;
+    price_retail: number;
+    attributes: Record<string, string>;
+  }>;
+}
 
 interface PublicCatalogContentProps {
   catalog: DigitalCatalog & { isReplicated?: boolean; resellerId?: string };
@@ -154,9 +174,9 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
   const [showRadarModal, setShowRadarModal] = useState(false);
   const [radarForm, setRadarForm] = useState({ name: "", email: "", product: "", quantity: "1" });
 
+  // Hook del Carrito (Aquí es donde daba error de argumentos)
   const { addItem, items } = useQuoteCart();
 
-  // Estados de UI
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
@@ -180,17 +200,16 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
 
   // Filtrado
   const filteredProducts = useMemo(() => {
-    return (
-      catalog.products?.filter((product) => {
-        const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesCategory = selectedCategory ? product.category === selectedCategory : true;
-        const price = product.price_retail ? product.price_retail / 100 : 0;
-        const min = priceRange.min ? parseFloat(priceRange.min) : 0;
-        const max = priceRange.max ? parseFloat(priceRange.max) : Infinity;
-        const matchesPrice = price >= min && price <= max;
-        return matchesSearch && matchesCategory && matchesPrice;
-      }) || []
-    );
+    const prods = (catalog.products || []) as unknown as Product[];
+    return prods.filter((product) => {
+      const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesCategory = selectedCategory ? product.category === selectedCategory : true;
+      const price = product.price_retail ? product.price_retail / 100 : 0;
+      const min = priceRange.min ? parseFloat(priceRange.min) : 0;
+      const max = priceRange.max ? parseFloat(priceRange.max) : Infinity;
+      const matchesPrice = price >= min && price <= max;
+      return matchesSearch && matchesCategory && matchesPrice;
+    });
   }, [catalog.products, searchTerm, selectedCategory, priceRange]);
 
   const categories = Array.from(new Set(catalog.products?.map((p) => p.category).filter(Boolean) as string[]));
@@ -214,15 +233,18 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
   };
 
   const addToCartSimple = (product: Product) => {
-    addItem({
-      id: product.id,
-      name: product.name,
-      price: product.price_retail || 0,
-      image: product.image_url || product.original_image_url,
-      quantity: 1,
-    });
+    // 👇 CORRECCIÓN CRÍTICA: Pasamos argumentos separados, no un objeto
+    addItem(
+      product.id,
+      product.name,
+      product.price_retail || 0,
+      product.image_url || product.original_image_url || "",
+      1,
+    );
+
     toast({ title: "Agregado", description: `${product.name} agregado al carrito.` });
     setIsCartOpen(true);
+
     onTrackEvent("AddToCart", {
       content_ids: [product.id],
       content_name: product.name,
@@ -250,14 +272,15 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
       ? `${selectedProduct.name} (${Object.values(variant.attributes || {}).join(", ")})`
       : selectedProduct.name;
 
-    addItem({
-      id: selectedProduct.id,
-      variantId: variant?.id,
-      name: nameToUse,
-      price: priceToUse,
-      image: selectedProduct.image_url || selectedProduct.original_image_url,
-      quantity: quantity,
-    });
+    // 👇 CORRECCIÓN CRÍTICA: Pasamos argumentos separados e incluimos variantId
+    addItem(
+      selectedProduct.id,
+      nameToUse,
+      priceToUse,
+      selectedProduct.image_url || selectedProduct.original_image_url || "",
+      quantity,
+      variant?.id, // Argumento opcional al final
+    );
 
     toast({ title: "Agregado", description: `${quantity}x ${nameToUse} al carrito.` });
     setSelectedProduct(null);
@@ -315,7 +338,7 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
       </div>
 
       <div className="container mx-auto px-4 -mt-8 relative z-10">
-        {/* Toolbar de Filtros y Búsqueda */}
+        {/* Toolbar */}
         <div className="bg-white rounded-xl shadow-lg p-4 mb-8 border border-gray-100">
           <div className="flex flex-col gap-4">
             {/* Fila Superior: Buscador y Filtro de Precio */}
@@ -421,7 +444,6 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
         </div>
 
         {filteredProducts.length === 0 ? (
-          /* Estado Vacío + RADAR DE MERCADO */
           <div className="text-center py-16 bg-white rounded-xl border border-dashed border-gray-300">
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 mb-4">
               <Radar className="h-8 w-8 text-gray-400" />
@@ -447,15 +469,14 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
             </div>
           </div>
         ) : (
-          /* Grid de Productos */
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
             {filteredProducts.map((product) => (
               <PublicProductCard
                 key={product.id}
-                product={product as Product}
-                onView={() => handleProductInteraction(product as Product)}
-                onAdd={() => handleProductInteraction(product as Product)}
-                onZoomImage={() => setProductToZoom(product as Product)}
+                product={product}
+                onView={() => handleProductInteraction(product)}
+                onAdd={() => handleProductInteraction(product)}
+                onZoomImage={() => setProductToZoom(product)}
               />
             ))}
           </div>
@@ -556,10 +577,8 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
         </DialogContent>
       </Dialog>
 
-      {/* Modal de Zoom */}
       <ProductImageZoomModal product={productToZoom} isOpen={!!productToZoom} onClose={() => setProductToZoom(null)} />
 
-      {/* Modal Carrito */}
       <QuoteCartModal
         {...({
           open: isCartOpen,
@@ -570,7 +589,6 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
         } as any)}
       />
 
-      {/* Modal Radar */}
       <Dialog open={showRadarModal} onOpenChange={setShowRadarModal}>
         <DialogContent>
           <DialogHeader>
