@@ -2,12 +2,23 @@ import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Search, ShoppingCart, Filter, X } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Search, ShoppingCart, Filter, X, Radar, AlertCircle } from "lucide-react";
 import { DigitalCatalog } from "@/types/digital-catalog";
-// Usamos PublicProductCard para la vista pública
-import { PublicProductCard } from "@/components/public/PublicProductCard"; 
+import { ProductCard } from "@/components/products/ProductCard";
 import { QuoteCartModal } from "@/components/public/QuoteCartModal";
 import { useDebounce } from "@/hooks/useDebounce";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 
 interface PublicCatalogContentProps {
   catalog: DigitalCatalog & { isReplicated?: boolean; resellerId?: string };
@@ -16,136 +27,237 @@ interface PublicCatalogContentProps {
 
 export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogContentProps) {
   const [searchTerm, setSearchTerm] = useState("");
-  const debouncedSearch = useDebounce(searchTerm, 300);
+  const debouncedSearch = useDebounce(searchTerm, 1000); // Esperar 1s para loggear
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [isCartOpen, setIsCartOpen] = useState(false);
-  
-  // Filtrado de productos
-  const filteredProducts = catalog.products?.filter(product => {
-    const matchesSearch = product.name.toLowerCase().includes(debouncedSearch.toLowerCase());
-    const matchesCategory = selectedCategory ? product.category === selectedCategory : true;
-    return matchesSearch && matchesCategory;
-  }) || [];
 
-  // Obtener categorías únicas
-  const categories = Array.from(new Set(catalog.products?.map(p => p.category).filter(Boolean) as string[]));
+  // Estado Radar
+  const [showRadarModal, setShowRadarModal] = useState(false);
+  const [radarForm, setRadarForm] = useState({ name: "", email: "", product: "", quantity: "1" });
+
+  // 1. Lógica de Search Logs (Escucha Pasiva)
+  useEffect(() => {
+    if (debouncedSearch && debouncedSearch.length > 2) {
+      // Registrar búsqueda en Supabase
+      const logSearch = async () => {
+        await supabase.from("search_logs").insert({
+          catalog_id: catalog.id,
+          search_term: debouncedSearch,
+          results_count: filteredProducts.length,
+          user_id: catalog.user_id, // Dueño del catálogo
+        });
+      };
+      logSearch();
+      onTrackEvent("Search", { search_string: debouncedSearch });
+    }
+  }, [debouncedSearch]);
+
+  // Filtrado
+  const filteredProducts =
+    catalog.products?.filter((product) => {
+      const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesCategory = selectedCategory ? product.category === selectedCategory : true;
+      return matchesSearch && matchesCategory;
+    }) || [];
+
+  const categories = Array.from(new Set(catalog.products?.map((p) => p.category).filter(Boolean) as string[]));
+
+  // 2. Lógica del Radar (Envío)
+  const handleRadarSubmit = async () => {
+    try {
+      await supabase.from("solicitudes_mercado").insert({
+        catalog_id: catalog.id,
+        fabricante_id: catalog.user_id, // L1
+        revendedor_id: catalog.resellerId || null, // L2 si aplica
+        cliente_final_nombre: radarForm.name,
+        cliente_final_email: radarForm.email,
+        producto_nombre: radarForm.product,
+        cantidad: parseInt(radarForm.quantity),
+        estatus_fabricante: "nuevo",
+      });
+      toast({ title: "Solicitud enviada", description: "Haremos lo posible por conseguir este producto." });
+      setShowRadarModal(false);
+      setRadarForm({ name: "", email: "", product: "", quantity: "1" });
+    } catch (e) {
+      toast({ title: "Error", description: "Intenta nuevamente", variant: "destructive" });
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
-      {/* Banner del Catálogo */}
-      <div 
-        className="h-48 md:h-64 bg-cover bg-center relative"
-        style={{ 
-            backgroundImage: catalog.background_pattern ? `url(${catalog.background_pattern})` : undefined,
-            backgroundColor: catalog.brand_colors?.primary || '#1e293b'
+      {/* Banner */}
+      <div
+        className="h-48 md:h-64 bg-cover bg-center relative transition-all"
+        style={{
+          backgroundImage: catalog.background_pattern ? `url(${catalog.background_pattern})` : undefined,
+          backgroundColor: catalog.brand_colors?.primary || "#1e293b",
         }}
       >
         <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center text-white p-4 text-center">
-            {catalog.logo_url && (
-                <img src={catalog.logo_url} alt="Logo" className="h-16 w-16 object-contain mb-4 rounded-full bg-white p-1" />
-            )}
-            <h1 className="text-3xl md:text-4xl font-bold">{catalog.name}</h1>
-            {catalog.description && <p className="mt-2 max-w-xl text-white/90">{catalog.description}</p>}
+          {catalog.logo_url && (
+            <img
+              src={catalog.logo_url}
+              alt="Logo"
+              className="h-16 w-16 object-contain mb-4 rounded-full bg-white p-1"
+            />
+          )}
+          <h1 className="text-3xl md:text-4xl font-bold drop-shadow-md">{catalog.name}</h1>
+          {catalog.description && <p className="mt-2 max-w-xl text-white/90 drop-shadow-sm">{catalog.description}</p>}
         </div>
       </div>
 
       <div className="container mx-auto px-4 -mt-8 relative z-10">
-        {/* Barra de Herramientas */}
-        <div className="bg-white rounded-xl shadow-lg p-4 mb-8">
-            <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-                {/* Buscador */}
-                <div className="relative w-full md:w-96">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                    <Input 
-                        placeholder="Buscar productos..." 
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-10"
-                    />
-                </div>
-
-                {/* Filtros y Carrito */}
-                <div className="flex gap-2 w-full md:w-auto overflow-x-auto pb-2 md:pb-0">
-                    {categories.map(cat => (
-                        <Badge 
-                            key={cat}
-                            variant={selectedCategory === cat ? "default" : "outline"}
-                            className="cursor-pointer whitespace-nowrap px-3 py-1"
-                            onClick={() => setSelectedCategory(selectedCategory === cat ? null : cat)}
-                        >
-                            {cat}
-                        </Badge>
-                    ))}
-                </div>
+        {/* Toolbar */}
+        <div className="bg-white rounded-xl shadow-lg p-4 mb-8 border border-gray-100">
+          <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+            <div className="relative w-full md:w-96">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Input
+                placeholder="¿Qué estás buscando?"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 border-gray-200 focus:border-primary focus:ring-primary"
+              />
             </div>
+            <div className="flex gap-2 w-full md:w-auto overflow-x-auto pb-2 md:pb-0 no-scrollbar">
+              <Badge
+                variant={selectedCategory === null ? "default" : "outline"}
+                className="cursor-pointer whitespace-nowrap px-4 py-1.5 text-sm hover:bg-primary/10"
+                onClick={() => setSelectedCategory(null)}
+              >
+                Todos
+              </Badge>
+              {categories.map((cat) => (
+                <Badge
+                  key={cat}
+                  variant={selectedCategory === cat ? "default" : "outline"}
+                  className="cursor-pointer whitespace-nowrap px-4 py-1.5 text-sm hover:bg-primary/10"
+                  onClick={() => setSelectedCategory(selectedCategory === cat ? null : cat)}
+                >
+                  {cat}
+                </Badge>
+              ))}
+            </div>
+          </div>
         </div>
 
-        {/* Grid de Productos */}
+        {/* 3. Estado Vacío + RADAR DE MERCADO */}
         {filteredProducts.length === 0 ? (
-            <div className="text-center py-12">
-                <p className="text-gray-500 text-lg">No se encontraron productos.</p>
-                <Button variant="link" onClick={() => {setSearchTerm(''); setSelectedCategory(null);}}>
-                    Limpiar filtros
-                </Button>
+          <div className="text-center py-16 bg-white rounded-xl border border-dashed border-gray-300">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 mb-4">
+              <Radar className="h-8 w-8 text-gray-400" />
             </div>
+            <h3 className="text-lg font-semibold text-gray-900">No encontramos resultados</h3>
+            <p className="text-gray-500 max-w-md mx-auto mt-2 mb-6">
+              No tenemos "{searchTerm}" en este momento, pero podemos conseguirlo para ti.
+            </p>
+            <Button onClick={() => setShowRadarModal(true)} className="bg-primary hover:bg-primary/90">
+              Solicitar este producto
+            </Button>
+            <div className="mt-4">
+              <Button
+                variant="link"
+                onClick={() => {
+                  setSearchTerm("");
+                  setSelectedCategory(null);
+                }}
+              >
+                Ver todos los productos
+              </Button>
+            </div>
+          </div>
         ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
-                {filteredProducts.map(product => (
-                    <div 
-                        key={product.id}
-                        onClick={() => onTrackEvent('AddToCart', { 
-                            content_ids: [product.id],
-                            content_name: product.name,
-                            value: product.price_retail,
-                            currency: 'MXN'
-                        })}
-                    >
-                        <PublicProductCard 
-                            product={product}
-                            priceConfig={{
-                                display: catalog.price_display,
-                                adjustmentMenudeo: catalog.price_adjustment_menudeo,
-                                adjustmentMayoreo: catalog.price_adjustment_mayoreo
-                            }}
-                            visibilityConfig={{
-                                showSku: catalog.show_sku,
-                                showTags: catalog.show_tags,
-                                showDescription: catalog.show_description,
-                                showStock: catalog.show_stock
-                            }}
-                            enableVariants={catalog.enable_variants}
-                            purchasedProductIds={[]}
-                            purchasedVariantIds={[]}
-                            isReplicatedCatalog={catalog.isReplicated || false}
-                        />
-                    </div>
-                ))}
-            </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+            {filteredProducts.map((product) => (
+              <div
+                key={product.id}
+                onClick={() =>
+                  onTrackEvent("ViewContent", {
+                    content_ids: [product.id],
+                    content_name: product.name,
+                    value: product.price_retail,
+                    currency: "MXN",
+                  })
+                }
+              >
+                <ProductCard
+                  product={product}
+                  selectedProducts={[]}
+                  toggleProductSelection={() => {}}
+                  // onAddToCart se maneja dentro del ProductCard si está conectado al contexto,
+                  // o puedes pasar una prop si la modificaste anteriormente.
+                />
+              </div>
+            ))}
+          </div>
         )}
       </div>
 
-      {/* Botón Flotante del Carrito */}
+      {/* Botón Carrito */}
       <div className="fixed bottom-6 right-6 z-50">
-        <Button 
-            size="lg" 
-            className="rounded-full shadow-xl h-14 w-14 p-0 bg-primary hover:bg-primary/90"
-            onClick={() => setIsCartOpen(true)}
+        <Button
+          size="lg"
+          className="rounded-full shadow-xl h-16 w-16 p-0 bg-primary hover:bg-primary/90 transition-transform hover:scale-105"
+          onClick={() => setIsCartOpen(true)}
         >
-            <ShoppingCart className="h-6 w-6 text-white" />
-            {/* Aquí podrías poner un badge con la cantidad del carrito */}
+          <ShoppingCart className="h-7 w-7 text-white" />
         </Button>
       </div>
 
-      {/* Modal del Carrito */}
-      <QuoteCartModal 
-        {...{
+      {/* Modal Carrito */}
+      <QuoteCartModal
+        {...({
           open: isCartOpen,
           isOpen: isCartOpen,
           onClose: () => setIsCartOpen(false),
           catalog: catalog,
-          onSubmitQuote: () => onTrackEvent('Lead', { currency: 'MXN', value: 0 })
-        } as any}
+          onSubmitQuote: () => onTrackEvent("Lead", { currency: "MXN", value: 0 }),
+        } as any)}
       />
+
+      {/* Modal Radar */}
+      <Dialog open={showRadarModal} onOpenChange={setShowRadarModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>¿Qué producto buscas?</DialogTitle>
+            <DialogDescription>Déjanos saber qué necesitas y te notificaremos cuando lo tengamos.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Producto buscado</Label>
+              <Input
+                value={radarForm.product}
+                onChange={(e) => setRadarForm({ ...radarForm, product: e.target.value })}
+                placeholder={searchTerm || "Ej: Tenis rojos talla 28"}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Cantidad aproximada</Label>
+              <Input
+                type="number"
+                value={radarForm.quantity}
+                onChange={(e) => setRadarForm({ ...radarForm, quantity: e.target.value })}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Tu Nombre</Label>
+                <Input value={radarForm.name} onChange={(e) => setRadarForm({ ...radarForm, name: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label>Tu Email</Label>
+                <Input
+                  value={radarForm.email}
+                  onChange={(e) => setRadarForm({ ...radarForm, email: e.target.value })}
+                />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={handleRadarSubmit}>Enviar Solicitud</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
