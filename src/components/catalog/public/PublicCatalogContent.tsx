@@ -21,12 +21,8 @@ import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useQuoteCart } from "@/contexts/QuoteCartContext";
 
-// 👇 NUEVOS IMPORTS PARA LOS TEMPLATES
-import { EXPANDED_WEB_TEMPLATES } from "@/lib/web-catalog/expanded-templates-catalog";
-import { WebTemplateAdapter } from "@/lib/templates/web-css-adapter";
-
-// Definición local de Product para evitar conflictos de importación
-interface Product {
+// 👇 1. DEFINICIÓN LOCAL ESTRICTA DE PRODUCTO
+export interface Product {
   id: string;
   name: string;
   sku?: string | null;
@@ -124,7 +120,7 @@ const PublicProductCard = ({
           </div>
         )}
 
-        {/* Botón Flotante para Zoom */}
+        {/* Botón Zoom */}
         <button
           onClick={(e) => {
             e.stopPropagation();
@@ -136,7 +132,7 @@ const PublicProductCard = ({
           <Eye className="h-4 w-4 text-gray-700" />
         </button>
 
-        {/* Botón Flotante para Agregar */}
+        {/* Botón Agregar */}
         <button
           onClick={(e) => {
             e.stopPropagation();
@@ -185,46 +181,6 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
   const [quantity, setQuantity] = useState(1);
   const [productToZoom, setProductToZoom] = useState<Product | null>(null);
 
-  // 👇 LOGICA DEL TEMPLATE Y CSS
-  const activeTemplate = useMemo(() => {
-    return EXPANDED_WEB_TEMPLATES.find((t) => t.id === catalog.web_template_id) || EXPANDED_WEB_TEMPLATES[0];
-  }, [catalog.web_template_id]);
-
-  const templateCSS = useMemo(() => {
-    let css = WebTemplateAdapter.generateWebCSS(activeTemplate, catalog.background_pattern);
-
-    // Inyección manual de colores de marca
-    if (catalog.brand_colors?.primary) {
-      css += `
-            :root {
-                --primary: ${catalog.brand_colors.primary} !important;
-                --radius: ${activeTemplate.config.cardRadius === "full" ? "1.5rem" : "0.5rem"};
-            }
-            .bg-primary { background-color: ${catalog.brand_colors.primary} !important; }
-            .text-primary { color: ${catalog.brand_colors.primary} !important; }
-            .border-primary { border-color: ${catalog.brand_colors.primary} !important; }
-        `;
-    }
-    return css;
-  }, [activeTemplate, catalog.background_pattern, catalog.brand_colors]);
-
-  // 👇 LOGICA DE COLUMNAS DINÁMICAS
-  const gridColumnsClass = useMemo(() => {
-    const cols = activeTemplate.config.columnsDesktop || 3;
-    switch (cols) {
-      case 2:
-        return "lg:grid-cols-2";
-      case 3:
-        return "lg:grid-cols-3";
-      case 4:
-        return "lg:grid-cols-4";
-      case 5:
-        return "lg:grid-cols-5";
-      default:
-        return "lg:grid-cols-3";
-    }
-  }, [activeTemplate]);
-
   // Search Logs
   useEffect(() => {
     if (debouncedSearch && debouncedSearch.length > 2) {
@@ -243,7 +199,9 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
 
   // Filtrado
   const filteredProducts = useMemo(() => {
+    // 2. CASTING EXPLÍCITO PARA EVITAR CONFUSIÓN DE TIPOS
     const prods = (catalog.products || []) as unknown as Product[];
+
     return prods.filter((product) => {
       const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesCategory = selectedCategory ? product.category === selectedCategory : true;
@@ -356,10 +314,7 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20 transition-colors duration-500">
-      {/* Inyección de CSS del Template */}
-      <style>{templateCSS}</style>
-
+    <div className="min-h-screen bg-gray-50 pb-20">
       {/* Banner */}
       <div
         className="h-48 md:h-64 bg-cover bg-center relative transition-all"
@@ -385,6 +340,7 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
         {/* Toolbar */}
         <div className="bg-white rounded-xl shadow-lg p-4 mb-8 border border-gray-100">
           <div className="flex flex-col gap-4">
+            {/* Fila Superior: Buscador y Filtro de Precio */}
             <div className="flex flex-col md:flex-row gap-3 justify-between">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -449,6 +405,7 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
               </Popover>
             </div>
 
+            {/* Fila Inferior: Categorías */}
             {categories.length > 0 && (
               <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
                 <Badge
@@ -479,11 +436,7 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
           </div>
         </div>
 
-        {/* Resultados */}
-        <div className="mb-4 flex justify-between items-end">
-          <p className="text-sm text-muted-foreground">Mostrando {filteredProducts.length} productos</p>
-        </div>
-
+        {/* Grid de Productos */}
         {filteredProducts.length === 0 ? (
           <div className="text-center py-16 bg-white rounded-xl border border-dashed border-gray-300">
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 mb-4">
@@ -510,8 +463,9 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
             </div>
           </div>
         ) : (
-          <div className={cn("grid gap-4 md:gap-6 grid-cols-2", gridColumnsClass)}>
-            {filteredProducts.map((product) => (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+            {/* 👇 3. CASTING EXPLÍCITO EN EL MAP */}
+            {filteredProducts.map((product: Product) => (
               <PublicProductCard
                 key={product.id}
                 product={product}
@@ -540,7 +494,7 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
         </Button>
       </div>
 
-      {/* Modal de Detalles (Variantes) */}
+      {/* Modal Variantes */}
       <Dialog open={!!selectedProduct} onOpenChange={(open) => !open && setSelectedProduct(null)}>
         <DialogContent className="sm:max-w-[425px]">
           {selectedProduct && (
