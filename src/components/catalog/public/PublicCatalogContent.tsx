@@ -13,8 +13,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Label } from "@/components/ui/label";
 import { Search, ShoppingCart, Radar, DollarSign, Plus, ChevronDown, Minus, X, Eye } from "lucide-react";
-// 👇 IMPORTANTE: Importamos Product y DigitalCatalog desde tus tipos globales
-import { DigitalCatalog, Product } from "@/types/digital-catalog";
+import { DigitalCatalog } from "@/types/digital-catalog";
 import { QuoteCartModal } from "@/components/public/QuoteCartModal";
 import { useDebounce } from "@/hooks/useDebounce";
 import { supabase } from "@/integrations/supabase/client";
@@ -22,7 +21,22 @@ import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useQuoteCart } from "@/contexts/QuoteCartContext";
 
-// (Ya no definimos interface Product aquí localmente)
+// Definimos Product localmente para coincidir con el contexto
+interface Product {
+  id: string;
+  name: string;
+  price_retail: number;
+  price_wholesale: number | null;
+  wholesale_min_qty: number | null;
+  processed_image_url: string | null;
+  original_image_url: string;
+  image_url?: string | null;
+  sku: string | null;
+  description?: string | null;
+  has_variants?: boolean;
+  variants?: any[];
+  category?: string | null;
+}
 
 interface PublicCatalogContentProps {
   catalog: DigitalCatalog & { isReplicated?: boolean; resellerId?: string };
@@ -221,11 +235,10 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
 
   const addToCartSimple = (product: Product) => {
     addItem(
-      product.id,
-      product.name,
-      product.price_retail || 0,
-      product.image_url || product.original_image_url || "",
+      product,
       1,
+      'retail',
+      product.price_retail || 0
     );
 
     toast({ title: "Agregado", description: `${product.name} agregado al carrito.` });
@@ -257,14 +270,17 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
     const nameToUse = variant
       ? `${selectedProduct.name} (${Object.values(variant.attributes || {}).join(", ")})`
       : selectedProduct.name;
+    const variantDescription = variant 
+      ? Object.values(variant.attributes || {}).join(", ")
+      : null;
 
     addItem(
-      selectedProduct.id,
-      nameToUse,
-      priceToUse,
-      selectedProduct.image_url || selectedProduct.original_image_url || "",
+      selectedProduct,
       quantity,
-      variant?.id,
+      'retail',
+      priceToUse,
+      variant?.id || null,
+      variantDescription
     );
 
     toast({ title: "Agregado", description: `${quantity}x ${nameToUse} al carrito.` });

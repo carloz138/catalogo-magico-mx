@@ -1638,6 +1638,7 @@ export type Database = {
           id: string
           results_count: number | null
           search_term: string
+          user_id: string | null
         }
         Insert: {
           catalog_id: string
@@ -1645,6 +1646,7 @@ export type Database = {
           id?: string
           results_count?: number | null
           search_term: string
+          user_id?: string | null
         }
         Update: {
           catalog_id?: string
@@ -1652,6 +1654,7 @@ export type Database = {
           id?: string
           results_count?: number | null
           search_term?: string
+          user_id?: string | null
         }
         Relationships: [
           {
