@@ -6,8 +6,9 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 // Providers
 import { AuthProvider } from "@/contexts/AuthContext";
-import { RoleProvider } from "@/contexts/RoleContext"; // 👈 ¡IMPORTANTE! Faltaba este
+import { RoleProvider } from "@/contexts/RoleContext";
 import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
+import { QuoteCartProvider } from "@/contexts/QuoteCartContext";
 
 // Components & Layouts
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
@@ -78,7 +79,7 @@ const App = () => (
                 <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
                 <Route path="/privacy-policy" element={<PrivacyPolicy />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
-                <Route path="/c/:slug" element={<PublicCatalog />} />
+                <Route path="/c/:slug" element={<QuoteCartProvider><PublicCatalog /></QuoteCartProvider>} />
                 <Route path="/activar/:token" element={<ActivateCatalog />} />
                 <Route path="/blog" element={<Blog />} />
                 <Route path="/blog/:slug" element={<BlogPost />} />
