@@ -27,7 +27,7 @@ interface PublicCatalogContentProps {
 
 export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogContentProps) {
   const [searchTerm, setSearchTerm] = useState("");
-  const debouncedSearch = useDebounce(searchTerm, 1000); // Esperar 1s para loggear
+  const debouncedSearch = useDebounce(searchTerm, 1000);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [isCartOpen, setIsCartOpen] = useState(false);
 
@@ -35,16 +35,15 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
   const [showRadarModal, setShowRadarModal] = useState(false);
   const [radarForm, setRadarForm] = useState({ name: "", email: "", product: "", quantity: "1" });
 
-  // 1. Lógica de Search Logs (Escucha Pasiva)
+  // 1. Lógica de Search Logs
   useEffect(() => {
     if (debouncedSearch && debouncedSearch.length > 2) {
-      // Registrar búsqueda en Supabase
       const logSearch = async () => {
         await supabase.from("search_logs").insert({
           catalog_id: catalog.id,
           search_term: debouncedSearch,
           results_count: filteredProducts.length,
-          user_id: catalog.user_id, // Dueño del catálogo
+          user_id: catalog.user_id,
         });
       };
       logSearch();
@@ -62,13 +61,13 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
 
   const categories = Array.from(new Set(catalog.products?.map((p) => p.category).filter(Boolean) as string[]));
 
-  // 2. Lógica del Radar (Envío)
+  // 2. Lógica del Radar
   const handleRadarSubmit = async () => {
     try {
       await supabase.from("solicitudes_mercado").insert({
         catalog_id: catalog.id,
-        fabricante_id: catalog.user_id, // L1
-        revendedor_id: catalog.resellerId || null, // L2 si aplica
+        fabricante_id: catalog.user_id,
+        revendedor_id: catalog.resellerId || null,
         cliente_final_nombre: radarForm.name,
         cliente_final_email: radarForm.email,
         producto_nombre: radarForm.product,
@@ -141,7 +140,7 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
           </div>
         </div>
 
-        {/* 3. Estado Vacío + RADAR DE MERCADO */}
+        {/* Grid de Productos */}
         {filteredProducts.length === 0 ? (
           <div className="text-center py-16 bg-white rounded-xl border border-dashed border-gray-300">
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 mb-4">
@@ -184,8 +183,13 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
                   product={product}
                   selectedProducts={[]}
                   toggleProductSelection={() => {}}
-                  // onAddToCart se maneja dentro del ProductCard si está conectado al contexto,
-                  // o puedes pasar una prop si la modificaste anteriormente.
+                  // 👇 FIX: Pasamos funciones vacías para satisfacer a TypeScript
+                  // ya que en el catálogo público no se borran ni editan productos
+                  handleDeleteProduct={() => {}}
+                  handleViewProduct={() => {}}
+                  // ------------------------------------------------------------
+                  // Nota: El "Agregar al Carrito" se maneja internamente en ProductCard
+                  // si está conectado al contexto QuoteCartProvider.
                 />
               </div>
             ))}
