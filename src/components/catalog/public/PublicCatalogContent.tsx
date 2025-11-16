@@ -13,7 +13,6 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Label } from "@/components/ui/label";
 import { Search, ShoppingCart, Radar, DollarSign, Plus, ChevronDown, Minus, X, Eye } from "lucide-react";
-// 👇 IMPORTAMOS DigitalCatalog (PERO NO Product)
 import { DigitalCatalog } from "@/types/digital-catalog";
 import { QuoteCartModal } from "@/components/public/QuoteCartModal";
 import { useDebounce } from "@/hooks/useDebounce";
@@ -22,11 +21,11 @@ import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useQuoteCart } from "@/contexts/QuoteCartContext";
 
-// 👇 1. IMPORTAR ARCHIVOS FALTANTES
+// Importar archivos de Templates
 import { EXPANDED_WEB_TEMPLATES } from "@/lib/web-catalog/expanded-templates-catalog";
 import { WebTemplateAdapter } from "@/lib/templates/web-css-adapter";
 
-// 👇 2. DEFINICIÓN LOCAL DE PRODUCT (ARREGLA ERROR TS2305)
+// Definición local de Product
 interface Product {
   id: string;
   name: string;
@@ -51,7 +50,7 @@ interface PublicCatalogContentProps {
   onTrackEvent: (event: string, data?: any) => void;
 }
 
-// --- COMPONENTE INTERNO: MODAL DE IMAGEN GRANDE ---
+// --- Componente: Modal de Imagen Grande ---
 const ProductImageZoomModal = ({
   product,
   isOpen,
@@ -62,7 +61,6 @@ const ProductImageZoomModal = ({
   onClose: () => void;
 }) => {
   if (!product) return null;
-
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-md md:max-w-lg lg:max-w-xl p-0 overflow-hidden rounded-lg border-none bg-transparent shadow-none">
@@ -91,7 +89,7 @@ const ProductImageZoomModal = ({
   );
 };
 
-// --- COMPONENTE INTERNO: TARJETA PÚBLICA ---
+// --- Componente: Tarjeta Pública ---
 const PublicProductCard = ({
   product,
   onAdd,
@@ -105,13 +103,11 @@ const PublicProductCard = ({
 }) => {
   const price = product.price_retail ? product.price_retail / 100 : 0;
   const hasVariants = product.has_variants || (product.variants && product.variants.length > 0);
-
   return (
     <div
       className="group relative flex flex-col overflow-hidden bg-white shadow-sm rounded-xl border border-gray-100 hover:shadow-md transition-all duration-300 cursor-pointer"
       onClick={onView}
     >
-      {/* Imagen */}
       <div className="aspect-square bg-gray-50 relative overflow-hidden">
         {product.image_url || product.original_image_url ? (
           <img
@@ -124,8 +120,6 @@ const PublicProductCard = ({
             <span className="text-xs">Sin imagen</span>
           </div>
         )}
-
-        {/* Botón Zoom */}
         <button
           onClick={(e) => {
             e.stopPropagation();
@@ -136,8 +130,6 @@ const PublicProductCard = ({
         >
           <Eye className="h-4 w-4 text-gray-700" />
         </button>
-
-        {/* Botón Agregar */}
         <button
           onClick={(e) => {
             e.stopPropagation();
@@ -149,11 +141,8 @@ const PublicProductCard = ({
           <Plus className="h-6 w-6" />
         </button>
       </div>
-
-      {/* Info */}
       <div className="p-3 flex flex-col flex-1">
         <h3 className="font-medium text-gray-900 line-clamp-2 text-sm md:text-base mb-1">{product.name}</h3>
-
         <div className="mt-auto pt-2 flex items-end justify-between">
           <div className="flex flex-col">
             <span className="text-lg font-bold text-gray-900">${price.toFixed(2)}</span>
@@ -169,18 +158,16 @@ const PublicProductCard = ({
   );
 };
 
+// --- Componente Principal ---
 export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogContentProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const debouncedSearch = useDebounce(searchTerm, 1000);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [priceRange, setPriceRange] = useState<{ min: string; max: string }>({ min: "", max: "" });
-
   const [showRadarModal, setShowRadarModal] = useState(false);
   const [radarForm, setRadarForm] = useState({ name: "", email: "", product: "", quantity: "1" });
-
   const { addItem, items } = useQuoteCart();
-
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
@@ -274,16 +261,17 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
     }
   };
 
-  // 👇 3. CORRECCIÓN: Volvemos a pasar argumentos separados
+  // 👇 CORRECCIÓN LÍNEA 280
   const addToCartSimple = (product: Product) => {
-    addItem(
-      product.id,
-      product.name,
-      product.price_retail || 0,
-      product.image_url || product.original_image_url || "",
-      1,
-      // (variantId es undefined aquí, lo cual es correcto)
-    );
+    // Pasamos un OBJETO, no argumentos separados
+    addItem({
+      id: product.id,
+      name: product.name,
+      price: product.price_retail || 0,
+      image: product.image_url || product.original_image_url || "",
+      quantity: 1,
+      variantId: undefined, // Producto simple no tiene variantId
+    });
 
     toast({ title: "Agregado", description: `${product.name} agregado al carrito.` });
     setIsCartOpen(true);
@@ -296,7 +284,7 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
     });
   };
 
-  // 👇 3. CORRECCIÓN: Volvemos a pasar argumentos separados
+  // 👇 CORRECCIÓN LÍNEA 320
   const handleAddVariantToCart = () => {
     if (!selectedProduct) return;
 
@@ -316,14 +304,15 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
       ? `${selectedProduct.name} (${Object.values(variant.attributes || {}).join(", ")})`
       : selectedProduct.name;
 
-    addItem(
-      selectedProduct.id,
-      nameToUse,
-      priceToUse,
-      selectedProduct.image_url || selectedProduct.original_image_url || "",
-      quantity,
-      variant?.id,
-    );
+    // Pasamos un OBJETO
+    addItem({
+      id: selectedProduct.id,
+      name: nameToUse,
+      price: priceToUse,
+      image: selectedProduct.image_url || selectedProduct.original_image_url || "",
+      quantity: quantity,
+      variantId: variant?.id,
+    });
 
     toast({ title: "Agregado", description: `${quantity}x ${nameToUse} al carrito.` });
     setSelectedProduct(null);
