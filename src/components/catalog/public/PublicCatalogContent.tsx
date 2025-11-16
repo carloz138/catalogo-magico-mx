@@ -13,7 +13,8 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Label } from "@/components/ui/label";
 import { Search, ShoppingCart, Radar, DollarSign, Plus, ChevronDown, Minus, X, Eye } from "lucide-react";
-import { DigitalCatalog } from "@/types/digital-catalog";
+// 👇 IMPORTANTE: Importamos Product y DigitalCatalog desde tus tipos globales
+import { DigitalCatalog, Product } from "@/types/digital-catalog";
 import { QuoteCartModal } from "@/components/public/QuoteCartModal";
 import { useDebounce } from "@/hooks/useDebounce";
 import { supabase } from "@/integrations/supabase/client";
@@ -21,25 +22,7 @@ import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useQuoteCart } from "@/contexts/QuoteCartContext";
 
-// 👇 DEFINICIÓN LOCAL PARA EVITAR ERROR DE IMPORTACIÓN
-interface Product {
-  id: string;
-  name: string;
-  sku?: string | null;
-  description?: string | null;
-  price_retail: number;
-  price_wholesale?: number | null;
-  wholesale_min_qty?: number | null;
-  category?: string | null;
-  image_url?: string;
-  original_image_url?: string | null;
-  has_variants?: boolean;
-  variants?: Array<{
-    id: string;
-    price_retail: number;
-    attributes: Record<string, string>;
-  }>;
-}
+// (Ya no definimos interface Product aquí localmente)
 
 interface PublicCatalogContentProps {
   catalog: DigitalCatalog & { isReplicated?: boolean; resellerId?: string };
@@ -99,6 +82,7 @@ const PublicProductCard = ({
   onZoomImage: () => void;
 }) => {
   const price = product.price_retail ? product.price_retail / 100 : 0;
+  // Validación segura de variantes
   const hasVariants = product.has_variants || (product.variants && product.variants.length > 0);
 
   return (
@@ -174,7 +158,6 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
   const [showRadarModal, setShowRadarModal] = useState(false);
   const [radarForm, setRadarForm] = useState({ name: "", email: "", product: "", quantity: "1" });
 
-  // Hook del Carrito (Aquí es donde daba error de argumentos)
   const { addItem, items } = useQuoteCart();
 
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -200,7 +183,9 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
 
   // Filtrado
   const filteredProducts = useMemo(() => {
+    // Aseguramos que TypeScript sepa que esto es un array de Products
     const prods = (catalog.products || []) as unknown as Product[];
+
     return prods.filter((product) => {
       const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesCategory = selectedCategory ? product.category === selectedCategory : true;
@@ -217,7 +202,9 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
   // --- HANDLERS ---
 
   const handleProductInteraction = (product: Product) => {
-    if (product.has_variants || (product.variants && product.variants.length > 0)) {
+    const hasVariants = product.has_variants || (product.variants && product.variants.length > 0);
+
+    if (hasVariants) {
       setSelectedProduct(product);
       setSelectedVariantId(null);
       setQuantity(1);
@@ -233,7 +220,6 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
   };
 
   const addToCartSimple = (product: Product) => {
-    // 👇 CORRECCIÓN CRÍTICA: Pasamos argumentos separados, no un objeto
     addItem(
       product.id,
       product.name,
@@ -272,14 +258,13 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
       ? `${selectedProduct.name} (${Object.values(variant.attributes || {}).join(", ")})`
       : selectedProduct.name;
 
-    // 👇 CORRECCIÓN CRÍTICA: Pasamos argumentos separados e incluimos variantId
     addItem(
       selectedProduct.id,
       nameToUse,
       priceToUse,
       selectedProduct.image_url || selectedProduct.original_image_url || "",
       quantity,
-      variant?.id, // Argumento opcional al final
+      variant?.id,
     );
 
     toast({ title: "Agregado", description: `${quantity}x ${nameToUse} al carrito.` });
@@ -341,7 +326,6 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
         {/* Toolbar */}
         <div className="bg-white rounded-xl shadow-lg p-4 mb-8 border border-gray-100">
           <div className="flex flex-col gap-4">
-            {/* Fila Superior: Buscador y Filtro de Precio */}
             <div className="flex flex-col md:flex-row gap-3 justify-between">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -352,8 +336,6 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
                   className="pl-10 border-gray-200 focus:border-primary focus:ring-primary h-11"
                 />
               </div>
-
-              {/* Filtro de Precio (Popover) */}
               <Popover>
                 <PopoverTrigger asChild>
                   <Button variant="outline" className="h-11 border-gray-200 text-gray-700 hover:bg-gray-50 gap-2">
@@ -406,8 +388,6 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
                 </PopoverContent>
               </Popover>
             </div>
-
-            {/* Fila Inferior: Categorías (Scroll Horizontal) */}
             {categories.length > 0 && (
               <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
                 <Badge
@@ -438,11 +418,7 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
           </div>
         </div>
 
-        {/* Resultados */}
-        <div className="mb-4 flex justify-between items-end">
-          <p className="text-sm text-muted-foreground">Mostrando {filteredProducts.length} productos</p>
-        </div>
-
+        {/* Grid */}
         {filteredProducts.length === 0 ? (
           <div className="text-center py-16 bg-white rounded-xl border border-dashed border-gray-300">
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 mb-4">
@@ -483,7 +459,6 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
         )}
       </div>
 
-      {/* Botón Flotante Carrito */}
       <div className="fixed bottom-6 right-6 z-50">
         <Button
           size="lg"
@@ -499,7 +474,6 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
         </Button>
       </div>
 
-      {/* Modales */}
       <Dialog open={!!selectedProduct} onOpenChange={(open) => !open && setSelectedProduct(null)}>
         <DialogContent className="sm:max-w-[425px]">
           {selectedProduct && (
