@@ -21,21 +21,28 @@ import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useQuoteCart } from "@/contexts/QuoteCartContext";
 
-// Definimos Product localmente para coincidir con el contexto
+// 👇 NUEVOS IMPORTS PARA LOS TEMPLATES
+import { EXPANDED_WEB_TEMPLATES } from "@/lib/web-catalog/expanded-templates-catalog";
+import { WebTemplateAdapter } from "@/lib/templates/web-css-adapter";
+
+// Definición local de Product para evitar conflictos de importación
 interface Product {
   id: string;
   name: string;
-  price_retail: number;
-  price_wholesale: number | null;
-  wholesale_min_qty: number | null;
-  processed_image_url: string | null;
-  original_image_url: string;
-  image_url?: string | null;
-  sku: string | null;
+  sku?: string | null;
   description?: string | null;
-  has_variants?: boolean;
-  variants?: any[];
+  price_retail: number;
+  price_wholesale?: number | null;
+  wholesale_min_qty?: number | null;
   category?: string | null;
+  image_url?: string;
+  original_image_url?: string | null;
+  has_variants?: boolean;
+  variants?: Array<{
+    id: string;
+    price_retail: number;
+    attributes: Record<string, string>;
+  }>;
 }
 
 interface PublicCatalogContentProps {
@@ -96,7 +103,6 @@ const PublicProductCard = ({
   onZoomImage: () => void;
 }) => {
   const price = product.price_retail ? product.price_retail / 100 : 0;
-  // Validación segura de variantes
   const hasVariants = product.has_variants || (product.variants && product.variants.length > 0);
 
   return (
@@ -179,6 +185,46 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
   const [quantity, setQuantity] = useState(1);
   const [productToZoom, setProductToZoom] = useState<Product | null>(null);
 
+  // 👇 LOGICA DEL TEMPLATE Y CSS
+  const activeTemplate = useMemo(() => {
+    return EXPANDED_WEB_TEMPLATES.find((t) => t.id === catalog.web_template_id) || EXPANDED_WEB_TEMPLATES[0];
+  }, [catalog.web_template_id]);
+
+  const templateCSS = useMemo(() => {
+    let css = WebTemplateAdapter.generateWebCSS(activeTemplate, catalog.background_pattern);
+
+    // Inyección manual de colores de marca
+    if (catalog.brand_colors?.primary) {
+      css += `
+            :root {
+                --primary: ${catalog.brand_colors.primary} !important;
+                --radius: ${activeTemplate.config.cardRadius === "full" ? "1.5rem" : "0.5rem"};
+            }
+            .bg-primary { background-color: ${catalog.brand_colors.primary} !important; }
+            .text-primary { color: ${catalog.brand_colors.primary} !important; }
+            .border-primary { border-color: ${catalog.brand_colors.primary} !important; }
+        `;
+    }
+    return css;
+  }, [activeTemplate, catalog.background_pattern, catalog.brand_colors]);
+
+  // 👇 LOGICA DE COLUMNAS DINÁMICAS
+  const gridColumnsClass = useMemo(() => {
+    const cols = activeTemplate.config.columnsDesktop || 3;
+    switch (cols) {
+      case 2:
+        return "lg:grid-cols-2";
+      case 3:
+        return "lg:grid-cols-3";
+      case 4:
+        return "lg:grid-cols-4";
+      case 5:
+        return "lg:grid-cols-5";
+      default:
+        return "lg:grid-cols-3";
+    }
+  }, [activeTemplate]);
+
   // Search Logs
   useEffect(() => {
     if (debouncedSearch && debouncedSearch.length > 2) {
@@ -197,9 +243,7 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
 
   // Filtrado
   const filteredProducts = useMemo(() => {
-    // Aseguramos que TypeScript sepa que esto es un array de Products
     const prods = (catalog.products || []) as unknown as Product[];
-
     return prods.filter((product) => {
       const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesCategory = selectedCategory ? product.category === selectedCategory : true;
@@ -216,9 +260,7 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
   // --- HANDLERS ---
 
   const handleProductInteraction = (product: Product) => {
-    const hasVariants = product.has_variants || (product.variants && product.variants.length > 0);
-
-    if (hasVariants) {
+    if (product.has_variants || (product.variants && product.variants.length > 0)) {
       setSelectedProduct(product);
       setSelectedVariantId(null);
       setQuantity(1);
@@ -235,10 +277,11 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
 
   const addToCartSimple = (product: Product) => {
     addItem(
-      product,
+      product.id,
+      product.name,
+      product.price_retail || 0,
+      product.image_url || product.original_image_url || "",
       1,
-      'retail',
-      product.price_retail || 0
     );
 
     toast({ title: "Agregado", description: `${product.name} agregado al carrito.` });
@@ -270,17 +313,14 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
     const nameToUse = variant
       ? `${selectedProduct.name} (${Object.values(variant.attributes || {}).join(", ")})`
       : selectedProduct.name;
-    const variantDescription = variant 
-      ? Object.values(variant.attributes || {}).join(", ")
-      : null;
 
     addItem(
-      selectedProduct,
-      quantity,
-      'retail',
+      selectedProduct.id,
+      nameToUse,
       priceToUse,
-      variant?.id || null,
-      variantDescription
+      selectedProduct.image_url || selectedProduct.original_image_url || "",
+      quantity,
+      variant?.id,
     );
 
     toast({ title: "Agregado", description: `${quantity}x ${nameToUse} al carrito.` });
@@ -316,7 +356,10 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
+    <div className="min-h-screen bg-gray-50 pb-20 transition-colors duration-500">
+      {/* Inyección de CSS del Template */}
+      <style>{templateCSS}</style>
+
       {/* Banner */}
       <div
         className="h-48 md:h-64 bg-cover bg-center relative transition-all"
@@ -352,6 +395,7 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
                   className="pl-10 border-gray-200 focus:border-primary focus:ring-primary h-11"
                 />
               </div>
+
               <Popover>
                 <PopoverTrigger asChild>
                   <Button variant="outline" className="h-11 border-gray-200 text-gray-700 hover:bg-gray-50 gap-2">
@@ -404,6 +448,7 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
                 </PopoverContent>
               </Popover>
             </div>
+
             {categories.length > 0 && (
               <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
                 <Badge
@@ -434,7 +479,11 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
           </div>
         </div>
 
-        {/* Grid */}
+        {/* Resultados */}
+        <div className="mb-4 flex justify-between items-end">
+          <p className="text-sm text-muted-foreground">Mostrando {filteredProducts.length} productos</p>
+        </div>
+
         {filteredProducts.length === 0 ? (
           <div className="text-center py-16 bg-white rounded-xl border border-dashed border-gray-300">
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 mb-4">
@@ -461,7 +510,7 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+          <div className={cn("grid gap-4 md:gap-6 grid-cols-2", gridColumnsClass)}>
             {filteredProducts.map((product) => (
               <PublicProductCard
                 key={product.id}
@@ -475,6 +524,7 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
         )}
       </div>
 
+      {/* Botón Flotante Carrito */}
       <div className="fixed bottom-6 right-6 z-50">
         <Button
           size="lg"
@@ -490,6 +540,7 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
         </Button>
       </div>
 
+      {/* Modal de Detalles (Variantes) */}
       <Dialog open={!!selectedProduct} onOpenChange={(open) => !open && setSelectedProduct(null)}>
         <DialogContent className="sm:max-w-[425px]">
           {selectedProduct && (
@@ -567,8 +618,10 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
         </DialogContent>
       </Dialog>
 
+      {/* Modal Zoom */}
       <ProductImageZoomModal product={productToZoom} isOpen={!!productToZoom} onClose={() => setProductToZoom(null)} />
 
+      {/* Modal Carrito */}
       <QuoteCartModal
         {...({
           open: isCartOpen,
@@ -579,6 +632,7 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
         } as any)}
       />
 
+      {/* Modal Radar */}
       <Dialog open={showRadarModal} onOpenChange={setShowRadarModal}>
         <DialogContent>
           <DialogHeader>
