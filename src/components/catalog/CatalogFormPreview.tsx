@@ -2,11 +2,11 @@ import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Eye, Monitor, Tablet, Smartphone, ExternalLink } from "lucide-react";
+// 👇 AGREGADO: Package
+import { Eye, Monitor, Tablet, Smartphone, ExternalLink, Package } from "lucide-react";
 import { EXPANDED_WEB_TEMPLATES } from "@/lib/web-catalog/expanded-templates-catalog";
 import { WebTemplateAdapter } from "@/lib/templates/web-css-adapter";
 import { cn } from "@/lib/utils";
-// 👇 Importamos el nuevo componente
 import { CatalogProductCard } from "./preview/CatalogProductCard";
 
 interface CatalogFormPreviewProps {
@@ -57,8 +57,9 @@ export function CatalogFormPreview({
         </div>
 
         <div className="flex bg-gray-100 p-1 rounded-lg">
+          {/* 👇 CORRECCIÓN: Usamos 'secondary' en lugar de 'white' */}
           <Button
-            variant={viewMode === "desktop" ? "white" : "ghost"}
+            variant={viewMode === "desktop" ? "secondary" : "ghost"}
             size="icon"
             className="h-7 w-7"
             onClick={() => setViewMode("desktop")}
@@ -66,7 +67,7 @@ export function CatalogFormPreview({
             <Monitor className="h-4 w-4" />
           </Button>
           <Button
-            variant={viewMode === "tablet" ? "white" : "ghost"}
+            variant={viewMode === "tablet" ? "secondary" : "ghost"}
             size="icon"
             className="h-7 w-7"
             onClick={() => setViewMode("tablet")}
@@ -74,7 +75,7 @@ export function CatalogFormPreview({
             <Tablet className="h-4 w-4" />
           </Button>
           <Button
-            variant={viewMode === "mobile" ? "white" : "ghost"}
+            variant={viewMode === "mobile" ? "secondary" : "ghost"}
             size="icon"
             className="h-7 w-7"
             onClick={() => setViewMode("mobile")}
@@ -118,6 +119,7 @@ export function CatalogFormPreview({
           <div className="flex-1 bg-gray-50 p-4 md:p-8">
             {displayProducts.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-48 text-gray-400 border-2 border-dashed rounded-xl">
+                {/* 👇 AHORA SÍ EXISTE 'Package' */}
                 <Package className="h-8 w-8 mb-2 opacity-50" />
                 <p>Agrega productos para verlos aquí</p>
               </div>
