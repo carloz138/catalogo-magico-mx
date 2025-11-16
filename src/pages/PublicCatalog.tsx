@@ -69,7 +69,13 @@ export default function PublicCatalog() {
       // Buscar primero en catálogos originales (L1)
       let { data, error } = await supabase
         .from("digital_catalogs")
-        .select("*") // Trae tracking_config, head_scripts, etc.
+        .select(`
+          *,
+          catalog_products (
+            product_id,
+            products (*)
+          )
+        `)
         .eq("slug", slug)
         .maybeSingle();
 
@@ -80,7 +86,13 @@ export default function PublicCatalog() {
           .select(
             `
             *,
-            digital_catalogs (*)
+            digital_catalogs (
+              *,
+              catalog_products (
+                product_id,
+                products (*)
+              )
+            )
           `,
           )
           .eq("slug", slug)
@@ -88,13 +100,9 @@ export default function PublicCatalog() {
 
         if (replica) {
           // Fusionar datos: El L2 usa SU propio slug, pero el contenido base del L1
-          // IMPORTANTE: Aquí decidimos qué tracking usar.
-          // Normalmente el L2 quiere SU propio tracking, no el del L1.
-          // Asumiremos que el 'replicated_catalogs' podría tener sus propios campos de tracking en el futuro.
-          // Por ahora, usamos el del catálogo original.
           data = {
             ...replica.digital_catalogs,
-            isReplicated: true, // Flag interno
+            isReplicated: true,
             resellerId: replica.reseller_id,
           } as any;
         }
@@ -103,11 +111,15 @@ export default function PublicCatalog() {
       if (error) throw error;
       if (!data) throw new Error("Catálogo no encontrado");
 
-      // Contar visita (Incrementar view_count)
-      // Lo hacemos "fire and forget" para no bloquear la carga
-      supabase.rpc("increment_view_count" as any, { row_id: data.id }).then();
+      // Transformar los productos del join a un array plano
+      const products = data.catalog_products?.map((cp: any) => cp.products).filter(Boolean) || [];
+      
+      // Contar visita (ignorar errores si el RPC no existe)
+      try {
+        await supabase.rpc("increment_view_count" as any, { row_id: data.id });
+      } catch {}
 
-      return data as DigitalCatalog & { isReplicated?: boolean; resellerId?: string };
+      return { ...data, products } as DigitalCatalog & { isReplicated?: boolean; resellerId?: string };
     },
     retry: false,
   });
