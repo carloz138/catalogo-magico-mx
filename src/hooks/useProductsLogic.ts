@@ -121,16 +121,16 @@ export const useProductsLogic = () => {
     }
 
     return products.filter((product) => {
-      const status = getProcessingStatus(product);
-      const matchesStatus = statusFilter.includes(status);
-
-      // 👇 INICIO DEL FIX LÓGICO
-      // Si estamos en la pestaña "Con Fondo" (pending) Y el producto
-      // es una imagen default, lo filtramos (return false).
-      if (tab === "with-background" && isDefaultImage(product)) {
+      // 👇 INICIO DEL FIX LÓGICO v2 (EL BUENO)
+      // Un producto con imagen "Default" no debe estar en NINGUNA de estas tres pestañas.
+      // Lo filtramos de raíz ANTES de checar el estado.
+      if (isDefaultImage(product)) {
         return false;
       }
-      // 👆 FIN DEL FIX LÓGICO
+      // 👆 FIN DEL FIX LÓGICO v2
+
+      const status = getProcessingStatus(product);
+      const matchesStatus = statusFilter.includes(status);
 
       // Búsqueda expandida incluyendo tags restaurada
       const searchLower = searchTerm.toLowerCase();
