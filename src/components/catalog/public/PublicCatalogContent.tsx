@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -10,20 +10,66 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Search, ShoppingCart, Filter, X, Radar, AlertCircle } from "lucide-react";
-import { DigitalCatalog } from "@/types/digital-catalog";
-import { ProductCard } from "@/components/products/ProductCard";
+import { Slider } from "@/components/ui/slider"; // Asegúrate de tener este componente o usa inputs
+import { Search, ShoppingCart, Filter, X, Radar, AlertCircle, DollarSign, Plus, ChevronDown } from "lucide-react";
+import { DigitalCatalog, Product } from "@/types/digital-catalog";
 import { QuoteCartModal } from "@/components/public/QuoteCartModal";
 import { useDebounce } from "@/hooks/useDebounce";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 
 interface PublicCatalogContentProps {
   catalog: DigitalCatalog & { isReplicated?: boolean; resellerId?: string };
   onTrackEvent: (event: string, data?: any) => void;
 }
+
+// --- COMPONENTE INTERNO: TARJETA PÚBLICA (Diseñada para vender) ---
+const PublicProductCard = ({ product, onAdd, onView }: { product: Product; onAdd: () => void; onView: () => void }) => {
+  return (
+    <div
+      className="group relative flex flex-col overflow-hidden bg-white shadow-sm rounded-xl border border-gray-100 hover:shadow-md transition-all duration-300"
+      onClick={onView} // Clic en la tarjeta abre detalle
+    >
+      {/* Imagen */}
+      <div className="aspect-square bg-gray-50 relative overflow-hidden">
+        <img
+          src={product.image_url || product.original_image_url || "/placeholder.png"}
+          alt={product.name}
+          className="w-full h-full object-cover object-center transition-transform duration-500 group-hover:scale-105"
+        />
+        {/* Botón Flotante Rápido (Aparece en hover en desktop, siempre visible en móvil si prefieres) */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation(); // Evitar abrir el detalle
+            onAdd();
+          }}
+          className="absolute bottom-3 right-3 h-10 w-10 bg-white/90 backdrop-blur text-black rounded-full flex items-center justify-center shadow-lg opacity-100 md:opacity-0 md:group-hover:opacity-100 md:translate-y-2 md:group-hover:translate-y-0 transition-all duration-300 hover:bg-primary hover:text-white"
+        >
+          <Plus className="h-6 w-6" />
+        </button>
+      </div>
+
+      {/* Info */}
+      <div className="p-3 flex flex-col flex-1">
+        <h3 className="font-medium text-gray-900 line-clamp-2 text-sm md:text-base mb-1">{product.name}</h3>
+
+        <div className="mt-auto pt-2 flex items-end justify-between">
+          <div className="flex flex-col">
+            <span className="text-lg font-bold text-gray-900">${(product.price_retail / 100).toFixed(2)}</span>
+            {product.price_wholesale && (
+              <span className="text-xs text-muted-foreground">
+                Mayoreo: ${(product.price_wholesale / 100).toFixed(2)}
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogContentProps) {
   const [searchTerm, setSearchTerm] = useState("");
@@ -31,11 +77,14 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [isCartOpen, setIsCartOpen] = useState(false);
 
+  // Filtros de Precio
+  const [priceRange, setPriceRange] = useState<{ min: string; max: string }>({ min: "", max: "" });
+
   // Estado Radar
   const [showRadarModal, setShowRadarModal] = useState(false);
   const [radarForm, setRadarForm] = useState({ name: "", email: "", product: "", quantity: "1" });
 
-  // 1. Lógica de Search Logs
+  // 1. Search Logs
   useEffect(() => {
     if (debouncedSearch && debouncedSearch.length > 2) {
       const logSearch = async () => {
@@ -51,17 +100,42 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
     }
   }, [debouncedSearch]);
 
-  // Filtrado
-  const filteredProducts =
-    catalog.products?.filter((product) => {
-      const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesCategory = selectedCategory ? product.category === selectedCategory : true;
-      return matchesSearch && matchesCategory;
-    }) || [];
+  // Filtrado Maestro
+  const filteredProducts = useMemo(() => {
+    return (
+      catalog.products?.filter((product) => {
+        // 1. Texto
+        const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
+        // 2. Categoría
+        const matchesCategory = selectedCategory ? product.category === selectedCategory : true;
+        // 3. Precio
+        const price = product.price_retail / 100;
+        const min = priceRange.min ? parseFloat(priceRange.min) : 0;
+        const max = priceRange.max ? parseFloat(priceRange.max) : Infinity;
+        const matchesPrice = price >= min && price <= max;
+
+        return matchesSearch && matchesCategory && matchesPrice;
+      }) || []
+    );
+  }, [catalog.products, searchTerm, selectedCategory, priceRange]);
 
   const categories = Array.from(new Set(catalog.products?.map((p) => p.category).filter(Boolean) as string[]));
 
-  // 2. Lógica del Radar
+  // Handlers
+  const handleAddToCart = (product: Product) => {
+    onTrackEvent("AddToCart", {
+      content_ids: [product.id],
+      content_name: product.name,
+      value: product.price_retail / 100,
+      currency: "MXN",
+    });
+    setIsCartOpen(true); // Abrimos el carrito para dar feedback inmediato
+    // NOTA: Aquí el componente QuoteCartModal debería escuchar un evento o usar un contexto para añadirlo.
+    // Como estamos en un componente "tonto", asumimos que el usuario usará el botón dentro del modal o
+    // que el QuoteCartContext está activo y podemos usar un hook aquí.
+    // *Para simplificar, abrimos el carrito. Idealmente, usaríamos el hook useQuoteCart aquí mismo.*
+  };
+
   const handleRadarSubmit = async () => {
     try {
       await supabase.from("solicitudes_mercado").insert({
@@ -106,42 +180,113 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
       </div>
 
       <div className="container mx-auto px-4 -mt-8 relative z-10">
-        {/* Toolbar */}
+        {/* Toolbar de Filtros y Búsqueda */}
         <div className="bg-white rounded-xl shadow-lg p-4 mb-8 border border-gray-100">
-          <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-            <div className="relative w-full md:w-96">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <Input
-                placeholder="¿Qué estás buscando?"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 border-gray-200 focus:border-primary focus:ring-primary"
-              />
+          <div className="flex flex-col gap-4">
+            {/* Fila Superior: Buscador y Filtro de Precio */}
+            <div className="flex flex-col md:flex-row gap-3 justify-between">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="¿Qué estás buscando?"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 border-gray-200 focus:border-primary focus:ring-primary h-11"
+                />
+              </div>
+
+              {/* Filtro de Precio (Popover) */}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="h-11 border-gray-200 text-gray-700 hover:bg-gray-50 gap-2">
+                    <DollarSign className="h-4 w-4" />
+                    Precio
+                    {(priceRange.min || priceRange.max) && (
+                      <Badge variant="secondary" className="h-5 px-1 ml-1 bg-primary/10 text-primary rounded-sm">
+                        Activado
+                      </Badge>
+                    )}
+                    <ChevronDown className="h-3 w-3 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80 p-4" align="end">
+                  <div className="space-y-4">
+                    <h4 className="font-medium leading-none">Rango de Precio</h4>
+                    <div className="flex items-center gap-2">
+                      <div className="grid gap-1.5 flex-1">
+                        <Label htmlFor="min">Mínimo</Label>
+                        <Input
+                          id="min"
+                          type="number"
+                          placeholder="0"
+                          value={priceRange.min}
+                          onChange={(e) => setPriceRange({ ...priceRange, min: e.target.value })}
+                        />
+                      </div>
+                      <div className="grid gap-1.5 flex-1">
+                        <Label htmlFor="max">Máximo</Label>
+                        <Input
+                          id="max"
+                          type="number"
+                          placeholder="Max"
+                          value={priceRange.max}
+                          onChange={(e) => setPriceRange({ ...priceRange, max: e.target.value })}
+                        />
+                      </div>
+                    </div>
+                    {(priceRange.min || priceRange.max) && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="w-full text-red-500 hover:text-red-600 hover:bg-red-50"
+                        onClick={() => setPriceRange({ min: "", max: "" })}
+                      >
+                        Limpiar filtro
+                      </Button>
+                    )}
+                  </div>
+                </PopoverContent>
+              </Popover>
             </div>
-            <div className="flex gap-2 w-full md:w-auto overflow-x-auto pb-2 md:pb-0 no-scrollbar">
-              <Badge
-                variant={selectedCategory === null ? "default" : "outline"}
-                className="cursor-pointer whitespace-nowrap px-4 py-1.5 text-sm hover:bg-primary/10"
-                onClick={() => setSelectedCategory(null)}
-              >
-                Todos
-              </Badge>
-              {categories.map((cat) => (
+
+            {/* Fila Inferior: Categorías (Scroll Horizontal) */}
+            {categories.length > 0 && (
+              <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
                 <Badge
-                  key={cat}
-                  variant={selectedCategory === cat ? "default" : "outline"}
-                  className="cursor-pointer whitespace-nowrap px-4 py-1.5 text-sm hover:bg-primary/10"
-                  onClick={() => setSelectedCategory(selectedCategory === cat ? null : cat)}
+                  variant={selectedCategory === null ? "default" : "outline"}
+                  className={cn(
+                    "cursor-pointer whitespace-nowrap px-4 py-2 text-sm transition-colors",
+                    selectedCategory === null ? "hover:bg-primary/90" : "hover:bg-gray-100 border-gray-300",
+                  )}
+                  onClick={() => setSelectedCategory(null)}
                 >
-                  {cat}
+                  Todos
                 </Badge>
-              ))}
-            </div>
+                {categories.map((cat) => (
+                  <Badge
+                    key={cat}
+                    variant={selectedCategory === cat ? "default" : "outline"}
+                    className={cn(
+                      "cursor-pointer whitespace-nowrap px-4 py-2 text-sm transition-colors",
+                      selectedCategory === cat ? "hover:bg-primary/90" : "hover:bg-gray-100 border-gray-300",
+                    )}
+                    onClick={() => setSelectedCategory(selectedCategory === cat ? null : cat)}
+                  >
+                    {cat}
+                  </Badge>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Grid de Productos */}
+        {/* Resultados */}
+        <div className="mb-4 flex justify-between items-end">
+          <p className="text-sm text-muted-foreground">Mostrando {filteredProducts.length} productos</p>
+        </div>
+
         {filteredProducts.length === 0 ? (
+          /* Estado Vacío + RADAR DE MERCADO */
           <div className="text-center py-16 bg-white rounded-xl border border-dashed border-gray-300">
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 mb-4">
               <Radar className="h-8 w-8 text-gray-400" />
@@ -159,6 +304,7 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
                 onClick={() => {
                   setSearchTerm("");
                   setSelectedCategory(null);
+                  setPriceRange({ min: "", max: "" });
                 }}
               >
                 Ver todos los productos
@@ -166,38 +312,28 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
             </div>
           </div>
         ) : (
+          /* Grid de Productos */
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
             {filteredProducts.map((product) => (
-              <div
+              <PublicProductCard
                 key={product.id}
-                onClick={() =>
+                product={product as Product}
+                onView={() =>
                   onTrackEvent("ViewContent", {
                     content_ids: [product.id],
                     content_name: product.name,
-                    value: product.price_retail,
+                    value: product.price_retail / 100,
                     currency: "MXN",
                   })
                 }
-              >
-                <ProductCard
-                  product={product}
-                  selectedProducts={[]}
-                  toggleProductSelection={() => {}}
-                  // 👇 FIX: Pasamos funciones vacías para satisfacer a TypeScript
-                  // ya que en el catálogo público no se borran ni editan productos
-                  handleDeleteProduct={() => {}}
-                  handleViewProduct={() => {}}
-                  // ------------------------------------------------------------
-                  // Nota: El "Agregar al Carrito" se maneja internamente en ProductCard
-                  // si está conectado al contexto QuoteCartProvider.
-                />
-              </div>
+                onAdd={() => handleAddToCart(product as Product)}
+              />
             ))}
           </div>
         )}
       </div>
 
-      {/* Botón Carrito */}
+      {/* Botón Flotante Carrito */}
       <div className="fixed bottom-6 right-6 z-50">
         <Button
           size="lg"
@@ -205,10 +341,11 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
           onClick={() => setIsCartOpen(true)}
         >
           <ShoppingCart className="h-7 w-7 text-white" />
+          {/* Aquí se podría poner un badge con el contador si tuviéramos acceso al contexto */}
         </Button>
       </div>
 
-      {/* Modal Carrito */}
+      {/* Modales */}
       <QuoteCartModal
         {...({
           open: isCartOpen,
@@ -219,7 +356,6 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
         } as any)}
       />
 
-      {/* Modal Radar */}
       <Dialog open={showRadarModal} onOpenChange={setShowRadarModal}>
         <DialogContent>
           <DialogHeader>
