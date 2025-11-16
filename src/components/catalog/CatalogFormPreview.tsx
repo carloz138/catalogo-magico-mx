@@ -98,45 +98,47 @@ export function CatalogFormPreview({
         >
           <style>{templateCSS}</style>
 
-          {/* Header Interno del Catálogo */}
-          <div className="preview-internal-header py-8 px-6 text-center relative overflow-hidden">
-            <div className="relative z-10">
-              <h1 className={cn("font-bold mb-2 text-white", viewMode === "mobile" ? "text-2xl" : "text-4xl")}>
-                {name || "Tu Catálogo"}
-              </h1>
-              {description && <p className="text-white/80 max-w-lg mx-auto text-sm">{description}</p>}
+          {/* Contenedor principal con clase para activar estilos del template */}
+          <div className="catalog-public-container min-h-full flex flex-col">
+            {/* Header Interno del Catálogo */}
+            <div className="preview-internal-header py-8 px-6 text-center relative overflow-hidden">
+              <div className="relative z-10">
+                <h1 className={cn("font-bold mb-2 text-white", viewMode === "mobile" ? "text-2xl" : "text-4xl")}>
+                  {name || "Tu Catálogo"}
+                </h1>
+                {description && <p className="text-white/80 max-w-lg mx-auto text-sm">{description}</p>}
+              </div>
+              {/* Patrón de fondo sutil */}
+              {backgroundPattern && (
+                <div
+                  className="absolute inset-0 opacity-10 bg-repeat"
+                  style={{ backgroundImage: `url(/patterns/${backgroundPattern}.png)` }}
+                />
+              )}
             </div>
-            {/* Patrón de fondo sutil */}
-            {backgroundPattern && (
-              <div
-                className="absolute inset-0 opacity-10 bg-repeat"
-                style={{ backgroundImage: `url(/patterns/${backgroundPattern}.png)` }}
-              />
-            )}
-          </div>
 
-          {/* Grid de Productos */}
-          <div className="flex-1 bg-gray-50 p-4 md:p-8">
-            {displayProducts.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-48 text-gray-400 border-2 border-dashed rounded-xl">
-                {/* 👇 AHORA SÍ EXISTE 'Package' */}
-                <Package className="h-8 w-8 mb-2 opacity-50" />
-                <p>Agrega productos para verlos aquí</p>
-              </div>
-            ) : (
-              <div className={cn("grid gap-4 md:gap-6", getGridColumns())}>
-                {displayProducts.map((product) => (
-                  <CatalogProductCard
-                    key={product.id}
-                    product={product}
-                    priceConfig={priceConfig}
-                    visibilityConfig={visibilityConfig}
-                    imageRatio={template?.config.imageRatio || "square"}
-                    isMobile={viewMode === "mobile"}
-                  />
-                ))}
-              </div>
-            )}
+            {/* Grid de Productos */}
+            <div className="flex-1 bg-gray-50 p-4 md:p-8">
+              {displayProducts.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-48 text-gray-400 border-2 border-dashed rounded-xl">
+                  <Package className="h-8 w-8 mb-2 opacity-50" />
+                  <p>Agrega productos para verlos aquí</p>
+                </div>
+              ) : (
+                <div className={cn("grid gap-4 md:gap-6", getGridColumns())}>
+                  {displayProducts.map((product) => (
+                    <CatalogProductCard
+                      key={product.id}
+                      product={product}
+                      priceConfig={priceConfig}
+                      visibilityConfig={visibilityConfig}
+                      imageRatio={template?.config.imageRatio || "square"}
+                      isMobile={viewMode === "mobile"}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
