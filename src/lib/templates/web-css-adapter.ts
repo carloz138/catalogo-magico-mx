@@ -253,6 +253,19 @@ export class WebTemplateAdapter {
          background: var(--accent-color) !important;
          color: #fff;
       }
+
+      .catalog-public-container .preview-internal-header {
+         background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)) !important;
+         color: white !important;
+      }
+
+      .catalog-public-container .preview-internal-header h1 {
+         color: white !important;
+      }
+
+      .catalog-public-container .preview-internal-header p {
+         color: rgba(255, 255, 255, 0.9) !important;
+      }
     `;
   }
 }
