@@ -13,7 +13,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Label } from "@/components/ui/label";
 import { Search, ShoppingCart, Radar, DollarSign, Plus, ChevronDown, Minus, X, Eye } from "lucide-react";
-import { DigitalCatalog } from "@/types/digital-catalog";
+import { DigitalCatalog, Product } from "@/types/digital-catalog"; // Asumimos que 'Product' está en tus types
 import { QuoteCartModal } from "@/components/public/QuoteCartModal";
 import { useDebounce } from "@/hooks/useDebounce";
 import { supabase } from "@/integrations/supabase/client";
@@ -21,8 +21,9 @@ import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useQuoteCart } from "@/contexts/QuoteCartContext";
 
-// 👇 1. DEFINICIÓN LOCAL ESTRICTA DE PRODUCTO
-export interface Product {
+// 👇 DEFINICIÓN LOCAL POR SI FALLA LA IMPORTACIÓN (COMENTA ESTO SI 'Product' VIENE DE OTRO LADO)
+/*
+interface Product {
   id: string;
   name: string;
   sku?: string | null;
@@ -40,6 +41,7 @@ export interface Product {
     attributes: Record<string, string>;
   }>;
 }
+*/
 
 interface PublicCatalogContentProps {
   catalog: DigitalCatalog & { isReplicated?: boolean; resellerId?: string };
@@ -181,6 +183,43 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
   const [quantity, setQuantity] = useState(1);
   const [productToZoom, setProductToZoom] = useState<Product | null>(null);
 
+  // Lógica de Templates
+  const activeTemplate = useMemo(() => {
+    return EXPANDED_WEB_TEMPLATES.find((t) => t.id === catalog.web_template_id) || EXPANDED_WEB_TEMPLATES[0];
+  }, [catalog.web_template_id]);
+
+  const templateCSS = useMemo(() => {
+    let css = WebTemplateAdapter.generateWebCSS(activeTemplate, catalog.background_pattern);
+    if (catalog.brand_colors?.primary) {
+      css += `
+            :root {
+                --primary: ${catalog.brand_colors.primary} !important;
+                --radius: ${activeTemplate.config.cardRadius === "full" ? "1.5rem" : "0.5rem"};
+            }
+            .bg-primary { background-color: ${catalog.brand_colors.primary} !important; }
+            .text-primary { color: ${catalog.brand_colors.primary} !important; }
+            .border-primary { border-color: ${catalog.brand_colors.primary} !important; }
+        `;
+    }
+    return css;
+  }, [activeTemplate, catalog.background_pattern, catalog.brand_colors]);
+
+  const gridColumnsClass = useMemo(() => {
+    const cols = activeTemplate.config.columnsDesktop || 3;
+    switch (cols) {
+      case 2:
+        return "lg:grid-cols-2";
+      case 3:
+        return "lg:grid-cols-3";
+      case 4:
+        return "lg:grid-cols-4";
+      case 5:
+        return "lg:grid-cols-5";
+      default:
+        return "lg:grid-cols-3";
+    }
+  }, [activeTemplate]);
+
   // Search Logs
   useEffect(() => {
     if (debouncedSearch && debouncedSearch.length > 2) {
@@ -199,9 +238,7 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
 
   // Filtrado
   const filteredProducts = useMemo(() => {
-    // 2. CASTING EXPLÍCITO PARA EVITAR CONFUSIÓN DE TIPOS
     const prods = (catalog.products || []) as unknown as Product[];
-
     return prods.filter((product) => {
       const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesCategory = selectedCategory ? product.category === selectedCategory : true;
@@ -218,7 +255,8 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
   // --- HANDLERS ---
 
   const handleProductInteraction = (product: Product) => {
-    if (product.has_variants || (product.variants && product.variants.length > 0)) {
+    const hasVariants = product.has_variants || (product.variants && product.variants.length > 0);
+    if (hasVariants) {
       setSelectedProduct(product);
       setSelectedVariantId(null);
       setQuantity(1);
@@ -233,14 +271,17 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
     }
   };
 
+  // 👇 CORRECCIÓN LÍNEA 238
   const addToCartSimple = (product: Product) => {
-    addItem(
-      product.id,
-      product.name,
-      product.price_retail || 0,
-      product.image_url || product.original_image_url || "",
-      1,
-    );
+    // Pasamos un objeto, asumiendo que addItem lo espera así
+    addItem({
+      id: product.id,
+      name: product.name,
+      price: product.price_retail || 0,
+      image: product.image_url || product.original_image_url || "",
+      quantity: 1,
+      variantId: undefined, // Producto simple no tiene variantId
+    });
 
     toast({ title: "Agregado", description: `${product.name} agregado al carrito.` });
     setIsCartOpen(true);
@@ -253,6 +294,7 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
     });
   };
 
+  // 👇 CORRECCIÓN LÍNEA 276
   const handleAddVariantToCart = () => {
     if (!selectedProduct) return;
 
@@ -272,14 +314,15 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
       ? `${selectedProduct.name} (${Object.values(variant.attributes || {}).join(", ")})`
       : selectedProduct.name;
 
-    addItem(
-      selectedProduct.id,
-      nameToUse,
-      priceToUse,
-      selectedProduct.image_url || selectedProduct.original_image_url || "",
-      quantity,
-      variant?.id,
-    );
+    // Pasamos un objeto
+    addItem({
+      id: selectedProduct.id,
+      name: nameToUse,
+      price: priceToUse,
+      image: selectedProduct.image_url || selectedProduct.original_image_url || "",
+      quantity: quantity,
+      variantId: variant?.id,
+    });
 
     toast({ title: "Agregado", description: `${quantity}x ${nameToUse} al carrito.` });
     setSelectedProduct(null);
@@ -314,7 +357,9 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
+    <div className="min-h-screen bg-gray-50 pb-20 transition-colors duration-500">
+      <style>{templateCSS}</style>
+
       {/* Banner */}
       <div
         className="h-48 md:h-64 bg-cover bg-center relative transition-all"
@@ -340,7 +385,6 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
         {/* Toolbar */}
         <div className="bg-white rounded-xl shadow-lg p-4 mb-8 border border-gray-100">
           <div className="flex flex-col gap-4">
-            {/* Fila Superior: Buscador y Filtro de Precio */}
             <div className="flex flex-col md:flex-row gap-3 justify-between">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -351,7 +395,6 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
                   className="pl-10 border-gray-200 focus:border-primary focus:ring-primary h-11"
                 />
               </div>
-
               <Popover>
                 <PopoverTrigger asChild>
                   <Button variant="outline" className="h-11 border-gray-200 text-gray-700 hover:bg-gray-50 gap-2">
@@ -404,8 +447,6 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
                 </PopoverContent>
               </Popover>
             </div>
-
-            {/* Fila Inferior: Categorías */}
             {categories.length > 0 && (
               <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
                 <Badge
@@ -436,7 +477,11 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
           </div>
         </div>
 
-        {/* Grid de Productos */}
+        {/* Resultados */}
+        <div className="mb-4 flex justify-between items-end">
+          <p className="text-sm text-muted-foreground">Mostrando {filteredProducts.length} productos</p>
+        </div>
+
         {filteredProducts.length === 0 ? (
           <div className="text-center py-16 bg-white rounded-xl border border-dashed border-gray-300">
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 mb-4">
@@ -463,8 +508,7 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
-            {/* 👇 3. CASTING EXPLÍCITO EN EL MAP */}
+          <div className={cn("grid gap-4 md:gap-6 grid-cols-2", gridColumnsClass)}>
             {filteredProducts.map((product: Product) => (
               <PublicProductCard
                 key={product.id}
