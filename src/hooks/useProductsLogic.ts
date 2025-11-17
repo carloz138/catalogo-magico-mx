@@ -125,8 +125,8 @@ export const useProductsLogic = () => {
       }
 
       if (tab === "all") {
-        // Todos los productos MENOS los default que pasen el filtro
-        return !isDefault && baseFilters;
+        // Todos los productos que pasen el filtro (incluyendo default)
+        return baseFilters;
       }
 
       // Para el resto de pestañas ('with-background', 'processing', 'no-background')
