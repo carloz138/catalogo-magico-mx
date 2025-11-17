@@ -1,6 +1,8 @@
 import { formatPrice, calculateAdjustedPrice } from "@/lib/utils/price-calculator";
 import { cn } from "@/lib/utils";
 
+const PLACEHOLDER_URL = "https://ikbexcebcpmomfxraflz.supabase.co/storage/v1/object/public/business-logos/Package.png";
+
 interface ProductCardProps {
   product: any;
   priceConfig: {
@@ -24,7 +26,7 @@ export function CatalogProductCard({
   isMobile 
 }: ProductCardProps) {
   
-  const imageUrl = product.catalog_image_url || product.processed_image_url || product.image_url;
+  const imageUrl = product.catalog_image_url || product.processed_image_url || product.image_url || PLACEHOLDER_URL;
 
   const getPriceDisplay = () => {
     const { display, adjustmentMenudeo, adjustmentMayoreo } = priceConfig;

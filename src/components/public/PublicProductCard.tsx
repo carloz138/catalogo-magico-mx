@@ -5,6 +5,8 @@ import { ShoppingCart, Send } from 'lucide-react';
 import { calculateAdjustedPrice } from '@/lib/utils/price-calculator';
 import { VariantSelector } from './VariantSelector';
 
+const PLACEHOLDER_URL = "https://ikbexcebcpmomfxraflz.supabase.co/storage/v1/object/public/business-logos/Package.png";
+
 interface ProductVariant {
   id: string;
   variant_combination: Record<string, string>;
@@ -82,7 +84,7 @@ export function PublicProductCard({
     return purchasedProductIds.includes(product.id);
   })();
 
-  const imageUrl = product.processed_image_url || product.original_image_url;
+  const imageUrl = product.processed_image_url || product.original_image_url || PLACEHOLDER_URL;
   
   // Obtener la variante seleccionada si el producto tiene variantes
   const selectedVariant = product.has_variants && product.variants 
