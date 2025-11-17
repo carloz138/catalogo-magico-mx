@@ -60,16 +60,7 @@ export const useProductsLogic = () => {
       const { data, error } = await supabase
         .from("products")
         .select(
-          `
-          id, user_id, name, description, custom_description, 
-          price_retail, price_wholesale, wholesale_min_qty, category, brand,
-          original_image_url, processed_image_url, hd_image_url, image_url,
-          catalog_image_url, thumbnail_image_url, luxury_image_url, print_image_url,
-          processing_status, processing_progress, is_processed, processed_at,
-          credits_used, service_type, error_message,
-          has_variants, variant_count, tags,
-          created_at, updated_at, deleted_at
-        `,
+          "id, user_id, name, description, custom_description, price_retail, price_wholesale, wholesale_min_qty, category, brand, original_image_url, processed_image_url, hd_image_url, image_url, catalog_image_url, thumbnail_image_url, luxury_image_url, print_image_url, processing_status, processing_progress, is_processed, processed_at, credits_used, service_type, error_message, has_variants, variant_count, tags, created_at, updated_at, deleted_at"
         )
         .eq("user_id", user.id)
         .is("deleted_at", null)
