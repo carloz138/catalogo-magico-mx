@@ -117,7 +117,7 @@ const PublicProductCard = ({
           <img
             src={product.image_url || product.original_image_url || ""}
             alt={product.name}
-            className="w-full h-full object-cover object-center transition-transform duration-500 group-hover:scale-105"
+            className="catalog-product-image w-full h-full object-cover object-center transition-transform duration-500 group-hover:scale-105"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-gray-100 text-gray-400">
@@ -139,17 +139,17 @@ const PublicProductCard = ({
             e.stopPropagation();
             onAdd();
           }}
-          className="absolute bottom-3 right-3 h-10 w-10 bg-white/90 backdrop-blur text-black rounded-full flex items-center justify-center shadow-lg opacity-100 md:opacity-0 md:group-hover:opacity-100 md:translate-y-2 md:group-hover:translate-y-0 transition-all duration-300 hover:bg-primary hover:text-white z-10"
+          className="catalog-add-button absolute bottom-3 right-3 h-10 w-10 bg-white/90 backdrop-blur text-black rounded-full flex items-center justify-center shadow-lg opacity-100 md:opacity-0 md:group-hover:opacity-100 md:translate-y-2 md:group-hover:translate-y-0 transition-all duration-300 hover:bg-primary hover:text-white z-10"
           title="Agregar al carrito"
         >
           <Plus className="h-6 w-6" />
         </button>
       </div>
       <div className="p-3 flex flex-col flex-1">
-        <h3 className="font-medium text-gray-900 line-clamp-2 text-sm md:text-base mb-1">{product.name}</h3>
+        <h3 className="catalog-product-name font-medium text-gray-900 line-clamp-2 text-sm md:text-base mb-1">{product.name}</h3>
         <div className="mt-auto pt-2 flex items-end justify-between">
           <div className="flex flex-col">
-            <span className="text-lg font-bold text-gray-900">${price.toFixed(2)}</span>
+            <span className="catalog-product-price text-lg font-bold text-gray-900">${price.toFixed(2)}</span>
             {hasVariants && (
               <span className="text-[10px] bg-gray-100 px-1.5 py-0.5 rounded text-gray-600 w-fit mt-1">
                 {product.variants?.length} opciones
@@ -180,6 +180,11 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
 
   // Lógica de Templates
   const activeTemplate = useMemo(() => {
+    console.log('🎨 Template Debug:', {
+      web_template_id: catalog.web_template_id,
+      found: EXPANDED_WEB_TEMPLATES.find((t) => t.id === catalog.web_template_id),
+      fallback: EXPANDED_WEB_TEMPLATES[0]
+    });
     return EXPANDED_WEB_TEMPLATES.find((t) => t.id === catalog.web_template_id) || EXPANDED_WEB_TEMPLATES[0];
   }, [catalog.web_template_id]);
 
