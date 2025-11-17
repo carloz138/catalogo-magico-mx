@@ -6,13 +6,11 @@ import { toast } from "@/components/ui/use-toast";
 import { processImagesOnly } from "@/lib/catalogService";
 import { Product, getDisplayImageUrl, getCatalogImageUrl, getProcessingStatus } from "@/types/products";
 
-// 1. Definimos la URL del placeholder que usamos en BulkUpload
-const PLACEHOLDER_URL =
-  "https://ikbexcebcpmomfxraflz.supabase.co/storage/v1/object/public/product-images/placeholder.png";
+// 1. Definimos la URL del placeholder (¡ACTUALIZADA!)
+const PLACEHOLDER_URL = "https://ikbexcebcpmomfxraflz.supabase.co/storage/v1/object/public/business-logos/Package.png";
 
-// 2. Creamos una función helper para identificar estos productos
+// 2. Helper para identificar productos "Default"
 const isDefaultImage = (product: Product) => {
-  // Comprueba si CUALQUIERA de las URLs de imagen principales es el placeholder
   return (
     product.original_image_url === PLACEHOLDER_URL ||
     product.catalog_image_url === PLACEHOLDER_URL ||
@@ -24,44 +22,33 @@ export const useProductsLogic = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-
-  // Estados principales
   const [products, setProducts] = useState<Product[]>([]);
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
-
-  // Estados de UI
   const [searchTerm, setSearchTerm] = useState("");
   const [filterCategory, setFilterCategory] = useState<string>("all");
   const [showCatalogPreview, setShowCatalogPreview] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [showBusinessInfoBanner, setShowBusinessInfoBanner] = useState(true);
-
-  // Estados para modal de confirmación de eliminación
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [productToDelete, setProductToDelete] = useState<Product | null>(null);
-
-  // Estado activo de pestaña
+  const [productToDelete, setProductToDelete] = useState<Product | null>(null); // 3. Estado activo de pestaña: Cambiado a 'all' por defecto
   const [activeTab, setActiveTab] = useState(() => {
-    return searchParams.get("tab") || "with-background";
+    return searchParams.get("tab") || "all"; // Default a "Todos"
   });
 
   useEffect(() => {
     if (user) {
       loadProducts();
-
-      // Auto-refresh para ver estado de procesamiento
       const interval = setInterval(loadProducts, 10000);
       return () => clearInterval(interval);
     }
-  }, [user]);
+  }, [user]); // 4. Sincronizar pestaña activa con URL (incluye 'all' y 'default')
 
-  // Sincronizar pestaña activa con URL
   useEffect(() => {
     const tabFromUrl = searchParams.get("tab");
-    if (tabFromUrl && ["with-background", "processing", "no-background"].includes(tabFromUrl)) {
+    if (tabFromUrl && ["all", "with-background", "processing", "no-background", "default"].includes(tabFromUrl)) {
       setActiveTab(tabFromUrl);
     }
   }, [searchParams]);
@@ -74,18 +61,18 @@ export const useProductsLogic = () => {
         .from("products")
         .select(
           `
-          id, user_id, name, description, custom_description, 
-          price_retail, price_wholesale, wholesale_min_qty, category, brand,
-          original_image_url, processed_image_url, hd_image_url, image_url,
-          catalog_image_url, thumbnail_image_url, luxury_image_url, print_image_url,
-          processing_status, processing_progress, is_processed, processed_at,
-          credits_used, service_type, error_message,
-          has_variants, variant_count, tags,
-          created_at, updated_at, deleted_at
-        `,
+          id, user_id, name, description, custom_description, 
+          price_retail, price_wholesale, wholesale_min_qty, category, brand,
+          original_image_url, processed_image_url, hd_image_url, image_url,
+          catalog_image_url, thumbnail_image_url, luxury_image_url, print_image_url,
+          processing_status, processing_progress, is_processed, processed_at,
+          credits_used, service_type, error_message,
+          has_variants, variant_count, tags,
+          created_at, updated_at, deleted_at
+        `,
         )
         .eq("user_id", user.id)
-        .is("deleted_at", null) // Solo productos activos (no eliminados)
+        .is("deleted_at", null)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -100,13 +87,14 @@ export const useProductsLogic = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }; // 5. Filtrar productos por pestaña activa (Lógica actualizada)
 
-  // 3. Modificamos el filtro de productos
   const getProductsForTab = (tab: string) => {
     let statusFilter: string[];
-
     switch (tab) {
+      case "all":
+        statusFilter = ["pending", "processing", "completed", "failed"]; // Todos los estados
+        break;
       case "with-background":
         statusFilter = ["pending"];
         break;
@@ -116,23 +104,17 @@ export const useProductsLogic = () => {
       case "no-background":
         statusFilter = ["completed"];
         break;
+      case "default":
+        statusFilter = []; // No aplica estado, solo el helper
+        break;
       default:
         statusFilter = ["pending"];
     }
 
     return products.filter((product) => {
-      // 👇 INICIO DEL FIX LÓGICO v2 (EL BUENO)
-      // Un producto con imagen "Default" no debe estar en NINGUNA de estas tres pestañas.
-      // Lo filtramos de raíz ANTES de checar el estado.
-      if (isDefaultImage(product)) {
-        return false;
-      }
-      // 👆 FIN DEL FIX LÓGICO v2
+      const isDefault = isDefaultImage(product);
+      const status = getProcessingStatus(product); // Búsqueda
 
-      const status = getProcessingStatus(product);
-      const matchesStatus = statusFilter.includes(status);
-
-      // Búsqueda expandida incluyendo tags restaurada
       const searchLower = searchTerm.toLowerCase();
       const matchesSearch =
         !searchTerm ||
@@ -142,20 +124,34 @@ export const useProductsLogic = () => {
         (product.tags &&
           Array.isArray(product.tags) &&
           product.tags.some((tag) => tag.toLowerCase().includes(searchLower)));
-
       const matchesCategory = filterCategory === "all" || product.category === filterCategory;
+      const baseFilters = matchesSearch && matchesCategory;
 
-      return matchesStatus && matchesSearch && matchesCategory;
+      // Lógica de filtrado por pestaña
+      if (tab === "default") {
+        // Solo productos default que pasen el filtro
+        return isDefault && baseFilters;
+      }
+
+      if (tab === "all") {
+        // Todos los productos MENOS los default que pasen el filtro
+        return !isDefault && baseFilters;
+      }
+
+      // Para el resto de pestañas ('with-background', 'processing', 'no-background')
+      // Excluimos los default y filtramos por estado
+      if (isDefault) return false;
+
+      const matchesStatus = statusFilter.includes(status);
+      return matchesStatus && baseFilters;
     });
   };
 
   const filteredProducts = getProductsForTab(activeTab);
   const categories = Array.from(new Set(products.map((p) => p.category).filter(Boolean)));
 
-  // Cambiar pestaña SIN resetear selecciones
   const handleTabChange = (newTab: string) => {
     setActiveTab(newTab);
-
     const newSearchParams = new URLSearchParams(searchParams);
     newSearchParams.set("tab", newTab);
     setSearchParams(newSearchParams);
@@ -170,8 +166,7 @@ export const useProductsLogic = () => {
   const selectAllProducts = () => {
     const currentTabProductIds = filteredProducts.map((p) => p.id);
     const currentTabSelectedCount = selectedProducts.filter((id) => currentTabProductIds.includes(id)).length;
-
-    if (currentTabSelectedCount === currentTabProductIds.length) {
+    if (currentTabSelectedCount === currentTabProductIds.length && currentTabProductIds.length > 0) {
       // Deseleccionar todos los de esta pestaña
       setSelectedProducts((prev) => prev.filter((id) => !currentTabProductIds.includes(id)));
     } else {
@@ -199,7 +194,6 @@ export const useProductsLogic = () => {
 
     try {
       const selectedProductsData = products.filter((p) => selectedProducts.includes(p.id));
-
       const productsForWebhook = selectedProductsData.map((product) => ({
         id: product.id,
         name: product.name,
@@ -311,14 +305,12 @@ export const useProductsLogic = () => {
       return;
     }
 
-    // Validación de datos de negocio
     if (!isBusinessInfoComplete) {
       toast({
         title: "Información del negocio incompleta",
         description: "Para crear catálogos profesionales necesitas completar los datos de tu empresa",
         variant: "default",
       });
-
       setShowBusinessInfoBanner(true);
       return;
     }
@@ -345,11 +337,10 @@ export const useProductsLogic = () => {
           wholesale_min_qty: product.wholesale_min_qty,
           features: product.features,
           tags: product.tags,
-          image_url: getCatalogImageUrl(product), // 🎯 USAR URL OPTIMIZADA PARA CATÁLOGOS
+          image_url: getCatalogImageUrl(product),
           original_image_url: product.original_image_url,
           processed_image_url: product.processed_image_url,
           hd_image_url: product.hd_image_url,
-          // 🎯 INCLUIR TODAS LAS URLs OPTIMIZADAS
           catalog_image_url: product.catalog_image_url,
           thumbnail_image_url: product.thumbnail_image_url,
           luxury_image_url: product.luxury_image_url,
@@ -365,10 +356,8 @@ export const useProductsLogic = () => {
           updated_at: product.updated_at,
         }));
 
-      // Guardar en localStorage para TemplateSelection (incluyendo el título personalizado)
-      console.log("🔍 DEBUG - Guardando título en localStorage:", catalogTitle);
       localStorage.setItem("selectedProductsData", JSON.stringify(selectedProductsData));
-      localStorage.setItem("catalogTitle", catalogTitle); // Guardar el título personalizado
+      localStorage.setItem("catalogTitle", catalogTitle);
       localStorage.setItem(
         "businessInfo",
         JSON.stringify({
@@ -396,7 +385,6 @@ export const useProductsLogic = () => {
     if (!productToDelete || !user) return;
 
     try {
-      // Usar función de soft delete
       const { data, error } = await supabase.rpc("soft_delete_product", {
         product_id: productToDelete.id,
         requesting_user_id: user.id,
@@ -430,25 +418,24 @@ export const useProductsLogic = () => {
         variant: "destructive",
       });
     }
-  };
+  }; // 6. Cálculo de estadísticas (Actualizado)
 
-  // 4. Modificamos el cálculo de estadísticas
   const getStats = () => {
-    // Primero filtramos todos los productos que NO sean default
     const productsWithRealImages = products.filter((p) => !isDefaultImage(p));
+    const defaultProducts = products.filter((p) => isDefaultImage(p));
 
     return {
-      total: products.length,
-      // Usamos la lista filtrada para los conteos
+      total: products.length, // Total real de todos los productos
+      all: productsWithRealImages.length, // Total de productos REALES (no default)
       withBackground: productsWithRealImages.filter((p) => getProcessingStatus(p) === "pending").length,
       processing: productsWithRealImages.filter((p) => getProcessingStatus(p) === "processing").length,
       noBackground: productsWithRealImages.filter((p) => getProcessingStatus(p) === "completed").length,
       failed: productsWithRealImages.filter((p) => getProcessingStatus(p) === "failed").length,
+      default: defaultProducts.length, // Total de productos "Default"
     };
   };
 
   return {
-    // Estados
     products,
     selectedProducts,
     loading,
@@ -465,18 +452,12 @@ export const useProductsLogic = () => {
     showBusinessInfoBanner,
     setShowBusinessInfoBanner,
     activeTab,
-
-    // Estados de confirmación de eliminación
     showDeleteConfirm,
     setShowDeleteConfirm,
     productToDelete,
-
-    // Datos derivados
     filteredProducts,
     categories,
     stats: getStats(),
-
-    // Funciones
     handleTabChange,
     toggleProductSelection,
     selectAllProducts,
