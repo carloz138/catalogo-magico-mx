@@ -367,6 +367,14 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
   // 👆 --- TERMINA CORRECCIÓN 2 --- 👆
   //
 
+  const handleSubmitQuote = () => {
+    // Lógica para cuando se solicita cotización desde el carrito
+    onTrackEvent("Lead", { currency: "MXN", value: 0 });
+    // Aquí podrías abrir otro modal de formulario si es necesario
+    // o simplemente cerrar el carrito
+    setIsCartOpen(false);
+  };
+
   const handleRadarSubmit = async () => {
     try {
       await supabase.from("solicitudes_mercado").insert({
@@ -652,13 +660,11 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
 
       {/* Modal Carrito */}
       <QuoteCartModal
-        {...({
-          open: isCartOpen,
-          isOpen: isCartOpen,
-          onClose: () => setIsCartOpen(false),
-          catalog: catalog,
-          onSubmitQuote: () => onTrackEvent("Lead", { currency: "MXN", value: 0 }),
-        } as any)}
+        isOpen={isCartOpen}
+        onClose={() => setIsCartOpen(false)}
+        onRequestQuote={handleSubmitQuote}
+        catalogOwnerId={catalog.user_id}
+        freeShippingThreshold={catalog.free_shipping_min_amount || null}
       />
 
       {/* Modal Radar */}
