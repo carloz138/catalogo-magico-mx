@@ -109,7 +109,7 @@ const PublicProductCard = ({
   const hasVariants = product.has_variants || (product.variants && product.variants.length > 0);
   return (
     <div
-      className="group relative flex flex-col overflow-hidden bg-white shadow-sm rounded-xl border border-gray-100 hover:shadow-md transition-all duration-300 cursor-pointer"
+      className="catalog-product-card group relative flex flex-col overflow-hidden bg-white shadow-sm rounded-xl border border-gray-100 hover:shadow-md transition-all duration-300 cursor-pointer"
       onClick={onView}
     >
       <div className="aspect-square bg-gray-50 relative overflow-hidden">
@@ -407,7 +407,7 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20 transition-colors duration-500">
+    <div className="catalog-public-container min-h-screen pb-20 transition-colors duration-500">
       <style>{templateCSS}</style>
 
       {/* Banner */}
