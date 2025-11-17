@@ -18,6 +18,7 @@ import { Label } from "@/components/ui/label";
 import { Search, ShoppingCart, Radar, DollarSign, Plus, ChevronDown, Minus, X, Eye } from "lucide-react";
 import { DigitalCatalog } from "@/types/digital-catalog";
 import { QuoteCartModal } from "@/components/public/QuoteCartModal";
+import { QuoteForm } from "@/components/public/QuoteForm";
 import { useDebounce } from "@/hooks/useDebounce";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -167,10 +168,11 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
   const debouncedSearch = useDebounce(searchTerm, 1000);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [isQuoteFormOpen, setIsQuoteFormOpen] = useState(false);
   const [priceRange, setPriceRange] = useState<{ min: string; max: string }>({ min: "", max: "" });
   const [showRadarModal, setShowRadarModal] = useState(false);
   const [radarForm, setRadarForm] = useState({ name: "", email: "", product: "", quantity: "1" });
-  const { addItem, items } = useQuoteCart();
+  const { addItem, items, clearCart, totalAmount } = useQuoteCart();
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
@@ -368,11 +370,20 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
   //
 
   const handleSubmitQuote = () => {
-    // Lógica para cuando se solicita cotización desde el carrito
-    onTrackEvent("Lead", { currency: "MXN", value: 0 });
-    // Aquí podrías abrir otro modal de formulario si es necesario
-    // o simplemente cerrar el carrito
+    // Cerrar el carrito y abrir el formulario de cotización
     setIsCartOpen(false);
+    setIsQuoteFormOpen(true);
+  };
+
+  const handleQuoteSuccess = () => {
+    // Cuando la cotización se envía exitosamente
+    setIsQuoteFormOpen(false);
+    clearCart();
+    onTrackEvent("Lead", { currency: "MXN", value: totalAmount / 100 });
+    toast({
+      title: "¡Cotización enviada!",
+      description: "Te contactaremos pronto con tu cotización.",
+    });
   };
 
   const handleRadarSubmit = async () => {
@@ -665,6 +676,18 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
         onRequestQuote={handleSubmitQuote}
         catalogOwnerId={catalog.user_id}
         freeShippingThreshold={catalog.free_shipping_min_amount || null}
+      />
+
+      {/* Modal Formulario de Cotización */}
+      <QuoteForm
+        catalogId={catalog.id}
+        replicatedCatalogId={catalog.isReplicated ? catalog.id : undefined}
+        items={items}
+        totalAmount={totalAmount}
+        isOpen={isQuoteFormOpen}
+        onClose={() => setIsQuoteFormOpen(false)}
+        onSuccess={handleQuoteSuccess}
+        businessAddress={null}
       />
 
       {/* Modal Radar */}
