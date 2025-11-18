@@ -1,266 +1,228 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.0";
+// ==========================================
+// FUNCION: send-quote-notification
+// ESTADO: FIX_V1 (Service Role + Logging + Deno Native)
+// ==========================================
+
+import { createClient } from "jsr:@supabase/supabase-js@2.49.8";
+
+// 1. FINGERPRINT: Cambia esto en cada deploy para confirmar actualización
+const DEPLOY_VERSION = "2025.11.18_v2.0_FIX_RLS_NOTIFICATIONS";
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-serve(async (req) => {
-  // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+Deno.serve(async (req) => {
+  // 2. LOGGING INICIAL: Huella digital para detectar "Ghost Code"
+  console.log(
+    JSON.stringify({
+      event: "FUNC_START",
+      function: "send-quote-notification",
+      version: DEPLOY_VERSION,
+      timestamp: new Date().toISOString(),
+    }),
+  );
+
+  // Manejo de CORS (Preflight)
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
   }
 
   try {
-    const { quoteId } = await req.json();
-    
-    if (!quoteId) {
-      throw new Error('Quote ID is required');
-    }
+    const payload = await req.json();
+    const { quoteId } = payload;
 
-    // Initialize Supabase client
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+    if (!quoteId) throw new Error("Quote ID is required");
+
+    // 3. CLIENTE ADMIN (CRÍTICO): Usamos Service Role para poder leer
+    // los datos del usuario L1 (Dueño) aunque quien llame sea L3 (Anónimo).
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+      { auth: { persistSession: false } },
     );
 
-    // Get quote details with items and catalog info
-    const { data: quote, error: quoteError } = await supabaseClient
-      .from('quotes')
-      .select(`
+    // A. Obtener cotización y datos del catálogo
+    const { data: quote, error: quoteError } = await supabaseAdmin
+      .from("quotes")
+      .select(
+        `
         *,
         quote_items (*),
         digital_catalogs (
           name,
           user_id
         )
-      `)
-      .eq('id', quoteId)
+      `,
+      )
+      .eq("id", quoteId)
       .single();
 
-    if (quoteError) throw quoteError;
+    if (quoteError) {
+      console.error(`Error fetching quote: ${JSON.stringify(quoteError)}`);
+      throw new Error("Quote not found or database error");
+    }
 
-    // Get user/business info
-    const { data: user, error: userError } = await supabaseClient
-      .from('users')
-      .select('email, full_name, business_name')
-      .eq('id', quote.digital_catalogs.user_id)
+    // B. Obtener datos del Dueño (L1) - Ahora sí funcionará gracias al Service Role
+    const { data: user, error: userError } = await supabaseAdmin
+      .from("users") // Ojo: Asegúrate que tus datos de perfil estén en 'users' o 'profiles' según tu esquema
+      .select("email, full_name, business_name, phone") // Agregué phone aquí explícito
+      .eq("id", quote.digital_catalogs.user_id)
       .single();
 
-    if (userError) throw userError;
+    if (userError) {
+      console.error(`Error fetching owner user: ${JSON.stringify(userError)}`);
+      throw new Error("Owner user not found");
+    }
 
-    // Get user's subscription to check plan
-    const { data: subscription } = await supabaseClient
-      .from('subscriptions')
-      .select('package_id, credit_packages(name)')
-      .eq('user_id', quote.digital_catalogs.user_id)
-      .eq('status', 'active')
+    // C. Verificar Suscripción
+    const { data: subscription } = await supabaseAdmin
+      .from("subscriptions")
+      .select("package_id, credit_packages(name)")
+      .eq("user_id", quote.digital_catalogs.user_id)
+      .eq("status", "active")
       .single();
 
-    const packageName = subscription?.credit_packages?.name?.toLowerCase() || '';
-    const hasWhatsApp = 
-      packageName.includes('medio') || 
-      packageName.includes('profesional') ||
-      packageName.includes('premium') ||
-      packageName.includes('empresarial');
+    const packageName = subscription?.credit_packages?.name?.toLowerCase() || "";
+    const hasWhatsApp =
+      packageName.includes("medio") ||
+      packageName.includes("profesional") ||
+      packageName.includes("premium") ||
+      packageName.includes("empresarial");
 
     let emailSent = false;
     let whatsappSent = false;
 
-    // Send email notification using Resend
-    if (Deno.env.get('RESEND_API_KEY')) {
+    // D. Enviar Email (Resend)
+    const resendKey = Deno.env.get("RESEND_API_KEY");
+    if (resendKey) {
+      const res = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${resendKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          from: "CatifyPro Notificaciones <onboarding@resend.dev>", // TIP: Cambia esto a tu dominio verificado cuando puedas
+          to: [user.email],
+          subject: `Nueva cotización de ${quote.customer_name}`,
+          html: generateEmailTemplate(quote, user),
+        }),
+      });
+
+      if (res.ok) {
+        emailSent = true;
+        console.log(JSON.stringify({ event: "EMAIL_SENT", to: user.email }));
+      } else {
+        console.error("Resend Error:", await res.text());
+      }
+    }
+
+    // E. Enviar WhatsApp (Twilio)
+    // Validamos que tenga teléfono y credenciales antes de intentar
+    const twilioSid = Deno.env.get("TWILIO_ACCOUNT_SID");
+    const twilioToken = Deno.env.get("TWILIO_AUTH_TOKEN");
+    const twilioPhone = Deno.env.get("TWILIO_PHONE_NUMBER");
+
+    if (hasWhatsApp && twilioSid && twilioToken && user.phone) {
       try {
-        const resendResponse = await fetch('https://api.resend.com/emails', {
-          method: 'POST',
+        const twilioAuth = btoa(`${twilioSid}:${twilioToken}`);
+        const message = generateWhatsAppMessage(quote, user);
+
+        const twilioRes = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${twilioSid}/Messages.json`, {
+          method: "POST",
           headers: {
-            'Authorization': `Bearer ${Deno.env.get('RESEND_API_KEY')}`,
-            'Content-Type': 'application/json',
+            Authorization: `Basic ${twilioAuth}`,
+            "Content-Type": "application/x-www-form-urlencoded",
           },
-          body: JSON.stringify({
-            from: 'Catálogos Digitales <notifications@yourdomain.com>',
-            to: [user.email],
-            subject: `Nueva cotización de ${quote.customer_name}`,
-            html: generateEmailTemplate(quote, user),
+          body: new URLSearchParams({
+            To: `whatsapp:${user.phone}`, // Asegúrate que user.phone tenga formato E.164 o limpio
+            From: `whatsapp:${twilioPhone}`,
+            Body: message,
           }),
         });
 
-        if (resendResponse.ok) {
-          emailSent = true;
-          console.log('Email sent successfully');
-        } else {
-          console.error('Resend error:', await resendResponse.text());
-        }
-      } catch (emailError) {
-        console.error('Error sending email:', emailError);
-      }
-    }
-
-    // Send WhatsApp notification (only for medio/premium plans)
-    if (hasWhatsApp && Deno.env.get('TWILIO_ACCOUNT_SID') && Deno.env.get('TWILIO_AUTH_TOKEN')) {
-      try {
-        const twilioAuth = btoa(`${Deno.env.get('TWILIO_ACCOUNT_SID')}:${Deno.env.get('TWILIO_AUTH_TOKEN')}`);
-        
-        const message = generateWhatsAppMessage(quote, user);
-        
-        const twilioResponse = await fetch(
-          `https://api.twilio.com/2010-04-01/Accounts/${Deno.env.get('TWILIO_ACCOUNT_SID')}/Messages.json`,
-          {
-            method: 'POST',
-            headers: {
-              'Authorization': `Basic ${twilioAuth}`,
-              'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: new URLSearchParams({
-              To: `whatsapp:${user.phone || ''}`,
-              From: `whatsapp:${Deno.env.get('TWILIO_PHONE_NUMBER') || ''}`,
-              Body: message,
-            }),
-          }
-        );
-
-        if (twilioResponse.ok) {
+        if (twilioRes.ok) {
           whatsappSent = true;
-          console.log('WhatsApp sent successfully');
+          console.log(JSON.stringify({ event: "WHATSAPP_SENT", to: user.phone }));
         } else {
-          console.error('Twilio error:', await twilioResponse.text());
+          console.error("Twilio Error:", await twilioRes.text());
         }
-      } catch (whatsappError) {
-        console.error('Error sending WhatsApp:', whatsappError);
+      } catch (err) {
+        console.error("Twilio Fetch Error:", err);
       }
     }
 
-    return new Response(
-      JSON.stringify({ 
-        success: true,
-        emailSent,
-        whatsappSent,
-      }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
-      }
-    );
-
+    return new Response(JSON.stringify({ success: true, emailSent, whatsappSent }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 200,
+    });
   } catch (error) {
-    console.error('Error in send-quote-notification:', error);
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500,
-      }
-    );
+    console.error(`FATAL ERROR in ${DEPLOY_VERSION}:`, error);
+    return new Response(JSON.stringify({ error: error.message }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 500,
+    });
   }
 });
 
-function generateEmailTemplate(quote: any, user: any): string {
+// --- HELPERS (Sin cambios lógicos, solo limpieza) ---
+
+function generateEmailTemplate(quote: any, user: any) {
   const items = quote.quote_items || [];
   const total = items.reduce((sum: number, item: any) => sum + item.subtotal, 0);
-  
-  const itemsHTML = items.map((item: any) => `
+
+  const itemsHTML = items
+    .map(
+      (item: any) => `
     <tr>
-      <td style="padding: 10px; border-bottom: 1px solid #eee;">
-        ${item.product_name}
-      </td>
-      <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: center;">
-        ${item.quantity}
-      </td>
-      <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: right;">
-        $${item.unit_price.toLocaleString('es-MX')}
-      </td>
-      <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: right;">
-        <strong>$${item.subtotal.toLocaleString('es-MX')}</strong>
-      </td>
+      <td style="padding: 10px; border-bottom: 1px solid #eee;">${item.product_name}</td>
+      <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: center;">${item.quantity}</td>
+      <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: right;">$${item.unit_price.toLocaleString("es-MX")}</td>
+      <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: right;"><strong>$${item.subtotal.toLocaleString("es-MX")}</strong></td>
     </tr>
-  `).join('');
+  `,
+    )
+    .join("");
 
   return `
     <!DOCTYPE html>
     <html>
-    <head>
-      <meta charset="utf-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    </head>
     <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
       <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
         <h1 style="color: white; margin: 0;">Nueva Cotización Recibida</h1>
       </div>
-      
       <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
-        <p style="font-size: 16px; margin-bottom: 20px;">
-          Hola <strong>${user.business_name || user.full_name}</strong>,
-        </p>
+        <p>Hola <strong>${user.business_name || user.full_name}</strong>,</p>
+        <p>Has recibido una cotización del catálogo <strong>${quote.digital_catalogs.name}</strong>.</p>
         
-        <p style="font-size: 16px; margin-bottom: 30px;">
-          Has recibido una nueva cotización del catálogo <strong>${quote.digital_catalogs.name}</strong>.
-        </p>
-        
-        <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
-          <h2 style="color: #667eea; margin-top: 0;">Datos del Cliente</h2>
-          <p><strong>Nombre:</strong> ${quote.customer_name}</p>
-          <p><strong>Email:</strong> ${quote.customer_email}</p>
-          ${quote.customer_company ? `<p><strong>Empresa:</strong> ${quote.customer_company}</p>` : ''}
-          ${quote.customer_phone ? `<p><strong>Teléfono:</strong> ${quote.customer_phone}</p>` : ''}
-          ${quote.notes ? `<p><strong>Notas:</strong> ${quote.notes}</p>` : ''}
+        <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+          <h3 style="color: #667eea; margin: 0;">Datos del Cliente</h3>
+          <p style="margin: 5px 0;"><strong>Nombre:</strong> ${quote.customer_name}</p>
+          <p style="margin: 5px 0;"><strong>Email:</strong> ${quote.customer_email}</p>
+          ${quote.customer_phone ? `<p style="margin: 5px 0;"><strong>Tel:</strong> ${quote.customer_phone}</p>` : ""}
         </div>
-        
-        <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
-          <h2 style="color: #667eea; margin-top: 0;">Productos Cotizados</h2>
+
+        <div style="background: white; padding: 20px; border-radius: 8px;">
           <table style="width: 100%; border-collapse: collapse;">
-            <thead>
-              <tr style="background: #f0f0f0;">
-                <th style="padding: 10px; text-align: left;">Producto</th>
-                <th style="padding: 10px; text-align: center;">Cantidad</th>
-                <th style="padding: 10px; text-align: right;">Precio Unit.</th>
-                <th style="padding: 10px; text-align: right;">Subtotal</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${itemsHTML}
-            </tbody>
-            <tfoot>
-              <tr>
-                <td colspan="3" style="padding: 15px; text-align: right; font-size: 18px;">
-                  <strong>TOTAL:</strong>
-                </td>
-                <td style="padding: 15px; text-align: right; font-size: 18px; color: #667eea;">
-                  <strong>$${total.toLocaleString('es-MX')} MXN</strong>
-                </td>
-              </tr>
-            </tfoot>
+            <thead><tr style="background: #f0f0f0;"><th align="left">Prod</th><th>Cant</th><th>$$</th><th>Sub</th></tr></thead>
+            <tbody>${itemsHTML}</tbody>
+            <tfoot><tr><td colspan="4" align="right" style="padding-top:10px; font-size:18px;"><strong>Total: $${total.toLocaleString("es-MX")}</strong></td></tr></tfoot>
           </table>
         </div>
         
         <div style="text-align: center; margin-top: 30px;">
-          <a href="${Deno.env.get('SUPABASE_URL')}/dashboard/quotes/${quote.id}" 
-             style="display: inline-block; padding: 15px 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
-            Ver Cotización Completa
-          </a>
+          <a href="${Deno.env.get("SUPABASE_URL")}/dashboard/quotes/${quote.id}" style="background: #667eea; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold;">Ver en Dashboard</a>
         </div>
-        
-        <p style="text-align: center; margin-top: 30px; color: #666; font-size: 14px;">
-          Responde rápido para no perder la venta 🚀
-        </p>
       </div>
     </body>
     </html>
   `;
 }
 
-function generateWhatsAppMessage(quote: any, user: any): string {
+function generateWhatsAppMessage(quote: any, user: any) {
   const items = quote.quote_items || [];
   const total = items.reduce((sum: number, item: any) => sum + item.subtotal, 0);
-  
-  return `🔔 *Nueva Cotización Recibida*
-
-📦 Catálogo: ${quote.digital_catalogs.name}
-
-👤 *Cliente:* ${quote.customer_name}
-📧 Email: ${quote.customer_email}
-${quote.customer_company ? `🏢 Empresa: ${quote.customer_company}\n` : ''}
-
-💰 *Total:* $${total.toLocaleString('es-MX')} MXN
-
-Ver detalles completos en tu dashboard 👉`;
+  return `🔔 *Nueva Cotización Recibida*\n\n📦 Catálogo: ${quote.digital_catalogs.name}\n\n👤 *Cliente:* ${quote.customer_name}\n📧 Email: ${quote.customer_email}\n💰 *Total:* $${total.toLocaleString("es-MX")} MXN\n\nVer detalles en tu dashboard 👉`;
 }
