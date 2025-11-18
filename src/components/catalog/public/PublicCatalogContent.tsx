@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Label } from "@/components/ui/label";
-import { Search, ShoppingCart, Radar, DollarSign, Plus, ChevronDown, Minus, X, Eye } from "lucide-react";
+import { Search, ShoppingCart, Radar, DollarSign, Plus, ChevronDown, Minus, X, Eye, Filter } from "lucide-react";
 import { DigitalCatalog } from "@/types/digital-catalog";
 import { QuoteCartModal } from "@/components/public/QuoteCartModal";
 import { QuoteForm } from "@/components/public/QuoteForm";
@@ -24,6 +24,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useQuoteCart } from "@/contexts/QuoteCartContext";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import ProductFilters from "@/components/public/ProductFilters";
 
 // Importar archivos de Templates
 import { EXPANDED_WEB_TEMPLATES } from "@/lib/web-catalog/expanded-templates-catalog";
@@ -39,6 +41,7 @@ interface Product {
   price_wholesale?: number | null;
   wholesale_min_qty?: number | null;
   category?: string | null;
+  tags?: string[];
   image_url?: string;
   original_image_url?: string | null;
   has_variants?: boolean;
@@ -177,6 +180,8 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
   const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [productToZoom, setProductToZoom] = useState<Product | null>(null);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [isFiltersOpen, setIsFiltersOpen] = useState(false);
 
   // Lógica de Templates
   const activeTemplate = useMemo(() => {
@@ -236,19 +241,50 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
     }
   }, [debouncedSearch]);
 
+  // Extraer tags únicos y calcular rangos de precio
+  const { allTags, minPrice, maxPrice } = useMemo(() => {
+    const prods = (catalog.products || []) as unknown as Product[];
+    const tagsSet = new Set<string>();
+    const prices: number[] = [];
+
+    prods.forEach((product) => {
+      // Extraer tags
+      if (product.tags && Array.isArray(product.tags)) {
+        product.tags.forEach((tag: string) => tagsSet.add(tag));
+      }
+      // Extraer precios
+      const price = product.price_retail ? product.price_retail / 100 : 0;
+      if (price > 0) prices.push(price);
+    });
+
+    return {
+      allTags: Array.from(tagsSet).sort(),
+      minPrice: prices.length > 0 ? Math.floor(Math.min(...prices)) : 0,
+      maxPrice: prices.length > 0 ? Math.ceil(Math.max(...prices)) : 100,
+    };
+  }, [catalog.products]);
+
   // Filtrado
   const filteredProducts = useMemo(() => {
     const prods = (catalog.products || []) as unknown as Product[];
     return prods.filter((product) => {
       const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesCategory = selectedCategory ? product.category === selectedCategory : true;
+      
+      // Filter by tags
+      if (selectedTags.length > 0) {
+        const productTags = (product.tags || []) as string[];
+        const hasMatchingTag = selectedTags.some((tag) => productTags.includes(tag));
+        if (!hasMatchingTag) return false;
+      }
+
       const price = product.price_retail ? product.price_retail / 100 : 0;
       const min = priceRange.min ? parseFloat(priceRange.min) : 0;
       const max = priceRange.max ? parseFloat(priceRange.max) : Infinity;
       const matchesPrice = price >= min && price <= max;
       return matchesSearch && matchesCategory && matchesPrice;
     });
-  }, [catalog.products, searchTerm, selectedCategory, priceRange]);
+  }, [catalog.products, searchTerm, selectedCategory, priceRange, selectedTags]);
 
   const categories = Array.from(new Set(catalog.products?.map((p) => p.category).filter(Boolean) as string[]));
 
@@ -450,7 +486,51 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
                   className="pl-10 border-gray-200 focus:border-primary focus:ring-primary h-11"
                 />
               </div>
-              <Popover>
+              <div className="flex gap-2">
+                <Sheet open={isFiltersOpen} onOpenChange={setIsFiltersOpen}>
+                  <SheetTrigger asChild>
+                    <Button variant="outline" className="h-11 border-gray-200 text-gray-700 hover:bg-gray-50 gap-2">
+                      <Filter className="h-4 w-4" />
+                      Filtros
+                      {selectedTags.length > 0 && (
+                        <Badge variant="secondary" className="h-5 px-1 ml-1 bg-primary/10 text-primary rounded-sm">
+                          {selectedTags.length}
+                        </Badge>
+                      )}
+                    </Button>
+                  </SheetTrigger>
+                  <SheetContent side="left" className="w-[300px] sm:w-[400px] overflow-y-auto">
+                    <SheetHeader>
+                      <SheetTitle>Filtros</SheetTitle>
+                    </SheetHeader>
+                    <div className="mt-6">
+                      <ProductFilters
+                        tags={allTags}
+                        minPrice={minPrice}
+                        maxPrice={maxPrice}
+                        selectedTags={selectedTags}
+                        onTagsChange={setSelectedTags}
+                        priceRange={[
+                          priceRange.min ? parseFloat(priceRange.min) : minPrice,
+                          priceRange.max ? parseFloat(priceRange.max) : maxPrice
+                        ]}
+                        onPriceRangeChange={(range) => {
+                          setPriceRange({
+                            min: range[0].toString(),
+                            max: range[1].toString()
+                          });
+                        }}
+                        onClearAll={() => {
+                          setSelectedTags([]);
+                          setPriceRange({ min: "", max: "" });
+                        }}
+                        resultCount={filteredProducts.length}
+                        showTags={allTags.length > 0}
+                      />
+                    </div>
+                  </SheetContent>
+                </Sheet>
+                <Popover>
                 <PopoverTrigger asChild>
                   <Button variant="outline" className="h-11 border-gray-200 text-gray-700 hover:bg-gray-50 gap-2">
                     <DollarSign className="h-4 w-4" />
@@ -501,6 +581,7 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
                   </div>
                 </PopoverContent>
               </Popover>
+              </div>
             </div>
             {categories.length > 0 && (
               <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
