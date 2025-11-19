@@ -1361,6 +1361,7 @@ export type Database = {
             | Database["public"]["Enums"]["delivery_method_enum"]
             | null
           id: string
+          items_count: number | null
           notes: string | null
           order_number: string | null
           replicated_catalog_id: string | null
@@ -1383,6 +1384,7 @@ export type Database = {
             | Database["public"]["Enums"]["delivery_method_enum"]
             | null
           id?: string
+          items_count?: number | null
           notes?: string | null
           order_number?: string | null
           replicated_catalog_id?: string | null
@@ -1405,6 +1407,7 @@ export type Database = {
             | Database["public"]["Enums"]["delivery_method_enum"]
             | null
           id?: string
+          items_count?: number | null
           notes?: string | null
           order_number?: string | null
           replicated_catalog_id?: string | null
