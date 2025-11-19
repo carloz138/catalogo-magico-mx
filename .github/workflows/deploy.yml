@@ -1,0 +1,35 @@
+name: Deploy Edge Functions
+
+on:
+  push:
+    branches: [ main, master ] # Despliega solo cuando subes código a la rama principal (ajusta si usas otro nombre)
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    env:
+      # Los secrets que acabas de crear
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+      
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Generate and Set FUNCTION_HASH Secret 🔑
+        # Genera un hash único de 7 caracteres a partir del ID del commit
+        run: |
+          COMMIT_HASH=$(echo $GITHUB_SHA | cut -c1-7)
+          echo "Desplegando la versión: $COMMIT_HASH"
+          # Comando CRÍTICO: Actualiza el secret en Supabase
+          supabase secrets set FUNCTION_HASH=$COMMIT_HASH --project-ref $SUPABASE_PROJECT_REF
+          
+      - name: Deploy All Functions (Atomic Deployment) 🚀
+        # Comando CRÍTICO: Registra las nuevas funciones (como create-quote) y actualiza todas las existentes.
+        run: supabase functions deploy --project-ref $SUPABASE_PROJECT_REF
