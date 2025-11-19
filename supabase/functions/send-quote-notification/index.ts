@@ -213,7 +213,7 @@ function generateEmailTemplate(quote: any, user: any) {
         </div>
         
         <div style="text-align: center; margin-top: 30px;">
-          <a href="${Deno.env.get("SUPABASE_URL")}/dashboard/quotes/${quote.id}" style="background: #667eea; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold;">Ver en Dashboard</a>
+          <a href="${Deno.env.get("SITE_URL")}/quotes/${quote.id}" style="background: #667eea; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold;">Ver en Dashboard</a>
         </div>
       </div>
     </body>
