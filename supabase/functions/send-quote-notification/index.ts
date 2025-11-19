@@ -104,7 +104,7 @@ Deno.serve(async (req) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          from: "CatifyPro Notificaciones <onboarding@resend.dev>", // TIP: Cambia esto a tu dominio verificado cuando puedas
+          from: "CatifyPro Notificaciones <noreply@catifypro.com>", // TIP: Cambia esto a tu dominio verificado cuando puedas
           to: [user.email],
           subject: `Nueva cotización de ${quote.customer_name}`,
           html: generateEmailTemplate(quote, user),
