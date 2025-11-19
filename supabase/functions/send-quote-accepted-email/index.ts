@@ -140,7 +140,7 @@ Deno.serve(async (req) => {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                from: 'Catálogos Digitales <notifications@catalogify.app>',
+                from: 'Catálogos Digitales <noreply@catifypro.com>',
                 to: [customerEmail],
                 subject: '✅ Tu cotización ha sido aceptada',
                 html: template
