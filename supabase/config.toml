@@ -11,3 +11,15 @@ verify_jwt = false
 
 [functions.stripe-webhook]
 verify_jwt = false
+
+[functions.check-catalog-limits]
+verify_jwt = true
+
+[functions.send-quote-accepted-email]
+verify_jwt = false
+
+[functions.send-quote-notification]
+verify_jwt = false
+
+[functions.track-catalog-view]
+verify_jwt = false
