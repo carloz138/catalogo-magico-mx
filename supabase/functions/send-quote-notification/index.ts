@@ -1,6 +1,6 @@
 // ==========================================
 // FUNCION: send-quote-notification
-// ESTADO: FIX_V9.1 (FINAL - Trazabilidad HASH y Fix Precios)
+// ESTADO: FIX_V10 (FINAL - Estética Corregida y URL Acortada)
 // ==========================================
 import { createClient } from 'jsr:@supabase/supabase-js@2.49.8';
 
@@ -116,9 +116,9 @@ Deno.serve(async (req) => {
         if (twilioRes.ok) {
           whatsappSent = true;
           console.log(JSON.stringify({ event: "WHATSAPP_SENT", to: user.phone }));
-        } else {
-          console.error('Twilio Error:', await twilioRes.text());
-        }
+      } else {
+        console.error('Twilio Error:', await twilioRes.text());
+      }
       } catch (err) {
         console.error('Twilio Fetch Error:', err);
       }
@@ -138,9 +138,10 @@ Deno.serve(async (req) => {
   }
 });
 
-// --- HELPERS REQUERIDOS (Compartidos entre las funciones) ---
 
-// Helper de búsqueda de usuario (para manejar users, profiles, business_info)
+// --- HELPERS REQUERIDOS ---
+
+// Helper de búsqueda de usuario (reutilizado)
 async function getOwnerData(supabaseAdmin: any, ownerId: string): Promise<any> {
     const tablesToTry = ['profiles', 'business_info', 'users']; 
     const selectFields = 'email, full_name, business_name, phone';
@@ -162,7 +163,7 @@ function formatCurrency(valueInCents: number): string {
     return valueInUnits.toLocaleString('es-MX', formatOptions);
 }
 
-// Helper para el cuerpo del Email (HTML)
+// Helper para el cuerpo del Email (HTML) - CORRECCIONES APLICADAS AQUÍ
 function generateEmailTemplate(quote: any, user: any) {
     const items = quote.quote_items || [];
     const totalInCents = items.reduce((sum: number, item: any) => sum + item.subtotal, 0);
@@ -171,13 +172,13 @@ function generateEmailTemplate(quote: any, user: any) {
 
     const itemsHTML = items.map((item: any) => `
         <tr>
-            <td style="padding: 10px; border-bottom: 1px solid #eee;">
+            <td style="padding: 8px; border-bottom: 1px solid #eee;">
                 ${item.product_name} 
-                ${item.variant_description ? `<br><small style="color: #666;">${item.variant_description}</small>` : ''}
+                ${item.variant_description ? `<br><small style="color: #666; line-height: 1.2;">${item.variant_description}</small>` : ''}
             </td>
-            <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: center;">${item.quantity}</td>
-            <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: right;">$${formatCurrency(item.unit_price)}</td>
-            <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: right;"><strong>$${formatCurrency(item.subtotal)}</strong></td>
+            <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: center;">${item.quantity}</td>
+            <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">$${formatCurrency(item.unit_price)}</td>
+            <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;"><strong>$${formatCurrency(item.subtotal)}</strong></td>
         </tr>
     `).join('');
 
@@ -192,10 +193,10 @@ function generateEmailTemplate(quote: any, user: any) {
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
              <style>
                 body { margin: 0; padding: 0; }
-                p { margin: 0 0 10px 0; }
+                p { margin: 0 0 8px 0; } /* Menos margen en párrafos */
             </style>
         </head>
-        <body style="font-family: Arial, sans-serif; line-height: 1.5; color: #333; max-width: 600px; margin: 0 auto; padding: 0;"> 
+        <body style="font-family: Arial, sans-serif; line-height: 1.3; color: #333; max-width: 600px; margin: 0 auto; padding: 0;"> 
             <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
                 <h1 style="color: white; margin: 0;">Nueva Cotización Recibida</h1>
             </div>
@@ -209,24 +210,24 @@ function generateEmailTemplate(quote: any, user: any) {
                     Has recibido una nueva cotización del catálogo <strong>${quote.digital_catalogs.name}</strong>.
                 </p>
                 
-                <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
-                    <h2 style="color: #667eea; margin-top: 0;">Datos del Cliente</h2>
+                <div style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                    <h2 style="color: #667eea; margin-top: 0; margin-bottom: 10px;">Datos del Cliente</h2>
                     <p><strong>Nombre:</strong> ${quote.customer_name}</p>
                     <p><strong>Email:</strong> ${quote.customer_email}</p>
                     ${quote.customer_company ? `<p><strong>Empresa:</strong> ${quote.customer_company}</p>` : ''}
                     ${quote.customer_phone ? `<p><strong>Teléfono:</strong> ${quote.customer_phone}</p>` : ''}
-                    ${quote.notes ? `<p><strong>Notas:</strong> ${quote.notes}</p>` : ''}
+                    ${quote.notes ? `<p style="margin-top: 10px;"><strong>Notas:</strong> ${quote.notes}</p>` : ''}
                 </div>
                 
-                <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
-                    <h2 style="color: #667eea; margin-top: 0;">Productos Cotizados</h2>
+                <div style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 30px;">
+                    <h2 style="color: #667eea; margin-top: 0; margin-bottom: 10px;">Productos Cotizados</h2>
                     <table style="width: 100%; border-collapse: collapse;">
                         <thead>
                             <tr style="background: #f0f0f0;">
-                                <th style="padding: 10px; text-align: left;">Producto</th>
-                                <th style="padding: 10px; text-align: center;">Cantidad</th>
-                                <th style="padding: 10px; text-align: right;">Precio Unit.</th>
-                                <th style="padding: 10px; text-align: right;">Subtotal</th>
+                                <th style="padding: 8px; text-align: left;">Producto</th>
+                                <th style="padding: 8px; text-align: center;">Cant.</th>
+                                <th style="padding: 8px; text-align: right;">Precio Unit.</th>
+                                <th style="padding: 8px; text-align: right;">Subtotal</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -234,10 +235,10 @@ function generateEmailTemplate(quote: any, user: any) {
                         </tbody>
                         <tfoot>
                             <tr>
-                                <td colspan="3" style="padding: 15px; text-align: right; font-size: 18px;">
+                                <td colspan="3" style="padding: 10px; text-align: right; font-size: 16px;">
                                     <strong>TOTAL:</strong>
                                 </td>
-                                <td style="padding: 15px; text-align: right; font-size: 18px; color: #667eea;">
+                                <td style="padding: 10px; text-align: right; font-size: 16px; color: #667eea;">
                                     <strong>$${total} MXN</strong>
                                 </td>
                             </tr>
@@ -246,7 +247,7 @@ function generateEmailTemplate(quote: any, user: any) {
                 </div>
                 
                 <div style="text-align: center; margin-top: 30px;">
-                    <a href="${dashboardUrl}/dashboard/quotes/${quote.id}" 
+                    <a href="${dashboardUrl}/quotes/${quote.id}" 
                         style="display: inline-block; padding: 15px 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
                         Ver Cotización Completa
                     </a>
