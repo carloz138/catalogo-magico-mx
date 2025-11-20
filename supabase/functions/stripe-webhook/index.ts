@@ -1,246 +1,201 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+// ==========================================
+// FUNCION: stripe-webhook
+// ESTADO: FIX_V1 (Inmutabilidad HASH y Fix Imports/JWT)
+// ==========================================
+import { serve } from "https://deno.land/std@0.207.0/http/server.ts"; // ⬅️ Uso de versión estable de serve
+import { createClient } from "jsr:@supabase/supabase-js@2.49.8"; // ⬅️ Uso de versión estable de Supabase JS
 import Stripe from "https://esm.sh/stripe@14.21.0?target=deno";
 
+// 1. HARDENING: Leer el Hash de la variable de entorno
+const DEPLOY_VERSION = Deno.env.get('FUNCTION_HASH') || "UNKNOWN_HASH"; 
+
+// Configuración de Stripe para Deno (con httpClient)
 const stripe = new Stripe(Deno.env.get('STRIPE_API_KEY') || '', {
-  apiVersion: '2023-10-16',
+  apiVersion: '2023-10-16',
+  httpClient: Stripe.createFetchHttpClient(), // 👈 VITAL para Deno/Edge
 });
 
-const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const webhookSecret = Deno.env.get('STRIPE_WEBHOOK_SIGNING_SECRET')!;
+const supabaseUrl = Deno.env.get('SUPABASE_URL');
+const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+const webhookSecret = Deno.env.get('STRIPE_WEBHOOK_SIGNING_SECRET');
 
+// El cliente de Supabase usa el Service Role, lo cual es correcto.
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, stripe-signature',
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, stripe-signature'
 };
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
+    // Logging Inicial con HASH como trazabilidad
+    console.log(JSON.stringify({
+        event: "FUNC_START",
+        function: "stripe-webhook",
+        version: DEPLOY_VERSION, // ⬅️ HASH INMUTABLE
+        timestamp: new Date().toISOString()
+    }));
 
-  try {
-    const signature = req.headers.get('stripe-signature');
-    if (!signature) {
-      console.error('❌ No signature found');
-      return new Response('No signature', { status: 400 });
-    }
+  if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
-    const body = await req.text();
-    
-    let event: Stripe.Event;
-    try {
-      event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
-    } catch (err) {
-      console.error('❌ Webhook signature verification failed:', err.message);
-      return new Response(`Webhook Error: ${err.message}`, { status: 400 });
-    }
+  try {
+    const signature = req.headers.get('stripe-signature');
+    if (!signature) return new Response('No signature', { status: 400 });
 
-    console.log(`✅ Webhook received: ${event.type}`);
+    const body = await req.text();
+    let event;
 
-    switch (event.type) {
-      case 'checkout.session.completed': {
-        const session = event.data.object as Stripe.Checkout.Session;
-        console.log('💳 Processing checkout.session.completed:', session.id);
+    try {
+      // ✅ CORRECCIÓN 1: USAR ASYNC (Evita que Deno explote)
+      event = await stripe.webhooks.constructEventAsync(body, signature, webhookSecret);
+    } catch (err) {
+      console.error(`❌ Webhook signature verification failed: ${err.message}`);
+      return new Response(`Webhook Error: ${err.message}`, { status: 400 });
+    }
 
-        // Buscar transacción por user_id + subscription_plan_id + pending status
-        const userId = session.client_reference_id || session.metadata?.user_id;
-        const packageId = session.metadata?.package_id;
-        
-        if (!userId || !packageId) {
-          console.error('❌ Missing user_id or package_id in session metadata');
-          return new Response('Invalid session metadata', { status: 400 });
-        }
+    console.log(`✅ Webhook received: ${event.type}`);
 
-        const { data: transaction, error: txError } = await supabase
-          .from('transactions')
-          .update({
-            payment_status: 'completed',
-            stripe_payment_intent_id: session.payment_intent as string,
-            stripe_charge_id: session.id,
-            completed_at: new Date().toISOString()
-          })
-          .eq('user_id', userId)
-          .eq('subscription_plan_id', packageId)
-          .eq('payment_status', 'pending')
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .select()
-          .single();
+    switch (event.type) {
+      case 'checkout.session.completed': {
+        const session = event.data.object;
+        console.log('💳 Processing checkout.session.completed for Session ID:', session.id);
 
-        if (txError || !transaction) {
-          console.error('❌ Error updating transaction:', txError);
-          return new Response('Transaction not found', { status: 404 });
-        }
+        // ✅ CORRECCIÓN 2: BUSCAR POR SESSION ID (Infalible)
+        // Primero intentamos la búsqueda exacta
+        let { data: transaction, error: txError } = await supabase
+          .from('transactions')
+          .select('*')
+          .eq('stripe_session_id', session.id) 
+          .maybeSingle();
 
-        console.log('✅ Transaction updated:', transaction.id);
+        // Si falla, usamos el plan de respaldo (metadata)
+        if (txError || !transaction) {
+          console.error('❌ Primary lookup failed. Trying fallback...', txError);
+          const userId = session.metadata?.user_id;
+          const packageId = session.metadata?.package_id;
+          
+          if (userId && packageId) {
+             const { data: txFallback } = await supabase
+                .from('transactions')
+                .select('*')
+                .eq('user_id', userId)
+                .eq('package_id', packageId)
+                .eq('payment_status', 'pending')
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .maybeSingle();
+             
+             if(txFallback) transaction = txFallback;
+          }
+        }
 
-        // Crear suscripción
-        const subscriptionData = {
-          user_id: transaction.user_id,
-          package_id: transaction.package_id,
-          stripe_subscription_id: session.subscription as string || null,
-          stripe_customer_id: session.customer as string,
-          status: 'active',
-          current_period_start: new Date().toISOString(),
-          current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
-        };
+        if (!transaction) {
+           console.error('❌ FATAL: Transaction not found for session:', session.id);
+           return new Response('Transaction not found', { status: 404 });
+        }
 
-        const { data: subscription, error: subError } = await supabase
-          .from('subscriptions')
-          .insert(subscriptionData)
-          .select()
-          .single();
+        console.log('✅ Transaction found:', transaction.id);
 
-        if (subError) {
-          console.error('❌ Error creating subscription:', subError);
-          return new Response('Subscription error', { status: 500 });
-        }
+        // 1. Actualizar Transacción
+        await supabase.from('transactions').update({
+            payment_status: 'completed',
+            stripe_payment_intent_id: session.payment_intent,
+            stripe_charge_id: typeof session.payment_intent === 'string' ? session.payment_intent : session.id,
+            completed_at: new Date().toISOString()
+          }).eq('id', transaction.id);
 
-        console.log(`✅ Subscription created for user ${transaction.user_id}`);
+        // 2. Actualizar Usuario (Feature flags inmediatas)
+        // Asegúrate que estos IDs coincidan con tu DB real
+        const isPro = transaction.package_id === 'b4fd4d39-8225-46c6-904f-20815e7c0b4e'; 
+        const isEnterprise = transaction.package_id === '0bacec4c-1316-4890-a309-44ebd357552b';
+        
+        await supabase.from('users').update({
+            plan_type: isEnterprise ? 'enterprise' : (isPro ? 'pro' : 'basic'),
+            current_plan: transaction.package_id
+        }).eq('id', transaction.user_id);
 
-        // Inicializar contador de catalog_usage
-        const currentMonth = parseInt(
-          new Date().getFullYear().toString() + 
-          (new Date().getMonth() + 1).toString().padStart(2, '0')
-        );
+        // 3. Crear/Actualizar Suscripción
+        const subscriptionData = {
+          user_id: transaction.user_id,
+          package_id: transaction.package_id,
+          stripe_subscription_id: session.subscription || null,
+          stripe_customer_id: session.customer,
+          status: 'active',
+          current_period_start: new Date().toISOString(),
+          current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+        };
 
-        console.log(`📊 Inicializando catalog_usage para mes ${currentMonth}`);
+        // ✅ CORRECCIÓN 3: USAR UPSERT (Evita errores si Stripe reenvía el evento)
+        const { error: subError } = await supabase
+            .from('subscriptions')
+            .upsert(subscriptionData, { onConflict: 'user_id' });
 
-        const { error: usageError } = await supabase
-          .from('catalog_usage')
-          .insert({
-            user_id: transaction.user_id,
-            usage_month: currentMonth,
-            subscription_plan_id: transaction.package_id,
-            catalogs_generated: 0,
-            uploads_used: 0
-          });
+        if (subError) console.error('❌ Error creating subscription:', subError);
+        else console.log(`✅ Subscription active for user ${transaction.user_id}`);
 
-        if (usageError) {
-          // Si el registro ya existe (código 23505), actualizar el plan
-          if (usageError.code === '23505') {
-            console.log('📝 Registro existente, actualizando subscription_plan_id');
-            const { error: updateError } = await supabase
-              .from('catalog_usage')
-              .update({ subscription_plan_id: transaction.package_id })
-              .eq('user_id', transaction.user_id)
-              .eq('usage_month', currentMonth);
+        // 4. Inicializar uso del mes
+        const currentMonth = parseInt(new Date().getFullYear().toString() + (new Date().getMonth() + 1).toString().padStart(2, '0'));
+        
+        await supabase.from('catalog_usage').upsert({
+                user_id: transaction.user_id,
+                usage_month: currentMonth,
+                subscription_plan_id: transaction.package_id,
+                catalogs_generated: 0,
+                uploads_used: 0
+            }, { onConflict: 'user_id, usage_month' });
+        
+        break;
+      }
 
-            if (updateError) {
-              console.error('❌ Error actualizando catalog_usage:', updateError);
-            } else {
-              console.log('✅ catalog_usage actualizado');
-            }
-          } else {
-            console.error('❌ Error insertando catalog_usage:', usageError);
-          }
-        } else {
-          console.log('✅ catalog_usage inicializado correctamente');
-        }
+      // Mantenemos los otros casos (invoice, updated, deleted) tal cual
+      case 'customer.subscription.created':
+      case 'customer.subscription.updated': {
+        const subscription = event.data.object;
+        await supabase.from('subscriptions').update({
+          status: subscription.status,
+          current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
+          current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+          cancel_at_period_end: subscription.cancel_at_period_end
+        }).eq('stripe_subscription_id', subscription.id);
+        break;
+      }
+      case 'customer.subscription.deleted': {
+        const subscription = event.data.object;
+        await supabase.from('subscriptions').update({ status: 'canceled' }).eq('stripe_subscription_id', subscription.id);
+        break;
+      }
+      case 'invoice.payment_succeeded': {
+        const invoice = event.data.object;
+        if (invoice.billing_reason === 'subscription_cycle') {
+           const { data: sub } = await supabase.from('subscriptions').select('user_id, package_id').eq('stripe_subscription_id', invoice.subscription).single();
+           if(sub) {
+             const currentMonth = parseInt(new Date().getFullYear().toString() + (new Date().getMonth() + 1).toString().padStart(2, '0'));
+             await supabase.from('catalog_usage').upsert({
+               user_id: sub.user_id,
+               usage_month: currentMonth,
+               subscription_plan_id: sub.package_id,
+               catalogs_generated: 0,
+               uploads_used: 0
+             }, { onConflict: 'user_id, usage_month' });
+           }
+        }
+        break;
+      }
+      default:
+        console.log(`ℹ️ Unhandled event type: ${event.type}`);
+    }
 
-        break;
-      }
+    return new Response(JSON.stringify({ received: true }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 200
+    });
 
-      case 'customer.subscription.created':
-      case 'customer.subscription.updated': {
-        const subscription = event.data.object as Stripe.Subscription;
-        console.log(`🔄 Processing ${event.type}:`, subscription.id);
-
-        const { error } = await supabase
-          .from('subscriptions')
-          .update({
-            status: subscription.status,
-            current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-            current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
-            cancel_at_period_end: subscription.cancel_at_period_end
-          })
-          .eq('stripe_subscription_id', subscription.id);
-
-        if (error) {
-          console.error('❌ Error updating subscription:', error);
-        } else {
-          console.log('✅ Subscription updated');
-        }
-        break;
-      }
-
-      case 'customer.subscription.deleted': {
-        const subscription = event.data.object as Stripe.Subscription;
-        console.log('❌ Processing subscription deletion:', subscription.id);
-
-        const { error } = await supabase
-          .from('subscriptions')
-          .update({ status: 'canceled' })
-          .eq('stripe_subscription_id', subscription.id);
-
-        if (error) {
-          console.error('❌ Error canceling subscription:', error);
-        } else {
-          console.log('✅ Subscription canceled');
-        }
-        break;
-      }
-
-      case 'invoice.payment_succeeded': {
-        const invoice = event.data.object as Stripe.Invoice;
-        console.log('💰 Processing invoice.payment_succeeded:', invoice.id);
-
-        if (invoice.billing_reason === 'subscription_cycle') {
-          // Renovación mensual
-          const { data: subscription } = await supabase
-            .from('subscriptions')
-            .select('user_id, package_id')
-            .eq('stripe_subscription_id', invoice.subscription as string)
-            .single();
-
-          if (subscription) {
-            // Resetear contador mensual
-            const currentMonth = parseInt(
-              new Date().getFullYear().toString() + 
-              (new Date().getMonth() + 1).toString().padStart(2, '0')
-            );
-
-            const { error: usageError } = await supabase
-              .from('catalog_usage')
-              .insert({
-                user_id: subscription.user_id,
-                usage_month: currentMonth,
-                subscription_plan_id: subscription.package_id,
-                catalogs_generated: 0,
-                uploads_used: 0
-              });
-
-            if (usageError && usageError.code !== '23505') {
-              console.error('❌ Error resetting monthly usage:', usageError);
-            } else {
-              console.log('✅ Monthly usage reset for renewal');
-            }
-          }
-        }
-        break;
-      }
-
-      default:
-        console.log(`ℹ️ Unhandled event type: ${event.type}`);
-    }
-
-    return new Response(JSON.stringify({ received: true }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 200,
-    });
-
-  } catch (error) {
-    console.error('❌ Webhook error:', error);
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500 
-      }
-    );
-  }
+  } catch (error) {
+    // Logging del error incluyendo el HASH
+    console.error(`❌ Webhook global error [${DEPLOY_VERSION}]:`, error); 
+    return new Response(JSON.stringify({ error: error.message }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 500
+    });
+  }
 });
