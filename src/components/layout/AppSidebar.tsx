@@ -28,11 +28,10 @@ import {
   BookOpen,
   PackageOpen,
   ClipboardList,
-  Network,
+  Network, // <--- IMPORTANTE: Usamos este icono
   LayoutDashboard,
   PlayCircle,
   AlertTriangle,
-  Sparkles,
   ChevronLeft,
   ChevronRight,
   Radar,
@@ -43,14 +42,11 @@ import { toast } from "sonner";
 const THEME = {
   sidebarBg: "bg-slate-950",
   sidebarBorder: "border-slate-800",
-  // Textos
   textInactive: "text-slate-400",
   textActive: "text-white",
   textHover: "group-hover:text-slate-200",
-  // Fondos
   bgActive: "bg-indigo-600",
-  bgHover: "hover:bg-slate-800/80", // Hover más sutil y elegante
-  // Footer
+  bgHover: "hover:bg-slate-800/80",
   footerBorder: "border-t border-slate-800",
 };
 
@@ -64,18 +60,15 @@ interface MenuItem {
 }
 
 const navigationItems: MenuItem[] = [
-  // Bloque Operativo
   { title: "Dashboard", path: "/dashboard", icon: LayoutDashboard, primary: true },
   { title: "Cotizaciones", path: "/quotes", icon: ClipboardList, primary: true },
   { title: "Mis Catálogos", path: "/catalogs", icon: BookOpen, primary: true },
-
-  // Bloque de Crecimiento
   {
     title: "Radar de Mercado",
     path: "/market-radar",
     icon: Radar,
     badge: "IA",
-    badgeColor: "bg-violet-500/20 text-violet-200 border-violet-500/30", // Texto más claro
+    badgeColor: "bg-violet-500/20 text-violet-200 border-violet-500/30",
     primary: true,
   },
   {
@@ -83,19 +76,13 @@ const navigationItems: MenuItem[] = [
     path: "/network",
     icon: Network,
     badge: "Viral",
-    badgeColor: "bg-emerald-500/20 text-emerald-200 border-emerald-500/30", // Texto más claro
+    badgeColor: "bg-emerald-500/20 text-emerald-200 border-emerald-500/30",
   },
-
-  // Bloque de Gestión
   { title: "Inventario (L1)", path: "/products", icon: Package },
   { title: "Carga Masiva", path: "/products/bulk-upload", icon: PackageOpen },
   { title: "Subir Productos", path: "/upload", icon: Upload },
-
-  // Herramientas
   { title: "Analytics", path: "/analytics", icon: BarChart3 },
   { title: "Facturación", path: "/checkout", icon: CreditCard },
-
-  // Configuración
   { title: "Guía de Inicio", path: "/onboarding", icon: PlayCircle },
   { title: "Configuración", path: "/business-info", icon: Settings },
 ];
@@ -108,7 +95,6 @@ export function AppSidebar() {
   const { state, toggleSidebar } = useSidebar();
   const isCollapsed = state === "collapsed";
 
-  // Lógica de Nombre para mostrar (Cascada: Negocio -> Nombre User -> Email -> Default)
   const displayName =
     businessInfo?.business_name ||
     user?.user_metadata?.full_name ||
@@ -116,7 +102,6 @@ export function AppSidebar() {
     user?.email?.split("@")[0] ||
     "Mi Cuenta";
 
-  // Iniciales para el Avatar
   const getUserInitials = () => {
     const source = displayName || "CP";
     return source.substring(0, 2).toUpperCase();
@@ -167,7 +152,6 @@ export function AppSidebar() {
             <item.icon
               className={`h-5 w-5 flex-shrink-0 transition-colors ${isActive ? "text-white" : "text-slate-500 group-hover:text-slate-300"}`}
             />
-
             {!isCollapsed && (
               <>
                 <span className="ml-3 flex-1 truncate text-sm">{item.title}</span>
@@ -188,36 +172,35 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon" className={`border-r ${THEME.sidebarBorder} ${THEME.sidebarBg}`}>
-      {/* ================= HEADER: LOGO ================= */}
-      <SidebarHeader
-        className={`h-16 flex items-center justify-between px-4 border-b ${THEME.sidebarBorder} bg-slate-950`}
-      >
-        <div
-          className={`flex items-center gap-3 overflow-hidden transition-all duration-300 ${isCollapsed ? "justify-center w-full" : ""}`}
-        >
-          {/* Logo Icon con Glow */}
-          <div className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-600 shadow-[0_0_15px_rgba(79,70,229,0.4)] ring-1 ring-white/10">
-            <Sparkles className="h-5 w-5 text-white fill-white/20" />
+      {/* ================= HEADER MEJORADO ================= */}
+      <SidebarHeader className={`h-16 flex items-center px-4 border-b ${THEME.sidebarBorder} bg-slate-950 shrink-0`}>
+        {/* Contenedor flexible: Logo a la izq, botón a la derecha */}
+        <div className="flex items-center justify-between w-full overflow-hidden">
+          <div
+            className={`flex items-center gap-3 transition-all duration-300 ${isCollapsed ? "justify-center w-full" : "flex-1 min-w-0"}`}
+          >
+            {/* Logo Icon: Diseño IDÉNTICO al Index */}
+            <div className="bg-indigo-600 p-1.5 rounded-lg shrink-0 shadow-lg shadow-indigo-500/20">
+              <Network className="w-5 h-5 text-white" />
+            </div>
+
+            {!isCollapsed && (
+              <div className="flex flex-col truncate">
+                <span className="text-base font-bold text-white tracking-tight leading-none truncate">CatifyPro</span>
+              </div>
+            )}
           </div>
 
+          {/* Botón de colapsar: Fijo a la derecha, no aplasta el logo */}
           {!isCollapsed && (
-            <div className="flex flex-col min-w-0 animate-in fade-in duration-300">
-              <span className="text-base font-bold text-white tracking-tight leading-none">CatifyPro</span>
-              <span className="text-[10px] font-medium text-indigo-400 uppercase tracking-wider mt-0.5">
-                Business OS
-              </span>
-            </div>
+            <button
+              onClick={toggleSidebar}
+              className="text-slate-500 hover:text-white transition-colors p-1.5 rounded-md hover:bg-white/5 shrink-0 ml-2"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </button>
           )}
         </div>
-
-        {!isCollapsed && (
-          <button
-            onClick={toggleSidebar}
-            className="text-slate-500 hover:text-white transition-colors p-1 rounded-md hover:bg-white/5"
-          >
-            <ChevronLeft className="h-5 w-5" />
-          </button>
-        )}
       </SidebarHeader>
 
       {/* ================= CONTENT ================= */}
@@ -245,20 +228,19 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      {/* ================= FOOTER: USUARIO ================= */}
+      {/* ================= FOOTER MEJORADO ================= */}
       <SidebarFooter className={`${THEME.footerBorder} bg-slate-950 p-2`}>
-        {/* Alerta de Perfil (Solo visible expandido) */}
         {showBusinessWarning && !isCollapsed && (
           <div
             onClick={() => navigate("/business-info")}
-            className="mb-3 mx-1 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 cursor-pointer hover:bg-amber-500/20 transition-all group relative overflow-hidden"
+            className="mb-3 mx-1 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 cursor-pointer hover:bg-amber-500/20 transition-all group"
           >
             <div className="flex items-center gap-2 text-amber-500 mb-1">
               <AlertTriangle className="h-3.5 w-3.5" />
               <span className="text-xs font-bold">Completar Perfil</span>
             </div>
             <p className="text-[10px] text-slate-400 group-hover:text-slate-300 leading-tight">
-              Necesario para activar ventas.
+              Necesario para vender.
             </p>
           </div>
         )}
@@ -268,7 +250,7 @@ export function AppSidebar() {
             <div
               className={`
                  flex items-center gap-3 p-2 rounded-xl cursor-pointer group transition-all duration-200
-                 hover:bg-white/10 border border-transparent hover:border-white/5
+                 hover:bg-white/5 border border-transparent hover:border-white/5
                  ${isCollapsed ? "justify-center" : ""}
               `}
               onClick={() => navigate("/business-info")}
@@ -306,7 +288,7 @@ export function AppSidebar() {
         </SidebarMenu>
       </SidebarFooter>
 
-      {/* Botón Flotante para Expandir (Solo visible colapsado en desktop) */}
+      {/* Botón Flotante (Solo Desktop Colapsado) */}
       {isCollapsed && (
         <div className="absolute -right-3 top-9 z-50 hidden md:block">
           <button
