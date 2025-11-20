@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { DigitalCatalog, Product } from "@/types/digital-catalog";
+// 👇 CORRECCIÓN: Quitamos 'Product' del import fallido
+import { DigitalCatalog } from "@/types/digital-catalog";
 import { Loader2, Lock, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -13,9 +14,25 @@ import { useMetaTracking } from "@/hooks/useMetaTracking";
 import { QuoteCartProvider } from "@/contexts/QuoteCartContext";
 import { cn } from "@/lib/utils";
 
-// Componente para inyectar scripts crudos (Head/Body) - (Se deja igual)
+// DEFINICIÓN LOCAL DE PRODUCT PARA ARREGLAR ERROR DE TIPADO
+interface Product {
+  id: string;
+  name: string;
+  price_retail: number;
+  price_wholesale?: number | null;
+  image_url?: string;
+  original_image_url?: string | null;
+  has_variants?: boolean;
+  variants?: Array<{
+    id: string;
+    price_retail: number;
+    attributes: Record<string, string>;
+  }>;
+  catalog_products?: any;
+}
+
+// Componente para inyectar scripts crudos (Head/Body)
 const ScriptInjector = ({ headScripts, bodyScripts }: { headScripts?: string | null; bodyScripts?: string | null }) => {
-  // ... (ScriptInjector implementation) ...
   useEffect(() => {
     const injectedNodes: Node[] = [];
     if (headScripts) {
@@ -63,7 +80,6 @@ export default function PublicCatalog() {
       let catalogIdToFetch: string | null = null;
       let isReplicated = false;
       let resellerId: string | undefined = undefined;
-      // Usamos el tipo más general para la cabecera antes de la aserción
       let catalogHeader: any | null = null;
 
       // 1.1 Intentar buscar en catálogos originales (L1)
@@ -87,8 +103,7 @@ export default function PublicCatalog() {
         if (errL2) console.error("DEBUG ERROR L2 Query:", errL2);
 
         if (replica && replica.digital_catalogs) {
-          // 👇 CORRECCIÓN: Asignamos el objeto tal cual lo trae Supabase, sin castear todavía
-          catalogHeader = replica.digital_catalogs;
+          catalogHeader = replica.digital_catalogs as Partial<DigitalCatalog>;
           isReplicated = true;
           resellerId = replica.reseller_id || undefined;
           catalogIdToFetch = catalogHeader.id || null;
@@ -108,7 +123,6 @@ export default function PublicCatalog() {
       // 3. CONSULTA AISLADA: Obtener la lista de productos por el ID del catálogo
       const { data: rawProducts, error: prodError } = await supabase
         .from("catalog_products")
-        // Usamos la clave explícita para evitar errores PGRST201, pero solo en esta consulta.
         .select(
           `
              product_id, 
@@ -119,6 +133,8 @@ export default function PublicCatalog() {
 
       if (prodError) {
         console.error("DEBUG PRODUCT FETCH ERROR (Prod Query Failed):", prodError);
+        // Si los productos fallan, aun así retornamos la cabecera para mostrar error interno
+        // Aquí devolvemos el error, para que useQuery sepa que falló
         throw prodError;
       }
 
@@ -133,10 +149,10 @@ export default function PublicCatalog() {
       console.log(`DEBUG PRODUCT COUNT: ${products.length}`);
       console.log("--- DEBUG END: Returning Catalog Object ---");
 
-      // 5. 👇 ARREGLO DE TIPOS: Aserción final del objeto completo
+      // Retorno Final: Fusiona cabecera + productos + metadata de réplica
       return {
         ...catalogHeader,
-        products: products as Product[], // Inyectamos la lista de productos
+        products: products as Product[],
         isReplicated,
         resellerId,
       } as DigitalCatalog & { isReplicated?: boolean; resellerId?: string; products: Product[] };
@@ -168,7 +184,7 @@ export default function PublicCatalog() {
   // Manejo de carga, error y contraseña
   if (isLoading)
     return (
-      <div className className="h-screen w-full flex items-center justify-center bg-gray-50">
+      <div className="h-screen w-full flex items-center justify-center bg-gray-50">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
@@ -181,12 +197,12 @@ export default function PublicCatalog() {
       </div>
     );
 
-  // Pantalla de Bloqueo (Password) - (Se mantiene igual)
+  // Pantalla de Bloqueo (Password)
   if (catalog.is_private && !isAuthenticated) {
     const handleUnlock = () => {
       if (accessPassword === catalog.access_password) {
         setIsAuthenticated(true);
-        trackEvent("UnlockContent");
+        trackEvent("UnlockContent"); // Evento opcional: Alguien desbloqueó el catálogo
       } else {
         toast({ title: "Acceso denegado", description: "La contraseña es incorrecta", variant: "destructive" });
       }
@@ -203,6 +219,7 @@ export default function PublicCatalog() {
             <CardDescription>Ingresa la contraseña para continuar.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* 👇 CORRECCIÓN DE SINTAXIS PARA EVITAR ERROR TS17001 */}
             <Input
               type="password"
               placeholder="Contraseña"
