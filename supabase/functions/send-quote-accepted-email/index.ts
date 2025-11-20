@@ -1,6 +1,6 @@
 // ==========================================
 // FUNCION: send-quote-accepted-email
-// ESTADO: FIX_V9.0 (FINAL - Link Alineado a /track, UUID Nativo, HASH)
+// ESTADO: FIX_V10.0 (FINAL - Link Alineado a /track, UUID Nativo, HASH)
 // ==========================================
 import { createClient } from 'jsr:@supabase/supabase-js@2.49.8';
 // 🚫 ELIMINAMOS EL IMPORT DE UUID: Usamos crypto.randomUUID()
@@ -140,7 +140,7 @@ Deno.serve(async (req) => {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                from: 'Catálogos Digitales <notifications@catalogify.app>',
+                from: 'Catálogos Digitales <noreply@catifypro.com>',
                 to: [customerEmail],
                 subject: '✅ Tu cotización ha sido aceptada',
                 html: template
