@@ -1,8 +1,8 @@
 // src/components/catalog/public/PublicCatalogContent.tsx
-// (OPTIMIZADO PARA CATIFY PRIME - ALTO RENDIMIENTO & VENTAS)
+// (CORREGIDO: BUSCADOR VISIBLE + LÓGICA "SMART ADD" EN BOTÓN MAS)
 
 import { useState, useEffect, useMemo } from "react";
-import { motion, AnimatePresence } from "framer-motion"; // Animaciones fluidas
+import { motion, AnimatePresence } from "framer-motion";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -16,20 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Label } from "@/components/ui/label";
-import {
-  Search,
-  ShoppingCart,
-  Radar,
-  DollarSign,
-  Plus,
-  ChevronDown,
-  Minus,
-  X,
-  Eye,
-  Filter,
-  AlertCircle,
-  Check,
-} from "lucide-react";
+import { Search, ShoppingCart, Radar, DollarSign, Plus, ChevronDown, Minus, X, Eye, Filter, Check } from "lucide-react";
 import { DigitalCatalog } from "@/types/digital-catalog";
 import { QuoteCartModal } from "@/components/public/QuoteCartModal";
 import { QuoteForm } from "@/components/public/QuoteForm";
@@ -40,8 +27,6 @@ import { cn } from "@/lib/utils";
 import { useQuoteCart } from "@/contexts/QuoteCartContext";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import ProductFilters from "@/components/public/ProductFilters";
-
-// Importar archivos de Templates (Mantenemos la lógica existente)
 import { EXPANDED_WEB_TEMPLATES } from "@/lib/web-catalog/expanded-templates-catalog";
 import { WebTemplateAdapter } from "@/lib/templates/web-css-adapter";
 
@@ -92,7 +77,6 @@ const ProductImageZoomModal = ({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-3xl w-full p-0 overflow-hidden bg-transparent border-none shadow-none">
         <div className="relative bg-white rounded-xl overflow-hidden shadow-2xl flex flex-col md:flex-row">
-          {/* Imagen */}
           <div className="w-full md:w-2/3 bg-slate-100 flex items-center justify-center relative aspect-square md:aspect-auto">
             <img
               src={product.image_url || product.original_image_url || "/placeholder.png"}
@@ -108,8 +92,6 @@ const ProductImageZoomModal = ({
               <X className="h-5 w-5" />
             </Button>
           </div>
-
-          {/* Info Panel (Desktop Only mostly) */}
           <div className="w-full md:w-1/3 p-6 bg-white flex flex-col justify-center">
             <h3 className="text-xl font-bold text-slate-900 leading-tight">{product.name}</h3>
             {product.sku && <span className="text-xs font-mono text-slate-400 mt-1">SKU: {product.sku}</span>}
@@ -129,7 +111,7 @@ const ProductImageZoomModal = ({
   );
 };
 
-// --- COMPONENTE: TARJETA DE PRODUCTO (Optimizada) ---
+// --- COMPONENTE: TARJETA DE PRODUCTO (Lógica "Smart Add" Aplicada) ---
 const PublicProductCard = ({
   product,
   onAdd,
@@ -149,8 +131,13 @@ const PublicProductCard = ({
       variants={fadeIn}
       initial="hidden"
       animate="visible"
-      className="group flex flex-col bg-white border border-slate-200 rounded-xl overflow-hidden hover:shadow-lg hover:border-indigo-200 transition-all duration-300 cursor-pointer h-full"
-      onClick={onView}
+      className="group flex flex-col bg-white border border-slate-200 rounded-xl overflow-hidden hover:shadow-lg hover:border-indigo-200 transition-all duration-300 cursor-pointer h-full select-none"
+      onClick={onView} // 👈 Un solo clic AHORA SOLO ABRE DETALLE (Ver)
+      onDoubleClick={(e) => {
+        // 👈 Doble clic AGREGA (Acción Rápida)
+        e.stopPropagation();
+        onAdd();
+      }}
     >
       {/* Imagen Container */}
       <div className="aspect-[4/3] md:aspect-square bg-slate-50 relative overflow-hidden">
@@ -181,13 +168,13 @@ const PublicProductCard = ({
           <Eye className="h-4 w-4" />
         </button>
 
-        {/* Botón Add (Mobile: Siempre visible pero sutil / Desktop: Hover) */}
+        {/* Botón Add (EL BOTÓN + MÁGICO) */}
         <button
           onClick={(e) => {
-            e.stopPropagation();
-            onAdd();
+            e.stopPropagation(); // Evita que se abra el detalle al dar clic en +
+            onAdd(); // Ejecuta la "Venta Inteligente"
           }}
-          className="absolute bottom-3 right-3 h-10 w-10 md:h-11 md:w-11 bg-white text-slate-900 rounded-full flex items-center justify-center shadow-lg shadow-slate-200/50 opacity-100 md:opacity-0 md:group-hover:opacity-100 md:translate-y-4 md:group-hover:translate-y-0 transition-all duration-300 hover:bg-indigo-600 hover:text-white z-20"
+          className="absolute bottom-3 right-3 h-10 w-10 md:h-11 md:w-11 bg-white text-slate-900 rounded-full flex items-center justify-center shadow-lg shadow-slate-200/50 opacity-100 md:opacity-0 md:group-hover:opacity-100 md:translate-y-4 md:group-hover:translate-y-0 transition-all duration-300 hover:bg-indigo-600 hover:text-white z-20 active:scale-95"
           title="Agregar al carrito"
         >
           <Plus className="h-5 w-5 md:h-6 md:w-6" />
@@ -216,7 +203,7 @@ const PublicProductCard = ({
               variant="secondary"
               className="bg-slate-100 text-slate-600 font-normal text-[10px] px-2 hover:bg-slate-200"
             >
-              Ver opciones
+              + Opciones
             </Badge>
           )}
         </div>
@@ -229,7 +216,7 @@ const PublicProductCard = ({
 export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogContentProps) {
   // Estados
   const [searchTerm, setSearchTerm] = useState("");
-  const debouncedSearch = useDebounce(searchTerm, 500); // Reduje el debounce a 500ms para más reactividad
+  const debouncedSearch = useDebounce(searchTerm, 500);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isQuoteFormOpen, setIsQuoteFormOpen] = useState(false);
@@ -256,7 +243,6 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
 
   const templateCSS = useMemo(() => {
     let css = WebTemplateAdapter.generateWebCSS(activeTemplate, catalog.background_pattern);
-    // Inyección de estilos crítica para consistencia
     if (catalog.brand_colors?.primary) {
       css += `
             :root {
@@ -275,10 +261,10 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
 
   const gridColumnsClass = useMemo(() => {
     const cols = activeTemplate.config.columnsDesktop || 3;
-    return `lg:grid-cols-${cols}`; // Simplificado, asegúrate que Tailwind safe-list incluya estas clases o usa style inline si es dinámico puro
+    return `lg:grid-cols-${cols}`;
   }, [activeTemplate]);
 
-  // --- SEARCH LOGS & FILTERING ---
+  // --- SEARCH LOGS ---
   useEffect(() => {
     if (debouncedSearch && debouncedSearch.length > 2) {
       const logSearch = async () => {
@@ -335,20 +321,31 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
 
   const categories = Array.from(new Set(catalog.products?.map((p) => p.category).filter(Boolean) as string[]));
 
-  // --- HANDLERS ---
-  const handleProductInteraction = (product: Product) => {
+  // --- HANDLERS (NUEVA LÓGICA SEPARADA) ---
+
+  // 1. Solo Ver Detalle (Clic en tarjeta)
+  const handleViewProduct = (product: Product) => {
+    setSelectedProduct(product);
+    setSelectedVariantId(null);
+    setQuantity(1);
+    onTrackEvent("ViewContent", {
+      content_ids: [product.id],
+      content_name: product.name,
+      value: (product.price_retail || 0) / 100,
+      currency: "MXN",
+    });
+  };
+
+  // 2. Agregar Inteligente (Botón + o Doble Clic)
+  const handleSmartAdd = (product: Product) => {
     const hasVariants = product.has_variants || (product.variants && product.variants.length > 0);
+
     if (hasVariants) {
-      setSelectedProduct(product);
-      setSelectedVariantId(null);
-      setQuantity(1);
-      onTrackEvent("ViewContent", {
-        content_ids: [product.id],
-        content_name: product.name,
-        value: (product.price_retail || 0) / 100,
-        currency: "MXN",
-      });
+      // Si tiene variantes, no podemos adivinar, hay que abrir el modal
+      handleViewProduct(product);
+      toast({ description: "Selecciona una opción para agregar", duration: 2000 });
     } else {
+      // Si es producto simple, va directo al carrito
       addToCartSimple(product);
     }
   };
@@ -375,8 +372,7 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
         </div>
       ),
     });
-    // Opcional: No abrir carrito automáticamente para flujo más rápido, solo notificar
-    // setIsCartOpen(true);
+    // onTrackEvent se maneja en addItem si fuera necesario, pero aquí es explícito
     onTrackEvent("AddToCart", {
       content_ids: [product.id],
       content_name: product.name,
@@ -412,7 +408,6 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
     addItem(productForContext, quantity, "retail", priceToUse, variant?.id, variantDescription);
     toast({ title: "Agregado", description: `${quantity}x ${nameToUse} al carrito.` });
     setSelectedProduct(null);
-    // setIsCartOpen(true);
     onTrackEvent("AddToCart", {
       content_ids: [selectedProduct.id],
       content_name: nameToUse,
@@ -457,9 +452,8 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
     <div className="catalog-public-container min-h-screen bg-slate-50/50 pb-24 md:pb-20 font-sans">
       <style>{templateCSS}</style>
 
-      {/* 1. BANNER HERO (FIXED BLACK ISSUE) */}
+      {/* BANNER HERO */}
       <div className="relative bg-slate-900 overflow-hidden shadow-lg">
-        {/* Background Layer with Fallback Gradient */}
         <div
           className="absolute inset-0 bg-cover bg-center"
           style={{
@@ -469,10 +463,7 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
             backgroundColor: catalog.brand_colors?.primary || "#1e293b",
           }}
         />
-        {/* Overlay para legibilidad */}
         <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px]" />
-
-        {/* Content */}
         <div className="relative z-10 container mx-auto px-4 py-12 md:py-20 flex flex-col items-center text-center">
           {catalog.logo_url && (
             <div className="w-20 h-20 md:w-24 md:h-24 bg-white p-2 rounded-2xl shadow-xl mb-6 flex items-center justify-center overflow-hidden">
@@ -491,22 +482,22 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
       </div>
 
       <div className="container mx-auto px-4 -mt-8 relative z-20">
-        {/* 2. TOOLBAR DE BÚSQUEDA Y FILTROS */}
+        {/* TOOLBAR (Buscador CORREGIDO) */}
         <div className="bg-white rounded-xl shadow-xl shadow-slate-200/40 p-4 mb-8 border border-slate-100">
           <div className="flex flex-col gap-4">
             <div className="flex flex-col md:flex-row gap-3">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+                {/* 👇 AQUI ESTÁ LA CORRECCIÓN DEL TEXTO BLANCO */}
                 <Input
                   placeholder="Buscar productos..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 h-12 border-slate-200 focus:border-indigo-500 focus:ring-indigo-500 rounded-lg text-base"
+                  className="pl-10 h-12 border-slate-200 focus:border-indigo-500 focus:ring-indigo-500 rounded-lg text-base bg-white text-slate-900 placeholder:text-slate-400"
                 />
               </div>
 
               <div className="flex gap-2 overflow-x-auto pb-1 md:pb-0 no-scrollbar">
-                {/* Botón Filtros */}
                 <Sheet open={isFiltersOpen} onOpenChange={setIsFiltersOpen}>
                   <SheetTrigger asChild>
                     <Button
@@ -549,7 +540,6 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
                   </SheetContent>
                 </Sheet>
 
-                {/* Botón Precio Rápido */}
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
@@ -593,7 +583,6 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
               </div>
             </div>
 
-            {/* Categorías Pills */}
             {categories.length > 0 && (
               <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar mask-linear-fade">
                 <button
@@ -626,7 +615,7 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
           </div>
         </div>
 
-        {/* 3. GRID DE PRODUCTOS */}
+        {/* GRID DE PRODUCTOS */}
         <div className="mb-4 flex items-center justify-between">
           <p className="text-sm font-medium text-slate-500">{filteredProducts.length} productos encontrados</p>
         </div>
@@ -670,8 +659,8 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
               <PublicProductCard
                 key={product.id}
                 product={product}
-                onView={() => handleProductInteraction(product)}
-                onAdd={() => handleProductInteraction(product)}
+                onView={() => handleViewProduct(product)} // Clic normal = Ver detalle
+                onAdd={() => handleSmartAdd(product)} // Botón + o Doble Clic = Agregar (o modal si es complejo)
                 onZoomImage={() => setProductToZoom(product)}
               />
             ))}
@@ -679,7 +668,7 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
         )}
       </div>
 
-      {/* 4. FLOATING ACTION BUTTON (Carrito Sticky en Mobile) */}
+      {/* FLOATING CART */}
       <AnimatePresence>
         {items.length > 0 && (
           <motion.div
@@ -708,7 +697,7 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
         )}
       </AnimatePresence>
 
-      {/* 5. MODALES (Funcionalidad Intacta, Diseño Pulido) */}
+      {/* MODALES (Mantienen la lógica y diseño) */}
       <Dialog open={!!selectedProduct} onOpenChange={(open) => !open && setSelectedProduct(null)}>
         <DialogContent className="sm:max-w-[450px] p-0 overflow-hidden">
           {selectedProduct && (
@@ -719,7 +708,6 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
               </DialogHeader>
 
               <div className="px-6 pb-6 space-y-6">
-                {/* Imagen Miniatura */}
                 <div className="flex gap-4">
                   <div className="w-20 h-20 rounded-lg bg-slate-100 overflow-hidden border border-slate-200 shrink-0">
                     <img
@@ -733,7 +721,6 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
                   </div>
                 </div>
 
-                {/* Selección de Variantes */}
                 {selectedProduct.variants && selectedProduct.variants.length > 0 && (
                   <div className="space-y-3">
                     <Label className="text-slate-900 font-medium">Opciones disponibles</Label>
@@ -759,7 +746,6 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
                   </div>
                 )}
 
-                {/* Selector Cantidad */}
                 <div className="flex items-center justify-between pt-4 border-t border-slate-100">
                   <span className="font-medium text-slate-900">Cantidad</span>
                   <div className="flex items-center gap-3 bg-slate-50 rounded-lg p-1 border border-slate-200">
@@ -822,7 +808,6 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
         businessAddress={null}
       />
 
-      {/* Modal Radar (Diseño mejorado) */}
       <Dialog open={showRadarModal} onOpenChange={setShowRadarModal}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
