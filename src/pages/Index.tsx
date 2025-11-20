@@ -308,7 +308,7 @@ const Index = () => {
               {
                 icon: Store,
                 color: "indigo",
-                title: "Catálogo y Herramienta de gestión para tus clientes ",
+                title: "Catálogo y herramienta de gestión para tus clientes ",
                 desc: "Tu cliente recibe gratis una replica de tu catálogo con su información y un sistema completo para cotizar, ver demanda de nuevos prodcutos y gestionar sus pedidos. Le ahorras trabajo administrativo.",
               },
               {
