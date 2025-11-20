@@ -2,8 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-// 👇 CORRECCIÓN: Eliminamos 'Product' del import fallido
-import { DigitalCatalog } from "@/types/digital-catalog";
+import { DigitalCatalog, Product } from "@/types/digital-catalog";
 import { Loader2, Lock, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -12,29 +11,11 @@ import { PublicCatalogContent } from "@/components/catalog/public/PublicCatalogC
 import { toast } from "@/hooks/use-toast";
 import { useMetaTracking } from "@/hooks/useMetaTracking";
 import { QuoteCartProvider } from "@/contexts/QuoteCartContext";
-import { cn } from "@/lib/utils"; // Asegurar import de cn
-
-// 👇 DEFINICIÓN LOCAL DE PRODUCT PARA ARREGLAR ERROR TS2305
-interface Product {
-  id: string;
-  name: string;
-  price_retail: number;
-  price_wholesale?: number | null;
-  image_url?: string;
-  original_image_url?: string | null;
-  has_variants?: boolean;
-  variants?: Array<{
-    id: string;
-    price_retail: number;
-    attributes: Record<string, string>;
-  }>;
-  // Agrega aquí cualquier otro campo que el JOIN esté trayendo de la tabla products
-  catalog_products?: any;
-}
+import { cn } from "@/lib/utils";
 
 // Componente para inyectar scripts crudos (Head/Body) - (Se deja igual)
 const ScriptInjector = ({ headScripts, bodyScripts }: { headScripts?: string | null; bodyScripts?: string | null }) => {
-  // ... (Resto del componente ScriptInjector)
+  // ... (ScriptInjector implementation) ...
   useEffect(() => {
     const injectedNodes: Node[] = [];
     if (headScripts) {
@@ -82,7 +63,8 @@ export default function PublicCatalog() {
       let catalogIdToFetch: string | null = null;
       let isReplicated = false;
       let resellerId: string | undefined = undefined;
-      let catalogHeader: Partial<DigitalCatalog> | null = null;
+      // Usamos el tipo más general para la cabecera antes de la aserción
+      let catalogHeader: any | null = null;
 
       // 1.1 Intentar buscar en catálogos originales (L1)
       let { data, error: errL1 } = await supabase
@@ -105,7 +87,8 @@ export default function PublicCatalog() {
         if (errL2) console.error("DEBUG ERROR L2 Query:", errL2);
 
         if (replica && replica.digital_catalogs) {
-          catalogHeader = replica.digital_catalogs as Partial<DigitalCatalog>;
+          // 👇 CORRECCIÓN: Asignamos el objeto tal cual lo trae Supabase, sin castear todavía
+          catalogHeader = replica.digital_catalogs;
           isReplicated = true;
           resellerId = replica.reseller_id || undefined;
           catalogIdToFetch = catalogHeader.id || null;
@@ -150,10 +133,10 @@ export default function PublicCatalog() {
       console.log(`DEBUG PRODUCT COUNT: ${products.length}`);
       console.log("--- DEBUG END: Returning Catalog Object ---");
 
-      // Retorno Final: Fusiona cabecera + productos + metadata de réplica
+      // 5. 👇 ARREGLO DE TIPOS: Aserción final del objeto completo
       return {
         ...catalogHeader,
-        products: products as Product[],
+        products: products as Product[], // Inyectamos la lista de productos
         isReplicated,
         resellerId,
       } as DigitalCatalog & { isReplicated?: boolean; resellerId?: string; products: Product[] };
@@ -185,7 +168,7 @@ export default function PublicCatalog() {
   // Manejo de carga, error y contraseña
   if (isLoading)
     return (
-      <div className="h-screen w-full flex items-center justify-center bg-gray-50">
+      <div className className="h-screen w-full flex items-center justify-center bg-gray-50">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
