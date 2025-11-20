@@ -1,6 +1,6 @@
 // ==========================================
 // FUNCION: create-payment-intent
-// ESTADO: FIX_V1 (Inmutabilidad HASH y Estabilidad de Imports)
+// ESTADO: FIX_V2 (Inmutabilidad HASH y Estabilidad de Imports)
 // ==========================================
 import { serve } from "https://deno.land/std@0.207.0/http/server.ts"; // ⬅️ Uso de versión estable de serve
 import { createClient } from 'jsr:@supabase/supabase-js@2.49.8'; // ⬅️ Uso de versión estable de Supabase JS
