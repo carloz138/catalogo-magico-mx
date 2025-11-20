@@ -3,7 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/contexts/RoleContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { supabase } from "@/integrations/supabase/client";
-import { motion } from "framer-motion"; // Agregamos animación para el toque premium
+import { motion } from "framer-motion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,17 @@ import { DashboardKPIs, SalesChart } from "@/components/dashboard/DashboardChart
 import { MarketIntelligenceWidget } from "@/components/dashboard/MarketIntelligenceWidget";
 import { SearchStatsWidget } from "@/components/dashboard/SearchStatsWidget";
 import { ResellerInsights } from "@/components/dashboard/ResellerInsights";
-import { BarChart3, ShoppingBag, Users, Zap, Share2, ArrowRight, TrendingUp, Activity } from "lucide-react";
+import {
+  BarChart3,
+  ShoppingBag,
+  Users,
+  Zap,
+  Share2,
+  ArrowRight,
+  TrendingUp,
+  Activity,
+  Search, // <--- AQUI ESTABA EL FALTANTE
+} from "lucide-react";
 
 export default function MainDashboard() {
   const { user } = useAuth();
