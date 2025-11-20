@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { DigitalCatalog, Product } from "@/types/digital-catalog";
+// 👇 CORRECCIÓN: Eliminamos 'Product' del import fallido
+import { DigitalCatalog } from "@/types/digital-catalog";
 import { Loader2, Lock, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -11,13 +12,31 @@ import { PublicCatalogContent } from "@/components/catalog/public/PublicCatalogC
 import { toast } from "@/hooks/use-toast";
 import { useMetaTracking } from "@/hooks/useMetaTracking";
 import { QuoteCartProvider } from "@/contexts/QuoteCartContext";
+import { cn } from "@/lib/utils"; // Asegurar import de cn
 
-// Componente para inyectar scripts crudos (Head/Body)
+// 👇 DEFINICIÓN LOCAL DE PRODUCT PARA ARREGLAR ERROR TS2305
+interface Product {
+  id: string;
+  name: string;
+  price_retail: number;
+  price_wholesale?: number | null;
+  image_url?: string;
+  original_image_url?: string | null;
+  has_variants?: boolean;
+  variants?: Array<{
+    id: string;
+    price_retail: number;
+    attributes: Record<string, string>;
+  }>;
+  // Agrega aquí cualquier otro campo que el JOIN esté trayendo de la tabla products
+  catalog_products?: any;
+}
+
+// Componente para inyectar scripts crudos (Head/Body) - (Se deja igual)
 const ScriptInjector = ({ headScripts, bodyScripts }: { headScripts?: string | null; bodyScripts?: string | null }) => {
+  // ... (Resto del componente ScriptInjector)
   useEffect(() => {
     const injectedNodes: Node[] = [];
-
-    // 1. Inyectar Head Scripts
     if (headScripts) {
       const range = document.createRange();
       const fragment = range.createContextualFragment(headScripts);
@@ -27,8 +46,6 @@ const ScriptInjector = ({ headScripts, bodyScripts }: { headScripts?: string | n
         injectedNodes.push(clone);
       });
     }
-
-    // 2. Inyectar Body Scripts (al final del body)
     if (bodyScripts) {
       const range = document.createRange();
       const fragment = range.createContextualFragment(bodyScripts);
@@ -38,8 +55,6 @@ const ScriptInjector = ({ headScripts, bodyScripts }: { headScripts?: string | n
         injectedNodes.push(clone);
       });
     }
-
-    // Cleanup: Remover scripts al salir de la página
     return () => {
       injectedNodes.forEach((node) => {
         if (node.parentNode) node.parentNode.removeChild(node);
@@ -64,95 +79,87 @@ export default function PublicCatalog() {
     queryFn: async () => {
       console.log(`--- DEBUG START: Checking Slug ${slug} ---`);
 
-      let catalogHeader: Partial<DigitalCatalog> | null = null;
       let catalogIdToFetch: string | null = null;
       let isReplicated = false;
       let resellerId: string | undefined = undefined;
+      let catalogHeader: Partial<DigitalCatalog> | null = null;
 
       // 1.1 Intentar buscar en catálogos originales (L1)
-      let { data, error } = await supabase
+      let { data, error: errL1 } = await supabase
         .from("digital_catalogs")
-        // 👇 SOLUCIÓN PGRST201: Especificar la relación para el JOIN
-        .select(
-          `
-            *, 
-            catalog_products (
-                product_id, 
-                products!catalog_products_product_id_fkey (*)
-            )
-        `,
-        )
+        .select(`*`) // Consulta simple, solo cabecera
         .eq("slug", slug)
         .maybeSingle();
 
-      if (error) {
-        console.error("DEBUG ERROR L1 Query:", error);
-        throw error;
-      }
+      if (errL1) console.error("DEBUG ERROR L1 Query:", errL1);
 
-      // 2. Si no encuentra en L1, buscar en replicados (L2)
+      // 1.2 Si no encuentra en L1, buscar en replicados (L2)
       if (!data) {
         console.log("DEBUG L1 NOT FOUND. Checking L2 replicas...");
         const { data: replica, error: errL2 } = await supabase
           .from("replicated_catalogs")
-          // 👇 SOLUCIÓN PGRST201: Especificar la relación en el JOIN ANIDADO
-          .select(
-            `
-            *, 
-            digital_catalogs (*, 
-                catalog_products (
-                    product_id, 
-                    products!catalog_products_product_id_fkey (*)
-                )
-            )
-          `,
-          )
+          .select(`*, digital_catalogs (*)`) // Trae la cabecera anidada
           .eq("slug", slug)
           .maybeSingle();
 
         if (errL2) console.error("DEBUG ERROR L2 Query:", errL2);
 
         if (replica && replica.digital_catalogs) {
-          // Fusionar data del L1 con metadata de L2
-          data = {
-            ...(replica.digital_catalogs as any),
-            isReplicated: true,
-            resellerId: replica.reseller_id,
-          } as any;
-          console.log("DEBUG L2 SUCCESS: Found and merged replica data.");
+          catalogHeader = replica.digital_catalogs as Partial<DigitalCatalog>;
+          isReplicated = true;
+          resellerId = replica.reseller_id || undefined;
+          catalogIdToFetch = catalogHeader.id || null;
         }
+      } else {
+        // L1 Encontrado
+        catalogHeader = data;
+        catalogIdToFetch = data.id;
       }
 
-      // 3. Verificación Final de Datos
-      if (!data) {
-        console.log("DEBUG FINAL FAILURE: Data is null after all attempts.");
-        return null; // Retorna null si no se encuentra en ningún lado
+      // 2. Verificación Final de Cabecera
+      if (!catalogHeader || !catalogIdToFetch) {
+        console.log("DEBUG FINAL FAILURE: Header data is null after all attempts.");
+        return null;
       }
 
-      console.log(`DEBUG DATA FOUND. ID: ${data.id}. Processing joins...`);
+      // 3. CONSULTA AISLADA: Obtener la lista de productos por el ID del catálogo
+      const { data: rawProducts, error: prodError } = await supabase
+        .from("catalog_products")
+        // Usamos la clave explícita para evitar errores PGRST201, pero solo en esta consulta.
+        .select(
+          `
+             product_id, 
+             products!catalog_products_product_id_fkey (*)
+          `,
+        )
+        .eq("catalog_id", catalogIdToFetch);
 
-      // 4. Transformar los productos del join a un array plano
-      const products = data.catalog_products?.map((cp: any) => cp.products).filter(Boolean) || [];
+      if (prodError) {
+        console.error("DEBUG PRODUCT FETCH ERROR (Prod Query Failed):", prodError);
+        throw prodError;
+      }
 
-      // 5. Contar visita (fire and forget)
+      // 4. Transformar y fusionar data
+      const products = rawProducts?.map((cp: any) => cp.products).filter(Boolean) || [];
+
+      // Contar visita (fire and forget)
       try {
-        await supabase.rpc("increment_view_count" as any, { row_id: data.id }).then();
+        await supabase.rpc("increment_view_count" as any, { row_id: catalogIdToFetch }).then();
       } catch {}
 
       console.log(`DEBUG PRODUCT COUNT: ${products.length}`);
       console.log("--- DEBUG END: Returning Catalog Object ---");
 
-      // Retorno Final
-      return { ...data, products } as DigitalCatalog & {
-        isReplicated?: boolean;
-        resellerId?: string;
-        products: Product[];
-      };
+      // Retorno Final: Fusiona cabecera + productos + metadata de réplica
+      return {
+        ...catalogHeader,
+        products: products as Product[],
+        isReplicated,
+        resellerId,
+      } as DigitalCatalog & { isReplicated?: boolean; resellerId?: string; products: Product[] };
     },
     retry: false,
   });
-
-  // ... (Resto del componente: Tracking, Password, Renderizado) ...
 
   // 2. Configurar Tracking CAPI
   const trackingConfig = (catalog?.tracking_config as any) || {};
