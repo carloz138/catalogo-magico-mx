@@ -160,7 +160,7 @@ const Index = () => {
             </div>
 
             <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-slate-900 mb-6 tracking-tight leading-[1.1]">
-              Convierte a tus clientes en socios estratégico.
+              Convierte a tus clientes en socios estratégicos.
               <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-violet-600">
                 Potencia toda tu cadena.
