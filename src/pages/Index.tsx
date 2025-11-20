@@ -295,7 +295,9 @@ const Index = () => {
       <section className="py-16 md:py-24 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-slate-900 sm:text-4xl mb-4">Un sistema donde todos ganan</h2>
+            <h2 className="text-3xl font-bold text-slate-900 sm:text-4xl mb-4">
+              Nuestro efecto red, un sistema donde todos ganan
+            </h2>
             <p className="text-base md:text-lg text-slate-600 max-w-2xl mx-auto">
               Mejoras la operación de tus clientes para que ellos mejoren tus ventas.
             </p>
@@ -307,7 +309,7 @@ const Index = () => {
                 icon: Store,
                 color: "indigo",
                 title: "Herramienta de Gestión (L2)",
-                desc: "Tu cliente recibe gratis un SaaS completo para cotizar y gestionar sus pedidos. Le ahorras trabajo administrativo.",
+                desc: "Tu cliente recibe gratis un sistema completo para cotizar, ver demanda de nuevos prodcutos y gestionar sus pedidos. Le ahorras trabajo administrativo.",
               },
               {
                 icon: BrainCircuit,
@@ -319,7 +321,7 @@ const Index = () => {
                 icon: Radar,
                 color: "emerald",
                 title: "Radar de Abastecimiento",
-                desc: "Ves qué piden los usuarios finales (L3) para avisar a tus distribuidores y surtirles antes de que pierdan la venta.",
+                desc: "Ves qué piden los usuarios finales (los clientes de tus clientes) para avisar a tus distribuidores y surtirles antes de que pierdan la venta.",
               },
             ].map((item, i) => {
               const Icon = item.icon; // FIX: Capitalized variable for dynamic component
