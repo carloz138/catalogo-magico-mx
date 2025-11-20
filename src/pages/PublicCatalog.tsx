@@ -12,10 +12,12 @@ import { toast } from "@/hooks/use-toast";
 import { useMetaTracking } from "@/hooks/useMetaTracking";
 import { QuoteCartProvider } from "@/contexts/QuoteCartContext";
 
-// Componente para inyectar scripts crudos (Head/Body) - (Se deja igual)
+// Componente para inyectar scripts crudos (Head/Body)
 const ScriptInjector = ({ headScripts, bodyScripts }: { headScripts?: string | null; bodyScripts?: string | null }) => {
   useEffect(() => {
     const injectedNodes: Node[] = [];
+
+    // 1. Inyectar Head Scripts
     if (headScripts) {
       const range = document.createRange();
       const fragment = range.createContextualFragment(headScripts);
@@ -25,6 +27,8 @@ const ScriptInjector = ({ headScripts, bodyScripts }: { headScripts?: string | n
         injectedNodes.push(clone);
       });
     }
+
+    // 2. Inyectar Body Scripts (al final del body)
     if (bodyScripts) {
       const range = document.createRange();
       const fragment = range.createContextualFragment(bodyScripts);
@@ -34,6 +38,8 @@ const ScriptInjector = ({ headScripts, bodyScripts }: { headScripts?: string | n
         injectedNodes.push(clone);
       });
     }
+
+    // Cleanup: Remover scripts al salir de la página
     return () => {
       injectedNodes.forEach((node) => {
         if (node.parentNode) node.parentNode.removeChild(node);
@@ -56,83 +62,97 @@ export default function PublicCatalog() {
   } = useQuery({
     queryKey: ["public-catalog", slug],
     queryFn: async () => {
+      console.log(`--- DEBUG START: Checking Slug ${slug} ---`);
+
+      let catalogHeader: Partial<DigitalCatalog> | null = null;
       let catalogIdToFetch: string | null = null;
       let isReplicated = false;
       let resellerId: string | undefined = undefined;
-      let catalogHeader: Partial<DigitalCatalog> | null = null;
 
       // 1.1 Intentar buscar en catálogos originales (L1)
-      let { data, error: errL1 } = await supabase
+      let { data, error } = await supabase
         .from("digital_catalogs")
-        .select(`*`) // Consulta simple, solo cabecera
+        // 👇 SOLUCIÓN PGRST201: Especificar la relación para el JOIN
+        .select(
+          `
+            *, 
+            catalog_products (
+                product_id, 
+                products!catalog_products_product_id_fkey (*)
+            )
+        `,
+        )
         .eq("slug", slug)
         .maybeSingle();
 
-      if (errL1) console.error("Error L1 Query:", errL1);
+      if (error) {
+        console.error("DEBUG ERROR L1 Query:", error);
+        throw error;
+      }
 
       // 2. Si no encuentra en L1, buscar en replicados (L2)
       if (!data) {
         console.log("DEBUG L1 NOT FOUND. Checking L2 replicas...");
         const { data: replica, error: errL2 } = await supabase
           .from("replicated_catalogs")
-          .select(`*, digital_catalogs (*)`) // Trae la cabecera anidada
+          // 👇 SOLUCIÓN PGRST201: Especificar la relación en el JOIN ANIDADO
+          .select(
+            `
+            *, 
+            digital_catalogs (*, 
+                catalog_products (
+                    product_id, 
+                    products!catalog_products_product_id_fkey (*)
+                )
+            )
+          `,
+          )
           .eq("slug", slug)
           .maybeSingle();
 
-        if (errL2) console.error("Error L2 Query:", errL2);
+        if (errL2) console.error("DEBUG ERROR L2 Query:", errL2);
 
         if (replica && replica.digital_catalogs) {
-          catalogHeader = replica.digital_catalogs as Partial<DigitalCatalog>;
-          isReplicated = true;
-          resellerId = replica.reseller_id || undefined;
-          catalogIdToFetch = catalogHeader.id || null;
+          // Fusionar data del L1 con metadata de L2
+          data = {
+            ...(replica.digital_catalogs as any),
+            isReplicated: true,
+            resellerId: replica.reseller_id,
+          } as any;
+          console.log("DEBUG L2 SUCCESS: Found and merged replica data.");
         }
-      } else {
-        // L1 Encontrado
-        catalogHeader = data;
-        catalogIdToFetch = data.id;
       }
 
-      // 3. Verificación Final de Cabecera
-      if (!catalogHeader || !catalogIdToFetch) {
-        console.log("DEBUG FINAL FAILURE: Header data is null after all attempts.");
-        return null; // Retorna null si no se encuentra la cabecera
+      // 3. Verificación Final de Datos
+      if (!data) {
+        console.log("DEBUG FINAL FAILURE: Data is null after all attempts.");
+        return null; // Retorna null si no se encuentra en ningún lado
       }
 
-      // 4. 👇 CONSULTA AISLADA: Obtener la lista de productos
-      const { data: rawProducts, error: prodError } = await supabase
-        .from("catalog_products")
-        .select(
-          `
-             product_id, 
-             products (*)
-          `,
-        ) // JOIN simple a products
-        .eq("catalog_id", catalogIdToFetch);
+      console.log(`DEBUG DATA FOUND. ID: ${data.id}. Processing joins...`);
 
-      if (prodError) {
-        console.error("DEBUG PRODUCT FETCH ERROR:", prodError);
-        throw prodError;
-      }
+      // 4. Transformar los productos del join a un array plano
+      const products = data.catalog_products?.map((cp: any) => cp.products).filter(Boolean) || [];
 
-      // 5. Transformar y fusionar data
-      const products = rawProducts?.map((cp: any) => cp.products).filter(Boolean) || [];
-
-      // Contar visita (fire and forget)
+      // 5. Contar visita (fire and forget)
       try {
-        await supabase.rpc("increment_view_count" as any, { row_id: catalogIdToFetch }).then();
+        await supabase.rpc("increment_view_count" as any, { row_id: data.id }).then();
       } catch {}
 
-      // Retorno Final: Fusiona cabecera + productos + metadata de réplica
-      return {
-        ...catalogHeader,
-        products: products as Product[],
-        isReplicated,
-        resellerId,
-      } as DigitalCatalog & { isReplicated?: boolean; resellerId?: string; products: Product[] };
+      console.log(`DEBUG PRODUCT COUNT: ${products.length}`);
+      console.log("--- DEBUG END: Returning Catalog Object ---");
+
+      // Retorno Final
+      return { ...data, products } as DigitalCatalog & {
+        isReplicated?: boolean;
+        resellerId?: string;
+        products: Product[];
+      };
     },
     retry: false,
   });
+
+  // ... (Resto del componente: Tracking, Password, Renderizado) ...
 
   // 2. Configurar Tracking CAPI
   const trackingConfig = (catalog?.tracking_config as any) || {};
@@ -163,7 +183,6 @@ export default function PublicCatalog() {
       </div>
     );
 
-  // 👇 Esta condición se dispara si queryFn devuelve null o error
   if (error || !catalog)
     return (
       <div className="h-screen w-full flex flex-col items-center justify-center bg-gray-50 p-4 text-center">
