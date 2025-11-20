@@ -2,9 +2,8 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-// 👇 CORRECCIÓN: Quitamos 'Product' del import fallido
 import { DigitalCatalog } from "@/types/digital-catalog";
-import { Loader2, Lock, X } from "lucide-react";
+import { Lock, AlertCircle, ShieldCheck } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -12,9 +11,10 @@ import { PublicCatalogContent } from "@/components/catalog/public/PublicCatalogC
 import { toast } from "@/hooks/use-toast";
 import { useMetaTracking } from "@/hooks/useMetaTracking";
 import { QuoteCartProvider } from "@/contexts/QuoteCartContext";
-import { cn } from "@/lib/utils";
+import { Skeleton } from "@/components/ui/skeleton";
+import { motion } from "framer-motion";
 
-// DEFINICIÓN LOCAL DE PRODUCT PARA ARREGLAR ERROR DE TIPADO
+// DEFINICIÓN LOCAL DE PRODUCT (Mantenemos consistencia)
 interface Product {
   id: string;
   name: string;
@@ -31,7 +31,7 @@ interface Product {
   catalog_products?: any;
 }
 
-// Componente para inyectar scripts crudos (Head/Body)
+// --- COMPONENTE: INYECTOR DE SCRIPTS ---
 const ScriptInjector = ({ headScripts, bodyScripts }: { headScripts?: string | null; bodyScripts?: string | null }) => {
   useEffect(() => {
     const injectedNodes: Node[] = [];
@@ -62,12 +62,13 @@ const ScriptInjector = ({ headScripts, bodyScripts }: { headScripts?: string | n
   return null;
 };
 
+// --- COMPONENTE PRINCIPAL ---
 export default function PublicCatalog() {
   const { slug } = useParams();
   const [accessPassword, setAccessPassword] = useState("");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  // 1. Cargar el Catálogo (Lógica de Replicación L1/L2)
+  // 1. FETCH DE DATOS (Lógica L1/L2 Intacta)
   const {
     data: catalog,
     isLoading,
@@ -75,32 +76,23 @@ export default function PublicCatalog() {
   } = useQuery({
     queryKey: ["public-catalog", slug],
     queryFn: async () => {
-      console.log(`--- DEBUG START: Checking Slug ${slug} ---`);
+      console.log(`--- DEBUG: Fetching Slug ${slug} ---`);
 
       let catalogIdToFetch: string | null = null;
       let isReplicated = false;
       let resellerId: string | undefined = undefined;
       let catalogHeader: any | null = null;
 
-      // 1.1 Intentar buscar en catálogos originales (L1)
-      let { data, error: errL1 } = await supabase
-        .from("digital_catalogs")
-        .select(`*`) // Consulta simple, solo cabecera
-        .eq("slug", slug)
-        .maybeSingle();
+      // 1.1 Buscar L1
+      let { data, error: errL1 } = await supabase.from("digital_catalogs").select(`*`).eq("slug", slug).maybeSingle();
 
-      if (errL1) console.error("DEBUG ERROR L1 Query:", errL1);
-
-      // 1.2 Si no encuentra en L1, buscar en replicados (L2)
+      // 1.2 Buscar L2 (Replica)
       if (!data) {
-        console.log("DEBUG L1 NOT FOUND. Checking L2 replicas...");
-        const { data: replica, error: errL2 } = await supabase
+        const { data: replica } = await supabase
           .from("replicated_catalogs")
-          .select(`*, digital_catalogs (*)`) // Trae la cabecera anidada
+          .select(`*, digital_catalogs (*)`)
           .eq("slug", slug)
           .maybeSingle();
-
-        if (errL2) console.error("DEBUG ERROR L2 Query:", errL2);
 
         if (replica && replica.digital_catalogs) {
           catalogHeader = replica.digital_catalogs as Partial<DigitalCatalog>;
@@ -109,47 +101,26 @@ export default function PublicCatalog() {
           catalogIdToFetch = catalogHeader.id || null;
         }
       } else {
-        // L1 Encontrado
         catalogHeader = data;
         catalogIdToFetch = data.id;
       }
 
-      // 2. Verificación Final de Cabecera
-      if (!catalogHeader || !catalogIdToFetch) {
-        console.log("DEBUG FINAL FAILURE: Header data is null after all attempts.");
-        return null;
-      }
+      // 2. Fail Check
+      if (!catalogHeader || !catalogIdToFetch) return null;
 
-      // 3. CONSULTA AISLADA: Obtener la lista de productos por el ID del catálogo
+      // 3. Fetch Productos
       const { data: rawProducts, error: prodError } = await supabase
         .from("catalog_products")
-        .select(
-          `
-             product_id, 
-             products!catalog_products_product_id_fkey (*)
-          `,
-        )
+        .select(`product_id, products!catalog_products_product_id_fkey (*)`)
         .eq("catalog_id", catalogIdToFetch);
 
-      if (prodError) {
-        console.error("DEBUG PRODUCT FETCH ERROR (Prod Query Failed):", prodError);
-        // Si los productos fallan, aun así retornamos la cabecera para mostrar error interno
-        // Aquí devolvemos el error, para que useQuery sepa que falló
-        throw prodError;
-      }
+      if (prodError) throw prodError;
 
-      // 4. Transformar y fusionar data
       const products = rawProducts?.map((cp: any) => cp.products).filter(Boolean) || [];
 
-      // Contar visita (fire and forget)
-      try {
-        await supabase.rpc("increment_view_count" as any, { row_id: catalogIdToFetch }).then();
-      } catch {}
+      // View Count (Fire & Forget)
+      supabase.rpc("increment_view_count" as any, { row_id: catalogIdToFetch }).then();
 
-      console.log(`DEBUG PRODUCT COUNT: ${products.length}`);
-      console.log("--- DEBUG END: Returning Catalog Object ---");
-
-      // Retorno Final: Fusiona cabecera + productos + metadata de réplica
       return {
         ...catalogHeader,
         products: products as Product[],
@@ -160,7 +131,19 @@ export default function PublicCatalog() {
     retry: false,
   });
 
-  // 2. Configurar Tracking CAPI
+  // 2. SEO TITLE UPDATE (Vital para ventas/compartir)
+  useEffect(() => {
+    if (catalog?.name) {
+      document.title = `${catalog.name} | Catálogo Digital`;
+    } else {
+      document.title = "CatifyPro | Catálogo Digital";
+    }
+    return () => {
+      document.title = "CatifyPro";
+    };
+  }, [catalog?.name]);
+
+  // 3. TRACKING CONFIG
   const trackingConfig = (catalog?.tracking_config as any) || {};
   const { trackEvent } = useMetaTracking({
     enabled: true,
@@ -169,7 +152,7 @@ export default function PublicCatalog() {
     isEnterprise: !!trackingConfig.accessToken,
   });
 
-  // 3. Rastrear "PageView" al cargar
+  // 4. PAGE VIEW TRACKING
   useEffect(() => {
     if (catalog) {
       trackEvent("PageView");
@@ -181,63 +164,119 @@ export default function PublicCatalog() {
     }
   }, [catalog?.id]);
 
-  // Manejo de carga, error y contraseña
-  if (isLoading)
+  // --- ESTADOS DE INTERFAZ ---
+
+  // A) LOADING: Skeleton Screen "Premium"
+  if (isLoading) {
     return (
-      <div className="h-screen w-full flex items-center justify-center bg-gray-50">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="min-h-screen bg-slate-50 flex flex-col">
+        {/* Banner Skeleton */}
+        <div className="h-64 w-full bg-slate-200 animate-pulse" />
+
+        <div className="container mx-auto px-4 -mt-8 z-10">
+          {/* Toolbar Skeleton */}
+          <div className="bg-white rounded-xl shadow-lg p-4 mb-8 border border-slate-100 h-24 w-full animate-pulse" />
+
+          {/* Grid Skeleton */}
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+              <div key={i} className="bg-white rounded-xl border border-slate-100 overflow-hidden h-80">
+                <Skeleton className="h-48 w-full rounded-none bg-slate-100" />
+                <div className="p-4 space-y-2">
+                  <Skeleton className="h-4 w-3/4 bg-slate-100" />
+                  <Skeleton className="h-4 w-1/2 bg-slate-100" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     );
+  }
 
-  if (error || !catalog)
+  // B) ERROR: Diseño Industrial Limpio
+  if (error || !catalog) {
     return (
-      <div className="h-screen w-full flex flex-col items-center justify-center bg-gray-50 p-4 text-center">
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">Catálogo no disponible</h1>
-        <p className="text-gray-500">Es posible que el enlace haya expirado o no exista.</p>
+      <div className="min-h-screen w-full flex flex-col items-center justify-center bg-slate-50 p-4 text-center">
+        <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4 border border-slate-200">
+          <AlertCircle className="h-8 w-8 text-slate-400" />
+        </div>
+        <h1 className="text-2xl font-bold text-slate-900 mb-2">Enlace no disponible</h1>
+        <p className="text-slate-500 max-w-md">
+          Es posible que el catálogo haya expirado, haya sido eliminado por el proveedor o el enlace sea incorrecto.
+        </p>
+        <Button variant="outline" className="mt-6" onClick={() => window.location.reload()}>
+          Recargar página
+        </Button>
       </div>
     );
+  }
 
-  // Pantalla de Bloqueo (Password)
+  // C) LOCK SCREEN: Diseño "Vault" (Caja Fuerte)
   if (catalog.is_private && !isAuthenticated) {
     const handleUnlock = () => {
       if (accessPassword === catalog.access_password) {
         setIsAuthenticated(true);
-        trackEvent("UnlockContent"); // Evento opcional: Alguien desbloqueó el catálogo
+        trackEvent("UnlockContent");
       } else {
-        toast({ title: "Acceso denegado", description: "La contraseña es incorrecta", variant: "destructive" });
+        toast({ title: "Acceso denegado", description: "Credenciales inválidas.", variant: "destructive" });
       }
     };
 
     return (
-      <div className="h-screen w-full flex items-center justify-center bg-gray-100 p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <div className="mx-auto w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-              <Lock className="h-6 w-6 text-gray-600" />
-            </div>
-            <CardTitle>Catálogo Privado</CardTitle>
-            <CardDescription>Ingresa la contraseña para continuar.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {/* 👇 CORRECCIÓN DE SINTAXIS PARA EVITAR ERROR TS17001 */}
-            <Input
-              type="password"
-              placeholder="Contraseña"
-              value={accessPassword}
-              onChange={(e) => setAccessPassword(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleUnlock()}
-            />
-            <Button className="w-full" onClick={handleUnlock}>
-              Ver Catálogo
-            </Button>
-          </CardContent>
-        </Card>
+      <div className="min-h-screen w-full flex items-center justify-center bg-slate-100 p-4 relative overflow-hidden">
+        {/* Background Pattern */}
+        <div className="absolute inset-0 opacity-[0.03] bg-[radial-gradient(#0f172a_1px,transparent_1px)] [background-size:16px_16px]"></div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="w-full max-w-md relative z-10"
+        >
+          <Card className="border-t-4 border-t-indigo-600 shadow-2xl bg-white/95 backdrop-blur">
+            <CardHeader className="text-center pb-2">
+              <div className="mx-auto w-16 h-16 bg-indigo-50 rounded-2xl flex items-center justify-center mb-4 ring-4 ring-white shadow-sm">
+                <Lock className="h-7 w-7 text-indigo-600" />
+              </div>
+              <CardTitle className="text-xl font-bold text-slate-900">Catálogo Protegido</CardTitle>
+              <CardDescription className="text-slate-500">
+                Este contenido es exclusivo. Ingresa tu clave de acceso.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4 pt-4">
+              <div className="space-y-2">
+                <Input
+                  type="password"
+                  placeholder="Ingresa la contraseña..."
+                  className="text-center text-lg tracking-widest h-12 border-slate-200 focus:border-indigo-500 focus:ring-indigo-500 bg-slate-50"
+                  value={accessPassword}
+                  onChange={(e) => setAccessPassword(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleUnlock()}
+                  autoFocus
+                />
+              </div>
+              <Button
+                className="w-full h-11 text-base bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-200 transition-all"
+                onClick={handleUnlock}
+              >
+                <ShieldCheck className="w-4 h-4 mr-2" />
+                Desbloquear Acceso
+              </Button>
+
+              <div className="pt-4 text-center">
+                <p className="text-xs text-slate-400 uppercase tracking-wider font-medium">Secured by CatifyPro</p>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
         <ScriptInjector headScripts={catalog.tracking_head_scripts} bodyScripts={catalog.tracking_body_scripts} />
       </div>
     );
   }
 
-  // Renderizado Final
+  // D) RENDER FINAL: Catálogo Abierto
   return (
     <QuoteCartProvider>
       <ScriptInjector headScripts={catalog.tracking_head_scripts} bodyScripts={catalog.tracking_body_scripts} />
