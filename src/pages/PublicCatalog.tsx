@@ -2,22 +2,20 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { DigitalCatalog } from "@/types/digital-catalog";
-import { Loader2, Lock } from "lucide-react";
+import { DigitalCatalog, Product } from "@/types/digital-catalog";
+import { Loader2, Lock, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { PublicCatalogContent } from "@/components/catalog/public/PublicCatalogContent";
 import { toast } from "@/hooks/use-toast";
-// 👇 IMPORTAMOS EL HOOK DE CAPI
 import { useMetaTracking } from "@/hooks/useMetaTracking";
+import { QuoteCartProvider } from "@/contexts/QuoteCartContext";
 
-// Componente para inyectar scripts crudos (Head/Body)
+// Componente para inyectar scripts crudos (Head/Body) - (Se deja igual)
 const ScriptInjector = ({ headScripts, bodyScripts }: { headScripts?: string | null; bodyScripts?: string | null }) => {
   useEffect(() => {
     const injectedNodes: Node[] = [];
-
-    // 1. Inyectar Head Scripts
     if (headScripts) {
       const range = document.createRange();
       const fragment = range.createContextualFragment(headScripts);
@@ -27,11 +25,8 @@ const ScriptInjector = ({ headScripts, bodyScripts }: { headScripts?: string | n
         injectedNodes.push(clone);
       });
     }
-
-    // 2. Inyectar Body Scripts (al final del body)
     if (bodyScripts) {
       const range = document.createRange();
-      // Usamos createContextualFragment para que ejecute scripts si los hay
       const fragment = range.createContextualFragment(bodyScripts);
       fragment.childNodes.forEach((node) => {
         const clone = node.cloneNode(true);
@@ -39,18 +34,13 @@ const ScriptInjector = ({ headScripts, bodyScripts }: { headScripts?: string | n
         injectedNodes.push(clone);
       });
     }
-
-    // Cleanup: Remover scripts al salir de la página
     return () => {
       injectedNodes.forEach((node) => {
-        if (node.parentNode) {
-          node.parentNode.removeChild(node);
-        }
+        if (node.parentNode) node.parentNode.removeChild(node);
       });
     };
   }, [headScripts, bodyScripts]);
-
-  return null; // Este componente no renderiza nada visual
+  return null;
 };
 
 export default function PublicCatalog() {
@@ -58,7 +48,7 @@ export default function PublicCatalog() {
   const [accessPassword, setAccessPassword] = useState("");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  // 1. Cargar el Catálogo
+  // 1. Cargar el Catálogo (Lógica de Replicación L1/L2)
   const {
     data: catalog,
     isLoading,
@@ -66,73 +56,90 @@ export default function PublicCatalog() {
   } = useQuery({
     queryKey: ["public-catalog", slug],
     queryFn: async () => {
-      // Buscar primero en catálogos originales (L1)
-      let { data, error } = await supabase
+      let catalogIdToFetch: string | null = null;
+      let isReplicated = false;
+      let resellerId: string | undefined = undefined;
+      let catalogHeader: Partial<DigitalCatalog> | null = null;
+
+      // 1.1 Intentar buscar en catálogos originales (L1)
+      let { data, error: errL1 } = await supabase
         .from("digital_catalogs")
-        .select(`
-          *,
-          catalog_products (
-            product_id,
-            products (*)
-          )
-        `)
+        .select(`*`) // Consulta simple, solo cabecera
         .eq("slug", slug)
         .maybeSingle();
 
-      // Si no, buscar en replicados (L2)
+      if (errL1) console.error("Error L1 Query:", errL1);
+
+      // 2. Si no encuentra en L1, buscar en replicados (L2)
       if (!data) {
-        const { data: replica } = await supabase
+        console.log("DEBUG L1 NOT FOUND. Checking L2 replicas...");
+        const { data: replica, error: errL2 } = await supabase
           .from("replicated_catalogs")
-          .select(
-            `
-            *,
-            digital_catalogs (
-              *,
-              catalog_products (
-                product_id,
-                products (*)
-              )
-            )
-          `,
-          )
+          .select(`*, digital_catalogs (*)`) // Trae la cabecera anidada
           .eq("slug", slug)
           .maybeSingle();
 
-        if (replica) {
-          // Fusionar datos: El L2 usa SU propio slug, pero el contenido base del L1
-          data = {
-            ...replica.digital_catalogs,
-            isReplicated: true,
-            resellerId: replica.reseller_id,
-          } as any;
+        if (errL2) console.error("Error L2 Query:", errL2);
+
+        if (replica && replica.digital_catalogs) {
+          catalogHeader = replica.digital_catalogs as Partial<DigitalCatalog>;
+          isReplicated = true;
+          resellerId = replica.reseller_id || undefined;
+          catalogIdToFetch = catalogHeader.id || null;
         }
+      } else {
+        // L1 Encontrado
+        catalogHeader = data;
+        catalogIdToFetch = data.id;
       }
 
-      if (error) throw error;
-      if (!data) throw new Error("Catálogo no encontrado");
+      // 3. Verificación Final de Cabecera
+      if (!catalogHeader || !catalogIdToFetch) {
+        console.log("DEBUG FINAL FAILURE: Header data is null after all attempts.");
+        return null; // Retorna null si no se encuentra la cabecera
+      }
 
-      // Transformar los productos del join a un array plano
-      const products = data.catalog_products?.map((cp: any) => cp.products).filter(Boolean) || [];
-      
-      // Contar visita (ignorar errores si el RPC no existe)
+      // 4. 👇 CONSULTA AISLADA: Obtener la lista de productos
+      const { data: rawProducts, error: prodError } = await supabase
+        .from("catalog_products")
+        .select(
+          `
+             product_id, 
+             products (*)
+          `,
+        ) // JOIN simple a products
+        .eq("catalog_id", catalogIdToFetch);
+
+      if (prodError) {
+        console.error("DEBUG PRODUCT FETCH ERROR:", prodError);
+        throw prodError;
+      }
+
+      // 5. Transformar y fusionar data
+      const products = rawProducts?.map((cp: any) => cp.products).filter(Boolean) || [];
+
+      // Contar visita (fire and forget)
       try {
-        await supabase.rpc("increment_view_count" as any, { row_id: data.id });
+        await supabase.rpc("increment_view_count" as any, { row_id: catalogIdToFetch }).then();
       } catch {}
 
-      return { ...data, products } as DigitalCatalog & { isReplicated?: boolean; resellerId?: string };
+      // Retorno Final: Fusiona cabecera + productos + metadata de réplica
+      return {
+        ...catalogHeader,
+        products: products as Product[],
+        isReplicated,
+        resellerId,
+      } as DigitalCatalog & { isReplicated?: boolean; resellerId?: string; products: Product[] };
     },
     retry: false,
   });
 
-  // 2. Configurar Tracking CAPI (Servidor)
-  // Extraemos la config del JSONB
+  // 2. Configurar Tracking CAPI
   const trackingConfig = (catalog?.tracking_config as any) || {};
-
   const { trackEvent } = useMetaTracking({
-    enabled: true, // Siempre intentamos rastrear si hay config
+    enabled: true,
     pixelId: trackingConfig.pixelId,
-    accessToken: trackingConfig.accessToken, // Solo si es Enterprise tendrá esto
-    // Detectamos si es enterprise si tiene token (o podrías checar el plan del dueño)
+    accessToken: trackingConfig.accessToken,
     isEnterprise: !!trackingConfig.accessToken,
   });
 
@@ -140,45 +147,39 @@ export default function PublicCatalog() {
   useEffect(() => {
     if (catalog) {
       trackEvent("PageView");
-      // También podemos rastrear "ViewContent" específico del catálogo
       trackEvent("ViewContent", {
         content_name: catalog.name,
         content_ids: [catalog.id],
         content_type: "product_group",
       });
     }
-  }, [catalog?.id]); // Solo cuando carga el catálogo
+  }, [catalog?.id]);
 
-  // Manejo de contraseña
-  if (isLoading) {
+  // Manejo de carga, error y contraseña
+  if (isLoading)
     return (
       <div className="h-screen w-full flex items-center justify-center bg-gray-50">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
-  }
 
-  if (error || !catalog) {
+  // 👇 Esta condición se dispara si queryFn devuelve null o error
+  if (error || !catalog)
     return (
       <div className="h-screen w-full flex flex-col items-center justify-center bg-gray-50 p-4 text-center">
         <h1 className="text-2xl font-bold text-gray-900 mb-2">Catálogo no disponible</h1>
         <p className="text-gray-500">Es posible que el enlace haya expirado o no exista.</p>
       </div>
     );
-  }
 
-  // Pantalla de Bloqueo (Password)
+  // Pantalla de Bloqueo (Password) - (Se mantiene igual)
   if (catalog.is_private && !isAuthenticated) {
     const handleUnlock = () => {
       if (accessPassword === catalog.access_password) {
         setIsAuthenticated(true);
-        trackEvent("UnlockContent"); // Evento opcional: Alguien desbloqueó el catálogo
+        trackEvent("UnlockContent");
       } else {
-        toast({
-          title: "Acceso denegado",
-          description: "La contraseña es incorrecta",
-          variant: "destructive",
-        });
+        toast({ title: "Acceso denegado", description: "La contraseña es incorrecta", variant: "destructive" });
       }
     };
 
@@ -190,7 +191,7 @@ export default function PublicCatalog() {
               <Lock className="h-6 w-6 text-gray-600" />
             </div>
             <CardTitle>Catálogo Privado</CardTitle>
-            <CardDescription>Este catálogo está protegido. Ingresa la contraseña para continuar.</CardDescription>
+            <CardDescription>Ingresa la contraseña para continuar.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <Input
@@ -205,24 +206,16 @@ export default function PublicCatalog() {
             </Button>
           </CardContent>
         </Card>
-
-        {/* Inyectamos scripts incluso en la pantalla de bloqueo para medir intentos */}
         <ScriptInjector headScripts={catalog.tracking_head_scripts} bodyScripts={catalog.tracking_body_scripts} />
       </div>
     );
   }
 
+  // Renderizado Final
   return (
-    <>
-      {/* 👇 4. INYECCIÓN DE SCRIPTS DEL USUARIO (Pixel, GTM, Chat, etc.) */}
+    <QuoteCartProvider>
       <ScriptInjector headScripts={catalog.tracking_head_scripts} bodyScripts={catalog.tracking_body_scripts} />
-
-      {/* Contenido del Catálogo */}
-      <PublicCatalogContent
-        catalog={catalog}
-        // Pasamos la función de trackEvent hacia abajo para usarla en "AddToCart"
-        onTrackEvent={trackEvent}
-      />
-    </>
+      <PublicCatalogContent catalog={catalog} onTrackEvent={trackEvent} />
+    </QuoteCartProvider>
   );
 }
