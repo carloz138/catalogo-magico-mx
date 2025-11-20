@@ -145,6 +145,34 @@ export type Database = {
             referencedRelation: "products_with_variants"
             referencedColumns: ["product_id"]
           },
+          {
+            foreignKeyName: "fk_catalog_master_id"
+            columns: ["catalog_id"]
+            isOneToOne: false
+            referencedRelation: "digital_catalogs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_product_catalog_cascade"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "active_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_product_catalog_cascade"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_product_catalog_cascade"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products_with_variants"
+            referencedColumns: ["product_id"]
+          },
         ]
       }
       catalog_usage: {
