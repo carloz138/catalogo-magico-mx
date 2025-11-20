@@ -82,8 +82,8 @@ export default function WhySubscribePage() {
             </span>
           </h1>
           <p className="text-lg md:text-xl text-slate-600 mb-10 leading-relaxed max-w-3xl mx-auto">
-            La mayoría de las herramientas B2B solo te ayudan a ti. CatifyPro le da superpoderes a tus clientes (L2)
-            para que vendan más.
+            La mayoría de las herramientas B2B solo te ayudan a ti. CatifyPro le da superpoderes a tus clientes para que
+            vendan más.
             <br className="hidden md:block" />
             <b>Si ellos crecen, tú creces.</b>
           </p>
@@ -194,8 +194,8 @@ export default function WhySubscribePage() {
                   Regálales su propia Tienda Digital
                 </h3>
                 <p className="text-slate-600 leading-relaxed mb-6">
-                  Tus clientes (L2) obtienen una versión profesional de tu catálogo donde pueden poner{" "}
-                  <b>su logo, sus márgenes y sus colores</b>.
+                  Tus clientes obtienen una versión profesional de tu catálogo donde pueden poner{" "}
+                  <b>su logo, sus precios</b>.
                 </p>
                 <ul className="space-y-3">
                   <li className="flex gap-3 text-slate-700">
@@ -428,7 +428,7 @@ export default function WhySubscribePage() {
               onClick={() => navigate("/login")}
               className="bg-indigo-600 hover:bg-indigo-700 h-14 px-12 text-lg rounded-full shadow-xl"
             >
-              Probar Gratis 14 días
+              Empezar
             </Button>
             <Button
               size="lg"
