@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom"; // ⬅️ CORRECCIÓN: Usamos useSearchParams
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -10,7 +10,10 @@ import { useToast } from "@/hooks/use-toast";
 import type { CatalogByTokenResponse } from "@/types/digital-catalog";
 
 export default function ActivateCatalog() {
-  const { token } = useParams<{ token: string }>();
+  // 🛑 FIX 1: Lectura del token desde el Query Parameter (?token=UUID)
+  const [searchParams] = useSearchParams();
+  const token = searchParams.get("token") || "";
+
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -26,27 +29,20 @@ export default function ActivateCatalog() {
   const [activationMessage, setActivationMessage] = useState(""); // State to hold the message
 
   useEffect(() => {
+    // Utilizamos 'token' directamente
     if (!token) {
       setError("Token inválido");
       setLoading(false);
       return;
     }
     loadCatalog();
-  }, [token]);
+  }, [token]); // token es la dependencia, ya que ahora es una variable de estado
 
   const loadCatalog = async () => {
     if (!token) return;
     setLoading(true);
     setError(null); // Clear previous errors on load
     try {
-      // Check expiration first (optional, depends on your logic)
-      // const expired = await ReplicationService.checkExpiration(token);
-      // setIsExpired(expired);
-      // if (expired) {
-      //  setLoading(false);
-      //  return; // Stop loading if expired
-      // }
-
       // Get catalog data
       const data = await ReplicationService.getCatalogByToken(token);
       setCatalog(data);
@@ -109,16 +105,15 @@ export default function ActivateCatalog() {
     }
   };
 
-  // --- REMOVED THE DUPLICATE DEFINITION OF handleActivateWithEmail ---
+  // --- Removed redundant functions ---
 
-  // --- Consider removing handleContinueFree if activation is always free ---
   const handleContinueFree = () => {
     toast({
       title: "Función no disponible", // Or redirect if you have a preview mode
       description: "Por favor, activa el catálogo para continuar.",
     });
     // if (catalog) {
-    //   // Potentially redirect to a read-only view using catalog.slug or similar
+    //   // Potentially redirect to a read-only view using catalog.slug or similar
     // }
   };
 
@@ -198,10 +193,6 @@ export default function ActivateCatalog() {
       </div>
     );
   }
-
-  // Removed redundant is_active check here, handled by error logic now
-
-  // Removed isExpired check here, handled by error logic now
 
   // --- Main Activation View ---
   return (
@@ -319,6 +310,7 @@ export default function ActivateCatalog() {
                         onChange={(e) => setName(e.target.value)}
                         placeholder="Tu nombre"
                         className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-900" // Added text color
+                        required
                       />
                     </div>
                     {/* Display specific error messages from activation attempt */}
