@@ -308,14 +308,14 @@ const Index = () => {
               {
                 icon: Store,
                 color: "indigo",
-                title: "Herramienta de Gestión (L2)",
-                desc: "Tu cliente recibe gratis un sistema completo para cotizar, ver demanda de nuevos prodcutos y gestionar sus pedidos. Le ahorras trabajo administrativo.",
+                title: "Catálogo y Herramienta de gestión para tus clientes ",
+                desc: "Tu cliente recibe gratis una replica de tu catálogo con su información y un sistema completo para cotizar, ver demanda de nuevos prodcutos y gestionar sus pedidos. Le ahorras trabajo administrativo.",
               },
               {
                 icon: BrainCircuit,
                 color: "violet",
                 title: "Inteligencia Colectiva",
-                desc: "El Recomendador aprende de toda la red. Ayuda a tu cliente a ofrecer productos complementarios que no sabía que podía vender.",
+                desc: "El Recomendador aprende de toda la red, las compras de tus clientes y los clientes de tus clientes. Ayuda a tu cliente a ofrecer productos complementarios que no sabía que podía vender.",
               },
               {
                 icon: Radar,
