@@ -17,7 +17,6 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Upload,
@@ -26,8 +25,6 @@ import {
   Settings,
   LogOut,
   CreditCard,
-  Building2,
-  FileText,
   BookOpen,
   PackageOpen,
   ClipboardList,
@@ -40,18 +37,21 @@ import {
   ChevronRight,
   Radar,
 } from "lucide-react";
-import { toast } from "sonner"; // Cambié a sonner que vi en tu index
+import { toast } from "sonner";
 
-// --- CONFIGURACIÓN DE DISEÑO ---
-// Usamos Slate-900 para fondo y Slate-400 para textos inactivos
+// --- TEMA OSCURO PREMIUM ---
 const THEME = {
   sidebarBg: "bg-slate-950",
   sidebarBorder: "border-slate-800",
+  // Textos
   textInactive: "text-slate-400",
   textActive: "text-white",
-  bgActive: "bg-indigo-600", // Tu color de marca primario
-  hoverBg: "hover:bg-slate-800",
-  hoverText: "hover:text-slate-100",
+  textHover: "group-hover:text-slate-200",
+  // Fondos
+  bgActive: "bg-indigo-600",
+  bgHover: "hover:bg-slate-800/80", // Hover más sutil y elegante
+  // Footer
+  footerBorder: "border-t border-slate-800",
 };
 
 interface MenuItem {
@@ -59,23 +59,23 @@ interface MenuItem {
   path?: string;
   icon: React.ComponentType<any>;
   badge?: string;
-  badgeColor?: string; // Para diferenciar insignias
+  badgeColor?: string;
   primary?: boolean;
 }
 
 const navigationItems: MenuItem[] = [
-  // Bloque Operativo (El día a día)
+  // Bloque Operativo
   { title: "Dashboard", path: "/dashboard", icon: LayoutDashboard, primary: true },
-  { title: "Cotizaciones", path: "/quotes", icon: ClipboardList, primary: true }, // Subido de prioridad
+  { title: "Cotizaciones", path: "/quotes", icon: ClipboardList, primary: true },
   { title: "Mis Catálogos", path: "/catalogs", icon: BookOpen, primary: true },
 
-  // Bloque de Crecimiento (Estratégico)
+  // Bloque de Crecimiento
   {
     title: "Radar de Mercado",
     path: "/market-radar",
     icon: Radar,
     badge: "IA",
-    badgeColor: "bg-violet-500/20 text-violet-300",
+    badgeColor: "bg-violet-500/20 text-violet-200 border-violet-500/30", // Texto más claro
     primary: true,
   },
   {
@@ -83,21 +83,21 @@ const navigationItems: MenuItem[] = [
     path: "/network",
     icon: Network,
     badge: "Viral",
-    badgeColor: "bg-emerald-500/20 text-emerald-300",
+    badgeColor: "bg-emerald-500/20 text-emerald-200 border-emerald-500/30", // Texto más claro
   },
 
   // Bloque de Gestión
   { title: "Inventario (L1)", path: "/products", icon: Package },
   { title: "Carga Masiva", path: "/products/bulk-upload", icon: PackageOpen },
-  { title: "Subir Productos", path: "/upload", icon: Upload }, // Quizás redundante con gestión, pero ok
+  { title: "Subir Productos", path: "/upload", icon: Upload },
 
   // Herramientas
   { title: "Analytics", path: "/analytics", icon: BarChart3 },
-  { title: "Facturación y Créditos", path: "/checkout", icon: CreditCard },
+  { title: "Facturación", path: "/checkout", icon: CreditCard },
 
   // Configuración
   { title: "Guía de Inicio", path: "/onboarding", icon: PlayCircle },
-  { title: "Configuración", path: "/business-info", icon: Settings }, // Renombrado para ser más estándar
+  { title: "Configuración", path: "/business-info", icon: Settings },
 ];
 
 export function AppSidebar() {
@@ -108,7 +108,20 @@ export function AppSidebar() {
   const { state, toggleSidebar } = useSidebar();
   const isCollapsed = state === "collapsed";
 
-  // Verificación de perfil
+  // Lógica de Nombre para mostrar (Cascada: Negocio -> Nombre User -> Email -> Default)
+  const displayName =
+    businessInfo?.business_name ||
+    user?.user_metadata?.full_name ||
+    user?.user_metadata?.name ||
+    user?.email?.split("@")[0] ||
+    "Mi Cuenta";
+
+  // Iniciales para el Avatar
+  const getUserInitials = () => {
+    const source = displayName || "CP";
+    return source.substring(0, 2).toUpperCase();
+  };
+
   const isBusinessInfoIncomplete = () => {
     if (!businessInfo) return true;
     const requiredFields = [businessInfo.business_name, businessInfo.phone, businessInfo.email];
@@ -132,13 +145,6 @@ export function AppSidebar() {
     return location.pathname.startsWith(path) && path !== "/";
   };
 
-  const getUserInitials = () => {
-    if (!user?.email) return "CP";
-    const name = businessInfo?.business_name || user.email;
-    return name.substring(0, 2).toUpperCase();
-  };
-
-  // Renderizador de Items
   const renderNavItem = (item: MenuItem) => {
     const isActive = isActiveRoute(item.path);
 
@@ -149,23 +155,25 @@ export function AppSidebar() {
           isActive={isActive}
           tooltip={isCollapsed ? item.title : undefined}
           className={`
-                mb-1 transition-all duration-200 ease-in-out rounded-md
-                ${
-                  isActive
-                    ? `${THEME.bgActive} ${THEME.textActive} shadow-lg shadow-indigo-900/20 font-medium`
-                    : `${THEME.textInactive} ${THEME.hoverBg} ${THEME.hoverText}`
-                }
+              mb-1 transition-all duration-200 ease-in-out rounded-lg group
+              ${
+                isActive
+                  ? `${THEME.bgActive} ${THEME.textActive} shadow-[0_0_20px_rgba(79,70,229,0.3)] font-medium`
+                  : `${THEME.textInactive} ${THEME.bgHover} ${THEME.textHover}`
+              }
             `}
         >
-          <button onClick={() => item.path && navigate(item.path)} className="flex items-center w-full p-2">
-            <item.icon className={`h-4 w-4 flex-shrink-0 ${isActive ? "text-white" : "text-slate-400"}`} />
+          <button onClick={() => item.path && navigate(item.path)} className="flex items-center w-full p-2.5">
+            <item.icon
+              className={`h-5 w-5 flex-shrink-0 transition-colors ${isActive ? "text-white" : "text-slate-500 group-hover:text-slate-300"}`}
+            />
 
             {!isCollapsed && (
               <>
-                <span className="ml-3 flex-1 truncate text-sm leading-none">{item.title}</span>
+                <span className="ml-3 flex-1 truncate text-sm">{item.title}</span>
                 {item.badge && (
                   <span
-                    className={`ml-auto text-[10px] px-1.5 py-0.5 rounded font-medium ${item.badgeColor || "bg-slate-800 text-slate-400"}`}
+                    className={`ml-auto text-[10px] px-1.5 py-0.5 rounded border ${item.badgeColor || "bg-slate-800 text-slate-400 border-slate-700"}`}
                   >
                     {item.badge}
                   </span>
@@ -180,44 +188,56 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon" className={`border-r ${THEME.sidebarBorder} ${THEME.sidebarBg}`}>
-      {/* HEADER: Branding */}
-      <SidebarHeader className={`h-16 flex items-center justify-between px-4 border-b ${THEME.sidebarBorder}`}>
-        <div className="flex items-center gap-3 overflow-hidden">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-600 shadow-lg shadow-indigo-500/30 text-white">
-            <Sparkles className="h-5 w-5" />
+      {/* ================= HEADER: LOGO ================= */}
+      <SidebarHeader
+        className={`h-16 flex items-center justify-between px-4 border-b ${THEME.sidebarBorder} bg-slate-950`}
+      >
+        <div
+          className={`flex items-center gap-3 overflow-hidden transition-all duration-300 ${isCollapsed ? "justify-center w-full" : ""}`}
+        >
+          {/* Logo Icon con Glow */}
+          <div className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-600 shadow-[0_0_15px_rgba(79,70,229,0.4)] ring-1 ring-white/10">
+            <Sparkles className="h-5 w-5 text-white fill-white/20" />
           </div>
+
           {!isCollapsed && (
-            <div className="flex flex-col">
-              <span className="text-sm font-bold text-white tracking-tight">CatifyPro</span>
-              <span className="text-[10px] text-slate-400 uppercase tracking-wider">Business OS</span>
+            <div className="flex flex-col min-w-0 animate-in fade-in duration-300">
+              <span className="text-base font-bold text-white tracking-tight leading-none">CatifyPro</span>
+              <span className="text-[10px] font-medium text-indigo-400 uppercase tracking-wider mt-0.5">
+                Business OS
+              </span>
             </div>
           )}
         </div>
+
         {!isCollapsed && (
-          <button onClick={toggleSidebar} className="text-slate-500 hover:text-white transition-colors">
-            <ChevronLeft className="h-4 w-4" />
+          <button
+            onClick={toggleSidebar}
+            className="text-slate-500 hover:text-white transition-colors p-1 rounded-md hover:bg-white/5"
+          >
+            <ChevronLeft className="h-5 w-5" />
           </button>
         )}
       </SidebarHeader>
 
-      {/* CONTENT: Navigation */}
-      <SidebarContent className="px-2 py-4">
+      {/* ================= CONTENT ================= */}
+      <SidebarContent className="px-3 py-4 custom-scrollbar">
         <SidebarGroup>
           {!isCollapsed && (
-            <SidebarGroupLabel className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-2 px-2">
+            <SidebarGroupLabel className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 px-2">
               Plataforma
             </SidebarGroupLabel>
           )}
-          <SidebarMenu>{navigationItems.filter((i) => i.primary).map(renderNavItem)}</SidebarMenu>
+          <SidebarMenu className="gap-1">{navigationItems.filter((i) => i.primary).map(renderNavItem)}</SidebarMenu>
         </SidebarGroup>
 
-        <SidebarGroup className="mt-4">
+        <SidebarGroup className="mt-6">
           {!isCollapsed && (
-            <SidebarGroupLabel className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-2 px-2">
-              Gestión
+            <SidebarGroupLabel className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 px-2">
+              Herramientas
             </SidebarGroupLabel>
           )}
-          <SidebarMenu>
+          <SidebarMenu className="gap-1">
             {navigationItems
               .filter((i) => !i.primary && !["/onboarding", "/business-info"].includes(i.path || ""))
               .map(renderNavItem)}
@@ -225,43 +245,49 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      {/* FOOTER: User & Config */}
-      <SidebarFooter className={`border-t ${THEME.sidebarBorder} bg-slate-950/50 p-2`}>
-        {/* Warning de perfil incompleto - Estilo tarjeta oscura */}
+      {/* ================= FOOTER: USUARIO ================= */}
+      <SidebarFooter className={`${THEME.footerBorder} bg-slate-950 p-2`}>
+        {/* Alerta de Perfil (Solo visible expandido) */}
         {showBusinessWarning && !isCollapsed && (
           <div
             onClick={() => navigate("/business-info")}
-            className="mb-4 mx-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 cursor-pointer hover:bg-amber-500/20 transition-all group"
+            className="mb-3 mx-1 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 cursor-pointer hover:bg-amber-500/20 transition-all group relative overflow-hidden"
           >
             <div className="flex items-center gap-2 text-amber-500 mb-1">
-              <AlertTriangle className="h-3 w-3" />
-              <span className="text-xs font-bold">Acción Requerida</span>
+              <AlertTriangle className="h-3.5 w-3.5" />
+              <span className="text-xs font-bold">Completar Perfil</span>
             </div>
-            <p className="text-[10px] text-slate-400 group-hover:text-slate-300">
-              Completa los datos de tu negocio para activar el cotizador.
+            <p className="text-[10px] text-slate-400 group-hover:text-slate-300 leading-tight">
+              Necesario para activar ventas.
             </p>
           </div>
         )}
 
         <SidebarMenu>
-          {/* Menú de Usuario estilo Dropdown Trigger visual */}
           <SidebarMenuItem>
             <div
-              className={`flex items-center gap-3 p-2 rounded-lg ${THEME.hoverBg} cursor-pointer group`}
+              className={`
+                 flex items-center gap-3 p-2 rounded-xl cursor-pointer group transition-all duration-200
+                 hover:bg-white/10 border border-transparent hover:border-white/5
+                 ${isCollapsed ? "justify-center" : ""}
+              `}
               onClick={() => navigate("/business-info")}
             >
-              <Avatar className="h-8 w-8 rounded-lg border border-slate-700">
+              <Avatar className="h-9 w-9 rounded-lg border border-slate-700 shadow-sm group-hover:border-indigo-500/50 transition-colors">
                 <AvatarImage src={user?.user_metadata?.avatar_url} />
-                <AvatarFallback className="rounded-lg bg-slate-800 text-slate-300 text-xs">
+                <AvatarFallback className="rounded-lg bg-gradient-to-br from-indigo-600 to-violet-700 text-white text-xs font-bold">
                   {getUserInitials()}
                 </AvatarFallback>
               </Avatar>
+
               {!isCollapsed && (
-                <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold text-slate-200 group-hover:text-white transition-colors">
-                    {businessInfo?.business_name || "Mi Cuenta"}
+                <div className="grid flex-1 text-left leading-tight min-w-0">
+                  <span className="truncate font-semibold text-slate-200 group-hover:text-white text-sm transition-colors">
+                    {displayName}
                   </span>
-                  <span className="truncate text-xs text-slate-500">{user?.email}</span>
+                  <span className="truncate text-xs text-slate-500 group-hover:text-slate-400 transition-colors">
+                    {user?.email}
+                  </span>
                 </div>
               )}
             </div>
@@ -269,20 +295,23 @@ export function AppSidebar() {
 
           <button
             onClick={handleLogout}
-            className={`w-full mt-2 flex items-center ${isCollapsed ? "justify-center" : "justify-start px-2"} py-2 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-md transition-colors`}
+            className={`
+                w-full mt-1 flex items-center ${isCollapsed ? "justify-center" : "justify-start px-3"} 
+                py-2 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all duration-200 group
+            `}
           >
-            <LogOut className="h-4 w-4" />
-            {!isCollapsed && <span className="ml-2 text-xs font-medium">Cerrar Sesión</span>}
+            <LogOut className="h-4 w-4 group-hover:translate-x-0.5 transition-transform" />
+            {!isCollapsed && <span className="ml-3 text-xs font-medium">Cerrar Sesión</span>}
           </button>
         </SidebarMenu>
       </SidebarFooter>
 
-      {/* Botón de toggle flotante para móvil o cuando está colapsado */}
+      {/* Botón Flotante para Expandir (Solo visible colapsado en desktop) */}
       {isCollapsed && (
-        <div className="absolute -right-3 top-8 z-50 hidden md:block">
+        <div className="absolute -right-3 top-9 z-50 hidden md:block">
           <button
             onClick={toggleSidebar}
-            className="bg-indigo-600 rounded-full p-1 shadow-lg text-white hover:bg-indigo-500"
+            className="bg-indigo-600 rounded-full p-1 shadow-[0_0_10px_rgba(79,70,229,0.5)] text-white hover:bg-indigo-500 hover:scale-110 transition-all"
           >
             <ChevronRight className="h-3 w-3" />
           </button>
