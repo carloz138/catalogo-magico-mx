@@ -1,4 +1,4 @@
-// /src/components/layout/AppSidebar.tsx - FIX ICONOS CENTRADOS
+// /src/components/layout/AppSidebar.tsx
 import React from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -40,82 +40,89 @@ import {
   ChevronRight,
   Radar,
 } from "lucide-react";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner"; // Cambié a sonner que vi en tu index
 
-// ==========================================
-// TIPOS E INTERFACES
-// ==========================================
+// --- CONFIGURACIÓN DE DISEÑO ---
+// Usamos Slate-900 para fondo y Slate-400 para textos inactivos
+const THEME = {
+  sidebarBg: "bg-slate-950",
+  sidebarBorder: "border-slate-800",
+  textInactive: "text-slate-400",
+  textActive: "text-white",
+  bgActive: "bg-indigo-600", // Tu color de marca primario
+  hoverBg: "hover:bg-slate-800",
+  hoverText: "hover:text-slate-100",
+};
+
 interface MenuItem {
   title: string;
   path?: string;
   icon: React.ComponentType<any>;
   badge?: string;
+  badgeColor?: string; // Para diferenciar insignias
   primary?: boolean;
 }
 
-// ==========================================
-// NAVEGACIÓN
-// ==========================================
 const navigationItems: MenuItem[] = [
-  // Grupo Principal (5 items)
+  // Bloque Operativo (El día a día)
   { title: "Dashboard", path: "/dashboard", icon: LayoutDashboard, primary: true },
-  { title: "Subir Productos", path: "/upload", icon: Upload, primary: true },
-  { title: "Crear Catálogo", path: "/products", icon: Package, primary: true },
+  { title: "Cotizaciones", path: "/quotes", icon: ClipboardList, primary: true }, // Subido de prioridad
   { title: "Mis Catálogos", path: "/catalogs", icon: BookOpen, primary: true },
-  { title: "Cotizaciones", path: "/quotes", icon: ClipboardList, primary: true },
-  { title: "Radar de Mercado", path: "/market-radar", icon: Radar, badge: "IA", primary: true },
 
-  // Grupo Herramientas
-  { title: "Red de Distribución", path: "/network", icon: Network, badge: "Nuevo" },
-  { title: "Nuevo Catálogo Digital", path: "/catalogs/new", icon: FileText },
-  { title: "Carga Masiva", path: "/products/bulk-upload", icon: PackageOpen, badge: "Beta" },
-  { title: "Editar Productos", path: "/products-management", icon: Settings },
+  // Bloque de Crecimiento (Estratégico)
+  {
+    title: "Radar de Mercado",
+    path: "/market-radar",
+    icon: Radar,
+    badge: "IA",
+    badgeColor: "bg-violet-500/20 text-violet-300",
+    primary: true,
+  },
+  {
+    title: "Red de Distribución",
+    path: "/network",
+    icon: Network,
+    badge: "Viral",
+    badgeColor: "bg-emerald-500/20 text-emerald-300",
+  },
+
+  // Bloque de Gestión
+  { title: "Inventario (L1)", path: "/products", icon: Package },
+  { title: "Carga Masiva", path: "/products/bulk-upload", icon: PackageOpen },
+  { title: "Subir Productos", path: "/upload", icon: Upload }, // Quizás redundante con gestión, pero ok
+
+  // Herramientas
   { title: "Analytics", path: "/analytics", icon: BarChart3 },
-  { title: "Comprar Créditos", path: "/checkout", icon: CreditCard },
+  { title: "Facturación y Créditos", path: "/checkout", icon: CreditCard },
 
-  // Grupo Configuración
-  { title: "Guía de Inicio", path: "/onboarding", icon: PlayCircle, badge: "5 min" },
-  { title: "Info del Negocio", path: "/business-info", icon: Building2 },
+  // Configuración
+  { title: "Guía de Inicio", path: "/onboarding", icon: PlayCircle },
+  { title: "Configuración", path: "/business-info", icon: Settings }, // Renombrado para ser más estándar
 ];
 
-// ==========================================
-// COMPONENTE PRINCIPAL
-// ==========================================
 export function AppSidebar() {
   const { user, signOut } = useAuth();
   const { businessInfo } = useBusinessInfo();
   const navigate = useNavigate();
   const location = useLocation();
   const { state, toggleSidebar } = useSidebar();
+  const isCollapsed = state === "collapsed";
 
-  // ==========================================
-  // VERIFICACIÓN
-  // ==========================================
+  // Verificación de perfil
   const isBusinessInfoIncomplete = () => {
     if (!businessInfo) return true;
-    const requiredFields = [businessInfo.business_name, businessInfo.phone, businessInfo.email, businessInfo.address];
+    const requiredFields = [businessInfo.business_name, businessInfo.phone, businessInfo.email];
     return requiredFields.some((field) => !field || field.trim() === "");
   };
-
   const showBusinessWarning = isBusinessInfoIncomplete();
 
-  // ==========================================
-  // HANDLERS
-  // ==========================================
   const handleLogout = async () => {
     try {
       await signOut();
-      toast({
-        title: "Sesión cerrada",
-        description: "Has cerrado sesión correctamente",
-      });
+      toast.success("Sesión cerrada correctamente");
       navigate("/login");
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "No se pudo cerrar la sesión",
-        variant: "destructive",
-      });
+      toast.error("Error al cerrar sesión");
     }
   };
 
@@ -125,40 +132,43 @@ export function AppSidebar() {
     return location.pathname.startsWith(path) && path !== "/";
   };
 
-  const isCollapsed = state === "collapsed";
+  const getUserInitials = () => {
+    if (!user?.email) return "CP";
+    const name = businessInfo?.business_name || user.email;
+    return name.substring(0, 2).toUpperCase();
+  };
 
-  // ==========================================
-  // RENDER NAVEGACIÓN
-  // ==========================================
+  // Renderizador de Items
   const renderNavItem = (item: MenuItem) => {
     const isActive = isActiveRoute(item.path);
-    const isPrimary = item.primary;
 
     return (
       <SidebarMenuItem key={item.path}>
-        <SidebarMenuButton asChild isActive={isActive} tooltip={isCollapsed ? item.title : undefined}>
-          <button
-            onClick={() => item.path && navigate(item.path)}
-            disabled={!item.path}
-            className={`
-              flex items-center gap-3 w-full rounded-lg transition-all duration-200
-              ${isPrimary ? "min-h-[48px] py-3" : "min-h-[44px] py-2.5"}
-              ${isCollapsed ? "justify-center px-0" : "px-3"} 
-              ${
-                isActive
-                  ? `bg-blue-50 text-blue-700 font-semibold shadow-sm ${!isCollapsed ? "border-l-4 border-blue-600" : ""}`
-                  : "text-slate-700 hover:bg-slate-100 hover:text-slate-900"
-              }
-              focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
+        <SidebarMenuButton
+          asChild
+          isActive={isActive}
+          tooltip={isCollapsed ? item.title : undefined}
+          className={`
+                mb-1 transition-all duration-200 ease-in-out rounded-md
+                ${
+                  isActive
+                    ? `${THEME.bgActive} ${THEME.textActive} shadow-lg shadow-indigo-900/20 font-medium`
+                    : `${THEME.textInactive} ${THEME.hoverBg} ${THEME.hoverText}`
+                }
             `}
-            aria-current={isActive ? "page" : undefined}
-          >
-            <item.icon className={`flex-shrink-0 ${isPrimary ? "w-5 h-5" : "w-4 h-4"}`} aria-hidden="true" />
+        >
+          <button onClick={() => item.path && navigate(item.path)} className="flex items-center w-full p-2">
+            <item.icon className={`h-4 w-4 flex-shrink-0 ${isActive ? "text-white" : "text-slate-400"}`} />
+
             {!isCollapsed && (
               <>
-                <span className="flex-1 text-left text-sm truncate">{item.title}</span>
+                <span className="ml-3 flex-1 truncate text-sm leading-none">{item.title}</span>
                 {item.badge && (
-                  <Badge className="text-xs bg-green-100 text-green-700 border-green-200">{item.badge}</Badge>
+                  <span
+                    className={`ml-auto text-[10px] px-1.5 py-0.5 rounded font-medium ${item.badgeColor || "bg-slate-800 text-slate-400"}`}
+                  >
+                    {item.badge}
+                  </span>
                 )}
               </>
             )}
@@ -168,175 +178,116 @@ export function AppSidebar() {
     );
   };
 
-  // ==========================================
-  // HELPER
-  // ==========================================
-  const getUserInitials = () => {
-    if (!user?.email) return "U";
-    const email = user.email;
-    const name = businessInfo?.business_name || email;
-
-    if (name.includes(" ")) {
-      const parts = name.split(" ");
-      return (parts[0][0] + parts[1][0]).toUpperCase();
-    }
-    return name.substring(0, 2).toUpperCase();
-  };
-
-  // ==========================================
-  // RENDER PRINCIPAL
-  // ==========================================
   return (
-    <Sidebar collapsible="icon" className="border-r border-slate-200 bg-white">
-      {/* ============================================ */}
-      {/* HEADER */}
-      {/* ============================================ */}
-      <SidebarHeader className="border-b border-slate-200 bg-gradient-to-r from-blue-50 to-slate-50 p-4">
-        <div className={`flex items-center gap-3 ${isCollapsed ? "justify-center" : ""}`}>
-          {/* Logo */}
-          <div className="w-10 h-10 rounded-lg bg-blue-600 flex items-center justify-center flex-shrink-0 shadow-md">
-            <Sparkles className="w-6 h-6 text-white" aria-hidden="true" />
+    <Sidebar collapsible="icon" className={`border-r ${THEME.sidebarBorder} ${THEME.sidebarBg}`}>
+      {/* HEADER: Branding */}
+      <SidebarHeader className={`h-16 flex items-center justify-between px-4 border-b ${THEME.sidebarBorder}`}>
+        <div className="flex items-center gap-3 overflow-hidden">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-600 shadow-lg shadow-indigo-500/30 text-white">
+            <Sparkles className="h-5 w-5" />
           </div>
-
-          {/* Branding - Se oculta cuando está colapsado */}
           {!isCollapsed && (
-            <div className="flex-1 min-w-0">
-              <h1 className="text-lg font-bold text-slate-900 truncate">CatifyPro</h1>
-              <p className="text-xs text-slate-500 truncate">Tu catálogo profesional</p>
+            <div className="flex flex-col">
+              <span className="text-sm font-bold text-white tracking-tight">CatifyPro</span>
+              <span className="text-[10px] text-slate-400 uppercase tracking-wider">Business OS</span>
             </div>
           )}
-
-          {/* Botón de Toggle (Solo visible expandido o absoluto) */}
-          {!isCollapsed && (
-            <button
-              onClick={toggleSidebar}
-              className="ml-auto w-8 h-8 rounded-lg hover:bg-slate-200 flex items-center justify-center transition-colors"
-              aria-label="Colapsar sidebar"
-            >
-              <ChevronLeft className="w-4 h-4 text-slate-600" />
-            </button>
-          )}
         </div>
-        {/* Botón Toggle móvil/colapsado */}
-        {isCollapsed && (
-             <button
-              onClick={toggleSidebar}
-              className="w-full mt-2 py-1 flex justify-center hover:bg-slate-200 rounded transition-colors"
-              aria-label="Expandir sidebar"
-            >
-              <ChevronRight className="w-4 h-4 text-slate-600" />
-            </button>
+        {!isCollapsed && (
+          <button onClick={toggleSidebar} className="text-slate-500 hover:text-white transition-colors">
+            <ChevronLeft className="h-4 w-4" />
+          </button>
         )}
       </SidebarHeader>
 
-      {/* ============================================ */}
-      {/* USER INFO */}
-      {/* ============================================ */}
-      <SidebarGroup className="border-b border-slate-200 bg-slate-50">
-        <SidebarGroupContent className="px-4 py-3">
-          <div className={`flex items-center gap-3 ${isCollapsed ? "justify-center" : ""}`}>
-            {/* Avatar */}
-            <Avatar className="w-10 h-10 border-2 border-white shadow-sm flex-shrink-0">
-              <AvatarImage src={user?.user_metadata?.avatar_url} alt="Usuario" />
-              <AvatarFallback className="bg-blue-100 text-blue-700 font-semibold">{getUserInitials()}</AvatarFallback>
-            </Avatar>
-
-            {/* User Info - Se oculta cuando está colapsado */}
-            {!isCollapsed && (
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-slate-900 truncate">
-                  {businessInfo?.business_name || "Mi Negocio"}
-                </p>
-                <p className="text-xs text-slate-500 truncate">{user?.email || "usuario@email.com"}</p>
-              </div>
-            )}
-          </div>
-
-          {/* WARNING - Solo visible cuando está expandido */}
-          {showBusinessWarning && !isCollapsed && (
-            <div
-              className="mt-3 p-2.5 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-2 cursor-pointer hover:bg-amber-100 transition-colors"
-              onClick={() => navigate("/business-info")}
-              role="button"
-              tabIndex={0}
-            >
-              <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" aria-hidden="true" />
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium text-amber-900">Completa tu perfil</p>
-                <p className="text-xs text-amber-700 mt-0.5">Falta información del negocio</p>
-              </div>
-            </div>
-          )}
-        </SidebarGroupContent>
-      </SidebarGroup>
-
-      {/* ============================================ */}
-      {/* NAVIGATION */}
-      {/* ============================================ */}
-      <SidebarContent className="px-3 py-4">
-        {/* Grupo Principal */}
+      {/* CONTENT: Navigation */}
+      <SidebarContent className="px-2 py-4">
         <SidebarGroup>
           {!isCollapsed && (
-            <SidebarGroupLabel className="text-xs font-semibold text-slate-500 uppercase px-3 mb-2 tracking-wider">
-              Principal
+            <SidebarGroupLabel className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-2 px-2">
+              Plataforma
             </SidebarGroupLabel>
           )}
-          <SidebarMenu className="space-y-1">
-            {navigationItems.filter((item) => item.primary).map(renderNavItem)}
-          </SidebarMenu>
+          <SidebarMenu>{navigationItems.filter((i) => i.primary).map(renderNavItem)}</SidebarMenu>
         </SidebarGroup>
 
-        {/* Separador */}
-        <div className="h-px bg-slate-200 my-4 mx-3" aria-hidden="true" />
-
-        {/* Grupo Herramientas */}
-        <SidebarGroup>
+        <SidebarGroup className="mt-4">
           {!isCollapsed && (
-            <SidebarGroupLabel className="text-xs font-semibold text-slate-500 uppercase px-3 mb-2 tracking-wider">
-              Herramientas
+            <SidebarGroupLabel className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-2 px-2">
+              Gestión
             </SidebarGroupLabel>
           )}
-          <SidebarMenu className="space-y-1">
+          <SidebarMenu>
             {navigationItems
-              .filter((item) => !item.primary && item.path !== "/onboarding" && item.path !== "/business-info")
-              .map(renderNavItem)}
-          </SidebarMenu>
-        </SidebarGroup>
-
-        {/* Separador */}
-        <div className="h-px bg-slate-200 my-4 mx-3" aria-hidden="true" />
-
-        {/* Grupo Configuración */}
-        <SidebarGroup>
-          {!isCollapsed && (
-            <SidebarGroupLabel className="text-xs font-semibold text-slate-500 uppercase px-3 mb-2 tracking-wider">
-              Configuración
-            </SidebarGroupLabel>
-          )}
-          <SidebarMenu className="space-y-1">
-            {navigationItems
-              .filter((item) => item.path === "/onboarding" || item.path === "/business-info")
+              .filter((i) => !i.primary && !["/onboarding", "/business-info"].includes(i.path || ""))
               .map(renderNavItem)}
           </SidebarMenu>
         </SidebarGroup>
       </SidebarContent>
 
-      {/* ============================================ */}
-      {/* FOOTER */}
-      {/* ============================================ */}
-      <SidebarFooter className="border-t border-slate-200 bg-slate-50 p-4">
-        <Button
-          onClick={handleLogout}
-          variant="outline"
-          className={`w-full gap-3 h-11 hover:bg-red-50 hover:text-red-700 hover:border-red-200 transition-colors ${
-            isCollapsed ? "justify-center px-0" : "justify-start"
-          }`}
-          aria-label="Cerrar sesión"
-        >
-          <LogOut className="w-4 h-4" aria-hidden="true" />
-          {!isCollapsed && <span className="text-sm font-medium">Cerrar Sesión</span>}
-        </Button>
+      {/* FOOTER: User & Config */}
+      <SidebarFooter className={`border-t ${THEME.sidebarBorder} bg-slate-950/50 p-2`}>
+        {/* Warning de perfil incompleto - Estilo tarjeta oscura */}
+        {showBusinessWarning && !isCollapsed && (
+          <div
+            onClick={() => navigate("/business-info")}
+            className="mb-4 mx-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 cursor-pointer hover:bg-amber-500/20 transition-all group"
+          >
+            <div className="flex items-center gap-2 text-amber-500 mb-1">
+              <AlertTriangle className="h-3 w-3" />
+              <span className="text-xs font-bold">Acción Requerida</span>
+            </div>
+            <p className="text-[10px] text-slate-400 group-hover:text-slate-300">
+              Completa los datos de tu negocio para activar el cotizador.
+            </p>
+          </div>
+        )}
+
+        <SidebarMenu>
+          {/* Menú de Usuario estilo Dropdown Trigger visual */}
+          <SidebarMenuItem>
+            <div
+              className={`flex items-center gap-3 p-2 rounded-lg ${THEME.hoverBg} cursor-pointer group`}
+              onClick={() => navigate("/business-info")}
+            >
+              <Avatar className="h-8 w-8 rounded-lg border border-slate-700">
+                <AvatarImage src={user?.user_metadata?.avatar_url} />
+                <AvatarFallback className="rounded-lg bg-slate-800 text-slate-300 text-xs">
+                  {getUserInitials()}
+                </AvatarFallback>
+              </Avatar>
+              {!isCollapsed && (
+                <div className="grid flex-1 text-left text-sm leading-tight">
+                  <span className="truncate font-semibold text-slate-200 group-hover:text-white transition-colors">
+                    {businessInfo?.business_name || "Mi Cuenta"}
+                  </span>
+                  <span className="truncate text-xs text-slate-500">{user?.email}</span>
+                </div>
+              )}
+            </div>
+          </SidebarMenuItem>
+
+          <button
+            onClick={handleLogout}
+            className={`w-full mt-2 flex items-center ${isCollapsed ? "justify-center" : "justify-start px-2"} py-2 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-md transition-colors`}
+          >
+            <LogOut className="h-4 w-4" />
+            {!isCollapsed && <span className="ml-2 text-xs font-medium">Cerrar Sesión</span>}
+          </button>
+        </SidebarMenu>
       </SidebarFooter>
+
+      {/* Botón de toggle flotante para móvil o cuando está colapsado */}
+      {isCollapsed && (
+        <div className="absolute -right-3 top-8 z-50 hidden md:block">
+          <button
+            onClick={toggleSidebar}
+            className="bg-indigo-600 rounded-full p-1 shadow-lg text-white hover:bg-indigo-500"
+          >
+            <ChevronRight className="h-3 w-3" />
+          </button>
+        </div>
+      )}
     </Sidebar>
   );
 }
