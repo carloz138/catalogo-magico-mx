@@ -2,14 +2,13 @@ import { useState, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuotes } from "@/hooks/useQuotes";
 import { QuoteStatus } from "@/types/digital-catalog";
-// ❌ AppLayout eliminado
+import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Dialog,
   DialogContent,
@@ -23,7 +22,7 @@ import {
   Loader2,
   Search,
   FileText,
-  CheckCircle,
+  CheckCircle2,
   XCircle,
   Clock,
   DollarSign,
@@ -33,6 +32,9 @@ import {
   Sparkles,
   ExternalLink,
   PackagePlus,
+  Filter,
+  ArrowRight,
+  MoreHorizontal,
 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -58,7 +60,7 @@ export default function QuotesPage() {
     autoLoad: true,
   });
 
-  // Lógica de negocio (se mantiene igual)
+  // --- Lógica de Negocio (Intacta) ---
   const acceptedQuotesForConsolidation = useMemo(() => {
     if (userRole !== "L2" && userRole !== "BOTH") return null;
     const acceptedQuotes = quotes.filter((q) => q.status === "accepted" && (q as any).is_from_replicated);
@@ -88,7 +90,6 @@ export default function QuotesPage() {
     if (!user) return;
     setActivatingQuoteId(quoteId);
     try {
-      console.log("🚀 Activando catálogo para cotización:", quoteId);
       const { data: replicaCatalog, error: findError } = await supabase
         .from("replicated_catalogs")
         .select("id")
@@ -111,7 +112,7 @@ export default function QuotesPage() {
 
       toast({
         title: "🎉 ¡Catálogo activado!",
-        description: "Ya puedes empezar a vender estos productos. Te redirigimos a tus catálogos...",
+        description: "Redirigiendo a tus catálogos...",
       });
 
       await refetch();
@@ -119,7 +120,6 @@ export default function QuotesPage() {
         navigate("/catalogs");
       }, 2000);
     } catch (error: any) {
-      console.error("❌ Error activando catálogo:", error);
       toast({
         title: "Error",
         description: error.message || "No se pudo activar el catálogo",
@@ -132,386 +132,371 @@ export default function QuotesPage() {
     }
   };
 
-  const getStatusBadge = (status: QuoteStatus) => {
-    const config = {
-      pending: { label: "Pendiente", color: "text-yellow-600 bg-yellow-50" },
-      accepted: { label: "Aceptada", color: "text-green-600 bg-green-50" },
-      rejected: { label: "Rechazada", color: "text-red-600 bg-red-50" },
-      shipped: { label: "Enviado", color: "text-blue-600 bg-blue-50" },
-    };
-    const { label, color } = config[status] || config.pending;
-    return <Badge className={color}>{label}</Badge>;
+  // --- UI Helpers ---
+  const getStatusConfig = (status: QuoteStatus) => {
+    switch (status) {
+      case "pending":
+        return {
+          label: "Pendiente",
+          color: "bg-amber-100 text-amber-700 border-amber-200",
+          icon: Clock,
+          border: "border-l-amber-500",
+        };
+      case "accepted":
+        return {
+          label: "Aceptada",
+          color: "bg-emerald-100 text-emerald-700 border-emerald-200",
+          icon: CheckCircle2,
+          border: "border-l-emerald-500",
+        };
+      case "rejected":
+        return {
+          label: "Rechazada",
+          color: "bg-rose-100 text-rose-700 border-rose-200",
+          icon: XCircle,
+          border: "border-l-rose-500",
+        };
+      default:
+        return {
+          label: "Enviado",
+          color: "bg-blue-100 text-blue-700 border-blue-200",
+          icon: Package,
+          border: "border-l-blue-500",
+        };
+    }
   };
-
-  // Actions para el header
-  const actions = (
-    <div className="flex items-center gap-2 w-full md:w-auto">
-      <div className="md:hidden flex items-center gap-2 w-full">
-        <div className="relative flex-1">
-          <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <Input
-            placeholder="Buscar..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-8 h-10 text-sm"
-          />
-        </div>
-      </div>
-
-      <div className="hidden md:flex items-center gap-2">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <Input
-            placeholder="Buscar por cliente, email..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9 w-64"
-          />
-        </div>
-        <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as any)}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Estado" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos</SelectItem>
-            <SelectItem value="pending">Pendientes</SelectItem>
-            <SelectItem value="accepted">Aceptadas</SelectItem>
-            <SelectItem value="rejected">Rechazadas</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-    </div>
-  );
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="flex items-center justify-center min-h-[80vh]">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-10 w-10 animate-spin text-indigo-600" />
+          <p className="text-slate-500 font-medium">Cargando cotizaciones...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    // 👇 NUEVO CONTENEDOR PRINCIPAL
-    <div className="container mx-auto p-4 md:p-6 space-y-6">
-      {/* 👇 HEADER MANUAL */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-2">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Cotizaciones</h1>
-          <p className="text-gray-500">Gestiona las solicitudes de cotización de tus clientes</p>
+    <div className="container mx-auto p-4 md:p-8 max-w-7xl space-y-8 min-h-screen bg-slate-50/50">
+      {/* --- HEADER & KPI STRIP --- */}
+      <div className="flex flex-col gap-6">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Cotizaciones</h1>
+            <p className="text-slate-500">Gestiona y cierra las solicitudes de tus clientes.</p>
+          </div>
+
+          {/* KPI Strip Compacto */}
+          <div className="flex gap-3 overflow-x-auto pb-2 md:pb-0 w-full md:w-auto no-scrollbar">
+            <div className="bg-white border border-slate-200 rounded-lg px-4 py-2 min-w-[140px] shadow-sm flex flex-col justify-center">
+              <span className="text-xs text-slate-500 uppercase font-semibold">Pendientes</span>
+              <div className="flex items-center gap-2">
+                <span className="text-xl font-bold text-amber-600">{stats.pending}</span>
+                <Clock className="w-4 h-4 text-amber-400" />
+              </div>
+            </div>
+            <div className="bg-white border border-slate-200 rounded-lg px-4 py-2 min-w-[140px] shadow-sm flex flex-col justify-center">
+              <span className="text-xs text-slate-500 uppercase font-semibold">Aceptadas</span>
+              <div className="flex items-center gap-2">
+                <span className="text-xl font-bold text-emerald-600">{stats.accepted}</span>
+                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+              </div>
+            </div>
+            <div className="bg-slate-900 border border-slate-800 rounded-lg px-4 py-2 min-w-[160px] shadow-md flex flex-col justify-center">
+              <span className="text-xs text-slate-400 uppercase font-semibold">Monto Total</span>
+              <div className="flex items-center gap-2">
+                <span className="text-xl font-bold text-white">
+                  ${(stats.total_amount_accepted / 100).toLocaleString("es-MX")}
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
-        {actions}
+
+        {/* --- BANNERS DE ACCIÓN (L2) --- */}
+        <AnimatePresence>
+          {acceptedQuotesForConsolidation && (
+            <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+              <Card className="bg-gradient-to-r from-emerald-50 to-white border-emerald-200 shadow-sm">
+                <CardContent className="p-4 flex flex-col md:flex-row items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-emerald-100 p-2 rounded-full">
+                      <PackagePlus className="h-6 w-6 text-emerald-600" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-emerald-900">
+                        Consolida tus pedidos ({acceptedQuotesForConsolidation.totalQuotes})
+                      </h3>
+                      <p className="text-sm text-emerald-700">
+                        Tienes {acceptedQuotesForConsolidation.totalProducts} productos aprobados listos para pedir a
+                        tus proveedores.
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    onClick={() => navigate("/reseller/consolidated-orders")}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white w-full md:w-auto shadow-md shadow-emerald-200"
+                  >
+                    Ver Pedidos Consolidados
+                  </Button>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+
+          {pendingActivations.length > 0 && (
+            <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+              <Card className="bg-gradient-to-r from-purple-50 to-indigo-50 border-purple-200 shadow-sm">
+                <CardContent className="p-4 flex flex-col md:flex-row items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-purple-100 p-2 rounded-full">
+                      <Sparkles className="h-6 w-6 text-purple-600" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-purple-900">Activa tu Catálogo ({pendingActivations.length})</h3>
+                      <p className="text-sm text-purple-700">
+                        Tienes cotizaciones aprobadas que te permiten abrir tu propia tienda al instante.
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    className="bg-purple-600 hover:bg-purple-700 text-white w-full md:w-auto shadow-md shadow-purple-200"
+                    onClick={() => {
+                      const firstPending = pendingActivations[0];
+                      document
+                        .getElementById(`quote-${firstPending.id}`)
+                        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+                    }}
+                  >
+                    Ir a Activar
+                  </Button>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
-      <div className="space-y-6">
-        {/* Banner de pedidos consolidados para L2 */}
-        {acceptedQuotesForConsolidation && (
-          <Alert className="bg-emerald-50 border-emerald-200 shadow-md">
-            <PackagePlus className="h-5 w-5 text-emerald-600" />
-            <AlertDescription>
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-                <div className="flex-1">
-                  <h3 className="font-bold text-emerald-900 mb-1">
-                    💡 Tienes {acceptedQuotesForConsolidation.totalProducts} productos de{" "}
-                    {acceptedQuotesForConsolidation.totalQuotes} cotización
-                    {acceptedQuotesForConsolidation.totalQuotes > 1 ? "es" : ""} aceptada
-                    {acceptedQuotesForConsolidation.totalQuotes > 1 ? "s" : ""} que necesitas pedir a tus proveedores
-                  </h3>
-                  <p className="text-sm text-emerald-700">
-                    Agrupa tus pedidos por proveedor para optimizar tu logística y costos de envío.
-                  </p>
-                </div>
-                <Button
-                  variant="outline"
-                  className="border-emerald-300 text-emerald-700 hover:bg-emerald-100"
-                  onClick={() => navigate("/reseller/consolidated-orders")}
-                >
-                  <PackagePlus className="w-4 h-4 mr-2" />
-                  Ver Pedidos Consolidados
-                </Button>
-              </div>
-            </AlertDescription>
-          </Alert>
-        )}
-
-        {/* Banner de catálogos pendientes */}
-        {pendingActivations.length > 0 && (
-          <Alert className="bg-gradient-to-r from-purple-50 to-indigo-50 border-purple-200 shadow-md">
-            <Sparkles className="h-5 w-5 text-purple-600" />
-            <AlertDescription>
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-                <div className="flex-1">
-                  <h3 className="font-bold text-purple-900 mb-1">
-                    🎉 Tienes {pendingActivations.length} catálogo{pendingActivations.length > 1 ? "s" : ""} listo
-                    {pendingActivations.length > 1 ? "s" : ""} para activar
-                  </h3>
-                  <p className="text-sm text-purple-700">
-                    Empieza a vender sin inventario. Encuentra tu{pendingActivations.length > 1 ? "s" : ""} cotización
-                    {pendingActivations.length > 1 ? "es" : ""} aceptada{pendingActivations.length > 1 ? "s" : ""} abajo
-                    y haz clic en "Activar Catálogo".
-                  </p>
-                </div>
-                <Button
-                  variant="outline"
-                  className="border-purple-300 text-purple-700 hover:bg-purple-100"
-                  onClick={() => {
-                    const firstPending = pendingActivations[0];
-                    document.getElementById(`quote-${firstPending.id}`)?.scrollIntoView({
-                      behavior: "smooth",
-                      block: "center",
-                    });
-                  }}
-                >
-                  <ExternalLink className="w-4 h-4 mr-2" />
-                  Ver Cotización
-                </Button>
-              </div>
-            </AlertDescription>
-          </Alert>
-        )}
-
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Total</p>
-                  <p className="text-2xl font-bold">{stats.total}</p>
-                </div>
-                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                  <FileText className="w-6 h-6 text-blue-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Pendientes</p>
-                  <p className="text-2xl font-bold">{stats.pending}</p>
-                </div>
-                <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
-                  <Clock className="w-6 h-6 text-yellow-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Aceptadas</p>
-                  <p className="text-2xl font-bold">{stats.accepted}</p>
-                </div>
-                <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                  <CheckCircle className="w-6 h-6 text-green-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Monto Aceptado</p>
-                  <p className="text-2xl font-bold">${(stats.total_amount_accepted / 100).toLocaleString("es-MX")}</p>
-                </div>
-                <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
-                  <DollarSign className="w-6 h-6 text-purple-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+      {/* --- TOOLBAR & LISTA --- */}
+      <div className="space-y-4">
+        {/* Toolbar de Filtros */}
+        <div className="flex flex-col md:flex-row gap-3 items-center bg-white p-2 rounded-xl border border-slate-200 shadow-sm">
+          <div className="relative flex-1 w-full">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <Input
+              placeholder="Buscar cliente, empresa o email..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 border-none shadow-none focus-visible:ring-0 bg-transparent"
+            />
+          </div>
+          <div className="h-8 w-px bg-slate-200 hidden md:block"></div>
+          <div className="w-full md:w-auto flex gap-2 overflow-x-auto pb-1 md:pb-0 no-scrollbar">
+            {/* Filtros rápidos estilo Pill */}
+            <Button
+              variant={statusFilter === "all" ? "secondary" : "ghost"}
+              onClick={() => setStatusFilter("all")}
+              className={`rounded-full px-4 h-8 text-xs ${statusFilter === "all" ? "bg-slate-900 text-white hover:bg-slate-800" : "text-slate-500"}`}
+            >
+              Todos
+            </Button>
+            <Button
+              variant={statusFilter === "pending" ? "secondary" : "ghost"}
+              onClick={() => setStatusFilter("pending")}
+              className={`rounded-full px-4 h-8 text-xs ${statusFilter === "pending" ? "bg-amber-100 text-amber-800 hover:bg-amber-200" : "text-slate-500"}`}
+            >
+              Pendientes
+            </Button>
+            <Button
+              variant={statusFilter === "accepted" ? "secondary" : "ghost"}
+              onClick={() => setStatusFilter("accepted")}
+              className={`rounded-full px-4 h-8 text-xs ${statusFilter === "accepted" ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-200" : "text-slate-500"}`}
+            >
+              Aceptadas
+            </Button>
+            <Button
+              variant={statusFilter === "rejected" ? "secondary" : "ghost"}
+              onClick={() => setStatusFilter("rejected")}
+              className={`rounded-full px-4 h-8 text-xs ${statusFilter === "rejected" ? "bg-rose-100 text-rose-800 hover:bg-rose-200" : "text-slate-500"}`}
+            >
+              Rechazadas
+            </Button>
+          </div>
         </div>
 
-        {/* Tabs por estado */}
-        <Tabs value={statusFilter} onValueChange={(v) => setStatusFilter(v as any)}>
-          <TabsList className="grid w-full grid-cols-4 bg-gray-100 p-1 rounded-lg">
-            <TabsTrigger value="all">Todas ({stats.total})</TabsTrigger>
-            <TabsTrigger value="pending">Pendientes ({stats.pending})</TabsTrigger>
-            <TabsTrigger value="accepted">Aceptadas ({stats.accepted})</TabsTrigger>
-            <TabsTrigger value="rejected">Rechazadas ({stats.rejected})</TabsTrigger>
-          </TabsList>
-        </Tabs>
-
-        {/* Lista de cotizaciones */}
+        {/* Lista de Cotizaciones */}
         {filteredQuotes.length === 0 ? (
-          <Card>
-            <CardContent className="py-12 text-center">
-              <Package className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-lg font-semibold mb-2">No hay cotizaciones</p>
-              <p className="text-muted-foreground mb-4">
-                {searchQuery
-                  ? "No se encontraron cotizaciones con ese criterio"
-                  : "Las cotizaciones aparecerán aquí cuando los clientes las soliciten"}
-              </p>
-              {searchQuery && (
-                <Button variant="outline" onClick={() => setSearchQuery("")}>
-                  Limpiar búsqueda
-                </Button>
-              )}
-            </CardContent>
-          </Card>
+          <div className="text-center py-20 bg-white rounded-xl border border-slate-200 border-dashed">
+            <div className="bg-slate-50 p-4 rounded-full inline-block mb-4">
+              <Package className="w-10 h-10 text-slate-400" />
+            </div>
+            <h3 className="text-lg font-semibold text-slate-900">No se encontraron cotizaciones</h3>
+            <p className="text-slate-500 max-w-sm mx-auto mt-2 text-sm">
+              {searchQuery
+                ? "Intenta con otro término de búsqueda o cambia los filtros."
+                : "Tus cotizaciones aparecerán aquí cuando las recibas."}
+            </p>
+            {searchQuery && (
+              <Button variant="link" onClick={() => setSearchQuery("")} className="mt-2 text-indigo-600">
+                Limpiar filtros
+              </Button>
+            )}
+          </div>
         ) : (
-          <div className="space-y-4">
+          <div className="grid gap-4">
             {filteredQuotes.map((quote) => {
+              const statusConfig = getStatusConfig(quote.status);
+              const StatusIcon = statusConfig.icon;
               const isHighlighted = quote.id === highlightQuoteId;
               const canActivate =
                 quote.status === "accepted" && quote.has_replicated_catalog && !quote.catalog_activated;
 
               return (
-                <Card
+                <motion.div
                   key={quote.id}
-                  id={`quote-${quote.id}`}
-                  className={`hover:shadow-lg transition-all cursor-pointer ${
-                    isHighlighted ? "ring-2 ring-purple-500 shadow-xl" : ""
-                  }`}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.2 }}
                 >
-                  <CardContent className="p-4 sm:p-6">
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-                      {/* Info principal */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between mb-2">
-                          <div>
-                            <h3 className="font-semibold text-lg mb-1">{quote.customer_name}</h3>
-                            <p className="text-sm text-muted-foreground">{quote.customer_email}</p>
+                  <Card
+                    id={`quote-${quote.id}`}
+                    className={`group overflow-hidden hover:shadow-md transition-all border-l-4 ${statusConfig.border} ${isHighlighted ? "ring-2 ring-indigo-500 ring-offset-2" : ""}`}
+                  >
+                    <CardContent className="p-0">
+                      <div className="flex flex-col md:flex-row">
+                        {/* Section 1: Info Principal (Clickable) */}
+                        <div className="flex-1 p-5 cursor-pointer" onClick={() => navigate(`/quotes/${quote.id}`)}>
+                          <div className="flex justify-between items-start mb-3">
+                            <div className="flex items-center gap-3">
+                              {/* Avatar Placeholder */}
+                              <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 font-bold text-sm border border-slate-200">
+                                {quote.customer_name.substring(0, 2).toUpperCase()}
+                              </div>
+                              <div>
+                                <h3 className="font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">
+                                  {quote.customer_name}
+                                </h3>
+                                <p className="text-xs text-slate-500 flex items-center gap-1">
+                                  {format(new Date(quote.created_at), "d MMM, yyyy • HH:mm", { locale: es })}
+                                </p>
+                              </div>
+                            </div>
+
+                            {/* Price on Mobile (Top Right) */}
+                            <div className="text-right md:hidden">
+                              <span className="block font-bold text-slate-900">
+                                ${(quote.total_amount / 100).toLocaleString("es-MX")}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="flex flex-wrap gap-y-2 gap-x-4 text-sm pl-[52px]">
+                            <div className="flex items-center gap-1.5 text-slate-600">
+                              <Package className="w-4 h-4 text-slate-400" />
+                              <span>{quote.items_count} productos</span>
+                            </div>
                             {quote.customer_company && (
-                              <p className="text-sm text-muted-foreground">{quote.customer_company}</p>
+                              <div className="flex items-center gap-1.5 text-slate-600">
+                                <FileText className="w-4 h-4 text-slate-400" />
+                                <span>{quote.customer_company}</span>
+                              </div>
+                            )}
+                            {(quote as any).is_from_replicated && (
+                              <Badge
+                                variant="outline"
+                                className="bg-indigo-50 text-indigo-600 border-indigo-100 text-[10px] px-2"
+                              >
+                                <Share2 className="w-3 h-3 mr-1" /> Red L2
+                              </Badge>
                             )}
                           </div>
-                          {getStatusBadge(quote.status)}
                         </div>
 
-                        <div className="flex flex-wrap gap-4 text-sm text-muted-foreground mt-3">
-                          <span className="flex items-center gap-1">
-                            <Package className="w-4 h-4" />
-                            {quote.items_count} {quote.items_count === 1 ? "producto" : "productos"}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <DollarSign className="w-4 h-4" />${(quote.total_amount / 100).toLocaleString("es-MX")}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Clock className="w-4 h-4" />
-                            {format(new Date(quote.created_at), "d 'de' MMMM, yyyy", { locale: es })}
-                          </span>
-                          {(quote as any).is_from_replicated && (
-                            <Badge variant="outline" className="bg-teal-50 text-teal-700 border-teal-200">
-                              Catálogo Replicado
+                        {/* Section 2: Status & Price & Actions (Desktop Right Side) */}
+                        <div className="border-t md:border-t-0 md:border-l border-slate-100 p-4 md:w-[320px] bg-slate-50/50 flex flex-col justify-center gap-3">
+                          <div className="flex justify-between items-center">
+                            <Badge variant="outline" className={`${statusConfig.color} px-3 py-1`}>
+                              <StatusIcon className="w-3 h-3 mr-1.5" /> {statusConfig.label}
                             </Badge>
-                          )}
+                            <span className="font-bold text-lg text-slate-900 hidden md:block">
+                              ${(quote.total_amount / 100).toLocaleString("es-MX")}
+                            </span>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-2 mt-1">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => navigate(`/quotes/${quote.id}`)}
+                              className="bg-white hover:bg-slate-50"
+                            >
+                              <Eye className="w-4 h-4 mr-2 text-slate-500" /> Ver
+                            </Button>
+
+                            {canActivate ? (
+                              <Button
+                                size="sm"
+                                className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white hover:opacity-90 shadow-sm"
+                                onClick={() => {
+                                  setSelectedQuoteForActivation(quote.id);
+                                  setShowActivationModal(true);
+                                }}
+                              >
+                                <Rocket className="w-4 h-4 mr-2" /> Activar
+                              </Button>
+                            ) : (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-slate-400 cursor-default hover:bg-transparent hover:text-slate-400"
+                              >
+                                <MoreHorizontal className="w-4 h-4" />
+                              </Button>
+                            )}
+                          </div>
                         </div>
-
-                        {quote.notes && (
-                          <p className="text-sm text-muted-foreground mt-2 line-clamp-2">
-                            <strong>Nota:</strong> {quote.notes}
-                          </p>
-                        )}
                       </div>
-
-                      {/* Acciones */}
-                      <div className="flex sm:flex-col gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => navigate(`/quotes/${quote.id}`)}
-                          className="flex-1 sm:flex-none"
-                        >
-                          <Eye className="w-4 h-4 mr-2" />
-                          Ver detalle
-                        </Button>
-
-                        {/* Botón de activación */}
-                        {canActivate && (
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  size="sm"
-                                  className="flex-1 sm:flex-none bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700"
-                                  onClick={() => {
-                                    setSelectedQuoteForActivation(quote.id);
-                                    setShowActivationModal(true);
-                                  }}
-                                  disabled={activatingQuoteId === quote.id}
-                                >
-                                  {activatingQuoteId === quote.id ? (
-                                    <>
-                                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                      Activando...
-                                    </>
-                                  ) : (
-                                    <>
-                                      <Rocket className="w-4 h-4 mr-2" />
-                                      Activar Catálogo
-                                    </>
-                                  )}
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent side="top" className="max-w-xs">
-                                <div className="space-y-2">
-                                  <p className="font-semibold text-sm">💡 ¿Por qué activar?</p>
-                                  <ul className="text-xs space-y-1">
-                                    <li>✅ Comparte con tus clientes al instante</li>
-                                    <li>✅ Recibe cotizaciones automáticas 24/7</li>
-                                    <li>✅ Personaliza precios y márgenes</li>
-                                    <li>✅ Panel de control para todo</li>
-                                  </ul>
-                                </div>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        )}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                    </CardContent>
+                  </Card>
+                </motion.div>
               );
             })}
           </div>
         )}
       </div>
 
-      {/* Modal de confirmación */}
+      {/* --- MODAL DE ACTIVACIÓN (Mantenido funcionalmente igual) --- */}
       <Dialog open={showActivationModal} onOpenChange={setShowActivationModal}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Rocket className="w-5 h-5 text-purple-600" />
-              Activar Catálogo para Revender
+            <DialogTitle className="flex items-center gap-2 text-purple-700">
+              <Rocket className="w-5 h-5" />
+              Activar Catálogo
             </DialogTitle>
-            <DialogDescription className="space-y-3 pt-3">
-              <p>Al activar este catálogo podrás:</p>
-              <ul className="space-y-2 text-sm">
-                <li className="flex items-start gap-2">
-                  <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
-                  <span>Compartir tu propio link con tus clientes</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
-                  <span>Recibir cotizaciones automáticas 24/7</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
-                  <span>Personalizar tus precios y márgenes</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
-                  <span>Gestionar todo desde tu panel de control</span>
-                </li>
-              </ul>
-              <p className="text-xs text-muted-foreground pt-2">
-                💡 Tu catálogo estará listo en segundos y podrás empezar a vender inmediatamente.
-              </p>
+            <DialogDescription className="pt-2">
+              Al activar esta cotización, se creará una tienda digital única para ti basada en estos productos.
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter>
+
+          <div className="bg-purple-50 p-4 rounded-lg space-y-3 border border-purple-100">
+            <div className="flex gap-3">
+              <CheckCircle2 className="w-5 h-5 text-purple-600 shrink-0" />
+              <p className="text-sm text-purple-900">Obtienes un enlace único para compartir.</p>
+            </div>
+            <div className="flex gap-3">
+              <CheckCircle2 className="w-5 h-5 text-purple-600 shrink-0" />
+              <p className="text-sm text-purple-900">Puedes editar tus precios de venta.</p>
+            </div>
+            <div className="flex gap-3">
+              <CheckCircle2 className="w-5 h-5 text-purple-600 shrink-0" />
+              <p className="text-sm text-purple-900">Recibes pedidos directo en tu panel.</p>
+            </div>
+          </div>
+
+          <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
             <Button
-              variant="outline"
+              variant="ghost"
               onClick={() => {
                 setShowActivationModal(false);
                 setSelectedQuoteForActivation(null);
@@ -520,7 +505,7 @@ export default function QuotesPage() {
               Cancelar
             </Button>
             <Button
-              className="bg-gradient-to-r from-purple-600 to-indigo-600"
+              className="bg-purple-600 hover:bg-purple-700 text-white"
               onClick={() => {
                 if (selectedQuoteForActivation) {
                   handleActivateCatalog(selectedQuoteForActivation);
@@ -536,7 +521,7 @@ export default function QuotesPage() {
               ) : (
                 <>
                   <Rocket className="w-4 h-4 mr-2" />
-                  Sí, Activar Ahora
+                  Confirmar Activación
                 </>
               )}
             </Button>
