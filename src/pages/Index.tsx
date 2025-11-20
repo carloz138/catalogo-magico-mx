@@ -13,12 +13,13 @@ import {
   ArrowRight,
   ArrowDown,
   Search,
-  Database, // Icono para L1 (Data Master)
-  Store, // Icono para L2 (Tienda/Socio)
-  User, // Icono para L3 (Usuario Final)
+  Database,
+  Store,
+  User,
   BarChart4,
-  Handshake, // Nuevo icono para enfatizar sociedad
+  Handshake,
   TrendingUp,
+  Lock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -146,7 +147,6 @@ const Index = () => {
 
       {/* 2. HERO SECTION */}
       <section className="pt-28 pb-16 md:pt-36 md:pb-24 px-4 sm:px-6 lg:px-8 bg-white overflow-hidden relative">
-        {/* Fondo abstracto */}
         <div className="absolute top-0 left-0 w-full h-full opacity-30 pointer-events-none">
           <div className="absolute right-0 top-0 bg-indigo-100 w-[300px] h-[300px] md:w-[600px] md:h-[600px] rounded-full blur-[80px] mix-blend-multiply animate-pulse"></div>
           <div className="absolute left-0 bottom-0 bg-blue-50 w-[200px] h-[200px] md:w-[500px] md:h-[500px] rounded-full blur-[60px] mix-blend-multiply"></div>
@@ -192,9 +192,7 @@ const Index = () => {
             </div>
           </motion.div>
 
-          {/* ======================================================== */}
-          {/* MAPA CONCEPTUAL OPTIMIZADO (L1 -> L2 -> L3) */}
-          {/* ======================================================== */}
+          {/* MAPA CONCEPTUAL (L1 -> L2 -> L3) */}
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -207,9 +205,8 @@ const Index = () => {
                   El Flujo de Valor Compartido
                 </p>
 
-                {/* Contenedor Flex: Columna en Móvil, Fila en Desktop */}
                 <div className="relative z-10 flex flex-col md:flex-row items-center justify-center gap-8 md:gap-0 w-full max-w-4xl">
-                  {/* ================= NODE 1: TÚ (L1) ================= */}
+                  {/* NODE 1: TÚ (L1) */}
                   <div className="flex flex-col items-center z-20 w-full md:w-1/3 group">
                     <div className="relative">
                       <div className="w-20 h-20 md:w-24 md:h-24 rounded-2xl bg-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-500/30 border border-indigo-400 group-hover:scale-105 transition-transform">
@@ -238,7 +235,7 @@ const Index = () => {
                     </div>
                   </div>
 
-                  {/* ================= NODE 2: TU CLIENTE (L2) ================= */}
+                  {/* NODE 2: TU CLIENTE (L2) */}
                   <div className="flex flex-col items-center z-20 w-full md:w-1/3 group">
                     <div className="relative">
                       <div className="w-16 h-16 md:w-20 md:h-20 rounded-2xl bg-violet-600 flex items-center justify-center shadow-lg shadow-violet-500/20 border border-violet-400 group-hover:scale-105 transition-transform">
@@ -267,7 +264,7 @@ const Index = () => {
                     </div>
                   </div>
 
-                  {/* ================= NODE 3: USUARIO FINAL (L3) ================= */}
+                  {/* NODE 3: USUARIO FINAL (L3) */}
                   <div className="flex flex-col items-center z-20 w-full md:w-1/3 group">
                     <div className="relative">
                       <div className="w-14 h-14 md:w-16 md:h-16 rounded-2xl bg-slate-800 flex items-center justify-center shadow-lg border border-slate-600 group-hover:scale-105 transition-transform">
@@ -287,7 +284,6 @@ const Index = () => {
                   </div>
                 </div>
 
-                {/* Tech Background Elements */}
                 <div className="absolute top-1/2 left-1/2 w-full h-full -translate-x-1/2 -translate-y-1/2 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-indigo-900/10 via-transparent to-transparent pointer-events-none"></div>
               </div>
             </div>
@@ -295,7 +291,7 @@ const Index = () => {
         </div>
       </section>
 
-      {/* 3. EXPLICACIÓN DE VALOR: SIMBIOSIS */}
+      {/* 3. EXPLICACIÓN DE VALOR */}
       <section className="py-16 md:py-24 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
@@ -325,22 +321,25 @@ const Index = () => {
                 title: "Radar de Abastecimiento",
                 desc: "Ves qué piden los usuarios finales (L3) para avisar a tus distribuidores y surtirles antes de que pierdan la venta.",
               },
-            ].map((item, i) => (
-              <motion.div
-                key={i}
-                className="relative z-10 bg-white p-6 md:p-8 rounded-2xl border border-slate-100 shadow-lg text-center hover:border-indigo-100 transition-colors"
-                {...fadeInUp}
-                transition={{ delay: i * 0.2 }}
-              >
-                <div
-                  className={`w-14 h-14 mx-auto bg-${item.color}-50 rounded-2xl flex items-center justify-center mb-4 border border-${item.color}-100`}
+            ].map((item, i) => {
+              const Icon = item.icon; // FIX: Capitalized variable for dynamic component
+              return (
+                <motion.div
+                  key={i}
+                  className="relative z-10 bg-white p-6 md:p-8 rounded-2xl border border-slate-100 shadow-lg text-center hover:border-indigo-100 transition-colors"
+                  {...fadeInUp}
+                  transition={{ delay: i * 0.2 }}
                 >
-                  <item.icon className={`w-7 h-7 text-${item.color}-600`} />
-                </div>
-                <h3 className="text-xl font-bold text-slate-900 mb-3">{item.title}</h3>
-                <p className="text-slate-600 text-sm leading-relaxed">{item.desc}</p>
-              </motion.div>
-            ))}
+                  <div
+                    className={`w-14 h-14 mx-auto bg-${item.color}-50 rounded-2xl flex items-center justify-center mb-4 border border-${item.color}-100`}
+                  >
+                    <Icon className={`w-7 h-7 text-${item.color}-600`} />
+                  </div>
+                  <h3 className="text-xl font-bold text-slate-900 mb-3">{item.title}</h3>
+                  <p className="text-slate-600 text-sm leading-relaxed">{item.desc}</p>
+                </motion.div>
+              );
+            })}
           </div>
         </div>
       </section>
@@ -388,21 +387,24 @@ const Index = () => {
                     title: "Protección de Canal",
                     text: "Tú ves tendencias de mercado para mejorar el stock, pero tu socio mantiene la relación con su cliente.",
                   },
-                ].map((feat, i) => (
-                  <div key={i} className="flex gap-4">
-                    <div className={`mt-1 bg-${feat.color}-500/20 p-2 rounded-lg h-fit shrink-0`}>
-                      <feat.icon className={`w-5 h-5 text-${feat.color}-400`} />
+                ].map((feat, i) => {
+                  const Icon = feat.icon; // FIX: Capitalized variable
+                  return (
+                    <div key={i} className="flex gap-4">
+                      <div className={`mt-1 bg-${feat.color}-500/20 p-2 rounded-lg h-fit shrink-0`}>
+                        <Icon className={`w-5 h-5 text-${feat.color}-400`} />
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-white text-sm md:text-base">{feat.title}</h4>
+                        <p className="text-slate-400 text-xs md:text-sm mt-1">{feat.text}</p>
+                      </div>
                     </div>
-                    <div>
-                      <h4 className="font-bold text-white text-sm md:text-base">{feat.title}</h4>
-                      <p className="text-slate-400 text-xs md:text-sm mt-1">{feat.text}</p>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 
-            {/* Graphic Representation - Live Feed */}
+            {/* LIVE FEED */}
             <div className="bg-slate-900 rounded-2xl border border-slate-800 p-5 md:p-8 shadow-2xl mt-8 lg:mt-0 relative overflow-hidden">
               <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/20 blur-3xl rounded-full pointer-events-none"></div>
               <div className="relative space-y-4 font-mono text-xs md:text-sm">
@@ -434,7 +436,7 @@ const Index = () => {
         </div>
       </section>
 
-      {/* 5. SIMULADOR DE ALCANCE */}
+      {/* 5. SIMULADOR */}
       <section id="network-simulator" className="py-16 md:py-24 bg-slate-50">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-10">
@@ -444,7 +446,6 @@ const Index = () => {
 
           <Card className="shadow-xl border-0 overflow-hidden bg-white rounded-2xl">
             <div className="grid md:grid-cols-2">
-              {/* Inputs */}
               <div className="p-6 md:p-10 bg-white space-y-8">
                 <div>
                   <label className="flex justify-between text-sm font-bold text-slate-700 mb-4">
@@ -476,7 +477,6 @@ const Index = () => {
                 </div>
               </div>
 
-              {/* Results */}
               <div className="p-6 md:p-10 bg-indigo-950 text-white flex flex-col justify-center relative">
                 <div className="text-center space-y-8 relative z-10">
                   <div>
@@ -531,9 +531,6 @@ const Index = () => {
               Ver Demo
             </Button>
           </div>
-          <p className="mt-6 text-indigo-200 text-sm opacity-80">
-            Sin riesgo • Plan gratuito disponible • Setup inmediato
-          </p>
         </div>
       </section>
 
@@ -562,11 +559,6 @@ const Index = () => {
                   Precios
                 </a>
               </li>
-              <li>
-                <a href="#" className="hover:text-white transition-colors">
-                  Radar AI
-                </a>
-              </li>
             </ul>
           </div>
           <div>
@@ -575,11 +567,6 @@ const Index = () => {
               <li>
                 <a href="/blog" className="hover:text-white transition-colors">
                   Blog
-                </a>
-              </li>
-              <li>
-                <a href="#" className="hover:text-white transition-colors">
-                  Guías para L2
                 </a>
               </li>
               <li>
