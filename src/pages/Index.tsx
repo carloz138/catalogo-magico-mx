@@ -13,14 +13,12 @@ import {
   ArrowRight,
   ArrowDown,
   Search,
-  Database,
-  Share2,
+  Database, // Icono para L1 (Data Master)
+  Store, // Icono para L2 (Tienda/Socio)
+  User, // Icono para L3 (Usuario Final)
   BarChart4,
-  Lock,
-  Globe,
-  Store,
-  User,
-  Building2,
+  Handshake, // Nuevo icono para enfatizar sociedad
+  TrendingUp,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -67,7 +65,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 font-inter selection:bg-indigo-100 selection:text-indigo-900 overflow-x-hidden">
-      {/* 1. NAVBAR (Fijo y limpio) */}
+      {/* 1. NAVBAR */}
       <nav className="fixed top-0 w-full bg-white/90 backdrop-blur-md border-b border-slate-200 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
@@ -157,21 +155,22 @@ const Index = () => {
         <div className="max-w-7xl mx-auto text-center relative z-10">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }}>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 border border-indigo-100 text-indigo-700 text-xs md:text-sm font-medium mb-6">
-              <GitFork className="w-3 h-3 md:w-4 md:h-4" />
-              <span>El efecto red aplicado a tu inventario</span>
+              <Handshake className="w-3 h-3 md:w-4 md:h-4" />
+              <span>Convierte a tus clientes en socios estratégicos</span>
             </div>
 
             <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-slate-900 mb-6 tracking-tight leading-[1.1]">
-              Tu inventario distribuido.
+              Conecta tu inventario.
               <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-violet-600">
-                Tu inteligencia centralizada.
+                Potencia toda tu cadena.
               </span>
             </h1>
 
-            <p className="text-lg md:text-xl text-slate-600 mb-8 max-w-2xl mx-auto leading-relaxed px-2">
-              Convierte a tus clientes en tu fuerza de ventas. Ellos replican tu catálogo, tú recolectas la data de todo
-              el mercado.
+            <p className="text-lg md:text-xl text-slate-600 mb-8 max-w-3xl mx-auto leading-relaxed px-2">
+              No solo les vendes productos, les das la tecnología para vender más. Tú obtienes visión del mercado, ellos
+              obtienen una plataforma de gestión profesional.
+              <b> Todos crecen.</b>
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center w-full sm:w-auto px-4">
@@ -180,7 +179,7 @@ const Index = () => {
                 onClick={() => navigate(user ? "/upload" : "/login")}
                 className="bg-indigo-600 hover:bg-indigo-700 text-white h-14 px-8 text-lg rounded-full shadow-xl shadow-indigo-200 w-full sm:w-auto"
               >
-                Activar mi Red
+                Crear mi Ecosistema
               </Button>
               <Button
                 variant="outline"
@@ -188,13 +187,13 @@ const Index = () => {
                 onClick={() => document.getElementById("network-simulator")?.scrollIntoView({ behavior: "smooth" })}
                 className="h-14 px-8 text-lg rounded-full border-slate-300 w-full sm:w-auto bg-white hover:bg-slate-50"
               >
-                Simular Alcance
+                Ver Impacto en Red
               </Button>
             </div>
           </motion.div>
 
           {/* ======================================================== */}
-          {/* MAPA CONCEPTUAL L1 -> L2 -> L3 (OPTIMIZADO) */}
+          {/* MAPA CONCEPTUAL OPTIMIZADO (L1 -> L2 -> L3) */}
           {/* ======================================================== */}
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
@@ -204,28 +203,27 @@ const Index = () => {
           >
             <div className="rounded-3xl bg-slate-900 p-1 md:p-2 shadow-2xl border border-slate-800">
               <div className="rounded-2xl bg-slate-950 overflow-hidden relative py-12 md:py-16 px-4 flex flex-col items-center justify-center border border-slate-800">
-                {/* Título del diagrama */}
                 <p className="text-slate-400 text-xs md:text-sm uppercase tracking-widest mb-8 md:mb-12 font-semibold">
-                  Cómo fluye tu negocio con CatifyPro
+                  El Flujo de Valor Compartido
                 </p>
 
                 {/* Contenedor Flex: Columna en Móvil, Fila en Desktop */}
                 <div className="relative z-10 flex flex-col md:flex-row items-center justify-center gap-8 md:gap-0 w-full max-w-4xl">
                   {/* ================= NODE 1: TÚ (L1) ================= */}
-                  <div className="flex flex-col items-center z-20 w-full md:w-1/3">
+                  <div className="flex flex-col items-center z-20 w-full md:w-1/3 group">
                     <div className="relative">
-                      <div className="w-20 h-20 md:w-24 md:h-24 rounded-2xl bg-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-500/30 border border-indigo-400">
-                        <Building2 className="w-10 h-10 md:w-12 md:h-12 text-white" />
+                      <div className="w-20 h-20 md:w-24 md:h-24 rounded-2xl bg-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-500/30 border border-indigo-400 group-hover:scale-105 transition-transform">
+                        <Database className="w-10 h-10 md:w-12 md:h-12 text-white" />
                       </div>
                       <div className="absolute -top-3 -right-3 bg-green-500 text-white text-[10px] md:text-xs font-bold px-2 py-1 rounded-full border-4 border-slate-950">
                         L1: TÚ
                       </div>
                     </div>
                     <div className="text-center mt-4">
-                      <h3 className="text-white font-bold text-lg">Proveedor</h3>
-                      <p className="text-indigo-300 text-xs md:text-sm font-mono mt-1">Dueño del Master Data</p>
-                      <p className="text-slate-500 text-xs mt-2 max-w-[150px] mx-auto leading-tight">
-                        Subes productos, defines precios base y controlas el stock.
+                      <h3 className="text-white font-bold text-lg">Proveedor Estratégico</h3>
+                      <p className="text-indigo-300 text-xs md:text-sm font-mono mt-1">Gestión de Inventario</p>
+                      <p className="text-slate-500 text-xs mt-2 max-w-[160px] mx-auto leading-tight">
+                        Analizas la demanda global para abastecer mejor a tus socios.
                       </p>
                     </div>
                   </div>
@@ -234,16 +232,16 @@ const Index = () => {
                   <div className="flex flex-col md:flex-row items-center justify-center w-full md:w-auto gap-2">
                     <ArrowDown className="text-slate-600 w-6 h-6 md:hidden animate-bounce" />
                     <div className="hidden md:flex flex-col items-center px-4">
-                      <span className="text-[10px] text-slate-500 mb-1 whitespace-nowrap">Replica Catálogo</span>
+                      <span className="text-[10px] text-slate-500 mb-1 whitespace-nowrap">Tecnología + Stock</span>
                       <div className="h-[2px] w-24 bg-gradient-to-r from-indigo-600 to-violet-500 animate-pulse"></div>
                       <ArrowRight className="text-violet-500 w-4 h-4 absolute ml-24" />
                     </div>
                   </div>
 
                   {/* ================= NODE 2: TU CLIENTE (L2) ================= */}
-                  <div className="flex flex-col items-center z-20 w-full md:w-1/3">
+                  <div className="flex flex-col items-center z-20 w-full md:w-1/3 group">
                     <div className="relative">
-                      <div className="w-16 h-16 md:w-20 md:h-20 rounded-2xl bg-violet-600 flex items-center justify-center shadow-lg shadow-violet-500/20 border border-violet-400">
+                      <div className="w-16 h-16 md:w-20 md:h-20 rounded-2xl bg-violet-600 flex items-center justify-center shadow-lg shadow-violet-500/20 border border-violet-400 group-hover:scale-105 transition-transform">
                         <Store className="w-8 h-8 md:w-10 md:h-10 text-white" />
                       </div>
                       <div className="absolute -top-3 -right-3 bg-slate-700 text-white text-[10px] md:text-xs font-bold px-2 py-1 rounded-full border-4 border-slate-950">
@@ -252,9 +250,9 @@ const Index = () => {
                     </div>
                     <div className="text-center mt-4">
                       <h3 className="text-white font-bold text-lg">Tu Distribuidor</h3>
-                      <p className="text-violet-300 text-xs md:text-sm font-mono mt-1">Vendedor Activo</p>
-                      <p className="text-slate-500 text-xs mt-2 max-w-[150px] mx-auto leading-tight">
-                        Usa TU inventario con SU marca para vender a su red.
+                      <p className="text-violet-300 text-xs md:text-sm font-mono mt-1">Socio Empoderado</p>
+                      <p className="text-slate-500 text-xs mt-2 max-w-[160px] mx-auto leading-tight">
+                        Gestiona sus pedidos y vende más con tu tecnología y recomendaciones.
                       </p>
                     </div>
                   </div>
@@ -263,16 +261,16 @@ const Index = () => {
                   <div className="flex flex-col md:flex-row items-center justify-center w-full md:w-auto gap-2">
                     <ArrowDown className="text-slate-600 w-6 h-6 md:hidden animate-bounce delay-100" />
                     <div className="hidden md:flex flex-col items-center px-4">
-                      <span className="text-[10px] text-slate-500 mb-1 whitespace-nowrap">Vende al final</span>
+                      <span className="text-[10px] text-slate-500 mb-1 whitespace-nowrap">Mejor Servicio</span>
                       <div className="h-[2px] w-24 bg-gradient-to-r from-violet-600 to-slate-500 animate-pulse delay-75"></div>
                       <ArrowRight className="text-slate-500 w-4 h-4 absolute ml-24" />
                     </div>
                   </div>
 
                   {/* ================= NODE 3: USUARIO FINAL (L3) ================= */}
-                  <div className="flex flex-col items-center z-20 w-full md:w-1/3">
+                  <div className="flex flex-col items-center z-20 w-full md:w-1/3 group">
                     <div className="relative">
-                      <div className="w-14 h-14 md:w-16 md:h-16 rounded-2xl bg-slate-800 flex items-center justify-center shadow-lg border border-slate-600">
+                      <div className="w-14 h-14 md:w-16 md:h-16 rounded-2xl bg-slate-800 flex items-center justify-center shadow-lg border border-slate-600 group-hover:scale-105 transition-transform">
                         <User className="w-6 h-6 md:w-8 md:h-8 text-slate-300" />
                       </div>
                       <div className="absolute -top-3 -right-3 bg-slate-700 text-white text-[10px] md:text-xs font-bold px-2 py-1 rounded-full border-4 border-slate-950">
@@ -280,10 +278,10 @@ const Index = () => {
                       </div>
                     </div>
                     <div className="text-center mt-4">
-                      <h3 className="text-white font-bold text-lg">Usuario Final</h3>
-                      <p className="text-slate-400 text-xs md:text-sm font-mono mt-1">Fuente de Data</p>
-                      <p className="text-slate-500 text-xs mt-2 max-w-[150px] mx-auto leading-tight">
-                        Compra y genera datos de demanda (Radar) para ti.
+                      <h3 className="text-white font-bold text-lg">Cliente Final</h3>
+                      <p className="text-slate-400 text-xs md:text-sm font-mono mt-1">Demanda Real</p>
+                      <p className="text-slate-500 text-xs mt-2 max-w-[160px] mx-auto leading-tight">
+                        Encuentra lo que busca gracias a una cadena optimizada.
                       </p>
                     </div>
                   </div>
@@ -297,35 +295,35 @@ const Index = () => {
         </div>
       </section>
 
-      {/* 3. EXPLICACIÓN DE VALOR */}
+      {/* 3. EXPLICACIÓN DE VALOR: SIMBIOSIS */}
       <section className="py-16 md:py-24 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-slate-900 sm:text-4xl mb-4">¿Por qué funciona este modelo?</h2>
+            <h2 className="text-3xl font-bold text-slate-900 sm:text-4xl mb-4">Un sistema donde todos ganan</h2>
             <p className="text-base md:text-lg text-slate-600 max-w-2xl mx-auto">
-              Eliminamos la fricción entre quien tiene el producto (Tú) y quien tiene al cliente (Tu Distribuidor).
+              Mejoras la operación de tus clientes para que ellos mejoren tus ventas.
             </p>
           </div>
 
           <div className="grid md:grid-cols-3 gap-6 md:gap-8 relative">
             {[
               {
-                icon: GitFork,
+                icon: Store,
                 color: "indigo",
-                title: "Multiplicas Puntos de Venta",
-                desc: "Si tienes 10 distribuidores, ahora tienes 10 tiendas digitales completas trabajando para ti, sin costo extra.",
+                title: "Herramienta de Gestión (L2)",
+                desc: "Tu cliente recibe gratis un SaaS completo para cotizar y gestionar sus pedidos. Le ahorras trabajo administrativo.",
               },
               {
-                icon: Globe,
+                icon: BrainCircuit,
                 color: "violet",
-                title: "Centralizas la Operación",
-                desc: "Aunque vendan ellos, tú controlas el precio mínimo y ves el inventario global en tiempo real.",
+                title: "Inteligencia Colectiva",
+                desc: "El Recomendador aprende de toda la red. Ayuda a tu cliente a ofrecer productos complementarios que no sabía que podía vender.",
               },
               {
                 icon: Radar,
                 color: "emerald",
-                title: "Predices la Demanda",
-                desc: "El sistema detecta qué buscan los usuarios finales (L3) para que sepas qué importar antes de comprarlo.",
+                title: "Radar de Abastecimiento",
+                desc: "Ves qué piden los usuarios finales (L3) para avisar a tus distribuidores y surtirles antes de que pierdan la venta.",
               },
             ].map((item, i) => (
               <motion.div
@@ -357,16 +355,17 @@ const Index = () => {
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div>
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 text-xs font-medium mb-6">
-                <BrainCircuit className="w-4 h-4" />
-                <span>Inteligencia Invisible</span>
+                <TrendingUp className="w-4 h-4" />
+                <span>Optimización de Cadena</span>
               </div>
               <h2 className="text-3xl md:text-4xl font-bold mb-6 leading-tight">
-                Lo que no ves es lo que <br />
-                <span className="text-indigo-400">te hace ganar dinero.</span>
+                Si a tu cliente le va bien,
+                <br />
+                <span className="text-indigo-400">a ti te va mejor.</span>
               </h2>
               <p className="text-slate-400 mb-8 text-sm md:text-base leading-relaxed">
-                CatifyPro escucha silenciosamente las búsquedas y comportamientos de toda tu red para darte ventajas
-                competitivas.
+                La tecnología de CatifyPro trabaja en segundo plano para alinear la oferta de tu red con la demanda real
+                del mercado.
               </p>
 
               <div className="space-y-6">
@@ -374,20 +373,20 @@ const Index = () => {
                   {
                     icon: Search,
                     color: "indigo",
-                    title: "Search Logs (Registro de Búsquedas)",
-                    text: "Sabrás exactamente qué buscan tus clientes pero no encuentran en tu catálogo.",
+                    title: "Demanda Real (Search Logs)",
+                    text: "Detecta productos faltantes en el mercado para abastecer proactivamente a tus socios.",
                   },
                   {
                     icon: BarChart4,
                     color: "violet",
-                    title: "IA de Red",
-                    text: "El sistema aprende qué productos se venden juntos para sugerir aumentos de ticket.",
+                    title: "Recomendador de Red",
+                    text: "Tu catálogo le sugiere a tu cliente qué más ofrecerle al usuario final basado en tendencias globales.",
                   },
                   {
                     icon: Lock,
                     color: "emerald",
-                    title: "Privacidad Garantizada",
-                    text: "Tú ves la data agregada (tendencias), tu distribuidor mantiene la propiedad de su cliente.",
+                    title: "Protección de Canal",
+                    text: "Tú ves tendencias de mercado para mejorar el stock, pero tu socio mantiene la relación con su cliente.",
                   },
                 ].map((feat, i) => (
                   <div key={i} className="flex gap-4">
@@ -403,32 +402,31 @@ const Index = () => {
               </div>
             </div>
 
-            {/* Graphic Representation - Ajustado para móvil */}
+            {/* Graphic Representation - Live Feed */}
             <div className="bg-slate-900 rounded-2xl border border-slate-800 p-5 md:p-8 shadow-2xl mt-8 lg:mt-0 relative overflow-hidden">
               <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/20 blur-3xl rounded-full pointer-events-none"></div>
               <div className="relative space-y-4 font-mono text-xs md:text-sm">
                 <div className="flex justify-between text-slate-500 border-b border-slate-800 pb-2">
-                  <span>LIVE FEED: NETWORK</span>
-                  <span className="text-green-400 animate-pulse">● ONLINE</span>
+                  <span>ECOSYSTEM ACTIVITY</span>
+                  <span className="text-green-400 animate-pulse">● LIVE</span>
                 </div>
                 <div className="space-y-3">
-                  <div className="flex gap-2 items-center opacity-50 truncate">
-                    <span className="text-violet-400">[L2_Socio_MX]</span>
-                    <span className="text-slate-300">Venta: SKU-9921 (5u)</span>
+                  <div className="flex gap-2 items-center opacity-60 truncate">
+                    <span className="text-violet-400">[L2_Socio]</span>
+                    <span className="text-slate-300">Generando Cotización #9921...</span>
                   </div>
                   <div className="flex gap-2 items-center bg-indigo-500/10 p-3 rounded border border-indigo-500/20">
-                    <span className="text-amber-400 font-bold">ALERTA RADAR</span>
-                    <span className="text-white font-bold">15 clientes buscan "Filtro 5mm"</span>
+                    <span className="text-indigo-300 font-bold">IA SUGGESTION</span>
+                    <span className="text-white">"Agrega kit de instalación (+20% ticket)"</span>
                   </div>
                   <div className="flex gap-2 items-center opacity-60 truncate">
-                    <span className="text-blue-400">[L3_Usuario]</span>
-                    <span className="text-slate-300">Búsqueda sin resultado: "Válvula Roja"</span>
+                    <span className="text-blue-400">[L3_Mercado]</span>
+                    <span className="text-slate-300">Buscando: "Repuesto Genérico"</span>
                   </div>
-                </div>
-                <div className="pt-4 mt-4 border-t border-slate-800">
-                  <p className="text-xs text-slate-500 italic">
-                    El sistema detecta oportunidades de venta perdidas en tiempo real.
-                  </p>
+                  <div className="flex gap-2 items-center bg-emerald-900/20 p-2 rounded border border-emerald-500/20">
+                    <span className="text-emerald-400 font-bold">OPORTUNIDAD</span>
+                    <span className="text-white text-xs">Alta demanda detectada. Sugerir stock a L2.</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -436,14 +434,12 @@ const Index = () => {
         </div>
       </section>
 
-      {/* 5. SIMULADOR DE ALCANCE (Mobile optimized padding) */}
+      {/* 5. SIMULADOR DE ALCANCE */}
       <section id="network-simulator" className="py-16 md:py-24 bg-slate-50">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-10">
-            <h2 className="text-3xl font-bold text-slate-900">Simulador de Poder de Red</h2>
-            <p className="text-slate-600 mt-4 text-sm md:text-base">
-              Calcula cuánta información de mercado estás desperdiciando hoy.
-            </p>
+            <h2 className="text-3xl font-bold text-slate-900">Impacto en tu Red</h2>
+            <p className="text-slate-600 mt-4 text-sm md:text-base">Visualiza el potencial de conectar a tus socios.</p>
           </div>
 
           <Card className="shadow-xl border-0 overflow-hidden bg-white rounded-2xl">
@@ -452,7 +448,7 @@ const Index = () => {
               <div className="p-6 md:p-10 bg-white space-y-8">
                 <div>
                   <label className="flex justify-between text-sm font-bold text-slate-700 mb-4">
-                    <span>Tus Distribuidores Activos (L2)</span>
+                    <span>Tus Socios Activos (L2)</span>
                     <span className="text-indigo-600 text-lg">{simResellers}</span>
                   </label>
                   <Slider
@@ -462,11 +458,11 @@ const Index = () => {
                     step={1}
                     className="py-4"
                   />
-                  <p className="text-xs text-slate-400 mt-1">Clientes a los que vendes hoy.</p>
+                  <p className="text-xs text-slate-400 mt-1">Distribuidores a potenciar.</p>
                 </div>
                 <div>
                   <label className="flex justify-between text-sm font-bold text-slate-700 mb-4">
-                    <span>Sus Clientes Promedio (L3)</span>
+                    <span>Alcance de Mercado por Socio (L3)</span>
                     <span className="text-indigo-600 text-lg">{simEndClients}</span>
                   </label>
                   <Slider
@@ -476,29 +472,24 @@ const Index = () => {
                     step={10}
                     className="py-4"
                   />
-                  <p className="text-xs text-slate-400 mt-1">A cuánta gente le venden ellos.</p>
+                  <p className="text-xs text-slate-400 mt-1">Clientes finales potenciales.</p>
                 </div>
               </div>
 
               {/* Results */}
               <div className="p-6 md:p-10 bg-indigo-950 text-white flex flex-col justify-center relative">
-                {/* Decoración de fondo */}
-                <div className="absolute bottom-0 right-0 w-40 h-40 bg-indigo-600/30 rounded-full blur-3xl pointer-events-none"></div>
-
                 <div className="text-center space-y-8 relative z-10">
                   <div>
-                    <p className="text-indigo-300 text-xs uppercase tracking-widest mb-2 font-bold">
-                      Tu Alcance Real Potencial
-                    </p>
+                    <p className="text-indigo-300 text-xs uppercase tracking-widest mb-2 font-bold">Ecosistema Total</p>
                     <p className="text-4xl md:text-5xl font-bold text-white">{totalNetworkReach.toLocaleString()}</p>
-                    <p className="text-slate-400 text-xs mt-1">Usuarios Finales (L3) en tu ecosistema</p>
+                    <p className="text-slate-400 text-xs mt-1">Clientes Finales Conectados</p>
                   </div>
                   <div className="grid grid-cols-2 gap-4 pt-6 border-t border-indigo-800/50">
                     <div>
                       <p className="text-2xl md:text-3xl font-bold text-emerald-400">
                         {estimatedDataPoints.toLocaleString()}
                       </p>
-                      <p className="text-indigo-200 text-[10px] uppercase font-bold mt-1">Puntos de Data / Mes</p>
+                      <p className="text-indigo-200 text-[10px] uppercase font-bold mt-1">Insights de Mercado</p>
                     </div>
                     <div>
                       <p className="text-2xl md:text-3xl font-bold text-amber-400">
@@ -508,7 +499,7 @@ const Index = () => {
                     </div>
                   </div>
                   <Button className="w-full bg-white text-indigo-900 hover:bg-indigo-50 font-bold mt-2">
-                    Capturar esta Data
+                    Optimizar mi Cadena
                   </Button>
                 </div>
               </div>
@@ -520,9 +511,9 @@ const Index = () => {
       {/* 6. CTA FINAL */}
       <section className="py-20 bg-indigo-600 px-4">
         <div className="max-w-3xl mx-auto text-center">
-          <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">¿Listo para conectar los puntos?</h2>
+          <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">¿Listo para fortalecer tu red?</h2>
           <p className="text-indigo-100 text-lg mb-10 max-w-2xl mx-auto">
-            Deja de vender "caja por caja" y empieza a construir una red de distribución inteligente.
+            Dales a tus clientes la herramienta que necesitan para crecer contigo.
           </p>
           <div className="flex flex-col sm:flex-row justify-center gap-4 w-full">
             <Button
@@ -541,7 +532,7 @@ const Index = () => {
             </Button>
           </div>
           <p className="mt-6 text-indigo-200 text-sm opacity-80">
-            Plan gratuito disponible para siempre • Sin tarjeta de crédito
+            Sin riesgo • Plan gratuito disponible • Setup inmediato
           </p>
         </div>
       </section>
@@ -555,7 +546,7 @@ const Index = () => {
               <span className="font-bold text-lg">CatifyPro</span>
             </div>
             <p className="mb-4 text-xs leading-relaxed max-w-xs">
-              Sistema Operativo para Redes de Distribución B2B. Conectando proveedores, distribuidores y mercado.
+              Plataforma de Gestión y Distribución Inteligente B2B.
             </p>
           </div>
           <div>
@@ -588,12 +579,12 @@ const Index = () => {
               </li>
               <li>
                 <a href="#" className="hover:text-white transition-colors">
-                  Tutoriales
+                  Guías para L2
                 </a>
               </li>
               <li>
                 <a href="#" className="hover:text-white transition-colors">
-                  Ayuda
+                  Soporte
                 </a>
               </li>
             </ul>
