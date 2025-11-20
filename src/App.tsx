@@ -12,14 +12,14 @@ import { QuoteCartProvider } from "@/contexts/QuoteCartContext";
 
 // Components & Layouts
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
-import DashboardLayout from "@/components/layout/DashboardLayout"; // 👈 El nuevo layout
+import DashboardLayout from "@/components/layout/DashboardLayout"; 
 
 // --- Pages ---
 // Public Pages
 import Index from "@/pages/Index";
 import LoginPage from "@/pages/LoginPage";
 import PublicCatalog from "@/pages/PublicCatalog";
-import ActivateCatalog from "@/pages/ActivateCatalog";
+import ActivateCatalog from "@/pages/ActivateCatalog"; // Este es el componente que debe cargar
 import CompleteActivation from "@/pages/CompleteActivation";
 import TermsAndConditions from "@/pages/TermsAndConditions";
 import PrivacyPolicy from "@/pages/PrivacyPolicy";
@@ -61,74 +61,78 @@ import MarketRadar from "@/pages/MarketRadar";
 const queryClient = new QueryClient();
 
 const App = () => (
-  <BrowserRouter>
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <AuthProvider>
-          {/* 👇 El RoleProvider debe envolver al SubscriptionProvider */}
-          <RoleProvider>
-            <SubscriptionProvider>
-              <Routes>
-                {/* --- Rutas Públicas (Sin Sidebar) --- */}
-                <Route path="/" element={<Index />} />
-                <Route path="/login" element={<LoginPage />} />
-                <Route path="/creditos" element={<Navigate to="/checkout" replace />} />
-                <Route path="/why-subscribe" element={<WhySubscribePage />} />
-                <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
-                <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-                <Route path="/reset-password" element={<ResetPassword />} />
-                <Route path="/c/:slug" element={<QuoteCartProvider><PublicCatalog /></QuoteCartProvider>} />
-                <Route path="/activar/:token" element={<ActivateCatalog />} />
-                <Route path="/blog" element={<Blog />} />
-                <Route path="/blog/:slug" element={<BlogPost />} />
-                <Route path="/tracking/:token" element={<QuoteTracking />} />
-                <Route path="/track/:token" element={<TrackQuotePage />} />
+  <BrowserRouter>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <AuthProvider>
+          <RoleProvider>
+            <SubscriptionProvider>
+              <Routes>
+                {/* --- Rutas Públicas (Sin Sidebar) --- */}
+                <Route path="/" element={<Index />} />
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/creditos" element={<Navigate to="/checkout" replace />} />
+                <Route path="/why-subscribe" element={<WhySubscribePage />} />
+                <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
+                <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
+                <Route path="/c/:slug" element={<QuoteCartProvider><PublicCatalog /></QuoteCartProvider>} />
+                
+                {/* ❌ ESTA RUTA DEBE ELIMINARSE O COMENTARSE: Usaba el viejo método con path params */}
+                {/* <Route path="/activar/:token" element={<ActivateCatalog />} /> */}
+                
+                {/* ✅ RUTA CRÍTICA A AÑADIR/REEMPLAZAR: Maneja el link del email /track?token=UUID */}
+                <Route path="/track" element={<ActivateCatalog />} />
+                
+                <Route path="/blog" element={<Blog />} />
+                <Route path="/blog/:slug" element={<BlogPost />} />
+                <Route path="/tracking/:token" element={<QuoteTracking />} />
+                <Route path="/track/:token" element={<TrackQuotePage />} /> {/* Esto es distinto a /track */}
 
-                {/* --- Rutas Protegidas (Con Sidebar) --- */}
-                <Route element={<ProtectedRoute />}>
-                  {/* 👇 AQUÍ ESTÁ EL CAMBIO: DashboardLayout envuelve todo */}
-                  <Route element={<DashboardLayout />}>
-                    <Route path="/dashboard" element={<MainDashboard />} />
-                    <Route path="/analytics" element={<Analytics />} />
-                    <Route path="/upload" element={<Upload />} />
-                    <Route path="/products" element={<Products />} />
-                    <Route path="/products/bulk-upload" element={<BulkUpload />} />
-                    <Route path="/products-management" element={<ProductsManagement />} />
-                    <Route path="/deleted-products" element={<DeletedProducts />} />
-                    <Route path="/image-review" element={<ImageReview />} />
-                    <Route path="/template-selection" element={<TemplateSelectionEnhanced />} />
-                    <Route path="/catalogs" element={<Catalogs />} />
-                    <Route path="/catalogs/new" element={<DigitalCatalogForm />} />
-                    <Route path="/catalogs/:id/edit" element={<DigitalCatalogForm />} />
-                    <Route path="/quotes" element={<QuotesPage />} />
-                    <Route path="/quotes/:id" element={<QuoteDetailPage />} />
-                    <Route path="/market-radar" element={<MarketRadar />} />
-                    <Route path="/network" element={<DistributionNetwork />} />
-                    <Route path="/dashboard/reseller" element={<ResellerDashboard />} />
-                    <Route path="/reseller/edit-prices" element={<ProductPriceEditor />} />
-                    <Route path="/reseller/consolidated-orders" element={<ConsolidatedOrdersListPage />} />
-                    <Route path="/reseller/consolidate/:supplierId" element={<ConsolidateOrderPage />} />
-                    <Route path="/complete-activation" element={<CompleteActivation />} />
-                    <Route path="/business-info" element={<BusinessInfoPage />} />
-                    <Route path="/settings/business" element={<BusinessInfoSettings />} />
-                    <Route path="/onboarding" element={<OnboardingPage />} />
-                    <Route path="/checkout" element={<Checkout />} />
-                    <Route path="/payment-success" element={<PaymentSuccess />} />
-                    <Route path="/payment-instructions/:transactionId" element={<PaymentInstructions />} />
-                  </Route>
-                </Route>
+                {/* --- Rutas Protegidas (Con Sidebar) --- */}
+                <Route element={<ProtectedRoute />}>
+                  <Route element={<DashboardLayout />}>
+                    <Route path="/dashboard" element={<MainDashboard />} />
+                    <Route path="/analytics" element={<Analytics />} />
+                    <Route path="/upload" element={<Upload />} />
+                    <Route path="/products" element={<Products />} />
+                    <Route path="/products/bulk-upload" element={<BulkUpload />} />
+                    <Route path="/products-management" element={<ProductsManagement />} />
+                    <Route path="/deleted-products" element={<DeletedProducts />} />
+                    <Route path="/image-review" element={<ImageReview />} />
+                    <Route path="/template-selection" element={<TemplateSelectionEnhanced />} />
+                    <Route path="/catalogs" element={<Catalogs />} />
+                    <Route path="/catalogs/new" element={<DigitalCatalogForm />} />
+                    <Route path="/catalogs/:id/edit" element={<DigitalCatalogForm />} />
+                    <Route path="/quotes" element={<QuotesPage />} />
+                    <Route path="/quotes/:id" element={<QuoteDetailPage />} />
+                    <Route path="/market-radar" element={<MarketRadar />} />
+                    <Route path="/network" element={<DistributionNetwork />} />
+                    <Route path="/dashboard/reseller" element={<ResellerDashboard />} />
+                    <Route path="/reseller/edit-prices" element={<ProductPriceEditor />} />
+                    <Route path="/reseller/consolidated-orders" element={<ConsolidatedOrdersListPage />} />
+                    <Route path="/reseller/consolidate/:supplierId" element={<ConsolidateOrderPage />} />
+                    <Route path="/complete-activation" element={<CompleteActivation />} />
+                    <Route path="/business-info" element={<BusinessInfoPage />} />
+                    <Route path="/settings/business" element={<BusinessInfoSettings />} />
+                    <Route path="/onboarding" element={<OnboardingPage />} />
+                    <Route path="/checkout" element={<Checkout />} />
+                    <Route path="/payment-success" element={<PaymentSuccess />} />
+                    <Route path="/payment-instructions/:transactionId" element={<PaymentInstructions />} />
+                  </Route>
+                </Route>
 
-                {/* Ruta para Not Found al final */}
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </SubscriptionProvider>
-          </RoleProvider>
-        </AuthProvider>
-      </TooltipProvider>
-    </QueryClientProvider>
-  </BrowserRouter>
+                {/* Ruta para Not Found al final */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </SubscriptionProvider>
+          </RoleProvider>
+        </AuthProvider>
+      </TooltipProvider>
+    </QueryClientProvider>
+  </BrowserRouter>
 );
 
 export default App;
