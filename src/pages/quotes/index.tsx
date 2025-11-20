@@ -7,8 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -17,7 +15,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Loader2,
   Search,
@@ -25,16 +22,16 @@ import {
   CheckCircle2,
   XCircle,
   Clock,
-  DollarSign,
   Package,
   Eye,
   Rocket,
   Sparkles,
-  ExternalLink,
   PackagePlus,
-  Filter,
-  ArrowRight,
   MoreHorizontal,
+  Share2, // <--- ¡AQUÍ ESTÁ LA CORRECCIÓN! Importamos Share2
+  TrendingUp,
+  DollarSign,
+  Calendar,
 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -42,6 +39,29 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/contexts/RoleContext";
+
+// --- COMPONENTES AUXILIARES DE UI (Prime Design) ---
+
+// Badge de estado ultra-limpio
+const StatusBadge = ({ status }: { status: QuoteStatus }) => {
+  const config = {
+    pending: { label: "Pendiente", bg: "bg-amber-50", text: "text-amber-700", icon: Clock },
+    accepted: { label: "Aceptada", bg: "bg-emerald-50", text: "text-emerald-700", icon: CheckCircle2 },
+    rejected: { label: "Rechazada", bg: "bg-rose-50", text: "text-rose-700", icon: XCircle },
+    sent: { label: "Enviado", bg: "bg-blue-50", text: "text-blue-700", icon: Package }, // Fallback
+  }[status] || { label: "Enviado", bg: "bg-blue-50", text: "text-blue-700", icon: Package };
+
+  const Icon = config.icon;
+
+  return (
+    <div
+      className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium w-fit ${config.bg} ${config.text} border border-transparent`}
+    >
+      <Icon className="w-3.5 h-3.5" />
+      {config.label}
+    </div>
+  );
+};
 
 export default function QuotesPage() {
   const navigate = useNavigate();
@@ -60,7 +80,7 @@ export default function QuotesPage() {
     autoLoad: true,
   });
 
-  // --- Lógica de Negocio (Intacta) ---
+  // --- LÓGICA DE NEGOCIO (INTACTA) ---
   const acceptedQuotesForConsolidation = useMemo(() => {
     if (userRole !== "L2" && userRole !== "BOTH") return null;
     const acceptedQuotes = quotes.filter((q) => q.status === "accepted" && (q as any).is_from_replicated);
@@ -132,400 +152,333 @@ export default function QuotesPage() {
     }
   };
 
-  // --- UI Helpers ---
-  const getStatusConfig = (status: QuoteStatus) => {
-    switch (status) {
-      case "pending":
-        return {
-          label: "Pendiente",
-          color: "bg-amber-100 text-amber-700 border-amber-200",
-          icon: Clock,
-          border: "border-l-amber-500",
-        };
-      case "accepted":
-        return {
-          label: "Aceptada",
-          color: "bg-emerald-100 text-emerald-700 border-emerald-200",
-          icon: CheckCircle2,
-          border: "border-l-emerald-500",
-        };
-      case "rejected":
-        return {
-          label: "Rechazada",
-          color: "bg-rose-100 text-rose-700 border-rose-200",
-          icon: XCircle,
-          border: "border-l-rose-500",
-        };
-      default:
-        return {
-          label: "Enviado",
-          color: "bg-blue-100 text-blue-700 border-blue-200",
-          icon: Package,
-          border: "border-l-blue-500",
-        };
-    }
-  };
-
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[80vh]">
+      <div className="flex items-center justify-center min-h-screen bg-slate-50">
         <div className="flex flex-col items-center gap-4">
-          <Loader2 className="h-10 w-10 animate-spin text-indigo-600" />
-          <p className="text-slate-500 font-medium">Cargando cotizaciones...</p>
+          <div className="w-12 h-12 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
+          <p className="text-slate-500 font-medium text-sm animate-pulse">Cargando sistema...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto p-4 md:p-8 max-w-7xl space-y-8 min-h-screen bg-slate-50/50">
-      {/* --- HEADER & KPI STRIP --- */}
-      <div className="flex flex-col gap-6">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+    <div className="min-h-screen bg-slate-50/50 p-4 md:p-8 font-sans text-slate-900 pb-20">
+      {/* --- HEADER & KPI --- */}
+      <header className="max-w-7xl mx-auto mb-8">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
           <div>
             <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Cotizaciones</h1>
-            <p className="text-slate-500">Gestiona y cierra las solicitudes de tus clientes.</p>
+            <p className="text-slate-500 mt-1">Gestiona el flujo comercial y cierra ventas.</p>
           </div>
 
-          {/* KPI Strip Compacto */}
-          <div className="flex gap-3 overflow-x-auto pb-2 md:pb-0 w-full md:w-auto no-scrollbar">
-            <div className="bg-white border border-slate-200 rounded-lg px-4 py-2 min-w-[140px] shadow-sm flex flex-col justify-center">
-              <span className="text-xs text-slate-500 uppercase font-semibold">Pendientes</span>
-              <div className="flex items-center gap-2">
-                <span className="text-xl font-bold text-amber-600">{stats.pending}</span>
-                <Clock className="w-4 h-4 text-amber-400" />
+          {/* KPI Cards Minimalistas */}
+          <div className="flex gap-3 overflow-x-auto pb-2 md:pb-0 no-scrollbar">
+            <div className="bg-white border border-slate-200 rounded-xl px-5 py-3 shadow-sm min-w-[160px] flex flex-col">
+              <div className="flex items-center gap-2 mb-1 text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                <Clock className="w-3.5 h-3.5" /> Pendientes
               </div>
+              <span className="text-2xl font-bold text-slate-900">{stats.pending}</span>
             </div>
-            <div className="bg-white border border-slate-200 rounded-lg px-4 py-2 min-w-[140px] shadow-sm flex flex-col justify-center">
-              <span className="text-xs text-slate-500 uppercase font-semibold">Aceptadas</span>
-              <div className="flex items-center gap-2">
-                <span className="text-xl font-bold text-emerald-600">{stats.accepted}</span>
-                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+
+            <div className="bg-white border border-slate-200 rounded-xl px-5 py-3 shadow-sm min-w-[160px] flex flex-col">
+              <div className="flex items-center gap-2 mb-1 text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                <CheckCircle2 className="w-3.5 h-3.5" /> Aceptadas
               </div>
+              <span className="text-2xl font-bold text-emerald-600">{stats.accepted}</span>
             </div>
-            <div className="bg-slate-900 border border-slate-800 rounded-lg px-4 py-2 min-w-[160px] shadow-md flex flex-col justify-center">
-              <span className="text-xs text-slate-400 uppercase font-semibold">Monto Total</span>
-              <div className="flex items-center gap-2">
-                <span className="text-xl font-bold text-white">
-                  ${(stats.total_amount_accepted / 100).toLocaleString("es-MX")}
-                </span>
+
+            <div className="bg-slate-900 border border-slate-800 rounded-xl px-5 py-3 shadow-md min-w-[180px] flex flex-col">
+              <div className="flex items-center gap-2 mb-1 text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                <DollarSign className="w-3.5 h-3.5" /> Valor Total
               </div>
+              <span className="text-2xl font-bold text-white">
+                ${(stats.total_amount_accepted / 100).toLocaleString("es-MX", { maximumFractionDigits: 0 })}
+              </span>
             </div>
           </div>
         </div>
 
-        {/* --- BANNERS DE ACCIÓN (L2) --- */}
+        {/* --- ACTION BANNERS (L2) --- */}
         <AnimatePresence>
-          {acceptedQuotesForConsolidation && (
-            <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
-              <Card className="bg-gradient-to-r from-emerald-50 to-white border-emerald-200 shadow-sm">
-                <CardContent className="p-4 flex flex-col md:flex-row items-center justify-between gap-4">
-                  <div className="flex items-center gap-3">
-                    <div className="bg-emerald-100 p-2 rounded-full">
-                      <PackagePlus className="h-6 w-6 text-emerald-600" />
+          {(acceptedQuotesForConsolidation || pendingActivations.length > 0) && (
+            <div className="grid md:grid-cols-2 gap-4 mb-8">
+              {acceptedQuotesForConsolidation && (
+                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+                  <div className="bg-emerald-50/50 border border-emerald-100 rounded-xl p-4 flex items-center justify-between gap-4 relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                      <PackagePlus className="w-24 h-24 text-emerald-600" />
                     </div>
                     <div>
-                      <h3 className="font-bold text-emerald-900">
-                        Consolida tus pedidos ({acceptedQuotesForConsolidation.totalQuotes})
+                      <h3 className="font-bold text-emerald-900 flex items-center gap-2">
+                        <PackagePlus className="w-5 h-5 text-emerald-600" />
+                        Consolidar Pedidos
                       </h3>
-                      <p className="text-sm text-emerald-700">
-                        Tienes {acceptedQuotesForConsolidation.totalProducts} productos aprobados listos para pedir a
-                        tus proveedores.
+                      <p className="text-sm text-emerald-700 mt-1">
+                        {acceptedQuotesForConsolidation.totalProducts} productos listos para pedir a proveedor.
                       </p>
                     </div>
+                    <Button
+                      size="sm"
+                      onClick={() => navigate("/reseller/consolidated-orders")}
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm shadow-emerald-200 z-10"
+                    >
+                      Ver Pedidos
+                    </Button>
                   </div>
-                  <Button
-                    onClick={() => navigate("/reseller/consolidated-orders")}
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white w-full md:w-auto shadow-md shadow-emerald-200"
-                  >
-                    Ver Pedidos Consolidados
-                  </Button>
-                </CardContent>
-              </Card>
-            </motion.div>
-          )}
+                </motion.div>
+              )}
 
-          {pendingActivations.length > 0 && (
-            <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
-              <Card className="bg-gradient-to-r from-purple-50 to-indigo-50 border-purple-200 shadow-sm">
-                <CardContent className="p-4 flex flex-col md:flex-row items-center justify-between gap-4">
-                  <div className="flex items-center gap-3">
-                    <div className="bg-purple-100 p-2 rounded-full">
-                      <Sparkles className="h-6 w-6 text-purple-600" />
+              {pendingActivations.length > 0 && (
+                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+                  <div className="bg-violet-50/50 border border-violet-100 rounded-xl p-4 flex items-center justify-between gap-4 relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                      <Rocket className="w-24 h-24 text-violet-600" />
                     </div>
                     <div>
-                      <h3 className="font-bold text-purple-900">Activa tu Catálogo ({pendingActivations.length})</h3>
-                      <p className="text-sm text-purple-700">
-                        Tienes cotizaciones aprobadas que te permiten abrir tu propia tienda al instante.
-                      </p>
+                      <h3 className="font-bold text-violet-900 flex items-center gap-2">
+                        <Sparkles className="w-5 h-5 text-violet-600" />
+                        Activar Catálogos ({pendingActivations.length})
+                      </h3>
+                      <p className="text-sm text-violet-700 mt-1">Convierte cotizaciones en tiendas virtuales.</p>
                     </div>
+                    <Button
+                      size="sm"
+                      className="bg-violet-600 hover:bg-violet-700 text-white shadow-sm shadow-violet-200 z-10"
+                      onClick={() => {
+                        const firstPending = pendingActivations[0];
+                        document
+                          .getElementById(`quote-${firstPending.id}`)
+                          ?.scrollIntoView({ behavior: "smooth", block: "center" });
+                      }}
+                    >
+                      Activar
+                    </Button>
                   </div>
-                  <Button
-                    className="bg-purple-600 hover:bg-purple-700 text-white w-full md:w-auto shadow-md shadow-purple-200"
-                    onClick={() => {
-                      const firstPending = pendingActivations[0];
-                      document
-                        .getElementById(`quote-${firstPending.id}`)
-                        ?.scrollIntoView({ behavior: "smooth", block: "center" });
-                    }}
-                  >
-                    Ir a Activar
-                  </Button>
-                </CardContent>
-              </Card>
-            </motion.div>
+                </motion.div>
+              )}
+            </div>
           )}
         </AnimatePresence>
-      </div>
 
-      {/* --- TOOLBAR & LISTA --- */}
-      <div className="space-y-4">
-        {/* Toolbar de Filtros */}
-        <div className="flex flex-col md:flex-row gap-3 items-center bg-white p-2 rounded-xl border border-slate-200 shadow-sm">
-          <div className="relative flex-1 w-full">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-            <Input
-              placeholder="Buscar cliente, empresa o email..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 border-none shadow-none focus-visible:ring-0 bg-transparent"
-            />
-          </div>
-          <div className="h-8 w-px bg-slate-200 hidden md:block"></div>
-          <div className="w-full md:w-auto flex gap-2 overflow-x-auto pb-1 md:pb-0 no-scrollbar">
-            {/* Filtros rápidos estilo Pill */}
-            <Button
-              variant={statusFilter === "all" ? "secondary" : "ghost"}
-              onClick={() => setStatusFilter("all")}
-              className={`rounded-full px-4 h-8 text-xs ${statusFilter === "all" ? "bg-slate-900 text-white hover:bg-slate-800" : "text-slate-500"}`}
-            >
-              Todos
-            </Button>
-            <Button
-              variant={statusFilter === "pending" ? "secondary" : "ghost"}
-              onClick={() => setStatusFilter("pending")}
-              className={`rounded-full px-4 h-8 text-xs ${statusFilter === "pending" ? "bg-amber-100 text-amber-800 hover:bg-amber-200" : "text-slate-500"}`}
-            >
-              Pendientes
-            </Button>
-            <Button
-              variant={statusFilter === "accepted" ? "secondary" : "ghost"}
-              onClick={() => setStatusFilter("accepted")}
-              className={`rounded-full px-4 h-8 text-xs ${statusFilter === "accepted" ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-200" : "text-slate-500"}`}
-            >
-              Aceptadas
-            </Button>
-            <Button
-              variant={statusFilter === "rejected" ? "secondary" : "ghost"}
-              onClick={() => setStatusFilter("rejected")}
-              className={`rounded-full px-4 h-8 text-xs ${statusFilter === "rejected" ? "bg-rose-100 text-rose-800 hover:bg-rose-200" : "text-slate-500"}`}
-            >
-              Rechazadas
-            </Button>
-          </div>
-        </div>
-
-        {/* Lista de Cotizaciones */}
-        {filteredQuotes.length === 0 ? (
-          <div className="text-center py-20 bg-white rounded-xl border border-slate-200 border-dashed">
-            <div className="bg-slate-50 p-4 rounded-full inline-block mb-4">
-              <Package className="w-10 h-10 text-slate-400" />
+        {/* --- TOOLBAR & TABLE --- */}
+        <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+          {/* Toolbar */}
+          <div className="p-4 border-b border-slate-100 flex flex-col md:flex-row gap-4 justify-between bg-white">
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Input
+                placeholder="Buscar por cliente, empresa..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 bg-slate-50 border-slate-200 focus:bg-white transition-all"
+              />
             </div>
-            <h3 className="text-lg font-semibold text-slate-900">No se encontraron cotizaciones</h3>
-            <p className="text-slate-500 max-w-sm mx-auto mt-2 text-sm">
-              {searchQuery
-                ? "Intenta con otro término de búsqueda o cambia los filtros."
-                : "Tus cotizaciones aparecerán aquí cuando las recibas."}
-            </p>
-            {searchQuery && (
-              <Button variant="link" onClick={() => setSearchQuery("")} className="mt-2 text-indigo-600">
-                Limpiar filtros
-              </Button>
-            )}
-          </div>
-        ) : (
-          <div className="grid gap-4">
-            {filteredQuotes.map((quote) => {
-              const statusConfig = getStatusConfig(quote.status);
-              const StatusIcon = statusConfig.icon;
-              const isHighlighted = quote.id === highlightQuoteId;
-              const canActivate =
-                quote.status === "accepted" && quote.has_replicated_catalog && !quote.catalog_activated;
 
-              return (
-                <motion.div
-                  key={quote.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.2 }}
+            <div className="flex gap-2 overflow-x-auto pb-1 md:pb-0 no-scrollbar">
+              {(["all", "pending", "accepted", "rejected"] as const).map((status) => (
+                <button
+                  key={status}
+                  onClick={() => setStatusFilter(status)}
+                  className={`px-4 py-2 rounded-lg text-xs font-medium transition-colors whitespace-nowrap ${
+                    statusFilter === status
+                      ? "bg-slate-900 text-white shadow-md"
+                      : "bg-white text-slate-500 hover:bg-slate-50 border border-slate-200"
+                  }`}
                 >
-                  <Card
+                  {
+                    {
+                      all: "Todos",
+                      pending: "Pendientes",
+                      accepted: "Aceptadas",
+                      rejected: "Rechazadas",
+                    }[status]
+                  }
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* TABLA DE DATOS (Desktop) / TARJETAS (Mobile) */}
+          {filteredQuotes.length === 0 ? (
+            <div className="text-center py-24">
+              <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Search className="w-8 h-8 text-slate-300" />
+              </div>
+              <h3 className="text-slate-900 font-medium">Sin resultados</h3>
+              <p className="text-slate-500 text-sm mt-1">No hay cotizaciones que coincidan con tu búsqueda.</p>
+              {searchQuery && (
+                <Button variant="link" onClick={() => setSearchQuery("")} className="mt-2 text-indigo-600">
+                  Limpiar filtros
+                </Button>
+              )}
+            </div>
+          ) : (
+            <div className="divide-y divide-slate-100">
+              {/* Header de Tabla (Solo Desktop) */}
+              <div className="hidden md:grid grid-cols-12 gap-4 px-6 py-3 bg-slate-50/50 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                <div className="col-span-4">Cliente</div>
+                <div className="col-span-2">Fecha</div>
+                <div className="col-span-2 text-center">Estado</div>
+                <div className="col-span-2 text-right">Total</div>
+                <div className="col-span-2 text-right">Acciones</div>
+              </div>
+
+              {filteredQuotes.map((quote) => {
+                const isHighlighted = quote.id === highlightQuoteId;
+                const canActivate =
+                  quote.status === "accepted" && quote.has_replicated_catalog && !quote.catalog_activated;
+
+                return (
+                  <div
+                    key={quote.id}
                     id={`quote-${quote.id}`}
-                    className={`group overflow-hidden hover:shadow-md transition-all border-l-4 ${statusConfig.border} ${isHighlighted ? "ring-2 ring-indigo-500 ring-offset-2" : ""}`}
+                    onClick={() => navigate(`/quotes/${quote.id}`)}
+                    className={`group relative md:grid md:grid-cols-12 md:gap-4 p-4 md:px-6 md:py-4 items-center hover:bg-slate-50 transition-colors cursor-pointer ${isHighlighted ? "bg-indigo-50/50" : ""}`}
                   >
-                    <CardContent className="p-0">
-                      <div className="flex flex-col md:flex-row">
-                        {/* Section 1: Info Principal (Clickable) */}
-                        <div className="flex-1 p-5 cursor-pointer" onClick={() => navigate(`/quotes/${quote.id}`)}>
-                          <div className="flex justify-between items-start mb-3">
-                            <div className="flex items-center gap-3">
-                              {/* Avatar Placeholder */}
-                              <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 font-bold text-sm border border-slate-200">
-                                {quote.customer_name.substring(0, 2).toUpperCase()}
-                              </div>
-                              <div>
-                                <h3 className="font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">
-                                  {quote.customer_name}
-                                </h3>
-                                <p className="text-xs text-slate-500 flex items-center gap-1">
-                                  {format(new Date(quote.created_at), "d MMM, yyyy • HH:mm", { locale: es })}
-                                </p>
-                              </div>
-                            </div>
-
-                            {/* Price on Mobile (Top Right) */}
-                            <div className="text-right md:hidden">
-                              <span className="block font-bold text-slate-900">
-                                ${(quote.total_amount / 100).toLocaleString("es-MX")}
-                              </span>
-                            </div>
-                          </div>
-
-                          <div className="flex flex-wrap gap-y-2 gap-x-4 text-sm pl-[52px]">
-                            <div className="flex items-center gap-1.5 text-slate-600">
-                              <Package className="w-4 h-4 text-slate-400" />
-                              <span>{quote.items_count} productos</span>
-                            </div>
-                            {quote.customer_company && (
-                              <div className="flex items-center gap-1.5 text-slate-600">
-                                <FileText className="w-4 h-4 text-slate-400" />
-                                <span>{quote.customer_company}</span>
-                              </div>
-                            )}
-                            {(quote as any).is_from_replicated && (
-                              <Badge
-                                variant="outline"
-                                className="bg-indigo-50 text-indigo-600 border-indigo-100 text-[10px] px-2"
-                              >
-                                <Share2 className="w-3 h-3 mr-1" /> Red L2
-                              </Badge>
-                            )}
-                          </div>
+                    {/* Mobile Layout: Card Style */}
+                    <div className="md:hidden flex justify-between items-start mb-3">
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-sm">
+                          {quote.customer_name.substring(0, 2).toUpperCase()}
                         </div>
-
-                        {/* Section 2: Status & Price & Actions (Desktop Right Side) */}
-                        <div className="border-t md:border-t-0 md:border-l border-slate-100 p-4 md:w-[320px] bg-slate-50/50 flex flex-col justify-center gap-3">
-                          <div className="flex justify-between items-center">
-                            <Badge variant="outline" className={`${statusConfig.color} px-3 py-1`}>
-                              <StatusIcon className="w-3 h-3 mr-1.5" /> {statusConfig.label}
-                            </Badge>
-                            <span className="font-bold text-lg text-slate-900 hidden md:block">
-                              ${(quote.total_amount / 100).toLocaleString("es-MX")}
-                            </span>
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-2 mt-1">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => navigate(`/quotes/${quote.id}`)}
-                              className="bg-white hover:bg-slate-50"
-                            >
-                              <Eye className="w-4 h-4 mr-2 text-slate-500" /> Ver
-                            </Button>
-
-                            {canActivate ? (
-                              <Button
-                                size="sm"
-                                className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white hover:opacity-90 shadow-sm"
-                                onClick={() => {
-                                  setSelectedQuoteForActivation(quote.id);
-                                  setShowActivationModal(true);
-                                }}
-                              >
-                                <Rocket className="w-4 h-4 mr-2" /> Activar
-                              </Button>
-                            ) : (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="text-slate-400 cursor-default hover:bg-transparent hover:text-slate-400"
-                              >
-                                <MoreHorizontal className="w-4 h-4" />
-                              </Button>
-                            )}
-                          </div>
+                        <div>
+                          <h3 className="font-bold text-slate-900">{quote.customer_name}</h3>
+                          <p className="text-xs text-slate-500">
+                            {format(new Date(quote.created_at), "d MMM", { locale: es })}
+                          </p>
                         </div>
                       </div>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              );
-            })}
-          </div>
-        )}
-      </div>
+                      <StatusBadge status={quote.status} />
+                    </div>
 
-      {/* --- MODAL DE ACTIVACIÓN (Mantenido funcionalmente igual) --- */}
+                    {/* Desktop Col 1: Cliente */}
+                    <div className="md:col-span-4 mb-2 md:mb-0 flex items-center gap-3">
+                      <div className="hidden md:flex h-9 w-9 rounded-lg bg-slate-100 text-slate-600 items-center justify-center font-bold text-xs">
+                        {quote.customer_name.substring(0, 2).toUpperCase()}
+                      </div>
+                      <div>
+                        <div className="font-medium text-slate-900 group-hover:text-indigo-600 transition-colors">
+                          {quote.customer_name}
+                        </div>
+                        <div className="text-xs text-slate-500 flex items-center gap-2">
+                          {quote.customer_company && (
+                            <span className="flex items-center gap-1">
+                              <FileText className="w-3 h-3" /> {quote.customer_company}
+                            </span>
+                          )}
+                          {(quote as any).is_from_replicated && (
+                            <span className="flex items-center gap-1 text-violet-600 bg-violet-50 px-1.5 rounded">
+                              <Share2 className="w-3 h-3" /> Red
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Desktop Col 2: Fecha */}
+                    <div className="hidden md:block col-span-2 text-sm text-slate-500">
+                      <div className="flex items-center gap-1.5">
+                        <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                        {format(new Date(quote.created_at), "d MMM, HH:mm", { locale: es })}
+                      </div>
+                    </div>
+
+                    {/* Desktop Col 3: Estado */}
+                    <div className="hidden md:flex col-span-2 justify-center">
+                      <StatusBadge status={quote.status} />
+                    </div>
+
+                    {/* Col 4: Total (Mobile & Desktop) */}
+                    <div className="md:col-span-2 flex justify-between md:justify-end items-center md:text-right">
+                      <span className="md:hidden text-sm text-slate-500 flex items-center gap-1">
+                        <Package className="w-3.5 h-3.5" /> {quote.items_count} items
+                      </span>
+                      <span className="font-mono font-medium text-slate-900">
+                        ${(quote.total_amount / 100).toLocaleString("es-MX")}
+                      </span>
+                    </div>
+
+                    {/* Col 5: Actions */}
+                    <div className="md:col-span-2 flex justify-end gap-2 mt-3 md:mt-0 border-t md:border-none border-slate-100 pt-3 md:pt-0">
+                      {canActivate ? (
+                        <Button
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedQuoteForActivation(quote.id);
+                            setShowActivationModal(true);
+                          }}
+                          className="bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-sm shadow-indigo-200 w-full md:w-auto h-8 text-xs"
+                        >
+                          <Rocket className="w-3.5 h-3.5 mr-1.5" /> Activar
+                        </Button>
+                      ) : (
+                        <Button variant="ghost" size="sm" className="hidden md:flex h-8 w-8 p-0 text-slate-400">
+                          <Eye className="w-4 h-4" />
+                        </Button>
+                      )}
+                      <Button variant="outline" size="sm" className="md:hidden w-full h-8 text-xs">
+                        Ver Detalle
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </header>
+
+      {/* --- MODAL DE ACTIVACIÓN --- */}
       <Dialog open={showActivationModal} onOpenChange={setShowActivationModal}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-purple-700">
-              <Rocket className="w-5 h-5" />
-              Activar Catálogo
-            </DialogTitle>
-            <DialogDescription className="pt-2">
-              Al activar esta cotización, se creará una tienda digital única para ti basada en estos productos.
+        <DialogContent className="sm:max-w-md overflow-hidden p-0">
+          <div className="bg-gradient-to-br from-violet-600 to-indigo-700 p-6 text-white text-center">
+            <div className="w-12 h-12 bg-white/20 backdrop-blur rounded-full flex items-center justify-center mx-auto mb-4">
+              <Rocket className="w-6 h-6 text-white" />
+            </div>
+            <DialogTitle className="text-xl font-bold text-white mb-2">Activar Catálogo</DialogTitle>
+            <DialogDescription className="text-indigo-100">
+              Convierte esta cotización en una tienda digital permanente.
             </DialogDescription>
-          </DialogHeader>
-
-          <div className="bg-purple-50 p-4 rounded-lg space-y-3 border border-purple-100">
-            <div className="flex gap-3">
-              <CheckCircle2 className="w-5 h-5 text-purple-600 shrink-0" />
-              <p className="text-sm text-purple-900">Obtienes un enlace único para compartir.</p>
-            </div>
-            <div className="flex gap-3">
-              <CheckCircle2 className="w-5 h-5 text-purple-600 shrink-0" />
-              <p className="text-sm text-purple-900">Puedes editar tus precios de venta.</p>
-            </div>
-            <div className="flex gap-3">
-              <CheckCircle2 className="w-5 h-5 text-purple-600 shrink-0" />
-              <p className="text-sm text-purple-900">Recibes pedidos directo en tu panel.</p>
-            </div>
           </div>
 
-          <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
-            <Button
-              variant="ghost"
-              onClick={() => {
-                setShowActivationModal(false);
-                setSelectedQuoteForActivation(null);
-              }}
-            >
-              Cancelar
-            </Button>
-            <Button
-              className="bg-purple-600 hover:bg-purple-700 text-white"
-              onClick={() => {
-                if (selectedQuoteForActivation) {
-                  handleActivateCatalog(selectedQuoteForActivation);
-                }
-              }}
-              disabled={!!activatingQuoteId}
-            >
-              {activatingQuoteId ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Activando...
-                </>
-              ) : (
-                <>
-                  <Rocket className="w-4 h-4 mr-2" />
-                  Confirmar Activación
-                </>
-              )}
-            </Button>
-          </DialogFooter>
+          <div className="p-6 space-y-4">
+            <div className="space-y-3">
+              {[
+                "Obtienes un enlace único para compartir.",
+                "Puedes editar tus precios de venta (Markup).",
+                "Recibes pedidos directamente en tu panel.",
+              ].map((text, i) => (
+                <div key={i} className="flex gap-3 items-start">
+                  <div className="mt-0.5 w-5 h-5 rounded-full bg-green-100 flex items-center justify-center shrink-0">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-green-600" />
+                  </div>
+                  <p className="text-sm text-slate-600">{text}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="pt-4 flex gap-3">
+              <Button variant="outline" className="flex-1" onClick={() => setShowActivationModal(false)}>
+                Cancelar
+              </Button>
+              <Button
+                className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white"
+                onClick={() => selectedQuoteForActivation && handleActivateCatalog(selectedQuoteForActivation)}
+                disabled={!!activatingQuoteId}
+              >
+                {activatingQuoteId ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Activando...
+                  </>
+                ) : (
+                  "Confirmar"
+                )}
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
