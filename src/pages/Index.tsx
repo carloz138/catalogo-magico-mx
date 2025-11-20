@@ -160,7 +160,7 @@ const Index = () => {
             </div>
 
             <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-slate-900 mb-6 tracking-tight leading-[1.1]">
-              Conecta tu inventario.
+              Convierte a tus clientes en socios comerciales.
               <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-violet-600">
                 Potencia toda tu cadena.
@@ -168,8 +168,8 @@ const Index = () => {
             </h1>
 
             <p className="text-lg md:text-xl text-slate-600 mb-8 max-w-3xl mx-auto leading-relaxed px-2">
-              No solo les vendes productos, les das la tecnología para vender más. Tú obtienes visión del mercado, ellos
-              obtienen una plataforma de gestión profesional.
+              No solo les vendes productos a tus clientes, les das la tecnología y datos para vender más. Tú obtienes
+              visión del mercado, ellos obtienen una plataforma de gestión profesional.
               <b> Todos crecen.</b>
             </p>
 
