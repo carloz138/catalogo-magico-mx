@@ -52,65 +52,57 @@ export class ReplicationService {
 
   /**
    * Obtener información de catálogo por token (para página de activación)
-   * MIGRADO: Ahora usa Edge Function get-quote-by-token (Fase C)
    */
   static async getCatalogByToken(token: string): Promise<CatalogByTokenResponse> {
-    console.log("🔍 [FASE C] Getting catalog by token via Edge Function:", token);
+    console.log("🔍 Getting catalog by token:", token);
 
-    const { data, error } = await supabase.functions.invoke("get-quote-by-token", {
-      body: { token },
+    const { data, error } = await supabase.rpc("get_catalog_by_token", {
+      p_token: token,
     });
 
-    console.log("📦 Edge Function response:", data);
-    console.log("❌ Edge Function error:", error);
+    console.log("📦 Response data:", data);
+    console.log("❌ Response error:", error);
+    console.log("📊 Data type:", typeof data);
+    console.log("📏 Data length:", Array.isArray(data) ? data.length : "not array");
 
     if (error) {
-      console.error("Error from get-quote-by-token Edge Function:", error);
+      console.error("Error getting catalog by token:", error);
       throw new Error(`Error al obtener catálogo: ${error.message}`);
     }
 
-    if (!data || !data.success) {
-      const errorMessage = data?.error || "Catálogo no encontrado";
-      console.error("❌ Edge Function returned error:", errorMessage);
-      throw new Error(errorMessage);
+    if (!data) {
+      throw new Error("Catálogo no encontrado - data es null/undefined");
     }
 
-    // La Edge Function devuelve { success: true, quote: {...} }
-    // Extraemos solo el objeto quote
-    console.log("✅ Returning quote data from Edge Function:", data.quote);
-    return data.quote as CatalogByTokenResponse;
+    // Si data es un array
+    if (Array.isArray(data)) {
+      if (data.length === 0) {
+        throw new Error("Catálogo no encontrado - array vacío");
+      }
+      console.log("✅ Returning data[0]:", data[0]);
+      return data[0];
+    }
+
+    // Si data es un objeto directo
+    console.log("✅ Returning data directly:", data);
+    return data as CatalogByTokenResponse;
   }
 
   /**
    * Activar catálogo tras pago de $29 MXN
-   * MIGRADO: Ahora usa Edge Function activate-replicated-catalog (Fase D)
    */
   static async activateCatalog(data: ActivateReplicatedCatalogDTO): Promise<boolean> {
-    console.log("🔐 [FASE D] Activating catalog via Edge Function:", data);
-
-    const { data: result, error } = await supabase.functions.invoke("activate-replicated-catalog", {
-      body: {
-        activation_token: data.token,
-        user_id: data.reseller_id,
-      },
+    const { data: result, error } = await supabase.rpc("activate_replicated_catalog", {
+      p_token: data.token,
+      p_reseller_id: data.reseller_id,
     });
 
-    console.log("📦 Activation response:", result);
-    console.log("❌ Activation error:", error);
-
     if (error) {
-      console.error("Error from activate-replicated-catalog Edge Function:", error);
+      console.error("Error activating catalog:", error);
       throw new Error(`Error al activar catálogo: ${error.message}`);
     }
 
-    if (!result || !result.success) {
-      const errorMessage = result?.error || "Error al activar catálogo";
-      console.error("❌ Edge Function returned error:", errorMessage);
-      throw new Error(errorMessage);
-    }
-
-    console.log("✅ Catalog activated successfully via Edge Function");
-    return true;
+    return result;
   }
 
   /**

@@ -142,6 +142,7 @@ export interface CreateDigitalCatalogDTO {
   additional_info?: string;
   is_private: boolean;
   access_password?: string;
+  expires_at?: string;
   product_ids: string[];
   enable_quotation?: boolean;
   enable_variants?: boolean;

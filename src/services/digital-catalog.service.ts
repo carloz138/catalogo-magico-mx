@@ -81,6 +81,7 @@ export class DigitalCatalogService {
         show_stock: catalogData.show_stock ?? true,
         is_private: catalogData.is_private,
         access_password: hashedPassword,
+        expires_at: catalogData.expires_at || null,
         enable_quotation: catalogData.enable_quotation ?? false,
         enable_variants: catalogData.enable_variants ?? true,
         enable_distribution: catalogData.enable_distribution ?? false,
@@ -350,6 +351,10 @@ export class DigitalCatalogService {
 
     if (catalogError || !catalog) {
       throw new Error('Catálogo no encontrado');
+    }
+
+    if (catalog.expires_at && new Date(catalog.expires_at) < new Date()) {
+      throw new Error('Catálogo expirado');
     }
 
     // Get catalog products

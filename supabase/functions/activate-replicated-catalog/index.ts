@@ -1,6 +1,6 @@
 // ==========================================
 // FUNCION: activate-replicated-catalog (FASE D)
-// ESTADO: FIX_V2 (Activación segura, Token quemado y HASH)
+// ESTADO: FIX_V3 (Activación segura, Token quemado y HASH)
 // ==========================================
 import { createClient } from 'jsr:@supabase/supabase-js@2.49.8';
 const DEPLOY_VERSION = Deno.env.get("FUNCTION_HASH") || "UNKNOWN_HASH";
