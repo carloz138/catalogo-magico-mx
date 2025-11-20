@@ -28,13 +28,14 @@ import {
   BookOpen,
   PackageOpen,
   ClipboardList,
-  Network, // <--- IMPORTANTE: Usamos este icono
+  Network,
   LayoutDashboard,
   PlayCircle,
   AlertTriangle,
   ChevronLeft,
   ChevronRight,
   Radar,
+  PackageSearch,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -77,6 +78,12 @@ const navigationItems: MenuItem[] = [
     icon: Network,
     badge: "Viral",
     badgeColor: "bg-emerald-500/20 text-emerald-200 border-emerald-500/30",
+  },
+  {
+    title: "Gestión de Productos",
+    path: "/products-management",
+    icon: PackageSearch,
+    primary: true,
   },
   { title: "Inventario (L1)", path: "/products", icon: Package },
   { title: "Carga Masiva", path: "/products/bulk-upload", icon: PackageOpen },
