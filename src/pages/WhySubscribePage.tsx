@@ -235,8 +235,8 @@ export default function WhySubscribePage() {
                     <div>
                       <h4 className="font-bold text-slate-900">Inventario sin Movimiento (Dead Stock)</h4>
                       <p className="text-slate-600 text-sm mt-1">
-                        Detecta productos que llevan meses en bodega. Lanza promociones específicas a tu red L2 para
-                        liquidarlos y recuperar capital.
+                        Detecta productos que llevan meses en bodega. Lanza promociones específicas a tu red de clientes
+                        para liquidarlos y recuperar capital.
                       </p>
                     </div>
                   </div>
@@ -310,8 +310,8 @@ export default function WhySubscribePage() {
                 </div>
                 <h3 className="text-2xl md:text-3xl font-bold text-slate-900 mb-4">Logs de Búsqueda & Recomendador</h3>
                 <p className="text-slate-600 leading-relaxed mb-6">
-                  Convertimos datos pasivos en ventas activas. Ayuda a tu cliente (L2) a vender lo que tienes, y
-                  descubre qué traer para lo que no tienes.
+                  Convertimos datos pasivos en ventas activas. Ayuda a tu cliente a vender lo que tienes, y descubre qué
+                  traer para lo que no tienes.
                 </p>
                 <ul className="space-y-3">
                   <li className="flex gap-3 text-slate-700">
@@ -354,7 +354,7 @@ export default function WhySubscribePage() {
                   <li className="flex gap-3 text-slate-700">
                     <CheckCircle2 className="w-5 h-5 text-blue-500 shrink-0" />
                     <span>
-                      <b>Protección de Datos:</b> Tu cliente L2 mantiene sus leads, tú obtienes la atribución.
+                      <b>Protección de Datos:</b> Tu cliente mantiene sus leads, tú obtienes la atribución.
                     </span>
                   </li>
                   <li className="flex gap-3 text-slate-700">
@@ -402,7 +402,7 @@ export default function WhySubscribePage() {
           <h2 className="text-3xl font-bold mb-6">Un Ecosistema Seguro</h2>
           <p className="text-slate-300 text-lg leading-relaxed mb-8">
             Sabemos que la relación con el cliente es sagrada. CatifyPro está diseñado para que{" "}
-            <b>tu cliente L2 siempre sea el dueño de su relación con el L3</b>.
+            <b>tu cliente siempre sea el dueño de su relación con el cliente final</b>.
             <br />
             <br />
             Tú ves datos agregados y tendencias para mejorar el abastecimiento. Ellos mantienen su cartera de clientes
