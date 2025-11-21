@@ -22,13 +22,6 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu";
-import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -37,12 +30,13 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 
 // --- CONSTANTES (TUS CATEGORÍAS OFICIALES) ---
-// Value: Lo que se guarda en la BD (limpio). Label: Lo que se ve en la UI.
 const PRODUCT_CATEGORIES = [
   { value: "Ropa", label: "Ropa 👕" },
   { value: "Calzado", label: "Calzado 👟" },
@@ -65,14 +59,14 @@ interface Product {
   original_image_url: string | null;
   processed_image_url: string | null;
   tags: string[] | null;
-  isSaving?: boolean; // Estado UI
+  isSaving?: boolean;
 }
 
-// --- COMPONENTE: CELDA EDITABLE INTELIGENTE ---
+// --- COMPONENTE: CELDA EDITABLE ---
 interface EditableCellProps {
   value: any;
   type?: "text" | "number" | "select" | "tags";
-  options?: { value: string; label: string }[]; // Ajustado para soportar label/value
+  options?: { value: string; label: string }[];
   onSave: (val: any) => void;
   className?: string;
   prefix?: string;
@@ -89,8 +83,6 @@ const EditableCell = ({ value, type = "text", options, onSave, className = "", p
 
   const handleSave = () => {
     setIsEditing(false);
-    // Validación simple para evitar guardar si no hubo cambios
-    // Para tags comparamos strings json, para otros igualdad simple
     const hasChanged = JSON.stringify(localValue) !== JSON.stringify(value);
     if (hasChanged) {
       onSave(localValue);
@@ -105,14 +97,13 @@ const EditableCell = ({ value, type = "text", options, onSave, className = "", p
     }
   };
 
-  // Renderizado Edición: SELECT (Categorías)
   if (isEditing && type === "select") {
     return (
       <Select
         value={localValue as string}
         onValueChange={(val) => {
           setLocalValue(val);
-          onSave(val); // Guardar al seleccionar inmediatamente
+          onSave(val);
           setIsEditing(false);
         }}
         defaultOpen
@@ -131,37 +122,42 @@ const EditableCell = ({ value, type = "text", options, onSave, className = "", p
     );
   }
 
-  // Renderizado Edición: INPUTS (Text, Number, Tags)
   if (isEditing) {
     return (
       <Input
         ref={inputRef}
         type={type === "tags" ? "text" : type}
-        value={type === "tags" ? ((localValue as string[]) || []).join(", ") : localValue || ""}
+        value={type === "tags" ? (Array.isArray(localValue) ? localValue.join(", ") : localValue) : localValue || ""}
         onChange={(e) => {
-          if (type === "number")
-            setLocalValue(e.target.value); // Mantenemos como string temporalmente para permitir borrar
-          else if (type === "tags")
-            setLocalValue(
-              e.target.value
-                .split(",")
-                .map((s) => s.trim())
-                .filter(Boolean),
-            );
-          else setLocalValue(e.target.value);
+          if (type === "number") setLocalValue(e.target.value);
+          else if (type === "tags") {
+            // Para tags, mantenemos el string crudo mientras edita para permitir comas
+            setLocalValue(e.target.value);
+          } else setLocalValue(e.target.value);
         }}
-        onBlur={handleSave}
+        onBlur={() => {
+          if (type === "tags" && typeof localValue === "string") {
+            // Al salir, convertimos el string final a array
+            const tagsArray = localValue
+              .split(",")
+              .map((s) => s.trim())
+              .filter(Boolean);
+            setLocalValue(tagsArray); // Actualizamos local para visualización correcta si reentra
+            onSave(tagsArray); // Guardamos array
+            setIsEditing(false);
+          } else {
+            handleSave();
+          }
+        }}
         onKeyDown={handleKeyDown}
-        onWheel={(e) => e.currentTarget.blur()} // Bloquear scroll accidental en números
+        onWheel={(e) => e.currentTarget.blur()}
         autoFocus
         className={`h-8 text-sm px-2 bg-white border-indigo-500 ring-1 ring-indigo-500 ${className}`}
       />
     );
   }
 
-  // Renderizado Lectura
   let displayValue = value;
-
   if (type === "select" && options) {
     const selectedOption = options.find((o) => o.value === value);
     displayValue = selectedOption ? selectedOption.label : value || <span className="text-slate-300 italic">---</span>;
@@ -191,7 +187,7 @@ const EditableCell = ({ value, type = "text", options, onSave, className = "", p
   );
 };
 
-// --- COMPONENTE: TARJETA MÓVIL ---
+// --- TARJETA MÓVIL ---
 const MobileProductCard = ({
   product,
   onSaveField,
@@ -207,20 +203,16 @@ const MobileProductCard = ({
     className={`bg-white rounded-xl border ${isSelected ? "border-indigo-500 ring-1 ring-indigo-500 bg-indigo-50/10" : "border-slate-200"} shadow-sm p-4 transition-all`}
   >
     <div className="flex gap-4">
-      {/* Checkbox & Image */}
       <div className="flex flex-col items-center gap-3">
         <Checkbox checked={isSelected} onCheckedChange={onToggleSelect} />
         <div className="w-16 h-16 bg-slate-100 rounded-lg overflow-hidden border border-slate-100">
           <img
             src={product.processed_image_url || product.original_image_url || ""}
-            alt=""
             className="w-full h-full object-cover mix-blend-multiply"
             onError={(e) => (e.currentTarget.style.display = "none")}
           />
         </div>
       </div>
-
-      {/* Info & Inputs */}
       <div className="flex-1 space-y-3 min-w-0">
         <div>
           <EditableCell
@@ -244,7 +236,6 @@ const MobileProductCard = ({
             />
           </div>
         </div>
-
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="text-[10px] uppercase font-bold text-slate-400">Menudeo</label>
@@ -288,15 +279,15 @@ const ProductsManagement = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-
-  // Selección
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
-  // Estados para Diálogos Bulk Actions
+  // Estados Bulk Actions
   const [bulkAction, setBulkAction] = useState<{ type: "category" | "min_qty" | "tags" | null; value: any }>({
     type: null,
     value: "",
   });
+  // Nuevo estado: Switch para "Append Tags" (Agregar sin borrar)
+  const [appendTagsMode, setAppendTagsMode] = useState(true);
 
   // --- DATA FETCHING ---
   const fetchProducts = useCallback(async () => {
@@ -327,10 +318,9 @@ const ProductsManagement = () => {
     );
   }, [products, searchQuery]);
 
-  // --- LOGICA SELECCIÓN INTELIGENTE (FIX BUSCADOR) ---
+  // --- SELECCIÓN ---
   const toggleSelectAll = () => {
     const allFilteredSelected = filteredProducts.length > 0 && filteredProducts.every((p) => selectedIds.has(p.id));
-
     if (allFilteredSelected) {
       setSelectedIds(new Set());
     } else {
@@ -349,9 +339,7 @@ const ProductsManagement = () => {
 
   // --- INLINE SAVE ---
   const handleSaveField = async (id: string, field: string, value: any) => {
-    // Optimistic UI
     setProducts((prev) => prev.map((p) => (p.id === id ? { ...p, [field]: value, isSaving: true } : p)));
-
     try {
       const { error } = await supabase
         .from("products")
@@ -361,11 +349,11 @@ const ProductsManagement = () => {
       setProducts((prev) => prev.map((p) => (p.id === id ? { ...p, isSaving: false } : p)));
     } catch (err) {
       toast({ title: "Error al guardar", variant: "destructive" });
-      fetchProducts(); // Revert
+      fetchProducts();
     }
   };
 
-  // --- BULK ACTIONS ---
+  // --- BULK ACTIONS (LOGICA CORREGIDA PARA TAGS) ---
   const executeBulkUpdate = async () => {
     const { type, value } = bulkAction;
     if (!type) return;
@@ -374,22 +362,69 @@ const ProductsManagement = () => {
     const fieldMap = { category: "category", min_qty: "wholesale_min_qty", tags: "tags" };
     const dbField = fieldMap[type];
 
-    // Para tags, convertir el string a array
-    let finalValue = value;
+    // Procesamiento especial para Tags
     if (type === "tags") {
-      if (typeof value === "string") {
-        finalValue = value.split(",").map((t) => t.trim()).filter(Boolean);
+      const newTags =
+        typeof value === "string"
+          ? value
+              .split(",")
+              .map((t: string) => t.trim())
+              .filter(Boolean)
+          : [];
+
+      if (newTags.length === 0) {
+        setBulkAction({ type: null, value: "" });
+        return; // Nada que hacer
       }
+
+      try {
+        // 1. Obtener tags actuales si estamos en modo "Append"
+        let updates = [];
+
+        if (appendTagsMode) {
+          // Necesitamos saber los tags actuales de cada producto para no borrarlos
+          // Usamos 'products' state que ya tiene la data fresca
+          const updatesPromises = ids.map(async (id) => {
+            const product = products.find((p) => p.id === id);
+            const currentTags = product?.tags || [];
+            // Merge: tags actuales + nuevos, eliminando duplicados con Set
+            const mergedTags = Array.from(new Set([...currentTags, ...newTags]));
+
+            // Optimistic Update Individual
+            setProducts((prev) => prev.map((p) => (p.id === id ? { ...p, tags: mergedTags } : p)));
+
+            // DB Update Individual (Lamentablemente necesario para append logic uno por uno, o usar una función RPC masiva)
+            return supabase.from("products").update({ tags: mergedTags }).eq("id", id);
+          });
+
+          await Promise.all(updatesPromises);
+        } else {
+          // Modo Reemplazar: Sobrescribir todo (más rápido, un solo query)
+          // Optimistic
+          setProducts((prev) => prev.map((p) => (selectedIds.has(p.id) ? { ...p, tags: newTags } : p)));
+          await supabase.from("products").update({ tags: newTags }).in("id", ids);
+        }
+
+        toast({ title: "Tags actualizados correctamente" });
+        setSelectedIds(new Set());
+        setBulkAction({ type: null, value: "" });
+      } catch (err) {
+        console.error(err);
+        toast({ title: "Error actualizando tags", variant: "destructive" });
+        fetchProducts();
+      }
+      return;
     }
 
+    // Lógica estándar para otros campos (Category, Min Qty)
     // Optimistic
-    setProducts((prev) => prev.map((p) => (selectedIds.has(p.id) ? { ...p, [dbField]: finalValue } : p)));
+    setProducts((prev) => prev.map((p) => (selectedIds.has(p.id) ? { ...p, [dbField]: value } : p)));
     setBulkAction({ type: null, value: "" });
 
     try {
       await supabase
         .from("products")
-        .update({ [dbField]: finalValue })
+        .update({ [dbField]: value })
         .in("id", ids);
       toast({ title: "Actualización masiva completada" });
       setSelectedIds(new Set());
@@ -674,17 +709,33 @@ const ProductsManagement = () => {
                 </Select>
               </div>
             )}
+
+            {/* LÓGICA TAGS CORREGIDA */}
             {bulkAction.type === "tags" && (
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Tags (separados por comas)</label>
-                <Input
-                  placeholder="Ej: verano, oferta, nuevo"
-                  value={bulkAction.value}
-                  onChange={(e) => setBulkAction((prev) => ({ ...prev, value: e.target.value }))}
-                />
-                <p className="text-xs text-slate-500">Estos tags reemplazarán los existentes en los productos seleccionados</p>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Nuevos Tags (separar con comas)</label>
+                  <Input
+                    placeholder="Ej: verano, oferta, nuevo"
+                    value={bulkAction.value}
+                    onChange={(e) => setBulkAction((prev) => ({ ...prev, value: e.target.value }))}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between bg-slate-50 p-3 rounded-lg border border-slate-200">
+                  <div className="space-y-0.5">
+                    <Label className="text-sm font-medium">Agregar a existentes</Label>
+                    <p className="text-xs text-slate-500">
+                      {appendTagsMode
+                        ? "Se añadirán los nuevos tags sin borrar los actuales."
+                        : "Se reemplazarán todos los tags por los nuevos."}
+                    </p>
+                  </div>
+                  <Switch checked={appendTagsMode} onCheckedChange={setAppendTagsMode} />
+                </div>
               </div>
             )}
+
             {bulkAction.type === "min_qty" && (
               <div className="space-y-2">
                 <label className="text-sm font-medium">Cantidad Mínima para Mayoreo</label>
