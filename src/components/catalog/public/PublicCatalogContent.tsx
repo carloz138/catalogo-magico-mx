@@ -264,22 +264,6 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
     return `lg:grid-cols-${cols}`;
   }, [activeTemplate]);
 
-  // --- SEARCH LOGS ---
-  useEffect(() => {
-    if (debouncedSearch && debouncedSearch.length > 2) {
-      const logSearch = async () => {
-        await supabase.from("search_logs").insert({
-          catalog_id: catalog.id,
-          search_term: debouncedSearch,
-          results_count: filteredProducts.length,
-          user_id: catalog.user_id,
-        });
-      };
-      logSearch();
-      onTrackEvent("Search", { search_string: debouncedSearch });
-    }
-  }, [debouncedSearch]);
-
   const { allTags, minPrice, maxPrice } = useMemo(() => {
     const prods = (catalog.products || []) as unknown as Product[];
     const tagsSet = new Set<string>();
@@ -320,6 +304,22 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
   }, [catalog.products, searchTerm, selectedCategory, priceRange, selectedTags]);
 
   const categories = Array.from(new Set(catalog.products?.map((p) => p.category).filter(Boolean) as string[]));
+
+  // --- SEARCH LOGS ---
+  useEffect(() => {
+    if (debouncedSearch && debouncedSearch.length > 2) {
+      const logSearch = async () => {
+        await supabase.from("search_logs").insert({
+          catalog_id: catalog.id,
+          search_term: debouncedSearch,
+          results_count: filteredProducts.length,
+          user_id: catalog.user_id,
+        });
+      };
+      logSearch();
+      onTrackEvent("Search", { search_string: debouncedSearch });
+    }
+  }, [debouncedSearch, filteredProducts.length, catalog.id, catalog.user_id, onTrackEvent]);
 
   // --- HANDLERS (NUEVA LÓGICA SEPARADA) ---
 
@@ -362,7 +362,14 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
       sku: product.sku || null,
     };
 
-    addItem(productForContext, 1, "retail", product.price_retail || 0, undefined, undefined);
+    addItem(
+      productForContext, 
+      1, 
+      "retail", 
+      product.price_retail || 0, 
+      null, 
+      null
+    );
     toast({
       title: "¡Agregado!",
       description: (
@@ -405,7 +412,14 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
     const variantDescription = variant ? Object.values(variant.attributes || {}).join(", ") : null;
     const nameToUse = variant ? `${selectedProduct.name} (${variantDescription})` : selectedProduct.name;
 
-    addItem(productForContext, quantity, "retail", priceToUse, variant?.id, variantDescription);
+    addItem(
+      productForContext, 
+      quantity, 
+      "retail", 
+      priceToUse, 
+      variant?.id || null, 
+      variantDescription
+    );
     toast({ title: "Agregado", description: `${quantity}x ${nameToUse} al carrito.` });
     setSelectedProduct(null);
     onTrackEvent("AddToCart", {
