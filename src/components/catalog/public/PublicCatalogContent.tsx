@@ -1,6 +1,3 @@
-// src/components/catalog/public/PublicCatalogContent.tsx
-// (CORREGIDO: BUSCADOR VISIBLE + LÓGICA "SMART ADD" EN BOTÓN MAS)
-
 import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Input } from "@/components/ui/input";
@@ -111,7 +108,7 @@ const ProductImageZoomModal = ({
   );
 };
 
-// --- COMPONENTE: TARJETA DE PRODUCTO (Lógica "Smart Add" Aplicada) ---
+// --- COMPONENTE: TARJETA DE PRODUCTO ---
 const PublicProductCard = ({
   product,
   onAdd,
@@ -132,9 +129,8 @@ const PublicProductCard = ({
       initial="hidden"
       animate="visible"
       className="group flex flex-col bg-white border border-slate-200 rounded-xl overflow-hidden hover:shadow-lg hover:border-indigo-200 transition-all duration-300 cursor-pointer h-full select-none"
-      onClick={onView} // 👈 Un solo clic AHORA SOLO ABRE DETALLE (Ver)
+      onClick={onView}
       onDoubleClick={(e) => {
-        // 👈 Doble clic AGREGA (Acción Rápida)
         e.stopPropagation();
         onAdd();
       }}
@@ -168,11 +164,10 @@ const PublicProductCard = ({
           <Eye className="h-4 w-4" />
         </button>
 
-        {/* Botón Add (EL BOTÓN + MÁGICO) */}
         <button
           onClick={(e) => {
-            e.stopPropagation(); // Evita que se abra el detalle al dar clic en +
-            onAdd(); // Ejecuta la "Venta Inteligente"
+            e.stopPropagation();
+            onAdd();
           }}
           className="absolute bottom-3 right-3 h-10 w-10 md:h-11 md:w-11 bg-white text-slate-900 rounded-full flex items-center justify-center shadow-lg shadow-slate-200/50 opacity-100 md:opacity-0 md:group-hover:opacity-100 md:translate-y-4 md:group-hover:translate-y-0 transition-all duration-300 hover:bg-indigo-600 hover:text-white z-20 active:scale-95"
           title="Agregar al carrito"
@@ -214,13 +209,15 @@ const PublicProductCard = ({
 
 // --- COMPONENTE PRINCIPAL ---
 export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogContentProps) {
-  // Estados
+  // Estados Generales
   const [searchTerm, setSearchTerm] = useState("");
   const debouncedSearch = useDebounce(searchTerm, 500);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isQuoteFormOpen, setIsQuoteFormOpen] = useState(false);
   const [priceRange, setPriceRange] = useState<{ min: string; max: string }>({ min: "", max: "" });
+
+  // ✅ ESTADOS DEL RADAR (Actualizados)
   const [showRadarModal, setShowRadarModal] = useState(false);
   const [radarForm, setRadarForm] = useState({
     name: "",
@@ -234,7 +231,7 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
   // Contexto Carrito
   const { addItem, items, clearCart, totalAmount } = useQuoteCart();
 
-  // Estados Selección
+  // Estados Selección Producto
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
@@ -328,9 +325,8 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
     }
   }, [debouncedSearch, filteredProducts.length, catalog.id, catalog.user_id, onTrackEvent]);
 
-  // --- HANDLERS (NUEVA LÓGICA SEPARADA) ---
+  // --- HANDLERS ---
 
-  // 1. Solo Ver Detalle (Clic en tarjeta)
   const handleViewProduct = (product: Product) => {
     setSelectedProduct(product);
     setSelectedVariantId(null);
@@ -343,16 +339,13 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
     });
   };
 
-  // 2. Agregar Inteligente (Botón + o Doble Clic)
   const handleSmartAdd = (product: Product) => {
     const hasVariants = product.has_variants || (product.variants && product.variants.length > 0);
 
     if (hasVariants) {
-      // Si tiene variantes, no podemos adivinar, hay que abrir el modal
       handleViewProduct(product);
       toast({ description: "Selecciona una opción para agregar", duration: 2000 });
     } else {
-      // Si es producto simple, va directo al carrito
       addToCartSimple(product);
     }
   };
@@ -379,7 +372,6 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
         </div>
       ),
     });
-    // onTrackEvent se maneja en addItem si fuera necesario, pero aquí es explícito
     onTrackEvent("AddToCart", {
       content_ids: [product.id],
       content_name: product.name,
@@ -434,35 +426,38 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
     toast({ title: "¡Cotización enviada!", description: "Hemos recibido tu pedido. Te contactaremos pronto." });
   };
 
+  // ✅ LÓGICA DEL RADAR CORREGIDA
   const handleRadarSubmit = async () => {
     try {
       const { error: insertError } = await supabase.from("solicitudes_mercado").insert({
         catalogo_id: catalog.id,
         fabricante_id: catalog.user_id,
-        revendedor_id: catalog.resellerId || null, // Nos aseguramos que mande null si no existe
+        revendedor_id: catalog.resellerId || null, // Asegura NULL si es undefined
 
         cliente_final_nombre: radarForm.name,
         cliente_final_email: radarForm.email,
         producto_nombre: radarForm.product,
 
-        // --- CAMPOS RECUPERADOS ---
+        // Campos nuevos recuperados
         producto_marca: radarForm.brand,
         producto_descripcion: radarForm.description,
-        // --------------------------
 
         cantidad: parseInt(radarForm.quantity) || 1,
         estatus_fabricante: "nuevo",
         estatus_revendedor: "nuevo",
       });
 
-      if (insertError) throw insertError;
+      if (insertError) {
+        console.error("Error al insertar solicitud radar:", insertError);
+        throw insertError;
+      }
 
       toast({ title: "Solicitud recibida", description: "Buscaremos este producto para ti." });
       setShowRadarModal(false);
-      // Reseteamos el formulario completo
+      // Reset completo del formulario
       setRadarForm({ name: "", email: "", product: "", quantity: "1", brand: "", description: "" });
+      onTrackEvent("Contact", { content_name: "Radar: " + radarForm.product });
     } catch (e) {
-      console.error(e);
       toast({ title: "Error", description: "Intenta nuevamente", variant: "destructive" });
     }
   };
@@ -502,13 +497,12 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
       </div>
 
       <div className="container mx-auto px-4 -mt-8 relative z-20">
-        {/* TOOLBAR (Buscador CORREGIDO) */}
+        {/* TOOLBAR */}
         <div className="bg-white rounded-xl shadow-xl shadow-slate-200/40 p-4 mb-8 border border-slate-100">
           <div className="flex flex-col gap-4">
             <div className="flex flex-col md:flex-row gap-3">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
-                {/* 👇 AQUI ESTÁ LA CORRECCIÓN DEL TEXTO BLANCO */}
                 <Input
                   placeholder="Buscar productos..."
                   value={searchTerm}
@@ -679,8 +673,8 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
               <PublicProductCard
                 key={product.id}
                 product={product}
-                onView={() => handleViewProduct(product)} // Clic normal = Ver detalle
-                onAdd={() => handleSmartAdd(product)} // Botón + o Doble Clic = Agregar (o modal si es complejo)
+                onView={() => handleViewProduct(product)}
+                onAdd={() => handleSmartAdd(product)}
                 onZoomImage={() => setProductToZoom(product)}
               />
             ))}
@@ -717,7 +711,7 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
         )}
       </AnimatePresence>
 
-      {/* MODALES (Mantienen la lógica y diseño) */}
+      {/* MODALES */}
       <Dialog open={!!selectedProduct} onOpenChange={(open) => !open && setSelectedProduct(null)}>
         <DialogContent className="sm:max-w-[450px] p-0 overflow-hidden">
           {selectedProduct && (
@@ -828,8 +822,9 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
         businessAddress={null}
       />
 
+      {/* ✅ MODAL DE RADAR REDISEÑADO */}
       <Dialog open={showRadarModal} onOpenChange={setShowRadarModal}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <div className="mx-auto w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center mb-4">
               <Radar className="w-6 h-6 text-indigo-600" />
@@ -839,16 +834,42 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
               Activa nuestra red de proveedores. Cuéntanos qué necesitas y te avisaremos si lo conseguimos.
             </DialogDescription>
           </DialogHeader>
+
           <div className="space-y-4 py-4">
+            {/* Producto y Marca */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Producto buscado *</Label>
+                <Input
+                  value={radarForm.product}
+                  onChange={(e) => setRadarForm({ ...radarForm, product: e.target.value })}
+                  placeholder="Ej: Válvula..."
+                  className="bg-slate-50"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Marca (Opcional)</Label>
+                <Input
+                  value={radarForm.brand}
+                  onChange={(e) => setRadarForm({ ...radarForm, brand: e.target.value })}
+                  placeholder="Ej: Sony, Nike..."
+                  className="bg-slate-50"
+                />
+              </div>
+            </div>
+
+            {/* Descripción Ampliada */}
             <div className="space-y-2">
-              <Label>¿Qué producto buscas?</Label>
-              <Input
-                value={radarForm.product}
-                onChange={(e) => setRadarForm({ ...radarForm, product: e.target.value })}
-                placeholder="Ej: Válvula de bola 2 pulgadas..."
-                className="bg-slate-50"
+              <Label>Detalles adicionales (Color, Talla, Modelo)</Label>
+              <textarea
+                className="flex w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm ring-offset-white placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 min-h-[80px] resize-none font-sans"
+                value={radarForm.description}
+                onChange={(e) => setRadarForm({ ...radarForm, description: e.target.value })}
+                placeholder="Ej: Necesito que sea color rojo y talla M..."
               />
             </div>
+
+            {/* Cantidad */}
             <div className="space-y-2">
               <Label>Cantidad requerida</Label>
               <Input
@@ -858,9 +879,11 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
                 className="bg-slate-50"
               />
             </div>
+
+            {/* Datos de Contacto */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Nombre</Label>
+                <Label>Tu Nombre</Label>
                 <Input
                   value={radarForm.name}
                   onChange={(e) => setRadarForm({ ...radarForm, name: e.target.value })}
@@ -877,9 +900,10 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
               </div>
             </div>
           </div>
+
           <DialogFooter>
-            <Button onClick={handleRadarSubmit} className="w-full bg-indigo-600 hover:bg-indigo-700">
-              Activar Radar
+            <Button onClick={handleRadarSubmit} className="w-full bg-indigo-600 hover:bg-indigo-700 h-11 text-base">
+              Solicitar Producto
             </Button>
           </DialogFooter>
         </DialogContent>
