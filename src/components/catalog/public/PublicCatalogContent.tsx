@@ -443,16 +443,21 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
 
   const handleRadarSubmit = async () => {
     try {
-      await supabase.from("solicitudes_mercado").insert({
-        catalog_id: catalog.id,
+      const { error: insertError } = await supabase.from("solicitudes_mercado").insert({
+        catalogo_id: catalog.id, // ✅ CORREGIDO: era 'catalog_id'
         fabricante_id: catalog.user_id,
         revendedor_id: catalog.resellerId || null,
         cliente_final_nombre: radarForm.name,
         cliente_final_email: radarForm.email,
         producto_nombre: radarForm.product,
         cantidad: parseInt(radarForm.quantity),
-        estatus_fabricante: "nuevo",
+        estatus_fabricante: "nuevo" as const,
       });
+      
+      if (insertError) {
+        console.error("Error al insertar solicitud radar:", insertError);
+        throw insertError;
+      }
       toast({ title: "Solicitud recibida", description: "Buscaremos este producto para ti." });
       setShowRadarModal(false);
       setRadarForm({ name: "", email: "", product: "", quantity: "1" });

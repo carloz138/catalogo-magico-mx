@@ -54,7 +54,7 @@ export function MarketRadarForm({ fabricanteId, revendedorId, catalogoId }: Mark
     setSuccess(false);
 
     try {
-      const { error: insertError } = await supabase.from("solicitudes_mercado" as any).insert({
+      const { error: insertError } = await supabase.from("solicitudes_mercado").insert({
         fabricante_id: fabricanteId,
         revendedor_id: revendedorId || null,
         catalogo_id: catalogoId,
@@ -64,7 +64,7 @@ export function MarketRadarForm({ fabricanteId, revendedorId, catalogoId }: Mark
         producto_marca: data.producto_marca || null,
         producto_descripcion: data.producto_descripcion || null,
         cantidad: data.cantidad,
-      } as any);
+      });
 
       if (insertError) throw insertError;
 
