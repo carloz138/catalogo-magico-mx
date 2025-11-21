@@ -16,6 +16,7 @@ import {
   AlertCircle,
   Loader2,
   Hash,
+  GitBranch,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,6 +36,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { VariantManagementModal } from "@/components/products/VariantManagementModal";
 
 // --- CONSTANTES (TUS CATEGORÍAS OFICIALES) ---
 const PRODUCT_CATEGORIES = [
@@ -59,6 +61,8 @@ interface Product {
   original_image_url: string | null;
   processed_image_url: string | null;
   tags: string[] | null;
+  has_variants: boolean | null;
+  variant_count: number | null;
   isSaving?: boolean;
 }
 
@@ -288,6 +292,9 @@ const ProductsManagement = () => {
   });
   // Nuevo estado: Switch para "Append Tags" (Agregar sin borrar)
   const [appendTagsMode, setAppendTagsMode] = useState(true);
+  
+  // Estado para el modal de variantes
+  const [variantModalProduct, setVariantModalProduct] = useState<Product | null>(null);
 
   // --- DATA FETCHING ---
   const fetchProducts = useCallback(async () => {
@@ -549,19 +556,20 @@ const ProductsManagement = () => {
                   <th className="px-4 py-3 w-28 text-right">Menudeo</th>
                   <th className="px-4 py-3 w-28 text-right">Mayoreo</th>
                   <th className="px-4 py-3 w-24 text-center">Min Qty</th>
+                  <th className="px-4 py-3 w-32 text-center">Variantes</th>
                   <th className="px-4 py-3 w-10"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {loading ? (
                   <tr>
-                    <td colSpan={10} className="p-10 text-center">
+                    <td colSpan={11} className="p-10 text-center">
                       <Loader2 className="w-6 h-6 animate-spin mx-auto text-indigo-600" />
                     </td>
                   </tr>
                 ) : filteredProducts.length === 0 ? (
                   <tr>
-                    <td colSpan={10} className="p-10 text-center text-slate-400">
+                    <td colSpan={11} className="p-10 text-center text-slate-400">
                       No se encontraron productos
                     </td>
                   </tr>
@@ -648,6 +656,23 @@ const ProductsManagement = () => {
                           onSave={(val) => handleSaveField(product.id, "wholesale_min_qty", val ? parseInt(val) : null)}
                           className="text-center w-16 mx-auto font-bold text-slate-700"
                         />
+                      </td>
+                      <td className="px-4 py-2 text-center">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 px-2 gap-1.5"
+                          onClick={() => setVariantModalProduct(product)}
+                        >
+                          <GitBranch className="w-3.5 h-3.5" />
+                          {product.has_variants && product.variant_count ? (
+                            <Badge variant="secondary" className="h-5 px-1.5 text-xs">
+                              {product.variant_count}
+                            </Badge>
+                          ) : (
+                            <span className="text-xs text-slate-500">Crear</span>
+                          )}
+                        </Button>
                       </td>
                       <td className="px-4 py-2">
                         <Button
@@ -759,6 +784,25 @@ const ProductsManagement = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* --- MODAL DE VARIANTES --- */}
+      {variantModalProduct && (
+        <VariantManagementModal
+          open={!!variantModalProduct}
+          onOpenChange={(open) => {
+            if (!open) {
+              setVariantModalProduct(null);
+              // Refrescar producto para actualizar contadores
+              fetchProducts();
+            }
+          }}
+          productId={variantModalProduct.id}
+          productName={variantModalProduct.name}
+          productCategory={variantModalProduct.category || undefined}
+          basePrice={variantModalProduct.price_retail}
+          basePriceWholesale={variantModalProduct.price_wholesale || undefined}
+        />
+      )}
     </div>
   );
 };
