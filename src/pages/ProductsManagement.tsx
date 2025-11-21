@@ -293,7 +293,7 @@ const ProductsManagement = () => {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   // Estados para Diálogos Bulk Actions
-  const [bulkAction, setBulkAction] = useState<{ type: "category" | "min_qty" | null; value: any }>({
+  const [bulkAction, setBulkAction] = useState<{ type: "category" | "min_qty" | "tags" | null; value: any }>({
     type: null,
     value: "",
   });
@@ -371,17 +371,25 @@ const ProductsManagement = () => {
     if (!type) return;
 
     const ids = Array.from(selectedIds);
-    const fieldMap = { category: "category", min_qty: "wholesale_min_qty" };
+    const fieldMap = { category: "category", min_qty: "wholesale_min_qty", tags: "tags" };
     const dbField = fieldMap[type];
 
+    // Para tags, convertir el string a array
+    let finalValue = value;
+    if (type === "tags") {
+      if (typeof value === "string") {
+        finalValue = value.split(",").map((t) => t.trim()).filter(Boolean);
+      }
+    }
+
     // Optimistic
-    setProducts((prev) => prev.map((p) => (selectedIds.has(p.id) ? { ...p, [dbField]: value } : p)));
+    setProducts((prev) => prev.map((p) => (selectedIds.has(p.id) ? { ...p, [dbField]: finalValue } : p)));
     setBulkAction({ type: null, value: "" });
 
     try {
       await supabase
         .from("products")
-        .update({ [dbField]: value })
+        .update({ [dbField]: finalValue })
         .in("id", ids);
       toast({ title: "Actualización masiva completada" });
       setSelectedIds(new Set());
@@ -448,6 +456,14 @@ const ProductsManagement = () => {
                     onClick={() => setBulkAction({ type: "category", value: "" })}
                   >
                     <Layers className="w-3.5 h-3.5 mr-2" /> Categoría
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="text-indigo-700 hover:bg-indigo-100 h-8"
+                    onClick={() => setBulkAction({ type: "tags", value: "" })}
+                  >
+                    <Tag className="w-3.5 h-3.5 mr-2" /> Tags
                   </Button>
                   <Button
                     size="sm"
@@ -656,6 +672,17 @@ const ProductsManagement = () => {
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+            )}
+            {bulkAction.type === "tags" && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Tags (separados por comas)</label>
+                <Input
+                  placeholder="Ej: verano, oferta, nuevo"
+                  value={bulkAction.value}
+                  onChange={(e) => setBulkAction((prev) => ({ ...prev, value: e.target.value }))}
+                />
+                <p className="text-xs text-slate-500">Estos tags reemplazarán los existentes en los productos seleccionados</p>
               </div>
             )}
             {bulkAction.type === "min_qty" && (
