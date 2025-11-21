@@ -222,7 +222,14 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
   const [isQuoteFormOpen, setIsQuoteFormOpen] = useState(false);
   const [priceRange, setPriceRange] = useState<{ min: string; max: string }>({ min: "", max: "" });
   const [showRadarModal, setShowRadarModal] = useState(false);
-  const [radarForm, setRadarForm] = useState({ name: "", email: "", product: "", quantity: "1" });
+  const [radarForm, setRadarForm] = useState({
+    name: "",
+    email: "",
+    product: "",
+    quantity: "1",
+    brand: "", // Nuevo
+    description: "", // Nuevo
+  });
 
   // Contexto Carrito
   const { addItem, items, clearCart, totalAmount } = useQuoteCart();
@@ -362,14 +369,7 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
       sku: product.sku || null,
     };
 
-    addItem(
-      productForContext, 
-      1, 
-      "retail", 
-      product.price_retail || 0, 
-      null, 
-      null
-    );
+    addItem(productForContext, 1, "retail", product.price_retail || 0, null, null);
     toast({
       title: "¡Agregado!",
       description: (
@@ -412,14 +412,7 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
     const variantDescription = variant ? Object.values(variant.attributes || {}).join(", ") : null;
     const nameToUse = variant ? `${selectedProduct.name} (${variantDescription})` : selectedProduct.name;
 
-    addItem(
-      productForContext, 
-      quantity, 
-      "retail", 
-      priceToUse, 
-      variant?.id || null, 
-      variantDescription
-    );
+    addItem(productForContext, quantity, "retail", priceToUse, variant?.id || null, variantDescription);
     toast({ title: "Agregado", description: `${quantity}x ${nameToUse} al carrito.` });
     setSelectedProduct(null);
     onTrackEvent("AddToCart", {
@@ -444,24 +437,32 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
   const handleRadarSubmit = async () => {
     try {
       const { error: insertError } = await supabase.from("solicitudes_mercado").insert({
-        catalogo_id: catalog.id, // ✅ CORREGIDO: era 'catalog_id'
+        catalogo_id: catalog.id,
         fabricante_id: catalog.user_id,
-        revendedor_id: catalog.resellerId || null,
+        revendedor_id: catalog.resellerId || null, // Nos aseguramos que mande null si no existe
+
         cliente_final_nombre: radarForm.name,
         cliente_final_email: radarForm.email,
         producto_nombre: radarForm.product,
-        cantidad: parseInt(radarForm.quantity),
-        estatus_fabricante: "nuevo" as const,
+
+        // --- CAMPOS RECUPERADOS ---
+        producto_marca: radarForm.brand,
+        producto_descripcion: radarForm.description,
+        // --------------------------
+
+        cantidad: parseInt(radarForm.quantity) || 1,
+        estatus_fabricante: "nuevo",
+        estatus_revendedor: "nuevo",
       });
-      
-      if (insertError) {
-        console.error("Error al insertar solicitud radar:", insertError);
-        throw insertError;
-      }
+
+      if (insertError) throw insertError;
+
       toast({ title: "Solicitud recibida", description: "Buscaremos este producto para ti." });
       setShowRadarModal(false);
-      setRadarForm({ name: "", email: "", product: "", quantity: "1" });
+      // Reseteamos el formulario completo
+      setRadarForm({ name: "", email: "", product: "", quantity: "1", brand: "", description: "" });
     } catch (e) {
+      console.error(e);
       toast({ title: "Error", description: "Intenta nuevamente", variant: "destructive" });
     }
   };
