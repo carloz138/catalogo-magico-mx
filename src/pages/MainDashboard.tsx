@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
-
+//comentario
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/contexts/RoleContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
@@ -16,7 +16,6 @@ import { SearchStatsWidget } from "@/components/dashboard/SearchStatsWidget";
 import { ResellerInsights } from "@/components/dashboard/ResellerInsights";
 import { DeadStockAnalysis } from "@/components/dashboard/analytics/DeadStockAnalysis";
 import { DemandForecastWidget } from "@/components/dashboard/analytics/DemandForecastWidget";
-
 
 import {
   BarChart3,
@@ -41,24 +40,26 @@ import {
 // Mock Contexts
 const useAuth = () => ({ user: { id: "mock-user-id" } });
 const useUserRole = () => ({ userRole: "L1", isLoadingRole: false }); // Cambia a "L2" o "BOTH" para probar vistas
-const useSubscription = () => ({ 
-  paqueteUsuario: { name: "Plan Empresarial", analytics_level: "enterprise" } 
+const useSubscription = () => ({
+  paqueteUsuario: { name: "Plan Empresarial", analytics_level: "enterprise" },
 });
 const supabase = {
   from: () => ({
     select: () => ({
       eq: () => ({
         limit: () => ({
-          maybeSingle: async () => ({ data: { id: "mock-catalog-id" } })
-        })
-      })
-    })
-  })
+          maybeSingle: async () => ({ data: { id: "mock-catalog-id" } }),
+        }),
+      }),
+    }),
+  }),
 };
 
 // Mock Components
-const MockWidget = ({ title, color = "bg-white" }: { title: string, color?: string }) => (
-  <div className={`p-6 border-2 border-dashed border-slate-300 rounded-xl flex items-center justify-center h-full min-h-[300px] ${color}`}>
+const MockWidget = ({ title, color = "bg-white" }: { title: string; color?: string }) => (
+  <div
+    className={`p-6 border-2 border-dashed border-slate-300 rounded-xl flex items-center justify-center h-full min-h-[300px] ${color}`}
+  >
     <p className="text-slate-500 font-medium flex items-center gap-2">
       <Activity className="w-4 h-4" /> {title}
     </p>
@@ -72,7 +73,9 @@ const SearchStatsWidget = ({ catalogId }: any) => <MockWidget title="Stats de B�
 const ResellerInsights = ({ catalogId }: any) => <MockWidget title="Insights de Revendedor (Componente)" />;
 // Nuevos Widgets VIP Mocks
 const DeadStockAnalysis = () => <MockWidget title="Dead Stock Analysis (Componente Real)" color="bg-amber-50/50" />;
-const DemandForecastWidget = ({ catalogId }: any) => <MockWidget title="Demand Forecast (Componente Real)" color="bg-purple-50/50" />;
+const DemandForecastWidget = ({ catalogId }: any) => (
+  <MockWidget title="Demand Forecast (Componente Real)" color="bg-purple-50/50" />
+);
 
 // ============================================================================
 // 🚀 COMPONENTE PRINCIPAL (ESTE ES EL CÓDIGO REAL)
@@ -96,7 +99,7 @@ export default function MainDashboard() {
           .eq()
           .limit()
           .maybeSingle();
-        
+
         // En producción esto busca el catálogo real
         if (data) setCatalogId(data.id);
       } catch (error) {
@@ -278,7 +281,6 @@ export default function MainDashboard() {
       <Tabs defaultValue="resumen" className="w-full space-y-8">
         {/* Custom Tabs Style */}
         <TabsList className="bg-white border border-slate-200 p-1 h-auto rounded-xl shadow-sm inline-flex w-full md:w-auto overflow-x-auto">
-          
           {/* TAB: RESUMEN */}
           <TabsTrigger
             value="resumen"
@@ -301,9 +303,7 @@ export default function MainDashboard() {
             className="data-[state=active]:bg-purple-50 data-[state=active]:text-purple-700 text-slate-500 px-6 py-2.5 rounded-lg transition-all"
           >
             <BrainCircuit className="w-4 h-4 mr-2" /> Visión Estratégica
-            {paqueteUsuario?.analytics_level !== 'enterprise' && (
-                 <Sparkles className="w-3 h-3 ml-2 text-yellow-400" />
-            )}
+            {paqueteUsuario?.analytics_level !== "enterprise" && <Sparkles className="w-3 h-3 ml-2 text-yellow-400" />}
           </TabsTrigger>
 
           {userRole === "BOTH" && (
@@ -426,32 +426,30 @@ export default function MainDashboard() {
 
         {/* --- TAB 3: VISIÓN ESTRATÉGICA (VIP / ENTERPRISE) --- */}
         <TabsContent value="estrategia" className="space-y-8 focus-visible:outline-none">
-             <motion.div variants={itemVariants} className="space-y-8">
-                
-                {/* SECCIÓN 1: FUTURO (Pronóstico) */}
-                <div className="space-y-4">
-                     <div className="flex items-center justify-between">
-                        <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                            <Sparkles className="w-5 h-5 text-purple-600" /> Predicción de Demanda
-                        </h3>
-                        {catalogId && (
-                            <Badge variant="outline" className="text-purple-600 border-purple-200 bg-purple-50">
-                                Próximos 7 días
-                            </Badge>
-                        )}
-                     </div>
-                     <DemandForecastWidget catalogId={catalogId} />
-                </div>
+          <motion.div variants={itemVariants} className="space-y-8">
+            {/* SECCIÓN 1: FUTURO (Pronóstico) */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                  <Sparkles className="w-5 h-5 text-purple-600" /> Predicción de Demanda
+                </h3>
+                {catalogId && (
+                  <Badge variant="outline" className="text-purple-600 border-purple-200 bg-purple-50">
+                    Próximos 7 días
+                  </Badge>
+                )}
+              </div>
+              <DemandForecastWidget catalogId={catalogId} />
+            </div>
 
-                {/* SECCIÓN 2: PRESENTE (Optimización de Stock) */}
-                <div className="space-y-4">
-                    <div className="flex items-center gap-2">
-                        <h3 className="text-lg font-bold text-slate-800">Auditoría de Capital</h3>
-                    </div>
-                    <DeadStockAnalysis />
-                </div>
-
-             </motion.div>
+            {/* SECCIÓN 2: PRESENTE (Optimización de Stock) */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <h3 className="text-lg font-bold text-slate-800">Auditoría de Capital</h3>
+              </div>
+              <DeadStockAnalysis />
+            </div>
+          </motion.div>
         </TabsContent>
 
         {/* --- TAB 4: VISTA HÍBRIDA (BOTH) --- */}
