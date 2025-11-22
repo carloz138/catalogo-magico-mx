@@ -5,10 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
-// ============================================================================
-// ⚠️ SECCIÓN DE IMPORTACIONES REALES (DESCOMENTAR EN TU PROYECTO)
-// ============================================================================
-/*
+
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/contexts/RoleContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
@@ -19,7 +16,7 @@ import { SearchStatsWidget } from "@/components/dashboard/SearchStatsWidget";
 import { ResellerInsights } from "@/components/dashboard/ResellerInsights";
 import { DeadStockAnalysis } from "@/components/dashboard/analytics/DeadStockAnalysis";
 import { DemandForecastWidget } from "@/components/dashboard/analytics/DemandForecastWidget";
-*/
+
 
 import {
   BarChart3,
