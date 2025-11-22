@@ -7,9 +7,9 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import { AlertTriangle, DollarSign, Package, TrendingDown, Loader2, ArrowUpRight } from "lucide-react";
+import { AlertTriangle, Package, TrendingDown, Loader2, Sparkles, Tag, ArrowRight } from "lucide-react";
 
-// 1. Interfaz basada en el retorno de tu RPC
+// Interfaces
 interface DeadStockItem {
   product_name: string;
   variant_name: string;
@@ -17,18 +17,28 @@ interface DeadStockItem {
   current_stock: number;
   last_sale_date: string | null;
   days_since_last_sale: number;
-  potential_loss_value: number; // Viene en centavos
+  potential_loss_value: number; // centavos
+}
+
+// Nueva interfaz para la sugerencia de IA
+interface AiSuggestion {
+  strategy: string;      // Nombre de la estrategia
+  discount: number;      // % recomendado
+  color: string;         // Color del badge
+  urgencyScore: number;  // 0 a 100
+  reason: string;        // Explicación humana
 }
 
 export const DeadStockAnalysis = () => {
-  // Gating: Solo plan PRO ($599) o superior
   const { isAllowed, loading: loadingPlan, UpsellComponent } = useFeatureAccess("recomendaciones");
   
-  // Estado
   const [data, setData] = useState<DeadStockItem[]>([]);
   const [loading, setLoading] = useState(false);
-  const [daysFilter, setDaysFilter] = useState("60"); // Default 60 días
+  const [daysFilter, setDaysFilter] = useState("60");
   const [totalLoss, setTotalLoss] = useState(0);
+
+  // Estado para el valor máximo encontrado (para normalizar la IA)
+  const [maxItemValue, setMaxItemValue] = useState(0);
 
   useEffect(() => {
     if (isAllowed && !loadingPlan) {
@@ -39,7 +49,6 @@ export const DeadStockAnalysis = () => {
   const fetchDeadStock = async () => {
     setLoading(true);
     try {
-      // LLAMADA A TU RPC OPTIMIZADA
       const { data: rpcData, error } = await supabase.rpc('get_dead_stock_report', { 
         days_inactive: parseInt(daysFilter) 
       });
@@ -48,9 +57,12 @@ export const DeadStockAnalysis = () => {
 
       if (rpcData) {
         setData(rpcData);
-        // Calculamos total (sumando centavos y dividiendo al final)
         const totalCents = rpcData.reduce((acc: number, item: DeadStockItem) => acc + item.potential_loss_value, 0);
         setTotalLoss(totalCents / 100);
+        
+        // Encontramos el producto más caro para usarlo de referencia en la IA
+        const maxVal = Math.max(...rpcData.map((i: DeadStockItem) => i.potential_loss_value));
+        setMaxItemValue(maxVal);
       }
     } catch (error) {
       console.error("Error fetching dead stock report:", error);
@@ -59,7 +71,6 @@ export const DeadStockAnalysis = () => {
     }
   };
 
-  // Helper para moneda
   const formatMoney = (amount: number) => {
     return new Intl.NumberFormat('es-MX', {
       style: 'currency',
@@ -68,13 +79,52 @@ export const DeadStockAnalysis = () => {
     }).format(amount);
   };
 
-  // Preparar datos para el gráfico (Top 5 por valor)
+  // 🧠 CEREBRO DE IA (SISTEMA EXPERTO) 🧠
+  // Calcula la mejor estrategia basada en tiempo y dinero
+  const getAiStrategy = (item: DeadStockItem): AiSuggestion => {
+    // 1. Normalizar variables (de 0 a 1)
+    const timeScore = Math.min(item.days_since_last_sale / 180, 1); // 180 días es el tope de gravedad
+    const valueScore = maxItemValue > 0 ? (item.potential_loss_value / maxItemValue) : 0;
+
+    // 2. Calcular Índice de Urgencia Ponderado
+    // Le damos más peso al valor (60%) que al tiempo (40%) porque perder dinero duele más
+    const urgencyIndex = (valueScore * 0.6) + (timeScore * 0.4);
+    const urgencyScore = Math.round(urgencyIndex * 100);
+
+    // 3. Árbol de Decisión (Decision Tree)
+    if (urgencyIndex > 0.7) {
+      return {
+        strategy: "Liquidación Total",
+        discount: 50,
+        color: "bg-red-100 text-red-700 border-red-200",
+        urgencyScore,
+        reason: "Alto valor retenido crítico"
+      };
+    } else if (urgencyIndex > 0.4) {
+      return {
+        strategy: "Oferta Flash",
+        discount: 30,
+        color: "bg-amber-100 text-amber-700 border-amber-200",
+        urgencyScore,
+        reason: "Inventario envejeciendo"
+      };
+    } else {
+      return {
+        strategy: "Bundle / Regalo",
+        discount: 15,
+        color: "bg-blue-100 text-blue-700 border-blue-200",
+        urgencyScore,
+        reason: "Bajo impacto financiero"
+      };
+    }
+  };
+
   const chartData = [...data]
     .sort((a, b) => b.potential_loss_value - a.potential_loss_value)
     .slice(0, 5)
     .map(item => ({
       name: item.variant_name !== 'N/A' ? `${item.product_name} (${item.variant_name})` : item.product_name,
-      value: item.potential_loss_value / 100, // A pesos para el gráfico
+      value: item.potential_loss_value / 100,
       stock: item.current_stock
     }));
 
@@ -86,8 +136,8 @@ export const DeadStockAnalysis = () => {
     return (
       <div className="h-full min-h-[500px]">
         {React.cloneElement(UpsellComponent as React.ReactElement, {
-            featureName: "Análisis de Inventario Muerto",
-            description: "Detecta automáticamente productos estancados y libera flujo de efectivo."
+            featureName: "IA de Inventarios",
+            description: "Nuestra IA analiza tu stock muerto y te dice exactamente qué descuento aplicar para venderlo."
         })}
       </div>
     );
@@ -95,25 +145,26 @@ export const DeadStockAnalysis = () => {
 
   return (
     <div className="space-y-6">
-      {/* HEADER Y FILTROS */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-            <AlertTriangle className="w-6 h-6 text-amber-500" /> Auditoría de Stock Muerto
+            <AlertTriangle className="w-6 h-6 text-amber-500" /> Auditoría con IA
+            <Badge variant="secondary" className="bg-indigo-100 text-indigo-700 text-xs ml-2 border-indigo-200">
+               <Sparkles className="w-3 h-3 mr-1" /> Smart Suggestions
+            </Badge>
           </h2>
-          <p className="text-slate-500">Productos sin movimiento de ventas reciente.</p>
+          <p className="text-slate-500">Detección de stock muerto y sugerencias de precios.</p>
         </div>
         
         <div className="flex items-center gap-2">
-          <span className="text-sm text-slate-600 font-medium">Considerar inactivo tras:</span>
           <Select value={daysFilter} onValueChange={setDaysFilter}>
             <SelectTrigger className="w-[140px] bg-white border-slate-200">
               <SelectValue placeholder="Días" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="30">30 Días (Estricto)</SelectItem>
-              <SelectItem value="60">60 Días (Estándar)</SelectItem>
-              <SelectItem value="90">90 Días (Laxo)</SelectItem>
+              <SelectItem value="30">30 Días</SelectItem>
+              <SelectItem value="60">60 Días</SelectItem>
+              <SelectItem value="90">90 Días</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -124,78 +175,35 @@ export const DeadStockAnalysis = () => {
             <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
         </div>
       ) : data.length === 0 ? (
-        // ESTADO "SANO"
         <Card className="bg-emerald-50 border-emerald-200">
             <CardContent className="flex flex-col items-center justify-center py-12 text-center">
                 <div className="bg-emerald-100 p-4 rounded-full mb-4">
                     <TrendingDown className="w-8 h-8 text-emerald-600" />
                 </div>
-                <h3 className="text-xl font-bold text-emerald-800">Inventario en Movimiento</h3>
+                <h3 className="text-xl font-bold text-emerald-800">Inventario Sano</h3>
                 <p className="text-emerald-700 max-w-md mt-2">
-                    No se encontraron productos inactivos por más de {daysFilter} días. Tu rotación de inventario es saludable.
+                    Tu estrategia funciona. No hay recomendaciones de liquidación por ahora.
                 </p>
             </CardContent>
         </Card>
       ) : (
         <>
-          {/* KPI CARDS */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card className="bg-white border-l-4 border-l-amber-500 shadow-sm">
-                <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium text-slate-500 uppercase">Capital Congelado</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="text-3xl font-bold text-slate-900">{formatMoney(totalLoss)}</div>
-                    <p className="text-xs text-amber-600 mt-1 font-medium">
-                        Dinero en productos sin vender hace {daysFilter}+ días
-                    </p>
-                </CardContent>
-            </Card>
-
-            <Card className="bg-white border-l-4 border-l-slate-400 shadow-sm">
-                <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium text-slate-500 uppercase">Items Estancados</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="text-3xl font-bold text-slate-900">{data.length}</div>
-                    <p className="text-xs text-slate-500 mt-1">Variantes o productos únicos afectados</p>
-                </CardContent>
-            </Card>
-
-            <Card className="bg-slate-900 text-white shadow-sm flex flex-col justify-center items-center text-center p-6">
-                 <p className="text-sm text-slate-300 mb-3">¿Necesitas liquidez?</p>
-                 <Button className="w-full bg-indigo-500 hover:bg-indigo-600 text-white border-0">
-                    Generar Oferta Flash <ArrowUpRight className="w-4 h-4 ml-2" />
-                 </Button>
-            </Card>
-          </div>
-
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* GRÁFICO (Top 5) */}
             <Card className="lg:col-span-1 shadow-sm">
                 <CardHeader>
-                    <CardTitle className="text-lg">Top 5 Mayor Impacto</CardTitle>
-                    <CardDescription>Productos reteniendo más valor</CardDescription>
+                    <CardTitle className="text-lg">Top Riesgos Financieros</CardTitle>
+                    <CardDescription>Donde más dinero pierdes</CardDescription>
                 </CardHeader>
                 <CardContent className="h-[300px]">
                     <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={chartData} layout="vertical" margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
                             <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
                             <XAxis type="number" hide />
-                            <YAxis 
-                                type="category" 
-                                dataKey="name" 
-                                width={100} 
-                                tick={{fontSize: 10}} 
-                                interval={0}
-                            />
-                            <Tooltip 
-                                formatter={(value: number) => formatMoney(value)}
-                                contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
-                            />
+                            <YAxis type="category" dataKey="name" width={100} tick={{fontSize: 10}} interval={0} />
+                            <Tooltip formatter={(value: number) => formatMoney(value)} />
                             <Bar dataKey="value" radius={[0, 4, 4, 0]}>
                                 {chartData.map((entry, index) => (
-                                    <Cell key={`cell-${index}`} fill={index === 0 ? '#f59e0b' : '#94a3b8'} />
+                                    <Cell key={`cell-${index}`} fill={index === 0 ? '#ef4444' : '#f59e0b'} />
                                 ))}
                             </Bar>
                         </BarChart>
@@ -203,26 +211,29 @@ export const DeadStockAnalysis = () => {
                 </CardContent>
             </Card>
 
-            {/* TABLA DETALLADA */}
-            <Card className="lg:col-span-2 shadow-sm overflow-hidden">
-                <CardHeader className="bg-slate-50 border-b border-slate-100">
+            <Card className="lg:col-span-2 shadow-sm overflow-hidden border-indigo-100">
+                <CardHeader className="bg-indigo-50/50 border-b border-indigo-100">
                     <div className="flex justify-between items-center">
-                        <CardTitle className="text-lg">Detalle de Inventario</CardTitle>
-                        <Badge variant="outline" className="bg-white">Ordenado por valor</Badge>
+                        <CardTitle className="text-lg flex items-center gap-2">
+                           <Sparkles className="w-5 h-5 text-indigo-600" /> Recomendaciones de IA
+                        </CardTitle>
+                        <Badge variant="outline" className="bg-white text-xs">Motor de Precios v1.0</Badge>
                     </div>
                 </CardHeader>
                 <div className="max-h-[300px] overflow-auto">
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead>Producto / Variante</TableHead>
-                                <TableHead className="text-center">Días Inactivo</TableHead>
-                                <TableHead className="text-center">Stock</TableHead>
-                                <TableHead className="text-right">Valor Retenido</TableHead>
+                                <TableHead>Producto</TableHead>
+                                <TableHead className="text-center">Estado</TableHead>
+                                <TableHead className="text-center">Estrategia IA</TableHead>
+                                <TableHead className="text-right">Acción</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {data.map((item, idx) => (
+                            {data.map((item, idx) => {
+                                const ai = getAiStrategy(item);
+                                return (
                                 <TableRow key={idx} className="group hover:bg-slate-50">
                                     <TableCell>
                                         <div className="flex flex-col">
@@ -232,22 +243,40 @@ export const DeadStockAnalysis = () => {
                                                     <Package className="w-3 h-3" /> {item.variant_name}
                                                 </span>
                                             )}
-                                            <span className="text-[10px] text-slate-400">SKU: {item.sku || 'Sin SKU'}</span>
+                                            <span className="text-[10px] text-slate-400 mt-1">
+                                                Valor retenido: {formatMoney(item.potential_loss_value / 100)}
+                                            </span>
                                         </div>
                                     </TableCell>
+                                    
                                     <TableCell className="text-center">
-                                        <Badge variant="secondary" className={`${item.days_since_last_sale > 90 ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>
-                                            {item.days_since_last_sale} días
+                                        <div className="flex flex-col items-center">
+                                            <span className="text-xs font-bold text-slate-700">{item.days_since_last_sale} días</span>
+                                            <div className="w-16 h-1.5 bg-slate-100 rounded-full mt-1 overflow-hidden">
+                                                <div 
+                                                    className={`h-full rounded-full ${ai.urgencyScore > 70 ? 'bg-red-500' : 'bg-amber-400'}`} 
+                                                    style={{ width: `${ai.urgencyScore}%` }}
+                                                ></div>
+                                            </div>
+                                        </div>
+                                    </TableCell>
+
+                                    <TableCell className="text-center">
+                                        <Badge variant="outline" className={`${ai.color} font-medium`}>
+                                            {ai.strategy}
                                         </Badge>
+                                        <p className="text-[10px] text-slate-500 mt-1">
+                                            Sugerido: <span className="font-bold">-{ai.discount}%</span>
+                                        </p>
                                     </TableCell>
-                                    <TableCell className="text-center font-mono text-slate-600">
-                                        {item.current_stock}
-                                    </TableCell>
-                                    <TableCell className="text-right font-bold text-slate-700">
-                                        {formatMoney(item.potential_loss_value / 100)}
+
+                                    <TableCell className="text-right">
+                                        <Button size="sm" variant="ghost" className="text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 h-8 text-xs">
+                                            Aplicar <ArrowRight className="w-3 h-3 ml-1" />
+                                        </Button>
                                     </TableCell>
                                 </TableRow>
-                            ))}
+                            )})}
                         </TableBody>
                     </Table>
                 </div>
