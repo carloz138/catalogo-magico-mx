@@ -53,32 +53,41 @@ serve(async (req) => {
     // Determine plan type and limits
     let planType: 'basic' | 'medium' | 'premium' = 'basic';
     let maxAllowed = 1; // Default for basic/no plan
+    let isUnlimited = false;
 
     if (subscription?.credit_packages) {
       const packageName = subscription.credit_packages.name.toLowerCase();
+      const dbMaxCatalogs = subscription.credit_packages.max_catalogs;
       
-      if (packageName.includes('básico') || packageName.includes('starter')) {
+      // Si el límite es >= 999999, es ilimitado
+      if (dbMaxCatalogs && dbMaxCatalogs >= 999999) {
+        isUnlimited = true;
+        maxAllowed = 999999;
+      } else if (packageName.includes('básico') || packageName.includes('starter')) {
         planType = 'basic';
-        maxAllowed = 1;
+        maxAllowed = dbMaxCatalogs || 1;
       } else if (packageName.includes('medio') || packageName.includes('profesional')) {
         planType = 'medium';
-        maxAllowed = subscription.credit_packages.max_catalogs || 3;
+        maxAllowed = dbMaxCatalogs || 30;
       } else if (packageName.includes('premium') || packageName.includes('empresarial')) {
         planType = 'premium';
-        maxAllowed = subscription.credit_packages.max_catalogs || 10;
+        maxAllowed = dbMaxCatalogs || 999999;
+        isUnlimited = true;
       }
     }
 
-    const canCreate = currentCount < maxAllowed;
+    const canCreate = isUnlimited || currentCount < maxAllowed;
 
     return new Response(
       JSON.stringify({
         canCreate,
         currentCount,
-        maxAllowed,
+        maxAllowed: isUnlimited ? 'unlimited' : maxAllowed,
         planType,
         message: canCreate 
-          ? `Puedes crear ${maxAllowed - currentCount} catálogo(s) más`
+          ? isUnlimited 
+            ? 'Catálogos ilimitados disponibles' 
+            : `Puedes crear ${maxAllowed - currentCount} catálogo(s) más`
           : `Has alcanzado tu límite de ${maxAllowed} catálogo(s) activos`,
       }),
       {
