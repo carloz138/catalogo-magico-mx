@@ -12,9 +12,6 @@ import { DashboardKPIs, SalesChart } from "@/components/dashboard/DashboardChart
 import { MarketIntelligenceWidget } from "@/components/dashboard/MarketIntelligenceWidget";
 import { SearchStatsWidget } from "@/components/dashboard/SearchStatsWidget";
 import { ResellerInsights } from "@/components/dashboard/ResellerInsights";
-// Asegúrate de que la ruta sea correcta según donde guardaste el componente anterior
-import { DeadStockReport } from "@/components/dashboard/DeadStockReport"; 
-
 import {
   BarChart3,
   ShoppingBag,
@@ -24,9 +21,7 @@ import {
   ArrowRight,
   TrendingUp,
   Activity,
-  Search,
-  Sparkles, // Nuevo ícono para la sección Futura
-  BrainCircuit // Nuevo ícono para IA
+  Search, // <--- AQUI ESTABA EL FALTANTE
 } from "lucide-react";
 
 export default function MainDashboard() {
@@ -76,6 +71,7 @@ export default function MainDashboard() {
     );
   }
 
+  // Animation variants
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -90,7 +86,7 @@ export default function MainDashboard() {
   };
 
   // ========================================================
-  // VISTA 1: REVENDEDOR (L2)
+  // VISTA 1: REVENDEDOR (L2) - ENFOQUE: VENTAS Y ACTIVACIÓN
   // ========================================================
   if (userRole === "L2") {
     return (
@@ -100,7 +96,6 @@ export default function MainDashboard() {
         animate="visible"
         className="p-4 md:p-8 space-y-8 max-w-7xl mx-auto"
       >
-        {/* ... (El código L2 se mantiene igual que tu original) ... */}
         {/* Header Simple */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
@@ -116,18 +111,94 @@ export default function MainDashboard() {
             </Button>
           )}
         </div>
-        
-        {/* (Resto del contenido L2 igual que tu código original...) */}
+
+        {/* Estado del Catálogo (Banner Prominente) */}
         <motion.div variants={itemVariants}>
-           <DashboardKPIs userId={user.id} />
+          <Card
+            className={`border-l-4 ${catalogId ? "border-l-emerald-500 bg-emerald-50/30" : "border-l-amber-500 bg-amber-50/30"} shadow-sm`}
+          >
+            <CardContent className="p-6 flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div
+                  className={`p-3 rounded-full ${catalogId ? "bg-emerald-100 text-emerald-600" : "bg-amber-100 text-amber-600"}`}
+                >
+                  <Zap className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900 text-lg">
+                    {catalogId ? "Tienda Activa y Operando" : "Tienda Inactiva"}
+                  </h3>
+                  <p className="text-slate-600 text-sm">
+                    {catalogId
+                      ? "Tus clientes pueden ver tu catálogo y cotizarte ahora mismo."
+                      : "Necesitas aceptar una invitación de tu proveedor para activar tu catálogo."}
+                  </p>
+                </div>
+              </div>
+              {!catalogId && (
+                <Button variant="outline" className="hidden md:flex">
+                  Ver Invitaciones
+                </Button>
+              )}
+            </CardContent>
+          </Card>
         </motion.div>
-        {/* ... etc ... */}
+
+        {/* KPI Section */}
+        <motion.div variants={itemVariants}>
+          <DashboardKPIs userId={user.id} />
+        </motion.div>
+
+        {/* Main Chart */}
+        <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <Card className="lg:col-span-2 shadow-md border-slate-200">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <TrendingUp className="w-5 h-5 text-indigo-600" />
+                Rendimiento de Ventas
+              </CardTitle>
+              <CardDescription>Tus ingresos en los últimos 30 días</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <SalesChart userId={user.id} />
+            </CardContent>
+          </Card>
+
+          {/* Quick Actions / Insights simplificados */}
+          <Card className="bg-slate-900 text-white border-slate-800">
+            <CardHeader>
+              <CardTitle className="text-white">Acciones Rápidas</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="bg-slate-800 p-3 rounded-lg flex items-center justify-between cursor-pointer hover:bg-slate-700 transition-colors">
+                <span className="text-sm">Ver Pedidos Pendientes</span>
+                <ArrowRight className="w-4 h-4 text-slate-400" />
+              </div>
+              <div className="bg-slate-800 p-3 rounded-lg flex items-center justify-between cursor-pointer hover:bg-slate-700 transition-colors">
+                <span className="text-sm">Configurar Precios</span>
+                <ArrowRight className="w-4 h-4 text-slate-400" />
+              </div>
+              <div className="mt-4 pt-4 border-t border-slate-800">
+                <p className="text-xs text-slate-400 mb-2">Tu proveedor agregó 5 productos nuevos hoy.</p>
+                <Button variant="link" className="text-indigo-400 p-0 h-auto text-xs">
+                  Ver Novedades
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Data Table */}
+        <motion.div variants={itemVariants}>
+          <h3 className="text-lg font-bold text-slate-900 mb-4">Últimos Movimientos</h3>
+          <ResellerInsights catalogId={catalogId} resellerId={user.id} />
+        </motion.div>
       </motion.div>
     );
   }
 
   // ========================================================
-  // VISTA 2: FABRICANTE (L1) - CON PESTAÑA "VISIÓN FUTURA"
+  // VISTA 2: FABRICANTE (L1) - ENFOQUE: ESTRATEGIA Y RED
   // ========================================================
   return (
     <motion.div
@@ -159,31 +230,20 @@ export default function MainDashboard() {
       </div>
 
       <Tabs defaultValue="resumen" className="w-full space-y-8">
-        
-        {/* TABS LIST: AQUI AGREGAMOS LA NUEVA PESTAÑA */}
-        <TabsList className="bg-white border border-slate-200 p-1 h-auto rounded-xl shadow-sm inline-flex w-full md:w-auto flex-wrap">
+        {/* Custom Tabs Style */}
+        <TabsList className="bg-white border border-slate-200 p-1 h-auto rounded-xl shadow-sm inline-flex w-full md:w-auto">
           <TabsTrigger
             value="resumen"
             className="data-[state=active]:bg-slate-100 data-[state=active]:text-slate-900 text-slate-500 px-6 py-2.5 rounded-lg transition-all"
           >
             <BarChart3 className="w-4 h-4 mr-2" /> Resumen General
           </TabsTrigger>
-          
           <TabsTrigger
             value="inteligencia"
             className="data-[state=active]:bg-indigo-50 data-[state=active]:text-indigo-700 text-slate-500 px-6 py-2.5 rounded-lg transition-all"
           >
             <Users className="w-4 h-4 mr-2" /> Inteligencia de Red
           </TabsTrigger>
-
-          {/* --- NUEVA PESTAÑA "VIP" (Visión Futura) --- */}
-          <TabsTrigger
-            value="futuro"
-            className="data-[state=active]:bg-violet-50 data-[state=active]:text-violet-700 text-slate-500 px-6 py-2.5 rounded-lg transition-all border border-transparent data-[state=active]:border-violet-100"
-          >
-            <Sparkles className="w-4 h-4 mr-2 text-violet-500" /> Visión Futura
-          </TabsTrigger>
-
           {userRole === "BOTH" && (
             <TabsTrigger
               value="mis_ventas"
@@ -194,13 +254,14 @@ export default function MainDashboard() {
           )}
         </TabsList>
 
-        {/* --- CONTENIDO TAB 1: RESUMEN --- */}
+        {/* --- TAB 1: RESUMEN OPERATIVO --- */}
         <TabsContent value="resumen" className="space-y-6 focus-visible:outline-none">
           <motion.div variants={itemVariants}>
             <DashboardKPIs userId={user.id} />
           </motion.div>
 
           <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Chart Principal */}
             <Card className="lg:col-span-2 shadow-md border-slate-200">
               <CardHeader>
                 <CardTitle>Tendencia de Ingresos</CardTitle>
@@ -211,6 +272,7 @@ export default function MainDashboard() {
               </CardContent>
             </Card>
 
+            {/* Tarjeta de Estado de Red */}
             <Card className="bg-slate-50 border-slate-200">
               <CardHeader>
                 <CardTitle className="text-sm uppercase tracking-wider text-slate-500 font-bold">
@@ -218,8 +280,7 @@ export default function MainDashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
-                 {/* (Contenido de Salud de Red igual al original) */}
-                 <div>
+                <div>
                   <div className="flex justify-between text-sm mb-2 font-medium">
                     <span>Revendedores Activos</span>
                     <span className="text-indigo-600">85%</span>
@@ -228,18 +289,36 @@ export default function MainDashboard() {
                     <div className="h-full bg-indigo-600 w-[85%] rounded-full"></div>
                   </div>
                 </div>
-                {/* ... Resto del contenido de la tarjeta ... */}
+                <div>
+                  <div className="flex justify-between text-sm mb-2 font-medium">
+                    <span>Inventario Sincronizado</span>
+                    <span className="text-emerald-600">100%</span>
+                  </div>
+                  <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
+                    <div className="h-full bg-emerald-600 w-full rounded-full"></div>
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t border-slate-200">
+                  <div className="flex items-center gap-3">
+                    <Activity className="w-8 h-8 text-slate-400" />
+                    <div>
+                      <p className="text-xs text-slate-500">Actividad Reciente</p>
+                      <p className="text-sm font-bold text-slate-900">3 nuevos catálogos replicados hoy</p>
+                    </div>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </motion.div>
         </TabsContent>
 
-        {/* --- CONTENIDO TAB 2: INTELIGENCIA --- */}
+        {/* --- TAB 2: INTELIGENCIA DE MERCADO (PREMIUM) --- */}
         <TabsContent value="inteligencia" className="space-y-6 focus-visible:outline-none">
-          {/* (Se mantiene igual al original) */}
           <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {catalogId ? (
               <>
+                {/* Widget de Radar / Demanda */}
                 <Card className="shadow-lg border-indigo-100 overflow-hidden">
                   <CardHeader className="bg-indigo-50/50 border-b border-indigo-100">
                     <div className="flex items-center justify-between">
@@ -253,9 +332,10 @@ export default function MainDashboard() {
                     <MarketIntelligenceWidget catalogId={catalogId} />
                   </CardContent>
                 </Card>
-                
+
+                {/* Widget de Búsquedas */}
                 <Card className="shadow-lg border-slate-200 overflow-hidden">
-                   <CardHeader className="bg-slate-50/50 border-b border-slate-100">
+                  <CardHeader className="bg-slate-50/50 border-b border-slate-100">
                     <CardTitle className="text-slate-900 flex items-center gap-2">
                       <Search className="w-5 h-5 text-slate-600" /> Términos de Búsqueda (L3)
                     </CardTitle>
@@ -267,98 +347,31 @@ export default function MainDashboard() {
               </>
             ) : (
               <div className="col-span-2 p-16 text-center border-2 border-dashed border-slate-300 rounded-2xl bg-slate-50">
-                 <p>Esperando datos...</p>
+                <div className="bg-white p-4 rounded-full shadow-sm inline-block mb-4">
+                  <BarChart3 className="w-8 h-8 text-slate-400" />
+                </div>
+                <h3 className="text-lg font-bold text-slate-900">Esperando Datos</h3>
+                <p className="text-slate-500 max-w-md mx-auto mt-2">
+                  Necesitas tener un catálogo activo y tráfico en tu red para ver la inteligencia de mercado.
+                </p>
+                <Button variant="outline" className="mt-6">
+                  Configurar Catálogo
+                </Button>
               </div>
             )}
           </motion.div>
         </TabsContent>
 
-        {/* --- CONTENIDO TAB 3: VISIÓN FUTURA (VIP / NUEVO) --- */}
-        <TabsContent value="futuro" className="space-y-6 focus-visible:outline-none">
-          <motion.div variants={itemVariants} className="space-y-6">
-            
-            {/* Banner Intro Futuro */}
-            <div className="bg-gradient-to-r from-violet-600 to-indigo-600 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden">
-                <div className="relative z-10">
-                    <h2 className="text-2xl font-bold flex items-center gap-2 mb-2">
-                        <BrainCircuit className="w-6 h-6 text-violet-200" /> 
-                        Análisis Predictivo & Optimización
-                    </h2>
-                    <p className="text-violet-100 max-w-2xl">
-                        Utilizamos los datos históricos de tu red para detectar ineficiencias antes de que ocurran. 
-                        Mantén tu flujo de caja saludable eliminando el stock estancado.
-                    </p>
-                </div>
-                {/* Decoración de fondo */}
-                <div className="absolute right-0 top-0 h-full w-1/3 bg-white/10 skew-x-12 transform translate-x-10"></div>
-            </div>
-
-            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-                {/* Columna Izquierda: Reporte de Stock Muerto (El componente que hicimos antes) */}
-                <div className="xl:col-span-2">
-                    <DeadStockReport /> 
-                </div>
-
-                {/* Columna Derecha: Próximas funcionalidades (Placeholder VIP) */}
-                <div className="space-y-6">
-                    <Card className="border-violet-100 shadow-sm bg-violet-50/30">
-                        <CardHeader>
-                            <CardTitle className="text-violet-900 text-lg">Predicción de Demanda</CardTitle>
-                            <CardDescription>Proyección basada en IA (Próximamente)</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="space-y-4">
-                                <div className="flex items-center justify-between text-sm">
-                                    <span className="text-slate-600">Tendencia esperada (Nov)</span>
-                                    <span className="text-emerald-600 font-bold flex items-center gap-1">
-                                        <TrendingUp className="w-3 h-3" /> +12%
-                                    </span>
-                                </div>
-                                <div className="h-32 flex items-end justify-between gap-2 px-2 pb-2 border-b border-violet-200/50">
-                                    {/* Gráfico de barras dummy */}
-                                    {[40, 65, 45, 80, 55, 90].map((h, i) => (
-                                        <div key={i} className="w-full bg-violet-200 rounded-t-sm hover:bg-violet-300 transition-colors" style={{ height: `${h}%` }}></div>
-                                    ))}
-                                </div>
-                                <p className="text-xs text-slate-500 italic">
-                                    *Datos simulados. Recopilando historial para activar predicciones reales.
-                                </p>
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="text-sm">Alertas Tempranas</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <ul className="space-y-3">
-                                <li className="flex gap-3 items-start text-sm text-slate-600">
-                                    <span className="bg-yellow-100 text-yellow-600 p-1 rounded mt-0.5">⚠️</span>
-                                    <span>3 productos están por entrar en zona de "bajo movimiento".</span>
-                                </li>
-                                <li className="flex gap-3 items-start text-sm text-slate-600">
-                                    <span className="bg-green-100 text-green-600 p-1 rounded mt-0.5">✓</span>
-                                    <span>La rotación de inventario mejoró un 5% vs mes anterior.</span>
-                                </li>
-                            </ul>
-                        </CardContent>
-                    </Card>
-                </div>
-            </div>
-
-          </motion.div>
-        </TabsContent>
-
-        {/* --- CONTENIDO TAB 4: VISTA HÍBRIDA --- */}
+        {/* --- TAB 3: VISTA HÍBRIDA (BOTH) --- */}
         {userRole === "BOTH" && (
           <TabsContent value="mis_ventas" className="space-y-6 focus-visible:outline-none">
-             {/* (Igual al original) */}
-             <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-6 mb-6">
+            <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-6 mb-6">
               <h3 className="text-emerald-800 font-bold text-lg flex items-center gap-2">
                 <ShoppingBag className="w-5 h-5" /> Vista de Revendedor Personal
               </h3>
-              {/* ... */}
+              <p className="text-emerald-600 text-sm">
+                Aquí ves los datos específicos de cuando actúas como revendedor de otros productos.
+              </p>
             </div>
             <DashboardKPIs userId={user.id} />
             <ResellerInsights catalogId={catalogId} resellerId={user.id} />
