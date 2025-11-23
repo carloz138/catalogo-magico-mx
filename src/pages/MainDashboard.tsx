@@ -32,8 +32,6 @@ import {
   BrainCircuit,
   Sparkles,
   Loader2,
-  Package,
-  AlertCircle,
 } from "lucide-react";
 
 export default function MainDashboard() {
@@ -46,6 +44,8 @@ export default function MainDashboard() {
     activeResellersCount: 0,
     totalProductsCount: 0,
     recentQuotesCount: 0,
+    // Estos dos campos se mantendrán en 0 si la función RPC no los devuelve aún,
+    // evitando errores de undefined.
     pendingOrdersCount: 0,
     newProviderProducts: 0,
   });
@@ -64,6 +64,7 @@ export default function MainDashboard() {
           .from("replicated_catalogs")
           .select("id")
           .eq("reseller_id", user.id)
+          .eq("is_active", true)
           .maybeSingle();
         if (rep) setHasActiveCatalog(true);
       }
@@ -76,11 +77,15 @@ export default function MainDashboard() {
     const loadMetrics = async () => {
       if (!user) return;
       try {
-        // Llamada a la función SQL que creamos
-        const { data, error } = await supabase.rpc("get_dashboard_stats", { p_user_id: user.id });
+        // CORRECCIÓN 1: Usamos 'as any' para evitar el error de TS2345
+        // (TypeScript no conoce la función 'get_dashboard_stats' aún)
+        const { data, error } = await supabase.rpc("get_dashboard_stats" as any, { p_user_id: user.id });
+
         if (error) throw error;
+
         if (data) {
-          setMetrics(data as any);
+          // Fusionamos con los valores por defecto para no perder pendingOrdersCount si no viene en el data
+          setMetrics((prev) => ({ ...prev, ...(data as any) }));
         }
       } catch (e) {
         console.error("Error loading stats:", e);
@@ -94,7 +99,9 @@ export default function MainDashboard() {
   if (isLoadingRole || !user) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="w-10 h-10 text-indigo-600 animate-spin" />
+        <div className="animate-pulse flex flex-col items-center">
+          <Loader2 className="w-10 h-10 text-indigo-600 animate-spin" />
+        </div>
       </div>
     );
   }
@@ -260,7 +267,7 @@ export default function MainDashboard() {
           </motion.div>
         </TabsContent>
 
-        {/* TAB 2 y 3 SE MANTIENEN IGUAL QUE ANTES... */}
+        {/* TAB 2 y 3: INTELIGENCIA Y ESTRATEGIA */}
         <TabsContent value="inteligencia" className="space-y-6 focus-visible:outline-none">
           <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card className="shadow-lg border-indigo-100 overflow-hidden">
@@ -273,7 +280,8 @@ export default function MainDashboard() {
                 </div>
               </CardHeader>
               <CardContent className="p-0">
-                <MarketIntelligenceWidget catalogId={null} />
+                {/* CORRECCIÓN 2: Pasamos userId en lugar de catalogId */}
+                <MarketIntelligenceWidget userId={user.id} />
               </CardContent>
             </Card>
             <Card className="shadow-lg border-slate-200 overflow-hidden">
@@ -283,7 +291,8 @@ export default function MainDashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-0">
-                <SearchStatsWidget catalogId={null} />
+                {/* CORRECCIÓN 3: Pasamos userId */}
+                <SearchStatsWidget userId={user.id} />
               </CardContent>
             </Card>
           </motion.div>
@@ -297,13 +306,15 @@ export default function MainDashboard() {
                   <Sparkles className="w-5 h-5 text-purple-600" /> Predicción de Demanda
                 </h3>
               </div>
-              <DemandForecastWidget catalogId={null} />
+              {/* CORRECCIÓN 4: Pasamos userId */}
+              <DemandForecastWidget userId={user.id} />
             </div>
             <div className="space-y-4">
               <div className="flex items-center gap-2">
                 <h3 className="text-lg font-bold text-slate-800">Auditoría de Capital</h3>
               </div>
-              <DeadStockAnalysis />
+              {/* CORRECCIÓN 5: Agregamos userId que faltaba */}
+              <DeadStockAnalysis userId={user.id} />
             </div>
           </motion.div>
         </TabsContent>
