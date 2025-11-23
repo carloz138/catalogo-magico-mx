@@ -24,6 +24,8 @@ import {
   MessageSquare,
   DollarSign,
   AlertCircle,
+  Calendar as CalendarIcon,
+  MapPin,
 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -46,27 +48,39 @@ export default function QuoteDetailPage() {
   const [trackingUrl, setTrackingUrl] = useState("");
   const [showWhatsAppButton, setShowWhatsAppButton] = useState(false);
 
-  // Estado para el input de envío (string para manejo fácil de decimales en UI)
+  // Estados para Inputs de Negociación
   const [shippingCostInput, setShippingCostInput] = useState<string>("0");
+  const [deliveryDateInput, setDeliveryDateInput] = useState<string>(""); // YYYY-MM-DD
 
-  // Cargar costo de envío existente si ya existe
+  // Cargar datos existentes
   useEffect(() => {
-    if (quote?.shipping_cost) {
-      setShippingCostInput((quote.shipping_cost / 100).toString());
+    if (quote) {
+      if (quote.shipping_cost) setShippingCostInput((quote.shipping_cost / 100).toString());
+      if (quote.estimated_delivery_date) setDeliveryDateInput(quote.estimated_delivery_date);
     }
   }, [quote]);
 
   // --- HANDLERS ---
 
-  // 1. FLUJO NEGOCIACIÓN: Guardar envío y notificar cambio
+  // 1. FLUJO NEGOCIACIÓN: Guardar envío + fecha y notificar
   const handleNegotiateQuote = async () => {
     if (!quote || !user?.id) return;
 
+    // Validaciones
     const costValue = parseFloat(shippingCostInput);
     if (isNaN(costValue) || costValue < 0) {
       toast({
         title: "Monto inválido",
         description: "El costo de envío no puede ser negativo.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!deliveryDateInput) {
+      toast({
+        title: "Falta Fecha",
+        description: "Debes indicar una fecha estimada de entrega.",
         variant: "destructive",
       });
       return;
@@ -79,11 +93,17 @@ export default function QuoteDetailPage() {
       const shippingInCents = Math.round(costValue * 100);
       const newTotalInCents = itemsSubtotal + shippingInCents;
 
-      await QuoteService.updateShippingAndNegotiate(quote.id, user.id, shippingInCents, newTotalInCents);
+      await QuoteService.updateShippingAndNegotiate(
+        quote.id,
+        user.id,
+        shippingInCents,
+        newTotalInCents,
+        deliveryDateInput, // Pasamos la fecha
+      );
 
       toast({
         title: "✅ Cotización Actualizada",
-        description: "Se agregó el envío. El estado ahora es 'Negociación'.",
+        description: "Cliente notificado con costos y fecha de entrega.",
       });
       refetch();
     } catch (error: any) {
@@ -93,14 +113,12 @@ export default function QuoteDetailPage() {
     }
   };
 
-  // 2. FLUJO CIERRE: Aceptación final (Manual por el dueño)
+  // 2. FLUJO CIERRE: Aceptación final
   const handleForceAccept = async () => {
     if (!quote || !user?.id) return;
     setActionLoading(true);
     try {
       await QuoteService.updateQuoteStatus(quote.id, user.id, "accepted");
-
-      // Intentar obtener link de tracking para WhatsApp
       try {
         const trackingLink = await QuoteTrackingService.getTrackingLink(quote.id);
         setTrackingUrl(trackingLink);
@@ -156,9 +174,8 @@ export default function QuoteDetailPage() {
         bg: "bg-blue-50",
       },
       negotiation: {
-        // Nuevo estado visual
         icon: AlertCircle,
-        label: "Esperando confirmación",
+        label: "Esperando Cliente",
         color: "bg-amber-100 text-amber-700 border-amber-200",
         bg: "bg-amber-50",
       },
@@ -197,10 +214,12 @@ export default function QuoteDetailPage() {
 
   const statusConfig = getStatusConfig(quote.status);
 
-  // Cálculos dinámicos para la UI
+  // Cálculos dinámicos
   const itemsSubtotal = quote.items.reduce((sum, item) => sum + item.subtotal, 0);
-  const currentShippingCost = parseFloat(shippingCostInput || "0") * 100; // a centavos
-  const grandTotal = itemsSubtotal + currentShippingCost;
+  // Si es Pickup, forzamos shipping a 0 visualmente
+  const isPickup = quote.delivery_method === "pickup";
+  const effectiveShipping = isPickup ? 0 : parseFloat(shippingCostInput || "0") * 100;
+  const grandTotal = itemsSubtotal + effectiveShipping;
 
   return (
     <div className="min-h-screen bg-slate-50/50 pb-20">
@@ -238,9 +257,6 @@ export default function QuoteDetailPage() {
                 <Truck className="w-4 h-4 mr-2" /> Marcar Enviado
               </Button>
             )}
-            <Button variant="ghost" size="icon" className="sm:hidden">
-              <Download className="h-5 w-5 text-slate-500" />
-            </Button>
           </div>
         </div>
         {/* Mobile Status Bar */}
@@ -253,14 +269,14 @@ export default function QuoteDetailPage() {
 
       <div className="container mx-auto p-4 md:p-8 max-w-6xl">
         <div className="grid lg:grid-cols-3 gap-8">
-          {/* --- COLUMNA PRINCIPAL (Items y Totales) --- */}
+          {/* --- COLUMNA IZQUIERDA: ITEMS --- */}
           <div className="lg:col-span-2 space-y-6">
             <Card className="overflow-hidden border-slate-200 shadow-sm">
               <CardHeader className="bg-slate-50/50 border-b border-slate-100 pb-4">
                 <div className="flex justify-between items-center">
                   <CardTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
                     <Package className="w-5 h-5 text-indigo-600" />
-                    Detalle de Productos
+                    Productos Solicitados
                   </CardTitle>
                   <Badge variant="secondary" className="bg-white border-slate-200 text-slate-600">
                     {quote.items.length} ítems
@@ -321,52 +337,27 @@ export default function QuoteDetailPage() {
                   </div>
                 ))}
 
-                {/* --- SECCIÓN DE COSTOS --- */}
-                <div className="bg-slate-50 p-6 border-t border-slate-200 space-y-4">
+                {/* --- TOTALES (Solo lectura aquí) --- */}
+                <div className="bg-slate-50 p-6 border-t border-slate-200 space-y-2">
                   <div className="flex justify-between items-center text-sm">
-                    <span className="text-slate-500">Subtotal Productos</span>
+                    <span className="text-slate-500">Subtotal</span>
                     <span className="text-slate-900 font-medium">${(itemsSubtotal / 100).toLocaleString("es-MX")}</span>
                   </div>
-
-                  {/* Input de Envío */}
-                  <div className="flex justify-between items-center gap-4 py-2">
-                    <div className="flex items-center gap-2">
-                      <Truck className="w-4 h-4 text-indigo-600" />
-                      <Label htmlFor="shipping" className="text-sm font-medium text-slate-700">
-                        Costo de Envío / Flete
-                      </Label>
-                    </div>
-                    <div className="relative w-32 md:w-40">
-                      <DollarSign className="absolute left-2 top-2.5 h-4 w-4 text-slate-400" />
-                      <Input
-                        id="shipping"
-                        type="number"
-                        min="0"
-                        step="1"
-                        disabled={
-                          quote.status === "accepted" || quote.status === "shipped" || quote.status === "rejected"
-                        }
-                        value={shippingCostInput}
-                        onChange={(e) => setShippingCostInput(e.target.value)}
-                        className="pl-8 text-right font-medium bg-white"
-                        placeholder="0.00"
-                      />
-                    </div>
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-slate-500 flex items-center gap-1">
+                      {isPickup ? <MapPin className="w-3 h-3" /> : <Truck className="w-3 h-3" />}
+                      {isPickup ? "Recolección (Sin costo)" : "Envío"}
+                    </span>
+                    <span className="text-slate-900 font-medium">
+                      {isPickup ? "$0.00" : `$${(effectiveShipping / 100).toLocaleString("es-MX")}`}
+                    </span>
                   </div>
-
-                  <Separator />
-
-                  {/* Gran Total */}
-                  <div className="flex justify-between items-center pt-2">
-                    <span className="text-lg font-bold text-slate-900">Total a Pagar</span>
-                    <div className="text-right">
-                      <span className="text-2xl font-bold text-indigo-600">
-                        ${(grandTotal / 100).toLocaleString("es-MX", { minimumFractionDigits: 2 })}
-                      </span>
-                      {quote.status === "negotiation" && (
-                        <p className="text-[10px] text-amber-600 font-medium mt-1">Pendiente confirmación cliente</p>
-                      )}
-                    </div>
+                  <Separator className="my-2" />
+                  <div className="flex justify-between items-center">
+                    <span className="text-lg font-bold text-slate-900">Total Estimado</span>
+                    <span className="text-2xl font-bold text-indigo-600">
+                      ${(grandTotal / 100).toLocaleString("es-MX", { minimumFractionDigits: 2 })}
+                    </span>
                   </div>
                 </div>
               </CardContent>
@@ -389,26 +380,59 @@ export default function QuoteDetailPage() {
             )}
           </div>
 
-          {/* --- COLUMNA LATERAL (Acciones) --- */}
+          {/* --- COLUMNA DERECHA: ACCIONES Y LOGÍSTICA --- */}
           <div className="space-y-6">
-            {/* Panel de Control */}
+            {/* Panel de Gestión (Logística) */}
             <Card className="border-indigo-100 bg-gradient-to-b from-white to-indigo-50/30 shadow-md">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-bold text-indigo-900 flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-indigo-600" />
-                  Acciones
+                  <Truck className="w-4 h-4 text-indigo-600" />
+                  Gestión de Entrega
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
-                {/* 1. Acciones para Solicitudes Nuevas o en Negociación */}
+              <CardContent className="space-y-4">
+                {/* 1. Campos Editables (Solo si pendiente/negociación) */}
                 {(quote.status === "pending" || quote.status === "negotiation") && (
                   <>
-                    <Alert className="bg-white border-indigo-200 shadow-sm mb-2">
-                      <AlertTitle className="text-xs font-bold text-indigo-700">Paso 1: Agregar Envío</AlertTitle>
-                      <AlertDescription className="text-xs text-slate-600 mt-1">
-                        Calcula el flete, ingrésalo en el campo "Costo de Envío" y actualiza la cotización.
-                      </AlertDescription>
-                    </Alert>
+                    <div className="space-y-3 p-3 bg-white rounded-lg border border-indigo-100">
+                      {/* Fecha Entrega */}
+                      <div className="space-y-1">
+                        <Label className="text-xs font-semibold text-slate-600">Fecha Estimada Entrega *</Label>
+                        <div className="relative">
+                          <CalendarIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
+                          <Input
+                            type="date"
+                            className="pl-9 text-sm"
+                            value={deliveryDateInput}
+                            onChange={(e) => setDeliveryDateInput(e.target.value)}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Costo Envío (Solo si no es pickup) */}
+                      {!isPickup ? (
+                        <div className="space-y-1">
+                          <Label className="text-xs font-semibold text-slate-600">Costo de Envío *</Label>
+                          <div className="relative">
+                            <DollarSign className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
+                            <Input
+                              type="number"
+                              className="pl-9 text-sm"
+                              placeholder="0.00"
+                              value={shippingCostInput}
+                              onChange={(e) => setShippingCostInput(e.target.value)}
+                            />
+                          </div>
+                        </div>
+                      ) : (
+                        <Alert className="py-2 bg-slate-50">
+                          <MapPin className="h-3 w-3" />
+                          <AlertDescription className="text-xs text-slate-500 ml-1">
+                            Cliente recogerá en tienda (Envío $0)
+                          </AlertDescription>
+                        </Alert>
+                      )}
+                    </div>
 
                     <Button
                       className="w-full bg-indigo-600 hover:bg-indigo-700 shadow-md shadow-indigo-200"
@@ -420,44 +444,50 @@ export default function QuoteDetailPage() {
                       ) : (
                         <MessageSquare className="w-4 h-4 mr-2" />
                       )}
-                      {quote.status === "negotiation" ? "Actualizar Costo Envío" : "Enviar con Flete (Negociar)"}
+                      {quote.status === "negotiation" ? "Actualizar y Re-enviar" : "Enviar Cotización con Flete"}
                     </Button>
 
                     <Separator className="my-2" />
 
-                    <Button
-                      variant="outline"
-                      className="w-full border-green-200 text-green-700 hover:bg-green-50 hover:text-green-800"
-                      onClick={handleForceAccept}
-                      disabled={actionLoading}
-                    >
-                      <CheckCircle className="w-4 h-4 mr-2" />
-                      Cerrar Venta Directamente
-                    </Button>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button
+                        variant="outline"
+                        className="w-full border-green-200 text-green-700 hover:bg-green-50 text-xs"
+                        onClick={handleForceAccept}
+                        disabled={actionLoading}
+                      >
+                        <CheckCircle className="w-3 h-3 mr-1" />
+                        Cerrar Directo
+                      </Button>
 
-                    <Button
-                      variant="ghost"
-                      className="w-full text-red-600 hover:text-red-700 hover:bg-red-50 h-8 text-xs mt-2"
-                      onClick={handleRejectQuote}
-                      disabled={actionLoading}
-                    >
-                      Rechazar solicitud
-                    </Button>
+                      <Button
+                        variant="outline"
+                        className="w-full border-red-200 text-red-600 hover:bg-red-50 text-xs"
+                        onClick={handleRejectQuote}
+                        disabled={actionLoading}
+                      >
+                        <XCircle className="w-3 h-3 mr-1" />
+                        Rechazar
+                      </Button>
+                    </div>
                   </>
                 )}
 
-                {/* 2. Visualización de Estado Cerrado */}
+                {/* 2. Estado Final */}
                 {(quote.status === "accepted" || quote.status === "shipped") && (
                   <div className="text-center p-3 bg-emerald-50 rounded border border-emerald-100">
                     <CheckCircle className="w-8 h-8 text-emerald-500 mx-auto mb-2" />
                     <p className="text-sm text-emerald-800 font-bold">Venta Cerrada</p>
-                    <p className="text-xs text-emerald-600 mt-1">El cliente aceptó la cotización.</p>
+                    <p className="text-xs text-emerald-600 mt-1">
+                      Entrega programada: <br />
+                      <strong>{quote.estimated_delivery_date || "Sin fecha"}</strong>
+                    </p>
                   </div>
                 )}
               </CardContent>
             </Card>
 
-            {/* Datos del Cliente */}
+            {/* Datos Cliente */}
             <Card className="shadow-sm">
               <CardHeader className="bg-slate-50/80 border-b border-slate-100 pb-4">
                 <CardTitle className="text-base font-bold flex items-center gap-2">
@@ -477,6 +507,7 @@ export default function QuoteDetailPage() {
                 </div>
                 <Separator />
                 <div className="space-y-3 text-sm">
+                  {/* Info de contacto... (sin cambios) */}
                   <div className="flex items-center gap-3 text-slate-600">
                     <Mail className="w-4 h-4 text-slate-400" />
                     <a
@@ -501,52 +532,8 @@ export default function QuoteDetailPage() {
                     </div>
                   )}
                 </div>
-                <div className="grid grid-cols-2 gap-2 pt-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full"
-                    onClick={() => (window.location.href = `mailto:${quote.customer_email}`)}
-                  >
-                    <Mail className="w-4 h-4 mr-2" /> Email
-                  </Button>
-                  {quote.customer_phone && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full"
-                      onClick={() => window.open(`https://wa.me/${quote.customer_phone!.replace(/\D/g, "")}`, "_blank")}
-                    >
-                      <MessageSquare className="w-4 h-4 mr-2" /> WhatsApp
-                    </Button>
-                  )}
-                </div>
               </CardContent>
             </Card>
-
-            {/* Tracking (Solo visible si aceptada) */}
-            {quote.status === "accepted" && (
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-bold flex items-center gap-2">
-                    <Truck className="w-4 h-4" /> Seguimiento
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {showWhatsAppButton && quote.customer_phone && trackingUrl && (
-                    <div className="pt-2">
-                      <p className="text-xs text-slate-500 mb-2 text-center">Compartir tracking con cliente:</p>
-                      <WhatsAppShareButton
-                        customerName={quote.customer_name}
-                        customerPhone={quote.customer_phone}
-                        orderNumber={quote.id.slice(0, 8)}
-                        trackingUrl={trackingUrl}
-                      />
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            )}
           </div>
         </div>
       </div>
