@@ -1,7 +1,8 @@
 // Tipos para el sistema de catálogos digitales
 
 export type PriceDisplay = "menudeo_only" | "mayoreo_only" | "both";
-export type QuoteStatus = "pending" | "accepted" | "rejected" | "shipped";
+// ✅ ACTUALIZADO: Se agregó 'negotiation'
+export type QuoteStatus = "pending" | "negotiation" | "accepted" | "rejected" | "shipped";
 export type PriceType = "menudeo" | "mayoreo";
 export type DeliveryMethod = "pickup" | "shipping";
 
@@ -19,7 +20,7 @@ export interface DigitalCatalog {
     primary: string;
     secondary: string;
   } | null;
-  
+
   // Configuración de precios
   price_display: PriceDisplay;
   price_adjustment_menudeo: number;
@@ -89,7 +90,18 @@ export interface Quote {
 
   delivery_method: DeliveryMethod;
   shipping_address: string | null;
+
+  // ✅ ACTUALIZADO: Costos y Totales (en centavos)
   shipping_cost: number | null;
+  total_amount: number; // Gran total (Items + Envío)
+
+  // Relaciones
+  items: QuoteItem[];
+  catalog?: DigitalCatalog;
+
+  // Campos de replicación
+  replicated_catalog_id?: string | null;
+  tracking_token?: string | null;
 }
 
 export interface QuoteItem {
@@ -109,7 +121,7 @@ export interface QuoteItem {
   subtotal: number;
 
   created_at: string;
-  
+
   // ✅ Indica si el producto/variante está en stock para L2
   is_in_stock?: boolean;
 }
@@ -249,7 +261,7 @@ export interface PublicCatalogView extends DigitalCatalog {
   };
   enable_variants: boolean;
   purchasedProductIds?: string[];
-  purchasedVariantIds?: string[]; // ✅ NUEVO: IDs de variantes compradas
+  purchasedVariantIds?: string[];
   isReplicated?: boolean;
   replicatedCatalogId?: string;
   originalOwnerId?: string;
