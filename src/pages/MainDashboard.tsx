@@ -5,26 +5,19 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
-// ============================================================================
-// ⚠️ INSTRUCCIONES PARA TU PROYECTO (LEER CON ATENCIÓN)
-// ============================================================================
-// 1. DESCOMENTA las importaciones reales abajo cuando lo pegues en tu editor.
-// 2. BORRA la sección de "MOCKS PARA PREVISUALIZACIÓN".
-// ============================================================================
-
-/* --- IMPORTACIONES REALES (DESCOMENTAR EN PRODUCCIÓN) ---
+// --- IMPORTACIONES REALES ---
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/contexts/RoleContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { supabase } from "@/integrations/supabase/client";
 
+// Componentes
 import { DashboardKPIs, SalesChart } from "@/components/dashboard/DashboardCharts";
 import { MarketIntelligenceWidget } from "@/components/dashboard/MarketIntelligenceWidget";
 import { SearchStatsWidget } from "@/components/dashboard/SearchStatsWidget";
 import { ResellerInsights } from "@/components/dashboard/ResellerInsights";
 import { DeadStockAnalysis } from "@/components/dashboard/analytics/DeadStockAnalysis";
 import { DemandForecastWidget } from "@/components/dashboard/analytics/DemandForecastWidget";
-*/
 
 import {
   BarChart3,
@@ -36,92 +29,85 @@ import {
   TrendingUp,
   Activity,
   Search,
-  BrainCircuit, 
+  BrainCircuit,
   Sparkles,
-  Loader2
+  Loader2,
 } from "lucide-react";
-
-// ============================================================================
-// 🛠️ SECCIÓN DE MOCKS PARA PREVISUALIZACIÓN (BORRAR EN TU PROYECTO)
-// ============================================================================
-
-// 1. Mock Hooks
-const useAuth = () => ({ user: { id: "mock-user-123" } });
-const useUserRole = () => ({ userRole: "L1", isLoadingRole: false }); // Cambiar a "L2" para probar vista revendedor
-const useSubscription = () => ({ 
-  paqueteUsuario: { name: "Plan Empresarial", analytics_level: "enterprise" } 
-});
-
-// 2. Mock Supabase
-const supabase = {
-  from: () => ({
-    select: () => ({
-      eq: () => ({
-        limit: () => ({
-          maybeSingle: async () => ({ data: { id: "mock-catalog-id" } })
-        })
-      })
-    })
-  })
-};
-
-// 3. Mock Widgets (Componentes Visuales Simulados)
-const MockWidget = ({ title, icon: Icon, color = "bg-white", height = "h-[300px]" }: any) => (
-  <div className={`w-full ${height} rounded-xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-400 gap-3 ${color}`}>
-    {Icon && <Icon className="w-8 h-8 opacity-50" />}
-    <span className="font-medium">{title}</span>
-  </div>
-);
-
-const DashboardKPIs = ({ userId }: any) => <MockWidget title="KPIs del Dashboard" icon={Activity} color="bg-blue-50/30" height="h-[100px]" />;
-const SalesChart = ({ userId }: any) => <MockWidget title="Gráfico de Ventas" icon={TrendingUp} />;
-const MarketIntelligenceWidget = ({ catalogId }: any) => <MockWidget title="Radar de Mercado" icon={Zap} color="bg-indigo-50/30" />;
-const SearchStatsWidget = ({ catalogId }: any) => <MockWidget title="Estadísticas de Búsqueda" icon={Search} />;
-const ResellerInsights = ({ catalogId }: any) => <MockWidget title="Insights de Revendedores" icon={Users} />;
-const DeadStockAnalysis = () => <MockWidget title="Análisis de Stock Muerto" icon={Activity} color="bg-amber-50/30" />;
-const DemandForecastWidget = ({ catalogId }: any) => <MockWidget title="Pronóstico de Demanda (IA)" icon={BrainCircuit} color="bg-purple-50/30" />;
-
-// ============================================================================
-// 🚀 FIN DE MOCKS - CÓDIGO REAL DEL COMPONENTE
-// ============================================================================
 
 export default function MainDashboard() {
   const { user } = useAuth();
   const { userRole, isLoadingRole } = useUserRole();
   const { paqueteUsuario } = useSubscription();
-  const [catalogId, setCatalogId] = useState<string | null>(null);
 
-  // Efecto de carga de datos reales desde Supabase
+  // Estado para KPIs Reales (Reemplaza al simple catalogId)
+  const [metrics, setMetrics] = useState({
+    activeResellersCount: 0,
+    totalProductsCount: 0,
+    recentQuotesCount: 0,
+    hasActiveCatalog: false, // Para L2
+  });
+
+  const [isLoadingData, setIsLoadingData] = useState(true);
+
+  // Efecto: Carga de Datos Globales (User-Centric)
   useEffect(() => {
-    const fetchCatalog = async () => {
+    const loadDashboardMetrics = async () => {
       if (!user) return;
-      try {
-        let { data } = await supabase
-          .from("digital_catalogs") // @ts-ignore
-          .select("id")
-          .eq("user_id", user.id)
-          .limit(1)
-          .maybeSingle();
 
-        if (!data) {
-          const { data: replicaData } = await supabase
-            .from("replicated_catalogs") // @ts-ignore
+      try {
+        // Consultas en paralelo para optimizar velocidad
+        const [resellersData, productsData, quotesData, catalogData] = await Promise.all([
+          // 1. Revendedores Activos (Para L1) - busca en replicated_catalogs
+          supabase
+            .from("replicated_catalogs")
+            .select("id", { count: "exact", head: true })
+            .eq("fabricante_id", user.id)
+            .eq("is_active", true),
+
+          // 2. Total Productos (Para L1)
+          supabase.from("products").select("id", { count: "exact", head: true }).eq("user_id", user.id),
+
+          // 3. Actividad Reciente (Cotizaciones últimos 7 días)
+          supabase
+            .from("quotes")
+            .select("id", { count: "exact", head: true })
+            .eq("user_id", user.id)
+            .gte("created_at", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()),
+
+          // 4. Verificación de Catálogo Propio o Réplica (Para L2 / Estado visual)
+          supabase.from("digital_catalogs").select("id").eq("user_id", user.id).limit(1).maybeSingle(),
+        ]);
+
+        // Lógica adicional para L2 si no tiene catálogo propio, buscar réplica
+        let hasCatalog = !!catalogData.data;
+        if (!hasCatalog) {
+          const { data: replica } = await supabase
+            .from("replicated_catalogs")
             .select("id")
             .eq("reseller_id", user.id)
             .eq("is_active", true)
             .limit(1)
             .maybeSingle();
-          if (replicaData) data = replicaData;
+          if (replica) hasCatalog = true;
         }
-        if (data) setCatalogId(data.id);
+
+        setMetrics({
+          activeResellersCount: resellersData.count || 0,
+          totalProductsCount: productsData.count || 0,
+          recentQuotesCount: quotesData.count || 0,
+          hasActiveCatalog: hasCatalog,
+        });
       } catch (error) {
-        console.error("Error fetching catalog:", error);
+        console.error("Error loading dashboard metrics:", error);
+      } finally {
+        setIsLoadingData(false);
       }
     };
-    fetchCatalog();
+
+    loadDashboardMetrics();
   }, [user]);
 
-  if (isLoadingRole || !user) {
+  if (isLoadingRole || !user || isLoadingData) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="animate-pulse flex flex-col items-center">
@@ -147,7 +133,7 @@ export default function MainDashboard() {
   };
 
   // ========================================================
-  // VISTA 1: REVENDEDOR (L2) - ENFOQUE: VENTAS Y ACTIVACIÓN
+  // VISTA 1: REVENDEDOR (L2)
   // ========================================================
   if (userRole === "L2") {
     return (
@@ -157,7 +143,6 @@ export default function MainDashboard() {
         animate="visible"
         className="p-4 md:p-8 space-y-8 max-w-7xl mx-auto"
       >
-        {/* Header Simple */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <Badge className="bg-indigo-100 text-indigo-700 border-indigo-200 mb-2 hover:bg-indigo-100">
@@ -166,37 +151,36 @@ export default function MainDashboard() {
             <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Tu Negocio Digital</h1>
             <p className="text-slate-500">Gestiona tus ventas y tu catálogo replicado.</p>
           </div>
-          {catalogId && (
+          {metrics.hasActiveCatalog && (
             <Button className="bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-200 gap-2 w-full md:w-auto">
               <Share2 className="w-4 h-4" /> Compartir mi Tienda
             </Button>
           )}
         </div>
 
-        {/* Estado del Catálogo */}
         <motion.div variants={itemVariants}>
           <Card
-            className={`border-l-4 ${catalogId ? "border-l-emerald-500 bg-emerald-50/30" : "border-l-amber-500 bg-amber-50/30"} shadow-sm`}
+            className={`border-l-4 ${metrics.hasActiveCatalog ? "border-l-emerald-500 bg-emerald-50/30" : "border-l-amber-500 bg-amber-50/30"} shadow-sm`}
           >
             <CardContent className="p-6 flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <div
-                  className={`p-3 rounded-full ${catalogId ? "bg-emerald-100 text-emerald-600" : "bg-amber-100 text-amber-600"}`}
+                  className={`p-3 rounded-full ${metrics.hasActiveCatalog ? "bg-emerald-100 text-emerald-600" : "bg-amber-100 text-amber-600"}`}
                 >
                   <Zap className="w-6 h-6" />
                 </div>
                 <div>
                   <h3 className="font-bold text-slate-900 text-lg">
-                    {catalogId ? "Tienda Activa y Operando" : "Tienda Inactiva"}
+                    {metrics.hasActiveCatalog ? "Tienda Activa y Operando" : "Tienda Inactiva"}
                   </h3>
                   <p className="text-slate-600 text-sm">
-                    {catalogId
+                    {metrics.hasActiveCatalog
                       ? "Tus clientes pueden ver tu catálogo y cotizarte ahora mismo."
                       : "Necesitas aceptar una invitación de tu proveedor para activar tu catálogo."}
                   </p>
                 </div>
               </div>
-              {!catalogId && (
+              {!metrics.hasActiveCatalog && (
                 <Button variant="outline" className="hidden md:flex">
                   Ver Invitaciones
                 </Button>
@@ -205,12 +189,10 @@ export default function MainDashboard() {
           </Card>
         </motion.div>
 
-        {/* KPI Section */}
         <motion.div variants={itemVariants}>
           <DashboardKPIs userId={user.id} />
         </motion.div>
 
-        {/* Main Chart */}
         <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <Card className="lg:col-span-2 shadow-md border-slate-200">
             <CardHeader>
@@ -225,7 +207,6 @@ export default function MainDashboard() {
             </CardContent>
           </Card>
 
-          {/* Quick Actions */}
           <Card className="bg-slate-900 text-white border-slate-800">
             <CardHeader>
               <CardTitle className="text-white">Acciones Rápidas</CardTitle>
@@ -239,27 +220,21 @@ export default function MainDashboard() {
                 <span className="text-sm">Configurar Precios</span>
                 <ArrowRight className="w-4 h-4 text-slate-400" />
               </div>
-              <div className="mt-4 pt-4 border-t border-slate-800">
-                <p className="text-xs text-slate-400 mb-2">Tu proveedor agregó 5 productos nuevos hoy.</p>
-                <Button variant="link" className="text-indigo-400 p-0 h-auto text-xs">
-                  Ver Novedades
-                </Button>
-              </div>
             </CardContent>
           </Card>
         </motion.div>
 
-        {/* Data Table */}
         <motion.div variants={itemVariants}>
           <h3 className="text-lg font-bold text-slate-900 mb-4">Últimos Movimientos</h3>
-          <ResellerInsights catalogId={catalogId} resellerId={user.id} />
+          {/* NOTA: Cambiamos catalogId por userId aquí también */}
+          <ResellerInsights userId={user.id} resellerId={user.id} />
         </motion.div>
       </motion.div>
     );
   }
 
   // ========================================================
-  // VISTA 2: FABRICANTE (L1) - ENFOQUE: ESTRATEGIA Y RED
+  // VISTA 2: FABRICANTE (L1)
   // ========================================================
   return (
     <motion.div
@@ -268,7 +243,6 @@ export default function MainDashboard() {
       animate="visible"
       className="p-4 md:p-8 space-y-8 max-w-7xl mx-auto"
     >
-      {/* Header Premium */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Centro de Comando</h1>
@@ -292,8 +266,6 @@ export default function MainDashboard() {
 
       <Tabs defaultValue="resumen" className="w-full space-y-8">
         <TabsList className="bg-white border border-slate-200 p-1 h-auto rounded-xl shadow-sm inline-flex w-full md:w-auto overflow-x-auto">
-          
-          {/* TAB: RESUMEN */}
           <TabsTrigger
             value="resumen"
             className="data-[state=active]:bg-slate-100 data-[state=active]:text-slate-900 text-slate-500 px-6 py-2.5 rounded-lg transition-all"
@@ -301,7 +273,6 @@ export default function MainDashboard() {
             <BarChart3 className="w-4 h-4 mr-2" /> Resumen General
           </TabsTrigger>
 
-          {/* TAB: INTELIGENCIA */}
           <TabsTrigger
             value="inteligencia"
             className="data-[state=active]:bg-indigo-50 data-[state=active]:text-indigo-700 text-slate-500 px-6 py-2.5 rounded-lg transition-all"
@@ -309,15 +280,12 @@ export default function MainDashboard() {
             <Users className="w-4 h-4 mr-2" /> Inteligencia de Red
           </TabsTrigger>
 
-          {/* TAB: ESTRATEGIA (NUEVA VIP) */}
           <TabsTrigger
             value="estrategia"
             className="data-[state=active]:bg-purple-50 data-[state=active]:text-purple-700 text-slate-500 px-6 py-2.5 rounded-lg transition-all"
           >
             <BrainCircuit className="w-4 h-4 mr-2" /> Visión Estratégica
-            {paqueteUsuario?.analytics_level !== 'enterprise' && (
-                 <Sparkles className="w-3 h-3 ml-2 text-yellow-400" />
-            )}
+            {paqueteUsuario?.analytics_level !== "enterprise" && <Sparkles className="w-3 h-3 ml-2 text-yellow-400" />}
           </TabsTrigger>
 
           {userRole === "BOTH" && (
@@ -357,19 +325,24 @@ export default function MainDashboard() {
                 <div>
                   <div className="flex justify-between text-sm mb-2 font-medium">
                     <span>Revendedores Activos</span>
-                    <span className="text-indigo-600">85%</span>
+                    {/* DATO REAL: Conteo de revendedores */}
+                    <span className="text-indigo-600 font-bold">{metrics.activeResellersCount}</span>
                   </div>
                   <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
-                    <div className="h-full bg-indigo-600 w-[85%] rounded-full"></div>
+                    {/* Barra visual simulada al 100% si hay >0 revendedores para dar feedback positivo */}
+                    <div
+                      className={`h-full bg-indigo-600 rounded-full ${metrics.activeResellersCount > 0 ? "w-full" : "w-0"} transition-all duration-1000`}
+                    ></div>
                   </div>
                 </div>
                 <div>
                   <div className="flex justify-between text-sm mb-2 font-medium">
-                    <span>Inventario Sincronizado</span>
-                    <span className="text-emerald-600">100%</span>
+                    <span>Productos Gestionados</span>
+                    {/* DATO REAL: Conteo de productos */}
+                    <span className="text-emerald-600 font-bold">{metrics.totalProductsCount}</span>
                   </div>
                   <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
-                    <div className="h-full bg-emerald-600 w-full rounded-full"></div>
+                    <div className="h-full bg-emerald-600 w-full rounded-full opacity-70"></div>
                   </div>
                 </div>
 
@@ -378,7 +351,10 @@ export default function MainDashboard() {
                     <Activity className="w-8 h-8 text-slate-400" />
                     <div>
                       <p className="text-xs text-slate-500">Actividad Reciente</p>
-                      <p className="text-sm font-bold text-slate-900">3 nuevos catálogos replicados hoy</p>
+                      {/* DATO REAL: Cotizaciones recientes */}
+                      <p className="text-sm font-bold text-slate-900">
+                        {metrics.recentQuotesCount} cotizaciones esta semana
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -390,78 +366,66 @@ export default function MainDashboard() {
         {/* --- TAB 2: INTELIGENCIA DE MERCADO --- */}
         <TabsContent value="inteligencia" className="space-y-6 focus-visible:outline-none">
           <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {catalogId ? (
-              <>
-                <Card className="shadow-lg border-indigo-100 overflow-hidden">
-                  <CardHeader className="bg-indigo-50/50 border-b border-indigo-100">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-indigo-900 flex items-center gap-2">
-                        <Zap className="w-5 h-5 text-indigo-600" /> Radar de Oportunidades
-                      </CardTitle>
-                      <Badge className="bg-indigo-200 text-indigo-800 hover:bg-indigo-200">IA Activa</Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="p-0">
-                    <MarketIntelligenceWidget catalogId={catalogId} />
-                  </CardContent>
-                </Card>
-
-                <Card className="shadow-lg border-slate-200 overflow-hidden">
-                  <CardHeader className="bg-slate-50/50 border-b border-slate-100">
-                    <CardTitle className="text-slate-900 flex items-center gap-2">
-                      <Search className="w-5 h-5 text-slate-600" /> Términos de Búsqueda (L3)
+            {/* CAMBIO CRÍTICO: Eliminamos la condición if (catalogId) 
+              Ahora mostramos los widgets siempre que haya usuario, pasando userId 
+            */}
+            <>
+              <Card className="shadow-lg border-indigo-100 overflow-hidden">
+                <CardHeader className="bg-indigo-50/50 border-b border-indigo-100">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-indigo-900 flex items-center gap-2">
+                      <Zap className="w-5 h-5 text-indigo-600" /> Radar de Oportunidades
                     </CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-0">
-                    <SearchStatsWidget catalogId={catalogId} />
-                  </CardContent>
-                </Card>
-              </>
-            ) : (
-              <div className="col-span-2 p-16 text-center border-2 border-dashed border-slate-300 rounded-2xl bg-slate-50">
-                <div className="bg-white p-4 rounded-full shadow-sm inline-block mb-4">
-                  <BarChart3 className="w-8 h-8 text-slate-400" />
-                </div>
-                <h3 className="text-lg font-bold text-slate-900">Esperando Datos</h3>
-                <p className="text-slate-500 max-w-md mx-auto mt-2">
-                  Necesitas tener un catálogo activo y tráfico en tu red para ver la inteligencia de mercado.
-                </p>
-                <Button variant="outline" className="mt-6">
-                  Configurar Catálogo
-                </Button>
-              </div>
-            )}
+                    <Badge className="bg-indigo-200 text-indigo-800 hover:bg-indigo-200">IA Activa</Badge>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-0">
+                  {/* NOTA: En el siguiente paso actualizaremos este componente para aceptar userId */}
+                  <MarketIntelligenceWidget userId={user.id} />
+                </CardContent>
+              </Card>
+
+              <Card className="shadow-lg border-slate-200 overflow-hidden">
+                <CardHeader className="bg-slate-50/50 border-b border-slate-100">
+                  <CardTitle className="text-slate-900 flex items-center gap-2">
+                    <Search className="w-5 h-5 text-slate-600" /> Términos de Búsqueda (L3)
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-0">
+                  {/* NOTA: En el siguiente paso actualizaremos este componente para aceptar userId */}
+                  <SearchStatsWidget userId={user.id} />
+                </CardContent>
+              </Card>
+            </>
           </motion.div>
         </TabsContent>
 
         {/* --- TAB 3: VISIÓN ESTRATÉGICA (VIP / ENTERPRISE) --- */}
         <TabsContent value="estrategia" className="space-y-8 focus-visible:outline-none">
-             <motion.div variants={itemVariants} className="space-y-8">
-                
-                {/* SECCIÓN 1: FUTURO (Pronóstico) */}
-                <div className="space-y-4">
-                     <div className="flex items-center justify-between">
-                        <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                            <Sparkles className="w-5 h-5 text-purple-600" /> Predicción de Demanda
-                        </h3>
-                        {catalogId && (
-                            <Badge variant="outline" className="text-purple-600 border-purple-200 bg-purple-50">
-                                Próximos 7 días
-                            </Badge>
-                        )}
-                     </div>
-                     <DemandForecastWidget catalogId={catalogId} />
-                </div>
+          <motion.div variants={itemVariants} className="space-y-8">
+            {/* SECCIÓN 1: FUTURO (Pronóstico) */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                  <Sparkles className="w-5 h-5 text-purple-600" /> Predicción de Demanda
+                </h3>
+                <Badge variant="outline" className="text-purple-600 border-purple-200 bg-purple-50">
+                  Próximos 7 días
+                </Badge>
+              </div>
+              {/* NOTA: Pasamos userId */}
+              <DemandForecastWidget userId={user.id} />
+            </div>
 
-                {/* SECCIÓN 2: PRESENTE (Optimización de Stock) */}
-                <div className="space-y-4">
-                    <div className="flex items-center gap-2">
-                        <h3 className="text-lg font-bold text-slate-800">Auditoría de Capital</h3>
-                    </div>
-                    <DeadStockAnalysis />
-                </div>
-
-             </motion.div>
+            {/* SECCIÓN 2: PRESENTE (Optimización de Stock) */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <h3 className="text-lg font-bold text-slate-800">Auditoría de Capital</h3>
+              </div>
+              {/* NOTA: DeadStockAnalysis ya usaba lógica interna o necesitará userId */}
+              <DeadStockAnalysis userId={user.id} />
+            </div>
+          </motion.div>
         </TabsContent>
 
         {/* --- TAB 4: VISTA HÍBRIDA (BOTH) --- */}
@@ -476,7 +440,7 @@ export default function MainDashboard() {
               </p>
             </div>
             <DashboardKPIs userId={user.id} />
-            <ResellerInsights catalogId={catalogId} resellerId={user.id} />
+            <ResellerInsights userId={user.id} resellerId={user.id} />
           </TabsContent>
         )}
       </Tabs>
