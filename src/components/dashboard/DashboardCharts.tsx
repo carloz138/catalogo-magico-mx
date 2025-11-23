@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianGrid } from "recharts";
-import { Loader2, DollarSign, ShoppingBag, FileText, Activity, TrendingUp } from "lucide-react";
+import { Loader2, DollarSign, ShoppingBag, FileText, Activity } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format, subDays, isSameDay, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
@@ -22,18 +22,15 @@ export function DashboardKPIs({ userId }: { userId: string }) {
       if (!userId) return;
 
       try {
-        // 1. Obtenemos todas las cotizaciones del usuario
         const { data: quotes } = await supabase.from("quotes").select("id, status, total_amount").eq("user_id", userId);
 
         if (quotes) {
           const total = quotes.length;
-          const approved = quotes.filter((q) => q.status === "approved");
+          // CORRECCIÓN: Usamos 'accepted' según tu JSON
+          const approved = quotes.filter((q) => q.status === "accepted");
           const pending = quotes.filter((q) => q.status === "pending");
 
-          // Suma de ventas (montos aprobados)
           const totalSales = approved.reduce((sum, q) => sum + Number(q.total_amount || 0), 0);
-
-          // Tasa de conversión
           const conversion = total > 0 ? Math.round((approved.length / total) * 100) : 0;
 
           setStats({
@@ -56,70 +53,70 @@ export function DashboardKPIs({ userId }: { userId: string }) {
     return (
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-pulse">
         {[1, 2, 3, 4].map((i) => (
-          <div key={i} className="h-28 bg-slate-100 rounded-xl"></div>
+          <div key={i} className="h-24 bg-slate-100 rounded-xl"></div>
         ))}
       </div>
     );
 
-  // Formateador de moneda
   const formatMoney = (amount: number) =>
     new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN", maximumFractionDigits: 0 }).format(amount);
 
   return (
-    // RESPONSIVIDAD: grid-cols-2 en móvil (se ve mejor que 1 columna larga)
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
       <Card className="shadow-sm border-emerald-100 bg-emerald-50/30">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-4 pt-4">
-          <CardTitle className="text-xs font-medium text-emerald-700 uppercase">Ventas Totales</CardTitle>
-          <DollarSign className="h-4 w-4 text-emerald-600" />
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 px-4 pt-4">
+          <CardTitle className="text-[10px] md:text-xs font-medium text-emerald-700 uppercase">
+            Ventas Totales
+          </CardTitle>
+          <DollarSign className="h-3 w-3 md:h-4 md:w-4 text-emerald-600" />
         </CardHeader>
         <CardContent className="px-4 pb-4">
-          <div className="text-xl md:text-2xl font-bold text-slate-800">{formatMoney(stats.totalSales)}</div>
-          <p className="text-[10px] text-emerald-600 font-medium">Ingresos aprobados</p>
+          <div className="text-lg md:text-2xl font-bold text-slate-800">{formatMoney(stats.totalSales)}</div>
+          <p className="text-[10px] text-emerald-600 font-medium">Ingresos cerrados</p>
         </CardContent>
       </Card>
 
       <Card className="shadow-sm">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-4 pt-4">
-          <CardTitle className="text-xs font-medium text-slate-500 uppercase">Cotizaciones</CardTitle>
-          <FileText className="h-4 w-4 text-blue-500" />
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 px-4 pt-4">
+          <CardTitle className="text-[10px] md:text-xs font-medium text-slate-500 uppercase">Cotizaciones</CardTitle>
+          <FileText className="h-3 w-3 md:h-4 md:w-4 text-blue-500" />
         </CardHeader>
         <CardContent className="px-4 pb-4">
-          <div className="text-xl md:text-2xl font-bold text-slate-800">{stats.countQuotes}</div>
-          <p className="text-[10px] text-slate-400">Generadas históricas</p>
+          <div className="text-lg md:text-2xl font-bold text-slate-800">{stats.countQuotes}</div>
+          <p className="text-[10px] text-slate-400">Totales</p>
         </CardContent>
       </Card>
 
       <Card className="shadow-sm">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-4 pt-4">
-          <CardTitle className="text-xs font-medium text-slate-500 uppercase">Pendientes</CardTitle>
-          <ShoppingBag className="h-4 w-4 text-amber-500" />
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 px-4 pt-4">
+          <CardTitle className="text-[10px] md:text-xs font-medium text-slate-500 uppercase">Pendientes</CardTitle>
+          <ShoppingBag className="h-3 w-3 md:h-4 md:w-4 text-amber-500" />
         </CardHeader>
         <CardContent className="px-4 pb-4">
-          <div className="text-xl md:text-2xl font-bold text-slate-800">{stats.pendingQuotes}</div>
-          <p className="text-[10px] text-amber-600 font-medium">Requieren atención</p>
+          <div className="text-lg md:text-2xl font-bold text-slate-800">{stats.pendingQuotes}</div>
+          <p className="text-[10px] text-amber-600 font-medium">Por cerrar</p>
         </CardContent>
       </Card>
 
       <Card className="shadow-sm">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-4 pt-4">
-          <CardTitle className="text-xs font-medium text-slate-500 uppercase">Tasa Cierre</CardTitle>
-          <Activity className="h-4 w-4 text-purple-500" />
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 px-4 pt-4">
+          <CardTitle className="text-[10px] md:text-xs font-medium text-slate-500 uppercase">Tasa Cierre</CardTitle>
+          <Activity className="h-3 w-3 md:h-4 md:w-4 text-purple-500" />
         </CardHeader>
         <CardContent className="px-4 pb-4">
-          <div className="text-xl md:text-2xl font-bold text-slate-800">{stats.conversionRate}%</div>
-          <p className="text-[10px] text-slate-400">Efectividad comercial</p>
+          <div className="text-lg md:text-2xl font-bold text-slate-800">{stats.conversionRate}%</div>
+          <p className="text-[10px] text-slate-400">Efectividad</p>
         </CardContent>
       </Card>
     </div>
   );
 }
 
-// --- COMPONENTE 2: GRÁFICA DE VENTAS (CON CERO-FILLING) ---
+// --- COMPONENTE 2: GRÁFICA DE VENTAS ---
 export function SalesChart({ userId }: { userId: string }) {
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [timeRange, setTimeRange] = useState("30"); // Filtro de tiempo
+  const [timeRange, setTimeRange] = useState("30");
 
   useEffect(() => {
     const fetchData = async () => {
@@ -130,31 +127,31 @@ export function SalesChart({ userId }: { userId: string }) {
         const days = parseInt(timeRange);
         const startDate = subDays(new Date(), days).toISOString();
 
-        // 1. Consulta Directa (Evitamos RPC por ahora para que funcione ya)
         const { data: quotes, error } = await supabase
           .from("quotes")
           .select("total_amount, created_at")
           .eq("user_id", userId)
-          .eq("status", "approved") // Solo ventas reales
+          .eq("status", "accepted") // CORRECCIÓN: 'accepted' es lo que tienes en DB
           .gte("created_at", startDate)
           .order("created_at", { ascending: true });
 
         if (error) throw error;
 
-        // 2. Lógica de "Relleno de Ceros" (Zero-Filling)
+        // Lógica Zero-Filling
         const filledData = [];
+        let accumTotal = 0;
+
         for (let i = days; i >= 0; i--) {
           const dateCursor = subDays(new Date(), i);
 
-          // Buscar ventas de ese día
           const daySales = quotes?.filter((q) => isSameDay(parseISO(q.created_at), dateCursor)) || [];
 
           const totalDay = daySales.reduce((acc, curr) => acc + Number(curr.total_amount || 0), 0);
+          accumTotal += totalDay;
 
           filledData.push({
-            name: format(dateCursor, "dd MMM", { locale: es }), // Eje X bonito
+            name: format(dateCursor, "dd MMM", { locale: es }),
             total: totalDay,
-            rawDate: dateCursor, // Para ordenamiento interno
           });
         }
 
@@ -171,8 +168,8 @@ export function SalesChart({ userId }: { userId: string }) {
 
   if (loading)
     return (
-      <div className="h-[300px] flex items-center justify-center bg-slate-50 rounded-xl">
-        <Loader2 className="animate-spin text-indigo-400" />
+      <div className="h-[250px] flex items-center justify-center bg-slate-50 rounded-xl">
+        <Loader2 className="w-6 h-6 animate-spin text-indigo-400" />
       </div>
     );
 
@@ -180,17 +177,16 @@ export function SalesChart({ userId }: { userId: string }) {
 
   return (
     <div className="space-y-4">
-      {/* Header interno de la gráfica con selector */}
       <div className="flex flex-row items-center justify-between px-1">
         <div>
-          <p className="text-2xl font-bold text-slate-900">
+          <p className="text-xl md:text-2xl font-bold text-slate-900">
             ${totalPeriodo.toLocaleString("es-MX", { maximumFractionDigits: 0 })}
           </p>
-          <p className="text-xs text-slate-500 uppercase tracking-wide font-medium">Venta del periodo</p>
+          <p className="text-[10px] md:text-xs text-slate-500 uppercase tracking-wide font-medium">Venta del periodo</p>
         </div>
 
         <Select value={timeRange} onValueChange={setTimeRange}>
-          <SelectTrigger className="w-[100px] h-8 text-xs bg-white">
+          <SelectTrigger className="w-[90px] h-8 text-xs bg-white">
             <SelectValue placeholder="Días" />
           </SelectTrigger>
           <SelectContent>
@@ -202,13 +198,13 @@ export function SalesChart({ userId }: { userId: string }) {
       </div>
 
       {totalPeriodo === 0 && data.every((d) => d.total === 0) ? (
-        <div className="h-[250px] flex flex-col items-center justify-center bg-slate-50 rounded-xl border border-dashed text-slate-400">
-          <ShoppingBag className="w-10 h-10 mb-2 opacity-20" />
-          <p className="text-sm font-medium">Sin ventas en este periodo</p>
-          <p className="text-xs">Prueba cambiando el rango de fechas.</p>
+        <div className="h-[200px] md:h-[250px] flex flex-col items-center justify-center bg-slate-50 rounded-xl border border-dashed text-slate-400">
+          <ShoppingBag className="w-8 h-8 mb-2 opacity-20" />
+          <p className="text-sm font-medium">Sin ventas registradas</p>
+          <p className="text-xs">Tus cotizaciones aceptadas suman $0.</p>
         </div>
       ) : (
-        <div className="h-[250px] w-full">
+        <div className="h-[200px] md:h-[250px] w-full">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={data} margin={{ top: 5, right: 0, left: -20, bottom: 0 }}>
               <defs>
