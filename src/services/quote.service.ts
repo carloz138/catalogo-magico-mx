@@ -259,19 +259,26 @@ export class QuoteService {
   }
 
   /**
-   * Actualizar costo de envío y pasar a negociación.
+/**
+   * ✅ ACTUALIZADO: Actualizar costo, FECHA y pasar a negociación.
+   * Además dispara el email de "send-quote-update".
    */
   static async updateShippingAndNegotiate(
     quoteId: string,
     userId: string,
-    shippingCost: number,
-    newTotal: number,
+    shippingCost: number, // en centavos
+    newTotal: number, // en centavos
+    deliveryDate: string, // YYYY-MM-DD
   ): Promise<Quote> {
+    console.log("🚀 Iniciando negociación...");
+
+    // 1. Actualizar Base de Datos
     const { data, error } = await supabase
       .from("quotes")
       .update({
         shipping_cost: shippingCost,
         total_amount: newTotal,
+        estimated_delivery_date: deliveryDate, // Guardamos la fecha
         status: "negotiation",
       })
       .eq("id", quoteId)
@@ -281,10 +288,21 @@ export class QuoteService {
 
     if (error) throw error;
 
-    // 🔴 SOLUCIÓN 2: Casting porque Supabase update no devuelve 'items'
+    // 2. Disparar Edge Function de Notificación
+    try {
+      console.log("📧 Invocando send-quote-update...");
+      const { error: funcError } = await supabase.functions.invoke("send-quote-update", {
+        body: { quoteId: quoteId },
+      });
+
+      if (funcError) console.error("❌ Error al enviar email de actualización:", funcError);
+      else console.log("✅ Email de actualización enviado.");
+    } catch (e) {
+      console.error("⚠️ Error invocando función (no bloqueante):", e);
+    }
+
     return data as unknown as Quote;
   }
-
   /**
    * Actualizar estado general.
    */
