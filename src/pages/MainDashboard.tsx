@@ -55,29 +55,33 @@ export default function MainDashboard() {
       if (!user) return;
 
       try {
-        // Promesas individuales (sin await aquí)
-        const p1 = supabase
-          .from("replicated_catalogs")
-          .select("id", { count: "exact", head: true })
-          .eq("fabricante_id", user.id)
-          .eq("is_active", true);
+        // --- SOLUCIÓN NUCLEAR PARA TS2589 ---
+        // Definimos un array tipado explícitamente como Promise<any>[]
+        // Esto evita que TypeScript intente inferir la estructura profunda de Supabase.
+        const queries: Promise<any>[] = [
+          // 1. Revendedores
+          supabase
+            .from("replicated_catalogs")
+            .select("id", { count: "exact", head: true })
+            .eq("fabricante_id", user.id)
+            .eq("is_active", true),
 
-        const p2 = supabase.from("products").select("id", { count: "exact", head: true }).eq("user_id", user.id);
+          // 2. Productos
+          supabase.from("products").select("id", { count: "exact", head: true }).eq("user_id", user.id),
 
-        const p3 = supabase
-          .from("quotes")
-          .select("id", { count: "exact", head: true })
-          .eq("user_id", user.id)
-          .gte("created_at", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString());
+          // 3. Cotizaciones
+          supabase
+            .from("quotes")
+            .select("id", { count: "exact", head: true })
+            .eq("user_id", user.id)
+            .gte("created_at", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()),
 
-        const p4 = supabase.from("digital_catalogs").select("id").eq("user_id", user.id).limit(1).maybeSingle();
+          // 4. Catálogo
+          supabase.from("digital_catalogs").select("id").eq("user_id", user.id).limit(1).maybeSingle(),
+        ];
 
-        // ------------------------------------------------------------------
-        // CORRECCIÓN DEFINTIVA TS2589:
-        // Usamos una variable intermedia con tipo 'any' explícito.
-        // Esto corta la cadena de inferencia ANTES de que TypeScript intente procesarla.
-        // ------------------------------------------------------------------
-        const results: any[] = await Promise.all([p1, p2, p3, p4]);
+        // Ahora Promise.all recibe tipos 'any' simples, no hay cálculo profundo.
+        const results = await Promise.all(queries);
 
         const resellersData = results[0];
         const productsData = results[1];
