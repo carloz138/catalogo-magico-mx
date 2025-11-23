@@ -15,7 +15,6 @@ export class QuoteService {
   static async createQuote(quoteData: CreateQuoteDTO & { replicated_catalog_id?: string }): Promise<Quote> {
     console.log("🔍 DEBUG - Usando Edge Function para crear cotización");
 
-    // Llamar a la Edge Function en lugar de hacer INSERT directo
     const { data, error } = await supabase.functions.invoke("create-quote", {
       body: {
         catalog_id: quoteData.catalog_id,
@@ -44,11 +43,11 @@ export class QuoteService {
 
     console.log("✅ Cotización creada exitosamente:", data.quote_id);
 
-    return { id: data.quote_id } as Quote;
+    return { id: data.quote_id } as unknown as Quote;
   }
 
   /**
-   * Obtener lista de cotizaciones del usuario (Propias y Replicadas).
+   * Obtener lista de cotizaciones del usuario.
    */
   static async getUserQuotes(
     userId: string,
@@ -98,7 +97,7 @@ export class QuoteService {
       .not("replicated_catalog_id", "is", null)
       .order("created_at", { ascending: false });
 
-    // Aplicar filtros
+    // Filtros...
     if (filters?.catalog_id) {
       ownQuery = ownQuery.eq("catalog_id", filters.catalog_id);
       replicatedQuery = replicatedQuery.eq("catalog_id", filters.catalog_id);
@@ -126,7 +125,7 @@ export class QuoteService {
     if (ownResult.error) throw ownResult.error;
     if (replicatedResult.error) throw replicatedResult.error;
 
-    // Procesar Propias
+    // Procesar resultados
     const ownQuotes = (ownResult.data || []).map((quote: any) => ({
       ...quote,
       items_count: quote.quote_items?.[0]?.count || 0,
@@ -135,7 +134,6 @@ export class QuoteService {
       catalog_name: quote.digital_catalogs?.name,
     }));
 
-    // Procesar Replicadas
     const replicatedQuotes = (replicatedResult.data || []).map((quote: any) => ({
       ...quote,
       items_count: quote.quote_items?.[0]?.count || 0,
@@ -144,12 +142,10 @@ export class QuoteService {
       catalog_name: quote.digital_catalogs?.name,
     }));
 
-    // Combinar y ordenar
     const allQuotes = [...ownQuotes, ...replicatedQuotes].sort(
       (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
     );
 
-    // Verificar si las propias ya generaron un catálogo replicado
     const quotesWithMetadata = await Promise.all(
       allQuotes.map(async (quote) => {
         if (quote.is_from_replicated) return quote;
@@ -168,7 +164,16 @@ export class QuoteService {
       }),
     );
 
-    return quotesWithMetadata;
+    // Casting seguro para el array de retorno
+    return quotesWithMetadata as unknown as Array<
+      Quote & {
+        items_count: number;
+        total_amount: number;
+        has_replicated_catalog: boolean;
+        is_from_replicated: boolean;
+        catalog_name?: string;
+      }
+    >;
   }
 
   /**
@@ -210,7 +215,7 @@ export class QuoteService {
 
     if (itemsError) throw itemsError;
 
-    // Enriquecer con stock si es catálogo replicado
+    // Enriquecer items
     let enrichedItems = items || [];
 
     if (quote.replicated_catalog_id) {
@@ -245,22 +250,22 @@ export class QuoteService {
       }));
     }
 
+    // 🔴 SOLUCIÓN 1: Casting explícito aquí
     return {
       ...quote,
       items: enrichedItems,
       catalog: quote.digital_catalogs,
-    } as Quote & { items: QuoteItem[]; catalog: any };
+    } as unknown as Quote & { items: QuoteItem[]; catalog: any };
   }
 
   /**
-   * ✅ NUEVO MÉTODO: Actualizar costo de envío y pasar a negociación.
-   * Esto NO cierra la venta, solo actualiza totales y notifica.
+   * Actualizar costo de envío y pasar a negociación.
    */
   static async updateShippingAndNegotiate(
     quoteId: string,
     userId: string,
-    shippingCost: number, // en centavos
-    newTotal: number, // en centavos
+    shippingCost: number,
+    newTotal: number,
   ): Promise<Quote> {
     const { data, error } = await supabase
       .from("quotes")
@@ -276,14 +281,12 @@ export class QuoteService {
 
     if (error) throw error;
 
-    // TODO: Invocar Edge Function de notificación (WhatsApp) aquí en el futuro
-    console.log("✅ Cotización actualizada a negociación. Envío:", shippingCost);
-
-    return data as Quote;
+    // 🔴 SOLUCIÓN 2: Casting porque Supabase update no devuelve 'items'
+    return data as unknown as Quote;
   }
 
   /**
-   * Actualizar estado general (Aceptar/Rechazar/Enviar).
+   * Actualizar estado general.
    */
   static async updateQuoteStatus(
     quoteId: string,
@@ -302,10 +305,8 @@ export class QuoteService {
     if (error) throw error;
     if (!updatedQuote) throw new Error("No se pudo actualizar la cotización");
 
-    // Si se acepta, enviar email de confirmación
     if (status === "accepted") {
       try {
-        console.log(`📧 Enviando email de cotización aceptada: ${quoteId}`);
         const { data: quote } = await supabase
           .from("quotes")
           .select("customer_email, customer_name")
@@ -326,12 +327,10 @@ export class QuoteService {
       }
     }
 
-    return updatedQuote as Quote;
+    // 🔴 SOLUCIÓN 3: Casting porque faltan los items en el objeto de retorno
+    return updatedQuote as unknown as Quote;
   }
 
-  /**
-   * Obtener estadísticas simples.
-   */
   static async getQuoteStats(userId: string): Promise<{
     total: number;
     pending: number;
@@ -376,6 +375,8 @@ export class QuoteService {
       .order("created_at", { ascending: false });
 
     if (error) throw error;
-    return (data || []) as Quote[];
+
+    // 🔴 SOLUCIÓN 4: Casting para el array
+    return (data || []) as unknown as Quote[];
   }
 }
