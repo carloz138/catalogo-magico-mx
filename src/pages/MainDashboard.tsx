@@ -39,7 +39,7 @@ export default function MainDashboard() {
   const { userRole, isLoadingRole } = useUserRole();
   const { paqueteUsuario } = useSubscription();
 
-  // Estado para KPIs Reales (Reemplaza al simple catalogId)
+  // Estado para KPIs Reales
   const [metrics, setMetrics] = useState({
     activeResellersCount: 0,
     totalProductsCount: 0,
@@ -55,31 +55,46 @@ export default function MainDashboard() {
       if (!user) return;
 
       try {
-        // Consultas en paralelo para optimizar velocidad
+        // --- SOLUCIÓN ERROR TS2589 ---
+        // Definimos las promesas por separado para ayudar a TypeScript a inferir los tipos
+        // sin colapsar por "profundidad excesiva".
+
+        const resellersPromise = supabase
+          .from("replicated_catalogs")
+          .select("id", { count: "exact", head: true })
+          .eq("fabricante_id", user.id)
+          .eq("is_active", true);
+
+        const productsPromise = supabase
+          .from("products")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", user.id);
+
+        const quotesPromise = supabase
+          .from("quotes")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", user.id)
+          .gte("created_at", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString());
+
+        const catalogPromise = supabase
+          .from("digital_catalogs")
+          .select("id")
+          .eq("user_id", user.id)
+          .limit(1)
+          .maybeSingle();
+
+        // Ejecutamos en paralelo pero con tipos ya definidos arriba
         const [resellersData, productsData, quotesData, catalogData] = await Promise.all([
-          // 1. Revendedores Activos (Para L1) - busca en replicated_catalogs
-          supabase
-            .from("replicated_catalogs")
-            .select("id", { count: "exact", head: true })
-            .eq("fabricante_id", user.id)
-            .eq("is_active", true),
-
-          // 2. Total Productos (Para L1)
-          supabase.from("products").select("id", { count: "exact", head: true }).eq("user_id", user.id),
-
-          // 3. Actividad Reciente (Cotizaciones últimos 7 días)
-          supabase
-            .from("quotes")
-            .select("id", { count: "exact", head: true })
-            .eq("user_id", user.id)
-            .gte("created_at", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()),
-
-          // 4. Verificación de Catálogo Propio o Réplica (Para L2 / Estado visual)
-          supabase.from("digital_catalogs").select("id").eq("user_id", user.id).limit(1).maybeSingle(),
+          resellersPromise,
+          productsPromise,
+          quotesPromise,
+          catalogPromise,
         ]);
 
         // Lógica adicional para L2 si no tiene catálogo propio, buscar réplica
         let hasCatalog = !!catalogData.data;
+
+        // Si no tiene catálogo propio, buscamos si tiene uno replicado (Segunda llamada opcional)
         if (!hasCatalog) {
           const { data: replica } = await supabase
             .from("replicated_catalogs")
@@ -226,7 +241,6 @@ export default function MainDashboard() {
 
         <motion.div variants={itemVariants}>
           <h3 className="text-lg font-bold text-slate-900 mb-4">Últimos Movimientos</h3>
-          {/* NOTA: Cambiamos catalogId por userId aquí también */}
           <ResellerInsights userId={user.id} resellerId={user.id} />
         </motion.div>
       </motion.div>
@@ -325,11 +339,9 @@ export default function MainDashboard() {
                 <div>
                   <div className="flex justify-between text-sm mb-2 font-medium">
                     <span>Revendedores Activos</span>
-                    {/* DATO REAL: Conteo de revendedores */}
                     <span className="text-indigo-600 font-bold">{metrics.activeResellersCount}</span>
                   </div>
                   <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
-                    {/* Barra visual simulada al 100% si hay >0 revendedores para dar feedback positivo */}
                     <div
                       className={`h-full bg-indigo-600 rounded-full ${metrics.activeResellersCount > 0 ? "w-full" : "w-0"} transition-all duration-1000`}
                     ></div>
@@ -338,7 +350,6 @@ export default function MainDashboard() {
                 <div>
                   <div className="flex justify-between text-sm mb-2 font-medium">
                     <span>Productos Gestionados</span>
-                    {/* DATO REAL: Conteo de productos */}
                     <span className="text-emerald-600 font-bold">{metrics.totalProductsCount}</span>
                   </div>
                   <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
@@ -351,7 +362,6 @@ export default function MainDashboard() {
                     <Activity className="w-8 h-8 text-slate-400" />
                     <div>
                       <p className="text-xs text-slate-500">Actividad Reciente</p>
-                      {/* DATO REAL: Cotizaciones recientes */}
                       <p className="text-sm font-bold text-slate-900">
                         {metrics.recentQuotesCount} cotizaciones esta semana
                       </p>
@@ -366,9 +376,6 @@ export default function MainDashboard() {
         {/* --- TAB 2: INTELIGENCIA DE MERCADO --- */}
         <TabsContent value="inteligencia" className="space-y-6 focus-visible:outline-none">
           <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* CAMBIO CRÍTICO: Eliminamos la condición if (catalogId) 
-              Ahora mostramos los widgets siempre que haya usuario, pasando userId 
-            */}
             <>
               <Card className="shadow-lg border-indigo-100 overflow-hidden">
                 <CardHeader className="bg-indigo-50/50 border-b border-indigo-100">
@@ -380,7 +387,6 @@ export default function MainDashboard() {
                   </div>
                 </CardHeader>
                 <CardContent className="p-0">
-                  {/* NOTA: En el siguiente paso actualizaremos este componente para aceptar userId */}
                   <MarketIntelligenceWidget userId={user.id} />
                 </CardContent>
               </Card>
@@ -392,7 +398,6 @@ export default function MainDashboard() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-0">
-                  {/* NOTA: En el siguiente paso actualizaremos este componente para aceptar userId */}
                   <SearchStatsWidget userId={user.id} />
                 </CardContent>
               </Card>
@@ -403,7 +408,6 @@ export default function MainDashboard() {
         {/* --- TAB 3: VISIÓN ESTRATÉGICA (VIP / ENTERPRISE) --- */}
         <TabsContent value="estrategia" className="space-y-8 focus-visible:outline-none">
           <motion.div variants={itemVariants} className="space-y-8">
-            {/* SECCIÓN 1: FUTURO (Pronóstico) */}
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
@@ -413,16 +417,13 @@ export default function MainDashboard() {
                   Próximos 7 días
                 </Badge>
               </div>
-              {/* NOTA: Pasamos userId */}
               <DemandForecastWidget userId={user.id} />
             </div>
 
-            {/* SECCIÓN 2: PRESENTE (Optimización de Stock) */}
             <div className="space-y-4">
               <div className="flex items-center gap-2">
                 <h3 className="text-lg font-bold text-slate-800">Auditoría de Capital</h3>
               </div>
-              {/* NOTA: DeadStockAnalysis ya usaba lógica interna o necesitará userId */}
               <DeadStockAnalysis userId={user.id} />
             </div>
           </motion.div>
