@@ -95,6 +95,9 @@ export interface Quote {
   shipping_cost: number | null;
   total_amount: number; // Gran total (Items + Envío)
 
+  // ✅ NUEVO CAMPO AGREGADO
+  estimated_delivery_date?: string | null;
+
   // Relaciones
   items: QuoteItem[];
   catalog?: DigitalCatalog;
