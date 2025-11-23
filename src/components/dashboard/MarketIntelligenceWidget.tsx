@@ -1,19 +1,19 @@
 import React, { useEffect, useState } from "react";
 import { useFeatureAccess } from "@/hooks/useFeatureAccess";
-import { useAuth } from "@/contexts/AuthContext"; // Necesitamos saber quién está logueado
+import { useAuth } from "@/contexts/AuthContext";
+import { useUserRole } from "@/contexts/RoleContext"; // Necesitamos el rol
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { MessageSquare, Loader2, Inbox, Lock, Eye } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { format } from "date-fns"; // Si no tienes date-fns, puedes usar JS nativo
 
-// 1. Interfaz exacta basada en tu tabla 'solicitudes_mercado'
+// ... interfaces MarketRequest y Props igual ...
 interface MarketRequest {
   id: string;
   creado_el: string;
   fabricante_id: string;
-  revendedor_id: string | null; // Puede ser null si es venta directa del L1
+  revendedor_id: string | null; 
   catalogo_id: string;
   cliente_final_nombre: string | null;
   cliente_final_email: string | null;
@@ -24,37 +24,42 @@ interface MarketRequest {
   estatus_fabricante: string;
 }
 
-interface MarketIntelligenceProps {
-  catalogId: string | null;
-}
-
-export const MarketIntelligenceWidget = ({ catalogId }: MarketIntelligenceProps) => {
-  // Gating y Auth
+export const MarketIntelligenceWidget = ({ catalogId }: { catalogId?: string | null }) => {
   const { isAllowed, loading: loadingPlan, UpsellComponent } = useFeatureAccess("radar_inteligente");
-  const { user } = useAuth(); // Para saber si soy L1 o L2
+  const { user } = useAuth();
+  const { userRole } = useUserRole(); // Obtenemos el rol
   
-  // Estado de datos
   const [requests, setRequests] = useState<MarketRequest[]>([]);
   const [loadingData, setLoadingData] = useState(false);
 
   useEffect(() => {
-    if (isAllowed && catalogId && user && !loadingPlan) {
+    if (isAllowed && user && !loadingPlan) {
       fetchRequests();
     }
-  }, [isAllowed, catalogId, user, loadingPlan]);
+  }, [isAllowed, user, loadingPlan]);
 
   const fetchRequests = async () => {
-    if (!catalogId) return;
+    if (!user) return;
     setLoadingData(true);
     
     try {
-      // CONSULTA A TU TABLA REAL 'solicitudes_mercado'
-      const { data, error } = await supabase
+      // CONSULTA GLOBAL POR USUARIO
+      let query = supabase
         .from("solicitudes_mercado")
         .select("*")
-        .eq("catalogo_id", catalogId) // Filtramos por el catálogo actual
         .order("creado_el", { ascending: false })
-        .limit(20); // Traemos las últimas 20
+        .limit(20);
+
+      // FILTRO INTELIGENTE SEGÚN ROL
+      if (userRole === "L2") {
+          // Si soy revendedor, dame todo donde YO sea el revendedor
+          query = query.eq("revendedor_id", user.id);
+      } else {
+          // Si soy fabricante (L1), dame todo donde YO sea el fabricante
+          query = query.eq("fabricante_id", user.id);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
       setRequests(data as MarketRequest[] || []);
@@ -64,6 +69,9 @@ export const MarketIntelligenceWidget = ({ catalogId }: MarketIntelligenceProps)
       setLoadingData(false);
     }
   };
+
+  // ... El resto del renderizado (Tablas, lógica de contactos) queda IGUAL ...
+  // (Mantén el código de visualización que ya tenías)
 
   // --- LÓGICA DE VISUALIZACIÓN DE CONTACTO ---
   const getContactInfo = (req: MarketRequest) => {
@@ -88,7 +96,6 @@ export const MarketIntelligenceWidget = ({ catalogId }: MarketIntelligenceProps)
     }
 
     // Caso C: Soy el Fabricante (L1) pero la venta es de un Revendedor -> OCULTO
-    // OJO: Aquí podríamos agregar la lógica de "Si Plan == Enterprise -> canSee: true" en el futuro
     return {
       email: "Datos protegidos del Revendedor",
       name: "Cliente de Red",
@@ -104,7 +111,7 @@ export const MarketIntelligenceWidget = ({ catalogId }: MarketIntelligenceProps)
     return (
       <div className="h-[300px] w-full flex flex-col items-center justify-center text-slate-400">
         <Loader2 className="w-8 h-8 animate-spin mb-2" />
-        <p className="text-sm">Escaneando mercado...</p>
+        <p className="text-sm">Escaneando mercado global...</p>
       </div>
     );
   }
@@ -117,7 +124,7 @@ export const MarketIntelligenceWidget = ({ catalogId }: MarketIntelligenceProps)
         </div>
         <p className="text-slate-600 font-medium">Sin solicitudes nuevas</p>
         <p className="text-xs text-slate-400 max-w-xs text-center mt-1">
-          Tu radar está activo. Las búsquedas fallidas aparecerán aquí.
+          Tu radar está activo en toda tu red.
         </p>
       </div>
     );
