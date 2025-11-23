@@ -55,37 +55,39 @@ export default function MainDashboard() {
       if (!user) return;
 
       try {
-        // --- SOLUCIÓN DEFINITIVA ---
-        // Ponemos 'as any' en CADA consulta individualmente.
-        // Esto elimina la complejidad de tipos de Supabase antes de que llegue a Promise.all
-        // y evita el error de "instanciación excesiva".
+        // --- SOLUCIÓN: EJECUCIÓN SECUENCIAL ---
+        // Eliminamos Promise.all para evitar que TypeScript colapse al inferir tipos.
 
-        const p1 = supabase
+        // 1. Contar Revendedores Activos
+        const { count: resellersCount } = await supabase
           .from("replicated_catalogs")
           .select("id", { count: "exact", head: true })
           .eq("fabricante_id", user.id)
-          .eq("is_active", true) as any;
+          .eq("is_active", true);
 
-        const p2 = supabase.from("products").select("id", { count: "exact", head: true }).eq("user_id", user.id) as any;
+        // 2. Contar Productos Totales
+        const { count: productsCount } = await supabase
+          .from("products")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", user.id);
 
-        const p3 = supabase
+        // 3. Contar Cotizaciones Recientes (7 días)
+        const { count: quotesCount } = await supabase
           .from("quotes")
           .select("id", { count: "exact", head: true })
           .eq("user_id", user.id)
-          .gte("created_at", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()) as any;
+          .gte("created_at", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString());
 
-        const p4 = supabase.from("digital_catalogs").select("id").eq("user_id", user.id).limit(1).maybeSingle() as any;
+        // 4. Verificar si tiene Catálogo Propio
+        const { data: catalogData } = await supabase
+          .from("digital_catalogs")
+          .select("id")
+          .eq("user_id", user.id)
+          .limit(1)
+          .maybeSingle();
 
-        // Ahora Promise.all recibe 4 objetos 'any', TypeScript no tiene que pensar nada.
-        const results = await Promise.all([p1, p2, p3, p4]);
-
-        const resellersData = results[0];
-        const productsData = results[1];
-        const quotesData = results[2];
-        const catalogData = results[3];
-
-        // Lógica adicional para L2 si no tiene catálogo propio, buscar réplica
-        let hasCatalog = !!catalogData.data;
+        // Lógica adicional para L2: si no tiene catálogo propio, buscar réplica
+        let hasCatalog = !!catalogData;
 
         if (!hasCatalog) {
           const { data: replica } = await supabase
@@ -99,9 +101,9 @@ export default function MainDashboard() {
         }
 
         setMetrics({
-          activeResellersCount: resellersData.count || 0,
-          totalProductsCount: productsData.count || 0,
-          recentQuotesCount: quotesData.count || 0,
+          activeResellersCount: resellersCount || 0,
+          totalProductsCount: productsCount || 0,
+          recentQuotesCount: quotesCount || 0,
           hasActiveCatalog: hasCatalog,
         });
       } catch (error) {
