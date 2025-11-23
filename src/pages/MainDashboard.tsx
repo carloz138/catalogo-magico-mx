@@ -55,49 +55,54 @@ export default function MainDashboard() {
       if (!user) return;
 
       try {
-        // --- SOLUCIÓN: EJECUCIÓN SECUENCIAL ---
-        // Eliminamos Promise.all para evitar que TypeScript colapse al inferir tipos.
+        // --- SOLUCIÓN "CORTAFUEGOS" PARA TS2589 ---
+        // Al tipar explícitamente la variable de respuesta como ': any',
+        // obligamos a TypeScript a dejar de calcular la estructura profunda de la DB.
 
         // 1. Contar Revendedores Activos
-        const { count: resellersCount } = await supabase
+        const res1: any = await supabase
           .from("replicated_catalogs")
           .select("id", { count: "exact", head: true })
           .eq("fabricante_id", user.id)
           .eq("is_active", true);
+        const resellersCount = res1.count;
 
         // 2. Contar Productos Totales
-        const { count: productsCount } = await supabase
+        const res2: any = await supabase
           .from("products")
           .select("id", { count: "exact", head: true })
           .eq("user_id", user.id);
+        const productsCount = res2.count;
 
         // 3. Contar Cotizaciones Recientes (7 días)
-        const { count: quotesCount } = await supabase
+        const res3: any = await supabase
           .from("quotes")
           .select("id", { count: "exact", head: true })
           .eq("user_id", user.id)
           .gte("created_at", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString());
+        const quotesCount = res3.count;
 
         // 4. Verificar si tiene Catálogo Propio
-        const { data: catalogData } = await supabase
+        const res4: any = await supabase
           .from("digital_catalogs")
           .select("id")
           .eq("user_id", user.id)
           .limit(1)
           .maybeSingle();
+        const catalogData = res4.data;
 
         // Lógica adicional para L2: si no tiene catálogo propio, buscar réplica
         let hasCatalog = !!catalogData;
 
         if (!hasCatalog) {
-          const { data: replica } = await supabase
+          const res5: any = await supabase
             .from("replicated_catalogs")
             .select("id")
             .eq("reseller_id", user.id)
             .eq("is_active", true)
             .limit(1)
             .maybeSingle();
-          if (replica) hasCatalog = true;
+          if (res5.data) hasCatalog = true;
         }
 
         setMetrics({
