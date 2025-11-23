@@ -1,19 +1,17 @@
 import React, { useEffect, useState } from "react";
 import { useFeatureAccess } from "@/hooks/useFeatureAccess";
-import { useAuth } from "@/contexts/AuthContext";
-import { useUserRole } from "@/contexts/RoleContext"; // Necesitamos el rol
+import { useUserRole } from "@/contexts/RoleContext";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { MessageSquare, Loader2, Inbox, Lock, Eye } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
-// ... interfaces MarketRequest y Props igual ...
 interface MarketRequest {
   id: string;
   creado_el: string;
   fabricante_id: string;
-  revendedor_id: string | null; 
+  revendedor_id: string | null;
   catalogo_id: string;
   cliente_final_nombre: string | null;
   cliente_final_email: string | null;
@@ -24,45 +22,44 @@ interface MarketRequest {
   estatus_fabricante: string;
 }
 
-export const MarketIntelligenceWidget = ({ catalogId }: { catalogId?: string | null }) => {
+interface MarketIntelligenceProps {
+  userId: string;
+}
+
+export const MarketIntelligenceWidget = ({ userId }: MarketIntelligenceProps) => {
   const { isAllowed, loading: loadingPlan, UpsellComponent } = useFeatureAccess("radar_inteligente");
-  const { user } = useAuth();
-  const { userRole } = useUserRole(); // Obtenemos el rol
-  
+  const { userRole } = useUserRole();
+
   const [requests, setRequests] = useState<MarketRequest[]>([]);
   const [loadingData, setLoadingData] = useState(false);
 
   useEffect(() => {
-    if (isAllowed && user && !loadingPlan) {
+    // Ahora dependemos de userId, no de catalogId
+    if (isAllowed && userId && !loadingPlan) {
       fetchRequests();
     }
-  }, [isAllowed, user, loadingPlan]);
+  }, [isAllowed, userId, loadingPlan]);
 
   const fetchRequests = async () => {
-    if (!user) return;
+    if (!userId) return;
     setLoadingData(true);
-    
+
     try {
-      // CONSULTA GLOBAL POR USUARIO
-      let query = supabase
-        .from("solicitudes_mercado")
-        .select("*")
-        .order("creado_el", { ascending: false })
-        .limit(20);
+      let query = supabase.from("solicitudes_mercado").select("*").order("creado_el", { ascending: false }).limit(20);
 
       // FILTRO INTELIGENTE SEGÚN ROL
       if (userRole === "L2") {
-          // Si soy revendedor, dame todo donde YO sea el revendedor
-          query = query.eq("revendedor_id", user.id);
+        // Si soy revendedor, dame todo donde YO sea el revendedor
+        query = query.eq("revendedor_id", userId);
       } else {
-          // Si soy fabricante (L1), dame todo donde YO sea el fabricante
-          query = query.eq("fabricante_id", user.id);
+        // Si soy fabricante (L1), dame todo donde YO sea el fabricante
+        query = query.eq("fabricante_id", userId);
       }
 
       const { data, error } = await query;
 
       if (error) throw error;
-      setRequests(data as MarketRequest[] || []);
+      setRequests((data as MarketRequest[]) || []);
     } catch (error) {
       console.error("Error cargando radar:", error);
     } finally {
@@ -70,28 +67,25 @@ export const MarketIntelligenceWidget = ({ catalogId }: { catalogId?: string | n
     }
   };
 
-  // ... El resto del renderizado (Tablas, lógica de contactos) queda IGUAL ...
-  // (Mantén el código de visualización que ya tenías)
-
   // --- LÓGICA DE VISUALIZACIÓN DE CONTACTO ---
   const getContactInfo = (req: MarketRequest) => {
-    if (!user) return null;
+    if (!userId) return null;
 
     // Caso A: Soy el Revendedor (L2) de esta solicitud -> VEO TODO
-    if (user.id === req.revendedor_id) {
+    if (userId === req.revendedor_id) {
       return {
         email: req.cliente_final_email,
         name: req.cliente_final_nombre,
-        canSee: true
+        canSee: true,
       };
     }
 
     // Caso B: Soy el Fabricante (L1) Y es una venta directa mía (no hay revendedor) -> VEO TODO
-    if (user.id === req.fabricante_id && req.revendedor_id === null) {
+    if (userId === req.fabricante_id && req.revendedor_id === null) {
       return {
         email: req.cliente_final_email,
         name: req.cliente_final_nombre,
-        canSee: true
+        canSee: true,
       };
     }
 
@@ -99,14 +93,14 @@ export const MarketIntelligenceWidget = ({ catalogId }: { catalogId?: string | n
     return {
       email: "Datos protegidos del Revendedor",
       name: "Cliente de Red",
-      canSee: false
+      canSee: false,
     };
   };
 
   // Renderizados condicionales (Carga, Gating, Vacío)
   if (loadingPlan) return <div className="h-[300px] w-full bg-slate-50 animate-pulse rounded-xl" />;
   if (!isAllowed) return <div className="h-full min-h-[300px]">{UpsellComponent}</div>;
-  
+
   if (loadingData) {
     return (
       <div className="h-[300px] w-full flex flex-col items-center justify-center text-slate-400">
@@ -120,12 +114,10 @@ export const MarketIntelligenceWidget = ({ catalogId }: { catalogId?: string | n
     return (
       <div className="h-[300px] w-full flex flex-col items-center justify-center text-slate-400 bg-white rounded-xl border border-dashed border-slate-200">
         <div className="bg-slate-50 p-4 rounded-full mb-3">
-            <Inbox className="w-8 h-8 text-slate-300" />
+          <Inbox className="w-8 h-8 text-slate-300" />
         </div>
         <p className="text-slate-600 font-medium">Sin solicitudes nuevas</p>
-        <p className="text-xs text-slate-400 max-w-xs text-center mt-1">
-          Tu radar está activo en toda tu red.
-        </p>
+        <p className="text-xs text-slate-400 max-w-xs text-center mt-1">Tu radar está activo en toda tu red.</p>
       </div>
     );
   }
@@ -169,25 +161,25 @@ export const MarketIntelligenceWidget = ({ catalogId }: { catalogId?: string | n
 
                 {/* Columna CANTIDAD */}
                 <TableCell className="text-slate-600 align-top pt-4">
-                   <span className="font-semibold bg-slate-100 px-2 py-1 rounded text-xs">
-                     {req.cantidad} pzas
-                   </span>
+                  <span className="font-semibold bg-slate-100 px-2 py-1 rounded text-xs">{req.cantidad} pzas</span>
                 </TableCell>
 
                 {/* Columna CONTACTO (Con lógica L1/L2) */}
                 <TableCell className="align-top pt-3">
                   <div className="flex flex-col">
-                    <span className={`text-sm font-medium ${contact?.canSee ? 'text-slate-700' : 'text-slate-400 italic'}`}>
-                       {contact?.name}
+                    <span
+                      className={`text-sm font-medium ${contact?.canSee ? "text-slate-700" : "text-slate-400 italic"}`}
+                    >
+                      {contact?.name}
                     </span>
                     <span className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
-                       {contact?.canSee ? (
-                         contact.email
-                       ) : (
-                         <>
-                           <Lock className="w-3 h-3" /> Info. Oculta
-                         </>
-                       )}
+                      {contact?.canSee ? (
+                        contact.email
+                      ) : (
+                        <>
+                          <Lock className="w-3 h-3" /> Info. Oculta
+                        </>
+                      )}
                     </span>
                   </div>
                 </TableCell>
@@ -195,13 +187,17 @@ export const MarketIntelligenceWidget = ({ catalogId }: { catalogId?: string | n
                 {/* Columna ACCIÓN */}
                 <TableCell className="text-right align-top pt-3">
                   {contact?.canSee ? (
-                     <Button size="sm" variant="outline" className="h-8 text-xs border-indigo-200 text-indigo-700 hover:bg-indigo-50">
-                       <MessageSquare className="w-3 h-3 mr-1.5" /> Contactar
-                     </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-8 text-xs border-indigo-200 text-indigo-700 hover:bg-indigo-50"
+                    >
+                      <MessageSquare className="w-3 h-3 mr-1.5" /> Contactar
+                    </Button>
                   ) : (
-                     <Button size="sm" variant="ghost" disabled className="h-8 text-xs text-slate-300">
-                       <Eye className="w-3 h-3 mr-1.5" /> Solo L2
-                     </Button>
+                    <Button size="sm" variant="ghost" disabled className="h-8 text-xs text-slate-300">
+                      <Eye className="w-3 h-3 mr-1.5" /> Solo L2
+                    </Button>
                   )}
                 </TableCell>
               </TableRow>
@@ -209,7 +205,7 @@ export const MarketIntelligenceWidget = ({ catalogId }: { catalogId?: string | n
           })}
         </TableBody>
       </Table>
-      
+
       <div className="p-2 text-center border-t border-slate-100 bg-slate-50 mt-auto">
         <p className="text-[10px] text-slate-400">
           * Los contactos de la red de revendedores están protegidos por privacidad.
