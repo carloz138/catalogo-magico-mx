@@ -55,10 +55,7 @@ export default function MainDashboard() {
       if (!user) return;
 
       try {
-        // --- SOLUCIÓN ERROR TS2589 ---
-        // Definimos las promesas por separado para ayudar a TypeScript a inferir los tipos
-        // sin colapsar por "profundidad excesiva".
-
+        // Consultas definidas individualmente
         const resellersPromise = supabase
           .from("replicated_catalogs")
           .select("id", { count: "exact", head: true })
@@ -83,18 +80,20 @@ export default function MainDashboard() {
           .limit(1)
           .maybeSingle();
 
-        // Ejecutamos en paralelo pero con tipos ya definidos arriba
-        const [resellersData, productsData, quotesData, catalogData] = await Promise.all([
-          resellersPromise,
-          productsPromise,
-          quotesPromise,
-          catalogPromise,
-        ]);
+        // ------------------------------------------------------------------
+        // CORRECCIÓN FINAL TS2589: Usamos 'as any' para detener la
+        // inferencia profunda de tipos de Supabase que colapsa a TS.
+        // ------------------------------------------------------------------
+        const results = (await Promise.all([resellersPromise, productsPromise, quotesPromise, catalogPromise])) as any;
+
+        const resellersData = results[0];
+        const productsData = results[1];
+        const quotesData = results[2];
+        const catalogData = results[3];
 
         // Lógica adicional para L2 si no tiene catálogo propio, buscar réplica
         let hasCatalog = !!catalogData.data;
 
-        // Si no tiene catálogo propio, buscamos si tiene uno replicado (Segunda llamada opcional)
         if (!hasCatalog) {
           const { data: replica } = await supabase
             .from("replicated_catalogs")
