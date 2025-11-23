@@ -10,6 +10,7 @@ interface CreateQuoteResponse {
 export class QuoteService {
   /**
    * Crear cotización (desde vista pública - cliente anónimo).
+   * Llama a la Edge Function 'create-quote'.
    */
   static async createQuote(quoteData: CreateQuoteDTO & { replicated_catalog_id?: string }): Promise<Quote> {
     console.log("🔍 DEBUG - Usando Edge Function para crear cotización");
@@ -43,10 +44,12 @@ export class QuoteService {
 
     console.log("✅ Cotización creada exitosamente:", data.quote_id);
 
-    // Retornar quote (aunque la Edge Function ya lo guardó)
     return { id: data.quote_id } as Quote;
   }
 
+  /**
+   * Obtener lista de cotizaciones del usuario (Propias y Replicadas).
+   */
   static async getUserQuotes(
     userId: string,
     filters?: {
@@ -63,19 +66,17 @@ export class QuoteService {
         total_amount: number;
         has_replicated_catalog: boolean;
         is_from_replicated: boolean;
+        catalog_name?: string;
       }
     >
   > {
-    // Get quotes owned by the user (from their original catalogs)
+    // 1. Cotizaciones Propias (L1)
     let ownQuery = supabase
       .from("quotes")
       .select(
         `
         *,
-        quote_items (
-          *,
-          products (name, sku, image_url)
-        ),
+        quote_items (count),
         digital_catalogs (name, enable_distribution)
       `,
       )
@@ -83,16 +84,13 @@ export class QuoteService {
       .is("replicated_catalog_id", null)
       .order("created_at", { ascending: false });
 
-    // Get quotes from replicated catalogs where user is the reseller
+    // 2. Cotizaciones de Revendedor (L2)
     let replicatedQuery = supabase
       .from("quotes")
       .select(
         `
         *,
-        quote_items (
-          *,
-          products (name, sku, image_url)
-        ),
+        quote_items (count),
         digital_catalogs (name, enable_distribution)
       `,
       )
@@ -100,7 +98,7 @@ export class QuoteService {
       .not("replicated_catalog_id", "is", null)
       .order("created_at", { ascending: false });
 
-    // Apply filters to both queries
+    // Aplicar filtros
     if (filters?.catalog_id) {
       ownQuery = ownQuery.eq("catalog_id", filters.catalog_id);
       replicatedQuery = replicatedQuery.eq("catalog_id", filters.catalog_id);
@@ -128,45 +126,33 @@ export class QuoteService {
     if (ownResult.error) throw ownResult.error;
     if (replicatedResult.error) throw replicatedResult.error;
 
-    // Process own quotes
-    const ownQuotes = (ownResult.data || []).map((quote: any) => {
-      const items = quote.quote_items || [];
-      const { quote_items, digital_catalogs, ...quoteData } = quote;
-      return {
-        ...quoteData,
-        items_count: items.length,
-        total_amount: items.reduce((sum: number, item: any) => sum + (item.subtotal || 0), 0),
-        has_replicated_catalog: false,
-        is_from_replicated: false,
-        catalog_name: digital_catalogs?.name,
-      };
-    });
+    // Procesar Propias
+    const ownQuotes = (ownResult.data || []).map((quote: any) => ({
+      ...quote,
+      items_count: quote.quote_items?.[0]?.count || 0,
+      has_replicated_catalog: false,
+      is_from_replicated: false,
+      catalog_name: quote.digital_catalogs?.name,
+    }));
 
-    // Process replicated quotes
-    const replicatedQuotes = (replicatedResult.data || []).map((quote: any) => {
-      const items = quote.quote_items || [];
-      const { quote_items, digital_catalogs, ...quoteData } = quote;
-      return {
-        ...quoteData,
-        items_count: items.length,
-        total_amount: items.reduce((sum: number, item: any) => sum + (item.subtotal || 0), 0),
-        has_replicated_catalog: false,
-        is_from_replicated: true,
-        catalog_name: digital_catalogs?.name,
-      };
-    });
+    // Procesar Replicadas
+    const replicatedQuotes = (replicatedResult.data || []).map((quote: any) => ({
+      ...quote,
+      items_count: quote.quote_items?.[0]?.count || 0,
+      has_replicated_catalog: false,
+      is_from_replicated: true,
+      catalog_name: quote.digital_catalogs?.name,
+    }));
 
-    // Combine and sort by created_at
+    // Combinar y ordenar
     const allQuotes = [...ownQuotes, ...replicatedQuotes].sort(
       (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
     );
 
-    // Check for replicated catalogs for own quotes
+    // Verificar si las propias ya generaron un catálogo replicado
     const quotesWithMetadata = await Promise.all(
       allQuotes.map(async (quote) => {
-        if (quote.is_from_replicated) {
-          return quote; // Already marked
-        }
+        if (quote.is_from_replicated) return quote;
 
         const { data: replicatedCatalog } = await supabase
           .from("replicated_catalogs")
@@ -185,7 +171,9 @@ export class QuoteService {
     return quotesWithMetadata;
   }
 
-  // Obtener detalle completo de cotización
+  /**
+   * Obtener detalle completo de cotización
+   */
   static async getQuoteDetail(quoteId: string, userId: string): Promise<Quote & { items: QuoteItem[]; catalog: any }> {
     const { data: quote, error: quoteError } = await supabase
       .from("quotes")
@@ -204,7 +192,7 @@ export class QuoteService {
     if (quoteError) throw quoteError;
     if (!quote) throw new Error("Cotización no encontrada");
 
-    // Obtener items con productos completos
+    // Obtener items con productos
     const { data: items, error: itemsError } = await supabase
       .from("quote_items")
       .select(
@@ -222,13 +210,12 @@ export class QuoteService {
 
     if (itemsError) throw itemsError;
 
-    // ✅ Si la cotización es de un catálogo replicado, enriquecer items con info de stock
+    // Enriquecer con stock si es catálogo replicado
     let enrichedItems = items || [];
 
     if (quote.replicated_catalog_id) {
       const replicatedCatalogId = quote.replicated_catalog_id;
 
-      // Obtener información de stock de productos y variantes
       const { data: productPrices } = await supabase
         .from("reseller_product_prices")
         .select("product_id, is_in_stock")
@@ -239,29 +226,19 @@ export class QuoteService {
         .select("variant_id, is_in_stock")
         .eq("replicated_catalog_id", replicatedCatalogId);
 
-      // Crear mapas para búsqueda rápida
       const productStockMap = new Map((productPrices || []).map((p) => [p.product_id, p.is_in_stock]));
       const variantStockMap = new Map((variantPrices || []).map((v) => [v.variant_id, v.is_in_stock]));
 
-      // Enriquecer items con información de stock
       enrichedItems = enrichedItems.map((item: any) => {
         let isInStock = false;
-
         if (item.variant_id) {
-          // Si tiene variante, buscar en variant_prices
           isInStock = variantStockMap.get(item.variant_id) || false;
         } else if (item.product_id) {
-          // Si no tiene variante, buscar en product_prices
           isInStock = productStockMap.get(item.product_id) || false;
         }
-
-        return {
-          ...item,
-          is_in_stock: isInStock,
-        };
+        return { ...item, is_in_stock: isInStock };
       });
     } else {
-      // Si no es catálogo replicado, todos están "en stock" por defecto
       enrichedItems = enrichedItems.map((item: any) => ({
         ...item,
         is_in_stock: true,
@@ -275,7 +252,39 @@ export class QuoteService {
     } as Quote & { items: QuoteItem[]; catalog: any };
   }
 
-  // ✅ MODIFICADO: Actualizar estado y enviar email correcto
+  /**
+   * ✅ NUEVO MÉTODO: Actualizar costo de envío y pasar a negociación.
+   * Esto NO cierra la venta, solo actualiza totales y notifica.
+   */
+  static async updateShippingAndNegotiate(
+    quoteId: string,
+    userId: string,
+    shippingCost: number, // en centavos
+    newTotal: number, // en centavos
+  ): Promise<Quote> {
+    const { data, error } = await supabase
+      .from("quotes")
+      .update({
+        shipping_cost: shippingCost,
+        total_amount: newTotal,
+        status: "negotiation",
+      })
+      .eq("id", quoteId)
+      .eq("user_id", userId)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    // TODO: Invocar Edge Function de notificación (WhatsApp) aquí en el futuro
+    console.log("✅ Cotización actualizada a negociación. Envío:", shippingCost);
+
+    return data as Quote;
+  }
+
+  /**
+   * Actualizar estado general (Aceptar/Rechazar/Enviar).
+   */
   static async updateQuoteStatus(
     quoteId: string,
     userId: string,
@@ -293,12 +302,10 @@ export class QuoteService {
     if (error) throw error;
     if (!updatedQuote) throw new Error("No se pudo actualizar la cotización");
 
-    // ✅ CAMBIO CRÍTICO: Enviar email de ACEPTACIÓN (no notificación genérica)
+    // Si se acepta, enviar email de confirmación
     if (status === "accepted") {
       try {
         console.log(`📧 Enviando email de cotización aceptada: ${quoteId}`);
-
-        // Obtener datos del cliente para el email
         const { data: quote } = await supabase
           .from("quotes")
           .select("customer_email, customer_name")
@@ -306,32 +313,25 @@ export class QuoteService {
           .single();
 
         if (quote) {
-          const { data: functionData, error: functionError } = await supabase.functions.invoke(
-            "send-quote-accepted-email", // ✅ NUEVA FUNCIÓN
-            {
-              body: {
-                quoteId,
-                customerEmail: quote.customer_email,
-                customerName: quote.customer_name,
-              },
+          await supabase.functions.invoke("send-quote-accepted-email", {
+            body: {
+              quoteId,
+              customerEmail: quote.customer_email,
+              customerName: quote.customer_name,
             },
-          );
-
-          if (functionError) {
-            console.error("❌ Error al invocar la función de email:", functionError);
-          } else {
-            console.log("✅ Email enviado exitosamente:", functionData);
-          }
+          });
         }
       } catch (notificationError) {
-        console.error("❌ Error inesperado al intentar enviar email:", notificationError);
+        console.error("❌ Error enviando email:", notificationError);
       }
     }
 
     return updatedQuote as Quote;
   }
 
-  // Obtener estadísticas de cotizaciones
+  /**
+   * Obtener estadísticas simples.
+   */
   static async getQuoteStats(userId: string): Promise<{
     total: number;
     pending: number;
@@ -340,17 +340,7 @@ export class QuoteService {
     total_amount_accepted: number;
     shipped: number;
   }> {
-    const { data: quotes, error } = await supabase
-      .from("quotes")
-      .select(
-        `
-        status,
-        quote_items (
-          subtotal
-        )
-      `,
-      )
-      .eq("user_id", userId);
+    const { data: quotes, error } = await supabase.from("quotes").select("status, total_amount").eq("user_id", userId);
 
     if (error) throw error;
 
@@ -370,15 +360,13 @@ export class QuoteService {
       if (quote.status === "shipped") stats.shipped++;
 
       if (quote.status === "accepted" || quote.status === "shipped") {
-        const items = quote.quote_items || [];
-        stats.total_amount_accepted += items.reduce((sum: number, item: any) => sum + (item.subtotal || 0), 0);
+        stats.total_amount_accepted += quote.total_amount || 0;
       }
     });
 
     return stats;
   }
 
-  // Obtener cotizaciones por catálogo
   static async getQuotesByCatalog(catalogId: string, userId: string): Promise<Quote[]> {
     const { data, error } = await supabase
       .from("quotes")
