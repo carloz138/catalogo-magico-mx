@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, Radar, Clock, User } from "lucide-react";
+import { Search, Radar, Clock, User, AlertCircle } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
@@ -19,30 +19,91 @@ interface RadarRequest {
   created_at: string;
 }
 
-// 👇 CORRECCIÓN AQUÍ: "export function" (sin 'default')
-export function ResellerInsights({ catalogId, resellerId }: { catalogId: string | null; resellerId: string }) {
+// 1. CORRECCIÓN DE INTERFAZ: Adaptada para recibir lo que manda MainDashboard
+interface ResellerInsightsProps {
+  userId: string; // Requerido por MainDashboard
+  resellerId?: string; // Opcional (usaremos userId si falta)
+  catalogId?: string | null; // Opcional
+}
+
+export function ResellerInsights({ userId, resellerId, catalogId }: ResellerInsightsProps) {
   const [searches, setSearches] = useState<SearchLog[]>([]);
   const [requests, setRequests] = useState<RadarRequest[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Determinamos el ID efectivo del revendedor
+  const effectiveResellerId = resellerId || userId;
 
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        // 1. Cargar Búsquedas (si hay catálogo)
+        // ---------------------------------------------------------
+        // 1. Cargar Búsquedas
+        // ---------------------------------------------------------
+        // Intentamos usar la tabla estándar primero si no hay RPC, o adaptamos la lógica
+        let searchDataRaw: any[] | null = null;
+
         if (catalogId) {
-          // Usamos 'as any' para evitar errores de tipo si no has regenerado types
-          const { data: searchData } = await supabase.rpc("fn_get_reseller_search_logs" as any, {
+          // Intento A: Si tienes la función RPC
+          const { data, error } = await supabase.rpc("fn_get_reseller_search_logs" as any, {
             p_catalog_id: catalogId,
           });
-          if (searchData) setSearches(searchData as any);
+          if (!error) searchDataRaw = data as any;
         }
 
+        // Intento B: Si falló lo anterior o no hay catalogId, buscamos directo en tabla por USER_ID
+        if (!searchDataRaw && userId) {
+          const { data } = await supabase
+            .from("search_logs")
+            .select("search_term, results_count, created_at")
+            .eq("user_id", userId)
+            .order("created_at", { ascending: false })
+            .limit(10);
+
+          if (data) {
+            // Mapeamos al formato que espera tu interfaz
+            searchDataRaw = data.map((d) => ({
+              term: d.search_term,
+              count: 1, // Simplificación si no viene agrupado
+              last_search: d.created_at,
+            }));
+          }
+        }
+
+        if (searchDataRaw) setSearches(searchDataRaw);
+
+        // ---------------------------------------------------------
         // 2. Cargar Solicitudes de Radar
-        const { data: radarData } = await supabase.rpc("fn_get_reseller_radar_requests" as any, {
-          p_reseller_id: resellerId,
+        // ---------------------------------------------------------
+        let radarDataRaw: any[] | null = null;
+
+        // Intento A: RPC
+        const { data: rpcRadar, error: rpcError } = await supabase.rpc("fn_get_reseller_radar_requests" as any, {
+          p_reseller_id: effectiveResellerId,
         });
-        if (radarData) setRequests(radarData as any);
+
+        if (!rpcError && rpcRadar) {
+          radarDataRaw = rpcRadar as any;
+        } else {
+          // Intento B: Tabla directa (Fallback seguro)
+          const { data: tableRadar } = await supabase
+            .from("solicitudes_mercado")
+            .select("producto_nombre, cliente_final_nombre, creado_el")
+            .eq("revendedor_id", effectiveResellerId)
+            .order("creado_el", { ascending: false })
+            .limit(10);
+
+          if (tableRadar) {
+            radarDataRaw = tableRadar.map((r) => ({
+              product_name: r.producto_nombre,
+              customer_name: r.cliente_final_nombre || "Anónimo",
+              created_at: r.creado_el,
+            }));
+          }
+        }
+
+        if (radarDataRaw) setRequests(radarDataRaw);
       } catch (error) {
         console.error("Error fetching reseller insights:", error);
       } finally {
@@ -51,7 +112,7 @@ export function ResellerInsights({ catalogId, resellerId }: { catalogId: string 
     };
 
     fetchData();
-  }, [catalogId, resellerId]);
+  }, [catalogId, effectiveResellerId, userId]);
 
   if (loading) return <Skeleton className="h-64 w-full rounded-xl" />;
 
