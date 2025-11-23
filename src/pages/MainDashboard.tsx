@@ -55,33 +55,29 @@ export default function MainDashboard() {
       if (!user) return;
 
       try {
-        // --- SOLUCIÓN NUCLEAR PARA TS2589 ---
-        // Definimos un array tipado explícitamente como Promise<any>[]
-        // Esto evita que TypeScript intente inferir la estructura profunda de Supabase.
-        const queries: Promise<any>[] = [
-          // 1. Revendedores
-          supabase
-            .from("replicated_catalogs")
-            .select("id", { count: "exact", head: true })
-            .eq("fabricante_id", user.id)
-            .eq("is_active", true),
+        // --- SOLUCIÓN DEFINITIVA ---
+        // Ponemos 'as any' en CADA consulta individualmente.
+        // Esto elimina la complejidad de tipos de Supabase antes de que llegue a Promise.all
+        // y evita el error de "instanciación excesiva".
 
-          // 2. Productos
-          supabase.from("products").select("id", { count: "exact", head: true }).eq("user_id", user.id),
+        const p1 = supabase
+          .from("replicated_catalogs")
+          .select("id", { count: "exact", head: true })
+          .eq("fabricante_id", user.id)
+          .eq("is_active", true) as any;
 
-          // 3. Cotizaciones
-          supabase
-            .from("quotes")
-            .select("id", { count: "exact", head: true })
-            .eq("user_id", user.id)
-            .gte("created_at", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()),
+        const p2 = supabase.from("products").select("id", { count: "exact", head: true }).eq("user_id", user.id) as any;
 
-          // 4. Catálogo
-          supabase.from("digital_catalogs").select("id").eq("user_id", user.id).limit(1).maybeSingle(),
-        ];
+        const p3 = supabase
+          .from("quotes")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", user.id)
+          .gte("created_at", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()) as any;
 
-        // Ahora Promise.all recibe tipos 'any' simples, no hay cálculo profundo.
-        const results = await Promise.all(queries);
+        const p4 = supabase.from("digital_catalogs").select("id").eq("user_id", user.id).limit(1).maybeSingle() as any;
+
+        // Ahora Promise.all recibe 4 objetos 'any', TypeScript no tiene que pensar nada.
+        const results = await Promise.all([p1, p2, p3, p4]);
 
         const resellersData = results[0];
         const productsData = results[1];
