@@ -44,7 +44,7 @@ export default function MainDashboard() {
     activeResellersCount: 0,
     totalProductsCount: 0,
     recentQuotesCount: 0,
-    hasActiveCatalog: false, // Para L2
+    hasActiveCatalog: false,
   });
 
   const [isLoadingData, setIsLoadingData] = useState(true);
@@ -55,62 +55,29 @@ export default function MainDashboard() {
       if (!user) return;
 
       try {
-        // --- SOLUCIÓN "CORTAFUEGOS" PARA TS2589 ---
-        // Al tipar explícitamente la variable de respuesta como ': any',
-        // obligamos a TypeScript a dejar de calcular la estructura profunda de la DB.
+        // --- SOLUCIÓN RPC (Directa a Base de Datos) ---
+        // Llamamos a la función SQL que creamos. Es una sola petición,
+        // super rápida y devuelve un JSON simple sin tipos complejos.
 
-        // 1. Contar Revendedores Activos
-        const res1: any = await supabase
-          .from("replicated_catalogs")
-          .select("id", { count: "exact", head: true })
-          .eq("fabricante_id", user.id)
-          .eq("is_active", true);
-        const resellersCount = res1.count;
-
-        // 2. Contar Productos Totales
-        const res2: any = await supabase
-          .from("products")
-          .select("id", { count: "exact", head: true })
-          .eq("user_id", user.id);
-        const productsCount = res2.count;
-
-        // 3. Contar Cotizaciones Recientes (7 días)
-        const res3: any = await supabase
-          .from("quotes")
-          .select("id", { count: "exact", head: true })
-          .eq("user_id", user.id)
-          .gte("created_at", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString());
-        const quotesCount = res3.count;
-
-        // 4. Verificar si tiene Catálogo Propio
-        const res4: any = await supabase
-          .from("digital_catalogs")
-          .select("id")
-          .eq("user_id", user.id)
-          .limit(1)
-          .maybeSingle();
-        const catalogData = res4.data;
-
-        // Lógica adicional para L2: si no tiene catálogo propio, buscar réplica
-        let hasCatalog = !!catalogData;
-
-        if (!hasCatalog) {
-          const res5: any = await supabase
-            .from("replicated_catalogs")
-            .select("id")
-            .eq("reseller_id", user.id)
-            .eq("is_active", true)
-            .limit(1)
-            .maybeSingle();
-          if (res5.data) hasCatalog = true;
-        }
-
-        setMetrics({
-          activeResellersCount: resellersCount || 0,
-          totalProductsCount: productsCount || 0,
-          recentQuotesCount: quotesCount || 0,
-          hasActiveCatalog: hasCatalog,
+        // Usamos 'as any' aquí solo por si tus tipos locales no están actualizados todavía.
+        const { data, error } = await supabase.rpc("get_dashboard_stats" as any, {
+          p_user_id: user.id,
         });
+
+        if (error) throw error;
+
+        if (data) {
+          // TypeScript ya no sufre porque 'data' es un objeto JSON simple
+          // que viene de la base de datos.
+          const stats = data as any;
+
+          setMetrics({
+            activeResellersCount: stats.activeResellersCount || 0,
+            totalProductsCount: stats.totalProductsCount || 0,
+            recentQuotesCount: stats.recentQuotesCount || 0,
+            hasActiveCatalog: stats.hasActiveCatalog || false,
+          });
+        }
       } catch (error) {
         console.error("Error loading dashboard metrics:", error);
       } finally {
