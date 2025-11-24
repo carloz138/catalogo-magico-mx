@@ -1,10 +1,10 @@
-
-import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { BusinessInfo } from '@/types/business';
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { BusinessInfo } from "@/types/business";
 
 export const useBusinessInfo = () => {
   const [businessInfo, setBusinessInfo] = useState<BusinessInfo | null>(null);
+  const [merchantInfo, setMerchantInfo] = useState<any | null>(null); // ✅ Nuevo estado para Banco
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -13,33 +13,40 @@ export const useBusinessInfo = () => {
       setLoading(true);
       setError(null);
 
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) {
-        setError('Usuario no autenticado');
+        setError("Usuario no autenticado");
         return;
       }
 
-      console.log('🔍 DEBUG - useBusinessInfo - user.id:', user.id);
-      
-      // Use any to bypass TypeScript issues with new table
-      const { data, error: fetchError } = await (supabase as any)
-        .from('business_info')
-        .select('*')
-        .eq('user_id', user.id)
+      // 1. Cargar Info de Negocio
+      const { data: businessData, error: businessError } = await (supabase as any)
+        .from("business_info")
+        .select("*")
+        .eq("user_id", user.id)
         .maybeSingle();
 
-      console.log('🔍 DEBUG - useBusinessInfo - query result:', { data, fetchError });
-
-      if (fetchError && fetchError.code !== 'PGRST116') {
-        console.error('🔍 DEBUG - useBusinessInfo - fetchError:', fetchError);
-        throw fetchError;
+      if (businessError && businessError.code !== "PGRST116") {
+        console.error("Error fetching business info:", businessError);
       }
+      setBusinessInfo(businessData as BusinessInfo);
 
-      console.log('🔍 DEBUG - useBusinessInfo - setting businessInfo to:', data);
-      setBusinessInfo(data as BusinessInfo);
+      // 2. ✅ Cargar Info Bancaria (Merchants)
+      const { data: merchantData, error: merchantError } = await (supabase as any)
+        .from("merchants")
+        .select("id, status, openpay_id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (merchantError && merchantError.code !== "PGRST116") {
+        console.error("Error fetching merchant info:", merchantError);
+      }
+      setMerchantInfo(merchantData);
     } catch (err) {
-      console.error('Error loading business info:', err);
-      setError('Error al cargar información del negocio');
+      console.error("Error loading info:", err);
+      setError("Error al cargar información");
     } finally {
       setLoading(false);
     }
@@ -47,43 +54,38 @@ export const useBusinessInfo = () => {
 
   const updateBusinessInfo = async (updates: Partial<BusinessInfo>) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Usuario no autenticado');
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error("Usuario no autenticado");
 
-      // Use any to bypass TypeScript issues with new table
-      const { error } = await (supabase as any)
-        .from('business_info')
-        .upsert({ 
-          user_id: user.id, 
-          ...updates 
-        }, { onConflict: 'user_id' });
+      const { error } = await (supabase as any).from("business_info").upsert(
+        {
+          user_id: user.id,
+          ...updates,
+        },
+        { onConflict: "user_id" },
+      );
 
       if (error) throw error;
 
-      // Recargar datos
       await loadBusinessInfo();
       return true;
     } catch (err) {
-      console.error('Error updating business info:', err);
-      setError('Error al actualizar información');
+      console.error("Error updating business info:", err);
+      setError("Error al actualizar información");
       return false;
     }
   };
 
-  const hasBusinessInfo = () => {
-    return businessInfo && businessInfo.business_name?.trim();
-  };
-
-  useEffect(() => {
-    loadBusinessInfo();
-  }, []);
-
   return {
     businessInfo,
+    merchantInfo, // ✅ Exportamos esto
     loading,
     error,
     loadBusinessInfo,
     updateBusinessInfo,
-    hasBusinessInfo: hasBusinessInfo()
+    hasBusinessInfo: !!(businessInfo && businessInfo.business_name?.trim()),
+    hasMerchantAccount: !!(merchantInfo && merchantInfo.openpay_id), // ✅ Helper útil
   };
 };
