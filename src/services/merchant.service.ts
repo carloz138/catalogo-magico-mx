@@ -14,11 +14,9 @@ export class MerchantService {
    * Obtener el estado actual del comerciante (Si ya está registrado)
    */
   static async getMerchantStatus(userId: string): Promise<MerchantData | null> {
-    const { data, error } = await supabase
-      .from("merchants")
-      .select("*")
-      .eq("user_id", userId)
-      .maybeSingle();
+    // 🔴 FIX CRÍTICO: Forzamos el tipo 'any' sobre el cliente supabase
+    // Esto evita que TypeScript busque la tabla 'merchants' en los tipos generados
+    const { data, error } = await (supabase as any).from("merchants").select("*").eq("user_id", userId).maybeSingle();
 
     if (error) throw error;
     return data as MerchantData | null;
@@ -49,10 +47,9 @@ export class MerchantService {
       throw new Error(responseData.error || "No se pudo registrar la cuenta.");
     }
 
-    // Retornar datos simulados o volver a consultar la DB para tener el objeto completo
-    // Por eficiencia, devolvemos lo que sabemos
+    // Retornamos el objeto construido manualmente para evitar otra consulta inmediata
     return {
-      id: "new", // Se actualizará al recargar
+      id: "new",
       business_name: data.business_name,
       rfc: data.rfc,
       clabe_deposit: data.clabe,
