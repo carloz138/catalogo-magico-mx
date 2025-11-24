@@ -36,6 +36,7 @@ import {
   ChevronRight,
   Radar,
   PackageSearch,
+  Landmark, // ✅ Nuevo Icono
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -91,6 +92,16 @@ const navigationItems: MenuItem[] = [
   { title: "Analytics", path: "/analytics", icon: BarChart3 },
   { title: "Facturación", path: "/checkout", icon: CreditCard },
   { title: "Guía de Inicio", path: "/onboarding", icon: PlayCircle },
+
+  // ✅ NUEVO ÍTEM: Datos Bancarios
+  {
+    title: "Datos Bancarios",
+    path: "/dashboard/banking",
+    icon: Landmark,
+    badge: "$", // Badge visual para llamar la atención
+    badgeColor: "bg-green-900/50 text-green-300 border-green-700/50",
+  },
+
   { title: "Configuración", path: "/business-info", icon: Settings },
 ];
 
@@ -119,6 +130,9 @@ export function AppSidebar() {
     const requiredFields = [businessInfo.business_name, businessInfo.phone, businessInfo.email];
     return requiredFields.some((field) => !field || field.trim() === "");
   };
+
+  // Nota: Aquí podríamos agregar en el futuro la validación de si ya configuró el banco
+  // const showBankingWarning = !merchantInfo?.openpay_id;
   const showBusinessWarning = isBusinessInfoIncomplete();
 
   const handleLogout = async () => {
@@ -256,10 +270,10 @@ export function AppSidebar() {
           <SidebarMenuItem>
             <div
               className={`
-                 flex items-center gap-3 p-2 rounded-xl cursor-pointer group transition-all duration-200
-                 hover:bg-white/5 border border-transparent hover:border-white/5
-                 ${isCollapsed ? "justify-center" : ""}
-              `}
+                  flex items-center gap-3 p-2 rounded-xl cursor-pointer group transition-all duration-200
+                  hover:bg-white/5 border border-transparent hover:border-white/5
+                  ${isCollapsed ? "justify-center" : ""}
+               `}
               onClick={() => navigate("/business-info")}
             >
               <Avatar className="h-9 w-9 rounded-lg border border-slate-700 shadow-sm group-hover:border-indigo-500/50 transition-colors">
