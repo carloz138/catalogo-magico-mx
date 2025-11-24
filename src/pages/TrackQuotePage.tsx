@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -15,14 +15,19 @@ import {
   Rocket,
   Package,
   Sparkles,
-  TrendingUp,
-  Zap,
   ChevronDown,
+  AlertCircle,
+  Truck,
+  CalendarDays,
+  CreditCard,
+  Copy,
+  Landmark,
 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { useToast } from "@/hooks/use-toast";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { QuoteTrackingService, TrackingQuoteData } from "@/services/quote-tracking.service";
 
 export default function TrackQuotePage() {
   const { token } = useParams();
@@ -30,41 +35,26 @@ export default function TrackQuotePage() {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const [quote, setQuote] = useState<any>(null);
+  const [quote, setQuote] = useState<TrackingQuoteData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [replicating, setReplicating] = useState(false);
   const [isCtaOpen, setIsCtaOpen] = useState(false);
 
+  // ✅ NUEVOS ESTADOS PARA PAGO
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentData, setPaymentData] = useState<{ clabe: string; bank: string; amount: number } | null>(null);
+
   useEffect(() => {
-    loadQuote();
+    if (token) loadQuote();
   }, [token]);
 
   const loadQuote = async () => {
     setLoading(true);
     try {
-      console.log("🔍 Cargando cotización con token:", token);
-
-      const { data, error } = await supabase.functions.invoke("get-quote-by-token", {
-        body: { tracking_token: token },
-      });
-
-      console.log("📊 Respuesta de Edge Function:", data);
-
-      if (error) {
-        console.error("❌ Error invocando función:", error);
-        throw error;
-      }
-
-      if (!data || !data.success) {
-        throw new Error(data?.error || "Error obteniendo cotización");
-      }
-
-      console.log("✅ Cotización cargada:", data.quote);
-      console.log("📦 Items recibidos:", data.quote.quote_items?.length || 0);
-      console.log("🔄 Catálogo replicado (borrador):", data.quote.replicated_catalogs);
-
-      setQuote(data.quote);
+      const data = await QuoteTrackingService.getQuoteByToken(token!);
+      setQuote(data as any);
     } catch (error: any) {
       console.error("❌ Error loading quote:", error);
       toast({
@@ -77,27 +67,76 @@ export default function TrackQuotePage() {
     }
   };
 
+  // --- 1. ACEPTAR COTIZACIÓN (Flujo Negociación) ---
+  const handleCustomerAccept = async () => {
+    if (!quote) return;
+    setActionLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("accept-quote-public", {
+        body: { token: token },
+      });
+
+      if (error) throw error;
+      if (!data.success) throw new Error(data.error || "Error al procesar aceptación");
+
+      toast({
+        title: "¡Pedido Confirmado!",
+        description: "Ahora puedes proceder al pago.",
+      });
+
+      await loadQuote();
+    } catch (error: any) {
+      console.error("Error accepting:", error);
+      toast({ title: "Error", description: "Hubo un problema al conectar.", variant: "destructive" });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // --- 2. GENERAR PAGO (Nuevo Flujo Financiero) ---
+  const handleGeneratePayment = async () => {
+    if (!quote) return;
+    setActionLoading(true);
+    try {
+      console.log("💸 Generando ficha de pago SPEI...");
+
+      // Llamar a la nueva Edge Function
+      const { data, error } = await supabase.functions.invoke("create-quote-payment", {
+        body: { quoteId: quote.id },
+      });
+
+      if (error) throw error;
+      if (data.error) throw new Error(data.error);
+
+      // Guardar datos y abrir modal
+      setPaymentData({
+        clabe: data.payment_method.clabe,
+        bank: data.payment_method.bank || "STP",
+        amount: data.amount,
+      });
+      setShowPaymentModal(true);
+
+      toast({
+        title: "Ficha Generada",
+        description: "Usa estos datos para realizar tu transferencia.",
+      });
+    } catch (error: any) {
+      console.error("Error payment:", error);
+      toast({ title: "Error", description: error.message || "No se pudo generar el pago.", variant: "destructive" });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const handleReplicate = async () => {
     if (!user) {
       setShowAuthModal(true);
       return;
     }
-
-    if (!quote) return;
-
-    if (!quote.replicated_catalogs) {
-      toast({
-        title: "Error",
-        description: "No hay un catálogo disponible para activar. Contacta al proveedor.",
-        variant: "destructive",
-      });
-      return;
-    }
+    if (!quote || !quote.replicated_catalogs) return;
 
     setReplicating(true);
     try {
-      console.log("🔄 Activando réplica existente:", quote.replicated_catalogs.id);
-
       const { error } = await supabase
         .from("replicated_catalogs")
         .update({
@@ -108,354 +147,326 @@ export default function TrackQuotePage() {
         .eq("id", quote.replicated_catalogs.id);
 
       if (error) throw error;
-
-      const { data: businessInfo } = await supabase
-        .from("business_info")
-        .select("business_name, phone")
-        .eq("user_id", user.id)
-        .single();
-
-      console.log("📋 Business info del usuario:", businessInfo);
-
-      const hasCompleteInfo = businessInfo && businessInfo.business_name && businessInfo.phone;
-
-      toast({
-        title: "🎉 ¡Catálogo activado exitosamente!",
-        description: hasCompleteInfo
-          ? "Redirigiendo a tus catálogos..."
-          : "Por favor completa tu información de negocio",
-      });
-
-      if (hasCompleteInfo) {
-        navigate("/catalogs");
-      } else {
-        navigate("/business-info?from=activation");
-      }
+      toast({ title: "🎉 ¡Catálogo activado!", description: "Redirigiendo..." });
+      navigate("/catalogs");
     } catch (error: any) {
-      console.error("❌ Error activando catálogo:", error);
-      toast({
-        title: "Error",
-        description: error.message || "No se pudo activar el catálogo",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: error.message, variant: "destructive" });
     } finally {
       setReplicating(false);
     }
   };
 
-  const formatVariant = (item: any) => {
-    if (!item.product_variants) return "";
-    const variant = item.product_variants;
-    const parts = [];
-    if (variant.size) parts.push(variant.size);
-    if (variant.color) parts.push(variant.color);
-    if (variant.material) parts.push(variant.material);
-    return parts.join(" / ");
+  // Helpers
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast({ title: "Copiado", description: "Dato copiado al portapapeles" });
   };
 
-  const getSku = (item: any) => {
-    return item.product_variants?.sku || item.products?.sku || "N/A";
+  const getDeliveryDateLabel = (dateStr?: string | null) => {
+    if (!dateStr) return "Por confirmar";
+    return format(new Date(dateStr), "EEEE d 'de' MMMM", { locale: es });
   };
 
-  const getProductName = (item: any) => {
-    return item.product_variants?.name || item.products?.name || "Producto";
-  };
-
-  const getProductImage = (item: any) => {
-    return item.product_variants?.image_url || item.products?.image_url;
-  };
-
-  if (loading) {
+  if (loading)
     return (
-      <div className="container mx-auto py-20 flex items-center justify-center min-h-screen">
+      <div className="container mx-auto py-20 flex justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-emerald-600" />
       </div>
     );
-  }
+  if (!quote) return <div className="container mx-auto py-20 text-center">Cotización no encontrada</div>;
 
-  if (!quote) {
-    return (
-      <div className="container mx-auto py-20 text-center min-h-screen flex flex-col items-center justify-center px-4">
-        <Package className="w-16 h-16 text-gray-400 mb-4" />
-        <h1 className="text-2xl font-bold mb-2">Cotización no encontrada</h1>
-        <p className="text-muted-foreground">Verifica el link que recibiste por email</p>
-      </div>
-    );
-  }
+  // Cálculos
+  const subtotal = quote.items.reduce((sum: number, item: any) => sum + (item.subtotal || 0), 0);
+  const shipping = quote.shipping_cost || 0;
+  const total = quote.total_amount || subtotal + shipping;
 
-  const total = quote.quote_items.reduce((sum: number, item: any) => sum + item.subtotal, 0);
-
-  const isQuoteAccepted = quote.status === "accepted";
-  const hasDistributionEnabled = quote.digital_catalogs?.enable_distribution;
-  const replicaExists = !!quote.replicated_catalogs;
-  const isReplicaActive = quote.replicated_catalogs?.is_active === true;
-
-  const canReplicate = isQuoteAccepted && hasDistributionEnabled && (!replicaExists || !isReplicaActive);
-
-  const alreadyReplicated = replicaExists && isReplicaActive;
-  const providerName =
-    quote.digital_catalogs?.users?.business_name ||
-    quote.digital_catalogs?.users?.full_name ||
-    quote.digital_catalogs?.name ||
-    "tu proveedor";
+  // Estados Lógicos
+  const isAccepted = quote.status === "accepted";
+  const isNegotiation = quote.status === "negotiation";
+  const isShipped = quote.status === "shipped";
+  const canReplicate = (isAccepted || isShipped) && quote.replicated_catalogs && !quote.replicated_catalogs.is_active;
 
   const statusConfig = {
-    pending: {
-      icon: Clock,
-      label: "Pendiente",
-      color: "bg-yellow-100 text-yellow-800 border-yellow-200",
+    pending: { icon: Clock, label: "En Revisión", color: "bg-gray-100 text-gray-800 border-gray-200" },
+    negotiation: {
+      icon: AlertCircle,
+      label: "Acción Requerida",
+      color: "bg-amber-100 text-amber-800 border-amber-200",
     },
     accepted: {
       icon: CheckCircle,
-      label: "Aceptada",
+      label: "Confirmada - Esperando Pago",
       color: "bg-emerald-100 text-emerald-800 border-emerald-200",
     },
-    rejected: {
-      icon: XCircle,
-      label: "Rechazada",
-      color: "bg-red-100 text-red-800 border-red-200",
-    },
+    rejected: { icon: XCircle, label: "Cancelada", color: "bg-red-100 text-red-800 border-red-200" },
+    shipped: { icon: Truck, label: "En Camino", color: "bg-blue-100 text-blue-800 border-blue-200" },
   };
 
-  const status = statusConfig[quote.status as keyof typeof statusConfig];
-  const StatusIcon = status.icon;
+  const statusInfo = statusConfig[quote.status] || statusConfig.pending;
+  const StatusIcon = statusInfo.icon;
+  const deliveryDate = (quote as any).estimated_delivery_date;
 
   return (
-    <div className="min-h-screen bg-white">
-      <div className="border-b border-gray-100 bg-white sticky top-0 z-10 shadow-sm">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Package className="w-6 h-6 text-emerald-600" />
-              <span className="font-semibold text-lg">Cotización #{quote.quote_number}</span>
-            </div>
-            <Badge className={`${status.color} border`}>
-              <StatusIcon className="w-4 h-4 mr-1" />
-              {status.label}
-            </Badge>
+    <div className="min-h-screen bg-slate-50">
+      {/* HEADER */}
+      <div className="bg-white border-b border-gray-200 sticky top-0 z-10 shadow-sm">
+        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Package className="w-5 h-5 text-emerald-600" />
+            <span className="font-semibold text-slate-900 hidden sm:inline">Cotización</span>
+            <span className="font-mono text-slate-500">#{quote.order_number}</span>
           </div>
+          <Badge className={`${statusInfo.color} border px-3 py-1`}>
+            <StatusIcon className="w-3.5 h-3.5 mr-1.5" />
+            {statusInfo.label}
+          </Badge>
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
-        <div className="text-center mb-12">
-          <h1 className="text-3xl font-bold mb-3">Seguimiento de tu Cotización</h1>
-          <p className="text-muted-foreground">Revisa los detalles y el estado de tu solicitud</p>
+      <div className="container mx-auto px-4 py-8 max-w-3xl">
+        {/* --- 1. BANNER NEGOCIACIÓN (ANTES DE ACEPTAR) --- */}
+        {isNegotiation && (
+          <Card className="mb-8 border-amber-200 bg-white shadow-lg overflow-hidden">
+            <div className="bg-amber-100 px-6 py-3 border-b border-amber-200 flex items-center gap-2">
+              <AlertCircle className="w-5 h-5 text-amber-700" />
+              <span className="font-bold text-amber-800">Actualización del Proveedor</span>
+            </div>
+            <CardContent className="p-6">
+              <div className="flex flex-col md:flex-row gap-6 items-center">
+                <div className="flex-1 space-y-3 text-center md:text-left">
+                  <p className="text-slate-600">Se han calculado los costos finales:</p>
+                  <div className="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-lg border border-slate-100">
+                    <div>
+                      <p className="text-xs text-slate-500 uppercase font-bold mb-1">Envío</p>
+                      <p className="text-lg font-semibold text-slate-900">${(shipping / 100).toFixed(2)}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-500 uppercase font-bold mb-1">Entrega</p>
+                      <p className="text-lg font-semibold text-slate-900">{getDeliveryDateLabel(deliveryDate)}</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="w-full md:w-auto text-center">
+                  <p className="text-xs text-slate-500 uppercase mb-2">Total a Pagar</p>
+                  <p className="text-3xl font-bold text-emerald-600 mb-4">${(total / 100).toLocaleString("es-MX")}</p>
+                  <Button
+                    onClick={handleCustomerAccept}
+                    disabled={actionLoading}
+                    size="lg"
+                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
+                  >
+                    {actionLoading ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : (
+                      <CheckCircle className="w-5 h-5 mr-2" />
+                    )}
+                    Aceptar y Confirmar
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* --- 2. BANNER PAGO (DESPUÉS DE ACEPTAR) --- */}
+        {isAccepted && (
+          <Card className="mb-8 border-indigo-200 bg-white shadow-lg overflow-hidden animate-in fade-in zoom-in duration-300">
+            <div className="bg-indigo-50 px-6 py-3 border-b border-indigo-100 flex items-center gap-2">
+              <CreditCard className="w-5 h-5 text-indigo-600" />
+              <span className="font-bold text-indigo-800">Pago Pendiente</span>
+            </div>
+            <CardContent className="p-6 flex flex-col md:flex-row items-center gap-6">
+              <div className="flex-1">
+                <h3 className="text-lg font-bold text-slate-900 mb-2">¡Todo listo para tu pedido!</h3>
+                <p className="text-slate-600 text-sm">
+                  Realiza tu pago vía transferencia SPEI para que comience el proceso de envío.
+                  <br />
+                  La confirmación es automática las 24 horas.
+                </p>
+              </div>
+              <div className="text-center">
+                <Button
+                  onClick={handleGeneratePayment}
+                  disabled={actionLoading}
+                  size="lg"
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-md w-full md:w-auto"
+                >
+                  {actionLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Landmark className="w-5 h-5 mr-2" />}
+                  Pagar con Transferencia
+                </Button>
+                <p className="text-xs text-slate-400 mt-2">Procesado seguro por Openpay (BBVA)</p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Header Info */}
+        <div className="text-center mb-8">
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-2">
+            Hola, {quote.customer_name.split(" ")[0]} 👋
+          </h1>
+          <p className="text-slate-500">
+            Detalle de solicitud con {quote.business_info?.business_name || "tu proveedor"}.
+          </p>
         </div>
 
+        {/* Oportunidad Replicación */}
         {canReplicate && (
           <Collapsible open={isCtaOpen} onOpenChange={setIsCtaOpen} className="mb-8">
             <CollapsibleTrigger className="w-full">
-              <Alert className="bg-gradient-to-r from-emerald-50 to-blue-50 border-2 border-emerald-300 hover:border-emerald-400 transition-all cursor-pointer">
+              <Alert className="bg-gradient-to-r from-emerald-50 to-blue-50 border border-emerald-200 hover:shadow-md transition-all cursor-pointer">
                 <Sparkles className="h-5 w-5 text-emerald-600" />
-                <AlertDescription className="flex items-center justify-between">
-                  <div className="text-left">
-                    <span className="font-semibold text-emerald-900">
-                      🎉 ¡Oportunidad! Este catálogo está disponible para distribución
-                    </span>
-                    <p className="text-sm text-emerald-700 mt-1">
-                      Haz clic para ver cómo puedes vender estos productos con tu marca
-                    </p>
+                <AlertDescription className="flex items-center justify-between w-full">
+                  <div className="text-left ml-2">
+                    <span className="font-semibold text-emerald-900 block">¿Quieres vender estos productos?</span>
+                    <span className="text-xs text-emerald-600">Haz clic para activar tu propio catálogo</span>
                   </div>
                   <ChevronDown
-                    className={`h-5 w-5 text-emerald-600 transition-transform ${isCtaOpen ? "rotate-180" : ""}`}
+                    className={`h-4 w-4 text-emerald-400 transition-transform ${isCtaOpen ? "rotate-180" : ""}`}
                   />
                 </AlertDescription>
               </Alert>
             </CollapsibleTrigger>
-
             <CollapsibleContent>
-              <Card className="mt-4 border-2 border-emerald-200 shadow-lg bg-gradient-to-br from-white to-emerald-50">
-                <CardHeader className="border-b border-emerald-100 bg-white/50">
-                  <div className="flex items-start gap-4">
-                    <div className="p-3 bg-emerald-100 rounded-lg">
-                      <Rocket className="w-6 h-6 text-emerald-600" />
-                    </div>
-                    <div className="flex-1">
-                      <CardTitle className="text-xl mb-2">Activa tu Catálogo Digital</CardTitle>
-                      <p className="text-sm text-muted-foreground">
-                        {providerName} te ofrece la oportunidad de revender estos productos
-                      </p>
-                    </div>
-                  </div>
-                </CardHeader>
-
-                <CardContent className="pt-6">
-                  <div className="grid md:grid-cols-3 gap-4 mb-6">
-                    <div className="flex items-start gap-3 p-4 bg-white rounded-lg border border-emerald-100">
-                      <TrendingUp className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-1" />
-                      <div>
-                        <h4 className="font-semibold text-sm mb-1">Genera Ingresos</h4>
-                        <p className="text-xs text-muted-foreground">
-                          Define tus propios precios y márgenes de ganancia
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-start gap-3 p-4 bg-white rounded-lg border border-emerald-100">
-                      <Zap className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-1" />
-                      <div>
-                        <h4 className="font-semibold text-sm mb-1">Sin Inventario</h4>
-                        <p className="text-xs text-muted-foreground">Vende sin preocuparte por stock o logística</p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-start gap-3 p-4 bg-white rounded-lg border border-emerald-100">
-                      <Sparkles className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-1" />
-                      <div>
-                        <h4 className="font-semibold text-sm mb-1">Tu Marca</h4>
-                        <p className="text-xs text-muted-foreground">Catálogo personalizado con tu identidad</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 mb-6">
-                    <h4 className="font-semibold text-sm mb-2 text-emerald-900">¿Cómo funciona?</h4>
-                    <ol className="text-sm space-y-2 text-emerald-800">
-                      <li className="flex items-start gap-2">
-                        <span className="font-bold">1.</span>
-                        <span>Activa el catálogo y personalízalo con tu marca</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <span className="font-bold">2.</span>
-                        <span>Comparte tu catálogo único con tus clientes</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <span className="font-bold">3.</span>
-                        <span>Recibe pedidos y coordina entregas con {providerName}</span>
-                      </li>
-                    </ol>
-                  </div>
-
-                  <Button
-                    onClick={handleReplicate}
-                    disabled={replicating}
-                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg hover:shadow-xl transition-all"
-                    size="lg"
-                  >
-                    {replicating ? (
-                      <>
-                        <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                        Activando catálogo...
-                      </>
-                    ) : (
-                      <>
-                        <Rocket className="w-5 h-5 mr-2" />
-                        Activar Catálogo Ahora
-                      </>
-                    )}
-                  </Button>
-
-                  <p className="text-xs text-center text-muted-foreground mt-4">
-                    Al activar, podrás gestionar precios, compartir tu catálogo y comenzar a vender
-                  </p>
-                </CardContent>
-              </Card>
+              <div className="p-4 bg-white border border-emerald-100 rounded-b-lg shadow-sm mt-[-1px]">
+                <Button onClick={handleReplicate} disabled={replicating} className="w-full bg-emerald-600">
+                  {replicating ? "Activando..." : "Activar mi Negocio Ahora"}
+                </Button>
+              </div>
             </CollapsibleContent>
           </Collapsible>
         )}
 
-        {alreadyReplicated && (
-          <Alert className="mb-8 bg-emerald-50 border-emerald-200">
-            <CheckCircle className="h-4 w-4 text-emerald-600" />
-            <AlertDescription className="text-emerald-800">
-              Ya tienes este catálogo activado. Puedes verlo en tu{" "}
-              <button onClick={() => navigate("/catalogs")} className="font-semibold underline hover:text-emerald-900">
-                panel de catálogos
-              </button>
-            </AlertDescription>
-          </Alert>
-        )}
-
-        <div id="quote-details">
-          <Card className="shadow-sm border border-gray-200">
-            <CardHeader className="border-b bg-gray-50">
-              <CardTitle className="text-xl">Detalles de la Cotización</CardTitle>
-            </CardHeader>
-
-            <CardContent className="pt-6">
-              <div className="grid md:grid-cols-2 gap-6 mb-6">
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Fecha de Solicitud</p>
-                  <p className="font-semibold">
-                    {format(new Date(quote.created_at), "d 'de' MMMM, yyyy", { locale: es })}
+        {/* Detalle Productos */}
+        <Card className="shadow-sm border-slate-200 overflow-hidden">
+          <CardHeader className="bg-slate-50 border-b border-slate-100 py-4">
+            <CardTitle className="text-base font-semibold flex justify-between items-center">
+              <span>Productos</span>
+              <span className="text-sm font-normal text-slate-500">{quote.items.length} ítems</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            {quote.items.map((item, index) => (
+              <div key={index} className="flex gap-4 p-4 border-b border-slate-50 last:border-0">
+                <div className="w-16 h-16 bg-slate-100 rounded-md flex-shrink-0 overflow-hidden border border-slate-100">
+                  {item.product_image_url ? (
+                    <img src={item.product_image_url} className="w-full h-full object-cover" />
+                  ) : (
+                    <Package className="w-full h-full p-4 text-slate-300" />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h4 className="font-medium text-slate-900 text-sm line-clamp-2">{item.product_name}</h4>
+                  <p className="text-xs text-slate-500 mt-1">
+                    {item.quantity} x ${(item.unit_price / 100).toFixed(2)}
                   </p>
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Catálogo</p>
-                  <p className="font-semibold">{quote.digital_catalogs?.name}</p>
+                <div className="text-right">
+                  <p className="font-semibold text-slate-900 text-sm">${(item.subtotal / 100).toFixed(2)}</p>
                 </div>
+              </div>
+            ))}
+
+            <div className="bg-slate-50/50 p-6 space-y-3">
+              <div className="flex justify-between text-sm text-slate-600">
+                <span>Subtotal</span>
+                <span>${(subtotal / 100).toFixed(2)}</span>
+              </div>
+              {(shipping > 0 || isNegotiation || isAccepted) && (
+                <div className="flex justify-between text-sm text-slate-800 font-medium">
+                  <span className="flex items-center gap-2">
+                    <Truck className="w-4 h-4 text-indigo-600" /> Envío
+                  </span>
+                  <span>{shipping > 0 ? `$${(shipping / 100).toFixed(2)}` : "Por confirmar"}</span>
+                </div>
+              )}
+              <div className="border-t border-slate-200 my-2 pt-3 flex justify-between items-end">
+                <span className="font-bold text-slate-900">Total</span>
+                <span className="text-2xl font-bold text-indigo-700">
+                  ${(total / 100).toLocaleString("es-MX", { minimumFractionDigits: 2 })}
+                </span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <div className="text-center mt-8 pb-10">
+          <p className="text-xs text-slate-400">Powered by CatifyPro • {format(new Date(), "yyyy")}</p>
+        </div>
+      </div>
+
+      {/* --- MODAL DE PAGO SPEI --- */}
+      <Dialog open={showPaymentModal} onOpenChange={setShowPaymentModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-center text-xl font-bold text-indigo-900">Datos de Transferencia</DialogTitle>
+            <DialogDescription className="text-center">
+              Realiza el pago exacto a la siguiente cuenta CLABE para confirmar tu pedido automáticamente.
+            </DialogDescription>
+          </DialogHeader>
+
+          {paymentData && (
+            <div className="space-y-6 py-4">
+              <div className="bg-indigo-50 p-4 rounded-lg border border-indigo-100 text-center space-y-1">
+                <p className="text-xs font-bold text-indigo-400 uppercase">Monto Exacto a Pagar</p>
+                <p className="text-3xl font-bold text-indigo-700">
+                  ${paymentData.amount.toLocaleString("es-MX", { minimumFractionDigits: 2 })}
+                </p>
+                <p className="text-xs text-indigo-500">MXN (Pesos Mexicanos)</p>
               </div>
 
               <div className="space-y-4">
-                <h3 className="font-semibold text-lg mb-4">Productos Cotizados</h3>
-                {quote.quote_items.map((item: any, index: number) => (
-                  <div
-                    key={index}
-                    className="flex gap-4 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-                  >
-                    {getProductImage(item) && (
-                      <img
-                        src={getProductImage(item)}
-                        alt={getProductName(item)}
-                        className="w-20 h-20 object-cover rounded-md flex-shrink-0"
-                      />
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-semibold mb-1">{getProductName(item)}</h4>
-                      <p className="text-sm text-muted-foreground mb-2">
-                        SKU: {getSku(item)}
-                        {formatVariant(item) && ` • ${formatVariant(item)}`}
-                      </p>
-                      <div className="flex items-center gap-4 text-sm">
-                        <span>Cantidad: {item.quantity}</span>
-                        <span>Precio: ${item.unit_price.toFixed(2)}</span>
-                        <span className="font-semibold">Subtotal: ${item.subtotal.toFixed(2)}</span>
-                      </div>
-                    </div>
+                <div className="flex items-center justify-between p-3 border rounded-md bg-white">
+                  <div>
+                    <p className="text-xs text-slate-500 uppercase">Banco Destino</p>
+                    <p className="font-semibold text-slate-900">{paymentData.bank}</p>
                   </div>
-                ))}
-              </div>
+                  <Landmark className="text-slate-300 h-5 w-5" />
+                </div>
 
-              <div className="mt-6 pt-6 border-t border-gray-200">
-                <div className="flex justify-between items-center">
-                  <span className="text-lg font-semibold">Total de la Cotización</span>
-                  <span className="text-2xl font-bold text-emerald-600">${total.toFixed(2)}</span>
+                <div className="space-y-1">
+                  <p className="text-xs text-slate-500 uppercase ml-1">CLABE Interbancaria (Única)</p>
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 p-3 bg-slate-100 rounded-md border border-slate-200 font-mono text-lg tracking-widest text-center font-bold text-slate-800">
+                      {paymentData.clabe}
+                    </div>
+                    <Button variant="outline" size="icon" onClick={() => copyToClipboard(paymentData.clabe)}>
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between p-3 border rounded-md bg-white">
+                  <div>
+                    <p className="text-xs text-slate-500 uppercase">Beneficiario</p>
+                    <p className="font-semibold text-slate-900 truncate max-w-[200px]">
+                      {quote?.business_info?.business_name || "CatifyPro"}
+                    </p>
+                  </div>
                 </div>
               </div>
 
-              {quote.notes && (
-                <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-                  <p className="text-sm text-muted-foreground mb-1">Notas</p>
-                  <p className="text-sm">{quote.notes}</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="text-center mt-12 py-8 border-t border-gray-100">
-          <p className="text-sm text-muted-foreground">
-            ¿Tienes dudas sobre tu cotización?{" "}
-            <a href="mailto:soporte@tuapp.com" className="text-emerald-600 hover:underline">
-              Contáctanos
-            </a>
-          </p>
-        </div>
-      </div>
+              <Alert className="bg-amber-50 text-amber-800 border-amber-200">
+                <AlertCircle className="h-4 w-4 text-amber-600" />
+                <AlertDescription className="text-xs">
+                  <strong>Importante:</strong> Esta CLABE es única para este pedido. El pago se reflejará en minutos.
+                </AlertDescription>
+              </Alert>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={showAuthModal} onOpenChange={setShowAuthModal}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Inicia sesión para continuar</DialogTitle>
-            <DialogDescription>Necesitas una cuenta para activar catálogos y comenzar a vender</DialogDescription>
+            <DialogTitle>Inicia sesión</DialogTitle>
+            <DialogDescription>Para activar este catálogo necesitas una cuenta.</DialogDescription>
           </DialogHeader>
-          <div className="flex flex-col gap-3 mt-4">
-            <Button onClick={() => navigate("/sign-in")} className="w-full">
-              Iniciar Sesión
-            </Button>
-            <Button onClick={() => navigate("/sign-up")} variant="outline" className="w-full">
-              Crear Cuenta Nueva
+          <div className="grid gap-2 mt-4">
+            <Button onClick={() => navigate("/sign-in")}>Ingresar</Button>
+            <Button variant="outline" onClick={() => navigate("/sign-up")}>
+              Registrarme
             </Button>
           </div>
         </DialogContent>
