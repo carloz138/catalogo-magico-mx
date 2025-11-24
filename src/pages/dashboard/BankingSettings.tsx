@@ -6,13 +6,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+// ✅ AQUÍ ESTABA EL ERROR: Faltaba importar Badge
+import { Badge } from "@/components/ui/badge";
 import { Loader2, Landmark, ShieldCheck, AlertCircle, CheckCircle2, Lock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export default function BankingSettings() {
   const { user } = useAuth();
   const { toast } = useToast();
-  
+
   const [merchant, setMerchant] = useState<MerchantData | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -41,24 +43,28 @@ export default function BankingSettings() {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Validaciones básicas
     if (formData.clabe.length !== 18 || isNaN(Number(formData.clabe))) {
       toast({
         title: "CLABE Inválida",
         description: "La CLABE debe tener exactamente 18 dígitos numéricos.",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
 
     if (formData.business_name.length < 3) {
-      toast({ title: "Nombre requerido", description: "Ingresa el nombre del titular de la cuenta.", variant: "destructive" });
+      toast({
+        title: "Nombre requerido",
+        description: "Ingresa el nombre del titular de la cuenta.",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -75,15 +81,14 @@ export default function BankingSettings() {
         title: "✅ ¡Cuenta Vinculada!",
         description: "Ahora puedes recibir pagos de tus clientes directamente.",
       });
-      
+
       // Recargar datos
       loadMerchantData();
-
     } catch (error: any) {
       toast({
         title: "Error de Registro",
         description: error.message,
-        variant: "destructive"
+        variant: "destructive",
       });
     } finally {
       setSubmitting(false);
@@ -91,7 +96,11 @@ export default function BankingSettings() {
   };
 
   if (loading) {
-    return <div className="flex justify-center p-10"><Loader2 className="h-8 w-8 animate-spin text-indigo-600" /></div>;
+    return (
+      <div className="flex justify-center p-10">
+        <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+      </div>
+    );
   }
 
   return (
@@ -101,9 +110,7 @@ export default function BankingSettings() {
           <Landmark className="h-6 w-6 text-indigo-600" />
           Configuración de Pagos
         </h1>
-        <p className="text-slate-500 mt-1">
-          Administra dónde recibes el dinero de tus ventas.
-        </p>
+        <p className="text-slate-500 mt-1">Administra dónde recibes el dinero de tus ventas.</p>
       </div>
 
       {merchant ? (
@@ -114,9 +121,7 @@ export default function BankingSettings() {
               <ShieldCheck className="h-5 w-5" />
               Cuenta Bancaria Activa
             </CardTitle>
-            <CardDescription>
-              Tus datos están validados y listos para recibir depósitos vía SPEI.
-            </CardDescription>
+            <CardDescription>Tus datos están validados y listos para recibir depósitos vía SPEI.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="bg-white p-4 rounded-lg border border-green-100 shadow-sm">
@@ -143,12 +148,13 @@ export default function BankingSettings() {
                 </div>
               </div>
             </div>
-            
+
             <Alert className="bg-blue-50 border-blue-100 text-blue-800">
               <AlertCircle className="h-4 w-4 text-blue-600" />
               <AlertTitle className="text-sm font-semibold">Información Importante</AlertTitle>
               <AlertDescription className="text-xs mt-1">
-                Los pagos de tus clientes se procesan automáticamente. Los fondos se transfieren a esta cuenta una vez confirmada la transacción.
+                Los pagos de tus clientes se procesan automáticamente. Los fondos se transfieren a esta cuenta una vez
+                confirmada la transacción.
               </AlertDescription>
             </Alert>
           </CardContent>
@@ -165,18 +171,18 @@ export default function BankingSettings() {
             <CardHeader>
               <CardTitle>Vincular Cuenta Bancaria</CardTitle>
               <CardDescription>
-                Ingresa los datos donde quieres recibir tus ganancias. Usamos Openpay (BBVA) para procesar los pagos de forma segura.
+                Ingresa los datos donde quieres recibir tus ganancias. Usamos Openpay (BBVA) para procesar los pagos de
+                forma segura.
               </CardDescription>
             </CardHeader>
             <form onSubmit={handleSubmit}>
               <CardContent className="space-y-4">
-                
                 <div className="space-y-2">
                   <Label htmlFor="business_name">Nombre del Titular / Razón Social</Label>
-                  <Input 
-                    id="business_name" 
+                  <Input
+                    id="business_name"
                     name="business_name"
-                    placeholder="Ej. Juan Pérez o Empresa S.A. de C.V." 
+                    placeholder="Ej. Juan Pérez o Empresa S.A. de C.V."
                     value={formData.business_name}
                     onChange={handleInputChange}
                     required
@@ -185,10 +191,10 @@ export default function BankingSettings() {
 
                 <div className="space-y-2">
                   <Label htmlFor="rfc">RFC (Opcional)</Label>
-                  <Input 
-                    id="rfc" 
+                  <Input
+                    id="rfc"
                     name="rfc"
-                    placeholder="XAXX010101000" 
+                    placeholder="XAXX010101000"
                     value={formData.rfc}
                     onChange={handleInputChange}
                     className="uppercase"
@@ -199,19 +205,19 @@ export default function BankingSettings() {
                   <Label htmlFor="clabe">CLABE Interbancaria (18 dígitos)</Label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-                    <Input 
-                      id="clabe" 
+                    <Input
+                      id="clabe"
                       name="clabe"
-                      type="text" 
+                      type="text"
                       inputMode="numeric"
                       maxLength={18}
-                      placeholder="012180015555555555" 
+                      placeholder="012180015555555555"
                       className="pl-9 font-mono"
                       value={formData.clabe}
                       onChange={(e) => {
                         // Solo permitir números
-                        const val = e.target.value.replace(/\D/g, '');
-                        setFormData(prev => ({ ...prev, clabe: val }));
+                        const val = e.target.value.replace(/\D/g, "");
+                        setFormData((prev) => ({ ...prev, clabe: val }));
                       }}
                       required
                     />
@@ -224,10 +230,10 @@ export default function BankingSettings() {
                 <Alert className="bg-slate-50 border-slate-200">
                   <ShieldCheck className="h-4 w-4 text-indigo-600" />
                   <AlertDescription className="text-xs text-slate-600">
-                    Tus datos bancarios se envían encriptados directamente a nuestro procesador de pagos. No almacenamos información sensible sin protección.
+                    Tus datos bancarios se envían encriptados directamente a nuestro procesador de pagos. No almacenamos
+                    información sensible sin protección.
                   </AlertDescription>
                 </Alert>
-
               </CardContent>
               <CardFooter>
                 <Button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700" disabled={submitting}>
