@@ -1,9 +1,11 @@
 import { supabase } from "@/integrations/supabase/client";
 
+// ✅ INTERFAZ ACTUALIZADA CON TODOS LOS CAMPOS NUEVOS
 export interface TrackingQuoteData {
   id: string;
   order_number: string;
-  status: "pending" | "accepted" | "rejected" | "shipped";
+  // Agregamos 'negotiation' al estado
+  status: "pending" | "negotiation" | "accepted" | "rejected" | "shipped";
   created_at: string;
   updated_at: string;
 
@@ -26,8 +28,10 @@ export interface TrackingQuoteData {
     price_type: string;
   }>;
 
-  // Total
-  total: number;
+  // ✅ NUEVOS CAMPOS FINANCIEROS Y LOGÍSTICOS
+  shipping_cost: number;
+  total_amount: number;
+  estimated_delivery_date?: string | null;
 
   // Catálogo info
   catalog: {
@@ -41,6 +45,12 @@ export interface TrackingQuoteData {
     phone: string | null;
     email: string | null;
     logo_url: string | null;
+  } | null;
+
+  // ✅ NUEVO: Información de Replicación (para saber si ya se activó)
+  replicated_catalogs?: {
+    id: string;
+    is_active: boolean;
   } | null;
 }
 
@@ -76,7 +86,7 @@ export class QuoteTrackingService {
       .update({ last_accessed_at: new Date().toISOString() })
       .eq("token", token);
 
-    // 3. Obtener cotización completa
+    // 3. Obtener cotización completa con los nuevos campos
     const { data: quote, error: quoteError } = await supabase
       .from("quotes")
       .select(
@@ -93,6 +103,10 @@ export class QuoteTrackingService {
         notes,
         catalog_id,
         user_id,
+        shipping_cost,
+        total_amount,
+        estimated_delivery_date,
+        replicated_catalogs (id, is_active),
         quote_items (
           id,
           product_name,
@@ -137,14 +151,22 @@ export class QuoteTrackingService {
       business_info = businessData;
     }
 
-    // 6. Calcular total
+    // 6. Calcular totales de respaldo
+    // (Por si total_amount es 0 en registros viejos)
     const items = (quote as any).quote_items || [];
-    const total = items.reduce((sum: number, item: any) => sum + (item.subtotal || 0), 0);
+    const itemsSubtotal = items.reduce((sum: number, item: any) => sum + (item.subtotal || 0), 0);
+    const shipping = quote.shipping_cost || 0;
+    const total = quote.total_amount || itemsSubtotal + shipping;
+
+    // Manejo seguro de replicated_catalogs (puede ser array u objeto según Supabase client config)
+    const replicaData = Array.isArray(quote.replicated_catalogs)
+      ? quote.replicated_catalogs[0]
+      : quote.replicated_catalogs;
 
     return {
       id: quote.id,
       order_number: quote.order_number,
-      status: quote.status as "pending" | "accepted" | "rejected" | "shipped",
+      status: quote.status as any, // Casting seguro ya que actualizamos el type arriba
       created_at: quote.created_at,
       updated_at: quote.updated_at,
       customer_name: quote.customer_name,
@@ -153,9 +175,12 @@ export class QuoteTrackingService {
       customer_company: quote.customer_company,
       notes: quote.notes,
       items,
-      total,
+      shipping_cost: shipping,
+      total_amount: total,
+      estimated_delivery_date: quote.estimated_delivery_date,
       catalog,
       business_info,
+      replicated_catalogs: replicaData,
     };
   }
 
@@ -163,10 +188,8 @@ export class QuoteTrackingService {
    * Buscar cotización por order_number (público)
    */
   static async searchByOrderNumber(orderNumber: string): Promise<string | null> {
-    // Limpiar el input (remover espacios, guiones extras, convertir a mayúsculas)
     const cleanOrderNumber = orderNumber.trim().toUpperCase().replace(/\s+/g, "");
 
-    // Buscar la cotización
     const { data: quote } = await supabase
       .from("quotes")
       .select("id")
@@ -177,7 +200,6 @@ export class QuoteTrackingService {
       return null;
     }
 
-    // Obtener el token de tracking
     const { data: trackingToken } = await supabase
       .from("quote_tracking_tokens")
       .select("token")
@@ -201,6 +223,6 @@ export class QuoteTrackingService {
       throw new Error("No se encontró token de tracking");
     }
 
-    return `${window.location.origin}/tracking/${trackingToken.token}`;
+    return `${window.location.origin}/track/${trackingToken.token}`;
   }
 }
