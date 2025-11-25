@@ -1,7 +1,6 @@
 // ==========================================
-// FUNCION: get-quote-by-token (DUAL MODE)
-// DESCRIPCIÓN: Soporta tokens de Tracking (trck_) y Activación
-// ESTADO: FIX_V6 (Soporte Dual Real + HASH)
+// FUNCION: get-quote-by-token (FASE C - FIX AMBIGÜEDAD)
+// ESTADO: FIX_V7 (Relación explícita corregida)
 // ==========================================
 import { createClient } from 'jsr:@supabase/supabase-js@2.49.8';
 
@@ -49,10 +48,7 @@ Deno.serve(async (req) => {
     let quoteId = null;
     let replicaData = null;
 
-    // --- ESTRATEGIA DUAL DE BÚSQUEDA ---
-
-    // 1. Intento A: ¿Es un Token de TRACKING? (Tabla quote_tracking_tokens)
-    // Los tokens de tracking suelen empezar con "trck_" o ser UUIDs en tu sistema
+    // 1. Intento A: Tracking
     const { data: trackingData } = await supabaseAdmin
         .from('quote_tracking_tokens')
         .select('quote_id')
@@ -63,8 +59,7 @@ Deno.serve(async (req) => {
         console.log("✅ Es un Token de Tracking válido.");
         quoteId = trackingData.quote_id;
     } else {
-        // 2. Intento B: ¿Es un Token de ACTIVACIÓN? (Tabla replicated_catalogs)
-        console.log("⚠️ No es tracking, buscando en Activación...");
+        // 2. Intento B: Activación
         const { data: activationData } = await supabaseAdmin
             .from('replicated_catalogs')
             .select('id, quote_id, is_active')
@@ -73,45 +68,41 @@ Deno.serve(async (req) => {
 
         if (activationData) {
             console.log("✅ Es un Token de Activación válido.");
-            // Validación extra solo si es activación
-            if (activationData.is_active) {
-                 console.warn("ℹ️ Nota: Este catálogo ya fue activado, pero mostramos la cotización.");
-            }
             quoteId = activationData.quote_id;
             replicaData = activationData;
         }
     }
 
-    // 3. Si fallaron ambos intentos
     if (!quoteId) {
-        console.error('❌ Token no encontrado en ninguna tabla.');
         throw new Error('Link inválido o expirado.');
     }
 
-    // 4. Buscar la Cotización Completa
+    // 3. Buscar Cotización (FIX: Relación Explícita)
+    // Usamos !replicated_catalogs_quote_id_fkey para decirle a Supabase cuál relación usar
     const { data: quote, error: quoteError } = await supabaseAdmin.from('quotes').select(`
         *,
         quote_items (*),
         digital_catalogs (
           id, name, enable_distribution, user_id
         ),
-        replicated_catalogs (id, is_active) 
+        replicated_catalogs!replicated_catalogs_quote_id_fkey (id, is_active) 
       `).eq('id', quoteId).single(); 
 
-    if (quoteError) throw quoteError;
+    if (quoteError) {
+        console.error("❌ Error al obtener cotización:", quoteError);
+        throw quoteError;
+    }
     
-    // 5. Datos Extra (Owner Info)
+    // 4. Datos Extra
     let businessInfo = null;
     if (quote.digital_catalogs?.user_id) {
       businessInfo = await getOwnerData(supabaseAdmin, quote.digital_catalogs.user_id);
     }
     
-    // Ensamblar respuesta
     if (quote.digital_catalogs) {
       quote.digital_catalogs.users = businessInfo;
     }
     
-    // Si encontramos data de replica específica por token, la usamos, si no, la que venga de la relación
     if (replicaData) {
         quote.replicated_catalogs = replicaData;
     } else if (Array.isArray(quote.replicated_catalogs)) {
