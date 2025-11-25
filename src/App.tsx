@@ -57,9 +57,10 @@ import ProductPriceEditor from "@/pages/reseller/ProductPriceEditor";
 import ConsolidateOrderPage from "@/pages/reseller/ConsolidateOrderPage";
 import ConsolidatedOrdersListPage from "@/pages/reseller/ConsolidatedOrdersListPage";
 import MarketRadar from "@/pages/MarketRadar";
-
-// ✅ NUEVA PÁGINA DE PAGOS
 import BankingSettings from "@/pages/dashboard/BankingSettings";
+
+// ✅ NUEVA PÁGINA DE PEDIDOS
+import OrdersPage from "@/pages/orders/index";
 
 const queryClient = new QueryClient();
 
@@ -91,9 +92,7 @@ const App = () => (
                 />
 
                 {/* Rutas de Activación y Tracking */}
-                {/* <Route path="/activar/:token" element={<ActivateCatalog />} /> */}
                 <Route path="/track" element={<ActivateCatalog />} />
-
                 <Route path="/blog" element={<Blog />} />
                 <Route path="/blog/:slug" element={<BlogPost />} />
                 <Route path="/tracking/:token" element={<QuoteTracking />} />
@@ -114,24 +113,32 @@ const App = () => (
                     <Route path="/catalogs" element={<Catalogs />} />
                     <Route path="/catalogs/new" element={<DigitalCatalogForm />} />
                     <Route path="/catalogs/:id/edit" element={<DigitalCatalogForm />} />
+
+                    {/* Ventas */}
                     <Route path="/quotes" element={<QuotesPage />} />
                     <Route path="/quotes/:id" element={<QuoteDetailPage />} />
+
+                    {/* ✅ NUEVA RUTA DE LOGÍSTICA */}
+                    <Route path="/orders" element={<OrdersPage />} />
+
+                    {/* Red y Revendedores */}
                     <Route path="/market-radar" element={<MarketRadar />} />
                     <Route path="/network" element={<DistributionNetwork />} />
                     <Route path="/dashboard/reseller" element={<ResellerDashboard />} />
                     <Route path="/reseller/edit-prices" element={<ProductPriceEditor />} />
                     <Route path="/reseller/consolidated-orders" element={<ConsolidatedOrdersListPage />} />
                     <Route path="/reseller/consolidate/:supplierId" element={<ConsolidateOrderPage />} />
+
+                    {/* Configuración y Pagos */}
                     <Route path="/complete-activation" element={<CompleteActivation />} />
                     <Route path="/business-info" element={<BusinessInfoPage />} />
                     <Route path="/settings/business" element={<BusinessInfoSettings />} />
+                    <Route path="/dashboard/banking" element={<BankingSettings />} />
+
                     <Route path="/onboarding" element={<OnboardingPage />} />
                     <Route path="/checkout" element={<Checkout />} />
                     <Route path="/payment-success" element={<PaymentSuccess />} />
                     <Route path="/payment-instructions/:transactionId" element={<PaymentInstructions />} />
-
-                    {/* ✅ RUTA AGREGADA PARA CONFIGURACIÓN BANCARIA */}
-                    <Route path="/dashboard/banking" element={<BankingSettings />} />
                   </Route>
                 </Route>
 
