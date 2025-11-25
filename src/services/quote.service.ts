@@ -10,7 +10,6 @@ interface CreateQuoteResponse {
 export class QuoteService {
   /**
    * Crear cotización (desde vista pública - cliente anónimo).
-   * Llama a la Edge Function 'create-quote'.
    */
   static async createQuote(quoteData: CreateQuoteDTO & { replicated_catalog_id?: string }): Promise<Quote> {
     console.log("🔍 DEBUG - Usando Edge Function para crear cotización");
@@ -47,7 +46,7 @@ export class QuoteService {
   }
 
   /**
-   * Obtener lista de cotizaciones del usuario.
+   * ✅ ACTUALIZADO: Obtener lista de cotizaciones INCLUYENDO el estatus de pago.
    */
   static async getUserQuotes(
     userId: string,
@@ -66,19 +65,22 @@ export class QuoteService {
         has_replicated_catalog: boolean;
         is_from_replicated: boolean;
         catalog_name?: string;
+        payment_status?: string; // ✅ Nuevo campo en la interfaz de retorno
       }
     >
   > {
+    // Query Base Común (Incluye payment_transactions)
+    const selectQuery = `
+        *,
+        quote_items (count),
+        digital_catalogs (name, enable_distribution),
+        payment_transactions (status)
+    `;
+
     // 1. Cotizaciones Propias (L1)
     let ownQuery = supabase
       .from("quotes")
-      .select(
-        `
-        *,
-        quote_items (count),
-        digital_catalogs (name, enable_distribution)
-      `,
-      )
+      .select(selectQuery)
       .eq("user_id", userId)
       .is("replicated_catalog_id", null)
       .order("created_at", { ascending: false });
@@ -86,13 +88,7 @@ export class QuoteService {
     // 2. Cotizaciones de Revendedor (L2)
     let replicatedQuery = supabase
       .from("quotes")
-      .select(
-        `
-        *,
-        quote_items (count),
-        digital_catalogs (name, enable_distribution)
-      `,
-      )
+      .select(selectQuery)
       .eq("user_id", userId)
       .not("replicated_catalog_id", "is", null)
       .order("created_at", { ascending: false });
@@ -125,22 +121,34 @@ export class QuoteService {
     if (ownResult.error) throw ownResult.error;
     if (replicatedResult.error) throw replicatedResult.error;
 
-    // Procesar resultados
-    const ownQuotes = (ownResult.data || []).map((quote: any) => ({
-      ...quote,
-      items_count: quote.quote_items?.[0]?.count || 0,
-      has_replicated_catalog: false,
-      is_from_replicated: false,
-      catalog_name: quote.digital_catalogs?.name,
-    }));
+    // Procesar resultados con Payment Status
+    const ownQuotes = (ownResult.data || []).map((quote: any) => {
+      // ✅ Lógica para extraer estatus de pago
+      const paymentStatus = quote.payment_transactions?.[0]?.status || "unpaid";
 
-    const replicatedQuotes = (replicatedResult.data || []).map((quote: any) => ({
-      ...quote,
-      items_count: quote.quote_items?.[0]?.count || 0,
-      has_replicated_catalog: false,
-      is_from_replicated: true,
-      catalog_name: quote.digital_catalogs?.name,
-    }));
+      return {
+        ...quote,
+        items_count: quote.quote_items?.[0]?.count || 0,
+        has_replicated_catalog: false,
+        is_from_replicated: false,
+        catalog_name: quote.digital_catalogs?.name,
+        payment_status: paymentStatus, // ✅ Asignación
+      };
+    });
+
+    const replicatedQuotes = (replicatedResult.data || []).map((quote: any) => {
+      // ✅ Lógica para extraer estatus de pago
+      const paymentStatus = quote.payment_transactions?.[0]?.status || "unpaid";
+
+      return {
+        ...quote,
+        items_count: quote.quote_items?.[0]?.count || 0,
+        has_replicated_catalog: false,
+        is_from_replicated: true,
+        catalog_name: quote.digital_catalogs?.name,
+        payment_status: paymentStatus, // ✅ Asignación
+      };
+    });
 
     const allQuotes = [...ownQuotes, ...replicatedQuotes].sort(
       (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
@@ -164,22 +172,16 @@ export class QuoteService {
       }),
     );
 
-    // Casting seguro para el array de retorno
-    return quotesWithMetadata as unknown as Array<
-      Quote & {
-        items_count: number;
-        total_amount: number;
-        has_replicated_catalog: boolean;
-        is_from_replicated: boolean;
-        catalog_name?: string;
-      }
-    >;
+    return quotesWithMetadata as any;
   }
 
   /**
-   * Obtener detalle completo de cotización
+   * ✅ ACTUALIZADO: Obtener detalle completo de cotización + Transacciones de Pago
    */
-  static async getQuoteDetail(quoteId: string, userId: string): Promise<Quote & { items: QuoteItem[]; catalog: any }> {
+  static async getQuoteDetail(
+    quoteId: string,
+    userId: string,
+  ): Promise<Quote & { items: QuoteItem[]; catalog: any; payment_transactions?: any[] }> {
     const { data: quote, error: quoteError } = await supabase
       .from("quotes")
       .select(
@@ -187,6 +189,9 @@ export class QuoteService {
         *,
         digital_catalogs (
           id, name, slug, enable_distribution, enable_quotation
+        ),
+        payment_transactions (
+          id, status, amount_total, created_at
         )
       `,
       )
@@ -250,18 +255,15 @@ export class QuoteService {
       }));
     }
 
-    // 🔴 SOLUCIÓN 1: Casting explícito aquí
     return {
       ...quote,
       items: enrichedItems,
       catalog: quote.digital_catalogs,
-    } as unknown as Quote & { items: QuoteItem[]; catalog: any };
+    } as any;
   }
 
   /**
-/**
-   * ✅ ACTUALIZADO: Actualizar costo, FECHA y pasar a negociación.
-   * Además dispara el email de "send-quote-update".
+   * Actualizar costo, FECHA y pasar a negociación.
    */
   static async updateShippingAndNegotiate(
     quoteId: string,
@@ -278,7 +280,7 @@ export class QuoteService {
       .update({
         shipping_cost: shippingCost,
         total_amount: newTotal,
-        estimated_delivery_date: deliveryDate, // Guardamos la fecha
+        estimated_delivery_date: deliveryDate,
         status: "negotiation",
       })
       .eq("id", quoteId)
@@ -303,6 +305,7 @@ export class QuoteService {
 
     return data as unknown as Quote;
   }
+
   /**
    * Actualizar estado general.
    */
@@ -345,7 +348,6 @@ export class QuoteService {
       }
     }
 
-    // 🔴 SOLUCIÓN 3: Casting porque faltan los items en el objeto de retorno
     return updatedQuote as unknown as Quote;
   }
 
@@ -394,7 +396,6 @@ export class QuoteService {
 
     if (error) throw error;
 
-    // 🔴 SOLUCIÓN 4: Casting para el array
     return (data || []) as unknown as Quote[];
   }
 }
