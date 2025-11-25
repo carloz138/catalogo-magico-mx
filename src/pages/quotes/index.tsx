@@ -4,17 +4,8 @@ import { useQuotes } from "@/hooks/useQuotes";
 import { QuoteStatus } from "@/types/digital-catalog";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   Loader2,
   Search,
@@ -27,11 +18,11 @@ import {
   Rocket,
   Sparkles,
   PackagePlus,
-  MoreHorizontal,
-  Share2, // <--- ¡AQUÍ ESTÁ LA CORRECCIÓN! Importamos Share2
-  TrendingUp,
+  Share2,
   DollarSign,
   Calendar,
+  AlertCircle,
+  ExternalLink,
 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -40,16 +31,25 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/contexts/RoleContext";
 
-// --- COMPONENTES AUXILIARES DE UI (Prime Design) ---
+// ✅ COMPONENTE AUXILIAR MEJORADO: Badge de Estado con Lógica de Pago
+const StatusBadge = ({ status, isPaid }: { status: QuoteStatus; isPaid?: boolean }) => {
+  // Lógica especial para Pago Recibido
+  if (status === "accepted" && isPaid) {
+    return (
+      <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold w-fit bg-emerald-100 text-emerald-700 border border-emerald-200">
+        <DollarSign className="w-3.5 h-3.5" />
+        ¡PAGO RECIBIDO!
+      </div>
+    );
+  }
 
-// Badge de estado ultra-limpio
-const StatusBadge = ({ status }: { status: QuoteStatus }) => {
   const config = {
-    pending: { label: "Pendiente", bg: "bg-amber-50", text: "text-amber-700", icon: Clock },
-    accepted: { label: "Aceptada", bg: "bg-emerald-50", text: "text-emerald-700", icon: CheckCircle2 },
+    pending: { label: "Solicitud Nueva", bg: "bg-slate-100", text: "text-slate-600", icon: Clock },
+    negotiation: { label: "Enviada al Cliente", bg: "bg-blue-100", text: "text-blue-700", icon: ExternalLink }, // Nuevo
+    accepted: { label: "Esperando Pago", bg: "bg-amber-100", text: "text-amber-700", icon: Clock }, // Cambio de texto
     rejected: { label: "Rechazada", bg: "bg-rose-50", text: "text-rose-700", icon: XCircle },
-    sent: { label: "Enviado", bg: "bg-blue-50", text: "text-blue-700", icon: Package }, // Fallback
-  }[status] || { label: "Enviado", bg: "bg-blue-50", text: "text-blue-700", icon: Package };
+    shipped: { label: "Enviado / Cerrado", bg: "bg-purple-100", text: "text-purple-700", icon: Package },
+  }[status] || { label: status, bg: "bg-gray-50", text: "text-gray-500", icon: Package };
 
   const Icon = config.icon;
 
@@ -83,7 +83,10 @@ export default function QuotesPage() {
   // --- LÓGICA DE NEGOCIO (INTACTA) ---
   const acceptedQuotesForConsolidation = useMemo(() => {
     if (userRole !== "L2" && userRole !== "BOTH") return null;
-    const acceptedQuotes = quotes.filter((q) => q.status === "accepted" && (q as any).is_from_replicated);
+    // Filtramos solo las PAGADAS para consolidar
+    const acceptedQuotes = quotes.filter(
+      (q) => q.status === "accepted" && (q as any).payment_status === "paid" && (q as any).is_from_replicated,
+    );
     if (acceptedQuotes.length === 0) return null;
     const totalProducts = acceptedQuotes.reduce((sum, q) => sum + q.items_count, 0);
     return { totalQuotes: acceptedQuotes.length, totalProducts };
@@ -97,6 +100,7 @@ export default function QuotesPage() {
   const highlightQuoteId = searchParams.get("highlight");
 
   const filteredQuotes = quotes.filter((quote) => {
+    if (statusFilter !== "all" && quote.status !== statusFilter) return false;
     if (!searchQuery) return true;
     const query = searchQuery.toLowerCase();
     return (
@@ -173,7 +177,7 @@ export default function QuotesPage() {
             <p className="text-slate-500 mt-1">Gestiona el flujo comercial y cierra ventas.</p>
           </div>
 
-          {/* KPI Cards Minimalistas */}
+          {/* KPI Cards */}
           <div className="flex gap-3 overflow-x-auto pb-2 md:pb-0 no-scrollbar">
             <div className="bg-white border border-slate-200 rounded-xl px-5 py-3 shadow-sm min-w-[160px] flex flex-col">
               <div className="flex items-center gap-2 mb-1 text-xs font-semibold text-slate-400 uppercase tracking-wider">
@@ -184,7 +188,7 @@ export default function QuotesPage() {
 
             <div className="bg-white border border-slate-200 rounded-xl px-5 py-3 shadow-sm min-w-[160px] flex flex-col">
               <div className="flex items-center gap-2 mb-1 text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                <CheckCircle2 className="w-3.5 h-3.5" /> Aceptadas
+                <CheckCircle2 className="w-3.5 h-3.5" /> Confirmadas
               </div>
               <span className="text-2xl font-bold text-emerald-600">{stats.accepted}</span>
             </div>
@@ -287,20 +291,13 @@ export default function QuotesPage() {
                       : "bg-white text-slate-500 hover:bg-slate-50 border border-slate-200"
                   }`}
                 >
-                  {
-                    {
-                      all: "Todos",
-                      pending: "Pendientes",
-                      accepted: "Aceptadas",
-                      rejected: "Rechazadas",
-                    }[status]
-                  }
+                  {{ all: "Todos", pending: "Pendientes", accepted: "Confirmadas", rejected: "Rechazadas" }[status]}
                 </button>
               ))}
             </div>
           </div>
 
-          {/* TABLA DE DATOS (Desktop) / TARJETAS (Mobile) */}
+          {/* TABLA DE DATOS */}
           {filteredQuotes.length === 0 ? (
             <div className="text-center py-24">
               <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -327,6 +324,7 @@ export default function QuotesPage() {
 
               {filteredQuotes.map((quote) => {
                 const isHighlighted = quote.id === highlightQuoteId;
+                const isPaid = (quote as any).payment_status === "paid";
                 const canActivate =
                   quote.status === "accepted" && quote.has_replicated_catalog && !quote.catalog_activated;
 
@@ -337,7 +335,7 @@ export default function QuotesPage() {
                     onClick={() => navigate(`/quotes/${quote.id}`)}
                     className={`group relative md:grid md:grid-cols-12 md:gap-4 p-4 md:px-6 md:py-4 items-center hover:bg-slate-50 transition-colors cursor-pointer ${isHighlighted ? "bg-indigo-50/50" : ""}`}
                   >
-                    {/* Mobile Layout: Card Style */}
+                    {/* Mobile Layout */}
                     <div className="md:hidden flex justify-between items-start mb-3">
                       <div className="flex items-center gap-3">
                         <div className="h-10 w-10 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-sm">
@@ -350,7 +348,7 @@ export default function QuotesPage() {
                           </p>
                         </div>
                       </div>
-                      <StatusBadge status={quote.status} />
+                      <StatusBadge status={quote.status} isPaid={isPaid} />
                     </div>
 
                     {/* Desktop Col 1: Cliente */}
@@ -387,10 +385,10 @@ export default function QuotesPage() {
 
                     {/* Desktop Col 3: Estado */}
                     <div className="hidden md:flex col-span-2 justify-center">
-                      <StatusBadge status={quote.status} />
+                      <StatusBadge status={quote.status} isPaid={isPaid} />
                     </div>
 
-                    {/* Col 4: Total (Mobile & Desktop) */}
+                    {/* Col 4: Total */}
                     <div className="md:col-span-2 flex justify-between md:justify-end items-center md:text-right">
                       <span className="md:hidden text-sm text-slate-500 flex items-center gap-1">
                         <Package className="w-3.5 h-3.5" /> {quote.items_count} items
@@ -443,7 +441,6 @@ export default function QuotesPage() {
               Convierte esta cotización en una tienda digital permanente.
             </DialogDescription>
           </div>
-
           <div className="p-6 space-y-4">
             <div className="space-y-3">
               {[
@@ -459,7 +456,6 @@ export default function QuotesPage() {
                 </div>
               ))}
             </div>
-
             <div className="pt-4 flex gap-3">
               <Button variant="outline" className="flex-1" onClick={() => setShowActivationModal(false)}>
                 Cancelar
