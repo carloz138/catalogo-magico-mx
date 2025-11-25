@@ -23,3 +23,6 @@ verify_jwt = false
 
 [functions.track-catalog-view]
 verify_jwt = false
+
+[functions.openpay-webhook]
+verify_jwt = false
