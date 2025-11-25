@@ -1,12 +1,16 @@
-// Tipos para el sistema de catálogos digitales
-
+// ==========================================
+// ENUMS & TYPES BÁSICOS
+// ==========================================
 export type PriceDisplay = "menudeo_only" | "mayoreo_only" | "both";
 export type QuoteStatus = "pending" | "negotiation" | "accepted" | "rejected" | "shipped";
 export type PriceType = "menudeo" | "mayoreo";
 export type DeliveryMethod = "pickup" | "shipping";
-
-// ✅ NUEVO TIPO PARA LOGÍSTICA (Para la pantalla de Pedidos)
+// ✅ NUEVO: Estatus logístico para la pantalla de Pedidos
 export type FulfillmentStatus = "unfulfilled" | "processing" | "ready_for_pickup" | "shipped" | "delivered";
+
+// ==========================================
+// INTERFACES DE BASE DE DATOS (Entidades)
+// ==========================================
 
 export interface DigitalCatalog {
   id: string;
@@ -72,25 +76,31 @@ export interface Quote {
   catalog_id: string;
   user_id: string;
 
+  // ✅ Identificadores
+  order_number?: string | null; // Para mostrar #CTF-123
+
+  // Datos del cliente
   customer_name: string;
   customer_email: string;
   customer_company: string | null;
   customer_phone: string | null;
   notes: string | null;
 
+  // Estado General
   status: QuoteStatus;
   created_at: string;
   updated_at: string;
 
+  // Entrega
   delivery_method: DeliveryMethod;
   shipping_address: string | null;
 
-  // Costos
+  // ✅ Costos y Fechas (Negociación)
   shipping_cost: number | null;
   total_amount: number;
   estimated_delivery_date?: string | null;
 
-  // ✅ NUEVOS CAMPOS DE LOGÍSTICA
+  // ✅ Logística (Pedidos)
   fulfillment_status: FulfillmentStatus;
   tracking_code?: string | null;
   carrier_name?: string | null;
@@ -99,6 +109,7 @@ export interface Quote {
   items: QuoteItem[];
   catalog?: DigitalCatalog;
 
+  // Replicación
   replicated_catalogs?: string | null;
   tracking_token?: string | null;
 }
@@ -133,7 +144,10 @@ export interface CatalogView {
   viewed_at: string;
 }
 
-// DTOs para crear/actualizar
+// ==========================================
+// DATA TRANSFER OBJECTS (DTOs) - Formularios
+// ==========================================
+
 export interface CreateDigitalCatalogDTO {
   name: string;
   description?: string;
@@ -223,6 +237,10 @@ export interface CatalogLimitInfo {
   plan_name: string;
 }
 
+// ==========================================
+// VISTAS PÚBLICAS Y REPLICACIÓN
+// ==========================================
+
 // Tipo extendido para vista pública (incluye productos)
 export interface PublicCatalogView extends DigitalCatalog {
   products: Array<{
@@ -266,10 +284,6 @@ export interface PublicCatalogView extends DigitalCatalog {
   };
 }
 
-// ============================================
-// TIPOS PARA SISTEMA DE REPLICACIÓN
-// ============================================
-
 export interface ReplicatedCatalog {
   id: string;
   original_catalog_id: string;
@@ -277,18 +291,12 @@ export interface ReplicatedCatalog {
   reseller_id: string | null;
   distributor_id: string;
   reseller_email: string | null;
-
-  // Estado
   is_active: boolean;
   activation_token: string;
   activation_paid: boolean;
   activated_at: string | null;
   expires_at: string | null;
-
-  // Límites
   product_limit: number | null;
-
-  // Metadata
   created_at: string;
   updated_at: string;
 }
@@ -298,19 +306,14 @@ export interface DistributionNetwork {
   distributor_id: string;
   reseller_id: string | null;
   replicated_catalog_id: string;
-
-  // Estadísticas
   total_quotes_generated: number;
   total_quotes_accepted: number;
   conversion_rate: number;
   last_quote_at: string | null;
-
-  // Metadata
   created_at: string;
   updated_at: string;
 }
 
-// DTOs para replicación
 export interface CreateReplicatedCatalogDTO {
   original_catalog_id: string;
   quote_id: string;
@@ -322,7 +325,6 @@ export interface ActivateReplicatedCatalogDTO {
   reseller_id: string;
 }
 
-// Respuesta de get_catalog_by_token
 export interface CatalogByTokenResponse {
   catalog_id: string;
   original_catalog_id: string;
@@ -338,7 +340,6 @@ export interface CatalogByTokenResponse {
   reseller_email?: string | null;
 }
 
-// Vista extendida para red de distribución
 export interface NetworkResellerView {
   network_id: string;
   reseller_id: string | null;
@@ -354,7 +355,6 @@ export interface NetworkResellerView {
   activated_at: string | null;
 }
 
-// Estadísticas de red
 export interface NetworkStats {
   total_catalogs_created: number;
   active_resellers: number;
@@ -372,7 +372,6 @@ export interface NetworkStats {
   } | null;
 }
 
-// Tipos para activación híbrida con Magic Link
 export interface ActivateWithEmailDTO {
   token: string;
   email: string;
@@ -414,3 +413,13 @@ export interface ResellerDashboardData {
     accepted_quotes: number;
   };
 }
+
+// ✅ TYPE HELPER EXPORTADO (Para arreglar el error de OrdersPage)
+export type QuoteWithMetadata = Quote & {
+  items_count: number;
+  total_amount: number;
+  has_replicated_catalog: boolean;
+  is_from_replicated: boolean;
+  catalog_name?: string;
+  payment_status?: string;
+};
