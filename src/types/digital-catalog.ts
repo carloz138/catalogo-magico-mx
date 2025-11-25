@@ -1,10 +1,12 @@
 // Tipos para el sistema de catálogos digitales
 
 export type PriceDisplay = "menudeo_only" | "mayoreo_only" | "both";
-// ✅ ACTUALIZADO: Se agregó 'negotiation'
 export type QuoteStatus = "pending" | "negotiation" | "accepted" | "rejected" | "shipped";
 export type PriceType = "menudeo" | "mayoreo";
 export type DeliveryMethod = "pickup" | "shipping";
+
+// ✅ NUEVO TIPO PARA LOGÍSTICA (Para la pantalla de Pedidos)
+export type FulfillmentStatus = "unfulfilled" | "processing" | "ready_for_pickup" | "shipped" | "delivered";
 
 export interface DigitalCatalog {
   id: string;
@@ -21,25 +23,20 @@ export interface DigitalCatalog {
     secondary: string;
   } | null;
 
-  // Configuración de precios
   price_display: PriceDisplay;
   price_adjustment_menudeo: number;
   price_adjustment_mayoreo: number;
 
-  // Configuración de visibilidad
   show_sku: boolean;
   show_tags: boolean;
   show_description: boolean;
   show_stock: boolean;
 
-  // Información adicional
   additional_info: string | null;
 
-  // Privacidad
   is_private: boolean;
   access_password: string | null;
 
-  // Control
   expires_at: string | null;
   is_active: boolean;
   view_count: number;
@@ -49,7 +46,6 @@ export interface DigitalCatalog {
   enable_free_shipping: boolean;
   free_shipping_min_amount: number;
 
-  // Tracking
   tracking_head_scripts: string | null;
   tracking_body_scripts: string | null;
   tracking_config?: {
@@ -57,7 +53,6 @@ export interface DigitalCatalog {
     accessToken?: string;
   } | null;
 
-  // Productos (opcional para vistas extendidas)
   products?: any[];
 
   created_at: string;
@@ -77,7 +72,6 @@ export interface Quote {
   catalog_id: string;
   user_id: string;
 
-  // Datos del cliente
   customer_name: string;
   customer_email: string;
   customer_company: string | null;
@@ -91,19 +85,21 @@ export interface Quote {
   delivery_method: DeliveryMethod;
   shipping_address: string | null;
 
-  // ✅ ACTUALIZADO: Costos y Totales (en centavos)
+  // Costos
   shipping_cost: number | null;
-  total_amount: number; // Gran total (Items + Envío)
-
-  // ✅ NUEVO CAMPO AGREGADO
+  total_amount: number;
   estimated_delivery_date?: string | null;
+
+  // ✅ NUEVOS CAMPOS DE LOGÍSTICA
+  fulfillment_status: FulfillmentStatus;
+  tracking_code?: string | null;
+  carrier_name?: string | null;
 
   // Relaciones
   items: QuoteItem[];
   catalog?: DigitalCatalog;
 
-  // Campos de replicación
-  replicated_catalog_id?: string | null;
+  replicated_catalogs?: string | null;
   tracking_token?: string | null;
 }
 
@@ -113,7 +109,6 @@ export interface QuoteItem {
   product_id: string | null;
   variant_id?: string | null;
 
-  // Snapshot
   product_name: string;
   product_sku: string | null;
   product_image_url: string | null;
@@ -124,8 +119,6 @@ export interface QuoteItem {
   subtotal: number;
 
   created_at: string;
-
-  // ✅ Indica si el producto/variante está en stock para L2
   is_in_stock?: boolean;
 }
 
