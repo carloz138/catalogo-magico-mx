@@ -206,33 +206,35 @@ export class DigitalCatalogService {
 
   static async getPublicCatalog(slugOrToken: string): Promise<PublicCatalogView> {
     // Check if it's a replicated catalog slug (starts with 'r-')
-    if (slugOrToken.startsWith('r-')) {
+    if (slugOrToken.startsWith("r-")) {
       const { data: replicatedCatalog, error: repError } = await supabase
-        .from('replicated_catalogs')
-        .select(`
+        .from("replicated_catalogs")
+        .select(
+          `
           id,
           reseller_id,
           original_catalog_id,
           quote_id,
           is_active
-        `)
-        .eq('slug', slugOrToken)
-        .eq('is_active', true)
+        `,
+        )
+        .eq("slug", slugOrToken)
+        .eq("is_active", true)
         .single();
 
       if (repError || !replicatedCatalog) {
-        throw new Error('Catálogo no encontrado');
+        throw new Error("Catálogo no encontrado");
       }
 
       // Get original catalog
       const { data: originalCatalog, error: origError } = await supabase
-        .from('digital_catalogs')
-        .select('*')
-        .eq('id', replicatedCatalog.original_catalog_id)
+        .from("digital_catalogs")
+        .select("*")
+        .eq("id", replicatedCatalog.original_catalog_id)
         .single();
 
       if (origError || !originalCatalog) {
-        throw new Error('Catálogo original no encontrado');
+        throw new Error("Catálogo original no encontrado");
       }
 
       // Get purchased products AND variants from quote
@@ -240,15 +242,15 @@ export class DigitalCatalogService {
       let purchasedVariantIds: string[] = [];
       if (replicatedCatalog.quote_id) {
         const { data: quoteItems } = await supabase
-          .from('quote_items')
-          .select('product_id, variant_id')
-          .eq('quote_id', replicatedCatalog.quote_id);
+          .from("quote_items")
+          .select("product_id, variant_id")
+          .eq("quote_id", replicatedCatalog.quote_id);
 
         if (quoteItems && quoteItems.length > 0) {
           purchasedProductIds = quoteItems
             .map((item: any) => item.product_id)
             .filter((id) => id !== null && id !== undefined);
-          
+
           // ✅ NUEVO: Extraer variant_ids comprados
           purchasedVariantIds = quoteItems
             .map((item: any) => item.variant_id)
@@ -258,8 +260,9 @@ export class DigitalCatalogService {
 
       // Get catalog products
       const { data: catalogProducts, error: productsError } = await supabase
-        .from('catalog_products')
-        .select(`
+        .from("catalog_products")
+        .select(
+          `
           products (
             id, name, sku, description, price_retail, price_wholesale,
             wholesale_min_qty, original_image_url, processed_image_url, tags, category, has_variants,
@@ -267,58 +270,60 @@ export class DigitalCatalogService {
               id, variant_combination, sku, price_retail, price_wholesale, stock_quantity, is_default
             )
           )
-        `)
-        .eq('catalog_id', replicatedCatalog.original_catalog_id)
-        .order('sort_order');
+        `,
+        )
+        .eq("catalog_id", replicatedCatalog.original_catalog_id)
+        .order("sort_order");
 
       if (productsError) throw productsError;
 
       // ✅ Obtener precios personalizados de productos
       const { data: customProductPrices } = await supabase
-        .from('reseller_product_prices')
-        .select('*')
-        .eq('replicated_catalog_id', replicatedCatalog.id);
+        .from("reseller_product_prices")
+        .select("*")
+        .eq("replicated_catalog_id", replicatedCatalog.id);
 
       // ✅ Obtener precios personalizados de variantes
       const { data: customVariantPrices } = await supabase
-        .from('reseller_variant_prices')
-        .select('*')
-        .eq('replicated_catalog_id', replicatedCatalog.id);
+        .from("reseller_variant_prices")
+        .select("*")
+        .eq("replicated_catalog_id", replicatedCatalog.id);
 
-      const products = catalogProducts
-        ?.map((cp: any) => {
-          const product = cp.products;
-          const customPrice = customProductPrices?.find(p => p.product_id === product.id);
-          
-          // Aplicar precios personalizados a variantes
-          const processedVariants = (product.product_variants || []).map((variant: any) => {
-            const customVariantPrice = customVariantPrices?.find(v => v.variant_id === variant.id);
-            
+      const products =
+        catalogProducts
+          ?.map((cp: any) => {
+            const product = cp.products;
+            const customPrice = customProductPrices?.find((p) => p.product_id === product.id);
+
+            // Aplicar precios personalizados a variantes
+            const processedVariants = (product.product_variants || []).map((variant: any) => {
+              const customVariantPrice = customVariantPrices?.find((v) => v.variant_id === variant.id);
+
+              return {
+                ...variant,
+                price_retail: customVariantPrice?.custom_price_retail || variant.price_retail,
+                price_wholesale: customVariantPrice?.custom_price_wholesale || variant.price_wholesale,
+                stock_quantity: customVariantPrice?.stock_quantity || variant.stock_quantity,
+                is_in_stock: customVariantPrice?.is_in_stock ?? variant.stock_quantity > 0,
+              };
+            });
+
             return {
-              ...variant,
-              price_retail: customVariantPrice?.custom_price_retail || variant.price_retail,
-              price_wholesale: customVariantPrice?.custom_price_wholesale || variant.price_wholesale,
-              stock_quantity: customVariantPrice?.stock_quantity || variant.stock_quantity,
-              is_in_stock: customVariantPrice?.is_in_stock ?? variant.stock_quantity > 0,
+              ...product,
+              // Aplicar precios personalizados del producto
+              price_retail: customPrice?.custom_price_retail || product.price_retail,
+              price_wholesale: customPrice?.custom_price_wholesale || product.price_wholesale,
+              image_url: product.processed_image_url || product.original_image_url,
+              variants: processedVariants,
             };
-          });
-          
-          return {
-            ...product,
-            // Aplicar precios personalizados del producto
-            price_retail: customPrice?.custom_price_retail || product.price_retail,
-            price_wholesale: customPrice?.custom_price_wholesale || product.price_wholesale,
-            image_url: product.processed_image_url || product.original_image_url,
-            variants: processedVariants,
-          };
-        })
-        .filter(Boolean) || [];
+          })
+          .filter(Boolean) || [];
 
       // Get business info from RESELLER (L2)
       const { data: businessInfo } = await supabase
-        .from('business_info')
-        .select('business_name, logo_url, phone, email, website, address')
-        .eq('user_id', replicatedCatalog.reseller_id)
+        .from("business_info")
+        .select("business_name, logo_url, phone, email, website, address")
+        .eq("user_id", replicatedCatalog.reseller_id)
         .single();
 
       return {
@@ -327,7 +332,7 @@ export class DigitalCatalogService {
         originalOwnerId: originalCatalog.user_id,
         products,
         business_info: businessInfo || {
-          business_name: 'Catálogo Digital',
+          business_name: "Catálogo Digital",
           logo_url: null,
           phone: null,
           email: null,
@@ -343,24 +348,25 @@ export class DigitalCatalogService {
 
     // Original catalog flow (by slug)
     const { data: catalog, error: catalogError } = await supabase
-      .from('digital_catalogs')
-      .select('*')
-      .eq('slug', slugOrToken)
-      .eq('is_active', true)
+      .from("digital_catalogs")
+      .select("*")
+      .eq("slug", slugOrToken)
+      .eq("is_active", true)
       .single();
 
     if (catalogError || !catalog) {
-      throw new Error('Catálogo no encontrado');
+      throw new Error("Catálogo no encontrado");
     }
 
     if (catalog.expires_at && new Date(catalog.expires_at) < new Date()) {
-      throw new Error('Catálogo expirado');
+      throw new Error("Catálogo expirado");
     }
 
     // Get catalog products
     const { data: catalogProducts, error: productsError } = await supabase
-      .from('catalog_products')
-      .select(`
+      .from("catalog_products")
+      .select(
+        `
         products (
           id, name, sku, description, price_retail, price_wholesale,
           wholesale_min_qty, original_image_url, processed_image_url, tags, category, has_variants,
@@ -368,32 +374,34 @@ export class DigitalCatalogService {
             id, variant_combination, sku, price_retail, price_wholesale, stock_quantity, is_default
           )
         )
-      `)
-      .eq('catalog_id', catalog.id)
-      .order('sort_order');
+      `,
+      )
+      .eq("catalog_id", catalog.id)
+      .order("sort_order");
 
     if (productsError) throw productsError;
 
-    const products = catalogProducts
-      ?.map((cp: any) => ({
-        ...cp.products,
-        image_url: cp.products.processed_image_url || cp.products.original_image_url,
-        variants: cp.products.product_variants || [],
-      }))
-      .filter(Boolean) || [];
+    const products =
+      catalogProducts
+        ?.map((cp: any) => ({
+          ...cp.products,
+          image_url: cp.products.processed_image_url || cp.products.original_image_url,
+          variants: cp.products.product_variants || [],
+        }))
+        .filter(Boolean) || [];
 
     // Get business info from catalog owner
     const { data: businessInfo } = await supabase
-      .from('business_info')
-      .select('business_name, logo_url, phone, email, website, address')
-      .eq('user_id', catalog.user_id)
+      .from("business_info")
+      .select("business_name, logo_url, phone, email, website, address")
+      .eq("user_id", catalog.user_id)
       .single();
 
     return {
       ...catalog,
       products,
       business_info: businessInfo || {
-        business_name: 'Catálogo Digital',
+        business_name: "Catálogo Digital",
         logo_url: null,
         phone: null,
         email: null,
