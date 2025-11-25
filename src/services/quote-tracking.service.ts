@@ -7,11 +7,15 @@ export interface TrackingQuoteData {
   status: "pending" | "negotiation" | "accepted" | "rejected" | "shipped";
   created_at: string;
   updated_at: string;
+
+  // Cliente
   customer_name: string;
   customer_email: string;
   customer_phone: string | null;
   customer_company: string | null;
   notes: string | null;
+
+  // Items
   items: Array<{
     id: string;
     product_name: string;
@@ -22,11 +26,19 @@ export interface TrackingQuoteData {
     subtotal: number;
     price_type: string;
   }>;
-  // Campos nuevos
+
+  // Campos financieros
   shipping_cost: number;
   total_amount: number;
   total: number; // Legacy support
   estimated_delivery_date?: string | null;
+
+  // ✅ NUEVOS CAMPOS LOGÍSTICOS
+  fulfillment_status?: "unfulfilled" | "processing" | "ready_for_pickup" | "shipped" | "delivered";
+  tracking_code?: string | null;
+  carrier_name?: string | null;
+
+  // Metadata
   catalog: { name: string; slug: string | null } | null;
   business_info: { business_name: string; phone: string | null; email: string | null; logo_url: string | null } | null;
   replicated_catalogs?: { id: string; is_active: boolean } | null;
@@ -34,13 +46,13 @@ export interface TrackingQuoteData {
 
 export class QuoteTrackingService {
   /**
-   * ✅ CORREGIDO: Llama a la Edge Function para evitar bloqueos de RLS
+   * Obtiene la cotización vía Edge Function (Bypass RLS para público)
    */
   static async getQuoteByToken(token: string): Promise<TrackingQuoteData> {
     console.log("🔍 Solicitando cotización vía Edge Function para token:", token);
 
     const { data, error } = await supabase.functions.invoke("get-quote-by-token", {
-      body: { token: token }, // Enviamos 'token' que tu función ya sabe leer
+      body: { token: token },
     });
 
     if (error) {
@@ -55,8 +67,7 @@ export class QuoteTrackingService {
 
     const quote = data.quote;
 
-    // --- MAPPING Y CÁLCULOS (Frontend) ---
-    // Aseguramos que los datos vengan en el formato que la vista espera
+    // --- MAPPING Y CÁLCULOS ---
 
     const items = quote.quote_items || [];
     const itemsSubtotal = items.reduce((sum: number, item: any) => sum + (item.subtotal || 0), 0);
@@ -98,10 +109,19 @@ export class QuoteTrackingService {
       customer_company: quote.customer_company,
       notes: quote.notes,
       items,
+
+      // Financiero
       shipping_cost: shipping,
       total_amount: finalTotal,
-      total: finalTotal, // ✅ Legacy fix
+      total: finalTotal, // Legacy fix
+
+      // Logístico
       estimated_delivery_date: quote.estimated_delivery_date,
+      fulfillment_status: quote.fulfillment_status || "unfulfilled", // ✅ Mapeo seguro
+      tracking_code: quote.tracking_code, // ✅ Mapeo
+      carrier_name: quote.carrier_name, // ✅ Mapeo
+
+      // Meta
       catalog,
       business_info: businessInfo,
       replicated_catalogs: replicaData,
@@ -109,7 +129,6 @@ export class QuoteTrackingService {
   }
 
   static async getTrackingLink(quoteId: string): Promise<string> {
-    // Este sí puede ser directo porque lo llama el DUEÑO (que tiene permisos)
     const { data: trackingToken } = await supabase
       .from("quote_tracking_tokens")
       .select("token")
