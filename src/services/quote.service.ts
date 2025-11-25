@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import { Quote, QuoteItem, CreateQuoteDTO, QuoteStatus } from "@/types/digital-catalog";
+import { Quote, QuoteItem, CreateQuoteDTO, QuoteStatus, FulfillmentStatus } from "@/types/digital-catalog";
 
 interface CreateQuoteResponse {
   success: boolean;
@@ -46,7 +46,7 @@ export class QuoteService {
   }
 
   /**
-   * ✅ ACTUALIZADO: Obtener lista de cotizaciones INCLUYENDO el estatus de pago.
+   * Obtener lista de cotizaciones INCLUYENDO el estatus de pago y logística.
    */
   static async getUserQuotes(
     userId: string,
@@ -65,11 +65,11 @@ export class QuoteService {
         has_replicated_catalog: boolean;
         is_from_replicated: boolean;
         catalog_name?: string;
-        payment_status?: string; // ✅ Nuevo campo en la interfaz de retorno
+        payment_status?: string;
       }
     >
   > {
-    // Query Base Común (Incluye payment_transactions)
+    // Query Base Común (Incluye payment_transactions y fulfillment_status implícito en *)
     const selectQuery = `
         *,
         quote_items (count),
@@ -121,34 +121,21 @@ export class QuoteService {
     if (ownResult.error) throw ownResult.error;
     if (replicatedResult.error) throw replicatedResult.error;
 
-    // Procesar resultados con Payment Status
-    const ownQuotes = (ownResult.data || []).map((quote: any) => {
-      // ✅ Lógica para extraer estatus de pago
-      const paymentStatus = quote.payment_transactions?.[0]?.status || "unpaid";
-
-      return {
+    // Procesar resultados con Payment Status y Fulfillment Status
+    const processQuotes = (quotes: any[], isReplicated: boolean) => {
+      return quotes.map((quote) => ({
         ...quote,
         items_count: quote.quote_items?.[0]?.count || 0,
         has_replicated_catalog: false,
-        is_from_replicated: false,
+        is_from_replicated: isReplicated,
         catalog_name: quote.digital_catalogs?.name,
-        payment_status: paymentStatus, // ✅ Asignación
-      };
-    });
+        payment_status: quote.payment_transactions?.[0]?.status || "unpaid",
+        fulfillment_status: quote.fulfillment_status || "unfulfilled",
+      }));
+    };
 
-    const replicatedQuotes = (replicatedResult.data || []).map((quote: any) => {
-      // ✅ Lógica para extraer estatus de pago
-      const paymentStatus = quote.payment_transactions?.[0]?.status || "unpaid";
-
-      return {
-        ...quote,
-        items_count: quote.quote_items?.[0]?.count || 0,
-        has_replicated_catalog: false,
-        is_from_replicated: true,
-        catalog_name: quote.digital_catalogs?.name,
-        payment_status: paymentStatus, // ✅ Asignación
-      };
-    });
+    const ownQuotes = processQuotes(ownResult.data || [], false);
+    const replicatedQuotes = processQuotes(replicatedResult.data || [], true);
 
     const allQuotes = [...ownQuotes, ...replicatedQuotes].sort(
       (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
@@ -176,7 +163,7 @@ export class QuoteService {
   }
 
   /**
-   * ✅ ACTUALIZADO: Obtener detalle completo de cotización + Transacciones de Pago
+   * Obtener detalle completo de cotización + Transacciones de Pago
    */
   static async getQuoteDetail(
     quoteId: string,
@@ -349,6 +336,27 @@ export class QuoteService {
     }
 
     return updatedQuote as unknown as Quote;
+  }
+
+  /**
+   * ✅ MÉTODO QUE FALTABA: Actualizar Estatus Logístico
+   */
+  static async updateFulfillmentStatus(
+    quoteId: string,
+    userId: string,
+    status: FulfillmentStatus,
+    trackingData?: { code?: string; carrier?: string },
+  ): Promise<void> {
+    const updates: any = { fulfillment_status: status };
+
+    if (trackingData) {
+      if (trackingData.code) updates.tracking_code = trackingData.code;
+      if (trackingData.carrier) updates.carrier_name = trackingData.carrier;
+    }
+
+    const { error } = await supabase.from("quotes").update(updates).eq("id", quoteId).eq("user_id", userId);
+
+    if (error) throw error;
   }
 
   static async getQuoteStats(userId: string): Promise<{
