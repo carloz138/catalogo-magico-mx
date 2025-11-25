@@ -1,14 +1,13 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuotes } from "@/hooks/useQuotes";
-import { QuoteService } from "@/services/quote.service"; // ✅ Importamos el servicio
-import { FulfillmentStatus, Quote } from "@/types/digital-catalog"; // ✅ Tipos necesarios
+import { QuoteService } from "@/services/quote.service";
+import { FulfillmentStatus, Quote } from "@/types/digital-catalog";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
@@ -17,12 +16,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Loader2, Search, Package, Truck, CheckCircle2, MapPin, Box, ArrowRight, Barcode, Printer } from "lucide-react";
+import { Loader2, Search, Package, Truck, CheckCircle2, MapPin, Box, ArrowRight, Barcode } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { useToast } from "@/hooks/use-toast";
 
-// Componente de Badge Logístico (Igual que antes)
 const FulfillmentBadge = ({ status }: { status: FulfillmentStatus }) => {
   const config = {
     unfulfilled: { label: "Por Empacar", bg: "bg-amber-100", text: "text-amber-800", icon: Box },
@@ -52,22 +50,17 @@ export default function OrdersPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<FulfillmentStatus | "all">("all");
 
-  // Estados para el Modal de Despacho
   const [selectedOrder, setSelectedOrder] = useState<Quote | null>(null);
   const [showFulfillmentModal, setShowFulfillmentModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Formulario de Despacho
   const [trackingCode, setTrackingCode] = useState("");
   const [carrierName, setCarrierName] = useState("");
 
-  // Cargamos cotizaciones
   const { quotes, loading, refetch } = useQuotes({ autoLoad: true });
 
-  // 1. FILTRO: Solo PAGADAS
   const paidOrders = quotes.filter((q) => (q as any).payment_status === "paid");
 
-  // 2. Filtros UI
   const filteredOrders = paidOrders.filter((order) => {
     const matchesSearch =
       order.customer_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -78,14 +71,12 @@ export default function OrdersPage() {
     return matchesSearch && matchesStatus;
   });
 
-  // Stats
   const stats = {
     unfulfilled: paidOrders.filter((o) => o.fulfillment_status === "unfulfilled").length,
     processing: paidOrders.filter((o) => o.fulfillment_status === "processing").length,
     shipped: paidOrders.filter((o) => ["shipped", "ready_for_pickup"].includes(o.fulfillment_status)).length,
   };
 
-  // --- HANDLER: Abrir Modal ---
   const openFulfillmentModal = (order: Quote) => {
     setSelectedOrder(order);
     setTrackingCode(order.tracking_code || "");
@@ -93,22 +84,21 @@ export default function OrdersPage() {
     setShowFulfillmentModal(true);
   };
 
-  // --- HANDLER: Guardar Despacho ---
   const handleFulfillOrder = async () => {
     if (!selectedOrder || !user) return;
 
     setIsSubmitting(true);
     try {
+      // ✅ CORRECCIÓN LÓGICA: Si no es explícitamente pickup, asumimos shipping
       const isPickup = selectedOrder.delivery_method === "pickup";
 
-      // Determinar nuevo estado
       const newStatus: FulfillmentStatus = isPickup ? "ready_for_pickup" : "shipped";
 
-      // Validar datos si es envío
+      // Validación estricta solo si NO es pickup
       if (!isPickup && (!trackingCode || !carrierName)) {
         toast({
           title: "Datos incompletos",
-          description: "Ingresa paquetería y número de guía.",
+          description: "Debes ingresar la paquetería y el número de guía.",
           variant: "destructive",
         });
         setIsSubmitting(false);
@@ -124,7 +114,7 @@ export default function OrdersPage() {
 
       toast({
         title: isPickup ? "✅ Listo para Recoger" : "✅ Pedido Enviado",
-        description: "El cliente ha sido notificado (simulado).", // Aquí luego conectaremos el email real
+        description: "La información de rastreo ha sido actualizada.",
       });
 
       setShowFulfillmentModal(false);
@@ -136,6 +126,9 @@ export default function OrdersPage() {
       setIsSubmitting(false);
     }
   };
+
+  // Helper para determinar el tipo visualmente
+  const isPickupOrder = selectedOrder?.delivery_method === "pickup";
 
   if (loading)
     return (
@@ -154,7 +147,6 @@ export default function OrdersPage() {
             <p className="text-slate-500 mt-1">Gestiona la logística y envíos de ventas pagadas.</p>
           </div>
 
-          {/* KPIs */}
           <div className="flex gap-3 overflow-x-auto pb-2 md:pb-0 no-scrollbar">
             <div className="bg-white border border-slate-200 rounded-xl px-5 py-3 shadow-sm min-w-[140px]">
               <div className="flex items-center gap-2 mb-1 text-xs font-bold text-amber-600 uppercase">
@@ -171,7 +163,6 @@ export default function OrdersPage() {
           </div>
         </div>
 
-        {/* TOOLBAR & LISTA */}
         <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
           <div className="p-4 border-b border-slate-100 flex flex-col md:flex-row gap-4 justify-between bg-white">
             <div className="relative flex-1 max-w-md">
@@ -200,7 +191,6 @@ export default function OrdersPage() {
             </div>
           </div>
 
-          {/* LISTA */}
           {filteredOrders.length === 0 ? (
             <div className="text-center py-24">
               <Package className="w-16 h-16 text-slate-300 mx-auto mb-4" />
@@ -221,7 +211,6 @@ export default function OrdersPage() {
                   key={order.id}
                   className="group md:grid md:grid-cols-12 md:gap-4 p-4 md:px-6 md:py-4 items-center hover:bg-slate-50 transition-colors"
                 >
-                  {/* Mobile Header */}
                   <div className="md:hidden flex justify-between mb-3">
                     <div className="font-bold">#{order.order_number || order.id.slice(0, 6)}</div>
                     <FulfillmentBadge status={order.fulfillment_status} />
@@ -245,7 +234,7 @@ export default function OrdersPage() {
                       ) : (
                         <Truck className="w-3 h-3" />
                       )}
-                      {order.delivery_method === "pickup" ? "Recolección" : "Envío"}
+                      {order.delivery_method === "pickup" ? "Recolección" : "Envío Domicilio"}
                     </div>
                   </div>
 
@@ -258,7 +247,6 @@ export default function OrdersPage() {
                   </div>
 
                   <div className="md:col-span-2 flex justify-end gap-2">
-                    {/* Botón Acción Principal */}
                     {order.fulfillment_status === "unfulfilled" || order.fulfillment_status === "processing" ? (
                       <Button
                         size="sm"
@@ -272,9 +260,9 @@ export default function OrdersPage() {
                         size="sm"
                         variant="outline"
                         className="w-full md:w-auto h-8 text-xs"
-                        onClick={() => openFulfillmentModal(order)} // Permitir editar
+                        onClick={() => openFulfillmentModal(order)}
                       >
-                        Editar Guía
+                        Ver Guía
                       </Button>
                     )}
                   </div>
@@ -291,15 +279,15 @@ export default function OrdersPage() {
           <DialogHeader>
             <DialogTitle>Procesar Pedido #{selectedOrder?.order_number}</DialogTitle>
             <DialogDescription>
-              {selectedOrder?.delivery_method === "pickup"
+              {isPickupOrder
                 ? "El cliente pasará a recoger este pedido a tu ubicación."
                 : "Ingresa los datos de la paquetería para notificar al cliente."}
             </DialogDescription>
           </DialogHeader>
 
           <div className="py-4 space-y-4">
-            {/* Vista para ENVÍOS */}
-            {selectedOrder?.delivery_method === "shipping" && (
+            {/* ✅ CORRECCIÓN: Usamos !isPickupOrder para que salga por defecto si es null o shipping */}
+            {!isPickupOrder && (
               <>
                 <div className="space-y-2">
                   <Label>Paquetería / Servicio</Label>
@@ -328,15 +316,13 @@ export default function OrdersPage() {
               </>
             )}
 
-            {/* Vista para PICKUP */}
-            {selectedOrder?.delivery_method === "pickup" && (
+            {isPickupOrder && (
               <div className="bg-indigo-50 p-4 rounded-lg border border-indigo-100 flex items-start gap-3">
                 <CheckCircle2 className="w-5 h-5 text-indigo-600 mt-0.5" />
                 <div>
                   <h4 className="text-sm font-bold text-indigo-900">Confirmar Disponibilidad</h4>
                   <p className="text-xs text-indigo-700 mt-1">
-                    Al confirmar, el sistema enviará un aviso al cliente indicando que su paquete ya está listo en el
-                    mostrador.
+                    Al confirmar, el sistema notificará al cliente que su paquete está listo en mostrador.
                   </p>
                 </div>
               </div>
@@ -349,7 +335,7 @@ export default function OrdersPage() {
             </Button>
             <Button onClick={handleFulfillOrder} disabled={isSubmitting} className="bg-indigo-600 hover:bg-indigo-700">
               {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRight className="w-4 h-4 mr-2" />}
-              {selectedOrder?.delivery_method === "pickup" ? "Marcar Listo para Recoger" : "Confirmar Envío"}
+              {isPickupOrder ? "Marcar Listo" : "Confirmar Envío"}
             </Button>
           </DialogFooter>
         </DialogContent>
