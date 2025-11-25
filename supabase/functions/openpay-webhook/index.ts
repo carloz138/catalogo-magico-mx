@@ -1,60 +1,36 @@
 // ==========================================
 // FUNCION: openpay-webhook
-// ESTADO: FIX_ROBUSTEZ (Manejo de errores de JSON y Métodos)
+// DESCRIPCIÓN: Procesa pagos y descuenta inventario
+// ESTADO: FIX_INVENTARIO (V2.0)
 // ==========================================
 import { createClient } from 'jsr:@supabase/supabase-js@2.49.8';
 
 const DEPLOY_VERSION = Deno.env.get("FUNCTION_HASH") || "UNKNOWN_HASH";
 
 Deno.serve(async (req) => {
-  // Log de inicio
   console.log(JSON.stringify({ event: "FUNC_START", version: DEPLOY_VERSION }));
 
-  // 1. FILTRO DE MÉTODO: Webhooks siempre son POST
-  if (req.method !== 'POST') {
-      console.log(`ℹ️ Método ignorado: ${req.method}`);
-      return new Response("Method Not Allowed", { status: 405 });
-  }
+  if (req.method !== 'POST') return new Response("Method Not Allowed", { status: 405 });
 
   try {
-    // 2. PARSEO SEGURO: Evitar "Unexpected end of JSON input"
-    // Si falla al leer el JSON, devuelve null en lugar de tronar la función
-    const body = await req.json().catch((err) => {
-        console.error("⚠️ Error al leer cuerpo JSON:", err.message);
-        return null;
-    });
-
-    if (!body) {
-        return new Response(JSON.stringify({ error: "Empty body" }), { 
-            headers: { "Content-Type": "application/json" },
-            status: 400 
-        });
-    }
-
-    // Loguear el payload para cazar el código de verificación
-    console.log("📦 PAYLOAD RECIBIDO:", JSON.stringify(body));
+    const body = await req.json().catch(() => null);
+    if (!body) return new Response(JSON.stringify({ error: "Empty body" }), { status: 400 });
 
     const type = body.type;
 
-    // 3. MANEJO DE VERIFICACIÓN
     if (type === 'verification') {
-        console.log(`✅ Código de verificación recibido: ${body.verification_code}`);
+        console.log(`✅ Código: ${body.verification_code}`);
         return new Response(JSON.stringify({ success: true }), { status: 200 });
     }
 
-    // 4. FILTRADO DE EVENTOS
     if (type !== 'charge.succeeded') {
         return new Response(JSON.stringify({ ignored: true }), { status: 200 });
     }
 
-    // --- Lógica de Pago (Igual que antes) ---
     const transaction = body.transaction;
     const openpayId = transaction?.id;
 
-    if (!openpayId) {
-        console.error("❌ Payload sin ID de transacción");
-        return new Response(JSON.stringify({ error: "Missing ID" }), { status: 400 });
-    }
+    if (!openpayId) return new Response(JSON.stringify({ error: "Missing ID" }), { status: 400 });
 
     const supabaseAdmin = createClient(
         Deno.env.get('SUPABASE_URL') ?? '', 
@@ -70,24 +46,41 @@ Deno.serve(async (req) => {
 
     if (txError || !localTx) {
         console.error(`❌ Transacción no encontrada: ${openpayId}`);
-        // Retornamos 200 para evitar reintentos infinitos de Openpay si es un error nuestro de datos
         return new Response(JSON.stringify({ error: "Not found locally" }), { status: 200 });
     }
 
+    // Idempotencia: Si ya estaba pagada, no hacemos nada (ni descontamos stock doble)
     if (localTx.status === 'paid') {
         return new Response(JSON.stringify({ success: true, message: "Already paid" }), { status: 200 });
     }
 
-    console.log(`✅ Pago confirmado para Quote: ${localTx.quote_id}`);
+    console.log(`✅ Pago confirmado: ${localTx.quote_id}. Procesando...`);
 
-    // Actualizar DB
+    // 1. Actualizar Transacción
     await supabaseAdmin.from('payment_transactions').update({ status: 'paid', paid_at: new Date().toISOString() }).eq('id', localTx.id);
+    
+    // 2. Actualizar Cotización (Updated At)
     await supabaseAdmin.from('quotes').update({ updated_at: new Date().toISOString() }).eq('id', localTx.quote_id);
+
+    // 3. 📦 DESCONTAR INVENTARIO (NUEVO)
+    console.log(`📦 Descontando stock para Quote: ${localTx.quote_id}`);
+    const { error: stockError } = await supabaseAdmin.rpc('process_inventory_deduction', {
+        p_quote_id: localTx.quote_id
+    });
+
+    if (stockError) {
+        console.error("⚠️ Error descontando stock (No crítico para el cobro):", stockError);
+    }
+
+    // 4. Enviar Notificación (Ya lo teníamos)
+    try {
+        await supabaseAdmin.functions.invoke('send-payment-notification', { body: { transactionId: localTx.id } });
+    } catch (e) { console.error(e); }
 
     return new Response(JSON.stringify({ success: true }), { headers: { "Content-Type": "application/json" }, status: 200 });
 
   } catch (error) {
-    console.error('❌ Error Critico Webhook:', error);
+    console.error('❌ Error Webhook:', error);
     return new Response(JSON.stringify({ error: error.message }), { headers: { "Content-Type": "application/json" }, status: 500 });
   }
 });
