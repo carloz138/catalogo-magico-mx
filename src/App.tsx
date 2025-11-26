@@ -18,6 +18,7 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 // Public Pages
 import Index from "@/pages/Index";
 import LoginPage from "@/pages/LoginPage";
+import DemoPage from "@/pages/DemoPage"; // ✅ IMPORTADO: PÁGINA DE DEMO
 import PublicCatalog from "@/pages/PublicCatalog";
 import ActivateCatalog from "@/pages/ActivateCatalog";
 import CompleteActivation from "@/pages/CompleteActivation";
@@ -30,7 +31,7 @@ import NotFound from "@/pages/NotFound";
 import WhySubscribePage from "@/pages/WhySubscribePage";
 import QuoteTracking from "@/pages/QuoteTracking";
 import TrackQuotePage from "@/pages/TrackQuotePage";
-import OpenpayDemo from "@/pages/OpenpayDemo"; // ✅ IMPORTADO AQUÍ
+import OpenpayDemo from "@/pages/OpenpayDemo";
 
 // Protected (Dashboard) Pages
 import MainDashboard from "@/pages/MainDashboard";
@@ -76,15 +77,20 @@ const App = () => (
                 {/* --- Rutas Públicas (Sin Sidebar) --- */}
                 <Route path="/" element={<Index />} />
                 <Route path="/login" element={<LoginPage />} />
+
+                {/* ✅ RUTA NUEVA: DEMO INTERACTIVO (Accesible para ventas) */}
+                <Route path="/demo" element={<DemoPage />} />
+
                 <Route path="/creditos" element={<Navigate to="/checkout" replace />} />
                 <Route path="/why-subscribe" element={<WhySubscribePage />} />
                 <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
                 <Route path="/privacy-policy" element={<PrivacyPolicy />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
 
-                {/* ✅ RUTA PARA OPENPAY (Pública) */}
+                {/* Ruta OpenPay Demo */}
                 <Route path="/openpay-demo" element={<OpenpayDemo />} />
 
+                {/* Ruta Catálogos Públicos */}
                 <Route
                   path="/c/:slug"
                   element={
