@@ -8,6 +8,9 @@ interface CreateQuoteResponse {
 }
 
 export class QuoteService {
+  /**
+   * Crear cotización (desde vista pública - cliente anónimo).
+   */
   static async createQuote(quoteData: CreateQuoteDTO & { replicated_catalog_id?: string }): Promise<Quote> {
     console.log("🔍 DEBUG - Usando Edge Function para crear cotización");
 
@@ -42,6 +45,9 @@ export class QuoteService {
     return { id: data.quote_id } as unknown as Quote;
   }
 
+  /**
+   * Obtener lista de cotizaciones del usuario.
+   */
   static async getUserQuotes(
     userId: string,
     filters?: {
@@ -170,7 +176,7 @@ export class QuoteService {
         payment_transactions (
           id, status, amount_total, created_at
         )
-      `, // 👆 AQUÍ AGREGAMOS LOS CAMPOS NUEVOS
+      `,
       )
       .eq("id", quoteId)
       .eq("user_id", userId)
@@ -194,14 +200,6 @@ export class QuoteService {
       .eq("quote_id", quoteId)
       .order("created_at");
 
-    if (items) {
-      // Corrección menor de seguridad
-      // ...
-    } else {
-      // ...
-    }
-
-    // ... (Resto de lógica de stock se mantiene igual, simplificada aquí para el copy-paste)
     let enrichedItems = items || [];
     if (quote.replicated_catalog_id) {
       const replicatedCatalogId = quote.replicated_catalog_id;
@@ -313,6 +311,9 @@ export class QuoteService {
     return updatedQuote as unknown as Quote;
   }
 
+  /**
+   * ✅ MÉTODO QUE FALTABA: Actualizar Estatus Logístico
+   */
   static async updateFulfillmentStatus(
     quoteId: string,
     userId: string,
