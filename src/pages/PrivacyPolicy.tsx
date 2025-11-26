@@ -15,8 +15,8 @@ const PrivacyPolicy = () => {
             <div className="prose prose-gray max-w-none text-foreground">
               <p className="text-lg leading-relaxed mb-6">
                 En cumplimiento con la Ley Federal de Protección de Datos Personales en Posesión de los Particulares,
-                CatalogoIa S.A. de C.V. (en adelante "CatalogoIa" o "nosotros"), con domicilio en [tu dirección fiscal
-                en México], hace de su conocimiento el presente Aviso de Privacidad.
+                CatifyPro S.A. de C.V. (en adelante "CatifyPro" o "nosotros"), con domicilio en [tu dirección fiscal en
+                México], hace de su conocimiento el presente Aviso de Privacidad.
               </p>
 
               <section className="mb-8">
@@ -64,7 +64,7 @@ const PrivacyPolicy = () => {
 
               <section className="mb-8">
                 <h2 className="text-2xl font-semibold text-primary mb-4">3. Transferencia de datos</h2>
-                <p className="mb-3">CatalogoIa no vende ni renta datos personales a terceros.</p>
+                <p className="mb-3">CatifyPro no vende ni renta datos personales a terceros.</p>
                 <p className="mb-3">Únicamente podremos compartir datos con:</p>
                 <ul className="list-disc pl-6 space-y-2">
                   <li>
@@ -77,7 +77,7 @@ const PrivacyPolicy = () => {
               <section className="mb-8">
                 <h2 className="text-2xl font-semibold text-primary mb-4">4. Medidas de seguridad</h2>
                 <p className="leading-relaxed">
-                  CatalogoIa adopta medidas de seguridad administrativas, técnicas y físicas para proteger sus datos
+                  CatifyPro adopta medidas de seguridad administrativas, técnicas y físicas para proteger sus datos
                   personales contra pérdida, acceso no autorizado, alteración o divulgación indebida.
                 </p>
                 <p className="leading-relaxed mt-3">
@@ -112,7 +112,7 @@ const PrivacyPolicy = () => {
               <section className="mb-8">
                 <h2 className="text-2xl font-semibold text-primary mb-4">6. Uso de cookies y tecnologías similares</h2>
                 <p className="leading-relaxed">
-                  CatalogoIa puede utilizar cookies y tecnologías similares para mejorar la experiencia de usuario y
+                  CatifyPro puede utilizar cookies y tecnologías similares para mejorar la experiencia de usuario y
                   analizar el uso de la Plataforma. El usuario puede deshabilitar cookies desde su navegador, aunque
                   algunas funciones podrían no estar disponibles.
                 </p>
@@ -121,7 +121,7 @@ const PrivacyPolicy = () => {
               <section className="mb-8">
                 <h2 className="text-2xl font-semibold text-primary mb-4">7. Modificaciones al Aviso de Privacidad</h2>
                 <p className="leading-relaxed">
-                  CatalogoIa podrá modificar el presente Aviso de Privacidad en cualquier momento. Las modificaciones
+                  CatifyPro podrá modificar el presente Aviso de Privacidad en cualquier momento. Las modificaciones
                   estarán disponibles en la Plataforma y entrarán en vigor a partir de su publicación.
                 </p>
               </section>
