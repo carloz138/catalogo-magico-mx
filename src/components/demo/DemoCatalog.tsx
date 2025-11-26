@@ -1,146 +1,158 @@
-import React from "react";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
+import React, { useState } from "react";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { MessageSquare, AlertCircle, TrendingUp, BrainCircuit, Search, Info } from "lucide-react";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Progress } from "@/components/ui/progress";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts";
-import { format, addDays, parseISO } from "date-fns";
-import { es } from "date-fns/locale";
+import { Badge } from "@/components/ui/badge";
+import { Search, ShoppingCart, Plus, Check, Sparkles, X, ArrowRight } from "lucide-react";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { motion, AnimatePresence } from "framer-motion";
 
-// --- WIDGET 1: DEMO RADAR ---
-export const DemoRadarWidget = ({ data }: { data: any[] }) => {
-  return (
-    <div className="bg-white min-h-[300px] relative overflow-hidden rounded-lg border border-slate-100 shadow-sm">
-      <Table>
-        <TableHeader>
-          <TableRow className="bg-slate-50/50">
-            <TableHead>Producto Solicitado</TableHead>
-            <TableHead>Cantidad</TableHead>
-            <TableHead>Cliente</TableHead>
-            <TableHead className="text-right">Acción</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {data.map((req) => (
-            <TableRow key={req.id} className="hover:bg-indigo-50/30">
-              <TableCell className="font-medium">
-                <div className="flex flex-col">
-                  <span className="flex items-center gap-2">
-                    {req.producto_nombre}
-                    <Badge className="h-5 px-1 bg-emerald-100 text-emerald-700 border-0 text-[10px]">Nuevo</Badge>
-                  </span>
-                </div>
-              </TableCell>
-              <TableCell><Badge variant="secondary">{req.cantidad} pzas</Badge></TableCell>
-              <TableCell className="text-slate-600">{req.cliente}</TableCell>
-              <TableCell className="text-right">
-                <Button size="sm" variant="outline" className="h-8 text-xs border-indigo-200 text-indigo-700">
-                  <MessageSquare className="w-3 h-3 mr-1.5" /> Cotizar
-                </Button>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+// --- COMPONENTES SIMPLES ---
+const ProductCard = ({ product, onAdd }: { product: any, onAdd: () => void }) => (
+  <div className="group bg-white border border-slate-200 rounded-xl overflow-hidden hover:shadow-lg transition-all cursor-pointer">
+    <div className="aspect-square bg-slate-100 relative overflow-hidden">
+      <img src={product.image} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+      <button onClick={onAdd} className="absolute bottom-3 right-3 h-10 w-10 bg-white rounded-full shadow-lg flex items-center justify-center hover:bg-indigo-600 hover:text-white transition-colors opacity-0 group-hover:opacity-100 translate-y-4 group-hover:translate-y-0 duration-300">
+        <Plus className="w-5 h-5" />
+      </button>
     </div>
-  );
-};
-
-// --- WIDGET 2: DEMO SEARCH ---
-export const DemoSearchWidget = ({ data }: { data: any[] }) => {
-  const maxCount = Math.max(...data.map((d: any) => d.count));
-
-  return (
-    <ScrollArea className="h-[300px] w-full bg-white rounded-lg border border-slate-100 shadow-sm">
-      <div className="divide-y divide-slate-100">
-        {data.map((term, i) => (
-          <div key={i} className="p-4 hover:bg-slate-50 transition-colors">
-            <div className="flex items-center justify-between mb-2">
-              <span className="font-semibold text-slate-800 capitalize">{term.term}</span>
-              <Badge variant="secondary">{term.count} búsquedas</Badge>
-            </div>
-            <div className="flex items-center gap-4">
-              <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                <div 
-                    className="h-full bg-indigo-500 rounded-full" 
-                    style={{ width: `${(term.count / maxCount) * 100}%` }} 
-                />
-              </div>
-              {term.zeroResults > 0 ? (
-                <span className="text-xs text-amber-600 font-bold flex items-center gap-1">
-                  <AlertCircle className="w-3 h-3"/> {term.zeroResults} perdidos
-                </span>
-              ) : (
-                <span className="text-xs text-emerald-600 font-bold flex items-center gap-1">
-                   <TrendingUp className="w-3 h-3"/> Alta conversión
-                </span>
-              )}
-            </div>
-          </div>
-        ))}
+    <div className="p-4">
+      <p className="text-xs font-bold text-slate-400 uppercase">{product.category}</p>
+      <h3 className="font-medium text-slate-900 line-clamp-1">{product.name}</h3>
+      <div className="mt-2 flex items-center justify-between">
+        <span className="font-bold text-lg text-slate-900">${(product.price_retail / 100).toFixed(2)}</span>
       </div>
-    </ScrollArea>
-  );
-};
+    </div>
+  </div>
+);
 
-// --- WIDGET 3: DEMO FORECAST (Con Lógica Local de Regresión Simuleda) ---
-export const DemoForecastWidget = ({ history }: { history: any[] }) => {
-    // Simulamos la regresión lineal simple
-    const dataPoints = history.map((d, i) => ({ x: i, y: d.count, date: d.date }));
-    // Pendiente simple aproximada (ultimo - primero / n)
-    const slope = (dataPoints[dataPoints.length-1].y - dataPoints[0].y) / dataPoints.length;
-    
-    const chartData = [
-        ...dataPoints.slice(-30).map(p => ({
-            date: format(parseISO(p.date), "dd MMM", {locale: es}),
-            real: p.y,
-            predicted: null
-        })),
-        ...Array.from({length: 7}, (_, i) => ({
-            date: format(addDays(new Date(), i+1), "dd MMM", {locale: es}),
-            real: null,
-            predicted: dataPoints[dataPoints.length-1].y + (slope * (i+1))
-        }))
-    ];
+// --- CART MODAL FALSO ---
+const DemoCart = ({ isOpen, onClose, items, onClear }: any) => {
+    // Recomendaciones Falsas (Upsell)
+    const recommendations = items.length > 0 ? [
+        { id: "upsell1", name: "Producto Complementario VIP", price: 450, image: "https://images.unsplash.com/photo-1556228720-191845bb5668?auto=format&fit=crop&w=200" }
+    ] : [];
+
+    const total = items.reduce((acc: number, item: any) => acc + item.price, 0);
 
     return (
-        <Card className="shadow-none border border-indigo-100 bg-gradient-to-br from-white to-indigo-50/30">
-            <CardHeader className="pb-2">
-                <div className="flex justify-between items-center">
-                    <CardTitle className="text-lg text-slate-800 flex items-center gap-2">
-                        <BrainCircuit className="w-5 h-5 text-indigo-600" />
-                        Predicción de Demanda
-                    </CardTitle>
-                    <Badge className="bg-emerald-100 text-emerald-700 border-0">IA Activa</Badge>
+        <Sheet open={isOpen} onOpenChange={onClose}>
+            <SheetContent className="w-full sm:max-w-md flex flex-col">
+                <SheetHeader className="border-b pb-4">
+                    <SheetTitle>Tu Pedido Demo</SheetTitle>
+                </SheetHeader>
+                
+                {items.length === 0 ? (
+                    <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
+                        <ShoppingCart className="w-12 h-12 text-slate-300 mb-4" />
+                        <p className="text-slate-500">Carrito vacío.</p>
+                    </div>
+                ) : (
+                    <div className="flex-1 overflow-y-auto py-4 space-y-4">
+                         {items.map((item: any, i: number) => (
+                             <div key={i} className="flex gap-4">
+                                 <img src={item.image} className="w-16 h-16 rounded-md object-cover bg-slate-100"/>
+                                 <div>
+                                     <p className="font-medium text-sm">{item.name}</p>
+                                     <p className="text-slate-500 text-sm">${(item.price/100).toFixed(2)}</p>
+                                 </div>
+                             </div>
+                         ))}
+
+                         {/* ZONA DE RECOMENDACIÓN (La que pediste) */}
+                         <div className="bg-indigo-50 p-4 rounded-xl border border-indigo-100 mt-6">
+                            <div className="flex items-center gap-2 mb-3">
+                                <Sparkles className="w-4 h-4 text-indigo-600" />
+                                <h4 className="font-bold text-indigo-900 text-sm">Sugerencia IA</h4>
+                            </div>
+                            <div className="flex gap-3 bg-white p-3 rounded-lg border border-indigo-100 shadow-sm">
+                                <div className="h-12 w-12 bg-slate-100 rounded-md"></div>
+                                <div>
+                                    <p className="text-xs font-bold text-slate-800">Pack Promocional</p>
+                                    <p className="text-xs text-slate-500">Los clientes suelen llevar esto junto.</p>
+                                </div>
+                                <Button size="sm" variant="outline" className="ml-auto h-8 text-xs">Agregar</Button>
+                            </div>
+                         </div>
+                    </div>
+                )}
+
+                <div className="border-t pt-4">
+                    <div className="flex justify-between font-bold text-lg mb-4">
+                        <span>Total</span>
+                        <span>${(total/100).toFixed(2)}</span>
+                    </div>
+                    <Button className="w-full bg-slate-900 text-white" onClick={() => alert("¡Pedido Simulado Enviado!")}>
+                        Enviar Cotización de Prueba
+                    </Button>
                 </div>
-                <CardDescription>Análisis predictivo a 7 días basado en historial.</CardDescription>
-            </CardHeader>
-            <CardContent className="h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={chartData}>
-                        <defs>
-                            <linearGradient id="colorReal" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.3} />
-                                <stop offset="95%" stopColor="#4f46e5" stopOpacity={0} />
-                            </linearGradient>
-                            <linearGradient id="colorPred" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
-                                <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
-                            </linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                        <XAxis dataKey="date" fontSize={10} axisLine={false} tickLine={false} />
-                        <YAxis fontSize={10} axisLine={false} tickLine={false} />
-                        <Tooltip />
-                        <ReferenceLine x={format(new Date(), "dd MMM", {locale: es})} stroke="#ef4444" strokeDasharray="3 3" />
-                        <Area type="monotone" dataKey="real" stroke="#4f46e5" fill="url(#colorReal)" strokeWidth={2} />
-                        <Area type="monotone" dataKey="predicted" stroke="#10b981" fill="url(#colorPred)" strokeWidth={2} strokeDasharray="5 5" />
-                    </AreaChart>
-                </ResponsiveContainer>
-            </CardContent>
-        </Card>
+            </SheetContent>
+        </Sheet>
     );
-};
+}
+
+// --- CATALOG CONTENT ---
+export default function DemoCatalog({ products, color }: { products: any[], color: string }) {
+  const [items, setItems] = useState<any[]>([]);
+  const [isCartOpen, setIsCartOpen] = useState(false);
+  const [search, setSearch] = useState("");
+
+  const filtered = products.filter(p => p.name.toLowerCase().includes(search.toLowerCase()));
+
+  const handleAdd = (p: any) => {
+    setItems([...items, { ...p, price: p.price_retail }]);
+  };
+
+  return (
+    <div className="min-h-[600px] bg-slate-50/50 pb-20 relative">
+      {/* HEADER CATALOGO */}
+      <div className="h-48 relative overflow-hidden bg-slate-900 flex items-center justify-center text-center px-4" style={{ backgroundColor: color }}>
+         <div className="absolute inset-0 bg-black/20" />
+         <div className="relative z-10 text-white">
+            <h2 className="text-3xl font-bold mb-2">Catálogo Digital</h2>
+            <p className="opacity-90">Explora nuestros productos disponibles</p>
+         </div>
+      </div>
+
+      <div className="container mx-auto px-4 -mt-6 relative z-20">
+        <div className="bg-white p-4 rounded-xl shadow-lg border border-slate-100 mb-6">
+             <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5"/>
+                <Input 
+                    placeholder="Buscar productos..." 
+                    className="pl-10 h-12 text-base"
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                />
+             </div>
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {filtered.map(p => (
+                <ProductCard key={p.id} product={p} onAdd={() => handleAdd(p)} />
+            ))}
+        </div>
+      </div>
+
+      {/* FLOATING CART BUTTON */}
+      <AnimatePresence>
+        {items.length > 0 && (
+            <motion.div 
+                initial={{ y: 100 }} animate={{ y: 0 }} exit={{ y: 100 }}
+                className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50"
+            >
+                <Button 
+                    onClick={() => setIsCartOpen(true)}
+                    size="lg" 
+                    className="rounded-full shadow-2xl px-8 h-14 bg-slate-900 hover:bg-slate-800 text-white gap-3"
+                >
+                    <ShoppingCart className="w-5 h-5" />
+                    <span className="font-bold">{items.length} | ${(items.reduce((a:any,b:any)=>a+b.price,0)/100).toFixed(2)}</span>
+                </Button>
+            </motion.div>
+        )}
+      </AnimatePresence>
+
+      <DemoCart isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} items={items} />
+    </div>
+  );
+}
