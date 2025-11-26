@@ -1,19 +1,21 @@
 import { ScrollArea } from "@/components/ui/scroll-area";
+import ComplianceFooter from "@/components/layout/ComplianceFooter";
 
 const TermsAndConditions = () => {
   return (
-    <main className="min-h-screen bg-background">
-      <div className="max-w-4xl mx-auto px-4 py-8">
+    <main className="min-h-screen bg-background flex flex-col">
+      <div className="flex-1">
+        <div className="max-w-4xl mx-auto px-4 py-8">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-primary mb-2">
             Términos y Condiciones de Uso
           </h1>
           <p className="text-muted-foreground">
-            Última actualización: [fecha]
+            Última actualización: Enero 2025
           </p>
         </div>
 
-        <ScrollArea className="h-[calc(100vh-200px)]">
+        <ScrollArea className="h-[calc(100vh-300px)]">
           <div className="prose prose-gray max-w-none text-foreground">
             <p className="text-lg leading-relaxed mb-6">
               Bienvenido a CatalogoIa ("la Plataforma"), un servicio propiedad de CatalogoIa S.A. de C.V. (en adelante "nosotros" o "la Empresa"). Al acceder o utilizar nuestros servicios, el usuario ("usted") acepta cumplir con los presentes Términos y Condiciones.
@@ -109,9 +111,38 @@ const TermsAndConditions = () => {
                 <li>Cualquier controversia será resuelta ante los tribunales competentes de la Ciudad de Monterrey, Nuevo León, renunciando el usuario a cualquier otra jurisdicción que pudiera corresponder.</li>
               </ul>
             </section>
+
+            <section className="mb-8 bg-blue-50 dark:bg-blue-950/20 p-6 rounded-lg border border-blue-200 dark:border-blue-800">
+              <h2 className="text-2xl font-semibold text-blue-900 dark:text-blue-400 mb-4">
+                11. Tarifa de Blindaje de Pago y Seguridad
+              </h2>
+              <p className="leading-relaxed mb-4">
+                Para garantizar la integridad de las transacciones realizadas a través de nuestra plataforma, se aplica un cargo adicional denominado <strong>"Blindaje de Pago Seguro"</strong>.
+              </p>
+              <p className="leading-relaxed mb-4">
+                Este cargo cubre los siguientes servicios:
+              </p>
+              <ul className="list-disc pl-6 space-y-2 mb-4">
+                <li>Infraestructura bancaria segura y certificada</li>
+                <li>Soporte técnico especializado de pagos</li>
+                <li>Monitoreo y prevención de fraudes</li>
+                <li>Procesamiento seguro de transacciones</li>
+                <li>Protección de datos financieros</li>
+              </ul>
+              <div className="bg-white dark:bg-slate-900 p-4 rounded border border-blue-300 dark:border-blue-700">
+                <p className="leading-relaxed font-medium">
+                  <strong>IMPORTANTE:</strong> Al realizar un pago, el usuario acepta expresamente que este cargo es por el servicio de seguridad financiera y procesamiento de pagos, y <strong>NO constituye un seguro sobre la calidad, entrega o características del producto físico adquirido</strong>.
+                </p>
+                <p className="leading-relaxed mt-2">
+                  Para reclamaciones sobre productos, consulte nuestra <a href="/politica-de-reembolsos" className="text-blue-600 dark:text-blue-400 underline hover:text-blue-800">Política de Reembolsos</a>.
+                </p>
+              </div>
+            </section>
           </div>
         </ScrollArea>
       </div>
+      </div>
+      <ComplianceFooter />
     </main>
   );
 };

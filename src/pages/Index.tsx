@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/contexts/RoleContext";
 import { motion } from "framer-motion";
+import ComplianceFooter from "@/components/layout/ComplianceFooter";
 import {
   Network,
   GitFork,
@@ -537,67 +538,7 @@ const Index = () => {
       </section>
 
       {/* 7. FOOTER */}
-      <footer className="bg-slate-950 text-slate-400 py-12 px-4 border-t border-slate-900">
-        <div className="max-w-7xl mx-auto grid md:grid-cols-4 gap-8 mb-8 text-sm text-center md:text-left">
-          <div className="col-span-1 md:col-span-1 flex flex-col items-center md:items-start">
-            <div className="flex items-center gap-2 mb-4 text-white">
-              <Network className="w-5 h-5" />
-              <span className="font-bold text-lg">CatifyPro</span>
-            </div>
-            <p className="mb-4 text-xs leading-relaxed max-w-xs">
-              Plataforma de Gestión y Distribución Inteligente B2B.
-            </p>
-          </div>
-          <div>
-            <h4 className="text-white font-bold mb-4 text-xs uppercase tracking-widest">Producto</h4>
-            <ul className="space-y-2">
-              <li>
-                <a href="#" className="hover:text-white transition-colors">
-                  Características
-                </a>
-              </li>
-              <li>
-                <a href="#" className="hover:text-white transition-colors">
-                  Precios
-                </a>
-              </li>
-            </ul>
-          </div>
-          <div>
-            <h4 className="text-white font-bold mb-4 text-xs uppercase tracking-widest">Recursos</h4>
-            <ul className="space-y-2">
-              <li>
-                <a href="/blog" className="hover:text-white transition-colors">
-                  Blog
-                </a>
-              </li>
-              <li>
-                <a href="#" className="hover:text-white transition-colors">
-                  Soporte
-                </a>
-              </li>
-            </ul>
-          </div>
-          <div>
-            <h4 className="text-white font-bold mb-4 text-xs uppercase tracking-widest">Legal</h4>
-            <ul className="space-y-2">
-              <li>
-                <a href="/privacy-policy" className="hover:text-white transition-colors">
-                  Privacidad
-                </a>
-              </li>
-              <li>
-                <a href="/terms-and-conditions" className="hover:text-white transition-colors">
-                  Términos
-                </a>
-              </li>
-            </ul>
-          </div>
-        </div>
-        <div className="max-w-7xl mx-auto text-center pt-8 border-t border-slate-900 text-xs opacity-40">
-          © 2025 CatifyPro. Todos los derechos reservados.
-        </div>
-      </footer>
+      <ComplianceFooter />
     </div>
   );
 };

@@ -1,19 +1,21 @@
 import { ScrollArea } from "@/components/ui/scroll-area";
+import ComplianceFooter from "@/components/layout/ComplianceFooter";
 
 const PrivacyPolicy = () => {
   return (
-    <main className="min-h-screen bg-background">
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="text-center mb-8">
+    <main className="min-h-screen bg-background flex flex-col">
+      <div className="flex-1">
+        <div className="max-w-4xl mx-auto px-4 py-8">
+          <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-primary mb-2">
             Aviso de Privacidad
           </h1>
           <p className="text-muted-foreground">
-            Última actualización: [fecha]
+            Última actualización: Enero 2025
           </p>
-        </div>
+          </div>
 
-        <ScrollArea className="h-[calc(100vh-200px)]">
+          <ScrollArea className="h-[calc(100vh-300px)]">
           <div className="prose prose-gray max-w-none text-foreground">
             <p className="text-lg leading-relaxed mb-6">
               En cumplimiento con la Ley Federal de Protección de Datos Personales en Posesión de los Particulares, CatalogoIa S.A. de C.V. (en adelante "CatalogoIa" o "nosotros"), con domicilio en [tu dirección fiscal en México], hace de su conocimiento el presente Aviso de Privacidad.
@@ -104,7 +106,9 @@ const PrivacyPolicy = () => {
             </section>
           </div>
         </ScrollArea>
+        </div>
       </div>
+      <ComplianceFooter />
     </main>
   );
 };

@@ -331,6 +331,30 @@ export type Database = {
           },
         ]
       }
+      commission_rules: {
+        Row: {
+          fixed_fee_min: number | null
+          id: string
+          is_active: boolean | null
+          name: string | null
+          percentage_fee: number | null
+        }
+        Insert: {
+          fixed_fee_min?: number | null
+          id?: string
+          is_active?: boolean | null
+          name?: string | null
+          percentage_fee?: number | null
+        }
+        Update: {
+          fixed_fee_min?: number | null
+          id?: string
+          is_active?: boolean | null
+          name?: string | null
+          percentage_fee?: number | null
+        }
+        Relationships: []
+      }
       consolidated_order_items: {
         Row: {
           consolidated_order_id: string
@@ -992,6 +1016,105 @@ export type Database = {
           },
         ]
       }
+      merchants: {
+        Row: {
+          business_name: string
+          clabe_deposit: string
+          created_at: string | null
+          id: string
+          openpay_id: string | null
+          rfc: string | null
+          status: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          business_name: string
+          clabe_deposit: string
+          created_at?: string | null
+          id?: string
+          openpay_id?: string | null
+          rfc?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          business_name?: string
+          clabe_deposit?: string
+          created_at?: string | null
+          id?: string
+          openpay_id?: string | null
+          rfc?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      payment_transactions: {
+        Row: {
+          amount_total: number
+          clabe_virtual_in: string | null
+          commission_saas: number
+          cost_gateway: number | null
+          created_at: string | null
+          id: string
+          merchant_id: string | null
+          net_to_merchant: number
+          paid_at: string | null
+          payment_method: string | null
+          provider_transaction_id: string | null
+          quote_id: string
+          status: string | null
+        }
+        Insert: {
+          amount_total: number
+          clabe_virtual_in?: string | null
+          commission_saas: number
+          cost_gateway?: number | null
+          created_at?: string | null
+          id?: string
+          merchant_id?: string | null
+          net_to_merchant: number
+          paid_at?: string | null
+          payment_method?: string | null
+          provider_transaction_id?: string | null
+          quote_id: string
+          status?: string | null
+        }
+        Update: {
+          amount_total?: number
+          clabe_virtual_in?: string | null
+          commission_saas?: number
+          cost_gateway?: number | null
+          created_at?: string | null
+          id?: string
+          merchant_id?: string | null
+          net_to_merchant?: number
+          paid_at?: string | null
+          payment_method?: string | null
+          provider_transaction_id?: string | null
+          quote_id?: string
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_transactions_merchant_id_fkey"
+            columns: ["merchant_id"]
+            isOneToOne: false
+            referencedRelation: "merchants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_transactions_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_archive: {
         Row: {
           archived_at: string | null
@@ -1460,6 +1583,7 @@ export type Database = {
       }
       quotes: {
         Row: {
+          carrier_name: string | null
           catalog_id: string | null
           created_at: string | null
           customer_company: string | null
@@ -1469,6 +1593,8 @@ export type Database = {
           delivery_method:
             | Database["public"]["Enums"]["delivery_method_enum"]
             | null
+          estimated_delivery_date: string | null
+          fulfillment_status: string | null
           id: string
           items_count: number | null
           notes: string | null
@@ -1478,11 +1604,13 @@ export type Database = {
           shipping_cost: number | null
           status: string | null
           total_amount: number | null
+          tracking_code: string | null
           tracking_token: string | null
           updated_at: string | null
           user_id: string | null
         }
         Insert: {
+          carrier_name?: string | null
           catalog_id?: string | null
           created_at?: string | null
           customer_company?: string | null
@@ -1492,6 +1620,8 @@ export type Database = {
           delivery_method?:
             | Database["public"]["Enums"]["delivery_method_enum"]
             | null
+          estimated_delivery_date?: string | null
+          fulfillment_status?: string | null
           id?: string
           items_count?: number | null
           notes?: string | null
@@ -1501,11 +1631,13 @@ export type Database = {
           shipping_cost?: number | null
           status?: string | null
           total_amount?: number | null
+          tracking_code?: string | null
           tracking_token?: string | null
           updated_at?: string | null
           user_id?: string | null
         }
         Update: {
+          carrier_name?: string | null
           catalog_id?: string | null
           created_at?: string | null
           customer_company?: string | null
@@ -1515,6 +1647,8 @@ export type Database = {
           delivery_method?:
             | Database["public"]["Enums"]["delivery_method_enum"]
             | null
+          estimated_delivery_date?: string | null
+          fulfillment_status?: string | null
           id?: string
           items_count?: number | null
           notes?: string | null
@@ -1524,6 +1658,7 @@ export type Database = {
           shipping_cost?: number | null
           status?: string | null
           total_amount?: number | null
+          tracking_code?: string | null
           tracking_token?: string | null
           updated_at?: string | null
           user_id?: string | null
@@ -3041,6 +3176,10 @@ export type Database = {
       permanently_delete_product: {
         Args: { product_id: string; requesting_user_id: string }
         Returns: boolean
+      }
+      process_inventory_deduction: {
+        Args: { p_quote_id: string }
+        Returns: undefined
       }
       restore_product: {
         Args: { product_id: string; requesting_user_id: string }
