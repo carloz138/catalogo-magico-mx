@@ -67,7 +67,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 font-inter selection:bg-indigo-100 selection:text-indigo-900 overflow-x-hidden">
-      {/* 1. NAVBAR */}
+      {/* 1. NAVBAR  */}
       <nav className="fixed top-0 w-full bg-white/90 backdrop-blur-md border-b border-slate-200 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
