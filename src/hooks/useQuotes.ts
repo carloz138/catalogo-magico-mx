@@ -10,8 +10,8 @@ interface UseQuotesOptions {
   autoLoad?: boolean;
 }
 
-// ✅ ACTUALIZADO: Tipo extendido con datos de Pago y Logística
-// Esto permite que las páginas de Quotes y Orders lean el estado financiero y de envíos
+// ✅ CORREGIDO: QuoteWithMetadata hereda 'fulfillment_status' (Requerido) de Quote.
+// Ya no lo re-declaramos como opcional para evitar el error TS2430.
 export interface QuoteWithMetadata extends Quote {
   items_count: number;
   total_amount: number;
@@ -20,9 +20,8 @@ export interface QuoteWithMetadata extends Quote {
   catalog_activated?: boolean;
   catalog_name?: string;
 
-  // Campos nuevos mapeados desde el servicio
+  // Este sí es nuevo y opcional porque no existe en la tabla 'quotes' física
   payment_status?: string;
-  fulfillment_status?: FulfillmentStatus;
 }
 
 export function useQuotes(options: UseQuotesOptions = {}) {
@@ -48,7 +47,7 @@ export function useQuotes(options: UseQuotesOptions = {}) {
         catalog_id: options.catalog_id,
         status: options.status,
       });
-      // Casting seguro a nuestra interfaz extendida
+      // Casting seguro
       setQuotes(data as unknown as QuoteWithMetadata[]);
     } catch (error) {
       console.error("Error loading quotes:", error);
