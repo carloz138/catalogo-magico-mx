@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Loader2,
   ArrowLeft,
@@ -17,15 +17,13 @@ import {
   CheckCircle,
   XCircle,
   Clock,
-  Download,
-  ExternalLink,
   Truck,
-  Sparkles,
   MessageSquare,
   DollarSign,
   AlertCircle,
   Calendar as CalendarIcon,
   MapPin,
+  Gift,
 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -48,22 +46,33 @@ export default function QuoteDetailPage() {
   const [trackingUrl, setTrackingUrl] = useState("");
   const [showWhatsAppButton, setShowWhatsAppButton] = useState(false);
 
-  // Estados para Inputs de Negociación
   const [shippingCostInput, setShippingCostInput] = useState<string>("0");
   const [deliveryDateInput, setDeliveryDateInput] = useState<string>("");
 
   // ✅ LÓGICA DE PAGO: Verificar si existe una transacción pagada
-  // (El servicio ya trae payment_transactions gracias al cambio anterior)
   const paymentTx = (quote as any)?.payment_transactions?.find((tx: any) => tx.status === "paid");
   const isPaid = !!paymentTx;
 
-  // Cargar datos existentes
   useEffect(() => {
     if (quote) {
-      if (quote.shipping_cost) setShippingCostInput((quote.shipping_cost / 100).toString());
-      if (quote.estimated_delivery_date) setDeliveryDateInput(quote.estimated_delivery_date);
+      if (quote.shipping_cost !== null && quote.shipping_cost !== undefined) {
+        setShippingCostInput((quote.shipping_cost / 100).toString());
+      } else {
+        // Auto-calcular envío gratis
+        const itemsSubtotal = quote.items.reduce((sum, item) => sum + item.subtotal, 0);
+        const catalog = quote.catalog;
+        // Asumimos que free_shipping_min_amount viene en pesos desde la DB (si viene en centavos, quitar * 100)
+        const minAmountCents = (catalog?.free_shipping_min_amount || 0) * 100;
 
-      // Si ya está aceptada, generamos el link de tracking para el botón de WhatsApp
+        if (catalog?.enable_free_shipping && itemsSubtotal >= minAmountCents) {
+          setShippingCostInput("0");
+        }
+      }
+
+      if (quote.estimated_delivery_date) {
+        setDeliveryDateInput(quote.estimated_delivery_date);
+      }
+
       if (quote.status === "accepted" || quote.status === "shipped") {
         QuoteTrackingService.getTrackingLink(quote.id)
           .then((url) => {
@@ -77,25 +86,50 @@ export default function QuoteDetailPage() {
 
   // --- HANDLERS ---
 
+  // ✅ MANEJO DE PAGO MANUAL
+  const handleManualPayment = async () => {
+    if (!quote || !user?.id) return;
+
+    if (
+      !window.confirm(
+        "¿Confirmas que recibiste el pago por fuera de la plataforma? Esto marcará el pedido como pagado.",
+      )
+    ) {
+      return;
+    }
+
+    setActionLoading(true);
+    try {
+      const itemsSubtotal = quote.items.reduce((sum, item) => sum + item.subtotal, 0);
+      const shipping = quote.shipping_cost || 0;
+      const total = quote.total_amount || itemsSubtotal + shipping;
+
+      await QuoteService.markAsPaidManually(quote.id, user.id, total);
+
+      toast({
+        title: "✅ Pago Registrado",
+        description: "El pedido se movió a la sección 'Mis Pedidos'.",
+      });
+      refetch();
+    } catch (error: any) {
+      console.error(error);
+      toast({ title: "Error", description: "No se pudo registrar el pago.", variant: "destructive" });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const handleNegotiateQuote = async () => {
     if (!quote || !user?.id) return;
 
     const costValue = parseFloat(shippingCostInput);
     if (isNaN(costValue) || costValue < 0) {
-      toast({
-        title: "Monto inválido",
-        description: "El costo de envío no puede ser negativo.",
-        variant: "destructive",
-      });
+      toast({ title: "Monto inválido", variant: "destructive" });
       return;
     }
 
     if (!deliveryDateInput) {
-      toast({
-        title: "Falta Fecha",
-        description: "Debes indicar una fecha estimada de entrega.",
-        variant: "destructive",
-      });
+      toast({ title: "Falta Fecha", description: "Indica fecha estimada.", variant: "destructive" });
       return;
     }
 
@@ -113,7 +147,7 @@ export default function QuoteDetailPage() {
         deliveryDateInput,
       );
 
-      toast({ title: "✅ Cotización Actualizada", description: "Cliente notificado con costos y fecha de entrega." });
+      toast({ title: "✅ Cotización Actualizada", description: "Cliente notificado." });
       refetch();
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -127,10 +161,10 @@ export default function QuoteDetailPage() {
     setActionLoading(true);
     try {
       await QuoteService.updateQuoteStatus(quote.id, user.id, "accepted");
-      toast({ title: "✅ Venta Cerrada Manualmente", description: "Cotización marcada como aceptada." });
+      toast({ title: "✅ Venta Cerrada Manualmente" });
       refetch();
     } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Error", variant: "destructive" });
     } finally {
       setActionLoading(false);
     }
@@ -141,10 +175,10 @@ export default function QuoteDetailPage() {
     setActionLoading(true);
     try {
       await QuoteService.updateQuoteStatus(quote.id, user.id, "rejected");
-      toast({ title: "Cotización rechazada", description: "Estado actualizado." });
+      toast({ title: "Cotización rechazada" });
       refetch();
     } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Error", variant: "destructive" });
     } finally {
       setActionLoading(false);
     }
@@ -155,18 +189,17 @@ export default function QuoteDetailPage() {
     setActionLoading(true);
     try {
       await QuoteService.updateQuoteStatus(quote.id, user.id, "shipped");
-      toast({ title: "✅ Pedido enviado", description: "Cliente notificado." });
+      toast({ title: "✅ Enviado" });
       refetch();
     } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Error", variant: "destructive" });
     } finally {
       setActionLoading(false);
     }
   };
 
-  // --- UI CONFIG MEJORADA (Aquí está el arreglo del texto) ---
+  // UI Config
   const getStatusConfig = (status: QuoteStatus) => {
-    // Prioridad 1: Si ya pagaron
     if (status === "accepted" && isPaid) {
       return {
         icon: CheckCircle,
@@ -175,24 +208,22 @@ export default function QuoteDetailPage() {
         bg: "bg-emerald-50",
       };
     }
-
-    // Prioridad 2: Estados normales
     const config = {
       pending: {
         icon: Clock,
         label: "Solicitud Nueva",
-        color: "bg-blue-100 text-blue-700 border-blue-200",
-        bg: "bg-blue-50",
+        color: "bg-gray-100 text-slate-700 border-slate-200",
+        bg: "bg-gray-50",
       },
       negotiation: {
         icon: AlertCircle,
-        label: "Esperando al Cliente", // Ya enviaste precio, falta que acepten
+        label: "Esperando Cliente",
         color: "bg-amber-100 text-amber-700 border-amber-200",
         bg: "bg-amber-50",
       },
       accepted: {
-        icon: Clock, // Reloj porque estamos esperando el dinero
-        label: "Esperando Pago", // Antes decía Venta Cerrada
+        icon: Clock,
+        label: "Esperando Pago",
         color: "bg-orange-100 text-orange-700 border-orange-200",
         bg: "bg-orange-50",
       },
@@ -212,27 +243,26 @@ export default function QuoteDetailPage() {
     return config[status] || config.pending;
   };
 
-  if (loading || !quote) {
+  if (loading || !quote)
     return (
-      <div className="flex items-center justify-center min-h-[80vh]">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="h-10 w-10 animate-spin text-indigo-600" />
-          <p className="text-slate-500">Cargando detalles...</p>
-        </div>
+      <div className="flex justify-center p-10">
+        <Loader2 className="h-8 w-8 animate-spin" />
       </div>
     );
-  }
 
   const statusConfig = getStatusConfig(quote.status);
-
   const itemsSubtotal = quote.items.reduce((sum, item) => sum + item.subtotal, 0);
   const isPickup = quote.delivery_method === "pickup";
   const effectiveShipping = isPickup ? 0 : parseFloat(shippingCostInput || "0") * 100;
   const grandTotal = itemsSubtotal + effectiveShipping;
 
+  const catalog = quote.catalog;
+  const minAmountCents = (catalog?.free_shipping_min_amount || 0) * 100;
+  const qualifiesForFreeShipping = catalog?.enable_free_shipping && itemsSubtotal >= minAmountCents;
+
   return (
     <div className="min-h-screen bg-slate-50/50 pb-20">
-      {/* --- HEADER --- */}
+      {/* HEADER */}
       <div className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -254,10 +284,9 @@ export default function QuoteDetailPage() {
               </p>
             </div>
           </div>
-
           <div className="flex items-center gap-2">
-            {/* Botón Marcar Enviado: Solo si YA PAGARON o es venta cerrada manual */}
-            {quote.status === "accepted" && (
+            {/* El botón de Marcar Enviado se mantiene por flexibilidad */}
+            {quote.status === "accepted" && isPaid && (
               <Button
                 size="sm"
                 className="bg-purple-600 hover:bg-purple-700 text-white"
@@ -269,17 +298,11 @@ export default function QuoteDetailPage() {
             )}
           </div>
         </div>
-        {/* Mobile Status Bar */}
-        <div
-          className={`sm:hidden h-8 flex items-center justify-center text-xs font-medium ${statusConfig.bg} ${statusConfig.color.split(" ")[1]}`}
-        >
-          {statusConfig.label}
-        </div>
       </div>
 
       <div className="container mx-auto p-4 md:p-8 max-w-6xl">
         <div className="grid lg:grid-cols-3 gap-8">
-          {/* --- COLUMNA IZQUIERDA: ITEMS --- */}
+          {/* COLUMNA IZQUIERDA: ITEMS */}
           <div className="lg:col-span-2 space-y-6">
             <Card className="overflow-hidden border-slate-200 shadow-sm">
               <CardHeader className="bg-slate-50/50 border-b border-slate-100 pb-4">
@@ -299,13 +322,12 @@ export default function QuoteDetailPage() {
                     key={item.id}
                     className={`p-4 sm:p-6 flex gap-4 ${index !== 0 ? "border-t border-slate-100" : ""}`}
                   >
-                    {/* Imagen */}
-                    <div className="h-20 w-20 sm:h-24 sm:w-24 bg-slate-100 rounded-lg border border-slate-200 flex-shrink-0 overflow-hidden">
+                    <div className="h-20 w-20 bg-slate-100 rounded-lg border border-slate-200 flex-shrink-0 overflow-hidden">
                       {item.product_image_url ? (
                         <img
                           src={item.product_image_url}
-                          alt={item.product_name}
                           className="h-full w-full object-cover"
+                          alt={item.product_name}
                         />
                       ) : (
                         <div className="h-full w-full flex items-center justify-center text-slate-300">
@@ -313,7 +335,6 @@ export default function QuoteDetailPage() {
                         </div>
                       )}
                     </div>
-                    {/* Info */}
                     <div className="flex-1 min-w-0 flex flex-col justify-between">
                       <div>
                         <h4 className="font-semibold text-slate-900 text-base leading-tight mb-1 line-clamp-2">
@@ -347,7 +368,6 @@ export default function QuoteDetailPage() {
                   </div>
                 ))}
 
-                {/* --- TOTALES --- */}
                 <div className="bg-slate-50 p-6 border-t border-slate-200 space-y-2">
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-slate-500">Subtotal</span>
@@ -362,6 +382,13 @@ export default function QuoteDetailPage() {
                       {isPickup ? "$0.00" : `$${(effectiveShipping / 100).toLocaleString("es-MX")}`}
                     </span>
                   </div>
+
+                  {qualifiesForFreeShipping && !isPickup && (
+                    <div className="flex items-center gap-2 text-xs text-emerald-600 font-medium bg-emerald-50 px-2 py-1 rounded border border-emerald-100">
+                      <Gift className="w-3 h-3" /> Envío Gratis Aplicado
+                    </div>
+                  )}
+
                   <Separator className="my-2" />
                   <div className="flex justify-between items-center">
                     <span className="text-lg font-bold text-slate-900">Total Estimado</span>
@@ -373,7 +400,6 @@ export default function QuoteDetailPage() {
               </CardContent>
             </Card>
 
-            {/* Notas */}
             {quote.notes && (
               <Card>
                 <CardHeader className="pb-3">
@@ -390,9 +416,9 @@ export default function QuoteDetailPage() {
             )}
           </div>
 
-          {/* --- COLUMNA DERECHA: ACCIONES Y LOGÍSTICA --- */}
+          {/* COLUMNA DERECHA */}
           <div className="space-y-6">
-            {/* ✅ TARJETA DE ESTATUS FINANCIERO (NUEVO) */}
+            {/* ✅ TARJETA DE ESTATUS FINANCIERO */}
             {isPaid ? (
               <Card className="bg-emerald-50 border-emerald-200 shadow-sm">
                 <CardContent className="p-6 text-center">
@@ -411,7 +437,7 @@ export default function QuoteDetailPage() {
                 </CardContent>
               </Card>
             ) : (
-              // Si está aceptada pero NO pagada, mostramos alerta
+              // ✅ BOTÓN DE PAGO MANUAL (Visible solo si aceptada + no pagada)
               quote.status === "accepted" && (
                 <Card className="bg-amber-50 border-amber-200 shadow-sm">
                   <CardContent className="p-6 text-center">
@@ -419,16 +445,24 @@ export default function QuoteDetailPage() {
                       <Clock className="h-6 w-6 text-amber-600" />
                     </div>
                     <h3 className="text-lg font-bold text-amber-900">Esperando Pago</h3>
-                    <p className="text-amber-700 text-sm">
-                      La cotización fue aceptada, pero aún no detectamos el pago SPEI.
+                    <p className="text-amber-700 text-sm mb-4">
+                      El cliente aceptó. Esperando pago SPEI o confirmación manual.
                     </p>
+
+                    <Button
+                      variant="outline"
+                      className="w-full border-amber-300 text-amber-800 hover:bg-amber-100 bg-white"
+                      onClick={handleManualPayment}
+                      disabled={actionLoading}
+                    >
+                      <CheckCircle className="w-4 h-4 mr-2" /> Registrar Pago Manual
+                    </Button>
                   </CardContent>
                 </Card>
               )
             )}
 
             {/* Panel de Gestión (Logística) */}
-            {/* Solo mostramos edición si NO está pagado y NO está enviado */}
             {(quote.status === "pending" || quote.status === "negotiation") && (
               <Card className="border-indigo-100 bg-gradient-to-b from-white to-indigo-50/30 shadow-md">
                 <CardHeader className="pb-3">
@@ -460,11 +494,13 @@ export default function QuoteDetailPage() {
                           <Input
                             type="number"
                             className="pl-9 text-sm"
-                            placeholder="0.00"
                             value={shippingCostInput}
                             onChange={(e) => setShippingCostInput(e.target.value)}
                           />
                         </div>
+                        {qualifiesForFreeShipping && (
+                          <p className="text-[10px] text-emerald-600 font-bold mt-1">✨ Envío gratis sugerido</p>
+                        )}
                       </div>
                     ) : (
                       <Alert className="py-2 bg-slate-50">
@@ -475,7 +511,6 @@ export default function QuoteDetailPage() {
                       </Alert>
                     )}
                   </div>
-
                   <Button
                     className="w-full bg-indigo-600 hover:bg-indigo-700 shadow-md"
                     onClick={handleNegotiateQuote}
@@ -488,9 +523,7 @@ export default function QuoteDetailPage() {
                     )}
                     {quote.status === "negotiation" ? "Actualizar y Re-enviar" : "Enviar Cotización con Flete"}
                   </Button>
-
                   <Separator className="my-2" />
-
                   <div className="grid grid-cols-2 gap-2">
                     <Button
                       variant="outline"
@@ -513,7 +546,7 @@ export default function QuoteDetailPage() {
               </Card>
             )}
 
-            {/* Tracking / WhatsApp Share (Solo si aceptada/pagada) */}
+            {/* Tracking / WhatsApp Share */}
             {(quote.status === "accepted" || quote.status === "shipped") && showWhatsAppButton && (
               <Card>
                 <CardHeader className="pb-3">
