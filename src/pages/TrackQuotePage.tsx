@@ -21,14 +21,21 @@ import {
   CreditCard,
   Copy,
   Landmark,
-  Box, // ✅ Nuevo Icono
-  MapPin, // ✅ Nuevo Icono
+  Box,
+  MapPin,
+  Phone,
+  Mail,
 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { useToast } from "@/hooks/use-toast";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { QuoteTrackingService, TrackingQuoteData } from "@/services/quote-tracking.service";
+
+// 🚨 SWITCH MAESTRO DE PAGOS 🚨
+// false = Modo Manual (Muestra datos de contacto para pagar)
+// true = Modo Openpay (Muestra botón de SPEI automático)
+const ENABLE_ONLINE_PAYMENTS = false;
 
 export default function TrackQuotePage() {
   const { token } = useParams();
@@ -43,7 +50,6 @@ export default function TrackQuotePage() {
   const [replicating, setReplicating] = useState(false);
   const [isCtaOpen, setIsCtaOpen] = useState(false);
 
-  // Estados para Pago
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [paymentData, setPaymentData] = useState<{ clabe: string; bank: string; amount: number } | null>(null);
 
@@ -57,105 +63,68 @@ export default function TrackQuotePage() {
       const data = await QuoteTrackingService.getQuoteByToken(token!);
       setQuote(data);
     } catch (error: any) {
-      console.error("❌ Error loading quote:", error);
-      toast({
-        title: "Error",
-        description: error.message || "No se pudo cargar la cotización",
-        variant: "destructive",
-      });
+      console.error("Error:", error);
+      toast({ title: "Error", description: "Enlace no válido o expirado", variant: "destructive" });
     } finally {
       setLoading(false);
     }
   };
 
-  // --- 1. ACEPTAR COTIZACIÓN ---
   const handleCustomerAccept = async () => {
     if (!quote) return;
     setActionLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke("accept-quote-public", {
-        body: { token: token },
-      });
-
-      if (error) throw error;
-      if (!data.success) throw new Error(data.error || "Error al procesar aceptación");
-
-      toast({
-        title: "¡Pedido Confirmado!",
-        description: "Ahora puedes proceder al pago.",
-      });
-
+      const { data, error } = await supabase.functions.invoke("accept-quote-public", { body: { token: token } });
+      if (error || !data.success) throw new Error("Error al procesar");
+      toast({ title: "¡Pedido Confirmado!", description: "Procede al pago." });
       await loadQuote();
-    } catch (error: any) {
-      console.error("Error accepting:", error);
-      toast({ title: "Error", description: "Hubo un problema al conectar.", variant: "destructive" });
+    } catch (error) {
+      toast({ title: "Error", description: "Intenta de nuevo.", variant: "destructive" });
     } finally {
       setActionLoading(false);
     }
   };
 
-  // --- 2. GENERAR PAGO ---
   const handleGeneratePayment = async () => {
     if (!quote) return;
     setActionLoading(true);
     try {
-      console.log("💸 Generando ficha de pago SPEI...");
-      const { data, error } = await supabase.functions.invoke("create-quote-payment", {
-        body: { quoteId: quote.id },
-      });
-
-      if (error) throw error;
-      if (data.error) throw new Error(data.error);
-
+      const { data, error } = await supabase.functions.invoke("create-quote-payment", { body: { quoteId: quote.id } });
+      if (error || data.error) throw new Error(data.error || "Error generando pago");
       setPaymentData({
         clabe: data.payment_method.clabe,
         bank: data.payment_method.bank || "STP",
         amount: data.amount,
       });
       setShowPaymentModal(true);
-
-      toast({
-        title: "Ficha Generada",
-        description: "Usa estos datos para realizar tu transferencia.",
-      });
     } catch (error: any) {
-      console.error("Error payment:", error);
-      toast({ title: "Error", description: error.message || "No se pudo generar el pago.", variant: "destructive" });
+      toast({ title: "Error", description: "No se pudo generar la ficha de pago.", variant: "destructive" });
     } finally {
       setActionLoading(false);
     }
   };
 
-  // --- 3. ACTIVAR CATÁLOGO (Replicación) ---
   const handleReplicate = async () => {
     if (!user) {
       setShowAuthModal(true);
       return;
     }
-    if (!quote || !quote.replicated_catalogs) return;
-
+    if (!quote?.replicated_catalogs) return;
     setReplicating(true);
     try {
-      const { error } = await supabase
+      await supabase
         .from("replicated_catalogs")
-        .update({
-          is_active: true,
-          reseller_id: user.id,
-          activated_at: new Date().toISOString(),
-        })
+        .update({ is_active: true, reseller_id: user.id, activated_at: new Date().toISOString() })
         .eq("id", quote.replicated_catalogs.id);
-
-      if (error) throw error;
-      toast({ title: "🎉 ¡Catálogo activado!", description: "Redirigiendo..." });
+      toast({ title: "¡Catálogo activado!", description: "Redirigiendo..." });
       navigate("/catalogs");
-    } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } catch (e) {
+      toast({ title: "Error", description: "Error activando", variant: "destructive" });
     } finally {
       setReplicating(false);
     }
   };
 
-  // Helpers
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
     toast({ title: "Copiado", description: "Dato copiado al portapapeles" });
@@ -174,22 +143,20 @@ export default function TrackQuotePage() {
     );
   if (!quote) return <div className="container mx-auto py-20 text-center">Cotización no encontrada</div>;
 
-  // Cálculos
-  const subtotal = quote.items.reduce((sum, item) => sum + (item.subtotal || 0), 0);
+  const subtotal = quote.items.reduce((sum, i) => sum + i.subtotal, 0);
   const shipping = quote.shipping_cost || 0;
   const total = quote.total_amount || subtotal + shipping;
 
-  // --- LOGICA DE ESTADOS COMBINADA ---
+  // Lógica de Estados
   const isAccepted = quote.status === "accepted" || quote.status === "shipped";
   const isNegotiation = quote.status === "negotiation";
 
-  // ✅ Nuevas banderas logísticas
+  // Lógica Logística (Prioridad sobre el pago)
   const isShipped = quote.status === "shipped" || quote.fulfillment_status === "shipped";
   const isReadyPickup = quote.fulfillment_status === "ready_for_pickup";
+  const isLogisticsActive = isShipped || isReadyPickup;
 
-  // 🔒 Bandera de replicación (Intacta)
-  // Se muestra si está aceptada O enviada, Y tiene catálogo disponible, Y no está activo.
-  const canReplicate = (isAccepted || isShipped) && quote.replicated_catalogs && !quote.replicated_catalogs.is_active;
+  const canReplicate = isAccepted && quote.replicated_catalogs && !quote.replicated_catalogs.is_active;
 
   const statusConfig = {
     pending: { icon: Clock, label: "En Revisión", color: "bg-gray-100 text-gray-800 border-gray-200" },
@@ -202,10 +169,8 @@ export default function TrackQuotePage() {
     rejected: { icon: XCircle, label: "Cancelada", color: "bg-red-100 text-red-800 border-red-200" },
     shipped: { icon: Truck, label: "En Camino", color: "bg-blue-100 text-blue-800 border-blue-200" },
   };
-
   const statusInfo = statusConfig[quote.status] || statusConfig.pending;
   const StatusIcon = statusInfo.icon;
-  const deliveryDate = quote.estimated_delivery_date;
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -225,7 +190,7 @@ export default function TrackQuotePage() {
       </div>
 
       <div className="container mx-auto px-4 py-8 max-w-3xl">
-        {/* --- 1. BANNER NEGOCIACIÓN (Pre-Aceptación) --- */}
+        {/* --- 1. BANNER NEGOCIACIÓN --- */}
         {isNegotiation && (
           <Card className="mb-8 border-amber-200 bg-white shadow-lg overflow-hidden">
             <div className="bg-amber-100 px-6 py-3 border-b border-amber-200 flex items-center gap-2">
@@ -243,7 +208,9 @@ export default function TrackQuotePage() {
                     </div>
                     <div>
                       <p className="text-xs text-slate-500 uppercase font-bold mb-1">Entrega</p>
-                      <p className="text-lg font-semibold text-slate-900">{getDeliveryDateLabel(deliveryDate)}</p>
+                      <p className="text-lg font-semibold text-slate-900">
+                        {getDeliveryDateLabel(quote.estimated_delivery_date)}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -269,39 +236,85 @@ export default function TrackQuotePage() {
           </Card>
         )}
 
-        {/* --- 2. BANNER PAGO (Post-Aceptación, Pre-Envío) --- */}
+        {/* --- 2. BANNER PAGO (HÍBRIDO) --- */}
         {/* Solo mostramos pago si NO se ha enviado ni está listo para recoger */}
-        {isAccepted && !isShipped && !isReadyPickup && (
+        {isAccepted && !isLogisticsActive && (
           <Card className="mb-8 border-indigo-200 bg-white shadow-lg overflow-hidden">
             <div className="bg-indigo-50 px-6 py-3 border-b border-indigo-100 flex items-center gap-2">
               <CreditCard className="w-5 h-5 text-indigo-600" />
               <span className="font-bold text-indigo-800">Pago Pendiente</span>
             </div>
-            <CardContent className="p-6 flex flex-col md:flex-row items-center gap-6">
-              <div className="flex-1">
-                <h3 className="text-lg font-bold text-slate-900 mb-2">¡Todo listo para tu pedido!</h3>
-                <p className="text-slate-600 text-sm">
-                  Realiza tu pago vía transferencia SPEI para que comience el proceso de envío.
-                </p>
-              </div>
-              <div className="text-center">
-                <Button
-                  onClick={handleGeneratePayment}
-                  disabled={actionLoading}
-                  size="lg"
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-md w-full md:w-auto"
-                >
-                  {actionLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Landmark className="w-5 h-5 mr-2" />}{" "}
-                  Pagar con Transferencia
-                </Button>
-                <p className="text-xs text-slate-400 mt-2">Procesado seguro por Openpay (BBVA)</p>
-              </div>
+            <CardContent className="p-6">
+              {ENABLE_ONLINE_PAYMENTS ? (
+                // MODO OPENPAY
+                <div className="flex flex-col md:flex-row items-center gap-6">
+                  <div className="flex-1">
+                    <h3 className="text-lg font-bold text-slate-900 mb-2">¡Todo listo para tu pedido!</h3>
+                    <p className="text-slate-600 text-sm">
+                      Realiza tu pago vía transferencia SPEI para que comience el proceso de envío.
+                    </p>
+                  </div>
+                  <div className="text-center">
+                    <Button
+                      onClick={handleGeneratePayment}
+                      disabled={actionLoading}
+                      size="lg"
+                      className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-md w-full md:w-auto"
+                    >
+                      {actionLoading ? (
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                      ) : (
+                        <Landmark className="w-5 h-5 mr-2" />
+                      )}{" "}
+                      Pagar con Transferencia
+                    </Button>
+                    <p className="text-xs text-slate-400 mt-2">Procesado seguro por Openpay (BBVA)</p>
+                  </div>
+                </div>
+              ) : (
+                // MODO MANUAL (Contacto)
+                <div className="flex flex-col md:flex-row items-center gap-6">
+                  <div className="flex-1">
+                    <h3 className="text-lg font-bold text-slate-900 mb-2">Pedido Confirmado</h3>
+                    <p className="text-slate-600 text-sm mb-4">
+                      Tu orden ha sido apartada. Para completar el pago y envío, por favor ponte en contacto con el
+                      proveedor.
+                    </p>
+                    <div className="flex flex-wrap gap-3">
+                      {quote.business_info?.phone && (
+                        <Button
+                          variant="outline"
+                          className="gap-2"
+                          onClick={() =>
+                            window.open(`https://wa.me/${quote.business_info?.phone?.replace(/\D/g, "")}`, "_blank")
+                          }
+                        >
+                          <Phone className="w-4 h-4 text-green-600" /> WhatsApp
+                        </Button>
+                      )}
+                      {quote.business_info?.email && (
+                        <Button
+                          variant="outline"
+                          className="gap-2"
+                          onClick={() => window.open(`mailto:${quote.business_info?.email}`, "_blank")}
+                        >
+                          <Mail className="w-4 h-4 text-blue-600" /> Correo
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                  <div className="text-center min-w-[150px]">
+                    <p className="text-xs text-slate-500 uppercase mb-1">Total a Pagar</p>
+                    <p className="text-2xl font-bold text-indigo-700">${(total / 100).toLocaleString("es-MX")}</p>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         )}
 
-        {/* --- 3. ✅ NUEVO: BANNER LOGÍSTICA (Post-Envío) --- */}
-        {(isShipped || isReadyPickup) && (
+        {/* --- 3. BANNER LOGÍSTICA (POST-ENVÍO) --- */}
+        {isLogisticsActive && (
           <Card
             className={`mb-8 border-2 shadow-lg overflow-hidden ${isShipped ? "border-purple-200 bg-purple-50" : "border-indigo-200 bg-indigo-50"}`}
           >
@@ -318,9 +331,7 @@ export default function TrackQuotePage() {
                   <h3 className="text-xl font-bold text-slate-900 mb-2">
                     {isShipped ? "¡Tu pedido está en camino!" : "¡Listo para recoger!"}
                   </h3>
-
                   {isShipped ? (
-                    // Información de Guía
                     <div className="space-y-2 text-sm text-slate-700">
                       <div className="flex items-center justify-center md:justify-start gap-2">
                         <span className="font-semibold">Paquetería:</span>
@@ -337,12 +348,12 @@ export default function TrackQuotePage() {
                           className="h-6 w-6"
                           onClick={() => copyToClipboard(quote.tracking_code || "")}
                         >
-                          <Copy className="h-3 w-3" />
+                          <Copy className="h-3 w-3 mr-1" />
+                          Copiar
                         </Button>
                       </div>
                     </div>
                   ) : (
-                    // Instrucciones de Pickup
                     <div className="text-sm text-slate-700 space-y-2">
                       <p>
                         Tu paquete ya está listo en mostrador. Puedes pasar a recogerlo en la dirección del proveedor:
@@ -358,7 +369,7 @@ export default function TrackQuotePage() {
           </Card>
         )}
 
-        {/* Header Info */}
+        {/* Header Info y Resto de componentes */}
         <div className="text-center mb-8">
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-2">
             Hola, {quote.customer_name.split(" ")[0]} 👋
@@ -368,7 +379,6 @@ export default function TrackQuotePage() {
           </p>
         </div>
 
-        {/* Oportunidad Replicación (Intacta) */}
         {canReplicate && (
           <Collapsible open={isCtaOpen} onOpenChange={setIsCtaOpen} className="mb-8">
             <CollapsibleTrigger className="w-full">
@@ -395,7 +405,6 @@ export default function TrackQuotePage() {
           </Collapsible>
         )}
 
-        {/* Detalle Productos (Intacto) */}
         <Card className="shadow-sm border-slate-200 overflow-hidden">
           <CardHeader className="bg-slate-50 border-b border-slate-100 py-4">
             <CardTitle className="text-base font-semibold flex justify-between items-center">
@@ -408,7 +417,7 @@ export default function TrackQuotePage() {
               <div key={index} className="flex gap-4 p-4 border-b border-slate-50 last:border-0">
                 <div className="w-16 h-16 bg-slate-100 rounded-md flex-shrink-0 overflow-hidden border border-slate-100">
                   {item.product_image_url ? (
-                    <img src={item.product_image_url} alt="" className="w-full h-full object-cover" />
+                    <img src={item.product_image_url} className="w-full h-full object-cover" />
                   ) : (
                     <Package className="w-full h-full p-4 text-slate-300" />
                   )}
@@ -424,13 +433,11 @@ export default function TrackQuotePage() {
                 </div>
               </div>
             ))}
-
             <div className="bg-slate-50/50 p-6 space-y-3">
               <div className="flex justify-between text-sm text-slate-600">
                 <span>Subtotal</span>
                 <span>${(subtotal / 100).toFixed(2)}</span>
               </div>
-              {/* Mostrar Envío si existe o si está en negociación/aceptada */}
               {(shipping > 0 || isNegotiation || isAccepted) && (
                 <div className="flex justify-between text-sm text-slate-800 font-medium">
                   <span className="flex items-center gap-2">
@@ -448,40 +455,35 @@ export default function TrackQuotePage() {
             </div>
           </CardContent>
         </Card>
-
         <div className="text-center mt-8 pb-10">
           <p className="text-xs text-slate-400">Powered by CatifyPro • {format(new Date(), "yyyy")}</p>
         </div>
       </div>
 
-      {/* Modales (Pago y Auth) */}
       <Dialog open={showPaymentModal} onOpenChange={setShowPaymentModal}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="text-center text-xl font-bold text-indigo-900">Datos de Transferencia</DialogTitle>
-            <DialogDescription className="text-center">
-              Realiza el pago exacto a la siguiente cuenta CLABE para confirmar tu pedido automáticamente.
-            </DialogDescription>
+            <DialogDescription className="text-center">Realiza el pago exacto.</DialogDescription>
           </DialogHeader>
           {paymentData && (
             <div className="space-y-6 py-4">
               <div className="bg-indigo-50 p-4 rounded-lg border border-indigo-100 text-center space-y-1">
-                <p className="text-xs font-bold text-indigo-400 uppercase">Monto Exacto a Pagar</p>
+                <p className="text-xs font-bold text-indigo-400 uppercase">Monto Exacto</p>
                 <p className="text-3xl font-bold text-indigo-700">
                   ${paymentData.amount.toLocaleString("es-MX", { minimumFractionDigits: 2 })}
                 </p>
-                <p className="text-xs text-indigo-500">MXN (Pesos Mexicanos)</p>
               </div>
               <div className="space-y-4">
                 <div className="flex items-center justify-between p-3 border rounded-md bg-white">
                   <div>
-                    <p className="text-xs text-slate-500 uppercase">Banco Destino</p>
+                    <p className="text-xs text-slate-500 uppercase">Banco</p>
                     <p className="font-semibold text-slate-900">{paymentData.bank}</p>
                   </div>
                   <Landmark className="text-slate-300 h-5 w-5" />
                 </div>
                 <div className="space-y-1">
-                  <p className="text-xs text-slate-500 uppercase ml-1">CLABE Interbancaria (Única)</p>
+                  <p className="text-xs text-slate-500 uppercase ml-1">CLABE (Única)</p>
                   <div className="flex items-center gap-2">
                     <div className="flex-1 p-3 bg-slate-100 rounded-md border border-slate-200 font-mono text-lg tracking-widest text-center font-bold text-slate-800">
                       {paymentData.clabe}
@@ -491,26 +493,17 @@ export default function TrackQuotePage() {
                     </Button>
                   </div>
                 </div>
-                <div className="flex items-center justify-between p-3 border rounded-md bg-white">
-                  <div>
-                    <p className="text-xs text-slate-500 uppercase">Beneficiario</p>
-                    <p className="font-semibold text-slate-900 truncate max-w-[200px]">
-                      {quote?.business_info?.business_name || "CatifyPro"}
-                    </p>
-                  </div>
-                </div>
               </div>
               <Alert className="bg-amber-50 text-amber-800 border-amber-200">
                 <AlertCircle className="h-4 w-4 text-amber-600" />
                 <AlertDescription className="text-xs">
-                  <strong>Importante:</strong> Esta CLABE es única para este pedido. El pago se reflejará en minutos.
+                  <strong>Importante:</strong> Esta CLABE es única para este pedido.
                 </AlertDescription>
               </Alert>
             </div>
           )}
         </DialogContent>
       </Dialog>
-
       <Dialog open={showAuthModal} onOpenChange={setShowAuthModal}>
         <DialogContent>
           <DialogHeader>
