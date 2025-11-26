@@ -1,411 +1,307 @@
 import { useState, useEffect } from "react";
-// 🛑 FIX 1: CAMBIAR useParams a useSearchParams
-import { useSearchParams, useNavigate } from "react-router-dom"; 
+import { useSearchParams, useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client"; // Directo para Auth
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, Check, X, CheckCircle, Mail } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Loader2, Check, X, Rocket, Lock, Mail, AlertCircle } from "lucide-react";
 import { ReplicationService } from "@/services/replication.service";
-import { ComparisonTable } from "@/components/replication/ComparisonTable"; 
 import { useToast } from "@/hooks/use-toast";
 import type { CatalogByTokenResponse } from "@/types/digital-catalog";
+import { useAuth } from "@/contexts/AuthContext"; // Usamos el contexto global
 
 export default function ActivateCatalog() {
-    // 🛑 FIX 2: Lectura del token desde el Query Parameter (?token=UUID)
-    const [searchParams] = useSearchParams();
-    const token = searchParams.get('token') || ''; 
+  const [searchParams] = useSearchParams();
+  const token = searchParams.get("token") || "";
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const { signIn, signUp, signInWithGoogle, user } = useAuth(); // Usamos hooks de Auth
 
-    const navigate = useNavigate();
-    const { toast } = useToast();
+  const [catalog, setCatalog] = useState<CatalogByTokenResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [authLoading, setAuthLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState("login");
 
-    const [catalog, setCatalog] = useState<CatalogByTokenResponse | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-    const [isExpired, setIsExpired] = useState(false);
-    const [email, setEmail] = useState("");
-    const [name, setName] = useState("");
-    const [showEmailForm, setShowEmailForm] = useState(false);
-    const [activating, setActivating] = useState(false);
-    const [activated, setActivated] = useState(false);
-    const [activationMessage, setActivationMessage] = useState(""); 
+  // Form States
+  const [loginData, setLoginData] = useState({ email: "", password: "" });
+  const [signupData, setSignupData] = useState({ email: "", password: "", fullName: "" });
 
-    useEffect(() => {
-        // Utilizamos 'token' directamente
-        if (!token) {
-            setError("Token inválido");
-            setLoading(false);
-            return;
-        }
-        loadCatalog();
-    }, [token]);
-
-    const loadCatalog = async () => {
-        if (!token) return;
-        setLoading(true);
-        setError(null); 
-        try {
-            // Get catalog data
-            // Esto llamará a la Edge Function get-quote-by-token
-            const data = await ReplicationService.getCatalogByToken(token);
-            setCatalog(data);
-
-            // Pre-fill email if available from replica data (optional)
-            if (data?.reseller_email) {
-                setEmail(data.reseller_email);
-            }
-        } catch (err: any) {
-            console.error("Error loading catalog:", err);
-            // More specific error handling based on message
-            if (err.message?.includes("inválido") || err.message?.includes("expirado") || err.message?.includes("activo")) {
-                setError(err.message); // Show specific error message from backend
-            } else {
-                setError("No se pudo cargar la información del catálogo. Por favor, verifica el link.");
-            }
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleActivate = async () => {
-        if (!catalog) return;
-        setShowEmailForm(true); // Show the email input form
-    };
-
-    // --- THIS IS THE CORRECT VERSION of handleActivateWithEmail ---
-    const handleActivateWithEmail = async () => {
-        if (!email || !catalog || !token) return; 
-
-        setActivating(true);
-        setError(null); 
-        try {
-            // Call the service function that invokes the Edge Function
-            const result = await ReplicationService.activateWithEmail({
-                token: token,
-                email,
-                name,
-            });
-
-            // Update state based on the function's response
-            setActivationMessage(result.message); 
-            setActivated(true); 
-
-            // No toast needed here as the UI changes significantly to inform the user
-        } catch (error: any) {
-            console.error("Error activating:", error);
-            // Display the specific error message coming from the Edge Function or service
-            setError(error.message || "No se pudo iniciar el proceso de activación. Verifica el email e inténtalo de nuevo.");
-            toast({
-                title: "Error de Activación",
-                description: error.message || "Inténtalo de nuevo.",
-                variant: "destructive",
-            });
-            // Important: Do NOT set activated to true if there was an error
-            setActivated(false);
-        } finally {
-            setActivating(false);
-        }
-    };
-
-    // --- Removed redundant functions ---
-
-    const handleContinueFree = () => {
-        toast({
-            title: "Función no disponible", 
-            description: "Por favor, activa el catálogo para continuar.",
-        });
-    };
-
-    // --- Render Logic ---
-
-    if (loading) {
-        return (
-            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
-                <div className="text-center">
-                    <Loader2 className="h-12 w-12 animate-spin text-indigo-600 mx-auto mb-4" />
-                    <p className="text-lg text-gray-600">Cargando catálogo...</p>
-                </div>
-            </div>
-        );
+  // 1. Cargar Catálogo al inicio
+  useEffect(() => {
+    if (!token) {
+      setError("Token inválido");
+      setLoading(false);
+      return;
     }
+    loadCatalog();
+  }, [token]);
 
-    // Handle specific errors like invalid/expired/already active token
-    if (error || !catalog) {
-        // Added !catalog check for safety
-        // Check for specific error messages we might expect
-        const isAlreadyActive = error?.includes("ya ha sido activado");
-        const isInvalidOrExpired = error?.includes("inválido") || error?.includes("expirado");
-
-        if (isAlreadyActive) {
-            // UI for already active catalog
-            return (
-                <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
-                    <Card className="max-w-md w-full mx-4">
-                        <CardContent className="pt-6 text-center">
-                            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                                <Check className="h-8 w-8 text-green-600" />
-                            </div>
-                            <h2 className="text-2xl font-bold text-gray-900 mb-2">Catálogo ya activo</h2>
-                            <p className="text-gray-600 mb-6">{error || "Este catálogo ya ha sido activado."}</p>
-                            <Button onClick={() => navigate("/login")}>Iniciar sesión</Button>
-                        </CardContent>
-                    </Card>
-                </div>
-            );
-        }
-
-        if (isInvalidOrExpired) {
-            // UI for invalid or expired token
-            return (
-                <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
-                    <Card className="max-w-md w-full mx-4">
-                        <CardContent className="pt-6 text-center">
-                            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                                <X className="h-8 w-8 text-red-600" />
-                            </div>
-                            <h2 className="text-2xl font-bold text-gray-900 mb-2">Enlace Inválido o Expirado</h2>
-                            <p className="text-gray-600 mb-6">{error || "El link de activación no es válido o ha expirado"}</p>
-                            <Button onClick={() => navigate("/")} variant="outline">
-                                Ir al inicio
-                            </Button>
-                        </CardContent>
-                    </Card>
-                </div>
-            );
-        }
-
-        // Default error UI if catalog data couldn't be fetched for other reasons
-        return (
-            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
-                <Card className="max-w-md w-full mx-4">
-                    <CardContent className="pt-6 text-center">
-                        <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <X className="h-8 w-8 text-red-600" />
-                        </div>
-                        <h2 className="text-2xl font-bold text-gray-900 mb-2">Error</h2>
-                        <p className="text-gray-600 mb-6">{error || "No se pudo cargar la información del catálogo."}</p>
-                        <Button onClick={() => navigate("/")} variant="outline">
-                            Ir al inicio
-                        </Button>
-                    </CardContent>
-                </Card>
-            </div>
-        );
+  // 2. Si el usuario YA tiene sesión (o acaba de iniciar), intentar activar
+  useEffect(() => {
+    if (user && catalog && !catalog.is_active) {
+      handleDirectActivation(user.id);
     }
+  }, [user, catalog]);
 
-    // --- Main Activation View ---
+  const loadCatalog = async () => {
+    setLoading(true);
+    try {
+      const data = await ReplicationService.getCatalogByToken(token);
+      setCatalog(data);
+
+      // Si ya está activo, redirigir
+      if (data.is_active) {
+        // Opcional: Validar si soy yo el dueño
+        toast({ title: "Catálogo ya activo", description: "Redirigiendo..." });
+        navigate("/dashboard");
+      }
+    } catch (err: any) {
+      console.error("Error loading catalog:", err);
+      setError(err.message || "No se pudo cargar la información.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // --- LÓGICA DE ACTIVACIÓN FINAL ---
+  const handleDirectActivation = async (userId: string) => {
+    setAuthLoading(true);
+    try {
+      console.log("🚀 Activando catálogo para usuario:", userId);
+
+      // Llamamos a la función simplificada que crearemos en el siguiente paso
+      // O usamos un update directo si tenemos permisos (pero mejor via función segura)
+      await supabase.functions.invoke("activate-replicated-catalog", {
+        body: {
+          token,
+          user_id: userId,
+          strategy: "direct_link", // Flag para la nueva lógica
+        },
+      });
+
+      toast({
+        title: "🎉 ¡Bienvenido a bordo!",
+        description: "Tu catálogo ha sido activado exitosamente.",
+      });
+
+      navigate("/dashboard"); // Redirección final
+    } catch (error: any) {
+      console.error("Error activating:", error);
+      toast({ title: "Error de Activación", description: error.message, variant: "destructive" });
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  // --- HANDLERS DE AUTH (Replicados de LoginPage pero simplificados) ---
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthLoading(true);
+    const { error } = await signIn(loginData.email, loginData.password);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+      setAuthLoading(false);
+    }
+    // Si es exitoso, el useEffect[user] disparará la activación
+  };
+
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthLoading(true);
+
+    // SignUp normal
+    const { data, error } = await signUp(signupData.email, signupData.password, {
+      full_name: signupData.fullName,
+    });
+
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+      setAuthLoading(false);
+    } else {
+      // Si requiere confirmación de email, avisamos
+      if (data.user && !data.session) {
+        toast({ title: "Revisa tu correo", description: "Confirma tu cuenta para continuar la activación." });
+        setAuthLoading(false);
+      }
+      // Si entra directo (sesión activa), el useEffect hará el resto
+    }
+  };
+
+  const handleGoogle = async () => {
+    setAuthLoading(true);
+    await signInWithGoogle();
+    // El redirect manejará el resto, pero idealmente deberíamos guardar el token en localStorage
+    // o pasarlo como query param state para recuperarlo al volver, pero Supabase Auth a veces pierde el contexto.
+    // Para MVP simple: El usuario vuelve a hacer clic en el link del correo si se pierde.
+  };
+
+  // --- RENDER ---
+
+  if (loading)
     return (
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-            {/* Header */}
-            <header className="bg-white shadow-sm py-4 px-6">
-                <div className="max-w-7xl mx-auto flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center">
-                            {/* Consider using your actual logo component if available */}
-                            <span className="text-white font-bold text-xl">C</span>
-                        </div>
-                        <span className="text-xl font-bold text-gray-900">CatifyPro</span>
-                    </div>
-                    <Button variant="ghost" onClick={() => navigate("/login")}>
-                        {" "}
-                        {/* Changed target to /login */}
-                        ¿Ya tienes cuenta? Inicia Sesión
-                    </Button>
-                </div>
-            </header>
-
-            {/* Main Content */}
-            <div className="max-w-5xl mx-auto py-12 px-4">
-                {/* Hero Section */}
-                <div className="text-center mb-12">
-                    <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">🎉 ¡Tu catálogo gratuito está listo!</h1>
-                    <p className="text-xl text-gray-600 mb-2">
-                        <span className="font-semibold text-indigo-600">
-                            {catalog.distributor_name || catalog.distributor_company || "Tu proveedor"}
-                        </span>{" "}
-                        te ha creado un catálogo profesional
-                    </p>
-                    <p className="text-lg text-gray-500">con {catalog.product_count || 0} productos</p> {/* Added fallback */}
-                </div>
-
-                {/* --- Consider Removing Comparison Table if Activation is Free --- */}
-                <div className="mb-12">
-                    <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">Beneficios al Activar</h2>
-                    {/* Replace ComparisonTable with a simple list or grid of benefits */}
-                    <div className="grid md:grid-cols-2 gap-4 max-w-3xl mx-auto">
-                        <div className="flex items-start gap-3 p-4 bg-white/50 rounded-lg">
-                            <Check className="h-6 w-6 flex-shrink-0 mt-1 text-green-600" />
-                            <div>
-                                <p className="font-semibold text-gray-800">Productos ilimitados y sin expiración</p>
-                            </div>
-                        </div>
-                        <div className="flex items-start gap-3 p-4 bg-white/50 rounded-lg">
-                            <Check className="h-6 w-6 flex-shrink-0 mt-1 text-green-600" />
-                            <div>
-                                <p className="font-semibold text-gray-800">Recibe cotizaciones 24/7 de tus clientes</p>
-                            </div>
-                        </div>
-                        <div className="flex items-start gap-3 p-4 bg-white/50 rounded-lg">
-                            <Check className="h-6 w-6 flex-shrink-0 mt-1 text-green-600" />
-                            <div>
-                                <p className="font-semibold text-gray-800">Panel para gestionar pedidos y clientes</p>
-                            </div>
-                        </div>
-                        <div className="flex items-start gap-3 p-4 bg-white/50 rounded-lg">
-                            <Check className="h-6 w-6 flex-shrink-0 mt-1 text-green-600" />
-                            <div>
-                                <p className="font-semibold text-gray-800">Comparte tu propio link de catálogo</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* CTA Section or "Check Email" UI */}
-                {!activated ? (
-                    <div className="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl shadow-2xl p-8 md:p-12 text-white mb-8">
-                        <div className="max-w-3xl mx-auto text-center">
-                            <h3 className="text-3xl md:text-4xl font-bold mb-6">Activa tu catálogo GRATIS</h3>
-                            {!showEmailForm ? (
-                                <Button
-                                    size="lg"
-                                    onClick={handleActivate}
-                                    className="bg-white text-indigo-600 hover:bg-gray-100 text-lg px-8 py-6 h-auto font-bold"
-                                >
-                                    🚀 Activar catálogo GRATIS
-                                </Button>
-                            ) : (
-                                <Card className="w-full max-w-md mx-auto mt-6 text-left">
-                                    <CardHeader>
-                                        <CardTitle className="text-gray-900">Ingresa tu email para activar</CardTitle>
-                                        <CardDescription className="text-gray-600">
-                                            Te enviaremos un link para confirmar/acceder a tu cuenta.
-                                        </CardDescription>
-                                    </CardHeader>
-                                    <CardContent className="space-y-4">
-                                        <div>
-                                            <label htmlFor="email-input" className="text-sm font-medium mb-2 block text-gray-900">
-                                                Email *
-                                            </label>
-                                            <input
-                                                id="email-input"
-                                                type="email"
-                                                value={email}
-                                                onChange={(e) => setEmail(e.target.value)}
-                                                placeholder="tu@email.com"
-                                                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-900" // Added text color
-                                                required
-                                            />
-                                        </div>
-                                        <div>
-                                            <label htmlFor="name-input" className="text-sm font-medium mb-2 block text-gray-900">
-                                                Nombre (opcional)
-                                            </label>
-                                            <input
-                                                id="name-input"
-                                                type="text"
-                                                value={name}
-                                                onChange={(e) => setName(e.target.value)}
-                                                placeholder="Tu nombre"
-                                                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-900" // Added text color
-                                                required
-                                            />
-                                        </div>
-                                        {/* Display specific error messages from activation attempt */}
-                                        {error && (
-                                            <Alert variant="destructive">
-                                                <AlertDescription>{error}</AlertDescription>
-                                            </Alert>
-                                        )}
-                                        <div className="flex gap-3">
-                                            <Button
-                                                variant="outline"
-                                                onClick={() => {
-                                                    setShowEmailForm(false);
-                                                    setError(null);
-                                                }} // Hide form and clear error
-                                                disabled={activating}
-                                                className="flex-1"
-                                            >
-                                                Cancelar
-                                            </Button>
-                                            <Button
-                                                onClick={handleActivateWithEmail}
-                                                disabled={!email || activating}
-                                                className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600"
-                                            >
-                                                {activating ? (
-                                                    <>
-                                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Activando...
-                                                    </>
-                                                ) : (
-                                                    "Activar"
-                                                )}
-                                            </Button>
-                                        </div>
-                                    </CardContent>
-                                </Card>
-                            )}
-                        </div>
-                    </div>
-                ) : (
-                    // --- UI shown AFTER successful call to activateWithEmail ---
-                    <Card className="max-w-2xl mx-auto mt-8 border-2 border-green-500">
-                        <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50">
-                            <CardTitle className="text-center text-2xl flex items-center justify-center gap-2 text-green-800">
-                                <CheckCircle className="w-8 h-8 text-green-600" />
-                                ¡Activación Iniciada!
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="pt-6 space-y-6">
-                            <div className="text-center">
-                                <div className="text-6xl mb-4">📧</div>
-                                <h3 className="text-xl font-bold mb-2 text-gray-900">Revisa tu email</h3>
-                                <p className="text-gray-600 mb-4">
-                                    {/* Use the specific message from the backend */}
-                                    {activationMessage || `Te hemos enviado un link a ${email} para completar el proceso.`}
-                                </p>
-                                <p className="text-sm text-gray-500">
-                                    Haz clic en el link del email para confirmar tu cuenta y/o acceder a tu dashboard.
-                                </p>
-                            </div>
-                            <Alert className="bg-blue-50 border-blue-200">
-                                <Mail className="w-4 h-4 text-blue-600" />
-                                <AlertDescription className="text-blue-900">
-                                    <strong>¿No ves el email?</strong> Revisa tu carpeta de spam o correo no deseado. El email puede
-                                    tardar unos minutos en llegar.
-                                </AlertDescription>
-                            </Alert>
-                            {/* Optional: Add a button to resend email if needed later */}
-                        </CardContent>
-                    </Card>
-                )}
-
-                {/* Info adicional */}
-                <div className="mt-12 grid md:grid-cols-3 gap-6 text-center">
-                    <div className="bg-white rounded-lg p-6 shadow">
-                        <div className="text-3xl mb-3">⚡</div>
-                        <h4 className="font-semibold text-gray-900 mb-2">Activación Rápida</h4>
-                        <p className="text-sm text-gray-600">Tu catálogo estará listo en minutos</p>
-                    </div>
-                    <div className="bg-white rounded-lg p-6 shadow">
-                        <div className="text-3xl mb-3">💰</div>
-                        <h4 className="font-semibold text-gray-900 mb-2">100% Gratuito</h4>
-                        <p className="text-sm text-gray-600">Este catálogo replicado no tiene costo</p>
-                    </div>
-                    <div className="bg-white rounded-lg p-6 shadow">
-                        <div className="text-3xl mb-3">📱</div>
-                        <h4 className="font-semibold text-gray-900 mb-2">Multiplataforma</h4>
-                        <p className="text-sm text-gray-600">Funciona en móvil, tablet y desktop</p>
-                    </div>
-                </div>
-            </div>
-
-            {/* Footer */}
-            <footer className="bg-white mt-12 py-6 px-4 text-center text-sm text-gray-600 border-t">
-                <p>
-                    Powered by <span className="font-semibold text-indigo-600">CatifyPro</span> | La manera más fácil de crear
-                    catálogos digitales
-                </p>
-            </footer>
-        </div>
+      <div className="min-h-screen flex justify-center items-center bg-slate-50">
+        <Loader2 className="w-10 h-10 animate-spin text-indigo-600" />
+      </div>
     );
+
+  if (error || !catalog) {
+    return (
+      <div className="min-h-screen flex justify-center items-center bg-slate-50 p-4">
+        <Card className="max-w-md w-full text-center">
+          <CardContent className="pt-6">
+            <div className="mx-auto w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mb-4">
+              <X className="w-6 h-6 text-red-600" />
+            </div>
+            <h3 className="text-lg font-bold text-slate-900">Enlace no válido</h3>
+            <p className="text-slate-500 mt-2">{error}</p>
+            <Button className="mt-6" onClick={() => navigate("/")}>
+              Ir al Inicio
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-blue-100 flex flex-col items-center justify-center p-4">
+      {/* Header Info */}
+      <div className="text-center mb-8 max-w-lg">
+        <div className="inline-flex items-center justify-center p-3 bg-white rounded-full shadow-sm mb-4">
+          <Rocket className="w-8 h-8 text-indigo-600" />
+        </div>
+        <h1 className="text-3xl font-bold text-slate-900 mb-2">Activa tu Negocio</h1>
+        <p className="text-slate-600">
+          Estás a un paso de activar tu catálogo replicado de{" "}
+          <span className="font-semibold text-indigo-700">{catalog.distributor_name || "Tu Proveedor"}</span>.
+        </p>
+      </div>
+
+      <Card className="w-full max-w-md shadow-xl border-0">
+        <CardHeader className="space-y-1">
+          <CardTitle className="text-2xl font-bold text-center">Bienvenido</CardTitle>
+          <CardDescription className="text-center">
+            Accede o crea una cuenta para vincular este catálogo a tu perfil.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Tabs defaultValue="login" value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid w-full grid-cols-2 mb-4">
+              <TabsTrigger value="login">Iniciar Sesión</TabsTrigger>
+              <TabsTrigger value="signup">Registrarse</TabsTrigger>
+            </TabsList>
+
+            {/* --- LOGIN --- */}
+            <TabsContent value="login" className="space-y-4">
+              <div className="space-y-4">
+                <Button
+                  variant="outline"
+                  type="button"
+                  className="w-full"
+                  onClick={handleGoogle}
+                  disabled={authLoading}
+                >
+                  <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
+                    <path
+                      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                      fill="#4285F4"
+                    />
+                    <path
+                      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                      fill="#34A853"
+                    />
+                    <path
+                      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                      fill="#FBBC05"
+                    />
+                    <path
+                      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                      fill="#EA4335"
+                    />
+                  </svg>
+                  Google
+                </Button>
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-white px-2 text-slate-500">O con email</span>
+                  </div>
+                </div>
+
+                <form onSubmit={handleLogin} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Email</Label>
+                    <Input
+                      type="email"
+                      required
+                      value={loginData.email}
+                      onChange={(e) => setLoginData({ ...loginData, email: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Contraseña</Label>
+                    <Input
+                      type="password"
+                      required
+                      value={loginData.password}
+                      onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
+                    />
+                  </div>
+                  <Button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700" disabled={authLoading}>
+                    {authLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Entrar y Activar"}
+                  </Button>
+                </form>
+              </div>
+            </TabsContent>
+
+            {/* --- SIGNUP --- */}
+            <TabsContent value="signup" className="space-y-4">
+              <form onSubmit={handleSignup} className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Nombre Completo</Label>
+                  <Input
+                    required
+                    value={signupData.fullName}
+                    onChange={(e) => setSignupData({ ...signupData, fullName: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Email</Label>
+                  <Input
+                    type="email"
+                    required
+                    value={signupData.email}
+                    onChange={(e) => setSignupData({ ...signupData, email: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Contraseña</Label>
+                  <Input
+                    type="password"
+                    required
+                    value={signupData.password}
+                    onChange={(e) => setSignupData({ ...signupData, password: e.target.value })}
+                  />
+                </div>
+                <Button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700" disabled={authLoading}>
+                  {authLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Crear Cuenta y Activar"}
+                </Button>
+              </form>
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
+
+      <p className="mt-8 text-center text-sm text-slate-500">
+        Powered by <strong>CatifyPro</strong>
+      </p>
+    </div>
+  );
 }
