@@ -23,6 +23,7 @@ import ActivateCatalog from "@/pages/ActivateCatalog";
 import CompleteActivation from "@/pages/CompleteActivation";
 import TermsAndConditions from "@/pages/TermsAndConditions";
 import PrivacyPolicy from "@/pages/PrivacyPolicy";
+import RefundPolicy from "@/pages/RefundPolicy";
 import ResetPassword from "@/pages/ResetPassword";
 import Blog from "@/pages/Blog";
 import BlogPost from "@/pages/BlogPost";
@@ -81,6 +82,7 @@ const App = () => (
                 <Route path="/why-subscribe" element={<WhySubscribePage />} />
                 <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
                 <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+                <Route path="/politica-de-reembolsos" element={<RefundPolicy />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
                 <Route
                   path="/c/:slug"
