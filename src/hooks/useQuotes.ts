@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { QuoteService } from "@/services/quote.service";
-import { Quote, QuoteStatus } from "@/types/digital-catalog";
+import { Quote, QuoteStatus, FulfillmentStatus } from "@/types/digital-catalog";
 import { useToast } from "@/hooks/use-toast";
 
 interface UseQuotesOptions {
@@ -10,7 +10,8 @@ interface UseQuotesOptions {
   autoLoad?: boolean;
 }
 
-// ✅ NUEVO: Tipo extendido para incluir info de catálogo replicado
+// ✅ ACTUALIZADO: Tipo extendido con datos de Pago y Logística
+// Esto permite que las páginas de Quotes y Orders lean el estado financiero y de envíos
 export interface QuoteWithMetadata extends Quote {
   items_count: number;
   total_amount: number;
@@ -18,6 +19,10 @@ export interface QuoteWithMetadata extends Quote {
   is_from_replicated?: boolean;
   catalog_activated?: boolean;
   catalog_name?: string;
+
+  // Campos nuevos mapeados desde el servicio
+  payment_status?: string;
+  fulfillment_status?: FulfillmentStatus;
 }
 
 export function useQuotes(options: UseQuotesOptions = {}) {
@@ -43,7 +48,8 @@ export function useQuotes(options: UseQuotesOptions = {}) {
         catalog_id: options.catalog_id,
         status: options.status,
       });
-      setQuotes(data as QuoteWithMetadata[]);
+      // Casting seguro a nuestra interfaz extendida
+      setQuotes(data as unknown as QuoteWithMetadata[]);
     } catch (error) {
       console.error("Error loading quotes:", error);
       toast({
