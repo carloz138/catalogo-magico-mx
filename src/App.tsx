@@ -23,7 +23,6 @@ import ActivateCatalog from "@/pages/ActivateCatalog";
 import CompleteActivation from "@/pages/CompleteActivation";
 import TermsAndConditions from "@/pages/TermsAndConditions";
 import PrivacyPolicy from "@/pages/PrivacyPolicy";
-import RefundPolicy from "@/pages/RefundPolicy";
 import ResetPassword from "@/pages/ResetPassword";
 import Blog from "@/pages/Blog";
 import BlogPost from "@/pages/BlogPost";
@@ -31,6 +30,7 @@ import NotFound from "@/pages/NotFound";
 import WhySubscribePage from "@/pages/WhySubscribePage";
 import QuoteTracking from "@/pages/QuoteTracking";
 import TrackQuotePage from "@/pages/TrackQuotePage";
+import OpenpayDemo from "@/pages/OpenpayDemo"; // ✅ IMPORTADO AQUÍ
 
 // Protected (Dashboard) Pages
 import MainDashboard from "@/pages/MainDashboard";
@@ -59,8 +59,6 @@ import ConsolidateOrderPage from "@/pages/reseller/ConsolidateOrderPage";
 import ConsolidatedOrdersListPage from "@/pages/reseller/ConsolidatedOrdersListPage";
 import MarketRadar from "@/pages/MarketRadar";
 import BankingSettings from "@/pages/dashboard/BankingSettings";
-
-// ✅ NUEVA PÁGINA DE PEDIDOS
 import OrdersPage from "@/pages/orders/index";
 
 const queryClient = new QueryClient();
@@ -82,8 +80,11 @@ const App = () => (
                 <Route path="/why-subscribe" element={<WhySubscribePage />} />
                 <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
                 <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-                <Route path="/politica-de-reembolsos" element={<RefundPolicy />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
+
+                {/* ✅ RUTA PARA OPENPAY (Pública) */}
+                <Route path="/openpay-demo" element={<OpenpayDemo />} />
+
                 <Route
                   path="/c/:slug"
                   element={
@@ -120,7 +121,7 @@ const App = () => (
                     <Route path="/quotes" element={<QuotesPage />} />
                     <Route path="/quotes/:id" element={<QuoteDetailPage />} />
 
-                    {/* ✅ NUEVA RUTA DE LOGÍSTICA */}
+                    {/* Logística */}
                     <Route path="/orders" element={<OrdersPage />} />
 
                     {/* Red y Revendedores */}
