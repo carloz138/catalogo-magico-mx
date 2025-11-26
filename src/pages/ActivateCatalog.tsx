@@ -1,24 +1,24 @@
 import { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client"; // Directo para Auth
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Check, X, Rocket, Lock, Mail, AlertCircle } from "lucide-react";
+import { Loader2, X, Rocket } from "lucide-react";
 import { ReplicationService } from "@/services/replication.service";
 import { useToast } from "@/hooks/use-toast";
 import type { CatalogByTokenResponse } from "@/types/digital-catalog";
-import { useAuth } from "@/contexts/AuthContext"; // Usamos el contexto global
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function ActivateCatalog() {
   const [searchParams] = useSearchParams();
   const token = searchParams.get("token") || "";
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { signIn, signUp, signInWithGoogle, user } = useAuth(); // Usamos hooks de Auth
+  const { signIn, signUp, signInWithGoogle, user } = useAuth();
 
   const [catalog, setCatalog] = useState<CatalogByTokenResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -40,8 +40,9 @@ export default function ActivateCatalog() {
     loadCatalog();
   }, [token]);
 
-  // 2. Si el usuario YA tiene sesión (o acaba de iniciar), intentar activar
+  // 2. AUTOMATIZACIÓN: Si el usuario YA tiene sesión (o acaba de iniciar), intentar activar
   useEffect(() => {
+    // Este efecto se dispara cuando 'user' cambia (ej. después de login/signup exitoso)
     if (user && catalog && !catalog.is_active) {
       handleDirectActivation(user.id);
     }
@@ -55,7 +56,6 @@ export default function ActivateCatalog() {
 
       // Si ya está activo, redirigir
       if (data.is_active) {
-        // Opcional: Validar si soy yo el dueño
         toast({ title: "Catálogo ya activo", description: "Redirigiendo..." });
         navigate("/dashboard");
       }
@@ -73,13 +73,12 @@ export default function ActivateCatalog() {
     try {
       console.log("🚀 Activando catálogo para usuario:", userId);
 
-      // Llamamos a la función simplificada que crearemos en el siguiente paso
-      // O usamos un update directo si tenemos permisos (pero mejor via función segura)
+      // Llamada a la Edge Function actualizada
       await supabase.functions.invoke("activate-replicated-catalog", {
         body: {
           token,
           user_id: userId,
-          strategy: "direct_link", // Flag para la nueva lógica
+          strategy: "direct_link",
         },
       });
 
@@ -88,7 +87,7 @@ export default function ActivateCatalog() {
         description: "Tu catálogo ha sido activado exitosamente.",
       });
 
-      navigate("/dashboard"); // Redirección final
+      navigate("/dashboard");
     } catch (error: any) {
       console.error("Error activating:", error);
       toast({ title: "Error de Activación", description: error.message, variant: "destructive" });
@@ -97,7 +96,7 @@ export default function ActivateCatalog() {
     }
   };
 
-  // --- HANDLERS DE AUTH (Replicados de LoginPage pero simplificados) ---
+  // --- HANDLERS DE AUTH ---
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -107,15 +106,15 @@ export default function ActivateCatalog() {
       toast({ title: "Error", description: error.message, variant: "destructive" });
       setAuthLoading(false);
     }
-    // Si es exitoso, el useEffect[user] disparará la activación
+    // Si es exitoso, el useEffect[user] disparará la activación automáticamente
   };
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthLoading(true);
 
-    // SignUp normal
-    const { data, error } = await signUp(signupData.email, signupData.password, {
+    // ✅ FIX: Eliminamos 'data' de la desestructuración porque tu hook useAuth no lo devuelve
+    const { error } = await signUp(signupData.email, signupData.password, {
       full_name: signupData.fullName,
     });
 
@@ -123,21 +122,20 @@ export default function ActivateCatalog() {
       toast({ title: "Error", description: error.message, variant: "destructive" });
       setAuthLoading(false);
     } else {
-      // Si requiere confirmación de email, avisamos
-      if (data.user && !data.session) {
-        toast({ title: "Revisa tu correo", description: "Confirma tu cuenta para continuar la activación." });
-        setAuthLoading(false);
-      }
-      // Si entra directo (sesión activa), el useEffect hará el resto
+      // Éxito.
+      // Si tu configuración de Supabase requiere confirmar email, el usuario no se logueará automáticamente
+      // y el useEffect no se disparará. Mostramos aviso por si acaso.
+      toast({
+        title: "Cuenta creada",
+        description: "Si se requiere confirmación, revisa tu correo. Si no, serás redirigido en breve.",
+      });
+      // Si NO requiere confirmación, 'user' cambiará y el useEffect hará la magia.
     }
   };
 
   const handleGoogle = async () => {
     setAuthLoading(true);
     await signInWithGoogle();
-    // El redirect manejará el resto, pero idealmente deberíamos guardar el token en localStorage
-    // o pasarlo como query param state para recuperarlo al volver, pero Supabase Auth a veces pierde el contexto.
-    // Para MVP simple: El usuario vuelve a hacer clic en el link del correo si se pierde.
   };
 
   // --- RENDER ---
