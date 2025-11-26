@@ -1,52 +1,22 @@
 import { supabase } from "@/integrations/supabase/client";
 import { Quote, QuoteItem, CreateQuoteDTO, QuoteStatus, FulfillmentStatus } from "@/types/digital-catalog";
 
-interface CreateQuoteResponse {
-  success: boolean;
-  quoteId?: string;
-  error?: string;
-}
-
 export class QuoteService {
   /**
-   * Crear cotización (desde vista pública - cliente anónimo).
+   * Crear cotización
    */
   static async createQuote(quoteData: CreateQuoteDTO & { replicated_catalog_id?: string }): Promise<Quote> {
     console.log("🔍 DEBUG - Usando Edge Function para crear cotización");
+    const { data, error } = await supabase.functions.invoke("create-quote", { body: quoteData });
 
-    const { data, error } = await supabase.functions.invoke("create-quote", {
-      body: {
-        catalog_id: quoteData.catalog_id,
-        user_id: quoteData.user_id || null,
-        replicated_catalog_id: quoteData.replicated_catalog_id || null,
-        customer_name: quoteData.customer_name,
-        customer_email: quoteData.customer_email,
-        customer_company: quoteData.customer_company || null,
-        customer_phone: quoteData.customer_phone || null,
-        notes: quoteData.notes || null,
-        delivery_method: quoteData.delivery_method,
-        shipping_address: quoteData.shipping_address || null,
-        items: quoteData.items,
-      },
-    });
-
-    if (error) {
-      console.error("❌ Error al invocar Edge Function:", error);
-      throw error;
-    }
-
-    if (!data.success) {
-      console.error("❌ Edge Function respondió con error:", data.error);
-      throw new Error(data.error || "Error al crear cotización");
-    }
-
-    console.log("✅ Cotización creada exitosamente:", data.quote_id);
+    if (error) throw error;
+    if (!data.success) throw new Error(data.error || "Error al crear cotización");
 
     return { id: data.quote_id } as unknown as Quote;
   }
 
   /**
-   * Obtener lista de cotizaciones del usuario.
+   * Obtener lista de cotizaciones con estatus de pago y logística
    */
   static async getUserQuotes(
     userId: string,
@@ -66,6 +36,7 @@ export class QuoteService {
         is_from_replicated: boolean;
         catalog_name?: string;
         payment_status?: string;
+        fulfillment_status?: string;
       }
     >
   > {
@@ -158,7 +129,7 @@ export class QuoteService {
   }
 
   /**
-   * ✅ ACTUALIZADO: Ahora trae las reglas de envío gratis del catálogo
+   * Obtener detalle
    */
   static async getQuoteDetail(
     quoteId: string,
@@ -187,16 +158,7 @@ export class QuoteService {
 
     const { data: items } = await supabase
       .from("quote_items")
-      .select(
-        `
-        *,
-        products (
-          name,
-          sku,
-          image_url
-        )
-      `,
-      )
+      .select(`*, products (name, sku, image_url)`)
       .eq("quote_id", quoteId)
       .order("created_at");
 
@@ -211,8 +173,10 @@ export class QuoteService {
         .from("reseller_variant_prices")
         .select("variant_id, is_in_stock")
         .eq("replicated_catalog_id", replicatedCatalogId);
+
       const productStockMap = new Map((productPrices || []).map((p) => [p.product_id, p.is_in_stock]));
       const variantStockMap = new Map((variantPrices || []).map((v) => [v.variant_id, v.is_in_stock]));
+
       enrichedItems = enrichedItems.map((item: any) => {
         let isInStock = false;
         if (item.variant_id) isInStock = variantStockMap.get(item.variant_id) || false;
@@ -237,8 +201,6 @@ export class QuoteService {
     newTotal: number,
     deliveryDate: string,
   ): Promise<Quote> {
-    console.log("🚀 Iniciando negociación...");
-
     const { data, error } = await supabase
       .from("quotes")
       .update({
@@ -255,13 +217,7 @@ export class QuoteService {
     if (error) throw error;
 
     try {
-      console.log("📧 Invocando send-quote-update...");
-      const { error: funcError } = await supabase.functions.invoke("send-quote-update", {
-        body: { quoteId: quoteId },
-      });
-
-      if (funcError) console.error("❌ Error al enviar email de actualización:", funcError);
-      else console.log("✅ Email de actualización enviado.");
+      await supabase.functions.invoke("send-quote-update", { body: { quoteId: quoteId } });
     } catch (e) {
       console.error("⚠️ Error invocando función (no bloqueante):", e);
     }
@@ -284,7 +240,6 @@ export class QuoteService {
       .single();
 
     if (error) throw error;
-    if (!updatedQuote) throw new Error("No se pudo actualizar la cotización");
 
     if (status === "accepted") {
       try {
@@ -311,9 +266,6 @@ export class QuoteService {
     return updatedQuote as unknown as Quote;
   }
 
-  /**
-   * ✅ MÉTODO QUE FALTABA: Actualizar Estatus Logístico
-   */
   static async updateFulfillmentStatus(
     quoteId: string,
     userId: string,
@@ -321,15 +273,41 @@ export class QuoteService {
     trackingData?: { code?: string; carrier?: string },
   ): Promise<void> {
     const updates: any = { fulfillment_status: status };
-
     if (trackingData) {
       if (trackingData.code) updates.tracking_code = trackingData.code;
       if (trackingData.carrier) updates.carrier_name = trackingData.carrier;
     }
-
     const { error } = await supabase.from("quotes").update(updates).eq("id", quoteId).eq("user_id", userId);
-
     if (error) throw error;
+  }
+
+  /**
+   * ✅ AQUI ESTÁ EL MÉTODO RECUPERADO: Registrar pago manual
+   */
+  static async markAsPaidManually(quoteId: string, userId: string, amount: number): Promise<void> {
+    // 1. Crear transacción manual
+    const { error: txError } = await supabase.from("payment_transactions").insert({
+      quote_id: quoteId,
+      amount_total: amount,
+      commission_saas: 0,
+      net_to_merchant: amount,
+      cost_gateway: 0,
+      payment_method: "manual",
+      status: "paid",
+      paid_at: new Date().toISOString(),
+    });
+    if (txError) throw txError;
+
+    // 2. Actualizar Cotización
+    const { error: quoteError } = await supabase
+      .from("quotes")
+      .update({ updated_at: new Date().toISOString() })
+      .eq("id", quoteId)
+      .eq("user_id", userId);
+    if (quoteError) throw quoteError;
+
+    // 3. Descontar Stock
+    await supabase.rpc("process_inventory_deduction", { p_quote_id: quoteId });
   }
 
   static async getQuoteStats(userId: string): Promise<{
@@ -358,7 +336,6 @@ export class QuoteService {
       if (quote.status === "accepted") stats.accepted++;
       if (quote.status === "rejected") stats.rejected++;
       if (quote.status === "shipped") stats.shipped++;
-
       if (quote.status === "accepted" || quote.status === "shipped") {
         stats.total_amount_accepted += quote.total_amount || 0;
       }
@@ -376,7 +353,6 @@ export class QuoteService {
       .order("created_at", { ascending: false });
 
     if (error) throw error;
-
     return (data || []) as unknown as Quote[];
   }
 }
