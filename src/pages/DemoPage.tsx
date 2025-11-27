@@ -1,178 +1,160 @@
 import { useState } from "react";
 import { DEMO_DATA, Industry } from "@/data/demoData";
-import {
-  DemoRadarWidget,
-  DemoSearchWidget,
-  DemoForecastWidget,
-  OpportunityBanner,
-} from "@/components/demo/DemoWidgets";
+import { DemoRadarWidget, DemoSearchWidget, DemoForecastWidget, OpportunityBanner } from "@/components/demo/DemoWidgets";
 import DemoCatalog from "@/components/demo/DemoCatalog";
 import { DemoKPIs, DemoSalesChart, BenefitTip } from "@/components/demo/DemoCharts";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-// CORRECCIÓN: Agregué TrendingUp a los imports
-import {
-  LayoutDashboard,
-  ShoppingCart,
-  Settings,
-  ArrowRight,
-  Shirt,
-  Hammer,
-  Gem,
-  Dog,
-  Anvil,
-  Radar,
-  TrendingUp,
-} from "lucide-react";
+import { LayoutDashboard, ShoppingCart, ArrowRight, Shirt, Hammer, Gem, Dog, Anvil, TrendingUp, MonitorPlay } from "lucide-react";
 
 export default function DemoPage() {
   const [industry, setIndustry] = useState<Industry>("ropa");
   const data = DEMO_DATA[industry];
 
   const IndustryIcon = {
-    ropa: Shirt,
-    ferreteria: Hammer,
-    belleza: Gem,
-    veterinaria: Dog,
-    acero: Anvil,
+    ropa: Shirt, ferreteria: Hammer, belleza: Gem, veterinaria: Dog, acero: Anvil
   }[industry];
 
   return (
     <div className="min-h-screen bg-slate-50 p-4 md:p-8 font-sans">
-      {/* HEADER DE CONTROL */}
-      <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm mb-8 flex flex-col md:flex-row items-center justify-between sticky top-4 z-40">
-        <div className="flex items-center gap-4">
-          <div className="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center text-white shadow-lg shadow-indigo-200">
-            <Settings className="w-6 h-6 animate-spin-slow" />
-          </div>
-          <div>
-            <h2 className="font-bold text-slate-900 text-lg">Modo Demo</h2>
-            <p className="text-xs text-slate-500">Simulación en tiempo real</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-4 w-full md:w-auto mt-4 md:mt-0">
-          <Select value={industry} onValueChange={(v) => setIndustry(v as Industry)}>
-            <SelectTrigger className="w-[200px] h-11 bg-slate-50 border-slate-200">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ropa">👗 Ropa</SelectItem>
-              <SelectItem value="ferreteria">🛠️ Ferretería</SelectItem>
-              <SelectItem value="acero">🏗️ Acero</SelectItem>
-              <SelectItem value="belleza">💄 Belleza</SelectItem>
-              <SelectItem value="veterinaria">🐶 Veterinaria</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button
-            className="h-11 bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-200 text-white"
-            onClick={() => (window.location.href = "/register")}
-          >
-            Prueba Gratis <ArrowRight className="w-4 h-4 ml-2" />
-          </Button>
-        </div>
+      
+      {/* HEADER GIGANTE PROTAGONISTA */}
+      <div className="bg-slate-900 border-b border-slate-800 rounded-3xl p-6 md:p-8 shadow-2xl mb-10 text-white relative overflow-hidden">
+         {/* Fondo decorativo */}
+         <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-600 rounded-full blur-[100px] opacity-20 -mr-20 -mt-20 pointer-events-none"></div>
+
+         <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
+             <div className="text-center md:text-left">
+                 <div className="inline-flex items-center gap-2 bg-slate-800/50 backdrop-blur px-3 py-1 rounded-full text-indigo-300 text-xs font-bold uppercase tracking-wider mb-3 border border-slate-700">
+                    <MonitorPlay className="w-3 h-3" /> Modo Demostración
+                 </div>
+                 <h1 className="text-3xl md:text-4xl font-bold mb-2">Descubre CatifyPro</h1>
+                 <p className="text-slate-400 text-lg">Adapta la plataforma a tu industria en un clic.</p>
+             </div>
+
+             {/* SELECTOR CENTRAL */}
+             <div className="flex flex-col items-center gap-2 bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/10 w-full md:w-auto">
+                 <span className="text-xs font-bold uppercase tracking-widest text-indigo-300">👀 Echa un vistazo a las demos</span>
+                 <div className="flex gap-2 w-full">
+                    <Select value={industry} onValueChange={(v) => setIndustry(v as Industry)}>
+                        <SelectTrigger className="w-full md:w-[280px] h-12 bg-white text-slate-900 border-0 font-medium text-base shadow-xl">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="ropa">👗 Ropa & Moda</SelectItem>
+                            <SelectItem value="ferreteria">🛠️ Ferretería Industrial</SelectItem>
+                            <SelectItem value="acero">🏗️ Aceros & Construcción</SelectItem>
+                            <SelectItem value="belleza">💄 Belleza & Cosméticos</SelectItem>
+                            <SelectItem value="veterinaria">🐶 Veterinaria</SelectItem>
+                        </SelectContent>
+                    </Select>
+                 </div>
+             </div>
+             
+             <div className="hidden md:block">
+                 <Button className="h-12 bg-emerald-500 hover:bg-emerald-600 text-white font-bold px-8 shadow-lg shadow-emerald-900/50" onClick={() => window.location.href='/register'}>
+                    Crear Cuenta Real <ArrowRight className="w-5 h-5 ml-2"/>
+                 </Button>
+             </div>
+         </div>
       </div>
 
       <div className="max-w-7xl mx-auto pb-20">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="bg-white p-2 rounded-xl shadow-sm border border-slate-100">
-            <IndustryIcon className="w-8 h-8 text-slate-700" />
-          </div>
-          <h1 className="text-3xl font-bold text-slate-800">{data.label}</h1>
+        <div className="flex items-center gap-4 mb-8 pl-2">
+            <div className="bg-white p-3 rounded-2xl shadow-md border border-slate-100">
+                <IndustryIcon className="w-8 h-8 text-indigo-600" />
+            </div>
+            <div>
+                <h2 className="text-2xl font-bold text-slate-800 leading-tight">{data.label}</h2>
+                <p className="text-slate-500 text-sm">Vista previa de la configuración para este giro.</p>
+            </div>
         </div>
 
         <Tabs defaultValue="dashboard" className="w-full">
-          <TabsList className="bg-white p-1 border border-slate-200 h-12 rounded-xl mb-6 shadow-sm inline-flex">
-            <TabsTrigger
-              value="dashboard"
-              className="h-10 px-6 data-[state=active]:bg-indigo-50 data-[state=active]:text-indigo-700 font-medium"
-            >
-              <LayoutDashboard className="w-4 h-4 mr-2" /> Dashboard
-            </TabsTrigger>
-            <TabsTrigger
-              value="catalogo"
-              className="h-10 px-6 data-[state=active]:bg-indigo-50 data-[state=active]:text-indigo-700 font-medium"
-            >
-              <ShoppingCart className="w-4 h-4 mr-2" /> Catálogo Cliente
-            </TabsTrigger>
-          </TabsList>
+            <TabsList className="bg-white p-1.5 border border-slate-200 h-14 rounded-2xl mb-8 shadow-sm inline-flex">
+                <TabsTrigger value="dashboard" className="h-11 px-8 rounded-xl data-[state=active]:bg-slate-900 data-[state=active]:text-white font-medium text-base transition-all">
+                    <LayoutDashboard className="w-4 h-4 mr-2"/> Panel de Control
+                </TabsTrigger>
+                <TabsTrigger value="catalogo" className="h-11 px-8 rounded-xl data-[state=active]:bg-slate-900 data-[state=active]:text-white font-medium text-base transition-all">
+                    <ShoppingCart className="w-4 h-4 mr-2"/> Catálogo Cliente
+                </TabsTrigger>
+            </TabsList>
 
-          <TabsContent value="dashboard" className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            {/* 1. SECCIÓN FINANCIERA */}
-            <section>
-              <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Resumen Financiero</h3>
-              <DemoKPIs data={data.kpis} currency="MXN" />
+            <TabsContent value="dashboard" className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                
+                {/* 1. SECCIÓN FINANCIERA */}
+                <section>
+                    <DemoKPIs data={data.kpis} currency="MXN" />
+                    
+                    <div className="mt-8">
+                        <BenefitTip 
+                            title="Tu Dinero Real vs. Promesas" 
+                            description="CatifyPro separa las 'cotizaciones aceptadas' del dinero real en banco. La línea punteada es nuestra IA proyectando tu cierre de mes." 
+                        />
+                        <DemoSalesChart data={data.mainChartData} />
+                    </div>
+                </section>
 
-              <div className="mt-6">
-                <BenefitTip
-                  title="Tu Dinero Real vs. Promesas"
-                  description="CatifyPro separa las 'cotizaciones aceptadas' del dinero real en banco. La línea punteada es nuestra IA proyectando tu cierre de mes."
-                />
-                <DemoSalesChart data={data.mainChartData} />
-              </div>
-            </section>
+                {/* 2. SECCIÓN DE OPORTUNIDADES */}
+                <section>
+                    <div className="flex items-center justify-between mb-6 mt-12">
+                        <h3 className="text-base font-bold text-slate-400 uppercase tracking-wider">Inteligencia de Mercado</h3>
+                        <Badge className="bg-indigo-100 text-indigo-700 border-0 hover:bg-indigo-100 px-3 py-1">AI Powered</Badge>
+                    </div>
 
-            {/* 2. SECCIÓN DE OPORTUNIDADES (EL CAMBIO FUERTE) */}
-            <section>
-              <div className="flex items-center justify-between mb-4 mt-8">
-                <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider">Inteligencia de Mercado</h3>
-                <Badge className="bg-violet-100 text-violet-700 border-0 hover:bg-violet-100">AI Powered</Badge>
-              </div>
+                    {/* BANNER GRANDE DE DINERO */}
+                    <OpportunityBanner value={data.opportunityValue || 50000} />
 
-              {/* BANNER GRANDE DE DINERO */}
-              <OpportunityBanner value={data.opportunityValue || 50000} />
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <Card className="shadow-lg border-indigo-100 overflow-hidden hover:shadow-xl transition-shadow">
+                             <CardHeader className="bg-slate-50/50 pb-4 border-b border-slate-100">
+                                <CardTitle className="text-lg flex items-center gap-2">
+                                    <div className="bg-white p-2 rounded-lg shadow-sm">
+                                        <div className="animate-pulse w-2 h-2 bg-red-500 rounded-full absolute top-0 right-0 -mt-1 -mr-1"></div>
+                                        <ShoppingCart className="w-5 h-5 text-indigo-600" />
+                                    </div>
+                                    Solicitudes de Producto
+                                </CardTitle>
+                             </CardHeader>
+                             <DemoRadarWidget data={data.radar} />
+                        </Card>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <Card className="shadow-lg border-indigo-100 overflow-hidden hover:shadow-xl transition-shadow">
-                  <CardHeader className="bg-slate-50/50 pb-3 border-b border-slate-100">
-                    <CardTitle className="text-base flex items-center gap-2">
-                      <div className="bg-white p-1.5 rounded-md shadow-sm">
-                        <Radar className="w-4 h-4 text-indigo-600" />
-                      </div>
-                      Solicitudes de Producto
-                    </CardTitle>
-                  </CardHeader>
-                  <DemoRadarWidget data={data.radar} />
-                </Card>
+                        <Card className="shadow-lg border-slate-200 hover:shadow-xl transition-shadow">
+                             <CardHeader className="bg-slate-50/50 pb-4 border-b border-slate-100">
+                                <CardTitle className="text-lg flex items-center gap-2">
+                                    <div className="bg-white p-2 rounded-lg shadow-sm">
+                                        <TrendingUp className="w-5 h-5 text-emerald-600" />
+                                    </div>
+                                    Lo más buscado en tu tienda
+                                </CardTitle>
+                             </CardHeader>
+                             <DemoSearchWidget data={data.searchTerms} />
+                        </Card>
+                    </div>
+                </section>
 
-                <Card className="shadow-lg border-slate-200 hover:shadow-xl transition-shadow">
-                  <CardHeader className="bg-slate-50/50 pb-3 border-b border-slate-100">
-                    <CardTitle className="text-base flex items-center gap-2">
-                      <div className="bg-white p-1.5 rounded-md shadow-sm">
-                        {/* AQUI SE USA EL ICONO QUE FALTABA */}
-                        <TrendingUp className="w-4 h-4 text-emerald-600" />
-                      </div>
-                      Lo más buscado en tu tienda
-                    </CardTitle>
-                  </CardHeader>
-                  <DemoSearchWidget data={data.searchTerms} />
-                </Card>
-              </div>
-            </section>
+                {/* 3. FORECAST */}
+                <section className="mt-8">
+                     <BenefitTip title="Predicción de Inventario" description="Nuestra IA analiza patrones de búsqueda y venta histórica para decirte qué productos se agotarán la próxima semana." />
+                     <DemoForecastWidget history={data.forecastHistory} />
+                </section>
+            </TabsContent>
 
-            {/* 3. FORECAST */}
-            <section className="mt-8">
-              <BenefitTip
-                title="Predicción de Inventario"
-                description="Nuestra IA analiza patrones de búsqueda y venta histórica para decirte qué productos se agotarán la próxima semana."
-              />
-              <DemoForecastWidget history={data.forecastHistory} />
-            </section>
-          </TabsContent>
-
-          <TabsContent value="catalogo" className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-xl overflow-hidden min-h-[600px]">
-              <div className="p-3 bg-slate-50 text-center text-xs font-medium text-slate-500 border-b flex items-center justify-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-red-500"></span>
-                <span className="w-2 h-2 rounded-full bg-yellow-500"></span>
-                <span className="w-2 h-2 rounded-full bg-green-500"></span>
-                Vista previa del cliente
-              </div>
-              <DemoCatalog products={data.products} color={data.colors.primary} />
-            </div>
-          </TabsContent>
+            <TabsContent value="catalogo" className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl overflow-hidden min-h-[700px] relative">
+                    <div className="absolute top-0 left-0 w-full h-8 bg-slate-100 border-b flex items-center px-4 gap-2 z-10">
+                         <div className="w-3 h-3 rounded-full bg-red-400"></div>
+                         <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
+                         <div className="w-3 h-3 rounded-full bg-green-400"></div>
+                         <div className="mx-auto text-xs font-medium text-slate-400">catifypro.store/tu-negocio</div>
+                    </div>
+                    <div className="pt-8 h-full">
+                        <DemoCatalog products={data.products} color={data.colors.primary} />
+                    </div>
+                </div>
+            </TabsContent>
         </Tabs>
       </div>
     </div>
