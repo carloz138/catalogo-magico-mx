@@ -216,7 +216,7 @@ const SLIDES = [
     id: "intro",
     visual: VisualRocket,
     title: "Esta demo te va a mostrar por qué CatifyPro es tu mejor decisión",
-    subtitle: "No es solo un catálogo. Es inteligencia de mercado en tiempo real.",
+    subtitle: "No es solo un catálogo. Es inteligencia de mercado en tiempo real. ¡GRATIS! Por Tiempo Limitado",
     bullets: [
       "Detecta qué productos están buscando tus clientes.",
       "Predice qué debes tener en inventario la próxima semana.",
@@ -322,8 +322,8 @@ const SLIDES = [
     title: "Efecto red: mientras más venden, más gana tu negocio",
     subtitle: "Un sistema que se vuelve más poderoso con cada venta.",
     bullets: [
-      "Tus clientes alimentan tu inteligencia de mercado.",
-      "Los datos de L2 y L3 se convierten en ventaja competitiva.",
+      "Gracias a la replica de tu catalogo tus clientes y los clientes de tu cliente alimentan tu inteligencia de mercado.",
+      "Los datos de tu cliente y los clientes de tu cliente se convierten en ventaja competitiva.",
       "Ve lo que pasa en tu mercado antes que nadie.",
       "Todo el ecosistema se beneficia de la información.",
     ],
