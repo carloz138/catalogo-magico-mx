@@ -1,25 +1,66 @@
-import { addDays, subDays, format } from "date-fns";
+import { addDays, subDays } from "date-fns";
 
-// --- TIPOS ---
 export type Industry = "ropa" | "ferreteria" | "acero" | "belleza" | "veterinaria";
+
+// Función auxiliar para generar datos falsos de la gráfica
+const generateMainChartData = (baseAmount: number, volatility: number) => {
+  const historyDays = 30;
+  const history = Array.from({ length: historyDays }, (_, i) => {
+    const randomVar = (Math.random() - 0.5) * volatility;
+    return {
+      name: `Día ${i + 1}`,
+      total: Math.max(0, Math.floor(baseAmount + randomVar)),
+      prediction: null,
+    };
+  });
+  const lastRealVal = history[history.length - 1].total || baseAmount;
+  if (history.length > 0) history[history.length - 1].prediction = lastRealVal;
+
+  const future = Array.from({ length: 7 }, (_, i) => {
+    const trend = baseAmount * (1 + i * 0.05);
+    return {
+      name: `Proy ${i + 1}`,
+      total: null,
+      prediction: Math.floor(trend),
+    };
+  });
+  return [...history, ...future];
+};
 
 export const DEMO_DATA = {
   ropa: {
     label: "Moda & Accesorios",
-    colors: { primary: "#db2777" }, // Rosa fuerte
+    colors: { primary: "#db2777" },
     kpis: { ventas: 154000, cotizaciones: 340, pendientes: 45, tasaCierre: 28 },
+    mainChartData: generateMainChartData(5000, 2000),
+    // NUEVO: Valor de la oportunidad perdida para el Banner Grande
+    opportunityValue: 45000,
     radar: [
-      { id: "1", producto_nombre: "Vestido Noche Rojo", cantidad: 5, cliente: "Boutique Lomas", status: "nuevo" },
-      { id: "2", producto_nombre: "Cinturón Cuero Café", cantidad: 20, cliente: "Moda Homs", status: "leido" },
+      {
+        id: "1",
+        producto_nombre: "Vestido Noche Rojo",
+        cantidad: 5,
+        cliente: "Boutique Lomas",
+        status: "urgente",
+        potential: 12500,
+      },
+      {
+        id: "2",
+        producto_nombre: "Cinturón Cuero Café",
+        cantidad: 20,
+        cliente: "Moda Homs",
+        status: "nuevo",
+        potential: 8000,
+      },
     ],
     searchTerms: [
       { term: "Vestido Verano", count: 120, zeroResults: 0 },
-      { term: "Chamarra Piel", count: 85, zeroResults: 45 }, // Oportunidad
+      { term: "Chamarra Piel", count: 85, zeroResults: 45 },
       { term: "Talla XL", count: 60, zeroResults: 0 },
     ],
     forecastHistory: Array.from({ length: 60 }, (_, i) => ({
       date: subDays(new Date(), 60 - i).toISOString(),
-      count: Math.floor(Math.random() * 50) + 20 + i * 0.5, // Tendencia positiva
+      count: Math.floor(Math.random() * 50) + 20,
     })),
     products: [
       {
@@ -54,26 +95,36 @@ export const DEMO_DATA = {
   },
   ferreteria: {
     label: "Ferretería Industrial",
-    colors: { primary: "#ea580c" }, // Naranja
+    colors: { primary: "#ea580c" },
     kpis: { ventas: 890000, cotizaciones: 120, pendientes: 15, tasaCierre: 65 },
+    mainChartData: generateMainChartData(25000, 15000),
+    opportunityValue: 120000,
     radar: [
       {
         id: "1",
         producto_nombre: "Taladro Industrial Bosch",
         cantidad: 2,
         cliente: "Construcciones SA",
-        status: "nuevo",
+        status: "urgente",
+        potential: 8500,
       },
-      { id: "2", producto_nombre: "Tubería PVC 4in", cantidad: 100, cliente: "Ing. Pedro", status: "nuevo" },
+      {
+        id: "2",
+        producto_nombre: "Tubería PVC 4in",
+        cantidad: 100,
+        cliente: "Ing. Pedro",
+        status: "nuevo",
+        potential: 45000,
+      },
     ],
     searchTerms: [
       { term: "Cemento gris", count: 450, zeroResults: 0 },
       { term: "Llave inglesa", count: 120, zeroResults: 5 },
-      { term: "Generador eléctrico", count: 80, zeroResults: 80 }, // Critico
+      { term: "Generador eléctrico", count: 80, zeroResults: 80 },
     ],
     forecastHistory: Array.from({ length: 60 }, (_, i) => ({
       date: subDays(new Date(), 60 - i).toISOString(),
-      count: Math.floor(Math.random() * 200) + 100, // Estable
+      count: Math.floor(Math.random() * 200) + 100,
     })),
     products: [
       {
@@ -108,9 +159,20 @@ export const DEMO_DATA = {
   },
   acero: {
     label: "Aceros & Estructuras",
-    colors: { primary: "#475569" }, // Slate
+    colors: { primary: "#475569" },
     kpis: { ventas: 4500000, cotizaciones: 45, pendientes: 8, tasaCierre: 40 },
-    radar: [{ id: "1", producto_nombre: "Viga IPR 6x4", cantidad: 50, cliente: "Grupo Vertical", status: "nuevo" }],
+    mainChartData: generateMainChartData(150000, 50000),
+    opportunityValue: 850000,
+    radar: [
+      {
+        id: "1",
+        producto_nombre: "Viga IPR 6x4",
+        cantidad: 50,
+        cliente: "Grupo Vertical",
+        status: "urgente",
+        potential: 450000,
+      },
+    ],
     searchTerms: [
       { term: "Varilla corrugada", count: 800, zeroResults: 0 },
       { term: "PTR 4x4", count: 300, zeroResults: 20 },
@@ -118,7 +180,7 @@ export const DEMO_DATA = {
     ],
     forecastHistory: Array.from({ length: 60 }, (_, i) => ({
       date: subDays(new Date(), 60 - i).toISOString(),
-      count: i % 7 === 0 ? 500 : 50, // Picos semanales
+      count: i % 7 === 0 ? 500 : 50,
     })),
     products: [
       {
@@ -153,13 +215,24 @@ export const DEMO_DATA = {
   },
   belleza: {
     label: "Cosméticos",
-    colors: { primary: "#7c3aed" }, // Violeta
+    colors: { primary: "#7c3aed" },
     kpis: { ventas: 45000, cotizaciones: 600, pendientes: 120, tasaCierre: 15 },
-    radar: [{ id: "1", producto_nombre: "Serum Vitamina C", cantidad: 10, cliente: "Spa Center", status: "nuevo" }],
+    mainChartData: generateMainChartData(2000, 500),
+    opportunityValue: 18000,
+    radar: [
+      {
+        id: "1",
+        producto_nombre: "Serum Vitamina C",
+        cantidad: 10,
+        cliente: "Spa Center",
+        status: "nuevo",
+        potential: 4500,
+      },
+    ],
     searchTerms: [
       { term: "Labial Matte", count: 1200, zeroResults: 0 },
       { term: "Rimel Waterproof", count: 800, zeroResults: 50 },
-      { term: "Ácido Hialurónico", count: 600, zeroResults: 600 }, // Oportunidad masiva
+      { term: "Ácido Hialurónico", count: 600, zeroResults: 600 },
     ],
     forecastHistory: Array.from({ length: 60 }, (_, i) => ({
       date: subDays(new Date(), 60 - i).toISOString(),
@@ -198,10 +271,19 @@ export const DEMO_DATA = {
   },
   veterinaria: {
     label: "Distribuidora Vet",
-    colors: { primary: "#059669" }, // Emerald
+    colors: { primary: "#059669" },
     kpis: { ventas: 210000, cotizaciones: 85, pendientes: 12, tasaCierre: 55 },
+    mainChartData: generateMainChartData(8000, 2000),
+    opportunityValue: 35000,
     radar: [
-      { id: "1", producto_nombre: "Vacuna Parvovirus", cantidad: 50, cliente: "Vet San José", status: "urgente" },
+      {
+        id: "1",
+        producto_nombre: "Vacuna Parvovirus",
+        cantidad: 50,
+        cliente: "Vet San José",
+        status: "urgente",
+        potential: 12000,
+      },
     ],
     searchTerms: [
       { term: "Croquetas Adulto", count: 300, zeroResults: 0 },
