@@ -16,14 +16,27 @@ import { toast } from "@/hooks/use-toast";
 import { PRODUCT_CATEGORIES } from "@/types/products";
 import { supabase } from "@/integrations/supabase/client";
 
+export interface ImportedProductData {
+  id?: string;
+  name: string;
+  sku: string | null;
+  description: string | null;
+  price_retail: number;
+  price_wholesale: number | null;
+  wholesale_min_qty: number | null;
+  tags: string[];
+  category: string;
+  stock_quantity?: number | null;
+}
+
 interface ExcelImporterProps {
-  onImportSuccess: () => void; // Callback para recargar la tabla
+  onImportSuccess: () => void;
   onExportTemplate: () => void;
   isImporting: boolean;
 }
 
-// Helper para la regla de oro: "Si está vacío en excel, es NULL en DB"
-const getExcelValue = (val: any, isNumber: boolean = false) => {
+// Helper corregido para evitar errores de tipo
+const getExcelValue = (val: any, isNumber: boolean = false): any => {
   if (val === undefined || val === null || val === "") return null;
   if (isNumber) {
     const num = parseFloat(val);
@@ -41,7 +54,7 @@ export const ExcelImporter = ({
   const [stats, setStats] = useState({ products: 0, variants: 0, newProducts: 0 });
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<string>(""); // Fallback para nuevos
+  const [selectedCategory, setSelectedCategory] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -103,7 +116,6 @@ export const ExcelImporter = ({
       const updatesVariants = [];
       const insertsProducts = [];
 
-      // Obtenemos el ID de usuario actual para los inserts
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -114,17 +126,18 @@ export const ExcelImporter = ({
         const idSistema = row["ID_SISTEMA"] || row["ID_SISTEMA (NO TOCAR)"];
         const idVariante = row["ID_VARIANTE"];
 
-        // 1. Valores procesados con la regla "Empty = Null"
         const nombre = getExcelValue(row["Nombre"]);
         const sku = getExcelValue(row["SKU"]);
         const catExcel = getExcelValue(row["Categoría"]);
-        // Precios a centavos
+
+        // CORRECCIÓN AQUÍ: Forzamos el tipo a número para la operación matemática
         const pRetailRaw = getExcelValue(row["Precio Menudeo"], true);
         const pWholesaleRaw = getExcelValue(row["Precio Mayoreo"], true);
-        const priceRetail = pRetailRaw !== null ? Math.round(pRetailRaw * 100) : null;
-        const priceWholesale = pWholesaleRaw !== null ? Math.round(pWholesaleRaw * 100) : null;
 
-        const stock = getExcelValue(row["Stock"], true); // Null = Infinito
+        const priceRetail = pRetailRaw !== null ? Math.round((pRetailRaw as number) * 100) : null;
+        const priceWholesale = pWholesaleRaw !== null ? Math.round((pWholesaleRaw as number) * 100) : null;
+
+        const stock = getExcelValue(row["Stock"], true);
         const minQty = getExcelValue(row["Min. Mayoreo"], true);
         const desc = getExcelValue(row["Descripción"]);
         const tagsRaw = getExcelValue(row["Tags"]);
@@ -135,40 +148,34 @@ export const ExcelImporter = ({
               .filter(Boolean)
           : [];
 
-        // Lógica de Categoría
         let categoryToUse = selectedCategory;
         if (catExcel) {
           const match = PRODUCT_CATEGORIES.find((c) => c.label === catExcel || c.value === catExcel);
           if (match) categoryToUse = match.value;
         }
 
-        // --- CLASIFICACIÓN DE ACCIONES ---
-
         if (tipo === "variante" && idVariante) {
-          // UPDATE VARIANTE
           updatesVariants.push({
             id: idVariante,
-            sku: sku, // Se puede borrar
-            price_retail: priceRetail, // Se puede borrar
-            price_wholesale: priceWholesale, // Se puede borrar
-            stock_quantity: stock, // Se puede borrar (infinito)
+            sku: sku,
+            price_retail: priceRetail,
+            price_wholesale: priceWholesale,
+            stock_quantity: stock,
           });
         } else if (idSistema) {
-          // UPDATE PRODUCTO PADRE
           updatesProducts.push({
             id: idSistema,
-            name: nombre, // Nombre es requerido en DB, cuidado si lo borran (usar fallback o ignorar)
+            name: nombre,
             sku: sku,
-            category: catExcel ? categoryToUse : undefined, // Solo actualizamos categoria si viene en excel
+            category: catExcel ? categoryToUse : undefined,
             description: desc,
             price_retail: priceRetail,
             price_wholesale: priceWholesale,
             wholesale_min_qty: minQty,
-            stock_quantity: stock, // Si tiene variantes, esto no afectará visualmente nada importante
+            stock_quantity: stock,
             tags: tags,
           });
         } else {
-          // INSERT PRODUCTO NUEVO (SIMPLE)
           if (nombre && priceRetail !== null) {
             insertsProducts.push({
               user_id: user.id,
@@ -189,24 +196,18 @@ export const ExcelImporter = ({
       }
 
       try {
-        // Ejecutar Actualizaciones en Lotes (Promise.all para velocidad)
         const promises = [];
 
-        // Update Products (iterar porque update masivo con valores distintos no es directo en Supabase JS sin RPC)
         if (updatesProducts.length > 0) {
-          // Para optimizar, lo hacemos 1 por 1 en paralelo (Supabase aguanta bien batches pequeños)
-          // O idealmente crear un RPC "bulk_update_products", pero aquí usaremos loop paralelo
           const productUpdates = updatesProducts.map((p) => supabase.from("products").update(p).eq("id", p.id));
           promises.push(...productUpdates);
         }
 
-        // Update Variants
         if (updatesVariants.length > 0) {
           const variantUpdates = updatesVariants.map((v) => supabase.from("product_variants").update(v).eq("id", v.id));
           promises.push(...variantUpdates);
         }
 
-        // Inserts (Batch es nativo)
         if (insertsProducts.length > 0) {
           promises.push(supabase.from("products").insert(insertsProducts));
         }
