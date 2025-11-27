@@ -7,7 +7,17 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
-import { AlertTriangle, Package, TrendingDown, Loader2, Sparkles, ArrowRight, Tag, Percent } from "lucide-react";
+import {
+  AlertTriangle,
+  Package,
+  TrendingDown,
+  Loader2,
+  Sparkles,
+  ArrowRight,
+  Tag,
+  Percent,
+  CheckCircle2,
+} from "lucide-react";
 
 // Interfaces
 interface DeadStockItem {
