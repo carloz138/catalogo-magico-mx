@@ -11,7 +11,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Lightbulb, TrendingUp, DollarSign } from "lucide-react";
 
-// --- 1. COMPONENTE BENEFIT TIP (La ventanita de "Sabías que...") ---
+// --- 1. COMPONENTE BENEFIT TIP ---
 export const BenefitTip = ({ title, description }: { title: string; description: string }) => (
   <div className="bg-indigo-50 border border-indigo-100 p-4 rounded-xl mb-6 flex gap-3 items-start shadow-sm">
     <div className="bg-white p-2 rounded-full mt-0.5 shadow-sm border border-indigo-100 shrink-0">
@@ -24,10 +24,11 @@ export const BenefitTip = ({ title, description }: { title: string; description:
   </div>
 );
 
-// --- 2. COMPONENTE DEMO KPIs (Las tarjetitas de números) ---
+// --- 2. COMPONENTE DEMO KPIs ---
 export function DemoKPIs({ data, currency }: { data: any, currency: string }) {
+  // Aseguramos formato México (Comas en miles)
   const formatMoney = (n: number) => 
-    new Intl.NumberFormat("es-MX", { style: "currency", currency }).format(n);
+    new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN", maximumFractionDigits: 0 }).format(n);
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
@@ -91,9 +92,8 @@ export function DemoKPIs({ data, currency }: { data: any, currency: string }) {
   )
 }
 
-// --- 3. COMPONENTE DEMO SALES CHART (El gráfico principal) ---
+// --- 3. COMPONENTE DEMO SALES CHART ---
 export function DemoSalesChart({ data }: { data: any[] }) {
-  // Calculamos la tendencia simple para mostrar un badge
   const lastVal = data[data.length - 1]?.prediction || 0;
   const prevVal = data[0]?.total || 0;
   const isGrowing = lastVal > prevVal;
@@ -141,7 +141,7 @@ export function DemoSalesChart({ data }: { data: any[] }) {
             <Tooltip 
                 contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}
                 formatter={(value: any, name: string) => [
-                    `$${value.toLocaleString()}`, 
+                    `$${value.toLocaleString('es-MX')}`, 
                     name === 'total' ? 'Venta Real' : 'Predicción IA'
                 ]}
                 labelStyle={{ color: '#64748b', marginBottom: '0.5rem', fontSize: '0.75rem' }}
