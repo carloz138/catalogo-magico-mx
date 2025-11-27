@@ -1,13 +1,4 @@
-import { 
-  Area, 
-  ComposedChart, 
-  Line, 
-  ResponsiveContainer, 
-  Tooltip, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid 
-} from "recharts";
+import { Area, ComposedChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianGrid } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Lightbulb, TrendingUp, DollarSign } from "lucide-react";
 
@@ -25,9 +16,9 @@ export const BenefitTip = ({ title, description }: { title: string; description:
 );
 
 // --- 2. COMPONENTE DEMO KPIs ---
-export function DemoKPIs({ data, currency }: { data: any, currency: string }) {
+export function DemoKPIs({ data, currency }: { data: any; currency: string }) {
   // Aseguramos formato México (Comas en miles)
-  const formatMoney = (n: number) => 
+  const formatMoney = (n: number) =>
     new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN", maximumFractionDigits: 0 }).format(n);
 
   return (
@@ -35,7 +26,7 @@ export function DemoKPIs({ data, currency }: { data: any, currency: string }) {
       {/* Venta Total */}
       <Card className="relative overflow-hidden border-emerald-100 bg-emerald-50/30 shadow-sm">
         <div className="absolute top-2 right-2 opacity-10">
-          <DollarSign className="w-12 h-12 text-emerald-600"/>
+          <DollarSign className="w-12 h-12 text-emerald-600" />
         </div>
         <CardHeader className="pb-2 px-4 pt-4">
           <CardTitle className="text-[10px] md:text-xs font-bold text-emerald-700 uppercase tracking-wider">
@@ -47,7 +38,7 @@ export function DemoKPIs({ data, currency }: { data: any, currency: string }) {
           <p className="text-[10px] text-emerald-600 font-medium mt-1">Ingresos reales (Pagados)</p>
         </CardContent>
       </Card>
-      
+
       {/* Tasa Cierre */}
       <Card className="shadow-sm">
         <CardHeader className="pb-2 px-4 pt-4">
@@ -58,7 +49,7 @@ export function DemoKPIs({ data, currency }: { data: any, currency: string }) {
         <CardContent className="px-4 pb-4">
           <div className="text-xl md:text-2xl font-bold text-slate-800">{data.tasaCierre}%</div>
           <p className="text-[10px] text-emerald-600 flex items-center gap-1 mt-1 font-medium">
-            <TrendingUp className="w-3 h-3"/> +5% vs mes pasado
+            <TrendingUp className="w-3 h-3" /> +5% vs mes pasado
           </p>
         </CardContent>
       </Card>
@@ -76,8 +67,8 @@ export function DemoKPIs({ data, currency }: { data: any, currency: string }) {
         </CardContent>
       </Card>
 
-       {/* Pendientes */}
-       <Card className="shadow-sm">
+      {/* Pendientes */}
+      <Card className="shadow-sm">
         <CardHeader className="pb-2 px-4 pt-4">
           <CardTitle className="text-[10px] md:text-xs font-bold text-slate-500 uppercase tracking-wider">
             En Negociación
@@ -89,7 +80,7 @@ export function DemoKPIs({ data, currency }: { data: any, currency: string }) {
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }
 
 // --- 3. COMPONENTE DEMO SALES CHART ---
@@ -101,70 +92,76 @@ export function DemoSalesChart({ data }: { data: any[] }) {
   return (
     <Card className="shadow-lg border-indigo-100 overflow-hidden">
       <CardHeader className="bg-white border-b border-slate-50 pb-4">
-         <div className="flex items-center justify-between">
-            <div>
-                <CardTitle className="text-lg text-slate-800">Tendencia de Ingresos</CardTitle>
-                <p className="text-xs text-slate-500 mt-1">Histórico real + Proyección IA (Línea punteada)</p>
-            </div>
-            <div className={`px-3 py-1 rounded-full text-xs font-bold border flex items-center gap-2 ${isGrowing ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-slate-50 text-slate-600 border-slate-200'}`}>
-                {isGrowing ? <TrendingUp className="w-3 h-3" /> : <TrendingUp className="w-3 h-3 rotate-180" />}
-                {isGrowing ? 'Tendencia Positiva' : 'Estable'}
-            </div>
-         </div>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="text-lg text-slate-800">Tendencia de Ingresos</CardTitle>
+            <p className="text-xs text-slate-500 mt-1">Histórico real + Proyección IA (Línea punteada)</p>
+          </div>
+          <div
+            className={`px-3 py-1 rounded-full text-xs font-bold border flex items-center gap-2 ${isGrowing ? "bg-emerald-50 text-emerald-700 border-emerald-100" : "bg-slate-50 text-slate-600 border-slate-200"}`}
+          >
+            {isGrowing ? <TrendingUp className="w-3 h-3" /> : <TrendingUp className="w-3 h-3 rotate-180" />}
+            {isGrowing ? "Tendencia Positiva" : "Estable"}
+          </div>
+        </div>
       </CardHeader>
       <CardContent className="pt-6">
         <div className="h-[300px] w-full">
-        <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height="100%">
             <ComposedChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-            <defs>
+              <defs>
                 <linearGradient id="demoGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
-                <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+                  <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
                 </linearGradient>
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-            <XAxis 
-                dataKey="name" 
-                fontSize={10} 
-                axisLine={false} 
-                tickLine={false} 
-                tick={{ fill: '#64748b' }}
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+              <XAxis
+                dataKey="name"
+                fontSize={10}
+                axisLine={false}
+                tickLine={false}
+                tick={{ fill: "#64748b" }}
                 minTickGap={30}
-            />
-            <YAxis 
-                fontSize={10} 
-                axisLine={false} 
-                tickLine={false} 
-                tickFormatter={(v) => `$${v/1000}k`} 
-                tick={{ fill: '#64748b' }}
-            />
-            <Tooltip 
-                contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}
+              />
+              <YAxis
+                fontSize={10}
+                axisLine={false}
+                tickLine={false}
+                tickFormatter={(v) => `$${v / 1000}k`}
+                tick={{ fill: "#64748b" }}
+              />
+              <Tooltip
+                contentStyle={{
+                  borderRadius: "12px",
+                  border: "none",
+                  boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)",
+                }}
                 formatter={(value: any, name: string) => [
-                    `$${value.toLocaleString('es-MX')}`, 
-                    name === 'total' ? 'Venta Real' : 'Predicción IA'
+                  `$${value.toLocaleString("es-MX")}`,
+                  name === "total" ? "Venta Real" : "Predicción IA",
                 ]}
-                labelStyle={{ color: '#64748b', marginBottom: '0.5rem', fontSize: '0.75rem' }}
-            />
-            <Area 
-                type="monotone" 
-                dataKey="total" 
-                stroke="#6366f1" 
-                fill="url(#demoGradient)" 
-                strokeWidth={3} 
+                labelStyle={{ color: "#64748b", marginBottom: "0.5rem", fontSize: "0.75rem" }}
+              />
+              <Area
+                type="monotone"
+                dataKey="total"
+                stroke="#6366f1"
+                fill="url(#demoGradient)"
+                strokeWidth={3}
                 activeDot={{ r: 6, strokeWidth: 0 }}
-            />
-            <Line 
-                type="monotone" 
-                dataKey="prediction" 
-                stroke="#8b5cf6" 
-                strokeDasharray="5 5" 
-                strokeWidth={2} 
-                dot={false} 
+              />
+              <Line
+                type="monotone"
+                dataKey="prediction"
+                stroke="#8b5cf6"
+                strokeDasharray="5 5"
+                strokeWidth={2}
+                dot={false}
                 activeDot={{ r: 6, strokeWidth: 0 }}
-            />
+              />
             </ComposedChart>
-        </ResponsiveContainer>
+          </ResponsiveContainer>
         </div>
       </CardContent>
     </Card>
