@@ -87,60 +87,6 @@ const Products = () => {
     );
   };
 
-  // --- 2. HEADER DE ESTADÍSTICAS (GRID AUTO-AJUSTABLE) ---
-  // Cambiado de flex scroll a GRID para eliminar la barra de desplazamiento
-  const StatsHeader = () => {
-    const showProcessing = (stats?.processing || 0) > 0;
-
-    return (
-      <div className={`grid gap-2 px-4 md:px-0 mb-4 ${showProcessing ? "grid-cols-3" : "grid-cols-2"}`}>
-        {/* Card: Originales */}
-        <div
-          onClick={() => handleTabChange("with-background")}
-          className={`cursor-pointer border rounded-xl p-2 flex flex-col items-center justify-center text-center gap-1 transition-colors h-20 ${activeTab === "with-background" ? "bg-orange-50 border-orange-200" : "bg-white border-slate-100"}`}
-        >
-          <div className="text-orange-600">
-            <ImageIcon className="w-5 h-5" />
-          </div>
-          <div className="leading-none">
-            <p className="text-lg font-bold text-orange-900">{stats?.withBackground || 0}</p>
-            <p className="text-[9px] text-orange-700 font-medium uppercase">Originales</p>
-          </div>
-        </div>
-
-        {/* Card: Listos */}
-        <div
-          onClick={() => handleTabChange("no-background")}
-          className={`cursor-pointer border rounded-xl p-2 flex flex-col items-center justify-center text-center gap-1 transition-colors h-20 ${activeTab === "no-background" ? "bg-emerald-50 border-emerald-200" : "bg-white border-slate-100"}`}
-        >
-          <div className="text-emerald-600">
-            <Sparkles className="w-5 h-5" />
-          </div>
-          <div className="leading-none">
-            <p className="text-lg font-bold text-emerald-900">{stats?.noBackground || 0}</p>
-            <p className="text-[9px] text-emerald-700 font-medium uppercase">Listos</p>
-          </div>
-        </div>
-
-        {/* Card: Procesando (Condicional) */}
-        {showProcessing && (
-          <div
-            onClick={() => handleTabChange("processing")}
-            className="bg-blue-50 border border-blue-100 rounded-xl p-2 flex flex-col items-center justify-center text-center gap-1 animate-pulse cursor-pointer h-20"
-          >
-            <div className="text-blue-600">
-              <Loader2 className="w-5 h-5 animate-spin" />
-            </div>
-            <div className="leading-none">
-              <p className="text-lg font-bold text-blue-900">{stats.processing}</p>
-              <p className="text-[9px] text-blue-700 font-medium uppercase">Procesando</p>
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  };
-
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center h-[80vh]">
@@ -152,7 +98,7 @@ const Products = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 pb-32">
-      {/* 3. TOP BAR FIJA */}
+      {/* 2. TOP BAR FIJA (Título y Botones de acción) */}
       <div className="bg-white border-b sticky top-0 z-30 pt-safe-top shadow-sm">
         <div className="container mx-auto px-4 h-14 flex items-center justify-between gap-4">
           <h1 className="text-lg font-bold text-gray-900">Biblioteca</h1>
@@ -175,10 +121,10 @@ const Products = () => {
           </div>
         </div>
 
-        {/* 4. BARRA DE FILTROS & BÚSQUEDA (SIN SCROLL) */}
+        {/* 3. BARRA DE FILTROS & BÚSQUEDA (STICKY) */}
         <div className="bg-white/95 backdrop-blur-sm border-b border-gray-100 py-3 px-4">
           <div className="container mx-auto flex flex-col gap-3">
-            {/* Search Input - Ancho completo */}
+            {/* Search Input */}
             <div className="relative w-full">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input
@@ -197,7 +143,7 @@ const Products = () => {
               )}
             </div>
 
-            {/* FILTROS TIPO GRID (3 Columnas Exactas - Adiós Scroll) */}
+            {/* FILTROS (GRID 3 COLUMNAS - ÚNICO LUGAR DE FILTRADO) */}
             <div className="grid grid-cols-3 gap-2 w-full">
               <button
                 onClick={() => handleTabChange("all")}
@@ -255,11 +201,8 @@ const Products = () => {
         </div>
       </div>
 
-      {/* 5. CONTENIDO PRINCIPAL */}
+      {/* 4. CONTENIDO PRINCIPAL */}
       <div className="container mx-auto mt-4">
-        {/* Stats Arriba (Grid) */}
-        <StatsHeader />
-
         <div className="px-4 md:px-0">
           <LimitsAlert />
 
@@ -269,7 +212,7 @@ const Products = () => {
 
           {/* EMPTY STATE */}
           {products.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 bg-white border-2 border-dashed border-gray-200 rounded-2xl text-center">
+            <div className="flex flex-col items-center justify-center py-16 bg-white border-2 border-dashed border-gray-200 rounded-2xl text-center mx-4 md:mx-0">
               <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">
                 <Package className="h-8 w-8 text-slate-300" />
               </div>
@@ -328,7 +271,7 @@ const Products = () => {
         </div>
       </div>
 
-      {/* 6. BARRA FLOTANTE DE ACCIONES (MOBILE OPTIMIZED) */}
+      {/* 5. FLOATING ACTION BAR (MOBILE OPTIMIZED) */}
       {selectedProducts.length > 0 && (
         <div className="fixed bottom-6 left-4 right-4 z-50 flex justify-center animate-in slide-in-from-bottom-10 duration-300">
           <div className="bg-slate-900/95 backdrop-blur text-white pl-4 pr-2 py-2 rounded-full shadow-2xl flex items-center justify-between gap-3 w-full max-w-md border border-slate-700">
