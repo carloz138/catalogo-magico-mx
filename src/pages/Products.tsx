@@ -3,7 +3,6 @@ import { useCatalogLimits } from "@/hooks/useCatalogLimits";
 import { useBusinessInfo } from "@/hooks/useBusinessInfo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
   Package,
@@ -12,7 +11,6 @@ import {
   Upload,
   Plus,
   Loader2,
-  CheckCircle,
   AlertTriangle,
   BarChart3,
   ImageIcon,
@@ -34,6 +32,7 @@ const Products = () => {
     selectedProducts,
     loading,
     processing,
+    stats, // 👈 RECUPERADO AQUÍ
     toggleProductSelection,
     selectAllProducts,
     handleViewProduct,
@@ -77,15 +76,6 @@ const Products = () => {
     return result;
   }, [products, activeFilter, searchTerm]);
 
-  // Contadores
-  const counts = useMemo(() => {
-    const noBg = products.filter(
-      (p) => !!p.processed_image_url && p.processed_image_url !== p.original_image_url,
-    ).length;
-    const withBg = products.length - noBg;
-    return { all: products.length, noBg, withBg };
-  }, [products]);
-
   const { limits, canGenerate, catalogsUsed } = useCatalogLimits();
   const { businessInfo, loading: businessInfoLoading } = useBusinessInfo();
   const isBusinessInfoComplete = isBusinessInfoCompleteForCatalog(businessInfo);
@@ -127,33 +117,36 @@ const Products = () => {
   // --- STATS HEADER (SCROLLABLE EN MÓVIL) ---
   const StatsHeader = () => (
     <div className="flex overflow-x-auto pb-4 gap-3 px-4 md:px-0 snap-x scrollbar-hide">
-      {/* Card 1 */}
+      {/* Card 1: Originales */}
       <div className="bg-orange-50 border border-orange-100 rounded-xl p-3 flex items-center gap-3 min-w-[160px] snap-center">
         <div className="w-10 h-10 rounded-lg bg-orange-100 flex items-center justify-center text-orange-600 shrink-0">
           <ImageIcon className="w-5 h-5" />
         </div>
         <div>
-          <p className="text-xl font-bold text-orange-900 leading-none">{counts.withBg}</p>
+          {/* 👇 Usamos stats.withBackground */}
+          <p className="text-xl font-bold text-orange-900 leading-none">{stats?.withBackground || 0}</p>
           <p className="text-[10px] text-orange-700 font-medium uppercase mt-1">Originales</p>
         </div>
       </div>
-      {/* Card 2 */}
+      {/* Card 2: Listos */}
       <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-3 flex items-center gap-3 min-w-[160px] snap-center">
         <div className="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-600 shrink-0">
           <Sparkles className="w-5 h-5" />
         </div>
         <div>
-          <p className="text-xl font-bold text-emerald-900 leading-none">{counts.noBg}</p>
+          {/* 👇 Usamos stats.noBackground */}
+          <p className="text-xl font-bold text-emerald-900 leading-none">{stats?.noBackground || 0}</p>
           <p className="text-[10px] text-emerald-700 font-medium uppercase mt-1">Listos</p>
         </div>
       </div>
-      {/* Card 3 (Procesando - Solo si hay) */}
-      {stats.processing > 0 && (
+      {/* Card 3: Procesando (Solo si hay) */}
+      {(stats?.processing || 0) > 0 && (
         <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 flex items-center gap-3 min-w-[160px] snap-center animate-pulse">
           <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center text-blue-600 shrink-0">
             <Loader2 className="w-5 h-5 animate-spin" />
           </div>
           <div>
+            {/* 👇 Usamos stats.processing */}
             <p className="text-xl font-bold text-blue-900 leading-none">{stats.processing}</p>
             <p className="text-[10px] text-blue-700 font-medium uppercase mt-1">Procesando</p>
           </div>
@@ -229,7 +222,7 @@ const Products = () => {
                     : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
                 }`}
               >
-                Todos ({counts.all})
+                Todos ({products.length})
               </button>
               <button
                 onClick={() => setActiveFilter("no-background")}
@@ -239,7 +232,7 @@ const Products = () => {
                     : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
                 }`}
               >
-                <Sparkles className="w-3 h-3" /> Listos ({counts.noBg})
+                <Sparkles className="w-3 h-3" /> Listos ({stats?.noBackground || 0})
               </button>
               <button
                 onClick={() => setActiveFilter("with-background")}
@@ -249,7 +242,7 @@ const Products = () => {
                     : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
                 }`}
               >
-                <ImageIcon className="w-3 h-3" /> Originales ({counts.withBg})
+                <ImageIcon className="w-3 h-3" /> Originales ({stats?.withBackground || 0})
               </button>
             </div>
           </div>
