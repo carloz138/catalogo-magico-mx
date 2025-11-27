@@ -320,7 +320,7 @@ const SLIDES = [
     id: "effect",
     visual: VisualGrowth,
     title: "Efecto red: mientras más venden, más gana tu negocio",
-    subtitle: "Un sistema que se vuelve más poderoso con cada venta.",
+    subtitle: "Cada que uno de tus clientes replica tu catalogo es un canal mas de venta e información.",
     bullets: [
       "Gracias a la replica de tu catalogo tus clientes y los clientes de tu cliente alimentan tu inteligencia de mercado.",
       "Los datos de tu cliente y los clientes de tu cliente se convierten en ventaja competitiva.",
