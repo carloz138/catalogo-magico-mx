@@ -15,7 +15,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { ArrowUpDown, Search, Trash2, Package, X, Loader2, GitBranch, Layers, Tag, Hash } from "lucide-react";
+import { ArrowUpDown, Search, Trash2, X, Loader2, GitBranch, Layers, Tag, Hash } from "lucide-react";
 import { EditableCell } from "./EditableCell";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -104,8 +104,8 @@ const MobileProductRow = ({ row, table }: { row: any; table: any }) => {
   );
 };
 
-// --- COLUMNAS ---
 const columnHelper = createColumnHelper<ProductWithUI>();
+
 const columns = [
   columnHelper.display({
     id: "select",
@@ -160,28 +160,32 @@ const columns = [
       </div>
     ),
   }),
+  // --- CATEGORÍA CON BÚSQUEDA ---
   columnHelper.accessor("category", {
     header: "Categoría",
     cell: (props) => <EditableCell {...props} type="select" className="w-[140px]" />,
     filterFn: (row, columnId, filterValue) => {
       const category = row.getValue(columnId) as string;
       if (!category) return false;
-      const searchTerm = filterValue.toLowerCase();
-      if (category.toLowerCase().includes(searchTerm)) return true;
-      const categoryLabel = PRODUCT_CATEGORIES.find((c) => c.value === category)?.label;
-      if (categoryLabel?.toLowerCase().includes(searchTerm)) return true;
-      return false;
+      const term = filterValue.toLowerCase();
+      // Buscar en valor "Ropa" o en label "Ropa 👕"
+      return (
+        category.toLowerCase().includes(term) ||
+        PRODUCT_CATEGORIES.find((c) => c.value === category)
+          ?.label.toLowerCase()
+          .includes(term) ||
+        false
+      );
     },
   }),
-  // 🔥 BÚSQUEDA DE TAGS ARREGLADA AQUÍ 🔥
-  columnHelper.accessor("tags", {
+  // --- TAGS ARREGLADO PARA BÚSQUEDA ---
+  columnHelper.accessor((row) => (row.tags || []).join(" "), {
+    id: "tags",
     header: "Tags",
-    cell: (props) => <EditableCell {...props} type="tags" className="max-w-[200px]" />,
-    filterFn: (row, columnId, filterValue) => {
-      const tags = row.getValue(columnId) as string[];
-      if (!tags || !Array.isArray(tags)) return false;
-      return tags.some((tag) => tag.toLowerCase().includes(filterValue.toLowerCase()));
-    },
+    // Importante: Usamos row.original.tags para que la celda reciba el Array real, no el string unido
+    cell: (props) => (
+      <EditableCell {...props} type="tags" getValue={() => props.row.original.tags} className="max-w-[200px]" />
+    ),
   }),
   columnHelper.accessor("price_retail", {
     header: () => <div className="text-right">Menudeo</div>,
@@ -225,7 +229,6 @@ interface ProductTableProps {
   onBulkDelete: (ids: string[]) => void;
   onBulkCatalog: (ids: string[]) => void;
   onOpenVariants: (product: ProductWithUI) => void;
-  // 🔥 NUEVA PROP PARA ACCIONES MASIVAS 🔥
   onBulkAction: (action: "category" | "tags" | "min_qty", ids: string[]) => void;
 }
 
@@ -368,7 +371,7 @@ export function ProductTable({
         )}
       </div>
 
-      {/* 🔥 BARRA FLOTANTE CON ACCIONES MASIVAS RESTAURADAS 🔥 */}
+      {/* BARRA FLOTANTE ACCIONES MASIVAS */}
       <AnimatePresence>
         {selectedIds.length > 0 && (
           <motion.div
@@ -386,7 +389,7 @@ export function ProductTable({
               </div>
 
               <div className="flex items-center gap-1">
-                {/* Botones de Actualización Masiva */}
+                {/* BOTONES DE ACCIÓN */}
                 <Button
                   size="sm"
                   variant="ghost"
@@ -416,16 +419,6 @@ export function ProductTable({
                 </Button>
 
                 <div className="w-px h-4 bg-slate-700 mx-1"></div>
-
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-8 text-white hover:bg-slate-800"
-                  onClick={() => onBulkCatalog(selectedIds)}
-                >
-                  <Package className="w-4 h-4 mr-2" />
-                  <span className="hidden sm:inline">Crear Catálogo</span>
-                </Button>
 
                 <Button
                   size="sm"
