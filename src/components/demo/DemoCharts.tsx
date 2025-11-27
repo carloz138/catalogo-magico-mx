@@ -17,7 +17,6 @@ export const BenefitTip = ({ title, description }: { title: string; description:
 
 // --- 2. COMPONENTE DEMO KPIs ---
 export function DemoKPIs({ data, currency }: { data: any; currency: string }) {
-  // Aseguramos formato México (Comas en miles)
   const formatMoney = (n: number) =>
     new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN", maximumFractionDigits: 0 }).format(n);
 
