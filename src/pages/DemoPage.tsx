@@ -10,7 +10,6 @@ import DemoCatalog from "@/components/demo/DemoCatalog";
 import { DemoKPIs, DemoSalesChart, BenefitTip } from "@/components/demo/DemoCharts";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-// ✅ CORRECCIÓN: Aquí agregué el import que faltaba
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -169,13 +168,15 @@ export default function DemoPage() {
               </div>
             </section>
 
-            {/* 3. FORECAST */}
+            {/* 3. FORECAST CON TOP 10 PRODUCTOS */}
             <section className="mt-8">
               <BenefitTip
                 title="Predicción de Inventario"
-                description="Nuestra IA analiza patrones de búsqueda y venta histórica para decirte qué productos se agotarán la próxima semana."
+                description="Selecciona un producto clave y mira qué pasará la próxima semana. Evita quedarte sin stock de lo más vendido."
               />
-              <DemoForecastWidget history={data.forecastHistory} />
+
+              {/* PASAMOS LA DATA TOP 10 AQUI */}
+              <DemoForecastWidget productsData={data.topDemandProducts} />
             </section>
           </TabsContent>
 
