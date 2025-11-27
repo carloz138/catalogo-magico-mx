@@ -1,11 +1,10 @@
 import React, { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, ShoppingCart, Plus, Minus, Trash2, Sparkles, X, ArrowRight, Zap } from "lucide-react";
+import { Search, ShoppingCart, Plus, Zap, ArrowRight } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { motion, AnimatePresence } from "framer-motion";
 
-// Helper de Moneda
 const formatCurrency = (amount: number) => {
   return new Intl.NumberFormat("es-MX", {
     style: "currency",
@@ -14,7 +13,6 @@ const formatCurrency = (amount: number) => {
   }).format(amount / 100);
 };
 
-// --- COMPONENTES SIMPLES ---
 const ProductCard = ({ product, onAdd }: { product: any; onAdd: () => void }) => (
   <div className="group bg-white border border-slate-200 rounded-xl overflow-hidden hover:shadow-lg transition-all cursor-pointer">
     <div className="aspect-square bg-slate-100 relative overflow-hidden">
@@ -40,9 +38,7 @@ const ProductCard = ({ product, onAdd }: { product: any; onAdd: () => void }) =>
   </div>
 );
 
-// --- CART MODAL FALSO ---
 const DemoCart = ({ isOpen, onClose, items, setItems }: any) => {
-  // Recomendación Simulada de IA
   const handleAddUpsell = () => {
     setItems([
       ...items,
@@ -80,7 +76,6 @@ const DemoCart = ({ isOpen, onClose, items, setItems }: any) => {
               </div>
             ))}
 
-            {/* ZONA DE RECOMENDACIÓN (KILLER FEATURE DESTACADA) */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -144,7 +139,6 @@ const DemoCart = ({ isOpen, onClose, items, setItems }: any) => {
   );
 };
 
-// --- CATALOG CONTENT ---
 export default function DemoCatalog({ products, color }: { products: any[]; color: string }) {
   const [items, setItems] = useState<any[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -158,7 +152,6 @@ export default function DemoCatalog({ products, color }: { products: any[]; colo
 
   return (
     <div className="min-h-[600px] bg-slate-50/50 pb-24 relative font-sans">
-      {/* HEADER CATALOGO */}
       <div
         className="h-48 relative overflow-hidden bg-slate-900 flex items-center justify-center text-center px-4"
         style={{ backgroundColor: color }}
@@ -190,7 +183,6 @@ export default function DemoCatalog({ products, color }: { products: any[]; colo
         </div>
       </div>
 
-      {/* FLOATING CART BUTTON */}
       <AnimatePresence>
         {items.length > 0 && (
           <motion.div
