@@ -10,26 +10,17 @@ import {
   SortingState,
   RowSelectionState,
 } from "@tanstack/react-table";
-import { ProductWithUI, PRODUCT_CATEGORIES } from "@/types/products";
+import { ProductWithUI } from "@/types/products";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { 
-  ArrowUpDown, 
-  Search, 
-  Trash2, 
-  Package, 
-  X, 
-  Loader2, 
-  GitBranch, 
-  MoreHorizontal 
-} from "lucide-react";
+import { ArrowUpDown, Search, Trash2, Package, X, Loader2, GitBranch } from "lucide-react";
 import { EditableCell } from "./EditableCell";
 import { motion, AnimatePresence } from "framer-motion";
 
 // --- COMPONENTE INTERNO: TARJETA MÓVIL ---
-// Reutiliza la lógica de la tabla (row y table) para editar en móvil
+// Mantiene la lógica de edición en vista de lista para celulares
 const MobileProductRow = ({ row, table }: { row: any; table: any }) => {
   const product = row.original;
   const isSelected = row.getIsSelected();
@@ -58,35 +49,50 @@ const MobileProductRow = ({ row, table }: { row: any; table: any }) => {
           <div>
             {/* Nombre */}
             <EditableCell
-              row={row} table={table} column={{ id: "name" }}
+              row={row}
+              table={table}
+              column={{ id: "name" }}
               getValue={() => product.name}
               className="font-semibold text-slate-900 mb-1 h-auto py-0 px-0 hover:bg-transparent"
             />
-            
+
             <div className="flex gap-2 mt-1">
               {/* SKU */}
               <div className="bg-slate-50 rounded px-1 flex items-center">
                 <span className="text-[10px] text-slate-400 mr-1">#</span>
                 <EditableCell
-                  row={row} table={table} column={{ id: "sku" }}
+                  row={row}
+                  table={table}
+                  column={{ id: "sku" }}
                   getValue={() => product.sku}
                   className="text-xs font-mono text-slate-500 h-6 p-0 bg-transparent hover:bg-transparent"
                 />
               </div>
               {/* Categoría */}
               <EditableCell
-                row={row} table={table} column={{ id: "category" }} type="select"
+                row={row}
+                table={table}
+                column={{ id: "category" }}
+                type="select"
                 getValue={() => product.category}
                 className="text-xs text-indigo-600 bg-indigo-50 w-auto px-2 rounded-full h-6"
               />
             </div>
           </div>
 
+          {/* Tags en móvil */}
+          <div>
+            <EditableCell row={row} table={table} column={{ id: "tags" }} type="tags" getValue={() => product.tags} />
+          </div>
+
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-[10px] uppercase font-bold text-slate-400 block mb-1">Menudeo</label>
               <EditableCell
-                row={row} table={table} column={{ id: "price_retail" }} type="currency"
+                row={row}
+                table={table}
+                column={{ id: "price_retail" }}
+                type="currency"
                 getValue={() => product.price_retail}
                 className="bg-white border border-slate-200 h-8 font-medium"
               />
@@ -94,7 +100,10 @@ const MobileProductRow = ({ row, table }: { row: any; table: any }) => {
             <div>
               <label className="text-[10px] uppercase font-bold text-slate-400 block mb-1">Mayoreo</label>
               <EditableCell
-                row={row} table={table} column={{ id: "price_wholesale" }} type="currency"
+                row={row}
+                table={table}
+                column={{ id: "price_wholesale" }}
+                type="currency"
                 getValue={() => product.price_wholesale}
                 className="bg-white border border-slate-200 h-8 font-medium text-emerald-600"
               />
@@ -167,9 +176,20 @@ const columns = [
     header: "Categoría",
     cell: (props) => <EditableCell {...props} type="select" className="w-[140px]" />,
   }),
+  // --- COLUMNA TAGS CON BUSCADOR HABILITADO ---
   columnHelper.accessor("tags", {
     header: "Tags",
     cell: (props) => <EditableCell {...props} type="tags" className="max-w-[200px]" />,
+    // Esta función permite que el buscador global encuentre texto DENTRO del array de tags
+    filterFn: (row, columnId, filterValue) => {
+      const tags = row.getValue(columnId) as string[];
+      // Si no hay tags o no es array, no coincide
+      if (!tags || !Array.isArray(tags)) return false;
+
+      const searchTerm = filterValue.toLowerCase();
+      // Coincidencia si ALGÚN tag contiene el texto buscado
+      return tags.some((tag) => tag.toLowerCase().includes(searchTerm));
+    },
   }),
   columnHelper.accessor("price_retail", {
     header: () => <div className="text-right">Menudeo</div>,
@@ -185,26 +205,26 @@ const columns = [
   }),
   // Columna de Acciones (Variantes)
   columnHelper.display({
-      id: "variants",
-      header: "",
-      cell: ({ row, table }) => (
-          <div className="flex justify-end">
-            <Button 
-                variant="ghost" 
-                size="sm" 
-                className="h-8 px-2 gap-1 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50"
-                onClick={() => table.options.meta?.onOpenVariants(row.original)}
-            >
-                <GitBranch className="w-3.5 h-3.5" />
-                {row.original.has_variants && (
-                    <Badge variant="secondary" className="h-4 px-1 text-[9px] bg-slate-200 text-slate-600">
-                        {row.original.variant_count}
-                    </Badge>
-                )}
-            </Button>
-          </div>
-      )
-  })
+    id: "variants",
+    header: "",
+    cell: ({ row, table }) => (
+      <div className="flex justify-end">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-8 px-2 gap-1 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50"
+          onClick={() => table.options.meta?.onOpenVariants(row.original)}
+        >
+          <GitBranch className="w-3.5 h-3.5" />
+          {row.original.has_variants && (
+            <Badge variant="secondary" className="h-4 px-1 text-[9px] bg-slate-200 text-slate-600">
+              {row.original.variant_count}
+            </Badge>
+          )}
+        </Button>
+      </div>
+    ),
+  }),
 ];
 
 interface ProductTableProps {
@@ -222,7 +242,7 @@ export function ProductTable({
   onUpdateProduct,
   onBulkDelete,
   onBulkCatalog,
-  onOpenVariants
+  onOpenVariants,
 }: ProductTableProps) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
@@ -250,7 +270,7 @@ export function ProductTable({
       },
       onOpenVariants: (product: ProductWithUI) => {
         onOpenVariants(product);
-      }
+      },
     } as any,
   });
 
@@ -263,7 +283,7 @@ export function ProductTable({
         <div className="relative w-full md:w-96">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
           <Input
-            placeholder="Buscar por nombre, SKU o categoría..."
+            placeholder="Buscar por nombre, SKU, tags..."
             value={globalFilter ?? ""}
             onChange={(e) => setGlobalFilter(e.target.value)}
             className="pl-9 bg-slate-50 border-slate-200 focus:bg-white transition-all"
@@ -283,12 +303,7 @@ export function ProductTable({
                 <tr key={headerGroup.id}>
                   {headerGroup.headers.map((header) => (
                     <th key={header.id} className="px-4 py-3 font-semibold h-12 align-middle whitespace-nowrap">
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
+                      {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                     </th>
                   ))}
                 </tr>
@@ -299,8 +314,8 @@ export function ProductTable({
                 <tr>
                   <td colSpan={columns.length} className="h-32 text-center">
                     <div className="flex flex-col items-center justify-center gap-2">
-                        <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
-                        <span className="text-slate-400">Cargando inventario...</span>
+                      <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
+                      <span className="text-slate-400">Cargando inventario...</span>
                     </div>
                   </td>
                 </tr>
@@ -320,10 +335,7 @@ export function ProductTable({
                   >
                     {row.getVisibleCells().map((cell) => (
                       <td key={cell.id} className="px-4 py-2 align-middle">
-                        {flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext()
-                        )}
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
                       </td>
                     ))}
                   </tr>
@@ -332,33 +344,45 @@ export function ProductTable({
             </tbody>
           </table>
         </div>
-        
+
         {/* PAGINACIÓN SIMPLE */}
         {table.getRowModel().rows.length > 0 && (
-            <div className="border-t border-slate-200 p-4 flex items-center justify-between bg-slate-50">
-                <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()} className="bg-white">
-                        Anterior
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()} className="bg-white">
-                        Siguiente
-                    </Button>
-                </div>
-                <span className="text-xs text-slate-500 font-medium">
-                    Página {table.getState().pagination.pageIndex + 1} de {table.getPageCount()}
-                </span>
+          <div className="border-t border-slate-200 p-4 flex items-center justify-between bg-slate-50">
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => table.previousPage()}
+                disabled={!table.getCanPreviousPage()}
+                className="bg-white"
+              >
+                Anterior
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => table.nextPage()}
+                disabled={!table.getCanNextPage()}
+                className="bg-white"
+              >
+                Siguiente
+              </Button>
             </div>
+            <span className="text-xs text-slate-500 font-medium">
+              Página {table.getState().pagination.pageIndex + 1} de {table.getPageCount()}
+            </span>
+          </div>
         )}
       </div>
 
       {/* VISTA MÓVIL (CARDS) - Reutiliza las filas de la tabla */}
       <div className="md:hidden space-y-3 pb-24">
         {isLoading ? (
-             <div className="flex justify-center py-10"><Loader2 className="w-8 h-8 animate-spin text-indigo-600" /></div>
+          <div className="flex justify-center py-10">
+            <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
+          </div>
         ) : (
-            table.getRowModel().rows.map((row) => (
-            <MobileProductRow key={row.id} row={row} table={table} />
-            ))
+          table.getRowModel().rows.map((row) => <MobileProductRow key={row.id} row={row} table={table} />)
         )}
       </div>
 
@@ -376,9 +400,7 @@ export function ProductTable({
                 <span className="bg-indigo-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
                   {selectedIds.length}
                 </span>
-                <span className="text-sm font-medium text-slate-200 hidden sm:inline">
-                  Seleccionados
-                </span>
+                <span className="text-sm font-medium text-slate-200 hidden sm:inline">Seleccionados</span>
               </div>
 
               <div className="flex items-center gap-2">
@@ -388,7 +410,7 @@ export function ProductTable({
                   className="h-8 hover:bg-slate-800 text-indigo-300 hover:text-indigo-200 px-2 sm:px-3"
                   onClick={() => onBulkCatalog(selectedIds)}
                 >
-                  <Package className="w-4 h-4 mr-2" /> 
+                  <Package className="w-4 h-4 mr-2" />
                   <span className="hidden sm:inline">Crear Catálogo</span>
                   <span className="sm:hidden">Catálogo</span>
                 </Button>
@@ -399,7 +421,7 @@ export function ProductTable({
                   className="h-8 hover:bg-red-900/30 text-red-400 hover:text-red-300 px-2 sm:px-3"
                   onClick={() => onBulkDelete(selectedIds)}
                 >
-                  <Trash2 className="w-4 h-4 mr-2" /> 
+                  <Trash2 className="w-4 h-4 mr-2" />
                   <span className="hidden sm:inline">Eliminar</span>
                 </Button>
               </div>
