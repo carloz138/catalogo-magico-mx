@@ -1,7 +1,11 @@
-import { addDays, subDays } from "date-fns";
+import { addDays, subDays, format } from "date-fns";
+import { es } from "date-fns/locale";
 
 export type Industry = "ropa" | "ferreteria" | "acero" | "belleza" | "veterinaria";
 
+// --- GENERADORES DE DATA FALSA ---
+
+// Genera la gráfica principal de ventas totales (Dinero)
 const generateMainChartData = (baseAmount: number, volatility: number) => {
   const historyDays = 30;
   const history = Array.from({ length: historyDays }, (_, i) => {
@@ -26,6 +30,52 @@ const generateMainChartData = (baseAmount: number, volatility: number) => {
   return [...history, ...future];
 };
 
+// Genera Top 10 Productos con tendencias individuales para el Forecast
+const generateTopProductsForecast = (products: string[]) => {
+  return products.map((productName, index) => {
+    // Los primeros crecen, los del medio estables, los últimos bajan
+    const trendFactor = index < 3 ? 1.1 : index > 7 ? 0.9 : 1.0;
+    const baseVolume = Math.floor(Math.random() * 50) + 20;
+
+    // 30 días de historia
+    const history = Array.from({ length: 30 }, (_, i) => {
+      const date = subDays(new Date(), 30 - i);
+      const noise = Math.random() * 10 - 5;
+      const val = baseVolume + i * (trendFactor - 1) + noise;
+      return {
+        date: format(date, "dd MMM", { locale: es }),
+        real: Math.max(0, Math.floor(val)),
+        predicted: null,
+      };
+    });
+
+    const lastVal = history[history.length - 1].real || baseVolume;
+
+    // 7 días de predicción IA
+    const future = Array.from({ length: 7 }, (_, i) => {
+      const date = addDays(new Date(), i + 1);
+      const val = lastVal * (1 + 0.05 * (trendFactor >= 1 ? 1 : -1) * (i + 1));
+      return {
+        date: format(date, "dd MMM", { locale: es }),
+        real: null,
+        predicted: Math.max(0, Math.floor(val)),
+      };
+    });
+
+    if (history.length > 0) {
+      history[history.length - 1].predicted = history[history.length - 1].real;
+    }
+
+    return {
+      id: `prod-${index}`,
+      name: productName,
+      growth: index < 3 ? "+15%" : index > 7 ? "-5%" : "+2%",
+      status: index < 3 ? "rising" : index > 7 ? "falling" : "stable",
+      data: [...history, ...future],
+    };
+  });
+};
+
 export const DEMO_DATA = {
   ropa: {
     label: "Moda & Accesorios",
@@ -33,6 +83,18 @@ export const DEMO_DATA = {
     kpis: { ventas: 154000, cotizaciones: 340, pendientes: 45, tasaCierre: 28 },
     mainChartData: generateMainChartData(5000, 2000),
     opportunityValue: 45000,
+    topDemandProducts: generateTopProductsForecast([
+      "Vestido Floral Verano",
+      "Jeans Slim Fit",
+      "Blusa Seda Blanca",
+      "Chamarra Piel",
+      "Tenis Urbanos",
+      "Bufanda Lana",
+      "Gorra Deportiva",
+      "Falda Plisada",
+      "Calcetines Pack",
+      "Cinturón Cuero",
+    ]),
     radar: [
       {
         id: "1",
@@ -56,10 +118,7 @@ export const DEMO_DATA = {
       { term: "Chamarra Piel", count: 85, zeroResults: 45 },
       { term: "Talla XL", count: 60, zeroResults: 0 },
     ],
-    forecastHistory: Array.from({ length: 60 }, (_, i) => ({
-      date: subDays(new Date(), 60 - i).toISOString(),
-      count: Math.floor(Math.random() * 50) + 20,
-    })),
+    forecastHistory: [],
     products: [
       {
         id: "1",
@@ -97,6 +156,18 @@ export const DEMO_DATA = {
     kpis: { ventas: 890000, cotizaciones: 120, pendientes: 15, tasaCierre: 65 },
     mainChartData: generateMainChartData(25000, 15000),
     opportunityValue: 120000,
+    topDemandProducts: generateTopProductsForecast([
+      "Taladro Percutor",
+      "Cemento Gris 50kg",
+      "Tubería PVC 4in",
+      "Llave Inglesa",
+      "Disco Corte Metal",
+      "Guantes Seguridad",
+      "Casco Obra",
+      "Lijadora Orbital",
+      "Clavos 2in",
+      "Cinta Métrica",
+    ]),
     radar: [
       {
         id: "1",
@@ -120,10 +191,7 @@ export const DEMO_DATA = {
       { term: "Llave inglesa", count: 120, zeroResults: 5 },
       { term: "Generador eléctrico", count: 80, zeroResults: 80 },
     ],
-    forecastHistory: Array.from({ length: 60 }, (_, i) => ({
-      date: subDays(new Date(), 60 - i).toISOString(),
-      count: Math.floor(Math.random() * 200) + 100,
-    })),
+    forecastHistory: [],
     products: [
       {
         id: "1",
@@ -161,6 +229,18 @@ export const DEMO_DATA = {
     kpis: { ventas: 4500000, cotizaciones: 45, pendientes: 8, tasaCierre: 40 },
     mainChartData: generateMainChartData(150000, 50000),
     opportunityValue: 850000,
+    topDemandProducts: generateTopProductsForecast([
+      "Viga IPR 6x4",
+      "Varilla 3/8",
+      "Lámina R-101",
+      "PTR 4x4",
+      "Placa Acero 1/2",
+      "Malla Electrosoldada",
+      "Alambre Recocido",
+      "Ángulo 2x2",
+      "Solera 2in",
+      "Canal C",
+    ]),
     radar: [
       {
         id: "1",
@@ -176,10 +256,7 @@ export const DEMO_DATA = {
       { term: "PTR 4x4", count: 300, zeroResults: 20 },
       { term: "Lámina galvanizada", count: 150, zeroResults: 0 },
     ],
-    forecastHistory: Array.from({ length: 60 }, (_, i) => ({
-      date: subDays(new Date(), 60 - i).toISOString(),
-      count: i % 7 === 0 ? 500 : 50,
-    })),
+    forecastHistory: [],
     products: [
       {
         id: "1",
@@ -217,6 +294,18 @@ export const DEMO_DATA = {
     kpis: { ventas: 45000, cotizaciones: 600, pendientes: 120, tasaCierre: 15 },
     mainChartData: generateMainChartData(2000, 500),
     opportunityValue: 18000,
+    topDemandProducts: generateTopProductsForecast([
+      "Serum Vitamina C",
+      "Labial Matte Rojo",
+      "Rimel Waterproof",
+      "Ácido Hialurónico",
+      "Base Maquillaje",
+      "Corrector Ojeras",
+      "Paleta Sombras",
+      "Brochas Kit",
+      "Agua Micelar",
+      "Esponja Blender",
+    ]),
     radar: [
       {
         id: "1",
@@ -232,10 +321,7 @@ export const DEMO_DATA = {
       { term: "Rimel Waterproof", count: 800, zeroResults: 50 },
       { term: "Ácido Hialurónico", count: 600, zeroResults: 600 },
     ],
-    forecastHistory: Array.from({ length: 60 }, (_, i) => ({
-      date: subDays(new Date(), 60 - i).toISOString(),
-      count: Math.floor(Math.random() * 1000) + 500,
-    })),
+    forecastHistory: [],
     products: [
       {
         id: "1",
@@ -273,6 +359,18 @@ export const DEMO_DATA = {
     kpis: { ventas: 210000, cotizaciones: 85, pendientes: 12, tasaCierre: 55 },
     mainChartData: generateMainChartData(8000, 2000),
     opportunityValue: 35000,
+    topDemandProducts: generateTopProductsForecast([
+      "Croquetas Premium",
+      "Vacuna Quintuple",
+      "Desparasitante",
+      "Shampoo Antulgas",
+      "Arena Gato",
+      "Correa Retráctil",
+      "Juguete Hueso",
+      "Premios Pollo",
+      "Vitaminas Caninas",
+      "Jaula Transportadora",
+    ]),
     radar: [
       {
         id: "1",
@@ -288,10 +386,7 @@ export const DEMO_DATA = {
       { term: "Antipulgas", count: 150, zeroResults: 20 },
       { term: "Collar Isabelino", count: 40, zeroResults: 40 },
     ],
-    forecastHistory: Array.from({ length: 60 }, (_, i) => ({
-      date: subDays(new Date(), 60 - i).toISOString(),
-      count: Math.floor(Math.random() * 100) + 50,
-    })),
+    forecastHistory: [],
     products: [
       {
         id: "1",
