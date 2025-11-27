@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
-// --- IMPORTACIONES REALES ---
+// Contextos
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/contexts/RoleContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
@@ -15,23 +15,24 @@ import { supabase } from "@/integrations/supabase/client";
 import { DashboardKPIs, SalesChart } from "@/components/dashboard/DashboardCharts";
 import { MarketIntelligenceWidget } from "@/components/dashboard/MarketIntelligenceWidget";
 import { SearchStatsWidget } from "@/components/dashboard/SearchStatsWidget";
-import { ResellerInsights } from "@/components/dashboard/ResellerInsights";
+// import { ResellerInsights } from "@/components/dashboard/ResellerInsights"; // Descomentar si lo usas
 import { DeadStockAnalysis } from "@/components/dashboard/analytics/DeadStockAnalysis";
 import { DemandForecastWidget } from "@/components/dashboard/analytics/DemandForecastWidget";
 
+// Iconos
 import {
   BarChart3,
   ShoppingBag,
   Users,
   Zap,
   Share2,
-  ArrowRight,
   TrendingUp,
   Activity,
   Search,
   BrainCircuit,
   Sparkles,
   Loader2,
+  AlertCircle,
 } from "lucide-react";
 
 export default function MainDashboard() {
@@ -39,21 +40,26 @@ export default function MainDashboard() {
   const { userRole, isLoadingRole } = useUserRole();
   const { paqueteUsuario } = useSubscription();
 
-  // ESTADO DE MÉTRICAS REALES
+  // Estado para controlar los Tabs (para navegar desde las tarjetas de acción)
+  const [activeTab, setActiveTab] = useState("resumen");
+
+  // Estado extendido con las nuevas métricas de inteligencia
   const [metrics, setMetrics] = useState({
     activeResellersCount: 0,
     totalProductsCount: 0,
     recentQuotesCount: 0,
-    // Estos dos campos se mantendrán en 0 si la función RPC no los devuelve aún,
-    // evitando errores de undefined.
     pendingOrdersCount: 0,
     newProviderProducts: 0,
+    // Nuevos campos de inteligencia (search logs y radares)
+    missedSearchTerm: null as string | null,
+    missedSearchCount: 0,
+    marketOpportunities: 0,
   });
 
   const [hasActiveCatalog, setHasActiveCatalog] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(true);
 
-  // 1. Cargar si tiene catálogo (Para botón "Compartir")
+  // 1. Verificar si tiene catálogo activo (para botón compartir)
   useEffect(() => {
     if (!user) return;
     const checkCatalog = async () => {
@@ -72,19 +78,17 @@ export default function MainDashboard() {
     checkCatalog();
   }, [user]);
 
-  // 2. Cargar Métricas Operativas (RPC)
+  // 2. Cargar Estadísticas e Insights (RPC Mejorada)
   useEffect(() => {
     const loadMetrics = async () => {
       if (!user) return;
       try {
-        // CORRECCIÓN 1: Usamos 'as any' para evitar el error de TS2345
-        // (TypeScript no conoce la función 'get_dashboard_stats' aún)
+        // Llamamos a la RPC actualizada. Usamos 'as any' temporalmente si TS reclama.
         const { data, error } = await supabase.rpc("get_dashboard_stats" as any, { p_user_id: user.id });
 
         if (error) throw error;
 
         if (data) {
-          // Fusionamos con los valores por defecto para no perder pendingOrdersCount si no viene en el data
           setMetrics((prev) => ({ ...prev, ...(data as any) }));
         }
       } catch (e) {
@@ -96,6 +100,7 @@ export default function MainDashboard() {
     loadMetrics();
   }, [user]);
 
+  // Loading State
   if (isLoadingRole || !user) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -106,12 +111,11 @@ export default function MainDashboard() {
     );
   }
 
+  // Animaciones
   const containerVariants = { hidden: { opacity: 0 }, visible: { opacity: 1, transition: { staggerChildren: 0.1 } } };
   const itemVariants = { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } };
 
-  // --- RENDER ---
-
-  // NOMBRE DEL PLAN DINÁMICO
+  // UI Helpers
   const planName = paqueteUsuario?.name || "Plan Gratuito";
   const planBadgeColor =
     paqueteUsuario?.analytics_level === "enterprise" ? "bg-purple-100 text-purple-700" : "bg-green-100 text-green-700";
@@ -123,7 +127,7 @@ export default function MainDashboard() {
       animate="visible"
       className="p-4 md:p-8 space-y-8 max-w-7xl mx-auto"
     >
-      {/* HEADER DINÁMICO */}
+      {/* --- HEADER --- */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <Badge
@@ -146,13 +150,120 @@ export default function MainDashboard() {
         )}
       </div>
 
-      <Tabs defaultValue="resumen" className="w-full space-y-8">
+      {/* --- SECCIÓN PRESCRIPTIVA: TARJETAS DE ACCIÓN INTELIGENTE --- */}
+      {/* Esta sección solo muestra tarjetas si hay algo urgente/importante que atender */}
+      <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* 1. PEDIDOS (Verde - Dinero Cerrado) */}
+        {metrics.pendingOrdersCount > 0 ? (
+          <Card className="bg-emerald-50 border-emerald-200 shadow-sm relative overflow-hidden group hover:shadow-md transition-shadow">
+            <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
+              <ShoppingBag className="w-16 h-16 text-emerald-600" />
+            </div>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-emerald-800 text-lg flex items-center gap-2">
+                <ShoppingBag className="w-5 h-5" /> Pedidos por Aprobar
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-emerald-700 text-sm mb-3">
+                Tienes <span className="font-bold text-2xl mx-1">{metrics.pendingOrdersCount}</span> pedidos pendientes
+                de procesar.
+              </p>
+              <Button size="sm" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white border-0">
+                Gestionar Pedidos
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
+          // Estado Base (Opcional: Ocultar o mostrar status ok)
+          <Card className="bg-white border-slate-100 shadow-sm opacity-60 hover:opacity-100 transition-opacity">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-slate-500 text-base flex items-center gap-2">
+                <ShoppingBag className="w-4 h-4" /> Pedidos
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-slate-400 text-sm">Todo al día. No hay pedidos pendientes.</p>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* 2. RADARES DE MERCADO (Azul - Oportunidad de Venta) */}
+        {metrics.marketOpportunities > 0 && (
+          <Card className="bg-indigo-50 border-indigo-200 shadow-sm relative overflow-hidden group hover:shadow-md transition-shadow">
+            <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
+              <Users className="w-16 h-16 text-indigo-600" />
+            </div>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-indigo-800 text-lg flex items-center gap-2">
+                <Zap className="w-5 h-5" /> Radar de Mercado
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-indigo-700 text-sm mb-3">
+                <span className="font-bold text-2xl mx-1">{metrics.marketOpportunities}</span> clientes potenciales
+                piden productos.
+                {/* Mensaje contextual para L1 */}
+                {userRole !== "L2" && (
+                  <span className="block text-xs mt-1 opacity-80">(Incluye solicitudes de tu red de revendedores)</span>
+                )}
+              </p>
+              <Button
+                size="sm"
+                variant="outline"
+                className="w-full border-indigo-300 text-indigo-700 hover:bg-indigo-100"
+                onClick={() => setActiveTab("inteligencia")}
+              >
+                Ver Solicitudes
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* 3. BÚSQUEDAS FALLIDAS (Naranja - Demanda Insatisfecha) */}
+        {metrics.missedSearchCount > 2 && (
+          <Card className="bg-orange-50 border-orange-200 shadow-sm relative overflow-hidden group hover:shadow-md transition-shadow">
+            <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
+              <Search className="w-16 h-16 text-orange-600" />
+            </div>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-orange-800 text-lg flex items-center gap-2">
+                <TrendingUp className="w-5 h-5" /> Alta Demanda
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-orange-700 text-sm mb-3">
+                Buscan <strong>"{metrics.missedSearchTerm}"</strong> ({metrics.missedSearchCount} veces) y no aparece.
+              </p>
+              <Button
+                size="sm"
+                className="w-full bg-orange-500 hover:bg-orange-600 text-white border-0"
+                // Acción depende del rol
+                onClick={() =>
+                  userRole === "L2" ? console.log("Solicitar a proveedor") : console.log("Crear producto")
+                }
+              >
+                {userRole === "L2" ? "Solicitar a Proveedor" : "Agregar Producto"}
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+      </motion.div>
+
+      {/* --- TABS PRINCIPALES --- */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full space-y-8">
         <TabsList className="bg-white border border-slate-200 p-1 h-auto rounded-xl shadow-sm inline-flex w-full md:w-auto overflow-x-auto">
           <TabsTrigger value="resumen" className="px-6 py-2.5">
             <BarChart3 className="w-4 h-4 mr-2" /> Resumen
           </TabsTrigger>
           <TabsTrigger value="inteligencia" className="px-6 py-2.5">
             <Users className="w-4 h-4 mr-2" /> Inteligencia
+            {/* Badge en el Tab si hay alertas */}
+            {metrics.marketOpportunities > 0 && (
+              <span className="ml-2 bg-indigo-100 text-indigo-600 text-[10px] px-1.5 py-0.5 rounded-full font-bold">
+                {metrics.marketOpportunities}
+              </span>
+            )}
           </TabsTrigger>
           <TabsTrigger value="estrategia" className="px-6 py-2.5">
             <BrainCircuit className="w-4 h-4 mr-2" /> Estrategia
@@ -176,128 +287,93 @@ export default function MainDashboard() {
               </CardContent>
             </Card>
 
-            {/* TARJETA DE ACCIÓN / SALUD (Dinámica según Rol) */}
-            {userRole === "L2" ? (
-              // VISTA REVENDEDOR (L2)
-              <Card className="bg-slate-900 text-white border-slate-800 flex flex-col justify-between">
-                <CardHeader>
-                  <CardTitle className="text-white flex items-center gap-2">
-                    <Zap className="w-5 h-5 text-yellow-400" /> Acciones Rápidas
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {/* ALERTA DE PEDIDOS */}
-                  <div className="bg-slate-800 p-3 rounded-lg flex items-center justify-between cursor-pointer hover:bg-slate-700 transition-colors">
-                    <span className="text-sm text-slate-200">Pedidos por atender</span>
-                    {metrics.pendingOrdersCount > 0 ? (
-                      <Badge className="bg-red-500 hover:bg-red-600 text-white border-0">
-                        {metrics.pendingOrdersCount}
-                      </Badge>
-                    ) : (
-                      <ArrowRight className="w-4 h-4 text-slate-500" />
-                    )}
-                  </div>
-
-                  {/* ALERTA DE NOVEDADES DEL PROVEEDOR */}
-                  <div className="mt-4 pt-4 border-t border-slate-800">
+            {/* Tarjeta Lateral de Resumen (Salud de Red o Novedades) */}
+            <Card className="bg-white border-slate-200 flex flex-col justify-between">
+              <CardHeader>
+                <CardTitle className="text-sm uppercase tracking-wider text-slate-500 font-bold">
+                  {userRole === "L2" ? "Novedades Proveedor" : "Salud de la Red"}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {userRole === "L2" ? (
+                  // L2: Novedades
+                  <div className="text-center py-4">
                     {metrics.newProviderProducts > 0 ? (
                       <>
-                        <p className="text-xs text-yellow-400 mb-2 font-medium flex items-center gap-2">
-                          <Sparkles className="w-3 h-3" /> ¡Hay novedades!
+                        <Sparkles className="w-8 h-8 text-yellow-400 mx-auto mb-2" />
+                        <p className="text-lg font-bold text-slate-800">
+                          {metrics.newProviderProducts} Productos Nuevos
                         </p>
-                        <p className="text-xs text-slate-400 mb-3">
-                          Tu proveedor lanzó {metrics.newProviderProducts} productos nuevos esta semana.
-                        </p>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="w-full text-slate-900 border-0 bg-white hover:bg-slate-100"
-                        >
-                          Ver Catálogo Proveedor
-                        </Button>
+                        <p className="text-xs text-slate-500">Tu proveedor actualizó su catálogo.</p>
                       </>
                     ) : (
-                      <p className="text-xs text-slate-500">Sin novedades recientes del proveedor.</p>
+                      <p className="text-slate-400 text-sm">Sin novedades recientes.</p>
                     )}
                   </div>
-                </CardContent>
-              </Card>
-            ) : (
-              // VISTA FABRICANTE (L1)
-              <Card className="bg-white border-slate-200">
-                <CardHeader>
-                  <CardTitle className="text-sm uppercase tracking-wider text-slate-500 font-bold">
-                    Salud de la Red
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  {/* MÉTRICAS REALES DE LA RED */}
+                ) : (
+                  // L1: Red
                   <div>
                     <div className="flex justify-between text-sm mb-2 font-medium">
-                      <span>Revendedores Totales</span>
+                      <span>Revendedores Activos</span>
                       <span className="text-indigo-600 font-bold text-lg">{metrics.activeResellersCount}</span>
                     </div>
-                    <p className="text-xs text-slate-400">Tiendas replicadas activas en tu red.</p>
-                  </div>
-
-                  <div>
-                    <div className="flex justify-between text-sm mb-2 font-medium">
-                      <span>Productos Gestionados</span>
+                    <div className="flex justify-between text-sm mb-2 font-medium mt-4">
+                      <span>Total Productos</span>
                       <span className="text-emerald-600 font-bold text-lg">{metrics.totalProductsCount}</span>
                     </div>
-                    <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                      <div className="h-full bg-emerald-500 w-full rounded-full"></div>
+                    <div className="pt-4 border-t border-slate-100 mt-4 flex items-center gap-2">
+                      <Activity className="w-4 h-4 text-slate-400" />
+                      <span className="text-xs text-slate-500">{metrics.recentQuotesCount} cotizaciones (7 días)</span>
                     </div>
                   </div>
-
-                  <div className="pt-4 border-t border-slate-100">
-                    <div className="flex items-center gap-3">
-                      <Activity className="w-8 h-8 text-slate-400" />
-                      <div>
-                        <p className="text-xs text-slate-500">Actividad Reciente</p>
-                        <p className="text-sm font-bold text-slate-900">
-                          {metrics.recentQuotesCount} cotizaciones en los últimos 7 días
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+                )}
+              </CardContent>
+            </Card>
           </motion.div>
         </TabsContent>
 
-        {/* TAB 2 y 3: INTELIGENCIA Y ESTRATEGIA */}
+        {/* TAB 2: INTELIGENCIA (Aquí vive el Radar) */}
         <TabsContent value="inteligencia" className="space-y-6 focus-visible:outline-none">
           <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card className="shadow-lg border-indigo-100 overflow-hidden">
+            {/* WIDGET RADAR DE MERCADO */}
+            <Card className="shadow-lg border-indigo-100 overflow-hidden col-span-1 lg:col-span-2 xl:col-span-1">
               <CardHeader className="bg-indigo-50/50 border-b border-indigo-100">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-indigo-900 flex items-center gap-2">
                     <Zap className="w-5 h-5 text-indigo-600" /> Radar de Oportunidades
                   </CardTitle>
-                  <Badge className="bg-indigo-200 text-indigo-800 hover:bg-indigo-200">Global</Badge>
+                  <Badge className="bg-indigo-200 text-indigo-800 hover:bg-indigo-200">
+                    {userRole === "L1" ? "Global (Red)" : "Local"}
+                  </Badge>
                 </div>
+                <CardDescription>
+                  {userRole === "L1"
+                    ? "Solicitudes de productos no encontrados en tu catálogo y en el de tus revendedores."
+                    : "Solicitudes directas de tus clientes cuando no encuentran algo."}
+                </CardDescription>
               </CardHeader>
               <CardContent className="p-0">
-                {/* CORRECCIÓN 2: Pasamos userId en lugar de catalogId */}
+                {/* Aquí es donde tu MarketIntelligenceWidget hace la magia de ocultar/mostrar datos según L1/L2 */}
                 <MarketIntelligenceWidget userId={user.id} />
               </CardContent>
             </Card>
-            <Card className="shadow-lg border-slate-200 overflow-hidden">
+
+            {/* WIDGET SEARCH LOGS */}
+            <Card className="shadow-lg border-slate-200 overflow-hidden col-span-1 lg:col-span-2 xl:col-span-1">
               <CardHeader className="bg-slate-50/50 border-b border-slate-100">
                 <CardTitle className="text-slate-900 flex items-center gap-2">
-                  <Search className="w-5 h-5 text-slate-600" /> Términos de Búsqueda (L3)
+                  <Search className="w-5 h-5 text-slate-600" /> Términos de Búsqueda
                 </CardTitle>
+                <CardDescription>Lo que tus clientes escriben en el buscador.</CardDescription>
               </CardHeader>
               <CardContent className="p-0">
-                {/* CORRECCIÓN 3: Pasamos userId */}
                 <SearchStatsWidget userId={user.id} />
               </CardContent>
             </Card>
           </motion.div>
         </TabsContent>
 
+        {/* TAB 3: ESTRATEGIA */}
         <TabsContent value="estrategia" className="space-y-8 focus-visible:outline-none">
           <motion.div variants={itemVariants} className="space-y-8">
             <div className="space-y-4">
@@ -306,14 +382,12 @@ export default function MainDashboard() {
                   <Sparkles className="w-5 h-5 text-purple-600" /> Predicción de Demanda
                 </h3>
               </div>
-              {/* CORRECCIÓN 4: Pasamos userId */}
               <DemandForecastWidget userId={user.id} />
             </div>
             <div className="space-y-4">
               <div className="flex items-center gap-2">
-                <h3 className="text-lg font-bold text-slate-800">Auditoría de Capital</h3>
+                <h3 className="text-lg font-bold text-slate-800">Auditoría de Capital (Stock Muerto)</h3>
               </div>
-              {/* CORRECCIÓN 5: Agregamos userId que faltaba */}
               <DeadStockAnalysis userId={user.id} />
             </div>
           </motion.div>
