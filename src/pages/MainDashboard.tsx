@@ -11,11 +11,10 @@ import { useUserRole } from "@/contexts/RoleContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { supabase } from "@/integrations/supabase/client";
 
-// Componentes Hijos
+// Componentes Hijos (Asegúrate que las rutas sean correctas en tu proyecto)
 import { DashboardKPIs, SalesChart } from "@/components/dashboard/DashboardCharts";
 import { MarketIntelligenceWidget } from "@/components/dashboard/MarketIntelligenceWidget";
 import { SearchStatsWidget } from "@/components/dashboard/SearchStatsWidget";
-// import { ResellerInsights } from "@/components/dashboard/ResellerInsights"; // Descomentar si lo usas
 import { DeadStockAnalysis } from "@/components/dashboard/analytics/DeadStockAnalysis";
 import { DemandForecastWidget } from "@/components/dashboard/analytics/DemandForecastWidget";
 
@@ -32,7 +31,8 @@ import {
   BrainCircuit,
   Sparkles,
   Loader2,
-  AlertCircle,
+  Truck,
+  MessageSquare,
 } from "lucide-react";
 
 export default function MainDashboard() {
@@ -40,17 +40,18 @@ export default function MainDashboard() {
   const { userRole, isLoadingRole } = useUserRole();
   const { paqueteUsuario } = useSubscription();
 
-  // Estado para controlar los Tabs (para navegar desde las tarjetas de acción)
+  // Control de Tabs para navegación fluida
   const [activeTab, setActiveTab] = useState("resumen");
 
-  // Estado extendido con las nuevas métricas de inteligencia
+  // Estado de Métricas (Coincide con el JSON del RPC)
   const [metrics, setMetrics] = useState({
     activeResellersCount: 0,
     totalProductsCount: 0,
     recentQuotesCount: 0,
-    pendingOrdersCount: 0,
+    pendingNegotiationCount: 0, // Cotizaciones nuevas ('pending')
+    ordersToDispatchCount: 0, // Pagadas pero no enviadas ('unfulfilled')
     newProviderProducts: 0,
-    // Nuevos campos de inteligencia (search logs y radares)
+    // Inteligencia
     missedSearchTerm: null as string | null,
     missedSearchCount: 0,
     marketOpportunities: 0,
@@ -59,7 +60,7 @@ export default function MainDashboard() {
   const [hasActiveCatalog, setHasActiveCatalog] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(true);
 
-  // 1. Verificar si tiene catálogo activo (para botón compartir)
+  // 1. Verificar catálogo activo
   useEffect(() => {
     if (!user) return;
     const checkCatalog = async () => {
@@ -78,17 +79,15 @@ export default function MainDashboard() {
     checkCatalog();
   }, [user]);
 
-  // 2. Cargar Estadísticas e Insights (RPC Mejorada)
+  // 2. Cargar RPC
   useEffect(() => {
     const loadMetrics = async () => {
       if (!user) return;
       try {
-        // Llamamos a la RPC actualizada. Usamos 'as any' temporalmente si TS reclama.
-        const { data, error } = await supabase.rpc("get_dashboard_stats" as any, { p_user_id: user.id });
-
+        const { data, error } = await supabase.rpc("get_dashboard_stats", { p_user_id: user.id });
         if (error) throw error;
-
         if (data) {
+          // Casteamos a 'any' para evitar error de tipado estricto momentáneo
           setMetrics((prev) => ({ ...prev, ...(data as any) }));
         }
       } catch (e) {
@@ -100,7 +99,6 @@ export default function MainDashboard() {
     loadMetrics();
   }, [user]);
 
-  // Loading State
   if (isLoadingRole || !user) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -111,11 +109,9 @@ export default function MainDashboard() {
     );
   }
 
-  // Animaciones
   const containerVariants = { hidden: { opacity: 0 }, visible: { opacity: 1, transition: { staggerChildren: 0.1 } } };
   const itemVariants = { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } };
 
-  // UI Helpers
   const planName = paqueteUsuario?.name || "Plan Gratuito";
   const planBadgeColor =
     paqueteUsuario?.analytics_level === "enterprise" ? "bg-purple-100 text-purple-700" : "bg-green-100 text-green-700";
@@ -127,7 +123,7 @@ export default function MainDashboard() {
       animate="visible"
       className="p-4 md:p-8 space-y-8 max-w-7xl mx-auto"
     >
-      {/* --- HEADER --- */}
+      {/* HEADER */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <Badge
@@ -150,48 +146,74 @@ export default function MainDashboard() {
         )}
       </div>
 
-      {/* --- SECCIÓN PRESCRIPTIVA: TARJETAS DE ACCIÓN INTELIGENTE --- */}
-      {/* Esta sección solo muestra tarjetas si hay algo urgente/importante que atender */}
+      {/* --- TARJETAS DE ACCIÓN INTELIGENTE (TOP PRIORITY) --- */}
       <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* 1. PEDIDOS (Verde - Dinero Cerrado) */}
-        {metrics.pendingOrdersCount > 0 ? (
-          <Card className="bg-emerald-50 border-emerald-200 shadow-sm relative overflow-hidden group hover:shadow-md transition-shadow">
-            <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
-              <ShoppingBag className="w-16 h-16 text-emerald-600" />
+        {/* 1. NEGOCIACIÓN / LOGÍSTICA (PRIORIDAD ALTA) */}
+        {metrics.ordersToDispatchCount > 0 ? (
+          // CASO A: Hay que enviar (Ya pagaron)
+          <Card className="bg-emerald-50 border-emerald-200 shadow-sm relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-3 opacity-10">
+              <Truck className="w-16 h-16 text-emerald-600" />
             </div>
             <CardHeader className="pb-2">
               <CardTitle className="text-emerald-800 text-lg flex items-center gap-2">
-                <ShoppingBag className="w-5 h-5" /> Pedidos por Aprobar
+                <Truck className="w-5 h-5" /> Envíos Pendientes
               </CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-emerald-700 text-sm mb-3">
-                Tienes <span className="font-bold text-2xl mx-1">{metrics.pendingOrdersCount}</span> pedidos pendientes
-                de procesar.
+                Tienes <span className="font-bold text-2xl mx-1">{metrics.ordersToDispatchCount}</span> pedidos pagados
+                listos para despachar.
               </p>
-              <Button size="sm" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white border-0">
-                Gestionar Pedidos
+              <Button size="sm" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white">
+                Ir a Envíos
+              </Button>
+            </CardContent>
+          </Card>
+        ) : metrics.pendingNegotiationCount > 0 ? (
+          // CASO B: Hay que cotizar (Negociación)
+          <Card className="bg-blue-50 border-blue-200 shadow-sm relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-3 opacity-10">
+              <MessageSquare className="w-16 h-16 text-blue-600" />
+            </div>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-blue-800 text-lg flex items-center gap-2">
+                <MessageSquare className="w-5 h-5" /> Cotizaciones Nuevas
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-blue-700 text-sm mb-3">
+                Tienes <span className="font-bold text-2xl mx-1">{metrics.pendingNegotiationCount}</span> clientes
+                esperando precio y fecha.
+              </p>
+              <Button size="sm" className="w-full bg-blue-600 hover:bg-blue-700 text-white">
+                Negociar Ahora
               </Button>
             </CardContent>
           </Card>
         ) : (
-          // Estado Base (Opcional: Ocultar o mostrar status ok)
-          <Card className="bg-white border-slate-100 shadow-sm opacity-60 hover:opacity-100 transition-opacity">
+          // CASO C: Todo tranquilo
+          <Card className="bg-white border-slate-100 shadow-sm opacity-80">
             <CardHeader className="pb-2">
               <CardTitle className="text-slate-500 text-base flex items-center gap-2">
-                <ShoppingBag className="w-4 h-4" /> Pedidos
+                <ShoppingBag className="w-4 h-4" /> Ventas
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-slate-400 text-sm">Todo al día. No hay pedidos pendientes.</p>
+              <p className="text-slate-400 text-sm">
+                Tu bandeja está al día.{" "}
+                <span className="block mt-1 text-indigo-500 font-medium cursor-pointer">
+                  ¡Comparte tu catálogo para vender más!
+                </span>
+              </p>
             </CardContent>
           </Card>
         )}
 
-        {/* 2. RADARES DE MERCADO (Azul - Oportunidad de Venta) */}
-        {metrics.marketOpportunities > 0 && (
-          <Card className="bg-indigo-50 border-indigo-200 shadow-sm relative overflow-hidden group hover:shadow-md transition-shadow">
-            <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
+        {/* 2. RADAR DE OPORTUNIDADES */}
+        {metrics.marketOpportunities > 0 ? (
+          <Card className="bg-indigo-50 border-indigo-200 shadow-sm relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-3 opacity-10">
               <Users className="w-16 h-16 text-indigo-600" />
             </div>
             <CardHeader className="pb-2">
@@ -201,12 +223,8 @@ export default function MainDashboard() {
             </CardHeader>
             <CardContent>
               <p className="text-indigo-700 text-sm mb-3">
-                <span className="font-bold text-2xl mx-1">{metrics.marketOpportunities}</span> clientes potenciales
-                piden productos.
-                {/* Mensaje contextual para L1 */}
-                {userRole !== "L2" && (
-                  <span className="block text-xs mt-1 opacity-80">(Incluye solicitudes de tu red de revendedores)</span>
-                )}
+                <span className="font-bold text-2xl mx-1">{metrics.marketOpportunities}</span> solicitudes de productos
+                que no tienes.
               </p>
               <Button
                 size="sm"
@@ -214,16 +232,27 @@ export default function MainDashboard() {
                 className="w-full border-indigo-300 text-indigo-700 hover:bg-indigo-100"
                 onClick={() => setActiveTab("inteligencia")}
               >
-                Ver Solicitudes
+                Ver Oportunidades
               </Button>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card className="bg-white border-slate-100 shadow-sm opacity-80">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-slate-500 text-base flex items-center gap-2">
+                <Zap className="w-4 h-4" /> Radar
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-slate-400 text-sm">El radar está escaneando búsquedas...</p>
             </CardContent>
           </Card>
         )}
 
-        {/* 3. BÚSQUEDAS FALLIDAS (Naranja - Demanda Insatisfecha) */}
+        {/* 3. DEMANDA PERDIDA (Search Logs) */}
         {metrics.missedSearchCount > 2 && (
-          <Card className="bg-orange-50 border-orange-200 shadow-sm relative overflow-hidden group hover:shadow-md transition-shadow">
-            <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
+          <Card className="bg-orange-50 border-orange-200 shadow-sm relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-3 opacity-10">
               <Search className="w-16 h-16 text-orange-600" />
             </div>
             <CardHeader className="pb-2">
@@ -233,24 +262,17 @@ export default function MainDashboard() {
             </CardHeader>
             <CardContent>
               <p className="text-orange-700 text-sm mb-3">
-                Buscan <strong>"{metrics.missedSearchTerm}"</strong> ({metrics.missedSearchCount} veces) y no aparece.
+                Buscan <strong>"{metrics.missedSearchTerm}"</strong> ({metrics.missedSearchCount} veces) y no está.
               </p>
-              <Button
-                size="sm"
-                className="w-full bg-orange-500 hover:bg-orange-600 text-white border-0"
-                // Acción depende del rol
-                onClick={() =>
-                  userRole === "L2" ? console.log("Solicitar a proveedor") : console.log("Crear producto")
-                }
-              >
-                {userRole === "L2" ? "Solicitar a Proveedor" : "Agregar Producto"}
+              <Button size="sm" className="w-full bg-orange-500 hover:bg-orange-600 text-white border-0">
+                {userRole === "L2" ? "Solicitar a Proveedor" : "Crear Producto"}
               </Button>
             </CardContent>
           </Card>
         )}
       </motion.div>
 
-      {/* --- TABS PRINCIPALES --- */}
+      {/* --- TABS --- */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full space-y-8">
         <TabsList className="bg-white border border-slate-200 p-1 h-auto rounded-xl shadow-sm inline-flex w-full md:w-auto overflow-x-auto">
           <TabsTrigger value="resumen" className="px-6 py-2.5">
@@ -258,7 +280,6 @@ export default function MainDashboard() {
           </TabsTrigger>
           <TabsTrigger value="inteligencia" className="px-6 py-2.5">
             <Users className="w-4 h-4 mr-2" /> Inteligencia
-            {/* Badge en el Tab si hay alertas */}
             {metrics.marketOpportunities > 0 && (
               <span className="ml-2 bg-indigo-100 text-indigo-600 text-[10px] px-1.5 py-0.5 rounded-full font-bold">
                 {metrics.marketOpportunities}
@@ -270,60 +291,41 @@ export default function MainDashboard() {
           </TabsTrigger>
         </TabsList>
 
-        {/* TAB 1: RESUMEN OPERATIVO */}
         <TabsContent value="resumen" className="space-y-6 focus-visible:outline-none">
           <motion.div variants={itemVariants}>
             <DashboardKPIs userId={user.id} />
           </motion.div>
-
           <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <Card className="lg:col-span-2 shadow-md border-slate-200">
               <CardHeader>
-                <CardTitle>Tendencia de Ingresos</CardTitle>
-                <CardDescription>Consolidado de operaciones.</CardDescription>
+                <CardTitle>Ingresos</CardTitle>
               </CardHeader>
               <CardContent>
                 <SalesChart userId={user.id} />
               </CardContent>
             </Card>
-
-            {/* Tarjeta Lateral de Resumen (Salud de Red o Novedades) */}
-            <Card className="bg-white border-slate-200 flex flex-col justify-between">
+            {/* Tarjeta Lateral Informativa */}
+            <Card className="bg-white border-slate-200">
               <CardHeader>
                 <CardTitle className="text-sm uppercase tracking-wider text-slate-500 font-bold">
-                  {userRole === "L2" ? "Novedades Proveedor" : "Salud de la Red"}
+                  {userRole === "L2" ? "Novedades" : "Salud de Red"}
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-6">
+              <CardContent>
                 {userRole === "L2" ? (
-                  // L2: Novedades
                   <div className="text-center py-4">
-                    {metrics.newProviderProducts > 0 ? (
-                      <>
-                        <Sparkles className="w-8 h-8 text-yellow-400 mx-auto mb-2" />
-                        <p className="text-lg font-bold text-slate-800">
-                          {metrics.newProviderProducts} Productos Nuevos
-                        </p>
-                        <p className="text-xs text-slate-500">Tu proveedor actualizó su catálogo.</p>
-                      </>
-                    ) : (
-                      <p className="text-slate-400 text-sm">Sin novedades recientes.</p>
-                    )}
+                    <p className="text-2xl font-bold text-slate-800">{metrics.newProviderProducts}</p>
+                    <p className="text-xs text-slate-500">Productos Nuevos del Proveedor</p>
                   </div>
                 ) : (
-                  // L1: Red
                   <div>
                     <div className="flex justify-between text-sm mb-2 font-medium">
-                      <span>Revendedores Activos</span>
-                      <span className="text-indigo-600 font-bold text-lg">{metrics.activeResellersCount}</span>
+                      <span>Revendedores</span>
+                      <span className="text-indigo-600 font-bold">{metrics.activeResellersCount}</span>
                     </div>
-                    <div className="flex justify-between text-sm mb-2 font-medium mt-4">
-                      <span>Total Productos</span>
-                      <span className="text-emerald-600 font-bold text-lg">{metrics.totalProductsCount}</span>
-                    </div>
-                    <div className="pt-4 border-t border-slate-100 mt-4 flex items-center gap-2">
-                      <Activity className="w-4 h-4 text-slate-400" />
-                      <span className="text-xs text-slate-500">{metrics.recentQuotesCount} cotizaciones (7 días)</span>
+                    <div className="flex justify-between text-sm mb-2 font-medium">
+                      <span>Productos</span>
+                      <span className="text-emerald-600 font-bold">{metrics.totalProductsCount}</span>
                     </div>
                   </div>
                 )}
@@ -332,39 +334,23 @@ export default function MainDashboard() {
           </motion.div>
         </TabsContent>
 
-        {/* TAB 2: INTELIGENCIA (Aquí vive el Radar) */}
         <TabsContent value="inteligencia" className="space-y-6 focus-visible:outline-none">
           <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* WIDGET RADAR DE MERCADO */}
-            <Card className="shadow-lg border-indigo-100 overflow-hidden col-span-1 lg:col-span-2 xl:col-span-1">
+            <Card className="col-span-1 lg:col-span-2 shadow-lg border-indigo-100">
               <CardHeader className="bg-indigo-50/50 border-b border-indigo-100">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-indigo-900 flex items-center gap-2">
-                    <Zap className="w-5 h-5 text-indigo-600" /> Radar de Oportunidades
-                  </CardTitle>
-                  <Badge className="bg-indigo-200 text-indigo-800 hover:bg-indigo-200">
-                    {userRole === "L1" ? "Global (Red)" : "Local"}
-                  </Badge>
-                </div>
-                <CardDescription>
-                  {userRole === "L1"
-                    ? "Solicitudes de productos no encontrados en tu catálogo y en el de tus revendedores."
-                    : "Solicitudes directas de tus clientes cuando no encuentran algo."}
-                </CardDescription>
+                <CardTitle className="text-indigo-900 flex items-center gap-2">
+                  <Zap className="w-5 h-5" /> Radar de Mercado
+                </CardTitle>
               </CardHeader>
               <CardContent className="p-0">
-                {/* Aquí es donde tu MarketIntelligenceWidget hace la magia de ocultar/mostrar datos según L1/L2 */}
                 <MarketIntelligenceWidget userId={user.id} />
               </CardContent>
             </Card>
-
-            {/* WIDGET SEARCH LOGS */}
-            <Card className="shadow-lg border-slate-200 overflow-hidden col-span-1 lg:col-span-2 xl:col-span-1">
+            <Card className="col-span-1 lg:col-span-2 shadow-lg border-slate-200">
               <CardHeader className="bg-slate-50/50 border-b border-slate-100">
                 <CardTitle className="text-slate-900 flex items-center gap-2">
-                  <Search className="w-5 h-5 text-slate-600" /> Términos de Búsqueda
+                  <Search className="w-5 h-5" /> Búsquedas Fallidas
                 </CardTitle>
-                <CardDescription>Lo que tus clientes escriben en el buscador.</CardDescription>
               </CardHeader>
               <CardContent className="p-0">
                 <SearchStatsWidget userId={user.id} />
@@ -373,23 +359,10 @@ export default function MainDashboard() {
           </motion.div>
         </TabsContent>
 
-        {/* TAB 3: ESTRATEGIA */}
         <TabsContent value="estrategia" className="space-y-8 focus-visible:outline-none">
           <motion.div variants={itemVariants} className="space-y-8">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                  <Sparkles className="w-5 h-5 text-purple-600" /> Predicción de Demanda
-                </h3>
-              </div>
-              <DemandForecastWidget userId={user.id} />
-            </div>
-            <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <h3 className="text-lg font-bold text-slate-800">Auditoría de Capital (Stock Muerto)</h3>
-              </div>
-              <DeadStockAnalysis userId={user.id} />
-            </div>
+            <DemandForecastWidget userId={user.id} />
+            <DeadStockAnalysis userId={user.id} />
           </motion.div>
         </TabsContent>
       </Tabs>
