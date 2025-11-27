@@ -10,7 +10,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 
-// Helper MXN
 const formatMoney = (val: number) =>
   new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN", maximumFractionDigits: 0 }).format(val);
 
@@ -147,10 +146,8 @@ interface ProductForecastData {
 }
 
 export const DemoForecastWidget = ({ productsData }: { productsData: ProductForecastData[] }) => {
-  // Estado para el selector de productos
   const [selectedId, setSelectedId] = useState<string>(productsData[0]?.id || "");
 
-  // Encontrar el producto seleccionado o usar el primero por defecto
   const currentProduct = productsData.find((p) => p.id === selectedId) || productsData[0];
 
   if (!currentProduct) return null;
@@ -168,7 +165,6 @@ export const DemoForecastWidget = ({ productsData }: { productsData: ProductFore
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Badge de Tendencia */}
             <div
               className={`px-3 py-1.5 rounded-full text-xs font-bold border flex items-center gap-2 ${
                 currentProduct.status === "rising"
@@ -183,7 +179,6 @@ export const DemoForecastWidget = ({ productsData }: { productsData: ProductFore
               {currentProduct.growth} Demanda
             </div>
 
-            {/* Selector de Producto */}
             <Select value={selectedId} onValueChange={setSelectedId}>
               <SelectTrigger className="w-[200px] bg-white border-indigo-200 text-indigo-900 font-medium">
                 <SelectValue placeholder="Producto" />
@@ -253,18 +248,6 @@ export const DemoForecastWidget = ({ productsData }: { productsData: ProductFore
             />
           </AreaChart>
         </ResponsiveContainer>
-        <div className="flex items-center justify-center gap-6 mt-2 text-xs text-slate-500">
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-indigo-600 rounded-full opacity-30"></div>
-            <span>Demanda Real (30 días)</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div
-              className={`w-3 h-3 rounded-full opacity-30 ${currentProduct.status === "rising" ? "bg-emerald-500" : "bg-amber-500"}`}
-            ></div>
-            <span>Proyección IA (7 días)</span>
-          </div>
-        </div>
       </CardContent>
     </Card>
   );
