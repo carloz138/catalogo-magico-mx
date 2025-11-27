@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useCatalogLimits } from "@/hooks/useCatalogLimits";
 import { useBusinessInfo } from "@/hooks/useBusinessInfo";
 import { Button } from "@/components/ui/button";
@@ -14,17 +14,16 @@ import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { useDebounce } from "@/hooks/useDebounce";
 
 const Products = () => {
-  // 1. Extraemos todo lo necesario del Hook que me pasaste
   const {
-    products, // La lista completa para contadores
-    filteredProducts, // La lista ya filtrada por el hook
+    products,
+    filteredProducts,
     selectedProducts,
     loading,
     processing,
-    stats, // 👈 Las estadísticas calculadas en el hook
-    activeTab, // 👈 La pestaña activa actual ('all', 'with-background', etc.)
-    handleTabChange, // 👈 La función para cambiar filtro
-    setSearchTerm: setHookSearchTerm, // Para conectar el buscador
+    stats,
+    activeTab,
+    handleTabChange,
+    setSearchTerm: setHookSearchTerm,
     toggleProductSelection,
     selectAllProducts,
     handleViewProduct,
@@ -46,7 +45,6 @@ const Products = () => {
     selectedProduct,
   } = useProductsLogic();
 
-  // --- BUSCADOR LOCAL CON DEBOUNCE ---
   const [localSearchTerm, setLocalSearchTerm] = useState("");
   const debouncedSearchTerm = useDebounce(localSearchTerm, 300);
 
@@ -58,7 +56,6 @@ const Products = () => {
   const { businessInfo, loading: businessInfoLoading } = useBusinessInfo();
   const isBusinessInfoComplete = isBusinessInfoCompleteForCatalog(businessInfo);
 
-  // --- REDIRECT NEW PRODUCT ---
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("new") === "true" && params.get("name")) {
@@ -75,9 +72,7 @@ const Products = () => {
           <CardContent className="p-3 flex flex-col sm:flex-row items-center gap-3">
             <div className="flex items-center gap-2 text-red-700">
               <AlertTriangle className="w-5 h-5 shrink-0" />
-              <span className="text-sm font-medium">
-                Límite alcanzado ({catalogsUsed}/{limits.catalogsLimit})
-              </span>
+              <span className="text-sm font-medium">Límite alcanzado</span>
             </div>
             <Button
               size="sm"
@@ -92,55 +87,59 @@ const Products = () => {
     );
   };
 
-  // --- 2. HEADER DE ESTADÍSTICAS (MÓVIL FRIENDLY) ---
-  // Se desliza horizontalmente en pantallas pequeñas
-  const StatsHeader = () => (
-    <div className="flex overflow-x-auto pb-2 gap-3 px-4 md:px-0 snap-x scrollbar-hide">
-      {/* Card: Originales */}
-      <div
-        onClick={() => handleTabChange("with-background")}
-        className={`cursor-pointer border rounded-xl p-3 flex items-center gap-3 min-w-[150px] snap-center transition-colors ${activeTab === "with-background" ? "bg-orange-50 border-orange-200" : "bg-white border-slate-100"}`}
-      >
-        <div className="w-10 h-10 rounded-lg bg-orange-100 flex items-center justify-center text-orange-600 shrink-0">
-          <ImageIcon className="w-5 h-5" />
-        </div>
-        <div>
-          <p className="text-xl font-bold text-orange-900 leading-none">{stats?.withBackground || 0}</p>
-          <p className="text-[10px] text-orange-700 font-medium uppercase mt-1">Originales</p>
-        </div>
-      </div>
+  // --- 2. HEADER DE ESTADÍSTICAS (GRID AUTO-AJUSTABLE) ---
+  // Cambiado de flex scroll a GRID para eliminar la barra de desplazamiento
+  const StatsHeader = () => {
+    const showProcessing = (stats?.processing || 0) > 0;
 
-      {/* Card: Listos */}
-      <div
-        onClick={() => handleTabChange("no-background")}
-        className={`cursor-pointer border rounded-xl p-3 flex items-center gap-3 min-w-[150px] snap-center transition-colors ${activeTab === "no-background" ? "bg-emerald-50 border-emerald-200" : "bg-white border-slate-100"}`}
-      >
-        <div className="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-600 shrink-0">
-          <Sparkles className="w-5 h-5" />
-        </div>
-        <div>
-          <p className="text-xl font-bold text-emerald-900 leading-none">{stats?.noBackground || 0}</p>
-          <p className="text-[10px] text-emerald-700 font-medium uppercase mt-1">Listos</p>
-        </div>
-      </div>
-
-      {/* Card: Procesando (Solo si hay) */}
-      {(stats?.processing || 0) > 0 && (
+    return (
+      <div className={`grid gap-2 px-4 md:px-0 mb-4 ${showProcessing ? "grid-cols-3" : "grid-cols-2"}`}>
+        {/* Card: Originales */}
         <div
-          onClick={() => handleTabChange("processing")}
-          className="bg-blue-50 border border-blue-100 rounded-xl p-3 flex items-center gap-3 min-w-[150px] snap-center animate-pulse cursor-pointer"
+          onClick={() => handleTabChange("with-background")}
+          className={`cursor-pointer border rounded-xl p-2 flex flex-col items-center justify-center text-center gap-1 transition-colors h-20 ${activeTab === "with-background" ? "bg-orange-50 border-orange-200" : "bg-white border-slate-100"}`}
         >
-          <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center text-blue-600 shrink-0">
-            <Loader2 className="w-5 h-5 animate-spin" />
+          <div className="text-orange-600">
+            <ImageIcon className="w-5 h-5" />
           </div>
-          <div>
-            <p className="text-xl font-bold text-blue-900 leading-none">{stats.processing}</p>
-            <p className="text-[10px] text-blue-700 font-medium uppercase mt-1">Procesando</p>
+          <div className="leading-none">
+            <p className="text-lg font-bold text-orange-900">{stats?.withBackground || 0}</p>
+            <p className="text-[9px] text-orange-700 font-medium uppercase">Originales</p>
           </div>
         </div>
-      )}
-    </div>
-  );
+
+        {/* Card: Listos */}
+        <div
+          onClick={() => handleTabChange("no-background")}
+          className={`cursor-pointer border rounded-xl p-2 flex flex-col items-center justify-center text-center gap-1 transition-colors h-20 ${activeTab === "no-background" ? "bg-emerald-50 border-emerald-200" : "bg-white border-slate-100"}`}
+        >
+          <div className="text-emerald-600">
+            <Sparkles className="w-5 h-5" />
+          </div>
+          <div className="leading-none">
+            <p className="text-lg font-bold text-emerald-900">{stats?.noBackground || 0}</p>
+            <p className="text-[9px] text-emerald-700 font-medium uppercase">Listos</p>
+          </div>
+        </div>
+
+        {/* Card: Procesando (Condicional) */}
+        {showProcessing && (
+          <div
+            onClick={() => handleTabChange("processing")}
+            className="bg-blue-50 border border-blue-100 rounded-xl p-2 flex flex-col items-center justify-center text-center gap-1 animate-pulse cursor-pointer h-20"
+          >
+            <div className="text-blue-600">
+              <Loader2 className="w-5 h-5 animate-spin" />
+            </div>
+            <div className="leading-none">
+              <p className="text-lg font-bold text-blue-900">{stats.processing}</p>
+              <p className="text-[9px] text-blue-700 font-medium uppercase">Procesando</p>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
 
   if (loading) {
     return (
@@ -153,41 +152,40 @@ const Products = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 pb-32">
-      {/* 3. TOP BAR FIJA (Mobile & Desktop) */}
+      {/* 3. TOP BAR FIJA */}
       <div className="bg-white border-b sticky top-0 z-30 pt-safe-top shadow-sm">
-        <div className="container mx-auto px-4 h-16 flex items-center justify-between gap-4">
-          <h1 className="text-xl font-bold text-gray-900">Biblioteca</h1>
+        <div className="container mx-auto px-4 h-14 flex items-center justify-between gap-4">
+          <h1 className="text-lg font-bold text-gray-900">Biblioteca</h1>
           <div className="flex gap-2">
             <Button
               onClick={() => navigate("/upload")}
-              className="bg-indigo-600 hover:bg-indigo-700 shadow-sm h-9 px-3 text-xs sm:text-sm"
+              className="bg-indigo-600 hover:bg-indigo-700 shadow-sm h-8 px-3 text-xs"
             >
-              <Plus className="h-4 w-4 sm:mr-2" /> <span className="hidden sm:inline">Subir Fotos</span>
-              <span className="sm:hidden">Subir</span>
+              <Plus className="h-3.5 w-3.5 mr-1.5" /> Subir
             </Button>
             <Button
               onClick={() => navigate("/products/bulk-upload")}
               variant="outline"
               size="icon"
-              className="h-9 w-9 shrink-0 text-slate-600"
+              className="h-8 w-8 shrink-0 text-slate-600"
               title="Excel"
             >
-              <Upload className="h-4 w-4" />
+              <Upload className="h-3.5 w-3.5" />
             </Button>
           </div>
         </div>
 
-        {/* 4. BARRA DE FILTROS & BÚSQUEDA (STICKY) */}
-        <div className="bg-white/95 backdrop-blur-sm border-b border-gray-100 py-2 px-4 md:px-8">
-          <div className="container mx-auto flex flex-col sm:flex-row gap-3 items-center">
-            {/* Search Input */}
-            <div className="relative w-full sm:w-72">
+        {/* 4. BARRA DE FILTROS & BÚSQUEDA (SIN SCROLL) */}
+        <div className="bg-white/95 backdrop-blur-sm border-b border-gray-100 py-3 px-4">
+          <div className="container mx-auto flex flex-col gap-3">
+            {/* Search Input - Ancho completo */}
+            <div className="relative w-full">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input
                 placeholder="Buscar por nombre..."
                 value={localSearchTerm}
                 onChange={(e) => setLocalSearchTerm(e.target.value)}
-                className="pl-9 h-9 text-sm bg-slate-50 border-slate-200 focus:bg-white transition-all"
+                className="pl-9 h-9 text-sm bg-slate-50 border-slate-200 focus:bg-white transition-all w-full"
               />
               {localSearchTerm && (
                 <button
@@ -199,37 +197,58 @@ const Products = () => {
               )}
             </div>
 
-            {/* CHIPS DE FILTRO (Reemplazan a los Tabs viejos) */}
-            <div className="flex gap-2 w-full sm:w-auto overflow-x-auto scrollbar-hide pb-1 sm:pb-0">
+            {/* FILTROS TIPO GRID (3 Columnas Exactas - Adiós Scroll) */}
+            <div className="grid grid-cols-3 gap-2 w-full">
               <button
                 onClick={() => handleTabChange("all")}
-                className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all border ${
+                className={`py-1.5 px-1 rounded-md text-xs font-medium transition-all border flex flex-col sm:flex-row items-center justify-center gap-1 ${
                   activeTab === "all"
                     ? "bg-slate-900 text-white border-slate-900"
                     : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
                 }`}
               >
-                Todos ({stats?.total || 0})
+                <span>Todos</span>
+                <span
+                  className={`text-[10px] px-1.5 rounded-full ${activeTab === "all" ? "bg-slate-700 text-white" : "bg-slate-100 text-slate-500"}`}
+                >
+                  {stats?.total || 0}
+                </span>
               </button>
+
               <button
                 onClick={() => handleTabChange("no-background")}
-                className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all border flex items-center gap-1.5 ${
+                className={`py-1.5 px-1 rounded-md text-xs font-medium transition-all border flex flex-col sm:flex-row items-center justify-center gap-1 ${
                   activeTab === "no-background"
                     ? "bg-emerald-100 text-emerald-800 border-emerald-200"
                     : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
                 }`}
               >
-                <Sparkles className="w-3 h-3" /> Listos ({stats?.noBackground || 0})
+                <span className="flex items-center gap-1">
+                  <Sparkles className="w-3 h-3" /> Listos
+                </span>
+                <span
+                  className={`text-[10px] px-1.5 rounded-full ${activeTab === "no-background" ? "bg-emerald-200" : "bg-slate-100 text-slate-500"}`}
+                >
+                  {stats?.noBackground || 0}
+                </span>
               </button>
+
               <button
                 onClick={() => handleTabChange("with-background")}
-                className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all border flex items-center gap-1.5 ${
+                className={`py-1.5 px-1 rounded-md text-xs font-medium transition-all border flex flex-col sm:flex-row items-center justify-center gap-1 ${
                   activeTab === "with-background"
                     ? "bg-orange-100 text-orange-800 border-orange-200"
                     : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
                 }`}
               >
-                <ImageIcon className="w-3 h-3" /> Originales ({stats?.withBackground || 0})
+                <span className="flex items-center gap-1">
+                  <ImageIcon className="w-3 h-3" /> Orig.
+                </span>
+                <span
+                  className={`text-[10px] px-1.5 rounded-full ${activeTab === "with-background" ? "bg-orange-200" : "bg-slate-100 text-slate-500"}`}
+                >
+                  {stats?.withBackground || 0}
+                </span>
               </button>
             </div>
           </div>
@@ -237,11 +256,11 @@ const Products = () => {
       </div>
 
       {/* 5. CONTENIDO PRINCIPAL */}
-      <div className="container mx-auto mt-6">
-        {/* Stats deslizable */}
+      <div className="container mx-auto mt-4">
+        {/* Stats Arriba (Grid) */}
         <StatsHeader />
 
-        <div className="px-4 md:px-0 mt-4">
+        <div className="px-4 md:px-0">
           <LimitsAlert />
 
           {!businessInfoLoading && !isBusinessInfoComplete && showBusinessInfoBanner && (
@@ -250,7 +269,7 @@ const Products = () => {
 
           {/* EMPTY STATE */}
           {products.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 bg-white border-2 border-dashed border-gray-200 rounded-2xl text-center mx-4 md:mx-0">
+            <div className="flex flex-col items-center justify-center py-16 bg-white border-2 border-dashed border-gray-200 rounded-2xl text-center">
               <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">
                 <Package className="h-8 w-8 text-slate-300" />
               </div>
@@ -279,7 +298,7 @@ const Products = () => {
             <>
               {/* Texto de selección */}
               {selectedProducts.length > 0 && (
-                <div className="flex items-center justify-between mb-3 text-sm animate-in fade-in sticky top-32 z-10 bg-slate-50/90 backdrop-blur-sm py-1">
+                <div className="flex items-center justify-between mb-3 text-sm animate-in fade-in sticky top-40 z-10 bg-slate-50/90 backdrop-blur-sm py-1 rounded-lg px-2">
                   <span className="text-indigo-600 font-medium">{selectedProducts.length} seleccionados</span>
                   <button
                     onClick={selectAllProducts}
@@ -345,7 +364,7 @@ const Products = () => {
                 size="icon"
                 variant="ghost"
                 className="h-9 w-9 text-red-400 hover:text-red-300 hover:bg-red-900/30 rounded-full"
-                onClick={() => (productToDelete ? confirmDeleteProduct() : null)} // Nota: Requiere lógica masiva en el hook
+                onClick={() => (productToDelete ? confirmDeleteProduct() : null)}
               >
                 <span className="text-sm">🗑️</span>
               </Button>
