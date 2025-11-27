@@ -5,7 +5,6 @@ export type Industry = "ropa" | "ferreteria" | "acero" | "belleza" | "veterinari
 
 // --- GENERADORES DE DATA FALSA ---
 
-// Genera la gráfica principal de ventas totales (Dinero)
 const generateMainChartData = (baseAmount: number, volatility: number) => {
   const historyDays = 30;
   const history = Array.from({ length: historyDays }, (_, i) => {
@@ -30,14 +29,11 @@ const generateMainChartData = (baseAmount: number, volatility: number) => {
   return [...history, ...future];
 };
 
-// Genera Top 10 Productos con tendencias individuales para el Forecast
 const generateTopProductsForecast = (products: string[]) => {
   return products.map((productName, index) => {
-    // Los primeros crecen, los del medio estables, los últimos bajan
     const trendFactor = index < 3 ? 1.1 : index > 7 ? 0.9 : 1.0;
     const baseVolume = Math.floor(Math.random() * 50) + 20;
 
-    // 30 días de historia
     const history = Array.from({ length: 30 }, (_, i) => {
       const date = subDays(new Date(), 30 - i);
       const noise = Math.random() * 10 - 5;
@@ -51,7 +47,6 @@ const generateTopProductsForecast = (products: string[]) => {
 
     const lastVal = history[history.length - 1].real || baseVolume;
 
-    // 7 días de predicción IA
     const future = Array.from({ length: 7 }, (_, i) => {
       const date = addDays(new Date(), i + 1);
       const val = lastVal * (1 + 0.05 * (trendFactor >= 1 ? 1 : -1) * (i + 1));
@@ -70,7 +65,7 @@ const generateTopProductsForecast = (products: string[]) => {
       id: `prod-${index}`,
       name: productName,
       growth: index < 3 ? "+15%" : index > 7 ? "-5%" : "+2%",
-      // CORRECCIÓN AQUÍ: Forzamos el tipo para que coincida con el componente
+      // Tipado estricto para el componente
       status: (index < 3 ? "rising" : index > 7 ? "falling" : "stable") as "rising" | "falling" | "stable",
       data: [...history, ...future],
     };
