@@ -87,7 +87,7 @@ const navigationItems: MenuItem[] = [
     icon: PackageSearch,
     primary: true,
   },
-  { title: "Inventario (L1)", path: "/products", icon: Package },
+  { title: "Inventario", path: "/products", icon: Package },
   { title: "Carga Masiva", path: "/products/bulk-upload", icon: PackageOpen },
   { title: "Subir Productos", path: "/upload", icon: Upload },
   { title: "Analytics", path: "/analytics", icon: BarChart3 },
