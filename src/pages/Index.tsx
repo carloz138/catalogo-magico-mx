@@ -32,7 +32,7 @@ const Index = () => {
   const [user, setUser] = useState<any>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // --- STATE: Network Simulator ---
+  // --- STATE: Network Simulatore ---
   const [simResellers, setSimResellers] = useState<number>(10);
   const [simEndClients, setSimEndClients] = useState<number>(50);
 
