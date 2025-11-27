@@ -3,12 +3,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Area, ComposedChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianGrid } from "recharts";
 import { Loader2, DollarSign, ShoppingBag, FileText, Activity, TrendingUp } from "lucide-react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { format, subDays, addDays, parseISO, isSameDay } from "date-fns";
+import { format, subDays, addDays, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
-import regression from "regression"; // Asegúrate de haber agregado esto al package.json
 
-// --- COMPONENTE 1: TARJETAS DE KPI (VENTAS REALES) ---
+// --- COMPONENTE 1: TARJETAS DE KPI (OPERACIÓN DIARIA) ---
 export function DashboardKPIs({ userId }: { userId: string }) {
   const [stats, setStats] = useState({
     totalSales: 0,
@@ -41,10 +39,10 @@ export function DashboardKPIs({ userId }: { userId: string }) {
 
           // Cotizaciones Aceptadas (Interés de compra)
           const acceptedQuotes = quotes.filter((q) => q.status === "accepted").length;
+          // Pendientes o en Negociación
           const pending = quotes.filter((q) => q.status === "pending" || q.status === "negotiation").length;
 
           // Tasa de Cierre Financiero: Pagos Reales / Cotizaciones Aceptadas
-          // Si tengo 10 aceptadas y 5 pagadas, mi eficiencia de cobro es 50%
           const conversion = acceptedQuotes > 0 ? Math.round((payments.length / acceptedQuotes) * 100) : 0;
 
           setStats({
@@ -128,11 +126,18 @@ export function DashboardKPIs({ userId }: { userId: string }) {
   );
 }
 
-// --- COMPONENTE 2: GRÁFICA DE VENTAS + IA PREDICTIVA ---
+// --- COMPONENTE 2: GRÁFICA DE VENTAS (SalesChart 2.0 - Comparativo & Motivacional) ---
 export function SalesChart({ userId }: { userId: string }) {
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [trend, setTrend] = useState<"up" | "down" | "neutral">("neutral");
+
+  // Estados de Inteligencia
+  const [metrics, setMetrics] = useState({
+    currentTotal: 0,
+    previousTotal: 0,
+    growth: 0, // % de crecimiento vs mes anterior
+    pacingStatus: "neutral" as "ahead" | "behind" | "neutral",
+  });
 
   useEffect(() => {
     const fetchData = async () => {
@@ -140,70 +145,67 @@ export function SalesChart({ userId }: { userId: string }) {
       setLoading(true);
 
       try {
-        const endDate = new Date();
-        const startDate = subDays(new Date(), 30); // Analizamos últimos 30 días para proyectar
+        const today = new Date();
+        // Pedimos 60 días para tener el mes actual y el anterior completo
+        const startDate = subDays(today, 60);
 
-        // 1. Llamada al RPC 'get_daily_sales' (Ventas Reales desde payment_transactions)
-        // Nota: TypeScript puede quejarse si no definimos el RPC en los tipos, usamos 'as any' temporalmente si es necesario
+        // Llamada RPC (asegúrate de que get_daily_sales exista en Supabase)
         const { data: rawData, error } = await supabase.rpc("get_daily_sales", {
           start_date: startDate.toISOString(),
-          end_date: endDate.toISOString(),
+          end_date: today.toISOString(),
           target_merchant_id: userId,
         });
 
         if (error) throw error;
 
-        // Si no hay datos, manejamos el vacío
-        if (!rawData || rawData.length === 0) {
-          setData([]);
-          setLoading(false);
-          return;
-        }
+        // --- PROCESAMIENTO DE DATOS ---
+        const salesMap = new Map();
+        // Llenar mapa con datos crudos
+        rawData?.forEach((d: any) => {
+          const dateKey = d.sale_date.split("T")[0];
+          salesMap.set(dateKey, d.daily_total / 100);
+        });
 
-        // 2. Formatear datos históricos
-        const formattedHistory = rawData.map((d: any) => ({
-          name: format(parseISO(d.sale_date), "dd MMM", { locale: es }),
-          fullDate: d.sale_date,
-          total: d.daily_total / 100, // Centavos a Pesos
-          prediction: null, // El histórico no es predicción
-        }));
+        // Construir la comparación de los últimos 30 días vs los 30 anteriores
+        const chartData = [];
+        let accumCurrent = 0;
+        let accumPrevious = 0;
 
-        // 3. GENERAR PREDICCIÓN IA (Regresión Lineal)
-        // Mapeamos a formato [x, y] -> [día_número, ventas]
-        const regressionData = formattedHistory.map((d: any, index: number) => [index, d.total]);
+        // Iteramos los últimos 30 días
+        for (let i = 29; i >= 0; i--) {
+          const dateCurrent = subDays(today, i);
+          const datePrevious = subDays(today, i + 30); // El mismo día, hace un mes
 
-        // Entrenamos el modelo lineal con los datos actuales
-        const result = regression.linear(regressionData);
-        const gradient = result.equation[0]; // La pendiente (m)
+          const keyCurrent = format(dateCurrent, "yyyy-MM-dd");
+          const keyPrevious = format(datePrevious, "yyyy-MM-dd");
 
-        setTrend(gradient > 0.5 ? "up" : gradient < -0.5 ? "down" : "neutral");
+          const valCurrent = salesMap.get(keyCurrent) || 0;
+          const valPrevious = salesMap.get(keyPrevious) || 0;
 
-        // Predecir los próximos 7 días
-        const lastIndex = formattedHistory.length - 1;
-        const lastDateObj = parseISO(formattedHistory[lastIndex].fullDate);
-        const futurePoints = [];
+          accumCurrent += valCurrent;
+          accumPrevious += valPrevious;
 
-        for (let i = 1; i <= 7; i++) {
-          const nextIndex = lastIndex + i;
-          // Predicción y = mx + b (evitamos valores negativos)
-          const predictedValue = Math.max(0, result.predict(nextIndex)[1]);
-
-          futurePoints.push({
-            name: format(addDays(lastDateObj, i), "dd MMM", { locale: es }),
-            total: null, // El futuro no tiene venta real... aún
-            prediction: predictedValue,
+          chartData.push({
+            day: format(dateCurrent, "dd MMM", { locale: es }), // Etiqueta eje X
+            current: valCurrent,
+            previous: valPrevious, // La "Sombra"
+            delta: valCurrent - valPrevious, // Para el tooltip
           });
         }
 
-        // Punto de conexión visual (para que la línea punteada nazca de la última barra)
-        const connectionPoint = {
-          ...formattedHistory[lastIndex],
-          prediction: formattedHistory[lastIndex].total,
-        };
-        formattedHistory[lastIndex] = connectionPoint;
+        // Calcular Crecimiento / Ritmo (Pacing)
+        let growthPercent = 0;
+        if (accumPrevious > 0) {
+          growthPercent = ((accumCurrent - accumPrevious) / accumPrevious) * 100;
+        }
 
-        // Unimos Histórico + Futuro
-        setData([...formattedHistory, ...futurePoints]);
+        setData(chartData);
+        setMetrics({
+          currentTotal: accumCurrent,
+          previousTotal: accumPrevious,
+          growth: growthPercent,
+          pacingStatus: growthPercent >= 0 ? "ahead" : "behind",
+        });
       } catch (error) {
         console.error("Error Sales Chart:", error);
       } finally {
@@ -216,102 +218,149 @@ export function SalesChart({ userId }: { userId: string }) {
 
   if (loading)
     return (
-      <div className="h-[250px] flex items-center justify-center bg-slate-50 rounded-xl">
-        <Loader2 className="w-6 h-6 animate-spin text-indigo-400" />
+      <div className="h-[300px] flex items-center justify-center bg-slate-50 rounded-xl">
+        <Loader2 className="w-8 h-8 animate-spin text-indigo-400" />
       </div>
     );
 
-  // Calcular total histórico del periodo mostrado (sin contar predicciones)
-  const totalPeriodo = data.reduce((acc, item) => acc + (item.total || 0), 0);
+  // Tooltip Personalizado para explicar la comparativa
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      const curr = payload[0].value;
+      const prev = payload[1]?.value || 0;
+      const diff = curr - prev;
+
+      return (
+        <div className="bg-white p-3 border border-slate-100 shadow-xl rounded-lg text-xs">
+          <p className="font-bold text-slate-800 mb-2">{label}</p>
+          <div className="flex items-center justify-between gap-4 mb-1">
+            <span className="text-indigo-600 font-semibold">Este mes:</span>
+            <span className="font-bold">${curr.toLocaleString()}</span>
+          </div>
+          <div className="flex items-center justify-between gap-4 mb-2">
+            <span className="text-slate-400">Mes pasado:</span>
+            <span className="text-slate-500">${prev.toLocaleString()}</span>
+          </div>
+          <div
+            className={`pt-2 border-t border-slate-100 flex items-center gap-2 ${diff >= 0 ? "text-emerald-600" : "text-red-500"}`}
+          >
+            {diff >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingUp className="w-3 h-3 rotate-180" />}
+            <span className="font-bold">
+              {diff >= 0 ? "+$" : "-$"}
+              {Math.abs(diff).toLocaleString()}
+            </span>
+            <span>vs mes anterior</span>
+          </div>
+        </div>
+      );
+    }
+    return null;
+  };
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-row items-center justify-between px-1">
+    <div className="space-y-6">
+      {/* HEADER: EL MARCADOR */}
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
-          <p className="text-xl md:text-2xl font-bold text-slate-900">
-            ${totalPeriodo.toLocaleString("es-MX", { maximumFractionDigits: 0 })}
-          </p>
-          <p className="text-[10px] md:text-xs text-slate-500 uppercase tracking-wide font-medium">
-            Venta últimos 30 días
-          </p>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-sm text-slate-500 font-medium uppercase tracking-wide">Ingresos (30 días)</span>
+            {/* Badge de Ritmo */}
+            <div
+              className={`px-2 py-0.5 rounded-full text-[10px] font-bold border flex items-center gap-1 ${
+                metrics.pacingStatus === "ahead"
+                  ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                  : "bg-red-50 text-red-700 border-red-200"
+              }`}
+            >
+              {metrics.pacingStatus === "ahead" ? (
+                <TrendingUp className="w-3 h-3" />
+              ) : (
+                <TrendingUp className="w-3 h-3 rotate-180" />
+              )}
+              {Math.abs(metrics.growth).toFixed(1)}% vs mes anterior
+            </div>
+          </div>
+          <div className="flex items-baseline gap-2">
+            <h2 className="text-3xl font-bold text-slate-900">
+              ${metrics.currentTotal.toLocaleString("es-MX", { maximumFractionDigits: 0 })}
+            </h2>
+            <span className="text-xs text-slate-400 font-medium">
+              (vs ${metrics.previousTotal.toLocaleString("es-MX", { maximumFractionDigits: 0 })})
+            </span>
+          </div>
         </div>
 
-        {/* Indicador de Tendencia IA */}
-        <div
-          className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold border ${
-            trend === "up"
-              ? "bg-emerald-50 text-emerald-700 border-emerald-100"
-              : trend === "down"
-                ? "bg-red-50 text-red-700 border-red-100"
-                : "bg-slate-50 text-slate-600 border-slate-100"
-          }`}
-        >
-          {trend === "up" && <TrendingUp className="w-3 h-3" />}
-          {trend === "down" && <TrendingUp className="w-3 h-3 rotate-180" />}
-          {trend === "neutral" && <Activity className="w-3 h-3" />}
-          <span>IA: {trend === "up" ? "Creciendo" : trend === "down" ? "Bajando" : "Estable"}</span>
+        {/* Tarjeta de Proyección Simple */}
+        <div className="hidden md:block bg-indigo-50 border border-indigo-100 rounded-lg p-2 px-4">
+          <p className="text-[10px] text-indigo-500 uppercase font-bold mb-0.5">Ritmo de venta</p>
+          <p className="text-sm text-indigo-900 font-medium">
+            Promedio:{" "}
+            <span className="font-bold">
+              ${(metrics.currentTotal / 30).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+            </span>{" "}
+            al día
+          </p>
         </div>
       </div>
 
-      {totalPeriodo === 0 && data.every((d) => !d.total) ? (
-        <div className="h-[200px] md:h-[250px] flex flex-col items-center justify-center bg-slate-50 rounded-xl border border-dashed text-slate-400">
-          <ShoppingBag className="w-8 h-8 mb-2 opacity-20" />
-          <p className="text-sm font-medium">Sin ventas cobradas</p>
-          <p className="text-xs mt-1">Solo mostramos transacciones pagadas.</p>
-        </div>
-      ) : (
-        <div className="h-[200px] md:h-[250px] w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <ComposedChart data={data} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
-              <defs>
-                <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-              <XAxis dataKey="name" stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} minTickGap={30} />
-              <YAxis
-                stroke="#94a3b8"
-                fontSize={10}
-                tickLine={false}
-                axisLine={false}
-                tickFormatter={(value) => `$${value / 1000}k`}
-              />
-              <Tooltip
-                formatter={(value: number, name: string) => [
-                  `$${value.toLocaleString("es-MX", { maximumFractionDigits: 0 })}`,
-                  name === "total" ? "Venta Real" : "Proyección IA",
-                ]}
-                contentStyle={{ borderRadius: "8px", border: "none", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}
-                labelStyle={{ color: "#1e293b", fontWeight: "bold" }}
-              />
+      {/* GRÁFICA COMPARATIVA */}
+      <div className="h-[280px] w-full">
+        <ResponsiveContainer width="100%" height="100%">
+          <ComposedChart data={data} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
+            <defs>
+              <linearGradient id="colorCurrent" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
+                <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+            <XAxis dataKey="day" stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} minTickGap={30} />
+            <YAxis
+              stroke="#94a3b8"
+              fontSize={10}
+              tickLine={false}
+              axisLine={false}
+              tickFormatter={(val) => `$${val / 1000}k`}
+            />
+            <Tooltip content={<CustomTooltip />} />
 
-              {/* 1. VENTAS REALES (Área Sólida) */}
-              <Area
-                type="monotone"
-                dataKey="total"
-                stroke="#6366f1"
-                strokeWidth={3}
-                fillOpacity={1}
-                fill="url(#colorTotal)"
-                activeDot={{ r: 6 }}
-              />
+            {/* 1. MES ANTERIOR (Sombra Gris - Contexto) */}
+            <Area
+              type="monotone"
+              dataKey="previous"
+              stroke="#cbd5e1"
+              strokeWidth={2}
+              strokeDasharray="4 4"
+              fill="transparent"
+              activeDot={false}
+              animationDuration={1500}
+            />
 
-              {/* 2. PREDICCIÓN IA (Línea Punteada) */}
-              <Line
-                type="monotone"
-                dataKey="prediction"
-                stroke="#8b5cf6"
-                strokeWidth={2}
-                strokeDasharray="5 5"
-                dot={false}
-                activeDot={{ r: 6 }}
-              />
-            </ComposedChart>
-          </ResponsiveContainer>
+            {/* 2. MES ACTUAL (Área Principal - Foco) */}
+            <Area
+              type="monotone"
+              dataKey="current"
+              stroke="#6366f1"
+              strokeWidth={3}
+              fill="url(#colorCurrent)"
+              activeDot={{ r: 6, strokeWidth: 0 }}
+              animationDuration={2000}
+            />
+          </ComposedChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* Footer Explicativo */}
+      <div className="flex items-center justify-center gap-6 text-xs text-slate-500 border-t border-slate-50 pt-4">
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 bg-indigo-500 rounded-full opacity-30"></div>
+          <span>Este Mes</span>
         </div>
-      )}
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-0.5 bg-slate-400 border-t border-dashed border-slate-400 h-0 w-4"></div>
+          <span>Mes Pasado (Mismo día)</span>
+        </div>
+      </div>
     </div>
   );
 }
