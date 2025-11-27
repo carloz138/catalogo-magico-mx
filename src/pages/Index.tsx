@@ -53,7 +53,7 @@ const Index = () => {
     else navigate("/login");
   };
 
-  // --- CALCULATIONS ---
+  // --- CALCULATIONSS ---
   const totalNetworkReach = simResellers * simEndClients;
   const estimatedDataPoints = Math.round(totalNetworkReach * 2.5);
   const hiddenDemandDetected = Math.round(estimatedDataPoints * 0.15);
