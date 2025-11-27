@@ -18,24 +18,24 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 
-// Nuevos Componentes
+// --- IMPORTACIONES DE NUESTROS COMPONENTES ---
 import { ProductTable } from "@/components/products/table/ProductTable";
-import { ExcelImporter, ImportedProductData } from "@/components/products/ExcelImporter";
+import { ExcelImporter } from "@/components/products/ExcelImporter";
 import { VariantManagementModal } from "@/components/products/VariantManagementModal";
 import { ProductWithUI, PRODUCT_CATEGORIES } from "@/types/products";
-import { exportProductsToExcel } from "@/utils/exportUtils"; // Nuevo utilitario
+// Importamos la función de exportación inteligente
 import { handleExportFullInventory } from "@/utils/exportUtils";
 
 const ProductsManagement = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
 
+  // Estados principales
   const [products, setProducts] = useState<ProductWithUI[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isImporting, setIsImporting] = useState(false);
   const [variantModalProduct, setVariantModalProduct] = useState<ProductWithUI | null>(null);
 
-  // Bulk Actions State
+  // Estados para Acciones Masivas (Barra flotante negra)
   const [bulkAction, setBulkAction] = useState<{
     type: "category" | "min_qty" | "tags" | null;
     value: any;
@@ -43,9 +43,11 @@ const ProductsManagement = () => {
   }>({ type: null, value: "", ids: [] });
   const [appendTagsMode, setAppendTagsMode] = useState(true);
 
+  // --- 1. CARGAR PRODUCTOS ---
   const fetchProducts = useCallback(async () => {
     if (!user) return;
     setLoading(true);
+    // Usamos 'active_products' si es una vista, o 'products' directo con filtro
     const { data, error } = await supabase
       .from("active_products")
       .select("*")
@@ -57,10 +59,11 @@ const ProductsManagement = () => {
       console.error(error);
       toast({ title: "Error cargando productos", variant: "destructive" });
     } else {
+      // Formateamos los datos para la UI
       const formatted: ProductWithUI[] = (data || []).map((p) => ({
         ...p,
         isSaving: false,
-        tags: Array.isArray(p.tags) ? p.tags : [],
+        tags: Array.isArray(p.tags) ? p.tags : [], // Asegurar que siempre sea array
       }));
       setProducts(formatted);
     }
@@ -71,63 +74,26 @@ const ProductsManagement = () => {
     if (user) fetchProducts();
   }, [user, fetchProducts]);
 
+  // --- 2. ACTUALIZACIÓN INDIVIDUAL (Inline Edit) ---
   const handleUpdateProduct = async (id: string, field: string, value: any) => {
+    // UI Optimista
     setProducts((prev) => prev.map((p) => (p.id === id ? { ...p, [field]: value, isSaving: true } : p)));
+
     try {
       const { error } = await supabase
         .from("products")
         .update({ [field]: value })
         .eq("id", id);
       if (error) throw error;
+      // Quitamos loading
       setProducts((prev) => prev.map((p) => (p.id === id ? { ...p, isSaving: false } : p)));
     } catch (err) {
       toast({ title: "Error al guardar", variant: "destructive" });
-      fetchProducts();
+      fetchProducts(); // Revertir
     }
   };
 
-  // 🔥 LÓGICA DE IMPORTACIÓN UPSERT (Update + Insert) 🔥
-  const handleImportExcel = async (data: ImportedProductData[]) => {
-    if (!user) return;
-    setIsImporting(true);
-
-    try {
-      // Supabase UPSERT: Si mandamos ID, actualiza. Si no, crea.
-      const productsToUpsert = data.map((p) => ({
-        id: p.id, // Si viene undefined, Supabase creará uno nuevo
-        user_id: user.id,
-        name: p.name,
-        sku: p.sku,
-        description: p.description,
-        price_retail: p.price_retail,
-        price_wholesale: p.price_wholesale,
-        wholesale_min_qty: p.wholesale_min_qty,
-        tags: p.tags,
-        category: p.category,
-        // Valores por defecto para nuevos
-        has_variants: false,
-        variant_count: 0,
-      }));
-
-      // Usamos .upsert() en lugar de .insert()
-      const { error } = await supabase.from("products").upsert(productsToUpsert);
-
-      if (error) throw error;
-
-      toast({
-        title: "Operación exitosa",
-        description: `Se han procesado ${productsToUpsert.length} productos.`,
-      });
-
-      fetchProducts();
-    } catch (error: any) {
-      console.error(error);
-      toast({ title: "Error en la importación", description: error.message, variant: "destructive" });
-    } finally {
-      setIsImporting(false);
-    }
-  };
-
+  // --- 3. ACCIONES MASIVAS: BORRAR ---
   const handleBulkDelete = async (ids: string[]) => {
     if (!confirm(`¿Eliminar ${ids.length} productos?`)) return;
     try {
@@ -136,6 +102,7 @@ const ProductsManagement = () => {
       );
       await Promise.all(promises);
       toast({ title: "Productos eliminados" });
+      // Actualizamos UI localmente
       setProducts((prev) => prev.filter((p) => !ids.includes(p.id)));
     } catch (err) {
       toast({ title: "Error al eliminar", variant: "destructive" });
@@ -143,6 +110,7 @@ const ProductsManagement = () => {
     }
   };
 
+  // --- 4. ACCIONES MASIVAS: ACTUALIZAR (Tags, Categoría, MinQty) ---
   const executeBulkUpdate = async () => {
     const { type, value, ids } = bulkAction;
     if (!type || !user) return;
@@ -156,19 +124,25 @@ const ProductsManagement = () => {
                 .map((t: string) => t.trim())
                 .filter(Boolean)
             : [];
+
         if (appendTagsMode) {
+          // Modo Agregar: Leer actuales + Nuevos
           const updates = ids.map(async (id) => {
             const currentProduct = products.find((p) => p.id === id);
             const mergedTags = Array.from(new Set([...(currentProduct?.tags || []), ...newTags]));
+            // Update local
             setProducts((prev) => prev.map((p) => (p.id === id ? { ...p, tags: mergedTags } : p)));
+            // Update DB
             return supabase.from("products").update({ tags: mergedTags }).eq("id", id);
           });
           await Promise.all(updates);
         } else {
+          // Modo Reemplazar
           setProducts((prev) => prev.map((p) => (ids.includes(p.id) ? { ...p, tags: newTags } : p)));
           await supabase.from("products").update({ tags: newTags }).in("id", ids);
         }
       } else {
+        // Categoría o Min Qty
         const field = type === "category" ? "category" : "wholesale_min_qty";
         setProducts((prev) => prev.map((p) => (ids.includes(p.id) ? { ...p, [field]: value } : p)));
         await supabase
@@ -176,6 +150,7 @@ const ProductsManagement = () => {
           .update({ [field]: value })
           .in("id", ids);
       }
+
       toast({ title: "Actualización masiva completada" });
       setBulkAction({ type: null, value: "", ids: [] });
     } catch (error) {
@@ -186,6 +161,7 @@ const ProductsManagement = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 pb-20">
+      {/* --- HEADER --- */}
       <div className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between gap-4">
           <div className="flex items-center gap-2">
@@ -196,11 +172,15 @@ const ProductsManagement = () => {
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Importador con Exportación Integrada */}
+            {/* 🔥 AQUÍ ESTÁ EL IMPORTADOR/EXPORTADOR CONECTADO 🔥 
+                isImporting: le pasamos false porque ahora maneja su propio loading interno
+                onImportSuccess: le pasamos fetchProducts para que recargue la tabla al terminar
+                onExportTemplate: le pasamos la función con el user.id
+            */}
             <ExcelImporter
-              onImport={handleImportExcel}
-              isImporting={isImporting}
-              onExportTemplate={() => exportProductsToExcel(products)} // 🔥 CONECTADO
+              isImporting={false}
+              onImportSuccess={fetchProducts}
+              onExportTemplate={() => user && handleExportFullInventory(user.id)}
             />
 
             <Button
@@ -213,6 +193,7 @@ const ProductsManagement = () => {
         </div>
       </div>
 
+      {/* --- TABLA PRINCIPAL --- */}
       <div className="container mx-auto p-4 md:p-6">
         <ProductTable
           data={products}
@@ -225,6 +206,7 @@ const ProductsManagement = () => {
         />
       </div>
 
+      {/* --- DIÁLOGO EDICIÓN MASIVA --- */}
       <Dialog
         open={!!bulkAction.type}
         onOpenChange={(open) => !open && setBulkAction({ type: null, value: "", ids: [] })}
@@ -289,6 +271,7 @@ const ProductsManagement = () => {
         </DialogContent>
       </Dialog>
 
+      {/* --- MODAL VARIANTES --- */}
       {variantModalProduct && (
         <VariantManagementModal
           open={!!variantModalProduct}
