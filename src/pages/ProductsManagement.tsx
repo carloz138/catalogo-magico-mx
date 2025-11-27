@@ -39,7 +39,7 @@ const ProductsManagement = () => {
     value: any;
     ids: string[];
   }>({ type: null, value: "", ids: [] });
-  const [appendTagsMode, setAppendTagsMode] = useState(true); // Para agregar tags sin borrar
+  const [appendTagsMode, setAppendTagsMode] = useState(true);
 
   // --- FETCH ---
   const fetchProducts = useCallback(async () => {
@@ -131,7 +131,7 @@ const ProductsManagement = () => {
     if (!type || !user) return;
 
     try {
-      // 1. Tags Logic (Append vs Replace)
+      // 1. Tags Logic
       if (type === "tags") {
         const newTags =
           typeof value === "string"
@@ -142,7 +142,7 @@ const ProductsManagement = () => {
             : [];
 
         if (appendTagsMode) {
-          // Modo Append: Leemos, mezclamos y guardamos uno por uno (para ser seguros)
+          // Append: Leer actuales + Nuevos
           const updates = ids.map(async (id) => {
             const currentProduct = products.find((p) => p.id === id);
             const currentTags = currentProduct?.tags || [];
@@ -154,7 +154,7 @@ const ProductsManagement = () => {
           });
           await Promise.all(updates);
         } else {
-          // Modo Replace
+          // Replace
           setProducts((prev) => prev.map((p) => (ids.includes(p.id) ? { ...p, tags: newTags } : p)));
           await supabase.from("products").update({ tags: newTags }).in("id", ids);
         }
@@ -208,14 +208,14 @@ const ProductsManagement = () => {
           isLoading={loading}
           onUpdateProduct={handleUpdateProduct}
           onBulkDelete={handleBulkDelete}
-          onBulkCatalog={(ids) => console.log("Catálogo con", ids)}
+          onBulkCatalog={(ids) => console.log("Catálogo", ids)}
           onOpenVariants={setVariantModalProduct}
-          // 🔥 CONECTAMOS LA ACCIÓN 🔥
+          // 🔥 CONEXIÓN DE ACCIONES MASIVAS 🔥
           onBulkAction={(type, ids) => setBulkAction({ type, value: "", ids })}
         />
       </div>
 
-      {/* --- DIÁLOGO DE ACTUALIZACIÓN MASIVA --- */}
+      {/* DIÁLOGO DE ACTUALIZACIÓN MASIVA */}
       <Dialog
         open={!!bulkAction.type}
         onOpenChange={(open) => !open && setBulkAction({ type: null, value: "", ids: [] })}
