@@ -26,7 +26,8 @@ export const handleExportFullInventory = async (userId: string) => {
     const rows: any[] = [];
 
     // 3. Cruzar datos y aplanar (Flatten)
-    products.forEach((p) => {
+    products.forEach((p: any) => {
+      // CORRECCIÓN: 'p: any' evita el error de stock_quantity
       if (!p.has_variants) {
         // CASO A: Producto Simple (1 Fila)
         rows.push({
@@ -89,10 +90,10 @@ export const handleExportFullInventory = async (userId: string) => {
                 : p.price_wholesale
                   ? p.price_wholesale / 100
                   : 0,
-              "Min. Mayoreo": "", // Las variantes no suelen manejar min qty propio, heredan del padre, lo dejamos vacío
+              "Min. Mayoreo": "",
               Stock: v.stock_quantity,
-              Tags: "", // Tags van al padre
-              Descripción: "", // Descripción va al padre
+              Tags: "",
+              Descripción: "",
             });
           });
         }
@@ -101,7 +102,6 @@ export const handleExportFullInventory = async (userId: string) => {
 
     // 4. Generar Excel
     const ws = XLSX.utils.json_to_sheet(rows);
-    // Ajustar anchos
     ws["!cols"] = [{ wch: 10 }, { wch: 36 }, { wch: 36 }, { wch: 30 }, { wch: 20 }, { wch: 15 }];
 
     const wb = XLSX.utils.book_new();
