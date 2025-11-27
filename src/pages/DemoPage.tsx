@@ -25,10 +25,13 @@ import {
   Anvil,
   TrendingUp,
   MonitorPlay,
+  Ticket,
 } from "lucide-react";
+import WelcomeTour from "@/components/demo/WelcomeTour";
 
 export default function DemoPage() {
   const [industry, setIndustry] = useState<Industry>("ropa");
+  const [showWelcome, setShowWelcome] = useState(true);
   const data = DEMO_DATA[industry];
 
   const IndustryIcon = {
@@ -41,21 +44,24 @@ export default function DemoPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 p-4 md:p-8 font-sans">
+      <WelcomeTour isOpen={showWelcome} onClose={() => setShowWelcome(false)} />
+
       {/* HEADER GIGANTE PROTAGONISTA */}
       <div className="bg-slate-900 border-b border-slate-800 rounded-3xl p-6 md:p-8 shadow-2xl mb-10 text-white relative overflow-hidden">
-        {/* Fondo decorativo */}
         <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-600 rounded-full blur-[100px] opacity-20 -mr-20 -mt-20 pointer-events-none"></div>
 
         <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="text-center md:text-left">
-            <div className="inline-flex items-center gap-2 bg-slate-800/50 backdrop-blur px-3 py-1 rounded-full text-indigo-300 text-xs font-bold uppercase tracking-wider mb-3 border border-slate-700">
-              <MonitorPlay className="w-3 h-3" /> Modo Demostración
+            <div
+              className="inline-flex items-center gap-2 bg-slate-800/50 backdrop-blur px-3 py-1 rounded-full text-indigo-300 text-xs font-bold uppercase tracking-wider mb-3 border border-slate-700 cursor-pointer hover:bg-slate-700 transition-colors"
+              onClick={() => setShowWelcome(true)}
+            >
+              <MonitorPlay className="w-3 h-3" /> Repetir Tour
             </div>
             <h1 className="text-3xl md:text-4xl font-bold mb-2">Descubre CatifyPro</h1>
             <p className="text-slate-400 text-lg">Adapta la plataforma a tu industria en un clic.</p>
           </div>
 
-          {/* SELECTOR CENTRAL */}
           <div className="flex flex-col items-center gap-2 bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/10 w-full md:w-auto">
             <span className="text-xs font-bold uppercase tracking-widest text-indigo-300">
               👀 Echa un vistazo a las demos
@@ -76,13 +82,16 @@ export default function DemoPage() {
             </div>
           </div>
 
-          <div className="hidden md:block">
+          <div className="hidden md:flex flex-col items-end gap-2">
             <Button
               className="h-12 bg-emerald-500 hover:bg-emerald-600 text-white font-bold px-8 shadow-lg shadow-emerald-900/50"
               onClick={() => (window.location.href = "/register")}
             >
               Crear Cuenta Real <ArrowRight className="w-5 h-5 ml-2" />
             </Button>
+            <div className="flex items-center gap-1 text-xs text-emerald-400 font-medium bg-emerald-900/30 px-2 py-1 rounded-md border border-emerald-900/50">
+              <Ticket className="w-3 h-3" /> Código: <span className="text-white font-bold">CYBER-AI-3</span>
+            </div>
           </div>
         </div>
       </div>
@@ -115,10 +124,8 @@ export default function DemoPage() {
           </TabsList>
 
           <TabsContent value="dashboard" className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            {/* 1. SECCIÓN FINANCIERA */}
             <section>
               <DemoKPIs data={data.kpis} currency="MXN" />
-
               <div className="mt-8">
                 <BenefitTip
                   title="Tu Dinero Real vs. Promesas"
@@ -128,7 +135,6 @@ export default function DemoPage() {
               </div>
             </section>
 
-            {/* 2. SECCIÓN DE OPORTUNIDADES */}
             <section>
               <div className="flex items-center justify-between mb-6 mt-12">
                 <h3 className="text-base font-bold text-slate-400 uppercase tracking-wider">Inteligencia de Mercado</h3>
@@ -136,10 +142,7 @@ export default function DemoPage() {
                   AI Powered
                 </Badge>
               </div>
-
-              {/* BANNER GRANDE DE DINERO */}
               <OpportunityBanner value={data.opportunityValue || 50000} />
-
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <Card className="shadow-lg border-indigo-100 overflow-hidden hover:shadow-xl transition-shadow">
                   <CardHeader className="bg-slate-50/50 pb-4 border-b border-slate-100">
@@ -153,7 +156,6 @@ export default function DemoPage() {
                   </CardHeader>
                   <DemoRadarWidget data={data.radar} />
                 </Card>
-
                 <Card className="shadow-lg border-slate-200 hover:shadow-xl transition-shadow">
                   <CardHeader className="bg-slate-50/50 pb-4 border-b border-slate-100">
                     <CardTitle className="text-lg flex items-center gap-2">
@@ -168,14 +170,11 @@ export default function DemoPage() {
               </div>
             </section>
 
-            {/* 3. FORECAST CON TOP 10 PRODUCTOS */}
             <section className="mt-8">
               <BenefitTip
                 title="Predicción de Inventario"
-                description="Selecciona un producto clave y mira qué pasará la próxima semana. Evita quedarte sin stock de lo más vendido."
+                description="Nuestra IA analiza patrones de búsqueda y venta histórica para decirte qué productos se agotarán la próxima semana."
               />
-
-              {/* PASAMOS LA DATA TOP 10 AQUI */}
               <DemoForecastWidget productsData={data.topDemandProducts} />
             </section>
           </TabsContent>
