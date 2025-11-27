@@ -6,9 +6,6 @@ import { motion } from "framer-motion";
 import ComplianceFooter from "@/components/layout/ComplianceFooter";
 import {
   Network,
-  GitFork,
-  Radar,
-  BrainCircuit,
   Menu,
   X,
   ArrowRight,
@@ -21,6 +18,7 @@ import {
   Handshake,
   TrendingUp,
   Lock,
+  Play,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -32,7 +30,7 @@ const Index = () => {
   const [user, setUser] = useState<any>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // --- STATE: Network Simulatore ---
+  // --- STATE: Network Simulator ---
   const [simResellers, setSimResellers] = useState<number>(10);
   const [simEndClients, setSimEndClients] = useState<number>(50);
 
@@ -53,7 +51,7 @@ const Index = () => {
     else navigate("/login");
   };
 
-  // --- CALCULATIONSS ---
+  // --- CALCULATIONS ---
   const totalNetworkReach = simResellers * simEndClients;
   const estimatedDataPoints = Math.round(totalNetworkReach * 2.5);
   const hiddenDemandDetected = Math.round(estimatedDataPoints * 0.15);
@@ -79,7 +77,7 @@ const Index = () => {
             </div>
 
             {/* Desktop Nav */}
-            <div className="hidden md:flex items-center space-x-8">
+            <div className="hidden md:flex items-center space-x-6">
               <Button
                 variant="ghost"
                 onClick={() => navigate("/why-subscribe")}
@@ -94,6 +92,16 @@ const Index = () => {
               >
                 Blog
               </Button>
+
+              {/* NUEVO BOTÓN DEMO */}
+              <Button
+                variant="outline"
+                onClick={() => navigate("/demo")}
+                className="border-indigo-200 text-indigo-700 hover:bg-indigo-50 hover:text-indigo-800 flex items-center gap-2"
+              >
+                <Play className="w-4 h-4 fill-indigo-700" /> Ver Demo
+              </Button>
+
               <div className="h-6 w-px bg-slate-200 mx-2"></div>
               <Button variant="ghost" onClick={handleMenuButton} className="font-medium">
                 {user ? "Dashboard" : "Login"}
@@ -132,6 +140,15 @@ const Index = () => {
                 >
                   Blog
                 </Button>
+                {/* NUEVO BOTÓN DEMO MOVIL */}
+                <Button
+                  variant="ghost"
+                  onClick={() => navigate("/demo")}
+                  className="w-full justify-start h-12 text-lg font-medium text-indigo-600 bg-indigo-50"
+                >
+                  <Play className="w-4 h-4 mr-2 fill-indigo-600" /> Ver Demo Interactiva
+                </Button>
+
                 <div className="h-px bg-slate-100 my-2"></div>
                 <Button
                   variant="ghost"
@@ -185,10 +202,10 @@ const Index = () => {
               <Button
                 variant="outline"
                 size="lg"
-                onClick={() => document.getElementById("network-simulator")?.scrollIntoView({ behavior: "smooth" })}
-                className="h-14 px-8 text-lg rounded-full border-slate-300 w-full sm:w-auto bg-white hover:bg-slate-50"
+                onClick={() => navigate("/demo")}
+                className="h-14 px-8 text-lg rounded-full border-slate-300 w-full sm:w-auto bg-white hover:bg-slate-50 flex items-center gap-2"
               >
-                Ver Impacto en Red
+                <Play className="w-5 h-5 fill-slate-900" /> Ver Demo Interactiva
               </Button>
             </div>
           </motion.div>
@@ -325,7 +342,7 @@ const Index = () => {
                 desc: "Ves qué piden los usuarios finales (los clientes de tus clientes) para avisar a tus distribuidores y surtirles antes de que pierdan la venta.",
               },
             ].map((item, i) => {
-              const Icon = item.icon; // FIX: Capitalized variable for dynamic component
+              const Icon = item.icon;
               return (
                 <motion.div
                   key={i}
@@ -391,7 +408,7 @@ const Index = () => {
                     text: "Tú ves tendencias de mercado para mejorar el stock, pero tu socio mantiene la relación con su cliente.",
                   },
                 ].map((feat, i) => {
-                  const Icon = feat.icon; // FIX: Capitalized variable
+                  const Icon = feat.icon;
                   return (
                     <div key={i} className="flex gap-4">
                       <div className={`mt-1 bg-${feat.color}-500/20 p-2 rounded-lg h-fit shrink-0`}>
@@ -529,9 +546,10 @@ const Index = () => {
             <Button
               size="lg"
               variant="outline"
-              className="bg-transparent border-white text-white hover:bg-white/10 h-14 px-10 text-lg font-bold rounded-full w-full sm:w-auto"
+              onClick={() => navigate("/demo")}
+              className="bg-transparent border-white text-white hover:bg-white/10 h-14 px-10 text-lg font-bold rounded-full w-full sm:w-auto flex items-center justify-center gap-2"
             >
-              Ver Demo
+              <Play className="w-5 h-5 fill-white" /> Ver Demo
             </Button>
           </div>
         </div>
