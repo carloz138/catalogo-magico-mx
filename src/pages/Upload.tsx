@@ -1,197 +1,275 @@
-import React, { useState } from "react";
-import { ProductFormWrapper } from "@/components/upload/ProductFormWrapper";
-import { ImageAnalysisComponent } from "@/components/upload/ImageAnalysisComponent";
-import { FinalStepComponent } from "@/components/upload/FinalStepComponent";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Upload as UploadIcon, Image, FileText, Package, PackageOpen } from "lucide-react";
-// 👇 IMPORTAR useSearchParams
+import React, { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { FileUploader, type UploadedFile } from "@/components/upload/FileUploader";
+import { ProductDraftCard } from "@/components/upload/ProductDraftCard";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import { PackageCheck, Loader2, ArrowLeft, Save } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
+import { FinalStepComponent } from "@/components/upload/FinalStepComponent";
+import { type ProductData } from "@/components/upload/ProductForm";
 
 const Upload = () => {
   const navigate = useNavigate();
-  // 👇 LEER EL PARÁMETRO DE LA URL
   const [searchParams] = useSearchParams();
   const prefilledName = searchParams.get("name");
 
+  // --- ESTADO UNIFICADO ---
+  // Mantenemos sincronizados los archivos (progreso) y los datos (texto)
   const [files, setFiles] = useState<UploadedFile[]>([]);
-  const [currentStep, setCurrentStep] = useState<"upload" | "analyze" | "form" | "final">("upload");
+  const [productsData, setProductsData] = useState<ProductData[]>([]);
 
+  const [isSaving, setIsSaving] = useState(false);
+  const [isFinished, setIsFinished] = useState(false);
+
+  // --- 1. AL RECIBIR ARCHIVOS NUEVOS ---
   const handleFilesUploaded = (newFiles: UploadedFile[]) => {
-    // 👇 MAGIA AQUÍ: Si hay un nombre pre-llenado (del Radar), se lo asignamos al primer archivo
-    let processedFiles = newFiles;
+    // Filtramos para no agregar duplicados si el usuario arrastra los mismos
+    const currentIds = new Set(files.map((f) => f.id));
+    const distinctNewFiles = newFiles.filter((f) => !currentIds.has(f.id));
 
-    if (prefilledName && newFiles.length > 0) {
-      processedFiles = newFiles.map((file, index) => {
-        // Solo al primer archivo para no nombrar todo igual
-        if (index === 0) {
-          return {
-            ...file,
-            // Pre-inicializamos productData con el nombre
-            productData: {
-              ...file.productData,
-              name: prefilledName,
-            },
-          };
+    if (distinctNewFiles.length === 0) return;
+
+    // Generamos la data inicial para cada nuevo archivo
+    const newProductsData: ProductData[] = distinctNewFiles.map((file, i) => {
+      // Lógica de nombre inteligente
+      let initialName = "";
+
+      // Si venimos del Radar (prefilledName) y es la primera carga
+      if (prefilledName && files.length === 0 && i === 0) {
+        initialName = prefilledName;
+      } else {
+        // Limpieza del nombre de archivo: "zapatos_rojos_v2.jpg" -> "Zapatos rojos v2"
+        const cleanName = file.file.name.split(".")[0].replace(/[-_]/g, " ");
+        initialName = cleanName.charAt(0).toUpperCase() + cleanName.slice(1);
+      }
+
+      return {
+        id: file.id, // Enlace clave entre archivo y datos
+        name: initialName,
+        sku: "",
+        price_retail: 0,
+        price_wholesale: 0,
+        wholesale_min_qty: 12,
+        category: "",
+        custom_description: "",
+        original_image_url: file.url || file.preview,
+        tags: [],
+        // Inicializamos análisis vacío, si el componente FileUploader lo genera después, lo actualizaremos
+        smart_analysis: undefined,
+      };
+    });
+
+    setFiles((prev) => [...prev, ...distinctNewFiles]);
+    setProductsData((prev) => [...prev, ...newProductsData]);
+
+    toast({
+      title: "Productos agregados",
+      description: `Se han añadido ${distinctNewFiles.length} borrador(es) a la lista.`,
+    });
+  };
+
+  // --- 2. MANEJO DE CAMBIOS ---
+
+  // Actualizar datos del formulario
+  const handleProductUpdate = (index: number, newData: ProductData) => {
+    setProductsData((prev) => {
+      const next = [...prev];
+      next[index] = newData;
+      return next;
+    });
+  };
+
+  // Actualizar datos que vienen del FileUploader (ej: URLs finales, Analysis)
+  // Esto es un truco para mantener sincronizado si el uploader termina tarde
+  useEffect(() => {
+    if (files.length === 0) return;
+
+    setProductsData((currentData) => {
+      return currentData.map((prod) => {
+        const matchingFile = files.find((f) => f.id === prod.id);
+        if (matchingFile && matchingFile.url && matchingFile.url !== prod.original_image_url) {
+          // Si la URL cambió (se terminó de subir), actualizamos la data
+          return { ...prod, original_image_url: matchingFile.url };
         }
-        return file;
+        return prod;
       });
+    });
+  }, [files]);
+
+  const handleRemove = (index: number) => {
+    setFiles((prev) => prev.filter((_, i) => i !== index));
+    setProductsData((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  // --- 3. GUARDADO FINAL ---
+  const handleSaveAll = async () => {
+    // Validación: Nombres obligatorios
+    const invalidCount = productsData.filter((p) => !p.name.trim()).length;
+    if (invalidCount > 0) {
+      toast({
+        title: "Faltan datos",
+        description: `Asigna un nombre a los ${invalidCount} productos marcados antes de guardar.`,
+        variant: "destructive",
+      });
+      return;
     }
 
-    setFiles(processedFiles);
-    if (newFiles.length > 0) {
-      setCurrentStep("analyze");
-    }
+    setIsSaving(true);
+
+    // Aquí normalmente harías el POST a tu API.
+    // Como tu `FinalStepComponent` maneja la lógica final, pasamos al estado "Finished"
+    // Simulamos un pequeño delay para feedback visual
+    setTimeout(() => {
+      setIsSaving(false);
+      setIsFinished(true);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }, 1000);
   };
 
-  const handleAnalysisComplete = (analysisResults: any[]) => {
-    const updatedFiles = files.map((file, index) => ({
-      ...file,
-      analysis: analysisResults[index],
-    }));
-    setFiles(updatedFiles);
-    setCurrentStep("form");
-  };
+  // --- VISTA: FINALIZADO ---
+  if (isFinished) {
+    // Fusionamos archivo + data para el componente final
+    const mergedFiles = files.map((f, i) => ({ ...f, productData: productsData[i] }));
 
-  const handleProductDataComplete = (productData: any[]) => {
-    const updatedFiles = files.map((file, index) => ({
-      ...file,
-      productData: productData[index],
-    }));
-    setFiles(updatedFiles);
-    setCurrentStep("final");
-  };
-
-  const resetUpload = () => {
-    setFiles([]);
-    setCurrentStep("upload");
-  };
-
-  // Header de Acciones (Stepper + Botones)
-  const HeaderActions = () => (
-    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-      {/* Stepper */}
-      <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-lg border shadow-sm">
-        <div className="flex items-center gap-1">
-          {["upload", "analyze", "form", "final"].map((step, index) => (
-            <React.Fragment key={step}>
-              <div
-                className={`
-                w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold transition-colors
-                ${
-                  currentStep === step
-                    ? "bg-blue-600 text-white"
-                    : index < ["upload", "analyze", "form", "final"].indexOf(currentStep)
-                      ? "bg-green-500 text-white"
-                      : "bg-gray-100 text-gray-400"
-                }
-              `}
-              >
-                {index < ["upload", "analyze", "form", "final"].indexOf(currentStep) ? "✓" : index + 1}
-              </div>
-              {index < 3 && (
-                <div
-                  className={`w-4 h-0.5 ${
-                    index < ["upload", "analyze", "form", "final"].indexOf(currentStep) ? "bg-green-500" : "bg-gray-200"
-                  }`}
-                />
-              )}
-            </React.Fragment>
-          ))}
-        </div>
-        <span className="text-sm font-medium text-gray-700 ml-2 hidden sm:inline">
-          Paso {["upload", "analyze", "form", "final"].indexOf(currentStep) + 1} de 4
-        </span>
-      </div>
-
-      {/* Botones */}
-      <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-        {files.length > 0 && (
-          <Button onClick={resetUpload} variant="outline" size="sm">
-            Reiniciar
-          </Button>
-        )}
-        <Button onClick={() => navigate("/products/bulk-upload")} variant="outline" size="sm" className="gap-2">
-          <PackageOpen className="h-4 w-4" />
-          Carga Masiva
+    return (
+      <div className="p-4 md:p-8 max-w-4xl mx-auto">
+        <Button variant="ghost" onClick={() => setIsFinished(false)} className="mb-6 hover:bg-slate-100">
+          <ArrowLeft className="w-4 h-4 mr-2" /> Volver a editar
         </Button>
+        <FinalStepComponent files={mergedFiles} />
       </div>
-    </div>
-  );
+    );
+  }
+
+  // --- VISTA: DASHBOARD DE CARGA ---
+  const totalFiles = files.length;
+  const pendingUploads = files.filter((f) => f.uploading).length;
+  // Calculamos progreso global visual
+  const globalProgress =
+    totalFiles > 0 ? Math.round((files.reduce((acc, f) => acc + f.progress, 0) / (totalFiles * 100)) * 100) : 0;
 
   return (
-    <div className="p-6 max-w-5xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">
-          {prefilledName ? `Crear producto: ${prefilledName}` : "Subir Productos"}
-        </h1>
-        <p className="text-gray-500 mt-1">
-          {prefilledName
-            ? "Sube una imagen para atender esta solicitud del Radar."
-            : "Sube imágenes y deja que nuestra IA haga el resto."}
-        </p>
+    <div className="min-h-screen bg-slate-50/50 pb-32">
+      {" "}
+      {/* Padding extra abajo para el footer */}
+      {/* 1. HEADER & UPLOADER */}
+      <div className="bg-white border-b shadow-sm sticky top-0 z-30 transition-all">
+        <div className="max-w-6xl mx-auto p-4 md:p-6">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
+            <div>
+              <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
+                {prefilledName ? `Cargando: ${prefilledName}` : "Carga Rápida"}
+                {totalFiles > 0 && (
+                  <span className="bg-blue-100 text-blue-700 text-sm px-2 py-0.5 rounded-full">{totalFiles}</span>
+                )}
+              </h1>
+              <p className="text-sm text-slate-500">
+                {totalFiles === 0
+                  ? "Arrastra tus fotos para empezar."
+                  : pendingUploads > 0
+                    ? `Subiendo ${pendingUploads} imágenes...`
+                    : "Todo listo para publicar."}
+              </p>
+            </div>
+
+            {/* Barra de progreso global (Solo desktop) */}
+            {totalFiles > 0 && (
+              <div className="hidden md:block w-64">
+                <div className="flex justify-between text-xs text-slate-500 mb-1">
+                  <span>Progreso de carga</span>
+                  <span>{globalProgress}%</span>
+                </div>
+                <Progress value={globalProgress} className="h-2" />
+              </div>
+            )}
+          </div>
+
+          {/* AREA DE DROP (Siempre visible pero discreta si ya hay archivos) */}
+          <div
+            className={`transition-all duration-500 ${totalFiles > 0 ? "scale-95 opacity-90" : "scale-100 opacity-100"}`}
+          >
+            <FileUploader
+              onFilesUploaded={handleFilesUploaded}
+              maxFiles={50} // Límite generoso
+            />
+          </div>
+        </div>
       </div>
-
-      <HeaderActions />
-
-      <div className="space-y-6">
-        {currentStep === "upload" && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <UploadIcon className="h-5 w-5" />
-                Subir Imágenes
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <FileUploader onFilesUploaded={handleFilesUploaded} />
-            </CardContent>
-          </Card>
-        )}
-
-        {currentStep === "analyze" && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Image className="h-5 w-5" />
-                Análisis de Imágenes
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ImageAnalysisComponent files={files} onAnalysisComplete={handleAnalysisComplete} />
-            </CardContent>
-          </Card>
-        )}
-
-        {currentStep === "form" && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FileText className="h-5 w-5" />
-                Información de Productos
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ProductFormWrapper files={files} onComplete={handleProductDataComplete} />
-            </CardContent>
-          </Card>
-        )}
-
-        {currentStep === "final" && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Package className="h-5 w-5" />
-                Finalizar Carga
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <FinalStepComponent files={files} />
-            </CardContent>
-          </Card>
+      {/* 2. MURO DE TRABAJO (GRID) */}
+      <div className="max-w-6xl mx-auto p-4 md:p-6">
+        {totalFiles > 0 ? (
+          <div className="grid grid-cols-1 gap-6">
+            {files.map((file, index) => (
+              <ProductDraftCard
+                key={file.id}
+                index={index}
+                file={file}
+                initialData={productsData[index]}
+                onUpdate={handleProductUpdate}
+                onRemove={handleRemove}
+              />
+            ))}
+          </div>
+        ) : (
+          // Estado vacío ilustrativo
+          <div className="text-center py-20 opacity-40 select-none">
+            <PackageCheck className="w-24 h-24 mx-auto mb-4 text-slate-300" />
+            <p className="text-xl font-medium text-slate-400">Tus productos aparecerán aquí</p>
+          </div>
         )}
       </div>
+      {/* 3. STICKY FOOTER (BARRA FLOTANTE INFERIOR) */}
+      {totalFiles > 0 && (
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t p-4 shadow-[0_-4px_20px_-5px_rgba(0,0,0,0.1)] z-40 animate-in slide-in-from-bottom-10">
+          <div className="max-w-6xl mx-auto flex items-center justify-between gap-4">
+            {/* Info Izquierda (Oculta en móvil muy pequeño) */}
+            <div className="hidden sm:flex items-center gap-2 text-sm text-slate-500">
+              {pendingUploads > 0 ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
+                  <span>Esperando que terminen de subir {pendingUploads} fotos...</span>
+                </>
+              ) : (
+                <span>✨ Todo listo para guardar</span>
+              )}
+            </div>
+
+            {/* Botones Derecha */}
+            <div className="flex gap-3 w-full sm:w-auto">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  if (confirm("¿Borrar todo y empezar de cero?")) {
+                    setFiles([]);
+                    setProductsData([]);
+                  }
+                }}
+                className="flex-1 sm:flex-none border-slate-300 text-slate-600"
+              >
+                Limpiar
+              </Button>
+
+              <Button
+                onClick={handleSaveAll}
+                disabled={isSaving || pendingUploads > 0}
+                className="bg-blue-600 hover:bg-blue-700 text-white flex-1 sm:flex-none min-w-[200px] shadow-lg shadow-blue-200"
+                size="lg"
+              >
+                {isSaving ? (
+                  <>
+                    <Loader2 className="w-5 h-5 mr-2 animate-spin" /> Guardando...
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-5 h-5 mr-2" /> Publicar {totalFiles} Productos
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
