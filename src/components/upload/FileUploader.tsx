@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
 import { useUploadTracking } from "@/hooks/useUploadTracking";
 
-// 🎯 INTERFACE ACTUALIZADO CON URLs OPTIMIZADAS
+// 🎯 INTERFACE ACTUALIZADO CON URLs OPTIMIZADA
 export interface UploadedFile {
   id: string;
   file: File;
@@ -25,7 +25,7 @@ export interface UploadedFile {
     luxury: string;
     print: string;
   };
-  analysis?: any; 
+  analysis?: any;
   productData?: any;
 }
 
