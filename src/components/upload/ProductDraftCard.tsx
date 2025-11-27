@@ -94,8 +94,6 @@ export const ProductDraftCard = ({
                     product={localData}
                     imageUrl={file.url || file.preview}
                     onUpdate={handleChange}
-                    // Nota: Si tu ProductForm soporta una prop para ocultar la descripción larga, úsala aquí.
-                    // Si no, se mostrará completo, lo cual también está bien.
                 />
               </div>
             </div>
