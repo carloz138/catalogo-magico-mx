@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
-import { Upload, Loader2, FileSpreadsheet, Download, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Upload, Loader2, Download } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -10,222 +10,295 @@ import {
   DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { PRODUCT_CATEGORIES } from "@/types/products";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
-
-// Definimos la estructura de lo que esperamos del Excel procesado
-export interface ImportedProductData {
-  id?: string; // Opcional: si existe es update, si no es create
-  name: string;
-  sku: string | null;
-  description: string | null;
-  price_retail: number;
-  price_wholesale: number | null;
-  wholesale_min_qty: number | null;
-  tags: string[];
-  category: string;
-}
+import { PRODUCT_CATEGORIES } from "@/types/products";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ExcelImporterProps {
-  onImport: (data: ImportedProductData[]) => Promise<void>; // Cambio en la firma
-  onExportTemplate: () => void; // Nueva prop para bajar el template
+  onImportSuccess: () => void; // Callback para recargar la tabla
+  onExportTemplate: () => void;
   isImporting: boolean;
 }
 
-export const ExcelImporter = ({ onImport, onExportTemplate, isImporting }: ExcelImporterProps) => {
-  const [file, setFile] = useState<File | null>(null);
-  const [stats, setStats] = useState({ updates: 0, creates: 0, total: 0 });
-  const [selectedCategory, setSelectedCategory] = useState<string>("");
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [parsedData, setParsedData] = useState<ImportedProductData[]>([]);
+// Helper para la regla de oro: "Si está vacío en excel, es NULL en DB"
+const getExcelValue = (val: any, isNumber: boolean = false) => {
+  if (val === undefined || val === null || val === "") return null;
+  if (isNumber) {
+    const num = parseFloat(val);
+    return isNaN(num) ? null : num;
+  }
+  return String(val).trim();
+};
 
+export const ExcelImporter = ({
+  onImportSuccess,
+  onExportTemplate,
+  isImporting: parentLoading,
+}: ExcelImporterProps) => {
+  const [file, setFile] = useState<File | null>(null);
+  const [stats, setStats] = useState({ products: 0, variants: 0, newProducts: 0 });
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string>(""); // Fallback para nuevos
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
       setFile(selectedFile);
-      const reader = new FileReader();
-
-      reader.onload = (evt) => {
-        try {
-          const bstr = evt.target?.result;
-          const wb = XLSX.read(bstr, { type: "binary" });
-          const ws = wb.Sheets[wb.SheetNames[0]];
-          const rawData = XLSX.utils.sheet_to_json(ws);
-
-          if (rawData.length === 0) {
-            toast({ title: "Archivo vacío", variant: "destructive" });
-            return;
-          }
-
-          // Procesamos los datos preliminarmente para contar
-          let updatesCount = 0;
-          let createsCount = 0;
-
-          const processed = rawData.map((row: any) => {
-            // Buscamos el ID en varias posibles columnas
-            const id = row["ID_SISTEMA (NO TOCAR)"] || row["id"] || row["ID"];
-
-            if (id) updatesCount++;
-            else createsCount++;
-
-            // Mapeo básico (el real se hace al confirmar)
-            return { raw: row, hasId: !!id };
-          });
-
-          setStats({
-            updates: updatesCount,
-            creates: createsCount,
-            total: rawData.length,
-          });
-
-          setIsDialogOpen(true);
-        } catch (error) {
-          console.error(error);
-          toast({ title: "Error al leer archivo", variant: "destructive" });
-        }
-      };
-      reader.readAsBinaryString(selectedFile);
+      analyzeFile(selectedFile);
     }
   };
 
-  const handleConfirmImport = async () => {
+  const analyzeFile = (f: File) => {
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const bstr = evt.target?.result;
+        const wb = XLSX.read(bstr, { type: "binary" });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const data: any[] = XLSX.utils.sheet_to_json(ws);
+
+        if (data.length === 0) {
+          toast({ title: "Archivo vacío", variant: "destructive" });
+          return;
+        }
+
+        let pCount = 0;
+        let vCount = 0;
+        let newCount = 0;
+
+        data.forEach((row) => {
+          const tipo = (row["TIPO_FILA"] || "").toLowerCase();
+          const id = row["ID_SISTEMA"] || row["ID_SISTEMA (NO TOCAR)"];
+
+          if (!id && !row["ID_VARIANTE"]) newCount++;
+          else if (tipo === "variante" || row["ID_VARIANTE"]) vCount++;
+          else pCount++;
+        });
+
+        setStats({ products: pCount, variants: vCount, newProducts: newCount });
+        setIsDialogOpen(true);
+      } catch (e) {
+        toast({ title: "Error leyendo archivo", variant: "destructive" });
+      }
+    };
+    reader.readAsBinaryString(f);
+  };
+
+  const processImport = async () => {
     if (!file) return;
+    setLoading(true);
 
     const reader = new FileReader();
     reader.onload = async (evt) => {
       const bstr = evt.target?.result;
       const wb = XLSX.read(bstr, { type: "binary" });
       const ws = wb.Sheets[wb.SheetNames[0]];
-      const jsonData = XLSX.utils.sheet_to_json(ws);
+      const data: any[] = XLSX.utils.sheet_to_json(ws);
 
-      const formattedData: ImportedProductData[] = jsonData.map((row: any) => {
-        // Detectar ID
-        const id = row["ID_SISTEMA (NO TOCAR)"] || row["id"] || row["ID"];
+      const updatesProducts = [];
+      const updatesVariants = [];
+      const insertsProducts = [];
 
-        // Detectar Categoría: Prioridad a la del Excel, si no, la seleccionada (solo para nuevos)
-        // Nota: Mantenemos la lógica de forzar categoria seleccionada si es CREACIÓN para evitar huerfanos,
-        // pero si es UPDATE y el excel trae categoría, respetamos la del excel.
-        let rowCategory = row["Categoría"] || row["Category"] || row["category"];
+      // Obtenemos el ID de usuario actual para los inserts
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
 
-        // Normalizar categoría (buscar match en nuestras constantes para que sea válido)
-        const matchedCat = PRODUCT_CATEGORIES.find((c) => c.label === rowCategory || c.value === rowCategory);
-        const finalCategory = matchedCat ? matchedCat.value : selectedCategory || "General";
+      for (const row of data) {
+        const tipo = (row["TIPO_FILA"] || "producto").toLowerCase();
+        const idSistema = row["ID_SISTEMA"] || row["ID_SISTEMA (NO TOCAR)"];
+        const idVariante = row["ID_VARIANTE"];
 
-        return {
-          id: id ? String(id).trim() : undefined, // Si hay ID, es update
-          name: row["Nombre"] || row["name"] || "Producto sin nombre",
-          sku: row["SKU"] || row["sku"] || null,
-          description: row["Descripción"] || row["description"] || null,
-          // Precios: Excel suele tener decimales (150.50), DB quiere centavos (15050)
-          price_retail: Math.round(parseFloat(row["Precio Menudeo"] || row["price_retail"] || "0") * 100),
-          price_wholesale: row["Precio Mayoreo"] ? Math.round(parseFloat(row["Precio Mayoreo"] || "0") * 100) : null,
-          wholesale_min_qty: row["Min. Mayoreo"] ? parseInt(row["Min. Mayoreo"]) : null,
-          tags: (row["Tags"] || "")
-            .toString()
-            .split(",")
-            .map((t: string) => t.trim())
-            .filter(Boolean),
-          category: finalCategory,
-        };
-      });
+        // 1. Valores procesados con la regla "Empty = Null"
+        const nombre = getExcelValue(row["Nombre"]);
+        const sku = getExcelValue(row["SKU"]);
+        const catExcel = getExcelValue(row["Categoría"]);
+        // Precios a centavos
+        const pRetailRaw = getExcelValue(row["Precio Menudeo"], true);
+        const pWholesaleRaw = getExcelValue(row["Precio Mayoreo"], true);
+        const priceRetail = pRetailRaw !== null ? Math.round(pRetailRaw * 100) : null;
+        const priceWholesale = pWholesaleRaw !== null ? Math.round(pWholesaleRaw * 100) : null;
 
-      await onImport(formattedData);
+        const stock = getExcelValue(row["Stock"], true); // Null = Infinito
+        const minQty = getExcelValue(row["Min. Mayoreo"], true);
+        const desc = getExcelValue(row["Descripción"]);
+        const tagsRaw = getExcelValue(row["Tags"]);
+        const tags = tagsRaw
+          ? String(tagsRaw)
+              .split(",")
+              .map((t) => t.trim())
+              .filter(Boolean)
+          : [];
 
-      setIsDialogOpen(false);
-      setFile(null);
-      setSelectedCategory("");
-      if (fileInputRef.current) fileInputRef.current.value = "";
+        // Lógica de Categoría
+        let categoryToUse = selectedCategory;
+        if (catExcel) {
+          const match = PRODUCT_CATEGORIES.find((c) => c.label === catExcel || c.value === catExcel);
+          if (match) categoryToUse = match.value;
+        }
+
+        // --- CLASIFICACIÓN DE ACCIONES ---
+
+        if (tipo === "variante" && idVariante) {
+          // UPDATE VARIANTE
+          updatesVariants.push({
+            id: idVariante,
+            sku: sku, // Se puede borrar
+            price_retail: priceRetail, // Se puede borrar
+            price_wholesale: priceWholesale, // Se puede borrar
+            stock_quantity: stock, // Se puede borrar (infinito)
+          });
+        } else if (idSistema) {
+          // UPDATE PRODUCTO PADRE
+          updatesProducts.push({
+            id: idSistema,
+            name: nombre, // Nombre es requerido en DB, cuidado si lo borran (usar fallback o ignorar)
+            sku: sku,
+            category: catExcel ? categoryToUse : undefined, // Solo actualizamos categoria si viene en excel
+            description: desc,
+            price_retail: priceRetail,
+            price_wholesale: priceWholesale,
+            wholesale_min_qty: minQty,
+            stock_quantity: stock, // Si tiene variantes, esto no afectará visualmente nada importante
+            tags: tags,
+          });
+        } else {
+          // INSERT PRODUCTO NUEVO (SIMPLE)
+          if (nombre && priceRetail !== null) {
+            insertsProducts.push({
+              user_id: user.id,
+              name: nombre,
+              sku: sku,
+              category: categoryToUse || "General",
+              description: desc,
+              price_retail: priceRetail,
+              price_wholesale: priceWholesale,
+              wholesale_min_qty: minQty,
+              stock_quantity: stock,
+              tags: tags,
+              has_variants: false,
+              variant_count: 0,
+            });
+          }
+        }
+      }
+
+      try {
+        // Ejecutar Actualizaciones en Lotes (Promise.all para velocidad)
+        const promises = [];
+
+        // Update Products (iterar porque update masivo con valores distintos no es directo en Supabase JS sin RPC)
+        if (updatesProducts.length > 0) {
+          // Para optimizar, lo hacemos 1 por 1 en paralelo (Supabase aguanta bien batches pequeños)
+          // O idealmente crear un RPC "bulk_update_products", pero aquí usaremos loop paralelo
+          const productUpdates = updatesProducts.map((p) => supabase.from("products").update(p).eq("id", p.id));
+          promises.push(...productUpdates);
+        }
+
+        // Update Variants
+        if (updatesVariants.length > 0) {
+          const variantUpdates = updatesVariants.map((v) => supabase.from("product_variants").update(v).eq("id", v.id));
+          promises.push(...variantUpdates);
+        }
+
+        // Inserts (Batch es nativo)
+        if (insertsProducts.length > 0) {
+          promises.push(supabase.from("products").insert(insertsProducts));
+        }
+
+        await Promise.all(promises);
+
+        toast({ title: "Importación exitosa", description: "Se han aplicado todos los cambios." });
+        onImportSuccess();
+        setIsDialogOpen(false);
+        setFile(null);
+      } catch (err) {
+        console.error(err);
+        toast({
+          title: "Error en la importación",
+          description: "Revisa el formato de los datos.",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+        if (fileInputRef.current) fileInputRef.current.value = "";
+      }
     };
     reader.readAsBinaryString(file);
   };
 
   return (
     <div className="flex gap-2">
-      {/* Botón Exportar Template/Inventario */}
-      <Button
-        variant="outline"
-        onClick={onExportTemplate}
-        className="text-slate-600 border-slate-300"
-        title="Descargar inventario actual para editar"
-      >
+      <Button variant="outline" onClick={onExportTemplate} className="text-slate-600">
         <Download className="w-4 h-4 mr-2" />
-        <span className="hidden sm:inline">Plantilla / Exportar</span>
+        <span className="hidden sm:inline">Descargar Inventario</span>
       </Button>
 
-      {/* Input Archivo Oculto */}
       <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".xlsx, .xls" className="hidden" />
 
-      {/* Botón Importar */}
       <Button
-        className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm"
+        className="bg-indigo-600 hover:bg-indigo-700 text-white"
         onClick={() => fileInputRef.current?.click()}
-        disabled={isImporting}
+        disabled={loading || parentLoading}
       >
-        {isImporting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Upload className="w-4 h-4 mr-2" />}
-        Importar Excel
+        {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Upload className="w-4 h-4 mr-2" />}
+        Subir Cambios
       </Button>
 
-      {/* Modal de Confirmación "Inteligente" */}
-      <Dialog open={isDialogOpen} onOpenChange={(open) => !isImporting && setIsDialogOpen(open)}>
-        <DialogContent className="sm:max-w-md">
+      <Dialog open={isDialogOpen} onOpenChange={(o) => !loading && setIsDialogOpen(o)}>
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle>Resumen de Importación</DialogTitle>
-            <DialogDescription>Hemos analizado tu archivo. Esto es lo que sucederá:</DialogDescription>
+            <DialogTitle>Confirmar Importación</DialogTitle>
+            <DialogDescription>Se detectaron los siguientes movimientos:</DialogDescription>
           </DialogHeader>
-
-          <div className="grid grid-cols-2 gap-4 py-4">
-            <div className="bg-amber-50 p-4 rounded-lg border border-amber-100 flex flex-col items-center justify-center text-center">
-              <span className="text-2xl font-bold text-amber-600">{stats.updates}</span>
-              <span className="text-xs text-amber-700 font-medium uppercase mt-1">Actualizaciones</span>
-              <span className="text-[10px] text-amber-600/80 leading-tight mt-1">
-                Productos existentes que cambiarán
-              </span>
+          <div className="grid grid-cols-3 gap-2 py-4 text-center">
+            <div className="bg-blue-50 p-2 rounded border border-blue-100">
+              <div className="text-xl font-bold text-blue-700">{stats.products}</div>
+              <div className="text-[10px] uppercase text-blue-600">Productos</div>
             </div>
-            <div className="bg-emerald-50 p-4 rounded-lg border border-emerald-100 flex flex-col items-center justify-center text-center">
-              <span className="text-2xl font-bold text-emerald-600">{stats.creates}</span>
-              <span className="text-xs text-emerald-700 font-medium uppercase mt-1">Nuevos</span>
-              <span className="text-[10px] text-emerald-600/80 leading-tight mt-1">Productos que se crearán</span>
+            <div className="bg-purple-50 p-2 rounded border border-purple-100">
+              <div className="text-xl font-bold text-purple-700">{stats.variants}</div>
+              <div className="text-[10px] uppercase text-purple-600">Variantes</div>
+            </div>
+            <div className="bg-emerald-50 p-2 rounded border border-emerald-100">
+              <div className="text-xl font-bold text-emerald-700">{stats.newProducts}</div>
+              <div className="text-[10px] uppercase text-emerald-600">Nuevos</div>
             </div>
           </div>
 
-          {/* Selector de Categoría (Solo si hay nuevos) */}
-          {stats.creates > 0 && (
-            <div className="space-y-2 bg-slate-50 p-3 rounded-md border border-slate-100">
-              <Label className="text-xs font-semibold text-slate-700">
-                Categoría para los {stats.creates} productos nuevos:
-              </Label>
+          {stats.newProducts > 0 && (
+            <div className="bg-slate-50 p-3 rounded">
+              <Label className="text-xs mb-2 block">Categoría por defecto para nuevos:</Label>
               <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                <SelectTrigger className="h-8 text-xs bg-white">
-                  <SelectValue placeholder="Selecciona si el Excel no tiene categoría..." />
+                <SelectTrigger className="h-8 bg-white">
+                  <SelectValue placeholder="Selecciona..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {PRODUCT_CATEGORIES.map((cat) => (
-                    <SelectItem key={cat.value} value={cat.value}>
-                      {cat.label}
+                  {PRODUCT_CATEGORIES.map((c) => (
+                    <SelectItem key={c.value} value={c.value}>
+                      {c.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              <p className="text-[10px] text-slate-400">
-                * Si el Excel ya tiene columna "Categoría", se usará esa prioridad.
-              </p>
             </div>
           )}
 
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="ghost" onClick={() => setIsDialogOpen(false)} disabled={isImporting}>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setIsDialogOpen(false)} disabled={loading}>
               Cancelar
             </Button>
             <Button
-              onClick={handleConfirmImport}
-              disabled={isImporting || (stats.creates > 0 && !selectedCategory)}
-              className="bg-indigo-600 hover:bg-indigo-700 w-full sm:w-auto"
+              onClick={processImport}
+              disabled={loading || (stats.newProducts > 0 && !selectedCategory)}
+              className="bg-indigo-600 text-white"
             >
-              {isImporting ? "Procesando..." : "Confirmar y Aplicar"}
+              {loading ? "Procesando..." : "Aplicar Cambios"}
             </Button>
           </DialogFooter>
         </DialogContent>
