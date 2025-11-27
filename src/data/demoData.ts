@@ -70,7 +70,8 @@ const generateTopProductsForecast = (products: string[]) => {
       id: `prod-${index}`,
       name: productName,
       growth: index < 3 ? "+15%" : index > 7 ? "-5%" : "+2%",
-      status: index < 3 ? "rising" : index > 7 ? "falling" : "stable",
+      // CORRECCIÓN AQUÍ: Forzamos el tipo para que coincida con el componente
+      status: (index < 3 ? "rising" : index > 7 ? "falling" : "stable") as "rising" | "falling" | "stable",
       data: [...history, ...future],
     };
   });
