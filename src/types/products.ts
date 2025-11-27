@@ -17,22 +17,22 @@ export interface Product {
   color?: string;
   features?: string[];
   tags?: string[] | null; // ← CAMPO AGREGADO
-  
+
   // ✅ CAMPOS DE IMÁGENES CORRECTOS
   original_image_url: string; // NO NULL en tu BD
   processed_image_url?: string;
   hd_image_url?: string;
   image_url?: string; // Imagen actual mostrada
-  
+
   // 🎯 URLS OPTIMIZADAS PARA DIFERENTES USOS
-  thumbnail_image_url?: string;   // 300x300px para previsualizaciones
-  catalog_image_url?: string;     // 800x800px para PDFs ligeros (~100KB)
-  luxury_image_url?: string;      // 1200x1200px para catálogos premium
-  print_image_url?: string;       // 2400x2400px para impresión
-  
+  thumbnail_image_url?: string; // 300x300px para previsualizaciones
+  catalog_image_url?: string; // 800x800px para PDFs ligeros (~100KB)
+  luxury_image_url?: string; // 1200x1200px para catálogos premium
+  print_image_url?: string; // 2400x2400px para impresión
+
   video_url?: string;
   social_media_urls?: any;
-  
+
   // ✅ CAMPOS DE PROCESAMIENTO CORRECTOS
   processing_status?: string; // 'pending' | 'processing' | 'completed' | 'failed'
   processing_progress?: number; // 0-100
@@ -41,23 +41,23 @@ export interface Product {
   processed_at?: string;
   processed_images?: any; // jsonb
   processing_metadata?: any; // jsonb
-  
+
   // ✅ CAMPOS DE IA
   ai_description?: string;
   ai_tags?: string[];
   ai_confidence_score?: number;
   smart_analysis?: any;
-  
+
   // ✅ CAMPOS DE CRÉDITOS
   credits_used?: number;
   estimated_credits?: number;
   estimated_cost_mxn?: number;
   service_type?: string;
-  
+
   // ✅ CAMPOS DE VARIANTES
   has_variants?: boolean;
   variant_count?: number;
-  
+
   // ✅ CAMPOS DE SISTEMA
   created_at: string;
   updated_at: string;
@@ -112,7 +112,7 @@ export interface ProcessedImageForUI {
   original_url: string;
   processed_url: string | null;
   hd_url: string | null;
-  status: 'pending' | 'processing' | 'completed' | 'failed';
+  status: "pending" | "processing" | "completed" | "failed";
   progress: number;
   product_name: string;
   product_description?: string;
@@ -132,7 +132,7 @@ export const productToProcessedImage = (product: Product): ProcessedImageForUI =
   original_url: product.original_image_url,
   processed_url: product.processed_image_url || null,
   hd_url: product.hd_image_url || null,
-  status: (product.processing_status as any) || 'pending',
+  status: (product.processing_status as any) || "pending",
   progress: product.processing_progress || 0,
   product_name: product.name,
   product_description: product.description,
@@ -141,16 +141,13 @@ export const productToProcessedImage = (product: Product): ProcessedImageForUI =
   service_type: product.service_type,
   error_message: product.error_message,
   created_at: product.created_at,
-  processed_at: product.processed_at
+  processed_at: product.processed_at,
 });
 
 // ✅ FUNCIÓN HELPER: Determinar URL de imagen a mostrar
 export const getDisplayImageUrl = (product: Product): string => {
   // Prioridad: processed_image_url > hd_image_url > image_url > original_image_url
-  return product.processed_image_url || 
-         product.hd_image_url || 
-         product.image_url || 
-         product.original_image_url;
+  return product.processed_image_url || product.hd_image_url || product.image_url || product.original_image_url;
 };
 
 // 🎯 NUEVA FUNCIÓN: Obtener URL optimizada para PDFs (catálogos)
@@ -159,13 +156,15 @@ export const getCatalogImageUrl = (product: Product, preferNoBackground: boolean
   if (preferNoBackground && product.processed_image_url) {
     return product.processed_image_url;
   }
-  
+
   // Para catálogos: catalog_image_url (800x800, ~100KB) tiene prioridad
-  return product.catalog_image_url || 
-         product.processed_image_url || 
-         product.hd_image_url || 
-         product.image_url || 
-         product.original_image_url;
+  return (
+    product.catalog_image_url ||
+    product.processed_image_url ||
+    product.hd_image_url ||
+    product.image_url ||
+    product.original_image_url
+  );
 };
 
 // 🆕 FUNCIÓN: Detectar si el producto tiene imagen sin fondo
@@ -175,48 +174,70 @@ export const hasBackgroundRemoved = (product: Product): boolean => {
 
 // 🆕 FUNCIÓN: Contar productos con/sin fondo en una lista
 export const analyzeBackgroundStatus = (products: Product[]) => {
-  const withBackground = products.filter(p => !hasBackgroundRemoved(p)).length;
-  const withoutBackground = products.filter(p => hasBackgroundRemoved(p)).length;
-  
+  const withBackground = products.filter((p) => !hasBackgroundRemoved(p)).length;
+  const withoutBackground = products.filter((p) => hasBackgroundRemoved(p)).length;
+
   return {
     total: products.length,
     withBackground,
     withoutBackground,
     hasNoBackgroundOptions: withoutBackground > 0,
     allHaveNoBackground: withoutBackground === products.length,
-    mixed: withBackground > 0 && withoutBackground > 0
+    mixed: withBackground > 0 && withoutBackground > 0,
   };
 };
 
 // ✅ FUNCIÓN HELPER: Determinar estado de procesamiento
-export const getProcessingStatus = (product: Product): 'pending' | 'processing' | 'completed' | 'failed' => {
+export const getProcessingStatus = (product: Product): "pending" | "processing" | "completed" | "failed" => {
   // Si hay error_message = failed
-  if (product.error_message) return 'failed';
-  
+  if (product.error_message) return "failed";
+
   // Si is_processed = true = completed
-  if (product.is_processed) return 'completed';
-  
+  if (product.is_processed) return "completed";
+
   // Si processing_status está definido, usarlo
   if (product.processing_status) {
     return product.processing_status as any;
   }
-  
+
   // Si processed_image_url existe = completed
-  if (product.processed_image_url) return 'completed';
-  
+  if (product.processed_image_url) return "completed";
+
   // Si fue creado hace menos de 10 minutos = processing
   const createdAt = new Date(product.created_at);
   const now = new Date();
   const diffMinutes = (now.getTime() - createdAt.getTime()) / (1000 * 60);
-  
-  if (diffMinutes < 10) return 'processing';
-  
-  return 'pending';
+
+  if (diffMinutes < 10) return "processing";
+
+  return "pending";
 };
 
 // ✅ FUNCIÓN HELPER: Verificar si tiene comparación antes/después
 export const hasBeforeAfterComparison = (product: Product): boolean => {
-  return !!(product.original_image_url && 
-           product.processed_image_url && 
-           product.original_image_url !== product.processed_image_url);
+  return !!(
+    product.original_image_url &&
+    product.processed_image_url &&
+    product.original_image_url !== product.processed_image_url
+  );
 };
+
+// --- AGREGAR AL FINAL DE src/types/products.ts ---
+
+// Propiedad extendida para la UI de la tabla (estado de guardado)
+// Puedes agregar esto directamente dentro de tu interface Product arriba,
+// o usar esta extensión si prefieres mantener la interfaz pura de la BD.
+export interface ProductWithUI extends Product {
+  isSaving?: boolean;
+}
+
+// Constantes de Categorías para los Selects de la Tabla y el Importador
+export const PRODUCT_CATEGORIES = [
+  { value: "Ropa", label: "Ropa 👕" },
+  { value: "Calzado", label: "Calzado 👟" },
+  { value: "Electrónicos", label: "Electrónicos 📱" },
+  { value: "Joyería", label: "Joyería 💍" },
+  { value: "Fiestas", label: "Fiestas 🎉" },
+  { value: "Florería", label: "Florería 🌺" },
+  { value: "General", label: "General 📦" },
+];
