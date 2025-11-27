@@ -18,11 +18,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 
-// Importamos componentes
+// Nuevos Componentes
 import { ProductTable } from "@/components/products/table/ProductTable";
-import { ExcelImporter } from "@/components/products/ExcelImporter";
+import { ExcelImporter, ImportedProductData } from "@/components/products/ExcelImporter";
 import { VariantManagementModal } from "@/components/products/VariantManagementModal";
 import { ProductWithUI, PRODUCT_CATEGORIES } from "@/types/products";
+import { exportProductsToExcel } from "@/utils/exportUtils"; // Nuevo utilitario
 
 const ProductsManagement = () => {
   const navigate = useNavigate();
@@ -33,7 +34,7 @@ const ProductsManagement = () => {
   const [isImporting, setIsImporting] = useState(false);
   const [variantModalProduct, setVariantModalProduct] = useState<ProductWithUI | null>(null);
 
-  // Estados para Acciones Masivas
+  // Bulk Actions State
   const [bulkAction, setBulkAction] = useState<{
     type: "category" | "min_qty" | "tags" | null;
     value: any;
@@ -41,7 +42,6 @@ const ProductsManagement = () => {
   }>({ type: null, value: "", ids: [] });
   const [appendTagsMode, setAppendTagsMode] = useState(true);
 
-  // --- FETCH ---
   const fetchProducts = useCallback(async () => {
     if (!user) return;
     setLoading(true);
@@ -70,7 +70,6 @@ const ProductsManagement = () => {
     if (user) fetchProducts();
   }, [user, fetchProducts]);
 
-  // --- UPDATE INDIVIDUAL ---
   const handleUpdateProduct = async (id: string, field: string, value: any) => {
     setProducts((prev) => prev.map((p) => (p.id === id ? { ...p, [field]: value, isSaving: true } : p)));
     try {
@@ -86,30 +85,48 @@ const ProductsManagement = () => {
     }
   };
 
-  // --- EXCEL IMPORT ---
-  const handleImportExcel = async (data: any[], category: string) => {
+  // 🔥 LÓGICA DE IMPORTACIÓN UPSERT (Update + Insert) 🔥
+  const handleImportExcel = async (data: ImportedProductData[]) => {
     if (!user) return;
     setIsImporting(true);
+
     try {
-      const productsToInsert = data.map((p) => ({
-        ...p,
+      // Supabase UPSERT: Si mandamos ID, actualiza. Si no, crea.
+      const productsToUpsert = data.map((p) => ({
+        id: p.id, // Si viene undefined, Supabase creará uno nuevo
         user_id: user.id,
-        category,
+        name: p.name,
+        sku: p.sku,
+        description: p.description,
+        price_retail: p.price_retail,
+        price_wholesale: p.price_wholesale,
+        wholesale_min_qty: p.wholesale_min_qty,
+        tags: p.tags,
+        category: p.category,
+        // Valores por defecto para nuevos
         has_variants: false,
         variant_count: 0,
       }));
-      const { error } = await supabase.from("products").insert(productsToInsert);
+
+      // Usamos .upsert() en lugar de .insert()
+      const { error } = await supabase.from("products").upsert(productsToUpsert);
+
       if (error) throw error;
-      toast({ title: "Importación completada" });
+
+      toast({
+        title: "Operación exitosa",
+        description: `Se han procesado ${productsToUpsert.length} productos.`,
+      });
+
       fetchProducts();
     } catch (error: any) {
-      toast({ title: "Error en importación", description: error.message, variant: "destructive" });
+      console.error(error);
+      toast({ title: "Error en la importación", description: error.message, variant: "destructive" });
     } finally {
       setIsImporting(false);
     }
   };
 
-  // --- DELETE MASIVO ---
   const handleBulkDelete = async (ids: string[]) => {
     if (!confirm(`¿Eliminar ${ids.length} productos?`)) return;
     try {
@@ -125,13 +142,11 @@ const ProductsManagement = () => {
     }
   };
 
-  // --- EJECUTAR UPDATE MASIVO ---
   const executeBulkUpdate = async () => {
     const { type, value, ids } = bulkAction;
     if (!type || !user) return;
 
     try {
-      // 1. Tags Logic
       if (type === "tags") {
         const newTags =
           typeof value === "string"
@@ -140,27 +155,19 @@ const ProductsManagement = () => {
                 .map((t: string) => t.trim())
                 .filter(Boolean)
             : [];
-
         if (appendTagsMode) {
-          // Append: Leer actuales + Nuevos
           const updates = ids.map(async (id) => {
             const currentProduct = products.find((p) => p.id === id);
-            const currentTags = currentProduct?.tags || [];
-            const mergedTags = Array.from(new Set([...currentTags, ...newTags]));
-
-            // Optimistic
+            const mergedTags = Array.from(new Set([...(currentProduct?.tags || []), ...newTags]));
             setProducts((prev) => prev.map((p) => (p.id === id ? { ...p, tags: mergedTags } : p)));
             return supabase.from("products").update({ tags: mergedTags }).eq("id", id);
           });
           await Promise.all(updates);
         } else {
-          // Replace
           setProducts((prev) => prev.map((p) => (ids.includes(p.id) ? { ...p, tags: newTags } : p)));
           await supabase.from("products").update({ tags: newTags }).in("id", ids);
         }
-      }
-      // 2. Category / Min Qty Logic
-      else {
+      } else {
         const field = type === "category" ? "category" : "wholesale_min_qty";
         setProducts((prev) => prev.map((p) => (ids.includes(p.id) ? { ...p, [field]: value } : p)));
         await supabase
@@ -168,11 +175,9 @@ const ProductsManagement = () => {
           .update({ [field]: value })
           .in("id", ids);
       }
-
       toast({ title: "Actualización masiva completada" });
       setBulkAction({ type: null, value: "", ids: [] });
     } catch (error) {
-      console.error(error);
       toast({ title: "Error en actualización masiva", variant: "destructive" });
       fetchProducts();
     }
@@ -180,7 +185,6 @@ const ProductsManagement = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 pb-20">
-      {/* HEADER */}
       <div className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between gap-4">
           <div className="flex items-center gap-2">
@@ -189,8 +193,15 @@ const ProductsManagement = () => {
               {products.length} productos
             </span>
           </div>
+
           <div className="flex items-center gap-3">
-            <ExcelImporter onImport={handleImportExcel} isImporting={isImporting} />
+            {/* Importador con Exportación Integrada */}
+            <ExcelImporter
+              onImport={handleImportExcel}
+              isImporting={isImporting}
+              onExportTemplate={() => exportProductsToExcel(products)} // 🔥 CONECTADO
+            />
+
             <Button
               onClick={() => navigate("/upload")}
               className="bg-indigo-600 hover:bg-indigo-700 shadow-sm transition-all hover:scale-105"
@@ -201,7 +212,6 @@ const ProductsManagement = () => {
         </div>
       </div>
 
-      {/* MAIN TABLE */}
       <div className="container mx-auto p-4 md:p-6">
         <ProductTable
           data={products}
@@ -210,12 +220,10 @@ const ProductsManagement = () => {
           onBulkDelete={handleBulkDelete}
           onBulkCatalog={(ids) => console.log("Catálogo", ids)}
           onOpenVariants={setVariantModalProduct}
-          // 🔥 CONEXIÓN DE ACCIONES MASIVAS 🔥
           onBulkAction={(type, ids) => setBulkAction({ type, value: "", ids })}
         />
       </div>
 
-      {/* DIÁLOGO DE ACTUALIZACIÓN MASIVA */}
       <Dialog
         open={!!bulkAction.type}
         onOpenChange={(open) => !open && setBulkAction({ type: null, value: "", ids: [] })}
@@ -223,13 +231,9 @@ const ProductsManagement = () => {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Edición Masiva</DialogTitle>
-            <DialogDescription>
-              Editando <strong>{bulkAction.ids.length} productos</strong> seleccionados.
-            </DialogDescription>
+            <DialogDescription>Editando {bulkAction.ids.length} productos seleccionados.</DialogDescription>
           </DialogHeader>
-
           <div className="py-4 space-y-4">
-            {/* 1. CATEGORÍA */}
             {bulkAction.type === "category" && (
               <div className="space-y-2">
                 <Label>Nueva Categoría</Label>
@@ -247,35 +251,24 @@ const ProductsManagement = () => {
                 </Select>
               </div>
             )}
-
-            {/* 2. TAGS */}
             {bulkAction.type === "tags" && (
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label>Etiquetas (separar por comas)</Label>
+                  <Label>Etiquetas</Label>
                   <Input
-                    placeholder="Ej: verano, oferta, nuevo"
+                    placeholder="Ej: verano, oferta"
                     onChange={(e) => setBulkAction((prev) => ({ ...prev, value: e.target.value }))}
                   />
                 </div>
                 <div className="flex items-center justify-between bg-slate-50 p-3 rounded-lg border border-slate-200">
-                  <div className="space-y-0.5">
-                    <Label className="text-sm">Agregar a existentes</Label>
-                    <p className="text-xs text-slate-500">
-                      {appendTagsMode
-                        ? "Suma las etiquetas sin borrar las actuales."
-                        : "Reemplaza todas las etiquetas anteriores."}
-                    </p>
-                  </div>
+                  <Label className="text-sm">Agregar a existentes</Label>
                   <Switch checked={appendTagsMode} onCheckedChange={setAppendTagsMode} />
                 </div>
               </div>
             )}
-
-            {/* 3. MIN QTY */}
             {bulkAction.type === "min_qty" && (
               <div className="space-y-2">
-                <Label>Cantidad Mínima Mayoreo</Label>
+                <Label>Cantidad Mínima</Label>
                 <Input
                   type="number"
                   placeholder="Ej: 12"
@@ -284,19 +277,17 @@ const ProductsManagement = () => {
               </div>
             )}
           </div>
-
           <DialogFooter>
             <Button variant="outline" onClick={() => setBulkAction({ type: null, value: "", ids: [] })}>
               Cancelar
             </Button>
             <Button onClick={executeBulkUpdate} className="bg-indigo-600 text-white">
-              Aplicar Cambios
+              Aplicar
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* MODAL VARIANTES */}
       {variantModalProduct && (
         <VariantManagementModal
           open={!!variantModalProduct}
