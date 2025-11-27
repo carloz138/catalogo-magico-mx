@@ -48,7 +48,7 @@ export const ProductForm = ({ product, imageUrl, onUpdate, priceDisplayMode = "b
     }
   };
 
-  // Fix Scroll Accidental
+  // Fix Scroll Accidentales
   const preventScrollChange = (e: React.WheelEvent<HTMLInputElement>) => {
     e.currentTarget.blur();
   };
