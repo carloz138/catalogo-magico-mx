@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -6,7 +6,8 @@ import { AlertCircle, TrendingUp, BrainCircuit, Radar, Sparkles, ArrowUpRight, D
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts";
-import { format, addDays, parseISO } from "date-fns";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { format } from "date-fns";
 import { es } from "date-fns/locale";
 
 // Helper MXN
@@ -136,65 +137,134 @@ export const DemoSearchWidget = ({ data }: { data: any[] }) => {
   );
 };
 
-// --- WIDGET 3: FORECAST ---
-export const DemoForecastWidget = ({ history }: { history: any[] }) => {
-  const dataPoints = history.map((d, i) => ({ x: i, y: d.count, date: d.date }));
-  const slope = (dataPoints[dataPoints.length - 1].y - dataPoints[0].y) / dataPoints.length;
+// --- WIDGET 3: FORECAST CON SELECTOR ---
+interface ProductForecastData {
+  id: string;
+  name: string;
+  growth: string;
+  status: "rising" | "falling" | "stable";
+  data: any[];
+}
 
-  const chartData = [
-    ...dataPoints.slice(-30).map((p) => ({
-      date: format(parseISO(p.date), "dd MMM", { locale: es }),
-      real: p.y,
-      predicted: null,
-    })),
-    ...Array.from({ length: 7 }, (_, i) => ({
-      date: format(addDays(new Date(), i + 1), "dd MMM", { locale: es }),
-      real: null,
-      predicted: dataPoints[dataPoints.length - 1].y + slope * (i + 1),
-    })),
-  ];
+export const DemoForecastWidget = ({ productsData }: { productsData: ProductForecastData[] }) => {
+  // Estado para el selector de productos
+  const [selectedId, setSelectedId] = useState<string>(productsData[0]?.id || "");
+
+  // Encontrar el producto seleccionado o usar el primero por defecto
+  const currentProduct = productsData.find((p) => p.id === selectedId) || productsData[0];
+
+  if (!currentProduct) return null;
 
   return (
     <Card className="shadow-none border border-indigo-100 bg-gradient-to-br from-white to-indigo-50/30">
       <CardHeader className="pb-2">
-        <div className="flex justify-between items-center">
-          <CardTitle className="text-lg text-slate-800 flex items-center gap-2">
-            <BrainCircuit className="w-5 h-5 text-indigo-600" />
-            Predicción de Demanda
-          </CardTitle>
-          <Badge className="bg-emerald-100 text-emerald-700 border-0 shadow-sm animate-pulse">IA Activa</Badge>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <CardTitle className="text-lg text-slate-800 flex items-center gap-2">
+              <BrainCircuit className="w-5 h-5 text-indigo-600" />
+              Predicción de Demanda
+            </CardTitle>
+            <CardDescription>Selecciona un producto para ver su tendencia futura.</CardDescription>
+          </div>
+
+          <div className="flex items-center gap-3">
+            {/* Badge de Tendencia */}
+            <div
+              className={`px-3 py-1.5 rounded-full text-xs font-bold border flex items-center gap-2 ${
+                currentProduct.status === "rising"
+                  ? "bg-emerald-100 text-emerald-700 border-emerald-200"
+                  : currentProduct.status === "falling"
+                    ? "bg-red-100 text-red-700 border-red-200"
+                    : "bg-slate-100 text-slate-700 border-slate-200"
+              }`}
+            >
+              {currentProduct.status === "rising" && <TrendingUp className="w-3 h-3" />}
+              {currentProduct.status === "falling" && <TrendingUp className="w-3 h-3 rotate-180" />}
+              {currentProduct.growth} Demanda
+            </div>
+
+            {/* Selector de Producto */}
+            <Select value={selectedId} onValueChange={setSelectedId}>
+              <SelectTrigger className="w-[200px] bg-white border-indigo-200 text-indigo-900 font-medium">
+                <SelectValue placeholder="Producto" />
+              </SelectTrigger>
+              <SelectContent>
+                {productsData.map((p) => (
+                  <SelectItem key={p.id} value={p.id} className="cursor-pointer">
+                    {p.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
-        <CardDescription>Análisis predictivo a 7 días basado en historial.</CardDescription>
       </CardHeader>
-      <CardContent className="h-[300px]">
+      <CardContent className="h-[350px] pt-4">
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={chartData}>
+          <AreaChart data={currentProduct.data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
             <defs>
               <linearGradient id="colorReal" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.3} />
                 <stop offset="95%" stopColor="#4f46e5" stopOpacity={0} />
               </linearGradient>
               <linearGradient id="colorPred" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
-                <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                <stop
+                  offset="5%"
+                  stopColor={currentProduct.status === "rising" ? "#10b981" : "#f59e0b"}
+                  stopOpacity={0.3}
+                />
+                <stop
+                  offset="95%"
+                  stopColor={currentProduct.status === "rising" ? "#10b981" : "#f59e0b"}
+                  stopOpacity={0}
+                />
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-            <XAxis dataKey="date" fontSize={10} axisLine={false} tickLine={false} />
-            <YAxis fontSize={10} axisLine={false} tickLine={false} />
-            <Tooltip contentStyle={{ borderRadius: "8px", border: "none", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }} />
-            <ReferenceLine x={format(new Date(), "dd MMM", { locale: es })} stroke="#ef4444" strokeDasharray="3 3" />
-            <Area type="monotone" dataKey="real" stroke="#4f46e5" fill="url(#colorReal)" strokeWidth={2} />
+            <XAxis dataKey="date" fontSize={10} axisLine={false} tickLine={false} tick={{ fill: "#64748b" }} />
+            <YAxis fontSize={10} axisLine={false} tickLine={false} tick={{ fill: "#64748b" }} />
+            <Tooltip
+              contentStyle={{ borderRadius: "8px", border: "none", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}
+              labelStyle={{ fontWeight: "bold", color: "#334155" }}
+            />
+            <ReferenceLine
+              x={format(new Date(), "dd MMM", { locale: es })}
+              stroke="#ef4444"
+              strokeDasharray="3 3"
+              label={{ position: "top", value: "Hoy", fill: "#ef4444", fontSize: 10 }}
+            />
+
+            <Area
+              type="monotone"
+              dataKey="real"
+              name="Histórico"
+              stroke="#4f46e5"
+              strokeWidth={3}
+              fill="url(#colorReal)"
+            />
             <Area
               type="monotone"
               dataKey="predicted"
-              stroke="#10b981"
-              fill="url(#colorPred)"
-              strokeWidth={2}
+              name="Predicción IA"
+              stroke={currentProduct.status === "rising" ? "#10b981" : "#f59e0b"}
+              strokeWidth={3}
               strokeDasharray="5 5"
+              fill="url(#colorPred)"
             />
           </AreaChart>
         </ResponsiveContainer>
+        <div className="flex items-center justify-center gap-6 mt-2 text-xs text-slate-500">
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 bg-indigo-600 rounded-full opacity-30"></div>
+            <span>Demanda Real (30 días)</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div
+              className={`w-3 h-3 rounded-full opacity-30 ${currentProduct.status === "rising" ? "bg-emerald-500" : "bg-amber-500"}`}
+            ></div>
+            <span>Proyección IA (7 días)</span>
+          </div>
+        </div>
       </CardContent>
     </Card>
   );
