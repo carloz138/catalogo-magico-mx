@@ -24,6 +24,7 @@ import { ExcelImporter, ImportedProductData } from "@/components/products/ExcelI
 import { VariantManagementModal } from "@/components/products/VariantManagementModal";
 import { ProductWithUI, PRODUCT_CATEGORIES } from "@/types/products";
 import { exportProductsToExcel } from "@/utils/exportUtils"; // Nuevo utilitario
+import { handleExportFullInventory } from "@/utils/exportUtils";
 
 const ProductsManagement = () => {
   const navigate = useNavigate();
