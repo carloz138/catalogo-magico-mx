@@ -186,7 +186,7 @@ export default function DemoCatalog({ products, color }: { products: any[]; colo
       <div className="container mx-auto px-4 -mt-8 relative z-20">
         {/* BARRA DE BÚSQUEDA FLOTANTE */}
         <div className="bg-white p-4 rounded-xl shadow-xl border border-slate-100 mb-8 relative">
-          {/* 🔴 HOTSPOT BUSCADOR */}
+          {/* Hotspot Buscador */}
           <DemoHotspot
             className="top-[-10px] right-[-10px] z-30"
             title="Buscador Inteligente (Radar)"
@@ -207,12 +207,12 @@ export default function DemoCatalog({ products, color }: { products: any[]; colo
 
         {/* GRID DE PRODUCTOS */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 relative">
-          {/* 🔴 HOTSPOT AGREGAR AL CARRITO (Ahora visible siempre) */}
+          {/* 🔴 HOTSPOT CENTRAL: side="top" OBLIGATORIO para que salga arriba */}
           <DemoHotspot
             className="top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-30"
             title="¡Prueba comprando!"
             description="Dale clic al botón '+' para ver cómo funciona el carrito inteligente."
-            side="top" // Mensaje arriba y centrado
+            side="top"
           />
 
           {filtered.map((p) => (
@@ -228,12 +228,10 @@ export default function DemoCatalog({ products, color }: { products: any[]; colo
             initial={{ y: 100, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 100, opacity: 0 }}
-            // 🔥 Ajuste de posición para móvil y desktop
             className="fixed bottom-8 left-4 right-4 md:left-1/2 md:right-auto md:-translate-x-1/2 z-40 flex justify-center"
           >
             <div className="relative w-full md:w-auto">
-              {/* 🔴 HOTSPOT CARRITO */}
-              {/* Corrección: side="left" para que no se salga a la derecha en móvil */}
+              {/* Hotspot Carrito Flotante */}
               <DemoHotspot
                 className="top-[-10px] right-0 md:right-[-10px] z-50"
                 title="Cierre de Venta"
