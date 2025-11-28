@@ -48,8 +48,13 @@ interface Product {
   }>;
 }
 
+// ✅ CORRECCIÓN 1: Agregar replicatedCatalogId a la interface
 interface PublicCatalogContentProps {
-  catalog: DigitalCatalog & { isReplicated?: boolean; resellerId?: string };
+  catalog: DigitalCatalog & {
+    isReplicated?: boolean;
+    resellerId?: string;
+    replicatedCatalogId?: string; // <--- VITAL PARA L2
+  };
   onTrackEvent: (event: string, data?: any) => void;
 }
 
@@ -811,9 +816,10 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
         freeShippingThreshold={catalog.free_shipping_min_amount || null}
       />
 
+      {/* ✅ CORRECCIÓN 2: Pasamos el replicatedCatalogId CORRECTO */}
       <QuoteForm
         catalogId={catalog.id}
-        replicatedCatalogId={catalog.isReplicated ? catalog.id : undefined}
+        replicatedCatalogId={catalog.isReplicated ? catalog.replicatedCatalogId : undefined}
         items={items}
         totalAmount={totalAmount}
         isOpen={isQuoteFormOpen}
