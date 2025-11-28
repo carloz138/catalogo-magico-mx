@@ -127,14 +127,6 @@ export default function DemoPage() {
           >
             {/* SECCIÓN 1: KPIs y VENTAS */}
             <section className="relative">
-              {/* 🔴 HOTSPOT 1: INGRESOS */}
-              {/* Lo ponemos absolute respecto a esta sección */}
-              <DemoHotspot
-                className="top-24 left-1/2 -translate-x-1/2 md:translate-x-0 md:left-[280px] z-20"
-                title="Proyección de Ingresos"
-                description="Aquí ves tus ingresos reales vs promesas de pago. La línea punteada es nuestra IA proyectando cómo cerrarás el mes."
-                side="bottom"
-              />
               <DemoKPIs data={data.kpis} currency="MXN" />
               <div className="mt-8">
                 <BenefitTip
