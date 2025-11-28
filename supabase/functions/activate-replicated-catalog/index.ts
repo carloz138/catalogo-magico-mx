@@ -1,78 +1,95 @@
 // ==========================================
 // FUNCION: activate-replicated-catalog
-// DESCRIPCIÓN: Vincula un catálogo replicado a un usuario (Flujo Híbrido o Directo)
-// ESTADO: FIX_V5 (Soporte para Login Directo + HASH)
+// DESCRIPCIÓN: Vincula un usuario NUEVO con un catálogo pre-generado
+// ESTADO: V1.0 (ONBOARDING VIRAL)
 // ==========================================
 import { createClient } from 'jsr:@supabase/supabase-js@2.49.8';
 
-const DEPLOY_VERSION = Deno.env.get("FUNCTION_HASH") || "UNKNOWN_HASH";
-
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type'
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
 Deno.serve(async (req) => {
-  console.log(JSON.stringify({ event: "FUNC_START", version: DEPLOY_VERSION }));
-
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
+  // Handle CORS
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders });
+  }
 
   try {
-    const { token, email, name, user_id, strategy } = await req.json();
+    const { token, userId } = await req.json();
 
-    if (!token) throw new Error('Token requerido.');
+    if (!token || !userId) {
+      throw new Error('Se requieren token y userId');
+    }
 
+    // Usamos Service Role para poder escribir en la tabla aunque el usuario sea nuevo
+    // y las políticas RLS aún no lo reconozcan como dueño.
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
       { auth: { persistSession: false } }
     );
 
-    // 1. VALIDAR EL CATÁLOGO
-    const { data: replica, error: replicaError } = await supabaseAdmin
-        .from('replicated_catalogs')
-        .select('id, is_active')
-        .eq('activation_token', token)
-        .maybeSingle();
+    console.log(`🚀 Intentando activar catálogo con token: ${token} para usuario: ${userId}`);
 
-    if (replicaError || !replica) throw new Error('Token inválido.');
-    
-    // Si ya está activo, solo retornamos éxito (Idempotencia)
-    if (replica.is_active) {
-        return new Response(JSON.stringify({ success: true, message: 'Catálogo ya activo.' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 });
+    // 1. BUSCAR EL CATÁLOGO HUÉRFANO
+    const { data: catalog, error: fetchError } = await supabaseAdmin
+      .from('replicated_catalogs')
+      .select('id, is_active, original_catalog_id')
+      .eq('activation_token', token)
+      .single();
+
+    if (fetchError || !catalog) {
+      console.error('Catálogo no encontrado:', fetchError);
+      throw new Error('El token de activación es inválido o no existe.');
     }
 
-    let targetUserId = user_id;
-
-    // 2. SI ES FLUJO "MAGIC LINK" (Antiguo/Fallback), CREAR USUARIO
-    if (!targetUserId && email) {
-        // ... (Lógica de crear usuario anterior, se mantiene por si acaso) ...
-        // Para simplificar este ejemplo, asumimos que el nuevo front SIEMPRE manda user_id o usa el flujo directo
-        // Si quisieras mantener el legacy, aquí iría el createUser.
-        throw new Error("Flujo de email legacy no soportado en esta versión. Por favor inicia sesión.");
+    // 2. VALIDAR QUE NO ESTÉ YA ACTIVO
+    if (catalog.is_active) {
+      throw new Error('Este catálogo ya ha sido activado previamente.');
     }
 
-    if (!targetUserId) throw new Error("Usuario no identificado.");
-
-    // 3. VINCULAR (Activación)
+    // 3. ACTIVAR Y VINCULAR (EL "CASAMIENTO")
     const { error: updateError } = await supabaseAdmin
-        .from('replicated_catalogs')
-        .update({
-            is_active: true,
-            reseller_id: targetUserId,
-            activated_at: new Date().toISOString()
-        })
-        .eq('id', replica.id);
+      .from('replicated_catalogs')
+      .update({
+        is_active: true,
+        reseller_id: userId, // <--- Aquí vinculamos al nuevo usuario
+        activated_at: new Date().toISOString()
+      })
+      .eq('id', catalog.id);
 
-    if (updateError) throw updateError;
+    if (updateError) {
+      console.error('Error al actualizar:', updateError);
+      throw new Error('Error técnico al activar el catálogo.');
+    }
 
-    // 4. (Opcional) Enviar correo de bienvenida
-    // ...
+    // 4. (OPCIONAL) LOG O PREPARACIÓN DE PERFIL
+    // Podríamos marcar en el perfil del usuario que ahora es "reseller", 
+    // pero por ahora con tener el catálogo vinculado basta.
 
-    return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 });
+    console.log(`✅ Catálogo ${catalog.id} activado exitosamente para ${userId}`);
+
+    return new Response(
+      JSON.stringify({ 
+        success: true, 
+        message: 'Catálogo activado correctamente',
+        catalogId: catalog.id 
+      }),
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
+      }
+    );
 
   } catch (error) {
-    console.error('❌ Error:', error);
-    return new Response(JSON.stringify({ success: false, error: error.message }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 });
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400,
+      }
+    );
   }
 });
