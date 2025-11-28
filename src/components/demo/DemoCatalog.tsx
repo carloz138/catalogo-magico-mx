@@ -23,7 +23,7 @@ const ProductCard = ({ product, onAdd }: { product: any; onAdd: () => void }) =>
         alt={product.name}
         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
       />
-      {/* Botón con animación de pulso */}
+      {/* Botón con animación de pulso siempre visible para invitar al clic */}
       <button
         onClick={(e) => {
           e.stopPropagation();
@@ -186,7 +186,7 @@ export default function DemoCatalog({ products, color }: { products: any[]; colo
       <div className="container mx-auto px-4 -mt-8 relative z-20">
         {/* BARRA DE BÚSQUEDA FLOTANTE */}
         <div className="bg-white p-4 rounded-xl shadow-xl border border-slate-100 mb-8 relative">
-          {/* Hotspot Buscador */}
+          {/* 🔴 HOTSPOT BUSCADOR (Izquierda) */}
           <DemoHotspot
             className="top-[-10px] right-[-10px] z-30"
             title="Buscador Inteligente (Radar)"
@@ -207,7 +207,7 @@ export default function DemoCatalog({ products, color }: { products: any[]; colo
 
         {/* GRID DE PRODUCTOS */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 relative">
-          {/* 🔴 HOTSPOT CENTRAL: side="top" OBLIGATORIO para que salga arriba */}
+          {/* 🔴 HOTSPOT CENTRAL: "¡Prueba comprando!" (Arriba y Visible) */}
           <DemoHotspot
             className="top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-30"
             title="¡Prueba comprando!"
@@ -231,7 +231,7 @@ export default function DemoCatalog({ products, color }: { products: any[]; colo
             className="fixed bottom-8 left-4 right-4 md:left-1/2 md:right-auto md:-translate-x-1/2 z-40 flex justify-center"
           >
             <div className="relative w-full md:w-auto">
-              {/* Hotspot Carrito Flotante */}
+              {/* 🔴 HOTSPOT CARRITO (Izquierda) */}
               <DemoHotspot
                 className="top-[-10px] right-0 md:right-[-10px] z-50"
                 title="Cierre de Venta"
