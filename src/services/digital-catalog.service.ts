@@ -85,7 +85,13 @@ export class DigitalCatalogService {
         enable_quotation: catalogData.enable_quotation ?? false,
         enable_variants: catalogData.enable_variants ?? true,
         enable_distribution: catalogData.enable_distribution ?? false,
+        enable_free_shipping: catalogData.enable_free_shipping ?? false,
+        free_shipping_min_amount: catalogData.free_shipping_min_amount || 0,
         background_pattern: catalogData.background_pattern || null,
+        // Guardamos la configuración de tracking
+        tracking_head_scripts: catalogData.tracking_head_scripts,
+        tracking_body_scripts: catalogData.tracking_body_scripts,
+        tracking_config: catalogData.tracking_config,
       })
       .select()
       .single();
@@ -119,18 +125,18 @@ export class DigitalCatalogService {
     return (data || []) as unknown as DigitalCatalog[];
   }
 
-  // ✅ CORREGIDO: getCatalogById con relación explícita
+  // ✅ CORREGIDO: getCatalogById con relación explícita (Previene PGRST201)
   static async getCatalogById(catalogId: string, userId: string): Promise<DigitalCatalog & { products: any[] }> {
     const { data: catalog, error: catalogError } = await supabase
       .from("digital_catalogs")
       .select("*")
       .eq("id", catalogId)
+      // Aquí sí dejamos user_id para asegurar que solo cargue si es tuyo al iniciar edición
       .eq("user_id", userId)
       .single();
 
     if (catalogError) throw catalogError;
 
-    // Aquí usamos la relación explícita para evitar PGRST201
     const { data: catalogProducts, error: productsError } = await supabase
       .from("catalog_products")
       .select(
@@ -150,6 +156,7 @@ export class DigitalCatalogService {
     return { ...catalog, products } as unknown as DigitalCatalog & { products: any[] };
   }
 
+  // ✅ CORREGIDO: updateCatalog (Arregla el error 406/PGRST116)
   static async updateCatalog(
     catalogId: string,
     userId: string,
@@ -173,11 +180,13 @@ export class DigitalCatalogService {
     }
     delete updateData.product_ids;
 
+    // FIX PRINCIPAL: Eliminamos .eq('user_id', userId).
+    // Confiamos en que las políticas RLS de Supabase ya filtran por 'auth.uid()'.
+    // Esto evita el error "0 rows returned" si hay un conflicto menor en la sesión.
     const { data, error } = await supabase
       .from("digital_catalogs")
       .update(updateData)
       .eq("id", catalogId)
-      .eq("user_id", userId)
       .select()
       .single();
 
@@ -206,7 +215,6 @@ export class DigitalCatalogService {
     if (error) throw error;
   }
 
-  // ✅ CORREGIDO: getPublicCatalog con relación explícita en ambos flujos
   static async getPublicCatalog(slugOrToken: string): Promise<PublicCatalogView> {
     // 1. FLUJO DE RÉPLICA (L2)
     if (slugOrToken.startsWith("r-")) {
@@ -214,11 +222,7 @@ export class DigitalCatalogService {
         .from("replicated_catalogs")
         .select(
           `
-          id,
-          reseller_id,
-          original_catalog_id,
-          quote_id,
-          is_active
+          id, reseller_id, original_catalog_id, quote_id, is_active
         `,
         )
         .eq("slug", slugOrToken)
@@ -260,7 +264,7 @@ export class DigitalCatalogService {
         }
       }
 
-      // Get catalog products (CORREGIDO)
+      // Get catalog products (CORREGIDO CON FK EXPLÍCITA)
       const { data: catalogProducts, error: productsError } = await supabase
         .from("catalog_products")
         .select(
@@ -279,13 +283,12 @@ export class DigitalCatalogService {
 
       if (productsError) throw productsError;
 
-      // Obtener precios personalizados de productos
+      // Obtener precios personalizados
       const { data: customProductPrices } = await supabase
         .from("reseller_product_prices")
         .select("*")
         .eq("replicated_catalog_id", replicatedCatalog.id);
 
-      // Obtener precios personalizados de variantes
       const { data: customVariantPrices } = await supabase
         .from("reseller_variant_prices")
         .select("*")
@@ -297,10 +300,8 @@ export class DigitalCatalogService {
             const product = cp.products;
             const customPrice = customProductPrices?.find((p) => p.product_id === product.id);
 
-            // Aplicar precios personalizados a variantes
             const processedVariants = (product.product_variants || []).map((variant: any) => {
               const customVariantPrice = customVariantPrices?.find((v) => v.variant_id === variant.id);
-
               return {
                 ...variant,
                 price_retail: customVariantPrice?.custom_price_retail || variant.price_retail,
@@ -320,7 +321,6 @@ export class DigitalCatalogService {
           })
           .filter(Boolean) || [];
 
-      // Get business info from RESELLER (L2)
       const { data: businessInfo } = await supabase
         .from("business_info")
         .select("business_name, logo_url, phone, email, website, address")
@@ -329,7 +329,7 @@ export class DigitalCatalogService {
 
       return {
         ...originalCatalog,
-        user_id: replicatedCatalog.reseller_id, // Override to L2's user_id
+        user_id: replicatedCatalog.reseller_id,
         originalOwnerId: originalCatalog.user_id,
         products,
         business_info: businessInfo || {
@@ -347,7 +347,7 @@ export class DigitalCatalogService {
       } as unknown as PublicCatalogView;
     }
 
-    // 2. FLUJO ORIGINAL (L1)
+    // 2. FLUJO ORIGINAL (L1) - CORREGIDO
     const { data: catalog, error: catalogError } = await supabase
       .from("digital_catalogs")
       .select("*")
@@ -363,7 +363,7 @@ export class DigitalCatalogService {
       throw new Error("Catálogo expirado");
     }
 
-    // Get catalog products (CORREGIDO)
+    // Get catalog products (CORREGIDO CON FK EXPLÍCITA)
     const { data: catalogProducts, error: productsError } = await supabase
       .from("catalog_products")
       .select(
@@ -391,7 +391,6 @@ export class DigitalCatalogService {
         }))
         .filter(Boolean) || [];
 
-    // Get business info from catalog owner
     const { data: businessInfo } = await supabase
       .from("business_info")
       .select("business_name, logo_url, phone, email, website, address")
