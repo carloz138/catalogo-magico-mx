@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Search, ShoppingCart, Plus, Zap, ArrowRight } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { motion, AnimatePresence } from "framer-motion";
+// 👇 IMPORTAR EL HOTSPOT
+import { DemoHotspot } from "@/components/demo/DemoHotspot";
 
 const formatCurrency = (amount: number) => {
   return new Intl.NumberFormat("es-MX", {
@@ -14,16 +16,20 @@ const formatCurrency = (amount: number) => {
 };
 
 const ProductCard = ({ product, onAdd }: { product: any; onAdd: () => void }) => (
-  <div className="group bg-white border border-slate-200 rounded-xl overflow-hidden hover:shadow-lg transition-all cursor-pointer">
+  <div className="group bg-white border border-slate-200 rounded-xl overflow-hidden hover:shadow-lg transition-all cursor-pointer relative">
     <div className="aspect-square bg-slate-100 relative overflow-hidden">
       <img
         src={product.image}
         alt={product.name}
         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
       />
+      {/* 🔴 BOTÓN CON ANIMACIÓN DE PULSO PARA INVITAR AL CLIC */}
       <button
-        onClick={onAdd}
-        className="absolute bottom-3 right-3 h-10 w-10 bg-white rounded-full shadow-lg flex items-center justify-center hover:bg-indigo-600 hover:text-white transition-colors opacity-0 group-hover:opacity-100 translate-y-4 group-hover:translate-y-0 duration-300"
+        onClick={(e) => {
+          e.stopPropagation();
+          onAdd();
+        }}
+        className="absolute bottom-3 right-3 h-10 w-10 bg-indigo-600 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-indigo-700 transition-all z-20 animate-pulse hover:animate-none"
       >
         <Plus className="w-5 h-5" />
       </button>
@@ -54,18 +60,19 @@ const DemoCart = ({ isOpen, onClose, items, setItems }: any) => {
 
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
-      <SheetContent className="w-full sm:max-w-md flex flex-col bg-slate-50">
+      <SheetContent className="w-full sm:max-w-md flex flex-col bg-slate-50 z-[60]">
+        {" "}
+        {/* z-index alto para estar sobre hotspots externos */}
         <SheetHeader className="border-b pb-4">
           <SheetTitle>Tu Pedido Demo</SheetTitle>
         </SheetHeader>
-
         {items.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
             <ShoppingCart className="w-12 h-12 text-slate-300 mb-4" />
             <p className="text-slate-500">Carrito vacío.</p>
           </div>
         ) : (
-          <div className="flex-1 overflow-y-auto py-4 space-y-4">
+          <div className="flex-1 overflow-y-auto py-4 space-y-4 relative">
             {items.map((item: any, i: number) => (
               <div key={i} className="flex gap-4 bg-white p-2 rounded-lg border border-slate-100 shadow-sm">
                 <img src={item.image} className="w-16 h-16 rounded-md object-cover bg-slate-100" />
@@ -76,52 +83,62 @@ const DemoCart = ({ isOpen, onClose, items, setItems }: any) => {
               </div>
             ))}
 
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="relative overflow-hidden rounded-xl bg-gradient-to-br from-indigo-600 to-violet-600 p-4 text-white shadow-xl ring-2 ring-indigo-200 ring-offset-2"
-            >
-              <div className="absolute top-0 right-0 -mt-2 -mr-2 bg-white/20 p-2 rounded-full blur-xl w-24 h-24"></div>
+            {/* 🔴 HOTSPOT RECOMENDADOR / UPSELL (DENTRO DEL CARRITO) */}
+            <div className="relative mt-6">
+              <DemoHotspot
+                className="top-[-15px] right-0 z-30"
+                title="IA Recomendadora (Upsell)"
+                description="El sistema detecta automáticamente qué ofrecer para aumentar el ticket promedio. ¡Sin que tú hagas nada!"
+                side="left"
+              />
 
-              <div className="relative z-10">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="bg-white/20 p-1 rounded-md backdrop-blur-sm animate-pulse">
-                    <Zap className="w-4 h-4 text-yellow-300 fill-yellow-300" />
-                  </div>
-                  <h4 className="font-bold text-sm tracking-wide uppercase">¡Potencia tu ticket!</h4>
-                </div>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="relative overflow-hidden rounded-xl bg-gradient-to-br from-indigo-600 to-violet-600 p-4 text-white shadow-xl ring-2 ring-indigo-200 ring-offset-2"
+              >
+                <div className="absolute top-0 right-0 -mt-2 -mr-2 bg-white/20 p-2 rounded-full blur-xl w-24 h-24"></div>
 
-                <p className="text-xs text-indigo-100 mb-4 leading-relaxed">
-                  La IA detectó que los clientes que llevan esto, también compran el <strong>Pack Promocional</strong>.
-                </p>
-
-                <div className="flex gap-3 bg-white/10 backdrop-blur-md p-2 rounded-lg border border-white/20">
-                  <div className="h-10 w-10 bg-white rounded-md shrink-0 overflow-hidden">
-                    <img
-                      src="https://images.unsplash.com/photo-1556228720-191845bb5668?auto=format&fit=crop&w=200"
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <div className="flex-1 flex items-center justify-between">
-                    <div>
-                      <p className="text-xs font-bold text-white">Pack Promo</p>
-                      <p className="text-[10px] text-indigo-200 line-through">$550.00</p>
+                <div className="relative z-10">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="bg-white/20 p-1 rounded-md backdrop-blur-sm animate-pulse">
+                      <Zap className="w-4 h-4 text-yellow-300 fill-yellow-300" />
                     </div>
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      className="h-7 text-xs font-bold bg-white text-indigo-700 hover:bg-indigo-50"
-                      onClick={handleAddUpsell}
-                    >
-                      Agregar +$450
-                    </Button>
+                    <h4 className="font-bold text-sm tracking-wide uppercase">¡Potencia tu ticket!</h4>
+                  </div>
+
+                  <p className="text-xs text-indigo-100 mb-4 leading-relaxed">
+                    La IA detectó que los clientes que llevan esto, también compran el <strong>Pack Promocional</strong>
+                    .
+                  </p>
+
+                  <div className="flex gap-3 bg-white/10 backdrop-blur-md p-2 rounded-lg border border-white/20">
+                    <div className="h-10 w-10 bg-white rounded-md shrink-0 overflow-hidden">
+                      <img
+                        src="https://images.unsplash.com/photo-1556228720-191845bb5668?auto=format&fit=crop&w=200"
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div className="flex-1 flex items-center justify-between">
+                      <div>
+                        <p className="text-xs font-bold text-white">Pack Promo</p>
+                        <p className="text-[10px] text-indigo-200 line-through">$550.00</p>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        className="h-7 text-xs font-bold bg-white text-indigo-700 hover:bg-indigo-50"
+                        onClick={handleAddUpsell}
+                      >
+                        Agregar +$450
+                      </Button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </motion.div>
+              </motion.div>
+            </div>
           </div>
         )}
-
         <div className="border-t pt-4 bg-white p-4 -mx-6 -mb-6">
           <div className="flex justify-between font-bold text-lg mb-4 text-slate-900">
             <span>Total</span>
@@ -152,6 +169,7 @@ export default function DemoCatalog({ products, color }: { products: any[]; colo
 
   return (
     <div className="min-h-[600px] bg-slate-50/50 pb-24 relative font-sans">
+      {/* HEADER VISUAL */}
       <div
         className="h-48 relative overflow-hidden bg-slate-900 flex items-center justify-center text-center px-4"
         style={{ backgroundColor: color }}
@@ -164,7 +182,16 @@ export default function DemoCatalog({ products, color }: { products: any[]; colo
       </div>
 
       <div className="container mx-auto px-4 -mt-8 relative z-20">
-        <div className="bg-white p-4 rounded-xl shadow-xl border border-slate-100 mb-8">
+        {/* BARRA DE BÚSQUEDA FLOTANTE */}
+        <div className="bg-white p-4 rounded-xl shadow-xl border border-slate-100 mb-8 relative">
+          {/* 🔴 HOTSPOT BUSCADOR (CORREGIDO: AHORA ESTÁ AQUÍ DENTRO) */}
+          <DemoHotspot
+            className="top-[-10px] right-[-10px] z-30"
+            title="Buscador Inteligente (Radar)"
+            description="Aquí capturamos la intención de compra. Si buscan algo que no tienes, el sistema activa el Radar y te avisa."
+            side="bottom"
+          />
+
           <div className="relative">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
             <Input
@@ -176,36 +203,58 @@ export default function DemoCatalog({ products, color }: { products: any[]; colo
           </div>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+        {/* GRID DE PRODUCTOS */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 relative">
+          {/* 🔴 HOTSPOT AGREGAR AL CARRITO */}
+          {/* Lo ponemos flotando cerca del primer producto para indicar la acción */}
+          <DemoHotspot
+            className="top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-30 md:hidden"
+            // Solo visible en móvil donde es más confuso a veces, o quítale md:hidden para todos
+            title="¡Prueba comprando!"
+            description="Dale clic al botón '+' para ver cómo funciona el carrito inteligente."
+            side="top"
+          />
+
           {filtered.map((p) => (
             <ProductCard key={p.id} product={p} onAdd={() => handleAdd(p)} />
           ))}
         </div>
       </div>
 
+      {/* BOTÓN FLOTANTE CARRITO */}
       <AnimatePresence>
         {items.length > 0 && (
           <motion.div
             initial={{ y: 100 }}
             animate={{ y: 0 }}
             exit={{ y: 100 }}
-            className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 w-[90%] md:w-auto"
+            className="fixed bottom-8 left-1/2 -translate-x-1/2 z-40 w-[90%] md:w-auto"
           >
-            <Button
-              onClick={() => setIsCartOpen(true)}
-              size="lg"
-              className="w-full md:w-auto rounded-full shadow-2xl shadow-indigo-500/30 px-8 h-14 bg-slate-900 hover:bg-slate-800 text-white gap-4 text-base border border-white/10"
-            >
-              <div className="relative">
-                <ShoppingCart className="w-6 h-6" />
-                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] w-5 h-5 flex items-center justify-center rounded-full border-2 border-slate-900">
-                  {items.length}
+            <div className="relative">
+              {/* 🔴 HOTSPOT CARRITO (FLOTANTE) */}
+              <DemoHotspot
+                className="top-[-15px] right-[-15px] z-50"
+                title="Cierre de Venta"
+                description="Abre el carrito para ver el Recomendador IA en acción."
+                side="top"
+              />
+
+              <Button
+                onClick={() => setIsCartOpen(true)}
+                size="lg"
+                className="w-full md:w-auto rounded-full shadow-2xl shadow-indigo-500/30 px-8 h-14 bg-slate-900 hover:bg-slate-800 text-white gap-4 text-base border border-white/10"
+              >
+                <div className="relative">
+                  <ShoppingCart className="w-6 h-6" />
+                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] w-5 h-5 flex items-center justify-center rounded-full border-2 border-slate-900">
+                    {items.length}
+                  </span>
+                </div>
+                <span className="font-bold">
+                  Ver Pedido | {formatCurrency(items.reduce((a: any, b: any) => a + b.price, 0))}
                 </span>
-              </div>
-              <span className="font-bold">
-                Ver Pedido | {formatCurrency(items.reduce((a: any, b: any) => a + b.price, 0))}
-              </span>
-            </Button>
+              </Button>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
