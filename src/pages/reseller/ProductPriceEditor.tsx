@@ -9,19 +9,8 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   ArrowLeft,
   Save,
@@ -80,10 +69,10 @@ export default function ProductPriceEditor() {
 
   const handlePriceChange = (itemId: string, field: string, value: string, isVariant: boolean) => {
     const numValue = parseFloat(value) * 100; // Convertir a centavos
-    
+
     if (isNaN(numValue) || numValue < 0) return;
 
-    setChanges(prev => {
+    setChanges((prev) => {
       const newChanges = new Map(prev);
       const existing = newChanges.get(itemId) || {};
       newChanges.set(itemId, {
@@ -96,7 +85,7 @@ export default function ProductPriceEditor() {
   };
 
   const handleStockChange = (itemId: string, inStock: boolean, isVariant: boolean) => {
-    setChanges(prev => {
+    setChanges((prev) => {
       const newChanges = new Map(prev);
       const existing = newChanges.get(itemId) || {};
       newChanges.set(itemId, {
@@ -144,11 +133,11 @@ export default function ProductPriceEditor() {
 
   const handleApplyMargin = (margin: number, applyTo: "all" | "in_stock" | "out_of_stock") => {
     const newChanges = new Map(changes);
-    
+
     products.forEach((product) => {
       // Aplicar a producto base
       let shouldApply = false;
-      
+
       switch (applyTo) {
         case "all":
           shouldApply = true;
@@ -160,11 +149,11 @@ export default function ProductPriceEditor() {
           shouldApply = !getDisplayStock(product.id, product.is_in_stock, false);
           break;
       }
-      
+
       if (shouldApply) {
         const newRetailPrice = Math.round(product.original_price_retail * (1 + margin / 100));
         const newWholesalePrice = Math.round(product.original_price_wholesale * (1 + margin / 100));
-        
+
         const existing = newChanges.get(product.id) || {};
         newChanges.set(product.id, {
           ...existing,
@@ -173,12 +162,12 @@ export default function ProductPriceEditor() {
           isVariant: false,
         });
       }
-      
+
       // Aplicar a variantes si existen
       if (product.variants) {
         product.variants.forEach((variant) => {
           let shouldApplyVariant = false;
-          
+
           switch (applyTo) {
             case "all":
               shouldApplyVariant = true;
@@ -190,11 +179,11 @@ export default function ProductPriceEditor() {
               shouldApplyVariant = !getDisplayStock(variant.id, variant.is_in_stock, true);
               break;
           }
-          
+
           if (shouldApplyVariant) {
             const newRetailPrice = Math.round(variant.original_price_retail * (1 + margin / 100));
             const newWholesalePrice = Math.round(variant.original_price_wholesale * (1 + margin / 100));
-            
+
             const existing = newChanges.get(variant.id) || {};
             newChanges.set(variant.id, {
               ...existing,
@@ -206,9 +195,9 @@ export default function ProductPriceEditor() {
         });
       }
     });
-    
+
     setChanges(newChanges);
-    
+
     toast({
       title: "✅ Margen aplicado",
       description: `Se actualizaron ${newChanges.size} items con ${margin}% de margen`,
@@ -229,7 +218,7 @@ export default function ProductPriceEditor() {
   };
 
   const toggleProductExpanded = (productId: string) => {
-    setExpandedProducts(prev => {
+    setExpandedProducts((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(productId)) {
         newSet.delete(productId);
@@ -244,22 +233,22 @@ export default function ProductPriceEditor() {
     return Object.entries(combination)
       .map(([key, value]) => {
         const labelMap: Record<string, string> = {
-          'color': 'Color',
-          'color_calzado': 'Color',
-          'color_electronico': 'Color',
-          'color_fiesta': 'Color',
-          'talla_ropa': 'Talla',
-          'talla_calzado': 'Talla',
-          'material': 'Material',
-          'capacidad': 'Capacidad',
-          'tamano': 'Tamaño',
-          'tamano_arreglo': 'Tamaño',
-          'tipo_flor': 'Tipo de Flor'
+          color: "Color",
+          color_calzado: "Color",
+          color_electronico: "Color",
+          color_fiesta: "Color",
+          talla_ropa: "Talla",
+          talla_calzado: "Talla",
+          material: "Material",
+          capacidad: "Capacidad",
+          tamano: "Tamaño",
+          tamano_arreglo: "Tamaño",
+          tipo_flor: "Tipo de Flor",
         };
         const label = labelMap[key] || key;
         return `${label}: ${value}`;
       })
-      .join(', ');
+      .join(", ");
   };
 
   if (loading) {
@@ -275,9 +264,7 @@ export default function ProductPriceEditor() {
 
   const inStockCount = products.reduce((count, p) => {
     let productInStock = getDisplayStock(p.id, p.is_in_stock, false) ? 1 : 0;
-    let variantsInStock = p.variants?.filter(v => 
-      getDisplayStock(v.id, v.is_in_stock, true)
-    ).length || 0;
+    let variantsInStock = p.variants?.filter((v) => getDisplayStock(v.id, v.is_in_stock, true)).length || 0;
     return count + productInStock + variantsInStock;
   }, 0);
 
@@ -293,17 +280,12 @@ export default function ProductPriceEditor() {
         {/* Header */}
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              onClick={() => navigate(`/dashboard/reseller?catalog_id=${catalogId}`)}
-            >
+            <Button variant="ghost" onClick={() => navigate(`/catalogs`)}>
               <ArrowLeft className="w-4 h-4 mr-2" />
               Volver al Dashboard
             </Button>
             <div>
-              <h1 className="text-2xl md:text-3xl font-bold">
-                Editor de Inventario y Precios
-              </h1>
+              <h1 className="text-2xl md:text-3xl font-bold">Editor de Inventario y Precios</h1>
               <p className="text-gray-600">
                 {products.length} productos • {inStockCount} disponibles • {outOfStockCount} bajo pedido
               </p>
@@ -340,8 +322,8 @@ export default function ProductPriceEditor() {
           <Alert className="bg-blue-50 border-blue-200">
             <Info className="h-4 w-4 text-blue-600" />
             <AlertDescription className="text-blue-900">
-              <strong>Precios:</strong> Solo puedes aumentar los precios, no bajarlos.
-              Deja vacío para usar el precio original.
+              <strong>Precios:</strong> Solo puedes aumentar los precios, no bajarlos. Deja vacío para usar el precio
+              original.
             </AlertDescription>
           </Alert>
 
@@ -381,13 +363,13 @@ export default function ProductPriceEditor() {
                     const hasChanges = changes.has(product.id);
                     const currentRetailPrice = getDisplayPrice(
                       product.id,
-                      'custom_price_retail',
-                      product.custom_price_retail || product.original_price_retail
+                      "custom_price_retail",
+                      product.custom_price_retail || product.original_price_retail,
                     );
                     const currentWholesalePrice = getDisplayPrice(
                       product.id,
-                      'custom_price_wholesale',
-                      product.custom_price_wholesale || product.original_price_wholesale
+                      "custom_price_wholesale",
+                      product.custom_price_wholesale || product.original_price_wholesale,
                     );
                     const currentStock = getDisplayStock(product.id, product.is_in_stock, false);
                     const isExpanded = expandedProducts.has(product.id);
@@ -422,9 +404,7 @@ export default function ProductPriceEditor() {
                               )}
                               <div>
                                 <p className="font-medium">{product.name}</p>
-                                {product.sku && (
-                                  <p className="text-xs text-gray-500">SKU: {product.sku}</p>
-                                )}
+                                {product.sku && <p className="text-xs text-gray-500">SKU: {product.sku}</p>}
                                 {product.is_purchased && (
                                   <Badge variant="secondary" className="text-xs mt-1">
                                     Comprado originalmente
@@ -456,9 +436,7 @@ export default function ProductPriceEditor() {
 
                           {/* Precio Original Menudeo */}
                           <TableCell className="text-right">
-                            <span className="text-gray-600">
-                              ${(product.original_price_retail / 100).toFixed(2)}
-                            </span>
+                            <span className="text-gray-600">${(product.original_price_retail / 100).toFixed(2)}</span>
                           </TableCell>
 
                           {/* Tu Precio Menudeo */}
@@ -525,19 +503,19 @@ export default function ProductPriceEditor() {
                               const hasVariantChanges = changes.has(variant.id);
                               const currentVariantRetailPrice = getDisplayPrice(
                                 variant.id,
-                                'custom_price_retail',
-                                variant.custom_price_retail || variant.original_price_retail
+                                "custom_price_retail",
+                                variant.custom_price_retail || variant.original_price_retail,
                               );
                               const currentVariantWholesalePrice = getDisplayPrice(
                                 variant.id,
-                                'custom_price_wholesale',
-                                variant.custom_price_wholesale || variant.original_price_wholesale
+                                "custom_price_wholesale",
+                                variant.custom_price_wholesale || variant.original_price_wholesale,
                               );
                               const currentVariantStock = getDisplayStock(variant.id, variant.is_in_stock, true);
 
                               return (
-                                <TableRow 
-                                  key={variant.id} 
+                                <TableRow
+                                  key={variant.id}
                                   className={`${hasVariantChanges ? "bg-yellow-50" : "bg-gray-50"}`}
                                 >
                                   {/* Variante */}
@@ -548,9 +526,7 @@ export default function ProductPriceEditor() {
                                         <p className="text-sm font-medium">
                                           {formatVariantCombination(variant.variant_combination)}
                                         </p>
-                                        {variant.sku && (
-                                          <p className="text-xs text-gray-500">SKU: {variant.sku}</p>
-                                        )}
+                                        {variant.sku && <p className="text-xs text-gray-500">SKU: {variant.sku}</p>}
                                         {variant.is_purchased && (
                                           <Badge variant="secondary" className="text-xs mt-1">
                                             Comprada
