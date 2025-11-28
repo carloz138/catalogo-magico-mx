@@ -50,11 +50,18 @@ export interface DigitalCatalog {
   enable_free_shipping: boolean;
   free_shipping_min_amount: number;
 
+  // Tracking Legacy & CAPI
   tracking_head_scripts: string | null;
   tracking_body_scripts: string | null;
   tracking_config?: {
     pixelId?: string;
     accessToken?: string;
+    meta_capi?: {
+      enabled: boolean;
+      pixel_id?: string;
+      access_token?: string;
+      test_code?: string;
+    };
   } | null;
 
   products?: any[];
@@ -173,6 +180,7 @@ export interface CreateDigitalCatalogDTO {
   free_shipping_min_amount?: number;
   tracking_head_scripts?: string | null;
   tracking_body_scripts?: string | null;
+  tracking_config?: any; // ✅ Actualizado para soportar CAPI config
 }
 
 export interface UpdateDigitalCatalogDTO {
@@ -201,6 +209,7 @@ export interface UpdateDigitalCatalogDTO {
   free_shipping_min_amount?: number;
   tracking_head_scripts?: string | null;
   tracking_body_scripts?: string | null;
+  tracking_config?: any; // ✅ Actualizado para soportar CAPI config
 }
 
 export interface CreateQuoteDTO {
