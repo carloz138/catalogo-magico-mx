@@ -68,7 +68,7 @@ export default function PublicCatalog() {
   const [accessPassword, setAccessPassword] = useState("");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  // 1. FETCH DE DATOS (CORREGIDO PARA SOPORTAR L2)
+  // 1. FETCH DE DATOS (CORREGIDO PARA SOPORTAR L2 Y FIX PGRST201)
   const {
     data: catalog,
     isLoading,
@@ -80,7 +80,7 @@ export default function PublicCatalog() {
 
       let catalogIdToFetch: string | null = null;
       let isReplicated = false;
-      let replicatedCatalogId: string | undefined = undefined; // <--- VARIABLE CLAVE
+      let replicatedCatalogId: string | undefined = undefined;
       let resellerId: string | undefined = undefined;
       let catalogHeader: any | null = null;
 
@@ -98,7 +98,7 @@ export default function PublicCatalog() {
         if (replica && replica.digital_catalogs) {
           catalogHeader = replica.digital_catalogs as Partial<DigitalCatalog>;
           isReplicated = true;
-          replicatedCatalogId = replica.id; // <--- CAPTURAMOS EL ID DE LA RÉPLICA
+          replicatedCatalogId = replica.id;
           resellerId = replica.reseller_id || undefined;
           catalogIdToFetch = catalogHeader.id || null;
         }
@@ -110,25 +110,34 @@ export default function PublicCatalog() {
       // 2. Fail Check
       if (!catalogHeader || !catalogIdToFetch) return null;
 
-      // 3. Fetch Productos
+      // 3. Fetch Productos (FIX PGRST201 APLICADO AQUÍ)
+      // Usamos la notación explícita !catalog_products_product_id_fkey
       const { data: rawProducts, error: prodError } = await supabase
         .from("catalog_products")
-        .select(`product_id, products!catalog_products_product_id_fkey (*)`)
+        .select(
+          `
+            product_id, 
+            products!catalog_products_product_id_fkey (*)
+        `,
+        )
         .eq("catalog_id", catalogIdToFetch);
 
-      if (prodError) throw prodError;
+      if (prodError) {
+        console.error("Error loading catalog products:", prodError);
+        throw prodError;
+      }
 
       const products = rawProducts?.map((cp: any) => cp.products).filter(Boolean) || [];
 
       // View Count (Fire & Forget)
       supabase.rpc("increment_view_count" as any, { row_id: catalogIdToFetch }).then();
 
-      // RETORNAMOS EL OBJETO CON EL replicatedCatalogId
+      // RETORNAMOS EL OBJETO COMPLETO
       return {
         ...catalogHeader,
         products: products as Product[],
         isReplicated,
-        replicatedCatalogId, // <--- SE PASA AL COMPONENTE
+        replicatedCatalogId,
         resellerId,
       } as DigitalCatalog & {
         isReplicated?: boolean;
@@ -289,8 +298,8 @@ export default function PublicCatalog() {
   return (
     <QuoteCartProvider>
       <ScriptInjector headScripts={catalog.tracking_head_scripts} bodyScripts={catalog.tracking_body_scripts} />
-      {/* El prop 'catalog' ahora incluye 'replicatedCatalogId'.
-         PublicCatalogContent lo leerá y se lo pasará al QuoteForm.
+      {/* catalog.replicatedCatalogId es la clave para que la venta sea viral.
+          PublicCatalogContent se encargará de pasarlo al QuoteForm.
       */}
       <PublicCatalogContent catalog={catalog} onTrackEvent={trackEvent} />
     </QuoteCartProvider>
