@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Input } from "@/components/ui/input"; // Agregado
-import { Label } from "@/components/ui/label"; // Agregado
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
@@ -32,8 +32,6 @@ import {
   Box,
   Phone,
   Mail,
-  UserPlus, // Agregado
-  LogIn, // Agregado
 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -120,6 +118,7 @@ export default function TrackQuotePage() {
   };
 
   // --- LÓGICA DE ACTIVACIÓN VIRAL ---
+
   const handleReplicateClick = () => {
     if (user) {
       // Si ya está logueado, activamos directo
@@ -130,6 +129,30 @@ export default function TrackQuotePage() {
     }
   };
 
+  // ✅ NUEVO: Login con Google
+  const handleGoogleLogin = async () => {
+    try {
+      setReplicating(true); // UI Loading
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          // IMPORTANTE: Redirigir de vuelta a ESTA página de tracking para completar el proceso
+          redirectTo: window.location.href,
+          queryParams: {
+            access_type: "offline",
+            prompt: "consent",
+          },
+        },
+      });
+      if (error) throw error;
+      // La redirección ocurrirá automáticamente, no necesitamos más lógica aquí
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+      setReplicating(false);
+    }
+  };
+
+  // Login con Email/Password
   const handleAuthSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setReplicating(true);
@@ -157,7 +180,7 @@ export default function TrackQuotePage() {
 
       if (userId) {
         await activateCatalog(userId);
-        setShowAuthModal(false); // Cerrar modal si todo salió bien
+        setShowAuthModal(false);
       }
     } catch (error: any) {
       toast({ title: "Error de autenticación", description: error.message, variant: "destructive" });
@@ -168,8 +191,6 @@ export default function TrackQuotePage() {
   const activateCatalog = async (userId: string) => {
     setReplicating(true);
     try {
-      // Llamada a la Edge Function
-      // Nota: Enviamos el token de la URL que identifica al catálogo huérfano
       const { data, error } = await supabase.functions.invoke("activate-replicated-catalog", {
         body: {
           token: token,
@@ -185,7 +206,6 @@ export default function TrackQuotePage() {
         duration: 5000,
       });
 
-      // Esperar un momento para que el usuario lea el mensaje
       setTimeout(() => {
         navigate("/dashboard");
       }, 2000);
@@ -224,7 +244,6 @@ export default function TrackQuotePage() {
   const isReadyPickup = quote.fulfillment_status === "ready_for_pickup";
   const isLogisticsActive = isShipped || isReadyPickup;
 
-  // Solo mostrar la opción de replicar si el catálogo lo permite y aún no está activo
   const canReplicate = isAccepted && quote.replicated_catalogs && !quote.replicated_catalogs.is_active;
 
   const statusConfig = {
@@ -591,7 +610,7 @@ export default function TrackQuotePage() {
         </DialogContent>
       </Dialog>
 
-      {/* ✅ MODAL DE REGISTRO RÁPIDO (VIRAL) */}
+      {/* ✅ MODAL DE REGISTRO RÁPIDO (VIRAL CON GOOGLE) */}
       <Dialog open={showAuthModal} onOpenChange={setShowAuthModal}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -605,7 +624,47 @@ export default function TrackQuotePage() {
             </DialogDescription>
           </DialogHeader>
 
-          <form onSubmit={handleAuthSubmit} className="space-y-4 mt-2">
+          <div className="grid gap-2 mt-4">
+            <Button
+              variant="outline"
+              type="button"
+              onClick={handleGoogleLogin}
+              disabled={replicating}
+              className="w-full"
+            >
+              {replicating ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <svg
+                  className="mr-2 h-4 w-4"
+                  aria-hidden="true"
+                  focusable="false"
+                  data-prefix="fab"
+                  data-icon="google"
+                  role="img"
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 488 512"
+                >
+                  <path
+                    fill="currentColor"
+                    d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 123 24.5 166.3 64.9l-67.5 64.9C258.5 52.6 94.3 116.6 94.3 256c0 86.5 69.1 156.6 153.7 156.6 98.2 0 135-70.4 140.8-106.9H248v-85.3h236.1c2.3 12.7 3.9 24.9 3.9 41.4z"
+                  ></path>
+                </svg>
+              )}
+              Continuar con Google
+            </Button>
+          </div>
+
+          <div className="relative my-4">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-background px-2 text-muted-foreground">O con tu correo</span>
+            </div>
+          </div>
+
+          <form onSubmit={handleAuthSubmit} className="space-y-4">
             {authMode === "signup" && (
               <div className="space-y-2">
                 <Label htmlFor="fullName">Nombre Completo</Label>
