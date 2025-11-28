@@ -125,16 +125,16 @@ export default function DemoPage() {
             value="dashboard"
             className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 relative"
           >
-            {/* 🔴 HOTSPOT 1: GRÁFICA DE VENTAS */}
-            {/* Posicionado cerca del título del gráfico */}
-            <DemoHotspot
-              className="top-24 left-1/2 -translate-x-1/2 md:translate-x-0 md:left-[300px] z-20"
-              title="Proyección de Ingresos"
-              description="Aquí ves tus ingresos reales vs promesas de pago. La línea punteada es nuestra IA proyectando cómo cerrarás el mes."
-              side="bottom"
-            />
-
-            <section>
+            {/* SECCIÓN 1: KPIs y VENTAS */}
+            <section className="relative">
+              {/* 🔴 HOTSPOT 1: INGRESOS */}
+              {/* Lo ponemos absolute respecto a esta sección */}
+              <DemoHotspot
+                className="top-24 left-1/2 -translate-x-1/2 md:translate-x-0 md:left-[280px] z-20"
+                title="Proyección de Ingresos"
+                description="Aquí ves tus ingresos reales vs promesas de pago. La línea punteada es nuestra IA proyectando cómo cerrarás el mes."
+                side="bottom"
+              />
               <DemoKPIs data={data.kpis} currency="MXN" />
               <div className="mt-8">
                 <BenefitTip
@@ -145,6 +145,7 @@ export default function DemoPage() {
               </div>
             </section>
 
+            {/* SECCIÓN 2: OPORTUNIDADES (GRID DE 2) */}
             <section>
               <div className="flex items-center justify-between mb-6 mt-12">
                 <h3 className="text-base font-bold text-slate-400 uppercase tracking-wider">
@@ -157,36 +158,38 @@ export default function DemoPage() {
 
               <OpportunityBanner value={data.opportunityValue || 50000} />
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 relative">
-                {/* 🔴 HOTSPOT 2: RADAR */}
-                {/* Esquina superior derecha de la tarjeta Radar */}
-                <DemoHotspot
-                  className="top-[-10px] left-[-10px] md:left-auto md:right-[-10px] z-20"
-                  title="Radar de Demanda (Lo que te falta)"
-                  description="Aquí aparecen las solicitudes de productos que tus clientes buscan pero TÚ NO TIENES en catálogo. Te decimos qué y cuánto comprar."
-                  side="bottom"
-                />
-
-                <Card className="shadow-lg border-indigo-100 overflow-hidden hover:shadow-xl transition-shadow relative">
-                  <CardHeader className="bg-slate-50/50 pb-4 border-b border-slate-100">
-                    <CardTitle className="text-lg flex items-center gap-2">
-                      <div className="bg-white p-2 rounded-lg shadow-sm">
-                        <div className="animate-pulse w-2 h-2 bg-red-500 rounded-full absolute top-0 right-0 -mt-1 -mr-1"></div>
-                        <ShoppingCart className="w-5 h-5 text-indigo-600" />
-                      </div>
-                      Solicitudes de Producto (Radar)
-                    </CardTitle>
-                  </CardHeader>
-                  <DemoRadarWidget data={data.radar} />
-                </Card>
-
-                {/* 🔴 HOTSPOT 3: SEARCH LOGS */}
-                {/* Esquina superior derecha de la tarjeta Search Logs */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* --- TARJETA 1: RADAR (CON HOTSPOT FIJO) --- */}
+                {/* Envolvemos en relative para que el hotspot viva AQUÍ */}
                 <div className="relative">
+                  {/* 🔴 HOTSPOT 2: RADAR - Corregido */}
                   <DemoHotspot
-                    className="top-[-10px] right-[-10px] z-20"
+                    className="top-[-10px] right-[-10px] z-30"
+                    title="Radar de Demanda (Lo que te falta)"
+                    description="Aquí aparecen las solicitudes de productos que tus clientes buscan pero TÚ NO TIENES en catálogo. Te dicen producto y cantidad exacta."
+                    side="left"
+                  />
+                  <Card className="shadow-lg border-indigo-100 overflow-hidden hover:shadow-xl transition-shadow h-full">
+                    <CardHeader className="bg-slate-50/50 pb-4 border-b border-slate-100">
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        <div className="bg-white p-2 rounded-lg shadow-sm">
+                          <div className="animate-pulse w-2 h-2 bg-red-500 rounded-full absolute top-0 right-0 -mt-1 -mr-1"></div>
+                          <ShoppingCart className="w-5 h-5 text-indigo-600" />
+                        </div>
+                        Solicitudes de Producto (Radar)
+                      </CardTitle>
+                    </CardHeader>
+                    <DemoRadarWidget data={data.radar} />
+                  </Card>
+                </div>
+
+                {/* --- TARJETA 2: SEARCH LOGS (CON HOTSPOT FIJO) --- */}
+                <div className="relative">
+                  {/* 🔴 HOTSPOT 3: SEARCH LOGS */}
+                  <DemoHotspot
+                    className="top-[-10px] right-[-10px] z-30"
                     title="Tendencias de Búsqueda"
-                    description="Identifica lo más buscado: 'Éxito' son ventas potenciales, 'No encontrado' son oportunidades perdidas que debes atender."
+                    description="Descubre qué buscan tus clientes. Identifica 'No encontrado' para ver oportunidades perdidas que debes atender."
                     side="left"
                   />
                   <Card className="shadow-lg border-slate-200 hover:shadow-xl transition-shadow h-full">
@@ -204,42 +207,49 @@ export default function DemoPage() {
               </div>
             </section>
 
-            <section className="mt-8 relative">
-              {/* 🔴 HOTSPOT 4: PREDICCIÓN */}
-              <DemoHotspot
-                className="top-0 right-0 md:right-10 z-20"
-                title="Top 10 en Tendencia"
-                description="Visualiza el ritmo de venta de tus productos estrella para evitar que te quedes sin stock."
-                side="left"
-              />
+            {/* SECCIÓN 3: PREDICCIÓN (FORECAST) */}
+            <section className="mt-8">
               <BenefitTip
                 title="Predicción de Inventario"
                 description="Nuestra IA analiza patrones de búsqueda y venta histórica para decirte qué productos se agotarán la próxima semana."
               />
-              <DemoForecastWidget productsData={data.topDemandProducts} />
+
+              {/* --- WRAPPER RELATIVE PARA EL FORECAST --- */}
+              <div className="relative mt-4">
+                {/* 🔴 HOTSPOT 4: TOP 10 (CORREGIDO DE POSICIÓN) */}
+                {/* Ahora está pegado al widget, no al título */}
+                <DemoHotspot
+                  className="top-[-10px] right-[-10px] z-30"
+                  title="Top 10 en Tendencia"
+                  description="Visualiza el ritmo de venta de tus productos estrella para evitar que te quedes sin stock."
+                  side="left"
+                />
+                <DemoForecastWidget productsData={data.topDemandProducts} />
+              </div>
             </section>
           </TabsContent>
 
+          {/* TAB CATALOGO (SIN CAMBIOS, YA ESTABA BIEN CONFIGURADO EN DEMOCATALOG.TSX) */}
           <TabsContent value="catalogo" className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl overflow-hidden min-h-[700px] relative group">
-              {/* Barra simulada navegador */}
               <div className="absolute top-0 left-0 w-full h-10 bg-slate-100 border-b flex items-center px-4 gap-2 z-20">
                 <div className="w-3 h-3 rounded-full bg-red-400"></div>
                 <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
                 <div className="w-3 h-3 rounded-full bg-green-400"></div>
+                <div className="mx-auto bg-white px-4 py-1 rounded-md text-xs font-medium text-slate-500 border shadow-sm flex items-center gap-2">
+                  🔒 catifypro.store/tu-negocio
+                </div>
               </div>
 
-              {/* 🔴 HOTSPOT 6: EXPLICACIÓN CATÁLOGO */}
+              {/* 🔴 HOTSPOT GENERAL */}
               <DemoHotspot
-                className="top-14 left-4"
+                className="top-14 left-4 z-30"
                 title="Tu Catálogo Inteligente"
-                description="Así ven tus clientes tu tienda. Completamente responsiva y diseñada para que sea fácil comprar."
+                description="Esta es la tienda que tus clientes ven. Está diseñada para convertir visitas en ventas rápidamente."
                 side="right"
               />
 
-              {/* AQUI IRÍA EL CONTENIDO DEL CATÁLOGO */}
               <div className="pt-10 h-full">
-                {/* Pasamos una prop ficticia para indicar que estamos en modo demo guiada si fuera necesario */}
                 <DemoCatalog products={data.products} color={data.colors.primary} />
               </div>
             </div>
