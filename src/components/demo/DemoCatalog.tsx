@@ -23,7 +23,7 @@ const ProductCard = ({ product, onAdd }: { product: any; onAdd: () => void }) =>
         alt={product.name}
         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
       />
-      {/* Botón con animación de pulso para invitar al clic */}
+      {/* Botón con animación de pulso */}
       <button
         onClick={(e) => {
           e.stopPropagation();
@@ -186,7 +186,7 @@ export default function DemoCatalog({ products, color }: { products: any[]; colo
       <div className="container mx-auto px-4 -mt-8 relative z-20">
         {/* BARRA DE BÚSQUEDA FLOTANTE */}
         <div className="bg-white p-4 rounded-xl shadow-xl border border-slate-100 mb-8 relative">
-          {/* 🔴 HOTSPOT BUSCADOR (CORREGIDO: side="left") */}
+          {/* Hotspot Buscador */}
           <DemoHotspot
             className="top-[-10px] right-[-10px] z-30"
             title="Buscador Inteligente (Radar)"
@@ -207,7 +207,7 @@ export default function DemoCatalog({ products, color }: { products: any[]; colo
 
         {/* GRID DE PRODUCTOS */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 relative">
-          {/* 🔴 HOTSPOT AGREGAR AL CARRITO */}
+          {/* Hotspot Agregar (Visible solo móvil) */}
           <DemoHotspot
             className="top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-30 md:hidden"
             title="¡Prueba comprando!"
@@ -221,19 +221,21 @@ export default function DemoCatalog({ products, color }: { products: any[]; colo
         </div>
       </div>
 
-      {/* BOTÓN FLOTANTE CARRITO */}
+      {/* BOTÓN FLOTANTE CARRITO - CORREGIDO PARA MÓVIL */}
       <AnimatePresence>
         {items.length > 0 && (
           <motion.div
-            initial={{ y: 100 }}
-            animate={{ y: 0 }}
-            exit={{ y: 100 }}
-            className="fixed bottom-8 left-1/2 -translate-x-1/2 z-40 w-[90%] md:w-auto"
+            initial={{ y: 100, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 100, opacity: 0 }}
+            // 🔥 SOLUCIÓN: Usamos left-4 right-4 en móvil para centrar automáticamente y w-auto en desktop
+            className="fixed bottom-8 left-4 right-4 md:left-1/2 md:right-auto md:-translate-x-1/2 z-40 flex justify-center"
           >
-            <div className="relative">
-              {/* 🔴 HOTSPOT CARRITO (FLOTANTE) */}
+            <div className="relative w-full md:w-auto">
+              {/* 🔴 HOTSPOT CARRITO */}
+              {/* En móvil: alineado a la derecha del botón (right-0). En desktop: un poco afuera (-15px) */}
               <DemoHotspot
-                className="top-[-15px] right-[-15px] z-50"
+                className="top-[-15px] right-0 md:right-[-15px] z-50"
                 title="Cierre de Venta"
                 description="Abre el carrito para ver el Recomendador IA en acción."
                 side="top"
@@ -242,7 +244,7 @@ export default function DemoCatalog({ products, color }: { products: any[]; colo
               <Button
                 onClick={() => setIsCartOpen(true)}
                 size="lg"
-                className="w-full md:w-auto rounded-full shadow-2xl shadow-indigo-500/30 px-8 h-14 bg-slate-900 hover:bg-slate-800 text-white gap-4 text-base border border-white/10"
+                className="w-full md:w-auto rounded-full shadow-2xl shadow-indigo-500/40 px-8 h-14 bg-slate-900 hover:bg-slate-800 text-white gap-4 text-base border border-white/10"
               >
                 <div className="relative">
                   <ShoppingCart className="w-6 h-6" />
