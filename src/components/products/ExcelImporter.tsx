@@ -35,15 +35,13 @@ interface ExcelImporterProps {
   isImporting: boolean;
 }
 
-// 🔥 HELPER MEJORADO: LIMPIA DINERO Y ESPACIOS 🔥
+// Helper de limpieza robusto
 const getExcelValue = (val: any, isNumber: boolean = false): any => {
   if (val === undefined || val === null || val === "") return null;
 
   if (isNumber) {
-    // Si es número directo, retornarlo
     if (typeof val === "number") return val;
-
-    // Si es string (ej: "$ 1,500.00"), limpiarlo quitando todo lo que no sea número, punto o menos
+    // Limpiar símbolos de moneda, espacios y comas
     const stringVal = String(val).replace(/[^0-9.-]+/g, "");
     const num = parseFloat(stringVal);
     return isNaN(num) ? null : num;
@@ -91,7 +89,6 @@ export const ExcelImporter = ({
         let newCount = 0;
 
         data.forEach((row) => {
-          // Buscamos el ID con varias opciones por si Excel cambió el header
           const id = row["ID_SISTEMA (NO TOCAR)"] || row["ID_SISTEMA"] || row["id"] || row["ID"];
           const tipo = (row["TIPO_FILA"] || "").toLowerCase();
           const idVariante = row["ID_VARIANTE"];
@@ -121,28 +118,32 @@ export const ExcelImporter = ({
       const ws = wb.Sheets[wb.SheetNames[0]];
       const data: any[] = XLSX.utils.sheet_to_json(ws);
 
-      const updatesProducts = [];
-      const updatesVariants = [];
-      const insertsProducts = [];
+      const updatesProducts: any[] = [];
+      const updatesVariants: any[] = [];
+      const insertsProducts: any[] = [];
 
       const {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) return;
 
-      console.log("--- INICIANDO PROCESAMIENTO DE EXCEL ---");
+      console.log("--- PROCESANDO DATOS EXCEL ---");
 
       for (const row of data) {
         const tipo = (row["TIPO_FILA"] || "producto").toLowerCase();
-        // Búsqueda robusta de ID
-        const idSistema = getExcelValue(row["ID_SISTEMA (NO TOCAR)"] || row["ID_SISTEMA"] || row["id"] || row["ID"]);
-        const idVariante = getExcelValue(row["ID_VARIANTE"]);
+
+        // ID Limpio (CRÍTICO)
+        let idSistema = getExcelValue(row["ID_SISTEMA (NO TOCAR)"] || row["ID_SISTEMA"] || row["id"] || row["ID"]);
+        if (idSistema) idSistema = String(idSistema).trim(); // Forzar string y quitar espacios
+
+        let idVariante = getExcelValue(row["ID_VARIANTE"]);
+        if (idVariante) idVariante = String(idVariante).trim();
 
         const nombre = getExcelValue(row["Nombre"] || row["name"]);
         const sku = getExcelValue(row["SKU"] || row["sku"]);
         const catExcel = getExcelValue(row["Categoría"] || row["category"]);
 
-        // PRECIOS: Convertir a centavos (Multiplicar por 100)
+        // Precios
         const pRetailRaw = getExcelValue(row["Precio Menudeo"] || row["price_retail"] || row["Price"], true);
         const pWholesaleRaw = getExcelValue(row["Precio Mayoreo"] || row["price_wholesale"], true);
 
@@ -160,14 +161,17 @@ export const ExcelImporter = ({
               .filter(Boolean)
           : [];
 
-        let categoryToUse = selectedCategory;
+        // Lógica de Categoría Segura
+        let validCategory: string | undefined = undefined;
         if (catExcel) {
+          // Solo aceptamos la categoría si existe en nuestra lista oficial
+          // Esto evita errores de Foreign Key o Enum en la BD
           const match = PRODUCT_CATEGORIES.find((c) => c.label === catExcel || c.value === catExcel);
-          if (match) categoryToUse = match.value;
+          if (match) validCategory = match.value;
         }
 
         if (tipo === "variante" && idVariante) {
-          // UPDATE VARIANTE
+          // VARIANTES
           updatesVariants.push({
             id: idVariante,
             sku: sku,
@@ -176,12 +180,13 @@ export const ExcelImporter = ({
             stock_quantity: stock,
           });
         } else if (idSistema) {
-          // UPDATE PRODUCTO PADRE
+          // PRODUCTO PADRE
           updatesProducts.push({
             id: idSistema,
             name: nombre,
             sku: sku,
-            category: catExcel ? categoryToUse : undefined, // Solo si viene en excel
+            // Si category venía en excel y es válida, la actualizamos. Si no, enviamos undefined para no tocarla
+            category: validCategory,
             description: desc,
             price_retail: priceRetail,
             price_wholesale: priceWholesale,
@@ -190,13 +195,13 @@ export const ExcelImporter = ({
             tags: tags,
           });
         } else {
-          // INSERT NUEVO
+          // NUEVO
           if (nombre && priceRetail !== null) {
             insertsProducts.push({
               user_id: user.id,
               name: nombre,
               sku: sku,
-              category: categoryToUse || "General",
+              category: validCategory || selectedCategory || "General", // Fallback seguro
               description: desc,
               price_retail: priceRetail,
               price_wholesale: priceWholesale,
@@ -210,63 +215,60 @@ export const ExcelImporter = ({
         }
       }
 
-      console.log(
-        `Resumen: ${updatesProducts.length} updates padre, ${updatesVariants.length} updates variantes, ${insertsProducts.length} inserts.`,
-      );
-
       try {
         const promises = [];
 
-        // --- 1. ACTUALIZAR PRODUCTOS PADRE ---
+        // --- ACTUALIZAR PADRES ---
         if (updatesProducts.length > 0) {
           const productUpdates = updatesProducts.map((p) => {
-            // 🔥 CORRECCIÓN: Extraemos el ID para no enviarlo en el body
+            // 🔥 CORRECCIÓN 400: Sacar el ID del cuerpo
             const { id, ...rest } = p;
 
-            // Limpiamos undefined (pero dejamos null si queremos borrar el dato)
+            // Limpiar undefineds (pero mantener nulls)
             const cleanPayload = Object.fromEntries(Object.entries(rest).filter(([_, v]) => v !== undefined));
+
+            // Log de diagnóstico (solo el primero para no saturar)
+            if (p === updatesProducts[0]) console.log("Ejemplo Payload Padre:", cleanPayload);
 
             return supabase.from("products").update(cleanPayload).eq("id", id);
           });
           promises.push(...productUpdates);
         }
 
-        // --- 2. ACTUALIZAR VARIANTES ---
+        // --- ACTUALIZAR VARIANTES ---
         if (updatesVariants.length > 0) {
           const variantUpdates = updatesVariants.map((v) => {
             const { id, ...rest } = v;
-
             const cleanPayload = Object.fromEntries(Object.entries(rest).filter(([_, v]) => v !== undefined));
-
             return supabase.from("product_variants").update(cleanPayload).eq("id", id);
           });
           promises.push(...variantUpdates);
         }
 
-        // --- 3. INSERTAR NUEVOS ---
+        // --- INSERTAR NUEVOS ---
         if (insertsProducts.length > 0) {
           promises.push(supabase.from("products").insert(insertsProducts));
         }
 
-        // Ejecutamos todas las promesas
+        // Ejecutar
         const results = await Promise.all(promises);
 
-        // Verificación básica de errores
+        // Chequear errores
         const errors = results.filter((r) => r.error);
         if (errors.length > 0) {
-          console.error("Algunos updates fallaron:", errors[0].error);
-          throw new Error(`Error en ${errors.length} operaciones. Revisa la consola.`);
+          console.error("Errores detallados:", errors);
+          throw new Error(`Fallaron ${errors.length} actualizaciones. Revisa la consola.`);
         }
 
-        toast({ title: "Importación exitosa", description: "Precios y stock actualizados." });
+        toast({ title: "Importación exitosa", description: "Inventario actualizado." });
         onImportSuccess();
         setIsDialogOpen(false);
         setFile(null);
       } catch (err: any) {
-        console.error("Error Crítico Supabase:", err);
+        console.error("Error Catch:", err);
         toast({
           title: "Error en la importación",
-          description: err.message || "Error desconocido.",
+          description: err.message || "Ocurrió un error al enviar los datos.",
           variant: "destructive",
         });
       } finally {
@@ -299,30 +301,27 @@ export const ExcelImporter = ({
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Confirmar Cambios</DialogTitle>
-            <DialogDescription>Hemos analizado tu archivo. Se aplicarán los siguientes cambios:</DialogDescription>
+            <DialogDescription>Resumen de la operación:</DialogDescription>
           </DialogHeader>
 
           <div className="grid grid-cols-3 gap-3 py-4 text-center">
             <div className="bg-amber-50 p-3 rounded-lg border border-amber-100">
               <div className="text-2xl font-bold text-amber-600">{stats.products}</div>
               <div className="text-[10px] uppercase font-bold text-amber-700">Productos</div>
-              <div className="text-[9px] text-amber-600/70">Actualizar</div>
             </div>
             <div className="bg-purple-50 p-3 rounded-lg border border-purple-100">
               <div className="text-2xl font-bold text-purple-600">{stats.variants}</div>
               <div className="text-[10px] uppercase font-bold text-purple-700">Variantes</div>
-              <div className="text-[9px] text-purple-600/70">Actualizar</div>
             </div>
             <div className="bg-emerald-50 p-3 rounded-lg border border-emerald-100">
               <div className="text-2xl font-bold text-emerald-600">{stats.newProducts}</div>
               <div className="text-[10px] uppercase font-bold text-emerald-700">Nuevos</div>
-              <div className="text-[9px] text-emerald-600/70">Crear</div>
             </div>
           </div>
 
           {stats.newProducts > 0 && (
             <div className="bg-slate-50 p-3 rounded border border-slate-200">
-              <Label className="text-xs mb-2 block font-medium text-slate-700">Categoría para los nuevos:</Label>
+              <Label className="text-xs mb-2 block font-medium text-slate-700">Categoría para nuevos:</Label>
               <Select value={selectedCategory} onValueChange={setSelectedCategory}>
                 <SelectTrigger className="h-9 bg-white">
                   <SelectValue placeholder="Selecciona..." />
