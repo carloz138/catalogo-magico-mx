@@ -6,7 +6,6 @@ import {
   ChevronLeft,
   Zap,
   Search,
-  Users,
   Check,
   Rocket,
   Radar,
@@ -14,11 +13,13 @@ import {
   TrendingUp,
   Ticket,
   Network,
+  Copy,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { toast } from "@/hooks/use-toast"; // Asegúrate de tener este hook o usa alerta simple
 
-// --- MICRO-VISUALES REUTILIZADOS ---
+// --- MICRO-VISUALES ---
 
 const VisualRocket = () => (
   <div className="relative w-full h-40 bg-slate-900 rounded-xl border border-slate-800 flex items-center justify-center overflow-hidden shrink-0">
@@ -36,7 +37,6 @@ const VisualRocket = () => (
 
 const VisualIntelligence = () => (
   <div className="relative w-full h-40 bg-emerald-50 rounded-xl border border-emerald-100 flex items-center justify-center overflow-hidden shrink-0">
-    {/* Radar Animation */}
     <motion.div
       animate={{ rotate: 360 }}
       transition={{ repeat: Infinity, duration: 4, ease: "linear" }}
@@ -83,20 +83,59 @@ const VisualNetworkEffect = () => (
   </div>
 );
 
-const VisualCrown = () => (
-  <div className="relative w-full h-40 bg-gradient-to-r from-yellow-50 to-amber-100 rounded-xl border border-amber-200 flex flex-col items-center justify-center p-4 overflow-hidden shrink-0">
-    <Crown className="w-12 h-12 text-amber-500 mb-3 drop-shadow-sm" />
-    <div className="bg-white/90 backdrop-blur px-4 py-2 rounded-full border border-amber-200 flex items-center gap-2 shadow-sm animate-bounce">
-      <Ticket className="w-4 h-4 text-emerald-600" />
-      <span className="text-sm font-bold text-slate-800">
-        CUPÓN: <span className="text-emerald-600 font-mono text-base">CYBER-AI-3</span>
-      </span>
-    </div>
-  </div>
-);
+// 🔥 COMPONENTE CON LÓGICA DE COPIADO 🔥
+const VisualCrown = () => {
+  const [copied, setCopied] = useState(false);
+  const code = "CYBER-AI-3";
 
-// --- HELPER SEGURO PARA TEXTO (Sustituye dangerouslySetInnerHTML) ---
-// Usa el formato *texto* para negritas
+  const handleCopy = () => {
+    navigator.clipboard.writeText(code);
+    setCopied(true);
+    toast({ title: "¡Cupón copiado!", description: "Úsalo al mejorar tu plan." });
+    setTimeout(() => setCopied(false), 2500);
+  };
+
+  return (
+    <div className="relative w-full h-40 bg-gradient-to-r from-yellow-50 to-amber-100 rounded-xl border border-amber-200 flex flex-col items-center justify-center p-4 overflow-hidden shrink-0">
+      <Crown className="w-12 h-12 text-amber-500 mb-3 drop-shadow-sm" />
+
+      {/* BOTÓN INTERACTIVO */}
+      <button
+        onClick={handleCopy}
+        className="group relative bg-white/90 backdrop-blur px-5 py-2.5 rounded-full border border-amber-200 flex items-center gap-2 shadow-sm hover:shadow-md hover:scale-105 active:scale-95 transition-all cursor-pointer"
+      >
+        {copied ? (
+          <>
+            <Check className="w-4 h-4 text-green-600" />
+            <span className="text-sm font-bold text-green-700">¡COPIADO!</span>
+          </>
+        ) : (
+          <>
+            <Ticket className="w-4 h-4 text-emerald-600" />
+            <span className="text-sm font-bold text-slate-800 flex items-center gap-2">
+              CUPÓN:{" "}
+              <span className="text-emerald-600 font-mono text-base border-b border-dashed border-emerald-300">
+                {code}
+              </span>
+            </span>
+            <div className="w-5 h-5 bg-slate-100 rounded-full flex items-center justify-center ml-1 group-hover:bg-slate-200">
+              <Copy className="w-3 h-3 text-slate-500" />
+            </div>
+          </>
+        )}
+
+        {/* Tooltip flotante */}
+        {!copied && (
+          <span className="absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+            Clic para copiar
+          </span>
+        )}
+      </button>
+    </div>
+  );
+};
+
+// --- HELPER SEGURO PARA TEXTO ---
 const parseText = (text: string) => {
   const parts = text.split(/(\*[^*]+\*)/g);
   return (
@@ -115,7 +154,7 @@ const parseText = (text: string) => {
   );
 };
 
-// --- DATA: 5 SLIDES ---
+// --- DATA ---
 const SLIDES = [
   {
     id: "intro",
@@ -209,7 +248,6 @@ export default function WelcomeTour({ isOpen, onClose }: { isOpen: boolean; onCl
         initial={{ opacity: 0, y: 50, scale: 0.95 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
-        // 👇 AQUÍ ESTÁ EL ARREGLO PARA MÓVILES: max-h-[90vh] y flex-col
         className="w-full h-full sm:h-auto sm:max-h-[90vh] max-w-lg relative flex flex-col"
       >
         <Card className="flex flex-col h-full sm:h-auto overflow-hidden border-0 shadow-2xl sm:rounded-3xl bg-white rounded-t-3xl rounded-b-none">
@@ -232,7 +270,6 @@ export default function WelcomeTour({ isOpen, onClose }: { isOpen: boolean; onCl
           </button>
 
           {/* CONTENIDO SCROLLABLE */}
-          {/* 👇 overflow-y-auto asegura que si el texto es largo, scrollea DENTRO de la tarjeta */}
           <div className="flex-1 overflow-y-auto p-6 md:p-8">
             <AnimatePresence mode="wait">
               <motion.div
@@ -273,7 +310,7 @@ export default function WelcomeTour({ isOpen, onClose }: { isOpen: boolean; onCl
             </AnimatePresence>
           </div>
 
-          {/* FOOTER ACTIONS (FIJO ABAJO) */}
+          {/* FOOTER ACTIONS */}
           <div className="p-5 border-t border-slate-100 bg-white shrink-0 flex items-center justify-between pb-8 sm:pb-5">
             <div className="text-xs font-medium text-slate-400">
               {currentStep + 1} / {SLIDES.length}
