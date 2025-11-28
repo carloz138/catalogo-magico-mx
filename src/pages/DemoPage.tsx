@@ -228,19 +228,7 @@ export default function DemoPage() {
                 <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
                 <div className="w-3 h-3 rounded-full bg-green-400"></div>
 
-                {/* 🔴 HOTSPOT 5: BUSCADOR (Sobre la barra de URL simulada) */}
-                <div className="relative mx-auto w-full max-w-md">
-                  <div className="bg-white px-4 py-1 rounded-md text-xs font-medium text-slate-500 border shadow-sm flex items-center gap-2 justify-center w-full">
-                    🔒 catifypro.store/tu-negocio
-                  </div>
-                  <DemoHotspot
-                    className="top-1/2 -translate-y-1/2 -right-10 md:-right-12"
-                    title="Buscador = Radar"
-                    description="Todo lo que escriben aquí se guarda. Si no encuentran el producto, el sistema les ofrece solicitarlo (Radar)."
-                    side="bottom"
-                  />
-                </div>
-              </div>
+ 
 
               {/* 🔴 HOTSPOT 6: EXPLICACIÓN CATÁLOGO */}
               <DemoHotspot
