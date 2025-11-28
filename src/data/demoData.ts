@@ -65,7 +65,6 @@ const generateTopProductsForecast = (products: string[]) => {
       id: `prod-${index}`,
       name: productName,
       growth: index < 3 ? "+15%" : index > 7 ? "-5%" : "+2%",
-      // Tipado estricto para el componente
       status: (index < 3 ? "rising" : index > 7 ? "falling" : "stable") as "rising" | "falling" | "stable",
       data: [...history, ...future],
     };
@@ -121,6 +120,7 @@ export const DEMO_DATA = {
         name: "Vestido Floral Verano",
         price_retail: 85000,
         category: "Vestidos",
+        // Imagen estable de vestido floral
         image: "https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?auto=format&fit=crop&w=500&q=80",
       },
       {
@@ -128,6 +128,7 @@ export const DEMO_DATA = {
         name: "Jeans Slim Fit",
         price_retail: 120000,
         category: "Pantalones",
+        // Imagen estable de jeans
         image: "https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&w=500&q=80",
       },
       {
@@ -135,6 +136,7 @@ export const DEMO_DATA = {
         name: "Blusa Seda Blanca",
         price_retail: 65000,
         category: "Tops",
+        // Imagen estable de blusa blanca
         image: "https://images.unsplash.com/photo-1518622358385-8ea7d0794bf6?auto=format&fit=crop&w=500&q=80",
       },
       {
@@ -142,6 +144,7 @@ export const DEMO_DATA = {
         name: "Chamarra Mezclilla",
         price_retail: 150000,
         category: "Chamarras",
+        // Imagen estable de chamarra de mezclilla
         image: "https://images.unsplash.com/photo-1523205771623-e0faa4d2813d?auto=format&fit=crop&w=500&q=80",
       },
     ],
@@ -194,6 +197,7 @@ export const DEMO_DATA = {
         name: "Taladro Percutor 500W",
         price_retail: 185000,
         category: "Herramientas",
+        // Imagen estable de taladro
         image: "https://images.unsplash.com/photo-1504148455328-c376907d081c?auto=format&fit=crop&w=500&q=80",
       },
       {
@@ -201,6 +205,7 @@ export const DEMO_DATA = {
         name: "Juego Desarmadores",
         price_retail: 45000,
         category: "Manuales",
+        // Imagen estable de herramientas manuales
         image: "https://images.unsplash.com/photo-1581147036324-c17ac41dfa6c?auto=format&fit=crop&w=500&q=80",
       },
       {
@@ -208,6 +213,7 @@ export const DEMO_DATA = {
         name: "Lijadora Orbital",
         price_retail: 120000,
         category: "Herramientas",
+        // Imagen estable de lijadora
         image: "https://images.unsplash.com/photo-1572981779307-38b8cabb2407?auto=format&fit=crop&w=500&q=80",
       },
       {
@@ -215,6 +221,7 @@ export const DEMO_DATA = {
         name: "Casco Seguridad",
         price_retail: 25000,
         category: "Seguridad",
+        // Imagen estable de casco
         image: "https://images.unsplash.com/photo-1585832770485-e68a5dbfad52?auto=format&fit=crop&w=500&q=80",
       },
     ],
@@ -259,6 +266,7 @@ export const DEMO_DATA = {
         name: "Viga IPR Estructural",
         price_retail: 4500000,
         category: "Estructural",
+        // Imagen de construcción / acero
         image: "https://images.unsplash.com/photo-1535813547-99c456a41d4a?auto=format&fit=crop&w=500&q=80",
       },
       {
@@ -266,6 +274,7 @@ export const DEMO_DATA = {
         name: "Varilla 3/8 Tonelada",
         price_retail: 1800000,
         category: "Construcción",
+        // Imagen de varillas
         image: "https://images.unsplash.com/photo-1626863004868-b7eb462b55b6?auto=format&fit=crop&w=500&q=80",
       },
       {
@@ -273,6 +282,7 @@ export const DEMO_DATA = {
         name: "PTR 4x4 Calibre 14",
         price_retail: 85000,
         category: "Perfiles",
+        // Imagen de perfiles metálicos
         image: "https://images.unsplash.com/photo-1518709414768-a88981a45e5d?auto=format&fit=crop&w=500&q=80",
       },
       {
@@ -280,6 +290,7 @@ export const DEMO_DATA = {
         name: "Lámina Acanalada",
         price_retail: 45000,
         category: "Láminas",
+        // Imagen de láminas
         image: "https://images.unsplash.com/photo-1513467535987-fd81bc7d7cd3?auto=format&fit=crop&w=500&q=80",
       },
     ],
@@ -324,6 +335,7 @@ export const DEMO_DATA = {
         name: "Kit Labiales Nude",
         price_retail: 45000,
         category: "Labios",
+        // Imagen de labiales
         image: "https://images.unsplash.com/photo-1571781535469-fec2c4125d0d?auto=format&fit=crop&w=500&q=80",
       },
       {
@@ -331,6 +343,7 @@ export const DEMO_DATA = {
         name: "Paleta Sombras",
         price_retail: 85000,
         category: "Ojos",
+        // Imagen de paleta de sombras
         image: "https://images.unsplash.com/photo-1512496015851-a90fb38ba796?auto=format&fit=crop&w=500&q=80",
       },
       {
@@ -338,6 +351,7 @@ export const DEMO_DATA = {
         name: "Base Maquillaje",
         price_retail: 65000,
         category: "Rostro",
+        // Imagen de base de maquillaje
         image: "https://images.unsplash.com/photo-1596462502278-27bfdd403348?auto=format&fit=crop&w=500&q=80",
       },
       {
@@ -345,6 +359,7 @@ export const DEMO_DATA = {
         name: "Brochas Profesionales",
         price_retail: 120000,
         category: "Accesorios",
+        // Imagen de brochas
         image: "https://images.unsplash.com/photo-1596462502278-27bfdd403348?auto=format&fit=crop&w=500&q=80",
       },
     ],
@@ -389,6 +404,7 @@ export const DEMO_DATA = {
         name: "Alimento Premium 20kg",
         price_retail: 120000,
         category: "Alimento",
+        // Imagen de perro comiendo
         image: "https://images.unsplash.com/photo-1589924691195-41432c84c161?auto=format&fit=crop&w=500&q=80",
       },
       {
@@ -396,6 +412,7 @@ export const DEMO_DATA = {
         name: "Pipeta Antipulgas",
         price_retail: 35000,
         category: "Medicina",
+        // Imagen de productos veterinarios
         image: "https://images.unsplash.com/photo-1576201836106-db1758fd1c97?auto=format&fit=crop&w=500&q=80",
       },
       {
@@ -403,6 +420,7 @@ export const DEMO_DATA = {
         name: "Shampoo Hipoalergénico",
         price_retail: 25000,
         category: "Higiene",
+        // Imagen de perro bañándose (o shampoo)
         image: "https://images.unsplash.com/photo-1583947215259-38e31be8751f?auto=format&fit=crop&w=500&q=80",
       },
       {
@@ -410,6 +428,7 @@ export const DEMO_DATA = {
         name: "Juguete Morder",
         price_retail: 15000,
         category: "Accesorios",
+        // Imagen de juguete de perro
         image: "https://images.unsplash.com/photo-1576201836106-db1758fd1c97?auto=format&fit=crop&w=500&q=80",
       },
     ],
