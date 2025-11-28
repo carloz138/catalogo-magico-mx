@@ -6,9 +6,6 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { motion, AnimatePresence } from "framer-motion";
 import { DemoHotspot } from "@/components/demo/DemoHotspot";
 
-// URL ESTABLE PARA EL PACK PROMOCIONAL (Cajas de regalo genéricas)
-const PROMO_IMAGE_URL = "https://images.unsplash.com/photo-1549465220-1a8b9238cd48?auto=format&fit=crop&w=200&q=80";
-
 const formatCurrency = (amount: number) => {
   return new Intl.NumberFormat("es-MX", {
     style: "currency",
@@ -17,8 +14,45 @@ const formatCurrency = (amount: number) => {
   }).format(amount / 100);
 };
 
+// --- COMPONENTE VISUAL: MANO SEÑALANDO (NUEVO) ---
+const ClickHint = () => (
+  <motion.div
+    initial={{ opacity: 0, x: 10, y: 10 }}
+    animate={{
+      opacity: [0, 1, 1, 0],
+      x: [10, 0, 0, 10],
+      y: [10, 0, 0, 10],
+      scale: [1, 0.9, 0.9, 1],
+    }}
+    transition={{
+      duration: 1.5,
+      repeat: Infinity,
+      repeatDelay: 0.2,
+      ease: "easeInOut",
+    }}
+    className="absolute bottom-2 right-2 z-40 pointer-events-none drop-shadow-lg"
+  >
+    {/* Mano SVG apuntando al botón */}
+    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path
+        d="M7.82843 10.1716L12.0711 5.92893C12.4616 5.53841 13.0948 5.53841 13.4853 5.92893C13.8758 6.31946 13.8758 6.95262 13.4853 7.34315L9.24264 11.5858"
+        stroke="white"
+        strokeWidth="4"
+        strokeLinecap="round"
+      />
+      <path
+        d="M17 22L10 15L6.5 18.5C5.1 19.9 2.9 19.9 1.5 18.5C0.1 17.1 0.1 14.9 1.5 13.5L12 3C13.4 1.6 15.6 1.6 17 3C18.4 4.4 18.4 6.6 17 8L13.5 11.5L20.5 18.5L17 22Z"
+        fill="#F59E0B"
+        stroke="white"
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+      />
+    </svg>
+  </motion.div>
+);
+
 // --- COMPONENTE TARJETA DE PRODUCTO ---
-const ProductCard = ({ product, onAdd }: { product: any; onAdd: () => void }) => (
+const ProductCard = ({ product, onAdd, showHint }: { product: any; onAdd: () => void; showHint?: boolean }) => (
   <div className="group bg-white border border-slate-200 rounded-xl overflow-hidden hover:shadow-lg transition-all cursor-pointer relative">
     <div className="aspect-square bg-slate-100 relative overflow-hidden">
       <img
@@ -26,18 +60,23 @@ const ProductCard = ({ product, onAdd }: { product: any; onAdd: () => void }) =>
         alt={product.name}
         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
         onError={(e) => {
-          // Fallback si falla la imagen del producto
           e.currentTarget.src =
             "https://images.unsplash.com/photo-1557683316-973673baf926?auto=format&fit=crop&w=500&q=80";
         }}
       />
-      {/* Botón con animación de pulso */}
+
+      {/* 🔥 MANO ANIMADA (SOLO SI SE INDICA) 🔥 */}
+      {showHint && <ClickHint />}
+
+      {/* Botón con animación condicional */}
       <button
         onClick={(e) => {
           e.stopPropagation();
           onAdd();
         }}
-        className="absolute bottom-3 right-3 h-10 w-10 bg-indigo-600 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-indigo-700 transition-all z-20 animate-pulse hover:animate-none"
+        className={`absolute bottom-3 right-3 h-10 w-10 text-white rounded-full shadow-lg flex items-center justify-center transition-all z-30 
+            ${showHint ? "bg-indigo-600 ring-4 ring-yellow-400/60 animate-pulse scale-110" : "bg-indigo-600 hover:bg-indigo-700"}
+        `}
       >
         <Plus className="w-5 h-5" />
       </button>
@@ -53,14 +92,17 @@ const ProductCard = ({ product, onAdd }: { product: any; onAdd: () => void }) =>
 );
 
 // --- COMPONENTE CARRITO (SHEET) ---
+// URL ESTABLE PARA EL PACK PROMOCIONAL
+const PROMO_IMAGE_URL = "https://images.unsplash.com/photo-1549465220-1a8b9238cd48?auto=format&fit=crop&w=200&q=80";
+
 const DemoCart = ({ isOpen, onClose, items, setItems }: any) => {
   const handleAddUpsell = () => {
     setItems([
       ...items,
       {
         name: "Pack Promocional",
-        price: 45000, // $450.00
-        image: PROMO_IMAGE_URL, // Usamos la URL corregida
+        price: 45000,
+        image: PROMO_IMAGE_URL,
       },
     ]);
   };
@@ -126,7 +168,6 @@ const DemoCart = ({ isOpen, onClose, items, setItems }: any) => {
 
                   <div className="flex gap-3 bg-white/10 backdrop-blur-md p-2 rounded-lg border border-white/20">
                     <div className="h-10 w-10 bg-white rounded-md shrink-0 overflow-hidden">
-                      {/* 🖼️ IMAGEN CORREGIDA AQUÍ */}
                       <img src={PROMO_IMAGE_URL} className="w-full h-full object-cover" alt="Pack Promo" />
                     </div>
                     <div className="flex-1 flex items-center justify-between">
@@ -196,7 +237,7 @@ export default function DemoCatalog({ products, color }: { products: any[]; colo
       <div className="container mx-auto px-4 -mt-8 relative z-20">
         {/* BARRA DE BÚSQUEDA FLOTANTE */}
         <div className="bg-white p-4 rounded-xl shadow-xl border border-slate-100 mb-8 relative">
-          {/* Hotspot Buscador */}
+          {/* 🔴 HOTSPOT BUSCADOR */}
           <DemoHotspot
             className="top-[-10px] right-[-10px] z-30"
             title="Buscador Inteligente (Radar)"
@@ -217,16 +258,16 @@ export default function DemoCatalog({ products, color }: { products: any[]; colo
 
         {/* GRID DE PRODUCTOS */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 relative">
-          {/* Hotspot Agregar */}
-          <DemoHotspot
-            className="top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-30"
-            title="¡Prueba comprando!"
-            description="Dale clic al botón '+' para ver cómo funciona el carrito inteligente."
-            side="top"
-          />
+          {/* 🔥 ELIMINADO EL HOTSPOT CENTRAL DE TEXTO QUE FALLABA 🔥 */}
 
-          {filtered.map((p) => (
-            <ProductCard key={p.id} product={p} onAdd={() => handleAdd(p)} />
+          {filtered.map((p, index) => (
+            <ProductCard
+              key={p.id}
+              product={p}
+              onAdd={() => handleAdd(p)}
+              // 🔥 MAGIA: Solo mostramos la mano en el primer producto si el carrito está vacío
+              showHint={index === 0 && items.length === 0}
+            />
           ))}
         </div>
       </div>
@@ -241,7 +282,7 @@ export default function DemoCatalog({ products, color }: { products: any[]; colo
             className="fixed bottom-8 left-4 right-4 md:left-1/2 md:right-auto md:-translate-x-1/2 z-40 flex justify-center"
           >
             <div className="relative w-full md:w-auto">
-              {/* Hotspot Carrito */}
+              {/* 🔴 HOTSPOT CARRITO */}
               <DemoHotspot
                 className="top-[-10px] right-0 md:right-[-10px] z-50"
                 title="Cierre de Venta"
