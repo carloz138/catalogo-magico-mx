@@ -14,8 +14,46 @@ const formatCurrency = (amount: number) => {
   }).format(amount / 100);
 };
 
+// --- COMPONENTE VISUAL: MANO SEÑALANDO (NUEVO) ---
+const ClickHint = () => (
+  <motion.div
+    initial={{ opacity: 0, x: 20, y: 20 }}
+    animate={{
+      opacity: [0, 1, 1, 0],
+      x: [20, 0, 0, 20],
+      y: [20, 0, 0, 20],
+      scale: [1, 0.9, 0.9, 1],
+    }}
+    transition={{
+      duration: 2,
+      repeat: Infinity,
+      repeatDelay: 0.5,
+      ease: "easeInOut",
+    }}
+    className="absolute bottom-0 right-0 z-30 pointer-events-none"
+  >
+    {/* SVG Hand Cursor */}
+    <svg
+      width="60"
+      height="60"
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className="drop-shadow-xl"
+    >
+      <path
+        d="M17 22L10 15L6.5 18.5C5.1 19.9 2.9 19.9 1.5 18.5C0.1 17.1 0.1 14.9 1.5 13.5L12 3C13.4 1.6 15.6 1.6 17 3C18.4 4.4 18.4 6.6 17 8L13.5 11.5L20.5 18.5L17 22Z"
+        fill="#F59E0B"
+        stroke="white"
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+      />
+    </svg>
+  </motion.div>
+);
+
 // --- COMPONENTE TARJETA DE PRODUCTO ---
-const ProductCard = ({ product, onAdd }: { product: any; onAdd: () => void }) => (
+const ProductCard = ({ product, onAdd, showHint }: { product: any; onAdd: () => void; showHint?: boolean }) => (
   <div className="group bg-white border border-slate-200 rounded-xl overflow-hidden hover:shadow-lg transition-all cursor-pointer relative">
     <div className="aspect-square bg-slate-100 relative overflow-hidden">
       <img
@@ -23,13 +61,20 @@ const ProductCard = ({ product, onAdd }: { product: any; onAdd: () => void }) =>
         alt={product.name}
         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
       />
-      {/* Botón con animación de pulso siempre visible para invitar al clic */}
+
+      {/* ✋ MANO ANIMADA (SOLO SI SE INDICA) */}
+      {showHint && <ClickHint />}
+
+      {/* Botón con animación */}
       <button
         onClick={(e) => {
           e.stopPropagation();
           onAdd();
         }}
-        className="absolute bottom-3 right-3 h-10 w-10 bg-indigo-600 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-indigo-700 transition-all z-20 animate-pulse hover:animate-none"
+        // Si showHint es true, el botón brilla y pulsa más fuerte
+        className={`absolute bottom-3 right-3 h-10 w-10 text-white rounded-full shadow-lg flex items-center justify-center transition-all z-20 
+            ${showHint ? "bg-indigo-600 ring-4 ring-yellow-400/50 animate-pulse scale-110" : "bg-indigo-600 hover:bg-indigo-700"}
+        `}
       >
         <Plus className="w-5 h-5" />
       </button>
@@ -88,7 +133,7 @@ const DemoCart = ({ isOpen, onClose, items, setItems }: any) => {
               <DemoHotspot
                 className="top-[-15px] right-0 z-30"
                 title="IA Recomendadora (Upsell)"
-                description="El sistema detecta automáticamente qué ofrecer para aumentar el ticket promedio. ¡Sin que tú hagas nada!"
+                description="El sistema detecta automáticamente qué ofrecer para aumentar el ticket promedio."
                 side="left"
               />
 
@@ -184,16 +229,15 @@ export default function DemoCatalog({ products, color }: { products: any[]; colo
       </div>
 
       <div className="container mx-auto px-4 -mt-8 relative z-20">
-        {/* BARRA DE BÚSQUEDA FLOTANTE */}
+        {/* BARRA DE BÚSQUEDA */}
         <div className="bg-white p-4 rounded-xl shadow-xl border border-slate-100 mb-8 relative">
-          {/* 🔴 HOTSPOT BUSCADOR (Izquierda) */}
+          {/* Hotspot Buscador */}
           <DemoHotspot
             className="top-[-10px] right-[-10px] z-30"
             title="Buscador Inteligente (Radar)"
-            description="Aquí capturamos la intención de compra. Si buscan algo que no tienes, el sistema activa el Radar y te avisa."
+            description="Aquí capturamos la intención de compra. Si buscan algo que no tienes, el sistema activa el Radar."
             side="left"
           />
-
           <div className="relative">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
             <Input
@@ -207,21 +251,19 @@ export default function DemoCatalog({ products, color }: { products: any[]; colo
 
         {/* GRID DE PRODUCTOS */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 relative">
-          {/* 🔴 HOTSPOT CENTRAL: "¡Prueba comprando!" (Arriba y Visible) */}
-          <DemoHotspot
-            className="top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-30"
-            title="¡Prueba comprando!"
-            description="Dale clic al botón '+' para ver cómo funciona el carrito inteligente."
-            side="top"
-          />
-
-          {filtered.map((p) => (
-            <ProductCard key={p.id} product={p} onAdd={() => handleAdd(p)} />
+          {filtered.map((p, index) => (
+            <ProductCard
+              key={p.id}
+              product={p}
+              onAdd={() => handleAdd(p)}
+              // 🔥 MAGIA: Solo mostramos la mano en el primer producto si el carrito está vacío
+              showHint={index === 0 && items.length === 0}
+            />
           ))}
         </div>
       </div>
 
-      {/* BOTÓN FLOTANTE CARRITO */}
+      {/* BOTÓN CARRITO */}
       <AnimatePresence>
         {items.length > 0 && (
           <motion.div
@@ -231,7 +273,6 @@ export default function DemoCatalog({ products, color }: { products: any[]; colo
             className="fixed bottom-8 left-4 right-4 md:left-1/2 md:right-auto md:-translate-x-1/2 z-40 flex justify-center"
           >
             <div className="relative w-full md:w-auto">
-              {/* 🔴 HOTSPOT CARRITO (Izquierda) */}
               <DemoHotspot
                 className="top-[-10px] right-0 md:right-[-10px] z-50"
                 title="Cierre de Venta"
