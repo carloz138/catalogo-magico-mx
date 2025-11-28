@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion"; // Animaciones
+import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -20,7 +20,6 @@ import {
   DollarSign,
   LayoutGrid,
   Search,
-  Filter,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -35,7 +34,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { BusinessInfoBanner } from "@/components/dashboard/BusinessInfoBanner";
 
 // ==========================================
-// TIPOS (Sin cambios)
+// 1. TIPOS & INTERFACES (Estrictos)
 // ==========================================
 
 interface PDFCatalog {
@@ -60,10 +59,18 @@ interface PDFCatalog {
   generation_metadata?: any;
 }
 
+// Extensión para catálogos replicados (L2)
+interface ReplicatedCatalogUI extends Partial<DigitalCatalog> {
+  replicatedCatalogId: string;
+  replicatedSlug: string;
+  originalName: string;
+  isActive: boolean;
+}
+
 type CatalogType = "all" | "pdf" | "digital";
 
 // ==========================================
-// VARIANTES DE ANIMACIÓN
+// 2. VARIANTES DE ANIMACIÓN
 // ==========================================
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -79,7 +86,7 @@ const itemVariants = {
 };
 
 // ==========================================
-// COMPONENTE: CARD DE CATÁLOGO DIGITAL
+// 3. COMPONENTES INTERNOS (Cards)
 // ==========================================
 
 const DigitalCatalogCard = ({
@@ -103,24 +110,17 @@ const DigitalCatalogCard = ({
     });
   };
 
-  const handleViewCatalog = () => {
-    window.open(`/c/${catalog.slug}`, "_blank");
-  };
-
   return (
     <motion.div variants={itemVariants}>
-      <Card className="group relative overflow-hidden border border-slate-200 bg-white hover:border-indigo-300 hover:shadow-md transition-all duration-300">
-        {/* Status Indicator Strip */}
+      <Card className="group relative overflow-hidden border border-slate-200 bg-white hover:border-indigo-300 hover:shadow-md transition-all duration-300 h-full flex flex-col">
         <div className={`absolute top-0 left-0 w-1 h-full ${isActive ? "bg-indigo-500" : "bg-slate-300"}`} />
 
-        {/* Header Image & Type */}
-        <div className="relative h-32 bg-slate-100 overflow-hidden">
-          {/* Pattern Background Overlay */}
+        {/* Header Visual */}
+        <div className="relative h-32 bg-slate-100 overflow-hidden shrink-0">
           <div className="absolute inset-0 opacity-[0.03] bg-[radial-gradient(#4f46e5_1px,transparent_1px)] [background-size:16px_16px]"></div>
-
           <div className="absolute top-3 left-4 right-3 flex justify-between items-start">
             <Badge variant="outline" className="bg-white/90 backdrop-blur text-indigo-700 border-indigo-100 shadow-sm">
-              <Globe className="w-3 h-3 mr-1.5" /> Digital
+              <Globe className="w-3 h-3 mr-1.5" /> Propio (L1)
             </Badge>
             {catalog.is_private && (
               <div className="bg-slate-900/80 p-1.5 rounded-full text-white" title="Privado">
@@ -128,22 +128,23 @@ const DigitalCatalogCard = ({
               </div>
             )}
           </div>
-
           <div className="flex h-full items-center justify-center">
             <Globe className="w-12 h-12 text-indigo-200 group-hover:scale-110 group-hover:text-indigo-400 transition-all duration-500" />
           </div>
         </div>
 
-        <CardContent className="p-4 pl-5">
-          {/* Title & Meta */}
-          <div className="mb-4">
+        <CardContent className="p-4 pl-5 flex flex-col flex-1">
+          <div className="mb-4 flex-1">
             <div className="flex justify-between items-start mb-1">
-              <h3 className="font-semibold text-slate-900 line-clamp-1 group-hover:text-indigo-600 transition-colors">
+              <h3
+                className="font-semibold text-slate-900 line-clamp-1 group-hover:text-indigo-600 transition-colors"
+                title={catalog.name}
+              >
                 {catalog.name}
               </h3>
               <Badge
                 variant={isActive ? "default" : "secondary"}
-                className={`text-[10px] px-1.5 h-5 ${isActive ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200" : "bg-slate-100 text-slate-500"}`}
+                className={`text-[10px] px-1.5 h-5 shrink-0 ml-2 ${isActive ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200" : "bg-slate-100 text-slate-500"}`}
               >
                 {isActive ? "ACTIVO" : "INACTIVO"}
               </Badge>
@@ -153,7 +154,6 @@ const DigitalCatalogCard = ({
             </p>
           </div>
 
-          {/* Data Grid */}
           <div className="grid grid-cols-2 gap-2 py-3 border-t border-slate-100 text-xs text-slate-500 font-medium">
             <div className="flex items-center gap-2">
               <Eye className="w-3.5 h-3.5 text-slate-400" />
@@ -165,12 +165,11 @@ const DigitalCatalogCard = ({
             </div>
           </div>
 
-          {/* Actions Toolbar */}
-          <div className="flex items-center gap-2 pt-3 mt-1">
+          <div className="flex items-center gap-2 pt-3 mt-auto">
             <Button
               size="sm"
               className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm h-8 text-xs"
-              onClick={handleViewCatalog}
+              onClick={() => window.open(`/c/${catalog.slug}`, "_blank")}
               disabled={!isActive}
             >
               Ver Catálogo
@@ -206,45 +205,40 @@ const DigitalCatalogCard = ({
   );
 };
 
-// ==========================================
-// COMPONENTE: CARD DE CATÁLOGO REPLICADO
-// ==========================================
-
 const ReplicatedCatalogCard = ({
   catalog,
-  replicatedCatalogId,
-  replicatedSlug,
   onShare,
-  onDelete,
 }: {
-  catalog: any;
-  replicatedCatalogId: string;
-  replicatedSlug: string;
+  catalog: ReplicatedCatalogUI;
   onShare: (catalog: DigitalCatalog) => void;
-  onDelete: (catalog: DigitalCatalog) => void;
 }) => {
   const navigate = useNavigate();
-  const isActive = catalog.is_active;
 
-  const handleViewCatalog = () => {
-    window.open(`/c/${replicatedSlug}`, "_blank");
-  };
-
-  const handleEditPrices = () => {
-    navigate(`/reseller/edit-prices?catalog_id=${replicatedCatalogId}`);
+  // Adaptador para el modal de Share (necesita un objeto DigitalCatalog)
+  const shareAdapter = () => {
+    onShare({
+      id: catalog.replicatedCatalogId, // Importante: ID de la réplica para generar el link correcto
+      slug: catalog.replicatedSlug,
+      name: catalog.originalName,
+      description: catalog.description,
+      // ... resto de props dummy
+      user_id: "",
+      created_at: "",
+      updated_at: "",
+      is_active: true,
+      is_private: false,
+    } as DigitalCatalog);
   };
 
   return (
     <motion.div variants={itemVariants}>
-      {/* Usamos Violeta para "Red/Partner" en lugar de Teal para consistencia con la identidad Prime */}
-      <Card className="group relative overflow-hidden border border-violet-100 bg-white hover:border-violet-300 hover:shadow-md transition-all duration-300">
-        {/* Partner Indicator */}
+      <Card className="group relative overflow-hidden border border-violet-100 bg-white hover:border-violet-300 hover:shadow-md transition-all duration-300 h-full flex flex-col">
         <div className="absolute top-0 left-0 w-1 h-full bg-violet-500" />
 
-        <div className="relative h-32 bg-violet-50/50 overflow-hidden">
+        <div className="relative h-32 bg-violet-50/50 overflow-hidden shrink-0">
           <div className="absolute top-3 left-4 right-3 flex justify-between items-start">
             <Badge variant="outline" className="bg-white/90 backdrop-blur text-violet-700 border-violet-200 shadow-sm">
-              <Share2 className="w-3 h-3 mr-1.5" /> Replicado
+              <Share2 className="w-3 h-3 mr-1.5" /> Replicado (L2)
             </Badge>
           </div>
           <div className="flex h-full items-center justify-center">
@@ -252,14 +246,19 @@ const ReplicatedCatalogCard = ({
           </div>
         </div>
 
-        <CardContent className="p-4 pl-5">
-          <div className="mb-4">
+        <CardContent className="p-4 pl-5 flex flex-col flex-1">
+          <div className="mb-4 flex-1">
             <div className="flex justify-between items-start mb-1">
-              <h3 className="font-semibold text-slate-900 line-clamp-1 group-hover:text-violet-600 transition-colors">
-                {catalog.name}
+              <h3
+                className="font-semibold text-slate-900 line-clamp-1 group-hover:text-violet-600 transition-colors"
+                title={catalog.originalName}
+              >
+                {catalog.originalName}
               </h3>
             </div>
-            <p className="text-xs text-slate-500 line-clamp-1">Catálogo de proveedor externo</p>
+            <p className="text-xs text-slate-500 line-clamp-2">
+              {catalog.description || "Catálogo de proveedor externo listo para venta."}
+            </p>
           </div>
 
           <div className="grid grid-cols-2 gap-2 py-3 border-t border-slate-100 text-xs text-slate-500 font-medium">
@@ -274,29 +273,34 @@ const ReplicatedCatalogCard = ({
             </div>
           </div>
 
-          <div className="flex items-center gap-2 pt-3 mt-1">
+          <div className="flex items-center gap-2 pt-3 mt-auto">
             <Button
               size="sm"
               className="flex-1 bg-violet-600 hover:bg-violet-700 text-white shadow-sm h-8 text-xs"
-              onClick={handleEditPrices}
+              onClick={() => navigate(`/reseller/edit-prices?catalog_id=${catalog.replicatedCatalogId}`)}
             >
-              <DollarSign className="w-3.5 h-3.5 mr-1" /> Precios
+              <DollarSign className="w-3.5 h-3.5 mr-1" /> Gestionar Precios
             </Button>
+
             <Button
               size="sm"
               variant="outline"
-              className="flex-1 border-slate-200 text-slate-600 hover:bg-slate-50 h-8 text-xs"
-              onClick={handleViewCatalog}
+              className="h-8 w-8 p-0 border-slate-200"
+              onClick={() => window.open(`/c/${catalog.replicatedSlug}`, "_blank")}
+              title="Ver mi tienda"
             >
-              <Eye className="w-3.5 h-3.5 mr-1" /> Ver
+              <Eye className="w-3.5 h-3.5" />
             </Button>
 
-            <button
-              onClick={() => onShare(catalog)}
-              className="p-2 h-8 border border-slate-200 rounded-md hover:bg-slate-50 text-slate-600 transition-colors flex items-center justify-center"
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 w-8 p-0 border-slate-200"
+              onClick={shareAdapter}
+              title="Compartir link"
             >
               <Share2 className="w-3.5 h-3.5" />
-            </button>
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -304,17 +308,9 @@ const ReplicatedCatalogCard = ({
   );
 };
 
-// ==========================================
-// COMPONENTE: CARD DE CATÁLOGO PDF
-// ==========================================
-
 const PDFCatalogCard = ({ catalog, onDelete }: { catalog: PDFCatalog; onDelete: (id: string) => void }) => {
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("es-MX", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    });
+    return new Date(dateString).toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric" });
   };
 
   const handleDownload = () => {
@@ -324,14 +320,13 @@ const PDFCatalogCard = ({ catalog, onDelete }: { catalog: PDFCatalog; onDelete: 
 
   return (
     <motion.div variants={itemVariants}>
-      <Card className="group relative overflow-hidden border border-slate-200 bg-slate-50/50 hover:border-slate-400 hover:bg-white hover:shadow-md transition-all duration-300">
-        <div className="relative h-32 bg-slate-200 overflow-hidden flex items-center justify-center">
+      <Card className="group relative overflow-hidden border border-slate-200 bg-slate-50/50 hover:border-slate-400 hover:bg-white hover:shadow-md transition-all duration-300 h-full flex flex-col">
+        <div className="relative h-32 bg-slate-200 overflow-hidden flex items-center justify-center shrink-0">
           <div className="absolute top-3 left-4">
             <Badge variant="secondary" className="bg-slate-900 text-white border-none shadow-sm">
               <FileText className="w-3 h-3 mr-1.5" /> PDF
             </Badge>
           </div>
-
           {catalog.preview_image_url ? (
             <img
               src={catalog.preview_image_url}
@@ -343,9 +338,12 @@ const PDFCatalogCard = ({ catalog, onDelete }: { catalog: PDFCatalog; onDelete: 
           )}
         </div>
 
-        <CardContent className="p-4 pl-5">
-          <div className="mb-4">
-            <h3 className="font-semibold text-slate-900 line-clamp-1 group-hover:text-indigo-600 transition-colors">
+        <CardContent className="p-4 pl-5 flex flex-col flex-1">
+          <div className="mb-4 flex-1">
+            <h3
+              className="font-semibold text-slate-900 line-clamp-1 group-hover:text-indigo-600 transition-colors"
+              title={catalog.name}
+            >
               {catalog.name}
             </h3>
             <div className="flex gap-2 mt-1 text-xs text-slate-500">
@@ -355,7 +353,7 @@ const PDFCatalogCard = ({ catalog, onDelete }: { catalog: PDFCatalog; onDelete: 
             </div>
           </div>
 
-          <div className="flex gap-2 pt-2 border-t border-slate-200/60">
+          <div className="flex gap-2 pt-2 border-t border-slate-200/60 mt-auto">
             <Button
               size="sm"
               variant="outline"
@@ -390,10 +388,6 @@ const PDFCatalogCard = ({ catalog, onDelete }: { catalog: PDFCatalog; onDelete: 
   );
 };
 
-// ==========================================
-// COMPONENTE: SKELETON (Optimizado)
-// ==========================================
-
 const CatalogSkeleton = () => (
   <Card className="overflow-hidden border border-slate-100 bg-white">
     <div className="h-32 bg-slate-100 animate-pulse" />
@@ -413,7 +407,7 @@ const CatalogSkeleton = () => (
 );
 
 // ==========================================
-// COMPONENTE PRINCIPAL
+// 4. COMPONENTE PRINCIPAL (Page)
 // ==========================================
 
 const Catalogs = () => {
@@ -421,13 +415,13 @@ const Catalogs = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<CatalogType>("all");
+
+  // Modales
   const [shareModalCatalog, setShareModalCatalog] = useState<DigitalCatalog | null>(null);
   const [deleteCatalog, setDeleteCatalog] = useState<DigitalCatalog | null>(null);
   const [deletePDFId, setDeletePDFId] = useState<string | null>(null);
 
-  // Hooks y Mutaciones (Misma lógica)
-  const { limits, loading: limitsLoading } = useCatalogLimits();
-
+  // --- QUERY 1: Digital Catalogs (L1) ---
   const { data: digitalCatalogs = [], isLoading: loadingDigital } = useQuery({
     queryKey: ["digital-catalogs", user?.id],
     queryFn: async () => {
@@ -437,6 +431,7 @@ const Catalogs = () => {
     enabled: !!user,
   });
 
+  // --- QUERY 2: PDF Catalogs ---
   const { data: pdfCatalogs = [], isLoading: loadingPDF } = useQuery({
     queryKey: ["pdf-catalogs", user?.id],
     queryFn: async () => {
@@ -452,6 +447,7 @@ const Catalogs = () => {
     enabled: !!user,
   });
 
+  // --- QUERY 3: Replicated Catalogs (L2) ---
   const { data: replicatedCatalogs = [], isLoading: loadingReplicated } = useQuery({
     queryKey: ["replicated-catalogs", user?.id],
     queryFn: async () => {
@@ -459,23 +455,41 @@ const Catalogs = () => {
       const { data, error } = await supabase
         .from("replicated_catalogs")
         .select(
-          `id, slug, digital_catalogs (id, name, slug, description, is_private, is_active, expires_at, view_count, created_at)`,
+          `
+            id, 
+            slug, 
+            is_active,
+            digital_catalogs (
+                id, name, description, is_private, view_count
+            )
+        `,
         )
         .eq("reseller_id", user.id)
         .eq("is_active", true)
         .order("activated_at", { ascending: false });
+
       if (error) throw error;
-      return data
-        .map((r) => ({
-          ...r.digital_catalogs,
-          replicatedCatalogId: r.id,
-          replicatedSlug: r.slug,
-        }))
-        .filter(Boolean);
+
+      // Transformación segura para evitar errores de null
+      return (data || [])
+        .map((r: any) => {
+          const base = r.digital_catalogs;
+          if (!base) return null; // Si el catálogo padre se borró, lo ignoramos por ahora
+
+          return {
+            ...base,
+            originalName: base.name,
+            replicatedCatalogId: r.id,
+            replicatedSlug: r.slug,
+            isActive: r.is_active,
+          } as ReplicatedCatalogUI;
+        })
+        .filter(Boolean) as ReplicatedCatalogUI[];
     },
     enabled: !!user,
   });
 
+  // --- MUTATIONS ---
   const deleteDigitalMutation = useMutation({
     mutationFn: async (catalogId: string) => {
       if (!user) throw new Error("No user");
@@ -485,9 +499,7 @@ const Catalogs = () => {
       queryClient.invalidateQueries({ queryKey: ["digital-catalogs"] });
       toast({ title: "Catálogo eliminado", description: "El catálogo digital ha sido eliminado correctamente" });
     },
-    onError: () => {
-      toast({ title: "Error", description: "No se pudo eliminar el catálogo", variant: "destructive" });
-    },
+    onError: () => toast({ title: "Error", description: "No se pudo eliminar el catálogo", variant: "destructive" }),
   });
 
   const deletePDFMutation = useMutation({
@@ -497,18 +509,15 @@ const Catalogs = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["pdf-catalogs"] });
-      toast({ title: "Catálogo eliminado", description: "El catálogo PDF ha sido eliminado correctamente" });
+      toast({ title: "Catálogo eliminado", description: "El archivo PDF ha sido eliminado correctamente" });
     },
-    onError: () => {
-      toast({ title: "Error", description: "No se pudo eliminar el catálogo", variant: "destructive" });
-    },
+    onError: () => toast({ title: "Error", description: "No se pudo eliminar el archivo", variant: "destructive" }),
   });
 
   const handleCreateNew = () => navigate("/catalogs/new");
   const isLoading = loadingDigital || loadingPDF || loadingReplicated;
   const totalCatalogs = digitalCatalogs.length + pdfCatalogs.length + replicatedCatalogs.length;
 
-  // HEADER ACTIONS TOOLBAR
   const actions = (
     <div className="flex items-center gap-2 w-full md:w-auto">
       <div className="relative flex-1 md:w-64 md:mr-2">
@@ -519,12 +528,10 @@ const Catalogs = () => {
           className="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-600 focus:outline-none"
         />
       </div>
-
       <Button onClick={handleCreateNew} className="bg-slate-900 hover:bg-slate-800 text-white shadow-md">
         <Plus className="w-4 h-4 md:mr-2" />
         <span className="hidden md:inline">Nuevo Digital</span>
       </Button>
-
       <Button
         variant="outline"
         onClick={() => navigate("/products")}
@@ -536,7 +543,6 @@ const Catalogs = () => {
     </div>
   );
 
-  // LOADING STATE
   if (isLoading) {
     return (
       <div className="min-h-screen bg-slate-50 p-4 md:p-8">
@@ -552,17 +558,20 @@ const Catalogs = () => {
   const renderCatalogs = (type: CatalogType) => {
     const showDigital = type === "all" || type === "digital";
     const showPDF = type === "all" || type === "pdf";
-    const hasDigital = showDigital && digitalCatalogs.length > 0;
-    const hasPDF = showPDF && pdfCatalogs.length > 0;
-    const hasReplicated = showDigital && replicatedCatalogs.length > 0;
-    const isEmpty = !hasDigital && !hasPDF && !hasReplicated;
+
+    // Filtros de visualización
+    const visibleDigital = showDigital ? digitalCatalogs : [];
+    const visibleReplicated = showDigital ? replicatedCatalogs : [];
+    const visiblePDF = showPDF ? pdfCatalogs : [];
+
+    const isEmpty = visibleDigital.length === 0 && visibleReplicated.length === 0 && visiblePDF.length === 0;
 
     if (isEmpty) {
       return (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-center py-20 px-4 border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50/50"
+          className="text-center py-20 px-4 border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50/50 mt-8"
         >
           <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-slate-100 mb-6 ring-8 ring-slate-50">
             <LayoutGrid className="w-10 h-10 text-slate-400" />
@@ -572,33 +581,31 @@ const Catalogs = () => {
             No hay catálogos {type !== "all" ? "de este tipo" : ""} creados aún. Comienza creando una herramienta de
             venta para tu red.
           </p>
-          <div className="flex gap-3 justify-center">
-            <Button
-              size="lg"
-              onClick={handleCreateNew}
-              className="bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-200"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Crear Primer Catálogo
-            </Button>
-          </div>
+          <Button
+            size="lg"
+            onClick={handleCreateNew}
+            className="bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-200"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Crear Primer Catálogo
+          </Button>
         </motion.div>
       );
     }
 
     return (
-      <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-10">
-        {/* Digital Catalogs Section */}
-        {showDigital && digitalCatalogs.length > 0 && (
+      <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-10 mt-6">
+        {/* SECCIÓN 1: Catálogos Propios (L1) */}
+        {visibleDigital.length > 0 && (
           <section>
             <div className="flex items-center gap-3 mb-5 pb-2 border-b border-slate-200/60">
-              <h2 className="text-lg font-bold text-slate-800">Catálogos Maestros</h2>
+              <h2 className="text-lg font-bold text-slate-800">Catálogos Maestros (L1)</h2>
               <Badge variant="secondary" className="bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border-indigo-100">
-                {digitalCatalogs.length} Activos
+                {visibleDigital.length}
               </Badge>
             </div>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {digitalCatalogs.map((catalog) => (
+              {visibleDigital.map((catalog) => (
                 <DigitalCatalogCard
                   key={catalog.id}
                   catalog={catalog}
@@ -610,50 +617,47 @@ const Catalogs = () => {
           </section>
         )}
 
-        {/* Replicated Catalogs Section */}
-        {showDigital && replicatedCatalogs.length > 0 && (
+        {/* SECCIÓN 2: Catálogos Replicados (L2) */}
+        {visibleReplicated.length > 0 && (
           <section>
             <div className="flex items-center gap-3 mb-5 pb-2 border-b border-slate-200/60">
-              <h2 className="text-lg font-bold text-slate-800">Red de Distribución</h2>
+              <h2 className="text-lg font-bold text-slate-800">Red de Distribución (L2)</h2>
               <Badge variant="secondary" className="bg-violet-50 text-violet-700 hover:bg-violet-100 border-violet-100">
-                {replicatedCatalogs.length} Partners
+                {visibleReplicated.length}
               </Badge>
             </div>
 
             <div className="flex items-start gap-3 p-4 mb-6 bg-violet-50/50 border border-violet-100 rounded-xl text-sm text-violet-800">
               <Share2 className="w-5 h-5 shrink-0 mt-0.5" />
               <p>
-                Estos catálogos provienen de tus proveedores L1. Al editar los precios aquí, actualizas automáticamente
-                tu tienda para tus clientes L3.
+                Estos catálogos provienen de tus proveedores. Puedes cambiar los precios para tu tienda, pero los
+                productos base se actualizan automáticamente.
               </p>
             </div>
 
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {replicatedCatalogs.map((catalog: any) => (
+              {visibleReplicated.map((catalog) => (
                 <ReplicatedCatalogCard
-                  key={catalog.id}
+                  key={catalog.replicatedCatalogId}
                   catalog={catalog}
-                  replicatedCatalogId={catalog.replicatedCatalogId}
-                  replicatedSlug={catalog.replicatedSlug}
                   onShare={setShareModalCatalog}
-                  onDelete={setDeleteCatalog}
                 />
               ))}
             </div>
           </section>
         )}
 
-        {/* PDF Catalogs Section */}
-        {showPDF && pdfCatalogs.length > 0 && (
+        {/* SECCIÓN 3: PDFs */}
+        {visiblePDF.length > 0 && (
           <section>
             <div className="flex items-center gap-3 mb-5 pb-2 border-b border-slate-200/60">
               <h2 className="text-lg font-bold text-slate-800">Archivos Estáticos (PDF)</h2>
               <Badge variant="secondary" className="bg-slate-100 text-slate-600 border-slate-200">
-                {pdfCatalogs.length} Archivos
+                {visiblePDF.length}
               </Badge>
             </div>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {pdfCatalogs.map((catalog) => (
+              {visiblePDF.map((catalog) => (
                 <PDFCatalogCard key={catalog.id} catalog={catalog} onDelete={setDeletePDFId} />
               ))}
             </div>
@@ -665,7 +669,7 @@ const Catalogs = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 p-4 md:p-8 pb-24 font-sans text-slate-900">
-      {/* Header Area */}
+      {/* Header */}
       <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-8">
         <div>
           <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Mis Catálogos</h1>
@@ -705,24 +709,23 @@ const Catalogs = () => {
           <TabsContent value="all" className="focus:outline-none mt-0">
             {renderCatalogs("all")}
           </TabsContent>
-
           <TabsContent value="digital" className="focus:outline-none mt-0">
             {renderCatalogs("digital")}
           </TabsContent>
-
           <TabsContent value="pdf" className="focus:outline-none mt-0">
             {renderCatalogs("pdf")}
           </TabsContent>
         </AnimatePresence>
       </Tabs>
 
-      {/* Modales (Sin cambios visuales profundos, solo herencia del tema global) */}
+      {/* Modales */}
       <CatalogShareModal
         catalog={shareModalCatalog}
         open={!!shareModalCatalog}
         onOpenChange={(open) => !open && setShareModalCatalog(null)}
       />
 
+      {/* Modal Borrar Digital */}
       <DeleteCatalogDialog
         catalog={deleteCatalog}
         open={!!deleteCatalog}
@@ -735,8 +738,9 @@ const Catalogs = () => {
         }}
       />
 
+      {/* Modal Borrar PDF */}
       <DeleteCatalogDialog
-        catalog={deletePDFId ? ({ id: deletePDFId, name: "Catálogo PDF" } as any) : null}
+        catalog={deletePDFId ? ({ id: deletePDFId, name: "Archivo PDF" } as any) : null}
         open={!!deletePDFId}
         onOpenChange={(open) => !open && setDeletePDFId(null)}
         onConfirm={() => {
