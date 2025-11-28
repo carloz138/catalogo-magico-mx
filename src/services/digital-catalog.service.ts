@@ -119,6 +119,7 @@ export class DigitalCatalogService {
     return (data || []) as unknown as DigitalCatalog[];
   }
 
+  // ✅ CORREGIDO: getCatalogById con relación explícita
   static async getCatalogById(catalogId: string, userId: string): Promise<DigitalCatalog & { products: any[] }> {
     const { data: catalog, error: catalogError } = await supabase
       .from("digital_catalogs")
@@ -129,13 +130,14 @@ export class DigitalCatalogService {
 
     if (catalogError) throw catalogError;
 
+    // Aquí usamos la relación explícita para evitar PGRST201
     const { data: catalogProducts, error: productsError } = await supabase
       .from("catalog_products")
       .select(
         `
         product_id,
         sort_order,
-        products (*)
+        products!catalog_products_product_id_fkey (*)
       `,
       )
       .eq("catalog_id", catalogId)
@@ -204,8 +206,9 @@ export class DigitalCatalogService {
     if (error) throw error;
   }
 
+  // ✅ CORREGIDO: getPublicCatalog con relación explícita en ambos flujos
   static async getPublicCatalog(slugOrToken: string): Promise<PublicCatalogView> {
-    // Check if it's a replicated catalog slug (starts with 'r-')
+    // 1. FLUJO DE RÉPLICA (L2)
     if (slugOrToken.startsWith("r-")) {
       const { data: replicatedCatalog, error: repError } = await supabase
         .from("replicated_catalogs")
@@ -251,19 +254,18 @@ export class DigitalCatalogService {
             .map((item: any) => item.product_id)
             .filter((id) => id !== null && id !== undefined);
 
-          // ✅ NUEVO: Extraer variant_ids comprados
           purchasedVariantIds = quoteItems
             .map((item: any) => item.variant_id)
             .filter((id) => id !== null && id !== undefined);
         }
       }
 
-      // Get catalog products
+      // Get catalog products (CORREGIDO)
       const { data: catalogProducts, error: productsError } = await supabase
         .from("catalog_products")
         .select(
           `
-          products (
+          products!catalog_products_product_id_fkey (
             id, name, sku, description, price_retail, price_wholesale,
             wholesale_min_qty, original_image_url, processed_image_url, tags, category, has_variants,
             product_variants (
@@ -277,13 +279,13 @@ export class DigitalCatalogService {
 
       if (productsError) throw productsError;
 
-      // ✅ Obtener precios personalizados de productos
+      // Obtener precios personalizados de productos
       const { data: customProductPrices } = await supabase
         .from("reseller_product_prices")
         .select("*")
         .eq("replicated_catalog_id", replicatedCatalog.id);
 
-      // ✅ Obtener precios personalizados de variantes
+      // Obtener precios personalizados de variantes
       const { data: customVariantPrices } = await supabase
         .from("reseller_variant_prices")
         .select("*")
@@ -310,7 +312,6 @@ export class DigitalCatalogService {
 
             return {
               ...product,
-              // Aplicar precios personalizados del producto
               price_retail: customPrice?.custom_price_retail || product.price_retail,
               price_wholesale: customPrice?.custom_price_wholesale || product.price_wholesale,
               image_url: product.processed_image_url || product.original_image_url,
@@ -340,13 +341,13 @@ export class DigitalCatalogService {
           address: null,
         },
         purchasedProductIds,
-        purchasedVariantIds, // ✅ NUEVO
+        purchasedVariantIds,
         isReplicated: true,
         replicatedCatalogId: replicatedCatalog.id,
       } as unknown as PublicCatalogView;
     }
 
-    // Original catalog flow (by slug)
+    // 2. FLUJO ORIGINAL (L1)
     const { data: catalog, error: catalogError } = await supabase
       .from("digital_catalogs")
       .select("*")
@@ -362,12 +363,12 @@ export class DigitalCatalogService {
       throw new Error("Catálogo expirado");
     }
 
-    // Get catalog products
+    // Get catalog products (CORREGIDO)
     const { data: catalogProducts, error: productsError } = await supabase
       .from("catalog_products")
       .select(
         `
-        products (
+        products!catalog_products_product_id_fkey (
           id, name, sku, description, price_retail, price_wholesale,
           wholesale_min_qty, original_image_url, processed_image_url, tags, category, has_variants,
           product_variants (
