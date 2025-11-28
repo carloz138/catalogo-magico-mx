@@ -35,13 +35,20 @@ interface ExcelImporterProps {
   isImporting: boolean;
 }
 
-// Helper corregido para evitar errores de tipo
+// 🔥 HELPER MEJORADO: LIMPIA DINERO Y ESPACIOS 🔥
 const getExcelValue = (val: any, isNumber: boolean = false): any => {
   if (val === undefined || val === null || val === "") return null;
+
   if (isNumber) {
-    const num = parseFloat(val);
+    // Si es número directo, retornarlo
+    if (typeof val === "number") return val;
+
+    // Si es string (ej: "$ 1,500.00"), limpiarlo
+    const stringVal = String(val).replace(/[^0-9.-]+/g, ""); // Quitar todo lo que no sea número o punto
+    const num = parseFloat(stringVal);
     return isNaN(num) ? null : num;
   }
+
   return String(val).trim();
 };
 
@@ -84,11 +91,13 @@ export const ExcelImporter = ({
         let newCount = 0;
 
         data.forEach((row) => {
+          // Buscamos el ID con varias opciones por si Excel cambió el header
+          const id = row["ID_SISTEMA (NO TOCAR)"] || row["ID_SISTEMA"] || row["id"] || row["ID"];
           const tipo = (row["TIPO_FILA"] || "").toLowerCase();
-          const id = row["ID_SISTEMA"] || row["ID_SISTEMA (NO TOCAR)"];
+          const idVariante = row["ID_VARIANTE"];
 
-          if (!id && !row["ID_VARIANTE"]) newCount++;
-          else if (tipo === "variante" || row["ID_VARIANTE"]) vCount++;
+          if (!id && !idVariante) newCount++;
+          else if (tipo === "variante" || idVariante) vCount++;
           else pCount++;
         });
 
@@ -121,26 +130,29 @@ export const ExcelImporter = ({
       } = await supabase.auth.getUser();
       if (!user) return;
 
+      console.log("--- INICIANDO PROCESAMIENTO DE EXCEL ---");
+
       for (const row of data) {
         const tipo = (row["TIPO_FILA"] || "producto").toLowerCase();
-        const idSistema = row["ID_SISTEMA"] || row["ID_SISTEMA (NO TOCAR)"];
-        const idVariante = row["ID_VARIANTE"];
+        // Búsqueda robusta de ID
+        const idSistema = getExcelValue(row["ID_SISTEMA (NO TOCAR)"] || row["ID_SISTEMA"] || row["id"] || row["ID"]);
+        const idVariante = getExcelValue(row["ID_VARIANTE"]);
 
-        const nombre = getExcelValue(row["Nombre"]);
-        const sku = getExcelValue(row["SKU"]);
-        const catExcel = getExcelValue(row["Categoría"]);
+        const nombre = getExcelValue(row["Nombre"] || row["name"]);
+        const sku = getExcelValue(row["SKU"] || row["sku"]);
+        const catExcel = getExcelValue(row["Categoría"] || row["category"]);
 
-        // CORRECCIÓN AQUÍ: Forzamos el tipo a número para la operación matemática
-        const pRetailRaw = getExcelValue(row["Precio Menudeo"], true);
-        const pWholesaleRaw = getExcelValue(row["Precio Mayoreo"], true);
+        // PRECIOS: Convertir a centavos (Multiplicar por 100)
+        const pRetailRaw = getExcelValue(row["Precio Menudeo"] || row["price_retail"] || row["Price"], true);
+        const pWholesaleRaw = getExcelValue(row["Precio Mayoreo"] || row["price_wholesale"], true);
 
         const priceRetail = pRetailRaw !== null ? Math.round((pRetailRaw as number) * 100) : null;
         const priceWholesale = pWholesaleRaw !== null ? Math.round((pWholesaleRaw as number) * 100) : null;
 
-        const stock = getExcelValue(row["Stock"], true);
-        const minQty = getExcelValue(row["Min. Mayoreo"], true);
-        const desc = getExcelValue(row["Descripción"]);
-        const tagsRaw = getExcelValue(row["Tags"]);
+        const stock = getExcelValue(row["Stock"] || row["stock_quantity"], true);
+        const minQty = getExcelValue(row["Min. Mayoreo"] || row["wholesale_min_qty"], true);
+        const desc = getExcelValue(row["Descripción"] || row["description"]);
+        const tagsRaw = getExcelValue(row["Tags"] || row["tags"]);
         const tags = tagsRaw
           ? String(tagsRaw)
               .split(",")
@@ -154,7 +166,11 @@ export const ExcelImporter = ({
           if (match) categoryToUse = match.value;
         }
 
+        // DEBUG LOG para ver qué está leyendo
+        // console.log(`Fila leída: ${nombre} | ID: ${idSistema} | Precio Original: ${pRetailRaw} -> ${priceRetail}`);
+
         if (tipo === "variante" && idVariante) {
+          // UPDATE VARIANTE
           updatesVariants.push({
             id: idVariante,
             sku: sku,
@@ -163,11 +179,12 @@ export const ExcelImporter = ({
             stock_quantity: stock,
           });
         } else if (idSistema) {
+          // UPDATE PRODUCTO PADRE
           updatesProducts.push({
             id: idSistema,
             name: nombre,
             sku: sku,
-            category: catExcel ? categoryToUse : undefined,
+            category: catExcel ? categoryToUse : undefined, // Solo si viene en excel
             description: desc,
             price_retail: priceRetail,
             price_wholesale: priceWholesale,
@@ -176,6 +193,7 @@ export const ExcelImporter = ({
             tags: tags,
           });
         } else {
+          // INSERT NUEVO
           if (nombre && priceRetail !== null) {
             insertsProducts.push({
               user_id: user.id,
@@ -195,16 +213,28 @@ export const ExcelImporter = ({
         }
       }
 
+      console.log(
+        `Resumen: ${updatesProducts.length} updates padre, ${updatesVariants.length} updates variantes, ${insertsProducts.length} inserts.`,
+      );
+
       try {
         const promises = [];
 
         if (updatesProducts.length > 0) {
-          const productUpdates = updatesProducts.map((p) => supabase.from("products").update(p).eq("id", p.id));
+          // En lugar de iterar, si tienes muchos, podrías usar un RPC, pero el loop es seguro
+          const productUpdates = updatesProducts.map((p) => {
+            // Limpiamos undefined para no sobrescribir con null lo que no venía
+            const cleanPayload = Object.fromEntries(Object.entries(p).filter(([_, v]) => v !== undefined));
+            return supabase.from("products").update(cleanPayload).eq("id", p.id);
+          });
           promises.push(...productUpdates);
         }
 
         if (updatesVariants.length > 0) {
-          const variantUpdates = updatesVariants.map((v) => supabase.from("product_variants").update(v).eq("id", v.id));
+          const variantUpdates = updatesVariants.map((v) => {
+            const cleanPayload = Object.fromEntries(Object.entries(v).filter(([_, v]) => v !== undefined));
+            return supabase.from("product_variants").update(cleanPayload).eq("id", v.id);
+          });
           promises.push(...variantUpdates);
         }
 
@@ -214,15 +244,15 @@ export const ExcelImporter = ({
 
         await Promise.all(promises);
 
-        toast({ title: "Importación exitosa", description: "Se han aplicado todos los cambios." });
+        toast({ title: "Importación exitosa", description: "Precios y stock actualizados." });
         onImportSuccess();
         setIsDialogOpen(false);
         setFile(null);
       } catch (err) {
-        console.error(err);
+        console.error("Error Supabase:", err);
         toast({
           title: "Error en la importación",
-          description: "Revisa el formato de los datos.",
+          description: "Revisa la consola para más detalles.",
           variant: "destructive",
         });
       } finally {
@@ -235,15 +265,15 @@ export const ExcelImporter = ({
 
   return (
     <div className="flex gap-2">
-      <Button variant="outline" onClick={onExportTemplate} className="text-slate-600">
+      <Button variant="outline" onClick={onExportTemplate} className="text-slate-600 hover:bg-slate-50">
         <Download className="w-4 h-4 mr-2" />
         <span className="hidden sm:inline">Descargar Inventario</span>
       </Button>
 
-      <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".xlsx, .xls" className="hidden" />
+      <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".xlsx, .xls, .csv" className="hidden" />
 
       <Button
-        className="bg-indigo-600 hover:bg-indigo-700 text-white"
+        className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm"
         onClick={() => fileInputRef.current?.click()}
         disabled={loading || parentLoading}
       >
@@ -254,29 +284,33 @@ export const ExcelImporter = ({
       <Dialog open={isDialogOpen} onOpenChange={(o) => !loading && setIsDialogOpen(o)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Confirmar Importación</DialogTitle>
-            <DialogDescription>Se detectaron los siguientes movimientos:</DialogDescription>
+            <DialogTitle>Confirmar Cambios</DialogTitle>
+            <DialogDescription>Hemos analizado tu archivo. Se aplicarán los siguientes cambios:</DialogDescription>
           </DialogHeader>
-          <div className="grid grid-cols-3 gap-2 py-4 text-center">
-            <div className="bg-blue-50 p-2 rounded border border-blue-100">
-              <div className="text-xl font-bold text-blue-700">{stats.products}</div>
-              <div className="text-[10px] uppercase text-blue-600">Productos</div>
+
+          <div className="grid grid-cols-3 gap-3 py-4 text-center">
+            <div className="bg-amber-50 p-3 rounded-lg border border-amber-100">
+              <div className="text-2xl font-bold text-amber-600">{stats.products}</div>
+              <div className="text-[10px] uppercase font-bold text-amber-700">Productos</div>
+              <div className="text-[9px] text-amber-600/70">Actualizar</div>
             </div>
-            <div className="bg-purple-50 p-2 rounded border border-purple-100">
-              <div className="text-xl font-bold text-purple-700">{stats.variants}</div>
-              <div className="text-[10px] uppercase text-purple-600">Variantes</div>
+            <div className="bg-purple-50 p-3 rounded-lg border border-purple-100">
+              <div className="text-2xl font-bold text-purple-600">{stats.variants}</div>
+              <div className="text-[10px] uppercase font-bold text-purple-700">Variantes</div>
+              <div className="text-[9px] text-purple-600/70">Actualizar</div>
             </div>
-            <div className="bg-emerald-50 p-2 rounded border border-emerald-100">
-              <div className="text-xl font-bold text-emerald-700">{stats.newProducts}</div>
-              <div className="text-[10px] uppercase text-emerald-600">Nuevos</div>
+            <div className="bg-emerald-50 p-3 rounded-lg border border-emerald-100">
+              <div className="text-2xl font-bold text-emerald-600">{stats.newProducts}</div>
+              <div className="text-[10px] uppercase font-bold text-emerald-700">Nuevos</div>
+              <div className="text-[9px] text-emerald-600/70">Crear</div>
             </div>
           </div>
 
           {stats.newProducts > 0 && (
-            <div className="bg-slate-50 p-3 rounded">
-              <Label className="text-xs mb-2 block">Categoría por defecto para nuevos:</Label>
+            <div className="bg-slate-50 p-3 rounded border border-slate-200">
+              <Label className="text-xs mb-2 block font-medium text-slate-700">Categoría para los nuevos:</Label>
               <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                <SelectTrigger className="h-8 bg-white">
+                <SelectTrigger className="h-9 bg-white">
                   <SelectValue placeholder="Selecciona..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -299,7 +333,13 @@ export const ExcelImporter = ({
               disabled={loading || (stats.newProducts > 0 && !selectedCategory)}
               className="bg-indigo-600 text-white"
             >
-              {loading ? "Procesando..." : "Aplicar Cambios"}
+              {loading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" /> Procesando...
+                </>
+              ) : (
+                "Confirmar y Aplicar"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
