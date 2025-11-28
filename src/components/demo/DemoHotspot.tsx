@@ -12,13 +12,21 @@ interface DemoHotspotProps {
 export const DemoHotspot = ({ title, description, className = "", side = "right" }: DemoHotspotProps) => {
   const [isOpen, setIsOpen] = useState(false);
 
-  // 🔥 AQUÍ ESTÁ LA LÓGICA DE POSICIÓN CORREGIDA 🔥
+  // Lógica de posición corregida y reforzada
   const positionClasses = {
     left: "right-full mr-3 top-0",
     right: "left-full ml-3 top-0",
-    // Top: Se va hacia arriba (bottom-full), margen abajo (mb-3), y se centra horizontalmente
+    // Top: Se sitúa encima del botón (bottom-full), con margen (mb-3), y centrado (left-1/2 -translate-x-1/2)
     top: "bottom-full mb-3 left-1/2 -translate-x-1/2 origin-bottom",
     bottom: "top-full mt-3 left-1/2 -translate-x-1/2 origin-top",
+  };
+
+  // Lógica de la flechita decorativa
+  const arrowClasses = {
+    left: "top-3 -right-1.5 border-t border-r", // Apunta derecha
+    right: "top-3 -left-1.5 border-b border-l", // Apunta izquierda
+    top: "-bottom-1.5 left-1/2 -translate-x-1/2 border-b border-r", // Apunta abajo
+    bottom: "-top-1.5 left-1/2 -translate-x-1/2 border-t border-l", // Apunta arriba
   };
 
   return (
@@ -49,7 +57,6 @@ export const DemoHotspot = ({ title, description, className = "", side = "right"
             initial={{ opacity: 0, scale: 0.9, y: 5 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 5 }}
-            // w-max asegura que el texto no se aplaste, max-w limita el ancho
             className={`absolute ${positionClasses[side]} w-64 md:w-72 bg-slate-900/95 backdrop-blur-md text-white p-4 rounded-xl shadow-2xl border border-slate-700 pointer-events-none md:pointer-events-auto z-50`}
           >
             <div className="flex justify-between items-start mb-1">
@@ -60,15 +67,8 @@ export const DemoHotspot = ({ title, description, className = "", side = "right"
             </div>
             <p className="text-xs text-slate-300 leading-relaxed font-medium text-left">{description}</p>
 
-            {/* Flechita decorativa centrada dinámicamente */}
-            <div
-              className={`absolute w-3 h-3 bg-slate-900 border-l border-t border-slate-700 rotate-45
-                ${side === "left" ? "top-3 -right-1.5 border-l-0 border-t-0 border-r border-b" : ""}
-                ${side === "right" ? "top-3 -left-1.5" : ""}
-                ${side === "top" ? "-bottom-1.5 left-1/2 -translate-x-1/2 border-l-0 border-t-0 border-r border-b" : ""}
-                ${side === "bottom" ? "-top-1.5 left-1/2 -translate-x-1/2" : ""}
-            `}
-            ></div>
+            {/* Flechita decorativa */}
+            <div className={`absolute w-3 h-3 bg-slate-900 rotate-45 ${arrowClasses[side]}`}></div>
           </motion.div>
         )}
       </AnimatePresence>
