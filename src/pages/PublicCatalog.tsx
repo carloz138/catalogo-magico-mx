@@ -68,7 +68,7 @@ export default function PublicCatalog() {
   const [accessPassword, setAccessPassword] = useState("");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  // 1. FETCH DE DATOS (Lógica L1/L2 Intacta)
+  // 1. FETCH DE DATOS (CORREGIDO PARA SOPORTAR L2)
   const {
     data: catalog,
     isLoading,
@@ -80,13 +80,14 @@ export default function PublicCatalog() {
 
       let catalogIdToFetch: string | null = null;
       let isReplicated = false;
+      let replicatedCatalogId: string | undefined = undefined; // <--- VARIABLE CLAVE
       let resellerId: string | undefined = undefined;
       let catalogHeader: any | null = null;
 
-      // 1.1 Buscar L1
+      // 1.1 Buscar L1 (Catálogo Original)
       let { data, error: errL1 } = await supabase.from("digital_catalogs").select(`*`).eq("slug", slug).maybeSingle();
 
-      // 1.2 Buscar L2 (Replica)
+      // 1.2 Buscar L2 (Si no es L1, buscamos en Réplicas)
       if (!data) {
         const { data: replica } = await supabase
           .from("replicated_catalogs")
@@ -97,6 +98,7 @@ export default function PublicCatalog() {
         if (replica && replica.digital_catalogs) {
           catalogHeader = replica.digital_catalogs as Partial<DigitalCatalog>;
           isReplicated = true;
+          replicatedCatalogId = replica.id; // <--- CAPTURAMOS EL ID DE LA RÉPLICA
           resellerId = replica.reseller_id || undefined;
           catalogIdToFetch = catalogHeader.id || null;
         }
@@ -121,17 +123,24 @@ export default function PublicCatalog() {
       // View Count (Fire & Forget)
       supabase.rpc("increment_view_count" as any, { row_id: catalogIdToFetch }).then();
 
+      // RETORNAMOS EL OBJETO CON EL replicatedCatalogId
       return {
         ...catalogHeader,
         products: products as Product[],
         isReplicated,
+        replicatedCatalogId, // <--- SE PASA AL COMPONENTE
         resellerId,
-      } as DigitalCatalog & { isReplicated?: boolean; resellerId?: string; products: Product[] };
+      } as DigitalCatalog & {
+        isReplicated?: boolean;
+        replicatedCatalogId?: string;
+        resellerId?: string;
+        products: Product[];
+      };
     },
     retry: false,
   });
 
-  // 2. SEO TITLE UPDATE (Vital para ventas/compartir)
+  // 2. SEO TITLE UPDATE
   useEffect(() => {
     if (catalog?.name) {
       document.title = `${catalog.name} | Catálogo Digital`;
@@ -280,6 +289,9 @@ export default function PublicCatalog() {
   return (
     <QuoteCartProvider>
       <ScriptInjector headScripts={catalog.tracking_head_scripts} bodyScripts={catalog.tracking_body_scripts} />
+      {/* El prop 'catalog' ahora incluye 'replicatedCatalogId'.
+         PublicCatalogContent lo leerá y se lo pasará al QuoteForm.
+      */}
       <PublicCatalogContent catalog={catalog} onTrackEvent={trackEvent} />
     </QuoteCartProvider>
   );
