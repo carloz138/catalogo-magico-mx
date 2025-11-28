@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Search, ShoppingCart, Plus, Zap, ArrowRight } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { motion, AnimatePresence } from "framer-motion";
-// 👇 IMPORTAR EL HOTSPOT
 import { DemoHotspot } from "@/components/demo/DemoHotspot";
 
 const formatCurrency = (amount: number) => {
@@ -15,6 +14,7 @@ const formatCurrency = (amount: number) => {
   }).format(amount / 100);
 };
 
+// --- COMPONENTE TARJETA DE PRODUCTO ---
 const ProductCard = ({ product, onAdd }: { product: any; onAdd: () => void }) => (
   <div className="group bg-white border border-slate-200 rounded-xl overflow-hidden hover:shadow-lg transition-all cursor-pointer relative">
     <div className="aspect-square bg-slate-100 relative overflow-hidden">
@@ -23,7 +23,7 @@ const ProductCard = ({ product, onAdd }: { product: any; onAdd: () => void }) =>
         alt={product.name}
         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
       />
-      {/* 🔴 BOTÓN CON ANIMACIÓN DE PULSO PARA INVITAR AL CLIC */}
+      {/* Botón con animación de pulso para invitar al clic */}
       <button
         onClick={(e) => {
           e.stopPropagation();
@@ -44,6 +44,7 @@ const ProductCard = ({ product, onAdd }: { product: any; onAdd: () => void }) =>
   </div>
 );
 
+// --- COMPONENTE CARRITO (SHEET) ---
 const DemoCart = ({ isOpen, onClose, items, setItems }: any) => {
   const handleAddUpsell = () => {
     setItems([
@@ -61,11 +62,10 @@ const DemoCart = ({ isOpen, onClose, items, setItems }: any) => {
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
       <SheetContent className="w-full sm:max-w-md flex flex-col bg-slate-50 z-[60]">
-        {" "}
-        {/* z-index alto para estar sobre hotspots externos */}
         <SheetHeader className="border-b pb-4">
           <SheetTitle>Tu Pedido Demo</SheetTitle>
         </SheetHeader>
+
         {items.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
             <ShoppingCart className="w-12 h-12 text-slate-300 mb-4" />
@@ -83,7 +83,7 @@ const DemoCart = ({ isOpen, onClose, items, setItems }: any) => {
               </div>
             ))}
 
-            {/* 🔴 HOTSPOT RECOMENDADOR / UPSELL (DENTRO DEL CARRITO) */}
+            {/* 🔴 HOTSPOT RECOMENDADOR / UPSELL */}
             <div className="relative mt-6">
               <DemoHotspot
                 className="top-[-15px] right-0 z-30"
@@ -139,6 +139,7 @@ const DemoCart = ({ isOpen, onClose, items, setItems }: any) => {
             </div>
           </div>
         )}
+
         <div className="border-t pt-4 bg-white p-4 -mx-6 -mb-6">
           <div className="flex justify-between font-bold text-lg mb-4 text-slate-900">
             <span>Total</span>
@@ -156,6 +157,7 @@ const DemoCart = ({ isOpen, onClose, items, setItems }: any) => {
   );
 };
 
+// --- COMPONENTE PRINCIPAL ---
 export default function DemoCatalog({ products, color }: { products: any[]; color: string }) {
   const [items, setItems] = useState<any[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -184,12 +186,12 @@ export default function DemoCatalog({ products, color }: { products: any[]; colo
       <div className="container mx-auto px-4 -mt-8 relative z-20">
         {/* BARRA DE BÚSQUEDA FLOTANTE */}
         <div className="bg-white p-4 rounded-xl shadow-xl border border-slate-100 mb-8 relative">
-          {/* 🔴 HOTSPOT BUSCADOR (CORREGIDO: AHORA ESTÁ AQUÍ DENTRO) */}
+          {/* 🔴 HOTSPOT BUSCADOR (CORREGIDO: side="left") */}
           <DemoHotspot
             className="top-[-10px] right-[-10px] z-30"
             title="Buscador Inteligente (Radar)"
             description="Aquí capturamos la intención de compra. Si buscan algo que no tienes, el sistema activa el Radar y te avisa."
-            side="bottom"
+            side="left"
           />
 
           <div className="relative">
@@ -206,10 +208,8 @@ export default function DemoCatalog({ products, color }: { products: any[]; colo
         {/* GRID DE PRODUCTOS */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 relative">
           {/* 🔴 HOTSPOT AGREGAR AL CARRITO */}
-          {/* Lo ponemos flotando cerca del primer producto para indicar la acción */}
           <DemoHotspot
             className="top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-30 md:hidden"
-            // Solo visible en móvil donde es más confuso a veces, o quítale md:hidden para todos
             title="¡Prueba comprando!"
             description="Dale clic al botón '+' para ver cómo funciona el carrito inteligente."
             side="top"
