@@ -43,8 +43,8 @@ const getExcelValue = (val: any, isNumber: boolean = false): any => {
     // Si es número directo, retornarlo
     if (typeof val === "number") return val;
 
-    // Si es string (ej: "$ 1,500.00"), limpiarlo
-    const stringVal = String(val).replace(/[^0-9.-]+/g, ""); // Quitar todo lo que no sea número o punto
+    // Si es string (ej: "$ 1,500.00"), limpiarlo quitando todo lo que no sea número, punto o menos
+    const stringVal = String(val).replace(/[^0-9.-]+/g, "");
     const num = parseFloat(stringVal);
     return isNaN(num) ? null : num;
   }
@@ -166,9 +166,6 @@ export const ExcelImporter = ({
           if (match) categoryToUse = match.value;
         }
 
-        // DEBUG LOG para ver qué está leyendo
-        // console.log(`Fila leída: ${nombre} | ID: ${idSistema} | Precio Original: ${pRetailRaw} -> ${priceRetail}`);
-
         if (tipo === "variante" && idVariante) {
           // UPDATE VARIANTE
           updatesVariants.push({
@@ -220,39 +217,56 @@ export const ExcelImporter = ({
       try {
         const promises = [];
 
+        // --- 1. ACTUALIZAR PRODUCTOS PADRE ---
         if (updatesProducts.length > 0) {
-          // En lugar de iterar, si tienes muchos, podrías usar un RPC, pero el loop es seguro
           const productUpdates = updatesProducts.map((p) => {
-            // Limpiamos undefined para no sobrescribir con null lo que no venía
-            const cleanPayload = Object.fromEntries(Object.entries(p).filter(([_, v]) => v !== undefined));
-            return supabase.from("products").update(cleanPayload).eq("id", p.id);
+            // 🔥 CORRECCIÓN: Extraemos el ID para no enviarlo en el body
+            const { id, ...rest } = p;
+
+            // Limpiamos undefined (pero dejamos null si queremos borrar el dato)
+            const cleanPayload = Object.fromEntries(Object.entries(rest).filter(([_, v]) => v !== undefined));
+
+            return supabase.from("products").update(cleanPayload).eq("id", id);
           });
           promises.push(...productUpdates);
         }
 
+        // --- 2. ACTUALIZAR VARIANTES ---
         if (updatesVariants.length > 0) {
           const variantUpdates = updatesVariants.map((v) => {
-            const cleanPayload = Object.fromEntries(Object.entries(v).filter(([_, v]) => v !== undefined));
-            return supabase.from("product_variants").update(cleanPayload).eq("id", v.id);
+            const { id, ...rest } = v;
+
+            const cleanPayload = Object.fromEntries(Object.entries(rest).filter(([_, v]) => v !== undefined));
+
+            return supabase.from("product_variants").update(cleanPayload).eq("id", id);
           });
           promises.push(...variantUpdates);
         }
 
+        // --- 3. INSERTAR NUEVOS ---
         if (insertsProducts.length > 0) {
           promises.push(supabase.from("products").insert(insertsProducts));
         }
 
-        await Promise.all(promises);
+        // Ejecutamos todas las promesas
+        const results = await Promise.all(promises);
+
+        // Verificación básica de errores
+        const errors = results.filter((r) => r.error);
+        if (errors.length > 0) {
+          console.error("Algunos updates fallaron:", errors[0].error);
+          throw new Error(`Error en ${errors.length} operaciones. Revisa la consola.`);
+        }
 
         toast({ title: "Importación exitosa", description: "Precios y stock actualizados." });
         onImportSuccess();
         setIsDialogOpen(false);
         setFile(null);
-      } catch (err) {
-        console.error("Error Supabase:", err);
+      } catch (err: any) {
+        console.error("Error Crítico Supabase:", err);
         toast({
           title: "Error en la importación",
-          description: "Revisa la consola para más detalles.",
+          description: err.message || "Error desconocido.",
           variant: "destructive",
         });
       } finally {
