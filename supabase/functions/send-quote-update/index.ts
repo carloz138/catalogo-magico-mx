@@ -1,7 +1,7 @@
 // ==========================================
 // FUNCION: send-quote-update
-// DESCRIPCIÓN: Notifica al cliente cuando el dueño agrega envío/fecha
-// ESTADO: V1.0 (CON HASHING PROTOCOL)
+// DESCRIPCIÓN: Notifica al cliente (con identidad del Vendedor L2/L1 correcta)
+// ESTADO: V2.1 (MULTI-TENANT FIX)
 // ==========================================
 import { createClient } from 'jsr:@supabase/supabase-js@2.49.8';
 
@@ -10,11 +10,11 @@ const DEPLOY_VERSION = Deno.env.get("FUNCTION_HASH") || "UNKNOWN_HASH";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type'
 };
 
 Deno.serve(async (req) => {
-  // 2. Logging Inicial Estructurado (Protocolo)
+  // 2. Logging Inicial Estructurado
   console.log(JSON.stringify({
     event: "FUNC_START",
     function: "send-quote-update",
@@ -28,7 +28,6 @@ Deno.serve(async (req) => {
 
   try {
     const { quoteId } = await req.json();
-
     if (!quoteId) throw new Error("quoteId es requerido");
 
     const supabaseAdmin = createClient(
@@ -38,13 +37,14 @@ Deno.serve(async (req) => {
     );
 
     // 1. Obtener datos de la cotización
+    // NOTA: Traemos 'user_id' que es el DUENO de la venta (L1 o L2)
     console.log(`🔍 Buscando cotización: ${quoteId}`);
     const { data: quote, error } = await supabaseAdmin
       .from('quotes')
       .select(`
         *,
         quote_items (*),
-        digital_catalogs (name, user_id)
+        digital_catalogs (name)
       `)
       .eq('id', quoteId)
       .single();
@@ -54,17 +54,21 @@ Deno.serve(async (req) => {
       throw new Error("Quote not found");
     }
 
-    // 2. Obtener datos del dueño (Proveedor)
+    // 2. Obtener identidad del Vendedor (FIX CRÍTICO MULTI-TENANT)
+    // Antes buscábamos al dueño del catálogo. Ahora buscamos al dueño de la QUOTE (user_id).
+    // Esto asegura que si es una reventa (L2), salga el nombre del L2.
     const { data: owner } = await supabaseAdmin
       .from('business_info')
       .select('business_name')
-      .eq('user_id', quote.digital_catalogs.user_id)
+      .eq('user_id', quote.user_id) // <--- CAMBIO AQUÍ: Usamos quote.user_id
       .single();
 
+    // Prioridad: Nombre del Negocio (Business Info) > Nombre del Catálogo
     const providerName = owner?.business_name || quote.digital_catalogs.name;
 
+    console.log(`🏢 Proveedor identificado: ${providerName} (User ID: ${quote.user_id})`);
+
     // 3. Generar Link de Tracking
-    // Buscamos el token público para que el cliente entre directo sin login
     const { data: tokenData } = await supabaseAdmin
       .from('quote_tracking_tokens')
       .select('token')
@@ -72,28 +76,27 @@ Deno.serve(async (req) => {
       .single();
 
     const trackingLink = tokenData 
-      ? `${Deno.env.get('SITE_URL')}/track/${tokenData.token}`
+      ? `${Deno.env.get('SITE_URL')}/track/${tokenData.token}` 
       : `${Deno.env.get('SITE_URL')}/track/order/${quote.order_number}`;
 
     console.log(`📧 Preparando email para: ${quote.customer_email}`);
 
-    // Formateo de fecha para el email
+    // Formateo de fecha
     let deliveryDateStr = 'Por confirmar';
     if (quote.estimated_delivery_date) {
-        const dateObj = new Date(quote.estimated_delivery_date);
-        // Ajuste simple de zona horaria o usar UTC directo ya que es DATE (YYYY-MM-DD)
-        deliveryDateStr = dateObj.toLocaleDateString('es-MX', { 
-            weekday: 'long', 
-            year: 'numeric', 
-            month: 'long', 
-            day: 'numeric',
-            timeZone: 'UTC' // Importante para tipos DATE puros
-        });
+      const dateObj = new Date(quote.estimated_delivery_date);
+      deliveryDateStr = dateObj.toLocaleDateString('es-MX', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        timeZone: 'UTC'
+      });
     }
 
     // 4. Enviar Email
     if (!Deno.env.get('RESEND_API_KEY')) {
-        throw new Error("RESEND_API_KEY no configurada");
+      throw new Error("RESEND_API_KEY no configurada");
     }
 
     const res = await fetch('https://api.resend.com/emails', {
@@ -151,16 +154,16 @@ Deno.serve(async (req) => {
     });
 
     if (!res.ok) {
-        const errorText = await res.text();
-        console.error("❌ Error enviando email:", errorText);
-        throw new Error(`Error Resend: ${errorText}`);
+      const errorText = await res.text();
+      console.error("❌ Error enviando email:", errorText);
+      throw new Error(`Error Resend: ${errorText}`);
     }
 
     console.log(`✅ Email de actualización enviado a ${quote.customer_email}`);
 
-    return new Response(JSON.stringify({ 
-        success: true,
-        version: DEPLOY_VERSION 
+    return new Response(JSON.stringify({
+      success: true,
+      version: DEPLOY_VERSION
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200
@@ -168,9 +171,9 @@ Deno.serve(async (req) => {
 
   } catch (error) {
     console.error("❌ Error general:", error);
-    return new Response(JSON.stringify({ 
-        error: error.message,
-        version: DEPLOY_VERSION
+    return new Response(JSON.stringify({
+      error: error.message,
+      version: DEPLOY_VERSION
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500
