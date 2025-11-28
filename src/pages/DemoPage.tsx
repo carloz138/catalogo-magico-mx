@@ -16,7 +16,6 @@ import { Button } from "@/components/ui/button";
 import {
   LayoutDashboard,
   ShoppingCart,
-  Settings,
   ArrowRight,
   Shirt,
   Hammer,
@@ -28,6 +27,8 @@ import {
   Ticket,
 } from "lucide-react";
 import WelcomeTour from "@/components/demo/WelcomeTour";
+// 👇 IMPORTAR EL COMPONENTE NUEVO
+import { DemoHotspot } from "@/components/demo/DemoHotspot";
 
 export default function DemoPage() {
   const [industry, setIndustry] = useState<Industry>("ropa");
@@ -46,7 +47,7 @@ export default function DemoPage() {
     <div className="min-h-screen bg-slate-50 p-4 md:p-8 font-sans">
       <WelcomeTour isOpen={showWelcome} onClose={() => setShowWelcome(false)} />
 
-      {/* HEADER GIGANTE PROTAGONISTA */}
+      {/* HEADER */}
       <div className="bg-slate-900 border-b border-slate-800 rounded-3xl p-6 md:p-8 shadow-2xl mb-10 text-white relative overflow-hidden">
         <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-600 rounded-full blur-[100px] opacity-20 -mr-20 -mt-20 pointer-events-none"></div>
 
@@ -63,9 +64,7 @@ export default function DemoPage() {
           </div>
 
           <div className="flex flex-col items-center gap-2 bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/10 w-full md:w-auto">
-            <span className="text-xs font-bold uppercase tracking-widest text-indigo-300">
-              👀 Echa un vistazo a las demos
-            </span>
+            <span className="text-xs font-bold uppercase tracking-widest text-indigo-300">👀 Cambia de industria</span>
             <div className="flex gap-2 w-full">
               <Select value={industry} onValueChange={(v) => setIndustry(v as Industry)}>
                 <SelectTrigger className="w-full md:w-[280px] h-12 bg-white text-slate-900 border-0 font-medium text-base shadow-xl">
@@ -103,7 +102,7 @@ export default function DemoPage() {
           </div>
           <div>
             <h2 className="text-2xl font-bold text-slate-800 leading-tight">{data.label}</h2>
-            <p className="text-slate-500 text-sm">Vista previa de la configuración para este giro.</p>
+            <p className="text-slate-500 text-sm">Así verías tus datos reales.</p>
           </div>
         </div>
 
@@ -113,13 +112,13 @@ export default function DemoPage() {
               value="dashboard"
               className="h-11 px-8 rounded-xl data-[state=active]:bg-slate-900 data-[state=active]:text-white font-medium text-base transition-all"
             >
-              <LayoutDashboard className="w-4 h-4 mr-2" /> Panel de Control
+              <LayoutDashboard className="w-4 h-4 mr-2" /> Inteligencia
             </TabsTrigger>
             <TabsTrigger
               value="catalogo"
               className="h-11 px-8 rounded-xl data-[state=active]:bg-slate-900 data-[state=active]:text-white font-medium text-base transition-all"
             >
-              <ShoppingCart className="w-4 h-4 mr-2" /> Catálogo Cliente
+              <ShoppingCart className="w-4 h-4 mr-2" /> Catálogo Interactivo
             </TabsTrigger>
           </TabsList>
 
@@ -129,7 +128,7 @@ export default function DemoPage() {
               <div className="mt-8">
                 <BenefitTip
                   title="Tu Dinero Real vs. Promesas"
-                  description="CatifyPro separa las 'cotizaciones aceptadas' del dinero real en banco. La línea punteada es nuestra IA proyectando tu cierre de mes."
+                  description="CatifyPro separa las 'cotizaciones aceptadas' del dinero real en banco."
                 />
                 <DemoSalesChart data={data.mainChartData} />
               </div>
@@ -137,36 +136,58 @@ export default function DemoPage() {
 
             <section>
               <div className="flex items-center justify-between mb-6 mt-12">
-                <h3 className="text-base font-bold text-slate-400 uppercase tracking-wider">Inteligencia de Mercado</h3>
+                <h3 className="text-base font-bold text-slate-400 uppercase tracking-wider">
+                  Oportunidades Detectadas
+                </h3>
                 <Badge className="bg-indigo-100 text-indigo-700 border-0 hover:bg-indigo-100 px-3 py-1">
                   AI Powered
                 </Badge>
               </div>
+
               <OpportunityBanner value={data.opportunityValue || 50000} />
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <Card className="shadow-lg border-indigo-100 overflow-hidden hover:shadow-xl transition-shadow">
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 relative">
+                {/* 🔴 HOTSPOT RADAR */}
+                <DemoHotspot
+                  className="top-[-10px] right-[-10px] z-20"
+                  title="Radar de Demanda"
+                  description="Aquí ves lo que tus clientes te piden pero NO tienes en catálogo. Te dicen producto y cantidad exacta para que sepas qué comprar."
+                  side="left"
+                />
+
+                <Card className="shadow-lg border-indigo-100 overflow-hidden hover:shadow-xl transition-shadow relative">
                   <CardHeader className="bg-slate-50/50 pb-4 border-b border-slate-100">
                     <CardTitle className="text-lg flex items-center gap-2">
                       <div className="bg-white p-2 rounded-lg shadow-sm">
                         <div className="animate-pulse w-2 h-2 bg-red-500 rounded-full absolute top-0 right-0 -mt-1 -mr-1"></div>
                         <ShoppingCart className="w-5 h-5 text-indigo-600" />
                       </div>
-                      Solicitudes de Producto
+                      Solicitudes de Producto (Radar)
                     </CardTitle>
                   </CardHeader>
                   <DemoRadarWidget data={data.radar} />
                 </Card>
-                <Card className="shadow-lg border-slate-200 hover:shadow-xl transition-shadow">
-                  <CardHeader className="bg-slate-50/50 pb-4 border-b border-slate-100">
-                    <CardTitle className="text-lg flex items-center gap-2">
-                      <div className="bg-white p-2 rounded-lg shadow-sm">
-                        <TrendingUp className="w-5 h-5 text-emerald-600" />
-                      </div>
-                      Lo más buscado en tu tienda
-                    </CardTitle>
-                  </CardHeader>
-                  <DemoSearchWidget data={data.searchTerms} />
-                </Card>
+
+                {/* 🔴 HOTSPOT SEARCH LOGS */}
+                <div className="relative">
+                  <DemoHotspot
+                    className="top-[-10px] right-[-10px] z-20"
+                    title="Search Logs (Tendencias)"
+                    description="Descubre qué buscan tus clientes. Identifica productos encontrados (éxito) y productos no encontrados (oportunidades perdidas)."
+                    side="left"
+                  />
+                  <Card className="shadow-lg border-slate-200 hover:shadow-xl transition-shadow h-full">
+                    <CardHeader className="bg-slate-50/50 pb-4 border-b border-slate-100">
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        <div className="bg-white p-2 rounded-lg shadow-sm">
+                          <TrendingUp className="w-5 h-5 text-emerald-600" />
+                        </div>
+                        Lo más buscado en tu tienda
+                      </CardTitle>
+                    </CardHeader>
+                    <DemoSearchWidget data={data.searchTerms} />
+                  </Card>
+                </div>
               </div>
             </section>
 
@@ -180,14 +201,42 @@ export default function DemoPage() {
           </TabsContent>
 
           <TabsContent value="catalogo" className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl overflow-hidden min-h-[700px] relative">
-              <div className="absolute top-0 left-0 w-full h-8 bg-slate-100 border-b flex items-center px-4 gap-2 z-10">
+            <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl overflow-hidden min-h-[700px] relative group">
+              {/* Barra simulada navegador */}
+              <div className="absolute top-0 left-0 w-full h-10 bg-slate-100 border-b flex items-center px-4 gap-2 z-20">
                 <div className="w-3 h-3 rounded-full bg-red-400"></div>
                 <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
                 <div className="w-3 h-3 rounded-full bg-green-400"></div>
-                <div className="mx-auto text-xs font-medium text-slate-400">catifypro.store/tu-negocio</div>
+                <div className="mx-auto bg-white px-4 py-1 rounded-md text-xs font-medium text-slate-500 border shadow-sm flex items-center gap-2">
+                  🔒 catifypro.store/tu-negocio
+                </div>
               </div>
-              <div className="pt-8 h-full">
+
+              {/* 🔴 HOTSPOT CATALOGO */}
+              <DemoHotspot
+                className="top-14 left-4"
+                title="Tu Catálogo Inteligente"
+                description="Así ven tus clientes tu tienda. Completamente responsiva y optimizada para convertir visitas en cotizaciones."
+                side="right"
+              />
+
+              {/* 🔴 HOTSPOT CARRITO (Estimado arriba derecha) */}
+              <DemoHotspot
+                className="top-14 right-4 md:right-10"
+                title="Carrito con Upsell"
+                description="Cuando agregan algo, el carrito les sugiere productos complementarios para aumentar tu ticket promedio."
+                side="left"
+              />
+
+              {/* 🔴 HOTSPOT RECOMENDADOR (Estimado abajo centro/derecha) */}
+              <DemoHotspot
+                className="bottom-20 right-4 md:right-10 md:bottom-10"
+                title="IA Recomendadora"
+                description="Este módulo aprende de todos tus clientes y sugiere automáticamente lo que es más probable que compren."
+                side="left"
+              />
+
+              <div className="pt-10 h-full">
                 <DemoCatalog products={data.products} color={data.colors.primary} />
               </div>
             </div>
