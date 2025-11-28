@@ -3,16 +3,24 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input"; // Agregado
+import { Label } from "@/components/ui/label"; // Agregado
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import {
   Loader2,
   CheckCircle,
   Clock,
   XCircle,
-  Rocket,
   Package,
   Sparkles,
   ChevronDown,
@@ -22,9 +30,10 @@ import {
   Copy,
   Landmark,
   Box,
-  MapPin,
   Phone,
   Mail,
+  UserPlus, // Agregado
+  LogIn, // Agregado
 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -33,8 +42,6 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { QuoteTrackingService, TrackingQuoteData } from "@/services/quote-tracking.service";
 
 // 🚨 SWITCH MAESTRO DE PAGOS 🚨
-// false = Modo Manual (Muestra datos de contacto para pagar)
-// true = Modo Openpay (Muestra botón de SPEI automático)
 const ENABLE_ONLINE_PAYMENTS = false;
 
 export default function TrackQuotePage() {
@@ -46,7 +53,11 @@ export default function TrackQuotePage() {
   const [quote, setQuote] = useState<TrackingQuoteData | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
+
+  // Estados para Onboarding Viral
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authMode, setAuthMode] = useState<"signin" | "signup">("signup");
+  const [authForm, setAuthForm] = useState({ email: "", password: "", fullName: "" });
   const [replicating, setReplicating] = useState(false);
   const [isCtaOpen, setIsCtaOpen] = useState(false);
 
@@ -62,6 +73,10 @@ export default function TrackQuotePage() {
     try {
       const data = await QuoteTrackingService.getQuoteByToken(token!);
       setQuote(data);
+      // Pre-llenar email si está disponible en la cotización
+      if (data.customer_email) {
+        setAuthForm((prev) => ({ ...prev, email: data.customer_email, fullName: data.customer_name }));
+      }
     } catch (error: any) {
       console.error("Error:", error);
       toast({ title: "Error", description: "Enlace no válido o expirado", variant: "destructive" });
@@ -104,23 +119,79 @@ export default function TrackQuotePage() {
     }
   };
 
-  const handleReplicate = async () => {
-    if (!user) {
+  // --- LÓGICA DE ACTIVACIÓN VIRAL ---
+  const handleReplicateClick = () => {
+    if (user) {
+      // Si ya está logueado, activamos directo
+      activateCatalog(user.id);
+    } else {
+      // Si no, mostramos modal de registro
       setShowAuthModal(true);
-      return;
     }
-    if (!quote?.replicated_catalogs) return;
+  };
+
+  const handleAuthSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     setReplicating(true);
     try {
-      await supabase
-        .from("replicated_catalogs")
-        .update({ is_active: true, reseller_id: user.id, activated_at: new Date().toISOString() })
-        .eq("id", quote.replicated_catalogs.id);
-      toast({ title: "¡Catálogo activado!", description: "Redirigiendo..." });
-      navigate("/catalogs");
-    } catch (e) {
-      toast({ title: "Error", description: "Error activando", variant: "destructive" });
-    } finally {
+      let userId = null;
+
+      if (authMode === "signup") {
+        const { data, error } = await supabase.auth.signUp({
+          email: authForm.email,
+          password: authForm.password,
+          options: {
+            data: { full_name: authForm.fullName },
+          },
+        });
+        if (error) throw error;
+        userId = data.user?.id;
+      } else {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: authForm.email,
+          password: authForm.password,
+        });
+        if (error) throw error;
+        userId = data.user?.id;
+      }
+
+      if (userId) {
+        await activateCatalog(userId);
+        setShowAuthModal(false); // Cerrar modal si todo salió bien
+      }
+    } catch (error: any) {
+      toast({ title: "Error de autenticación", description: error.message, variant: "destructive" });
+      setReplicating(false);
+    }
+  };
+
+  const activateCatalog = async (userId: string) => {
+    setReplicating(true);
+    try {
+      // Llamada a la Edge Function
+      // Nota: Enviamos el token de la URL que identifica al catálogo huérfano
+      const { data, error } = await supabase.functions.invoke("activate-replicated-catalog", {
+        body: {
+          token: token,
+          userId: userId,
+        },
+      });
+
+      if (error || !data.success) throw new Error(data?.message || "Error al activar catálogo");
+
+      toast({
+        title: "🎉 ¡Felicidades!",
+        description: "Tu negocio ha sido activado. Redirigiendo a tu panel...",
+        duration: 5000,
+      });
+
+      // Esperar un momento para que el usuario lea el mensaje
+      setTimeout(() => {
+        navigate("/dashboard");
+      }, 2000);
+    } catch (error: any) {
+      console.error("Error activando:", error);
+      toast({ title: "Error", description: error.message, variant: "destructive" });
       setReplicating(false);
     }
   };
@@ -147,15 +218,13 @@ export default function TrackQuotePage() {
   const shipping = quote.shipping_cost || 0;
   const total = quote.total_amount || subtotal + shipping;
 
-  // Lógica de Estados
   const isAccepted = quote.status === "accepted" || quote.status === "shipped";
   const isNegotiation = quote.status === "negotiation";
-
-  // Lógica Logística (Prioridad sobre el pago)
   const isShipped = quote.status === "shipped" || quote.fulfillment_status === "shipped";
   const isReadyPickup = quote.fulfillment_status === "ready_for_pickup";
   const isLogisticsActive = isShipped || isReadyPickup;
 
+  // Solo mostrar la opción de replicar si el catálogo lo permite y aún no está activo
   const canReplicate = isAccepted && quote.replicated_catalogs && !quote.replicated_catalogs.is_active;
 
   const statusConfig = {
@@ -236,8 +305,7 @@ export default function TrackQuotePage() {
           </Card>
         )}
 
-        {/* --- 2. BANNER PAGO (HÍBRIDO) --- */}
-        {/* Solo mostramos pago si NO se ha enviado ni está listo para recoger */}
+        {/* --- 2. BANNER PAGO --- */}
         {isAccepted && !isLogisticsActive && (
           <Card className="mb-8 border-indigo-200 bg-white shadow-lg overflow-hidden">
             <div className="bg-indigo-50 px-6 py-3 border-b border-indigo-100 flex items-center gap-2">
@@ -246,7 +314,6 @@ export default function TrackQuotePage() {
             </div>
             <CardContent className="p-6">
               {ENABLE_ONLINE_PAYMENTS ? (
-                // MODO OPENPAY
                 <div className="flex flex-col md:flex-row items-center gap-6">
                   <div className="flex-1">
                     <h3 className="text-lg font-bold text-slate-900 mb-2">¡Todo listo para tu pedido!</h3>
@@ -272,7 +339,6 @@ export default function TrackQuotePage() {
                   </div>
                 </div>
               ) : (
-                // MODO MANUAL (Contacto)
                 <div className="flex flex-col md:flex-row items-center gap-6">
                   <div className="flex-1">
                     <h3 className="text-lg font-bold text-slate-900 mb-2">Pedido Confirmado</h3>
@@ -313,7 +379,7 @@ export default function TrackQuotePage() {
           </Card>
         )}
 
-        {/* --- 3. BANNER LOGÍSTICA (POST-ENVÍO) --- */}
+        {/* --- 3. BANNER LOGÍSTICA --- */}
         {isLogisticsActive && (
           <Card
             className={`mb-8 border-2 shadow-lg overflow-hidden ${isShipped ? "border-purple-200 bg-purple-50" : "border-indigo-200 bg-indigo-50"}`}
@@ -349,7 +415,6 @@ export default function TrackQuotePage() {
                           onClick={() => copyToClipboard(quote.tracking_code || "")}
                         >
                           <Copy className="h-3 w-3 mr-1" />
-                          Copiar
                         </Button>
                       </div>
                     </div>
@@ -369,7 +434,7 @@ export default function TrackQuotePage() {
           </Card>
         )}
 
-        {/* Header Info y Resto de componentes */}
+        {/* Header Info */}
         <div className="text-center mb-8">
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-2">
             Hola, {quote.customer_name.split(" ")[0]} 👋
@@ -379,6 +444,7 @@ export default function TrackQuotePage() {
           </p>
         </div>
 
+        {/* --- SECCIÓN DE ACTIVACIÓN VIRAL --- */}
         {canReplicate && (
           <Collapsible open={isCtaOpen} onOpenChange={setIsCtaOpen} className="mb-8">
             <CollapsibleTrigger className="w-full">
@@ -387,7 +453,9 @@ export default function TrackQuotePage() {
                 <AlertDescription className="flex items-center justify-between w-full">
                   <div className="text-left ml-2">
                     <span className="font-semibold text-emerald-900 block">¿Quieres vender estos productos?</span>
-                    <span className="text-xs text-emerald-600">Haz clic para activar tu propio catálogo</span>
+                    <span className="text-xs text-emerald-600">
+                      Haz clic para activar tu propio catálogo y ganar dinero.
+                    </span>
                   </div>
                   <ChevronDown
                     className={`h-4 w-4 text-emerald-400 transition-transform ${isCtaOpen ? "rotate-180" : ""}`}
@@ -396,15 +464,32 @@ export default function TrackQuotePage() {
               </Alert>
             </CollapsibleTrigger>
             <CollapsibleContent>
-              <div className="p-4 bg-white border border-emerald-100 rounded-b-lg shadow-sm mt-[-1px]">
-                <Button onClick={handleReplicate} disabled={replicating} className="w-full bg-emerald-600">
-                  {replicating ? "Activando..." : "Activar mi Negocio Ahora"}
+              <div className="p-6 bg-white border border-emerald-100 rounded-b-lg shadow-sm mt-[-1px] text-center">
+                <h4 className="text-lg font-bold text-slate-800 mb-2">¡Crea tu negocio en segundos!</h4>
+                <p className="text-slate-600 mb-6 text-sm">
+                  Al activar tu cuenta, obtendrás una copia de este catálogo lista para compartir. Tú decides los
+                  precios y te quedas con la ganancia extra.
+                </p>
+                <Button
+                  onClick={handleReplicateClick}
+                  disabled={replicating}
+                  size="lg"
+                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-200 animate-pulse"
+                >
+                  {replicating ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Activando...
+                    </>
+                  ) : (
+                    "Activar mi Negocio Ahora"
+                  )}
                 </Button>
               </div>
             </CollapsibleContent>
           </Collapsible>
         )}
 
+        {/* Lista de Productos */}
         <Card className="shadow-sm border-slate-200 overflow-hidden">
           <CardHeader className="bg-slate-50 border-b border-slate-100 py-4">
             <CardTitle className="text-base font-semibold flex justify-between items-center">
@@ -460,6 +545,7 @@ export default function TrackQuotePage() {
         </div>
       </div>
 
+      {/* MODAL DE PAGOS */}
       <Dialog open={showPaymentModal} onOpenChange={setShowPaymentModal}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -504,18 +590,77 @@ export default function TrackQuotePage() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* ✅ MODAL DE REGISTRO RÁPIDO (VIRAL) */}
       <Dialog open={showAuthModal} onOpenChange={setShowAuthModal}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Inicia sesión</DialogTitle>
-            <DialogDescription>Para activar este catálogo necesitas una cuenta.</DialogDescription>
+            <DialogTitle className="text-center text-xl">
+              {authMode === "signup" ? "Crea tu cuenta gratis" : "Bienvenido de nuevo"}
+            </DialogTitle>
+            <DialogDescription className="text-center">
+              {authMode === "signup"
+                ? "Para activar tu catálogo y empezar a vender."
+                : "Ingresa para activar este catálogo en tu cuenta."}
+            </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-2 mt-4">
-            <Button onClick={() => navigate("/sign-in")}>Ingresar</Button>
-            <Button variant="outline" onClick={() => navigate("/sign-up")}>
-              Registrarme
+
+          <form onSubmit={handleAuthSubmit} className="space-y-4 mt-2">
+            {authMode === "signup" && (
+              <div className="space-y-2">
+                <Label htmlFor="fullName">Nombre Completo</Label>
+                <Input
+                  id="fullName"
+                  placeholder="Ej. Juan Pérez"
+                  required
+                  value={authForm.fullName}
+                  onChange={(e) => setAuthForm({ ...authForm, fullName: e.target.value })}
+                />
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Label htmlFor="email">Correo Electrónico</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="tu@email.com"
+                required
+                value={authForm.email}
+                onChange={(e) => setAuthForm({ ...authForm, email: e.target.value })}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="password">Contraseña</Label>
+              <Input
+                id="password"
+                type="password"
+                placeholder="******"
+                required
+                minLength={6}
+                value={authForm.password}
+                onChange={(e) => setAuthForm({ ...authForm, password: e.target.value })}
+              />
+            </div>
+
+            <div className="pt-2">
+              <Button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700" disabled={replicating}>
+                {replicating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {authMode === "signup" ? "Registrar y Activar" : "Ingresar y Activar"}
+              </Button>
+            </div>
+          </form>
+
+          <DialogFooter className="sm:justify-center border-t pt-4 mt-2">
+            <Button
+              variant="link"
+              className="text-slate-500 text-xs"
+              onClick={() => setAuthMode(authMode === "signup" ? "signin" : "signup")}
+            >
+              {authMode === "signup" ? "¿Ya tienes cuenta? Inicia sesión" : "¿Nuevo aquí? Crea una cuenta"}
             </Button>
-          </div>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
