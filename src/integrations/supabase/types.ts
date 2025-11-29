@@ -3202,10 +3202,7 @@ export type Database = {
         Args: { product_id: string; requesting_user_id: string }
         Returns: boolean
       }
-      process_inventory_deduction: {
-        Args: { p_quote_id: string }
-        Returns: undefined
-      }
+      process_inventory_deduction: { Args: { quote_id: string }; Returns: Json }
       restore_product: {
         Args: { product_id: string; requesting_user_id: string }
         Returns: boolean
