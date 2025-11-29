@@ -1,122 +1,126 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "./AuthContext"; // Para saber el 'user'
-// 👇 1. CORRECCIÓN: Importamos el hook con el nombre correcto
-import { useUserRole } from "./RoleContext"; // Para saber el 'role' (L1/L2/BOTH)
+import { useAuth } from "./AuthContext";
+import { useUserRole } from "./RoleContext"; // Importamos el contexto de roles
 import { type Tables } from "@/integrations/supabase/types";
 
-// Este es el tipo de tu objeto 'packages' del JSON que me pasaste
+// Tipo base de la tabla credit_packages
 export type Package = Tables<"credit_packages">;
 
-// Tipo para el 'rol' L2 gratuito que no tiene un plan de paga
+// Tipo para el 'rol' L2 gratuito que no tiene un plan de pago real
 type FreeL2Plan = {
   id: "free_l2";
   name: "Plan Revendedor";
-  analytics_level: "basic"; // L2 gratuito ve el Radar Básico, según tu tabla
+  analytics_level: "basic";
+  package_type: "free_reseller";
 };
 
-// Lo que nuestro Context va a "exponer" al resto de la app
+// Lo que nuestro Context va a "exponer"
 type SubscriptionContextType = {
   paqueteUsuario: Package | FreeL2Plan | null;
   loading: boolean;
   hasAccess: (feature: "radar_inteligente" | "recomendaciones" | "predictivo") => boolean;
 };
 
-// Creamos el Context
 const SubscriptionContext = createContext<SubscriptionContextType | undefined>(undefined);
 
-// --- El "Proveedor" (Provider) ---
 export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
-  const { user } = useAuth(); // Obtenemos el 'user' del AuthContext
-  // 👇 2. CORRECCIÓN: Usamos el hook y la variable con el nombre correcto
-  const { userRole } = useUserRole(); // Obtenemos el 'userRole' del RoleContext
+  const { user } = useAuth();
+  const { userRole, isLoadingRole } = useUserRole(); // Consumimos el rol calculado
 
   const [paqueteUsuario, setPaqueteUsuario] = useState<Package | FreeL2Plan | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchSubscription = async () => {
-      // Si no hay usuario, no hay plan
-      if (!user) {
-        setLoading(false);
-        setPaqueteUsuario(null);
+      // Esperar a que tengamos usuario y rol definido
+      if (!user || isLoadingRole) {
+        if (!user) setLoading(false);
         return;
       }
 
-      // 👇 3. CORRECCIÓN: Usamos 'userRole' en la lógica
-      // 1. Manejar el caso especial del L2 gratuito
+      setLoading(true);
+
+      // CASO 1: Revendedor Puro (L2) -> Plan Gratuito con Analytics Básico
       if (userRole === "L2") {
         setPaqueteUsuario({
           id: "free_l2",
           name: "Plan Revendedor",
-          analytics_level: "basic", // L2 gratuito ve el Radar Básico
+          analytics_level: "basic",
+          package_type: "free_reseller",
         });
         setLoading(false);
         return;
       }
 
-      // 2. Es L1 o BOTH, buscar su plan de paga
+      // CASO 2: Fabricante (L1) o Híbrido (BOTH) -> Buscar suscripción real
       if (userRole === "L1" || userRole === "BOTH") {
         try {
-          // Asumo que tienes una tabla 'subscriptions' que linkea 'user_id' con 'package_id'
-          // y tiene un campo 'status'
           const { data, error } = await supabase
-            .from("subscriptions") // <--- Revisa si tu tabla se llama así
-            .select("*, credit_packages:package_id(*)") // Carga el paquete anidado
+            .from("subscriptions")
+            .select("*, credit_packages:package_id(*)")
             .eq("user_id", user.id)
-            .eq("status", "active") // ¡Solo suscripciones activas!
-            .single();
+            .in("status", ["active", "trialing"])
+            .maybeSingle();
 
           if (error) {
-            console.warn("No active subscription found for L1/BOTH user.");
+            console.error("Error fetching subscription:", error);
             setPaqueteUsuario(null);
           } else if (data && data.credit_packages) {
             setPaqueteUsuario(data.credit_packages as Package);
+          } else {
+            // Si es L1 pero no tiene suscripción activa (ej. expirada), degradar a null
+            setPaqueteUsuario(null);
           }
-        } catch (error) {
-          console.error("Error fetching subscription:", error);
+        } catch (err) {
+          console.error("Critical subscription error:", err);
           setPaqueteUsuario(null);
         } finally {
           setLoading(false);
         }
       } else {
-        // Rol 'NONE', 'LOADING' o cualquier otro caso
-        setLoading(false);
+        // Rol NONE
         setPaqueteUsuario(null);
+        setLoading(false);
       }
     };
 
     fetchSubscription();
-    // 👇 4. CORRECCIÓN: El useEffect depende de 'user' y 'userRole'
-  }, [user, userRole]);
+  }, [user, userRole, isLoadingRole]);
 
-  // 3. La función de lógica de negocio (el "guardia de seguridad")
+  // --- LÓGICA DE NEGOCIO (FEATURE GATING) ---
   const hasAccess = (feature: "radar_inteligente" | "recomendaciones" | "predictivo"): boolean => {
     if (!paqueteUsuario) return false;
 
-    const level = paqueteUsuario.analytics_level;
-    const name = paqueteUsuario.name;
+    // Aseguramos tipado seguro aunque venga de FreeL2Plan
+    const level = (paqueteUsuario as any).analytics_level || "none";
+    const name = paqueteUsuario.name || "";
 
     switch (feature) {
       case "radar_inteligente":
+        // Disponible para Advanced (Básico IA) y Pro (Profesional/Enterprise)
         return level === "advanced" || level === "pro";
+
       case "recomendaciones":
+        // Disponible solo para Pro (Profesional IA)
         return level === "pro";
+
       case "predictivo":
-        return level === "pro" && name.includes("Empresarial");
+        // Disponible solo para Enterprise (Plan más alto)
+        return level === "pro" && name.toLowerCase().includes("empresarial");
+
       default:
         return false;
     }
   };
 
   return (
-    <SubscriptionContext.Provider value={{ paqueteUsuario, loading, hasAccess }}>
+    <SubscriptionContext.Provider value={{ paqueteUsuario, loading: loading || isLoadingRole, hasAccess }}>
       {children}
     </SubscriptionContext.Provider>
   );
 };
 
-// --- El "Consumidor" (Hook) ---
 export const useSubscription = () => {
   const context = useContext(SubscriptionContext);
   if (context === undefined) {
