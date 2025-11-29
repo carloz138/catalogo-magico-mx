@@ -307,8 +307,9 @@ export class QuoteService {
     if (quoteError) throw quoteError;
 
     // 3. Descontar Stock
-    await supabase.rpc("process_inventory_deduction", { p_quote_id: quoteId });
-  }
+    await supabase.rpc('process_inventory_deduction', { 
+  quote_id: quoteId // ✅ Coincide con el SQL
+});
 
   static async getQuoteStats(userId: string): Promise<{
     total: number;
