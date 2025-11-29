@@ -23,6 +23,7 @@ import {
   XCircle,
   Package,
   Sparkles,
+  ChevronDown,
   AlertCircle,
   Truck,
   CreditCard,
@@ -31,12 +32,13 @@ import {
   Box,
   Phone,
   Mail,
-  Gift, // Icono para el modal de regalo
+  Gift,
   ArrowRight,
 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { useToast } from "@/hooks/use-toast";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { QuoteTrackingService, TrackingQuoteData } from "@/services/quote-tracking.service";
 
 // 🚨 SWITCH MAESTRO DE PAGOS 🚨
@@ -53,11 +55,12 @@ export default function TrackQuotePage() {
   const [actionLoading, setActionLoading] = useState(false);
 
   // Estados para Onboarding Viral
-  const [showViralOfferModal, setShowViralOfferModal] = useState(false); // ✅ Modal "Gracias + Vender"
-  const [showAuthModal, setShowAuthModal] = useState(false); // ✅ Modal Login/Registro
+  const [showViralOfferModal, setShowViralOfferModal] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState<"signin" | "signup">("signup");
   const [authForm, setAuthForm] = useState({ email: "", password: "", fullName: "" });
   const [replicating, setReplicating] = useState(false);
+  const [isCtaOpen, setIsCtaOpen] = useState(false);
 
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [paymentData, setPaymentData] = useState<{ clabe: string; bank: string; amount: number } | null>(null);
@@ -65,6 +68,21 @@ export default function TrackQuotePage() {
   useEffect(() => {
     if (token) loadQuote();
   }, [token]);
+
+  // ✅ AUTO-ACTIVACIÓN (MAGIA VIRAL)
+  // Este efecto detecta si el usuario acaba de loguearse (ej. volvió de Google)
+  // y activa el catálogo automáticamente sin pedir otro clic.
+  useEffect(() => {
+    if (
+      user && // Hay usuario
+      quote?.replicated_catalogs && // Hay catálogo para replicar
+      !quote.replicated_catalogs.is_active && // Aún no está activo
+      !replicating // No estamos ya en proceso
+    ) {
+      console.log("🔄 Usuario detectado post-login. Auto-activando catálogo...");
+      activateCatalog(user.id);
+    }
+  }, [user, quote]); // Se dispara cuando 'user' cambia (al loguearse) o 'quote' carga
 
   const loadQuote = async () => {
     setLoading(true);
@@ -86,15 +104,12 @@ export default function TrackQuotePage() {
     if (!quote) return;
     setActionLoading(true);
     try {
-      // 1. Llamar al backend para aceptar
       const { data, error } = await supabase.functions.invoke("accept-quote-public", { body: { token: token } });
       if (error || !data.success) throw new Error("Error al procesar");
 
-      // 2. Recargar datos
       await loadQuote();
 
-      // 3. ✅ ABRIR MODAL VIRAL EN LUGAR DE SOLO TOAST
-      // Si el pedido tiene potencial de réplica, mostramos la oferta
+      // Abrir modal viral si aplica
       if (quote.replicated_catalogs && !quote.replicated_catalogs.is_active) {
         setShowViralOfferModal(true);
       } else {
@@ -126,14 +141,22 @@ export default function TrackQuotePage() {
     }
   };
 
-  // --- LÓGICA DE ACTIVACIÓN VIRAL ---
+  // --- LÓGICA DE ACTIVACIÓN ---
 
   const handleStartBusiness = () => {
-    setShowViralOfferModal(false); // Cierra el de "Gracias"
+    setShowViralOfferModal(false);
     if (user) {
       activateCatalog(user.id);
     } else {
-      setShowAuthModal(true); // Abre el de "Registro"
+      setShowAuthModal(true);
+    }
+  };
+
+  const handleReplicateClick = () => {
+    if (user) {
+      activateCatalog(user.id);
+    } else {
+      setShowAuthModal(true);
     }
   };
 
@@ -143,7 +166,7 @@ export default function TrackQuotePage() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: window.location.href,
+          redirectTo: window.location.href, // Vuelve aquí para que el useEffect lo capture
           queryParams: { access_type: "offline", prompt: "consent" },
         },
       });
@@ -177,6 +200,8 @@ export default function TrackQuotePage() {
       }
 
       if (userId) {
+        // Si es login normal, activamos manual aquí.
+        // Si fuera Google, la redirección y el useEffect lo manejarían.
         await activateCatalog(userId);
         setShowAuthModal(false);
       }
@@ -188,6 +213,9 @@ export default function TrackQuotePage() {
 
   const activateCatalog = async (userId: string) => {
     setReplicating(true);
+    // Mostrar Toast de carga inmediato para dar feedback visual
+    toast({ title: "⏳ Activando tu negocio...", description: "Configurando tu catálogo personal." });
+
     try {
       const { data, error } = await supabase.functions.invoke("activate-replicated-catalog", {
         body: {
@@ -202,6 +230,7 @@ export default function TrackQuotePage() {
         title: "🎉 ¡Negocio Activado!",
         description: "Te estamos redirigiendo a tu panel de control...",
         duration: 3000,
+        variant: "default",
       });
 
       setTimeout(() => {
@@ -209,8 +238,14 @@ export default function TrackQuotePage() {
       }, 1500);
     } catch (error: any) {
       console.error("Error activando:", error);
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-      setReplicating(false);
+      // Si dice que ya está activo, asumimos éxito y redirigimos (idempotencia)
+      if (error.message?.includes("ya fue activado")) {
+        toast({ title: "¡Ya tienes tu negocio!", description: "Redirigiendo..." });
+        setTimeout(() => navigate("/catalogs"), 1000);
+      } else {
+        toast({ title: "Error", description: error.message, variant: "destructive" });
+        setReplicating(false);
+      }
     }
   };
 
@@ -452,6 +487,7 @@ export default function TrackQuotePage() {
           </div>
         )}
 
+        {/* LISTA DE PRODUCTOS */}
         <Card className="shadow-sm border-slate-200 overflow-hidden">
           <CardHeader className="bg-slate-50 border-b border-slate-100 py-4">
             <CardTitle className="text-base font-semibold flex justify-between items-center">
@@ -507,7 +543,7 @@ export default function TrackQuotePage() {
         </div>
       </div>
 
-      {/* ✅ 1. MODAL "VIRAL OFFER" (Post-Aceptación) */}
+      {/* ✅ 1. MODAL "VIRAL OFFER" */}
       <Dialog open={showViralOfferModal} onOpenChange={setShowViralOfferModal}>
         <DialogContent className="sm:max-w-md text-center">
           <DialogHeader>
@@ -544,12 +580,12 @@ export default function TrackQuotePage() {
         </DialogContent>
       </Dialog>
 
-      {/* ✅ 2. MODAL AUTH (Login/Register) */}
+      {/* ✅ 2. MODAL AUTH (Login/Register con Google) */}
       <Dialog open={showAuthModal} onOpenChange={setShowAuthModal}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="text-center text-xl">
-              {authMode === "signup" ? "Crea tu cuenta para activar" : "Inicia sesión"}
+              {authMode === "signup" ? "Crea tu cuenta gratis" : "Bienvenido de nuevo"}
             </DialogTitle>
             <DialogDescription className="text-center">
               Accede a tu panel para gestionar tus ventas y precios.
@@ -562,7 +598,7 @@ export default function TrackQuotePage() {
               type="button"
               onClick={handleGoogleLogin}
               disabled={replicating}
-              className="w-full relative"
+              className="w-full"
             >
               {replicating ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -647,11 +683,33 @@ export default function TrackQuotePage() {
         </DialogContent>
       </Dialog>
 
-      {/* MODAL PAGO (Existente) */}
+      {/* MODAL PAGO */}
       <Dialog open={showPaymentModal} onOpenChange={setShowPaymentModal}>
-        {/* ... (Contenido del modal de pago sin cambios) ... */}
-        <DialogContent>
-          <DialogTitle>Pago</DialogTitle>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Datos de Transferencia</DialogTitle>
+          </DialogHeader>
+          {paymentData && (
+            <div className="space-y-6 py-4">
+              <div className="bg-indigo-50 p-4 rounded-lg text-center">
+                <p className="text-3xl font-bold text-indigo-700">${paymentData.amount.toLocaleString("es-MX")}</p>
+              </div>
+              <div className="space-y-4">
+                <div className="flex justify-between border p-3 rounded">
+                  <span>Banco</span>
+                  <span className="font-bold">{paymentData.bank}</span>
+                </div>
+                <div className="flex gap-2">
+                  <div className="flex-1 bg-slate-100 p-3 rounded font-mono text-center font-bold">
+                    {paymentData.clabe}
+                  </div>
+                  <Button size="icon" variant="outline" onClick={() => copyToClipboard(paymentData.clabe)}>
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
