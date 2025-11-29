@@ -1,73 +1,93 @@
-import { useState, useEffect, createContext, useContext } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
+import { useState, useEffect, createContext, useContext, ReactNode } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
-type UserRole = 'L1' | 'L2' | 'BOTH' | 'NONE' | 'LOADING';
+export type UserRole = "L1" | "L2" | "BOTH" | "NONE" | "LOADING";
 
 interface RoleContextProps {
   userRole: UserRole;
   isLoadingRole: boolean;
+  // Helpers para facilitar la vida en el UI
+  isL1: boolean;
+  isL2: boolean;
+  isBoth: boolean;
+  refreshRole: () => Promise<void>;
 }
 
-const RoleContext = createContext<RoleContextProps>({ userRole: 'LOADING', isLoadingRole: true });
+const RoleContext = createContext<RoleContextProps | undefined>(undefined);
 
-export const RoleProvider = ({ children }: { children: React.ReactNode }) => {
+export const RoleProvider = ({ children }: { children: ReactNode }) => {
   const { user } = useAuth();
-  const [userRole, setUserRole] = useState<UserRole>('LOADING');
+  const [userRole, setUserRole] = useState<UserRole>("LOADING");
   const [isLoadingRole, setIsLoadingRole] = useState(true);
 
+  const fetchRole = async () => {
+    if (!user?.id) {
+      setUserRole("NONE");
+      setIsLoadingRole(false);
+      return;
+    }
+
+    setIsLoadingRole(true);
+    try {
+      // EJECUCIÓN PARALELA: Consultamos ambas tablas al mismo tiempo para velocidad máxima
+      const [l1Result, l2Result] = await Promise.all([
+        // 1. Check L1: ¿Tiene suscripción activa?
+        supabase
+          .from("subscriptions")
+          .select("*", { count: "exact", head: true })
+          .eq("user_id", user.id)
+          .in("status", ["active", "trialing"]),
+
+        // 2. Check L2: ¿Tiene catálogos replicados activos?
+        supabase
+          .from("replicated_catalogs")
+          .select("*", { count: "exact", head: true })
+          .eq("reseller_id", user.id)
+          .eq("is_active", true),
+      ]);
+
+      const isL1Found = (l1Result.count || 0) > 0;
+      const isL2Found = (l2Result.count || 0) > 0;
+
+      // 3. Asignación de Rol
+      if (isL1Found && isL2Found) {
+        setUserRole("BOTH");
+      } else if (isL1Found) {
+        setUserRole("L1");
+      } else if (isL2Found) {
+        setUserRole("L2");
+      } else {
+        setUserRole("NONE");
+      }
+    } catch (error) {
+      console.error("Error fetching user role:", error);
+      setUserRole("NONE");
+    } finally {
+      setIsLoadingRole(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchRole = async () => {
-      if (!user?.id) {
-        setUserRole('NONE');
-        setIsLoadingRole(false);
-        return;
-      }
-
-      setIsLoadingRole(true);
-      try {
-        // Check for active subscription (L1)
-        const { count: subCount, error: subError } = await supabase
-          .from('subscriptions')
-          .select('*', { count: 'exact', head: true })
-          .eq('user_id', user.id)
-          .eq('status', 'active');
-
-        if (subError) throw subError;
-        const isL1 = (subCount ?? 0) > 0;
-
-        // Check for active replicated catalogs (L2)
-        const { count: replicaCount, error: replicaError } = await supabase
-          .from('replicated_catalogs')
-          .select('*', { count: 'exact', head: true })
-          .eq('reseller_id', user.id)
-          .eq('is_active', true);
-
-        if (replicaError) throw replicaError;
-        const isL2 = (replicaCount ?? 0) > 0;
-
-        // Determine role
-        if (isL1 && isL2) setUserRole('BOTH');
-        else if (isL1) setUserRole('L1');
-        else if (isL2) setUserRole('L2');
-        else setUserRole('NONE');
-
-      } catch (error) {
-        console.error("Error fetching user role:", error);
-        setUserRole('NONE');
-      } finally {
-        setIsLoadingRole(false);
-      }
-    };
-
     fetchRole();
   }, [user]);
 
-  return (
-    <RoleContext.Provider value={{ userRole, isLoadingRole }}>
-      {children}
-    </RoleContext.Provider>
-  );
+  const value = {
+    userRole,
+    isLoadingRole,
+    isL1: userRole === "L1" || userRole === "BOTH",
+    isL2: userRole === "L2" || userRole === "BOTH",
+    isBoth: userRole === "BOTH",
+    refreshRole: fetchRole,
+  };
+
+  return <RoleContext.Provider value={value}>{children}</RoleContext.Provider>;
 };
 
-export const useUserRole = () => useContext(RoleContext);
+export const useUserRole = () => {
+  const context = useContext(RoleContext);
+  if (context === undefined) {
+    throw new Error("useUserRole must be used within a RoleProvider");
+  }
+  return context;
+};
