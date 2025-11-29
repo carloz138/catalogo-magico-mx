@@ -54,6 +54,7 @@ export default function TrackQuotePage() {
 
   // Estados para Onboarding Viral
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false); // ✅ NUEVO: Modal Instantáneo
   const [authMode, setAuthMode] = useState<"signin" | "signup">("signup");
   const [authForm, setAuthForm] = useState({ email: "", password: "", fullName: "" });
   const [replicating, setReplicating] = useState(false);
@@ -71,7 +72,6 @@ export default function TrackQuotePage() {
     try {
       const data = await QuoteTrackingService.getQuoteByToken(token!);
       setQuote(data);
-      // Pre-llenar email si está disponible en la cotización
       if (data.customer_email) {
         setAuthForm((prev) => ({ ...prev, email: data.customer_email, fullName: data.customer_name }));
       }
@@ -89,8 +89,17 @@ export default function TrackQuotePage() {
     try {
       const { data, error } = await supabase.functions.invoke("accept-quote-public", { body: { token: token } });
       if (error || !data.success) throw new Error("Error al procesar");
-      toast({ title: "¡Pedido Confirmado!", description: "Procede al pago." });
+
+      // 1. Recargar datos para actualizar estado
       await loadQuote();
+
+      // 2. ✅ LÓGICA VIRAL INSTANTÁNEA
+      // Si el catálogo permite replicación, lanzamos el modal de éxito con upsell
+      if (quote.replicated_catalogs) {
+        setShowSuccessModal(true);
+      } else {
+        toast({ title: "¡Pedido Confirmado!", description: "Gracias por tu compra." });
+      }
     } catch (error) {
       toast({ title: "Error", description: "Intenta de nuevo.", variant: "destructive" });
     } finally {
@@ -121,22 +130,18 @@ export default function TrackQuotePage() {
 
   const handleReplicateClick = () => {
     if (user) {
-      // Si ya está logueado, activamos directo
       activateCatalog(user.id);
     } else {
-      // Si no, mostramos modal de registro
       setShowAuthModal(true);
     }
   };
 
-  // ✅ NUEVO: Login con Google
   const handleGoogleLogin = async () => {
     try {
-      setReplicating(true); // UI Loading
+      setReplicating(true);
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          // IMPORTANTE: Redirigir de vuelta a ESTA página de tracking para completar el proceso
           redirectTo: window.location.href,
           queryParams: {
             access_type: "offline",
@@ -145,14 +150,12 @@ export default function TrackQuotePage() {
         },
       });
       if (error) throw error;
-      // La redirección ocurrirá automáticamente, no necesitamos más lógica aquí
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
       setReplicating(false);
     }
   };
 
-  // Login con Email/Password
   const handleAuthSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setReplicating(true);
@@ -315,7 +318,7 @@ export default function TrackQuotePage() {
                       <Loader2 className="w-5 h-5 animate-spin" />
                     ) : (
                       <CheckCircle className="w-5 h-5 mr-2" />
-                    )}{" "}
+                    )}
                     Aceptar y Confirmar
                   </Button>
                 </div>
@@ -332,68 +335,40 @@ export default function TrackQuotePage() {
               <span className="font-bold text-indigo-800">Pago Pendiente</span>
             </div>
             <CardContent className="p-6">
-              {ENABLE_ONLINE_PAYMENTS ? (
-                <div className="flex flex-col md:flex-row items-center gap-6">
-                  <div className="flex-1">
-                    <h3 className="text-lg font-bold text-slate-900 mb-2">¡Todo listo para tu pedido!</h3>
-                    <p className="text-slate-600 text-sm">
-                      Realiza tu pago vía transferencia SPEI para que comience el proceso de envío.
-                    </p>
-                  </div>
-                  <div className="text-center">
-                    <Button
-                      onClick={handleGeneratePayment}
-                      disabled={actionLoading}
-                      size="lg"
-                      className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-md w-full md:w-auto"
-                    >
-                      {actionLoading ? (
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                      ) : (
-                        <Landmark className="w-5 h-5 mr-2" />
-                      )}{" "}
-                      Pagar con Transferencia
-                    </Button>
-                    <p className="text-xs text-slate-400 mt-2">Procesado seguro por Openpay (BBVA)</p>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex flex-col md:flex-row items-center gap-6">
-                  <div className="flex-1">
-                    <h3 className="text-lg font-bold text-slate-900 mb-2">Pedido Confirmado</h3>
-                    <p className="text-slate-600 text-sm mb-4">
-                      Tu orden ha sido apartada. Para completar el pago y envío, por favor ponte en contacto con el
-                      proveedor.
-                    </p>
-                    <div className="flex flex-wrap gap-3">
-                      {quote.business_info?.phone && (
-                        <Button
-                          variant="outline"
-                          className="gap-2"
-                          onClick={() =>
-                            window.open(`https://wa.me/${quote.business_info?.phone?.replace(/\D/g, "")}`, "_blank")
-                          }
-                        >
-                          <Phone className="w-4 h-4 text-green-600" /> WhatsApp
-                        </Button>
-                      )}
-                      {quote.business_info?.email && (
-                        <Button
-                          variant="outline"
-                          className="gap-2"
-                          onClick={() => window.open(`mailto:${quote.business_info?.email}`, "_blank")}
-                        >
-                          <Mail className="w-4 h-4 text-blue-600" /> Correo
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                  <div className="text-center min-w-[150px]">
-                    <p className="text-xs text-slate-500 uppercase mb-1">Total a Pagar</p>
-                    <p className="text-2xl font-bold text-indigo-700">${(total / 100).toLocaleString("es-MX")}</p>
+              <div className="flex flex-col md:flex-row items-center gap-6">
+                <div className="flex-1">
+                  <h3 className="text-lg font-bold text-slate-900 mb-2">Pedido Confirmado</h3>
+                  <p className="text-slate-600 text-sm mb-4">
+                    Tu orden ha sido apartada. Para completar el pago y envío, por favor ponte en contacto.
+                  </p>
+                  <div className="flex flex-wrap gap-3">
+                    {quote.business_info?.phone && (
+                      <Button
+                        variant="outline"
+                        className="gap-2"
+                        onClick={() =>
+                          window.open(`https://wa.me/${quote.business_info?.phone?.replace(/\D/g, "")}`, "_blank")
+                        }
+                      >
+                        <Phone className="w-4 h-4 text-green-600" /> WhatsApp
+                      </Button>
+                    )}
+                    {quote.business_info?.email && (
+                      <Button
+                        variant="outline"
+                        className="gap-2"
+                        onClick={() => window.open(`mailto:${quote.business_info?.email}`, "_blank")}
+                      >
+                        <Mail className="w-4 h-4 text-blue-600" /> Correo
+                      </Button>
+                    )}
                   </div>
                 </div>
-              )}
+                <div className="text-center min-w-[150px]">
+                  <p className="text-xs text-slate-500 uppercase mb-1">Total a Pagar</p>
+                  <p className="text-2xl font-bold text-indigo-700">${(total / 100).toLocaleString("es-MX")}</p>
+                </div>
+              </div>
             </CardContent>
           </Card>
         )}
@@ -407,7 +382,7 @@ export default function TrackQuotePage() {
               <div className="flex flex-col md:flex-row items-center gap-6">
                 <div className={`p-4 rounded-full ${isShipped ? "bg-purple-100" : "bg-indigo-100"}`}>
                   {isShipped ? (
-                    <Truck className={`w-8 h-8 ${isShipped ? "text-purple-600" : "text-indigo-600"}`} />
+                    <Truck className="w-8 h-8 text-purple-600" />
                   ) : (
                     <Box className="w-8 h-8 text-indigo-600" />
                   )}
@@ -418,14 +393,13 @@ export default function TrackQuotePage() {
                   </h3>
                   {isShipped ? (
                     <div className="space-y-2 text-sm text-slate-700">
-                      <div className="flex items-center justify-center md:justify-start gap-2">
-                        <span className="font-semibold">Paquetería:</span>
-                        <span>{quote.carrier_name || "Logística Propia"}</span>
+                      <div className="flex items-center gap-2 justify-center md:justify-start">
+                        <span className="font-semibold">Paquetería:</span> {quote.carrier_name || "Propia"}
                       </div>
-                      <div className="flex items-center justify-center md:justify-start gap-2">
-                        <span className="font-semibold">Guía de Rastreo:</span>
-                        <span className="font-mono font-bold bg-white px-3 py-1 rounded border border-purple-200 select-all text-purple-800">
-                          {quote.tracking_code || "Pendiente"}
+                      <div className="flex items-center gap-2 justify-center md:justify-start">
+                        <span className="font-semibold">Guía:</span>
+                        <span className="font-mono font-bold bg-white px-2 rounded border">
+                          {quote.tracking_code || "N/A"}
                         </span>
                         <Button
                           variant="ghost"
@@ -433,19 +407,12 @@ export default function TrackQuotePage() {
                           className="h-6 w-6"
                           onClick={() => copyToClipboard(quote.tracking_code || "")}
                         >
-                          <Copy className="h-3 w-3 mr-1" />
+                          <Copy className="h-3 w-3" />
                         </Button>
                       </div>
                     </div>
                   ) : (
-                    <div className="text-sm text-slate-700 space-y-2">
-                      <p>
-                        Tu paquete ya está listo en mostrador. Puedes pasar a recogerlo en la dirección del proveedor:
-                      </p>
-                      {quote.business_info?.phone && (
-                        <p className="text-xs text-slate-500">Teléfono: {quote.business_info.phone}</p>
-                      )}
-                    </div>
+                    <p className="text-sm text-slate-700">Pasa a recoger tu pedido en la dirección del proveedor.</p>
                   )}
                 </div>
               </div>
@@ -453,7 +420,6 @@ export default function TrackQuotePage() {
           </Card>
         )}
 
-        {/* Header Info */}
         <div className="text-center mb-8">
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-2">
             Hola, {quote.customer_name.split(" ")[0]} 👋
@@ -463,7 +429,7 @@ export default function TrackQuotePage() {
           </p>
         </div>
 
-        {/* --- SECCIÓN DE ACTIVACIÓN VIRAL --- */}
+        {/* --- BANNER PERMANENTE DE ACTIVACIÓN (Si cierran el modal) --- */}
         {canReplicate && (
           <Collapsible open={isCtaOpen} onOpenChange={setIsCtaOpen} className="mb-8">
             <CollapsibleTrigger className="w-full">
@@ -472,9 +438,7 @@ export default function TrackQuotePage() {
                 <AlertDescription className="flex items-center justify-between w-full">
                   <div className="text-left ml-2">
                     <span className="font-semibold text-emerald-900 block">¿Quieres vender estos productos?</span>
-                    <span className="text-xs text-emerald-600">
-                      Haz clic para activar tu propio catálogo y ganar dinero.
-                    </span>
+                    <span className="text-xs text-emerald-600">Activa tu propio catálogo y gana dinero.</span>
                   </div>
                   <ChevronDown
                     className={`h-4 w-4 text-emerald-400 transition-transform ${isCtaOpen ? "rotate-180" : ""}`}
@@ -486,14 +450,13 @@ export default function TrackQuotePage() {
               <div className="p-6 bg-white border border-emerald-100 rounded-b-lg shadow-sm mt-[-1px] text-center">
                 <h4 className="text-lg font-bold text-slate-800 mb-2">¡Crea tu negocio en segundos!</h4>
                 <p className="text-slate-600 mb-6 text-sm">
-                  Al activar tu cuenta, obtendrás una copia de este catálogo lista para compartir. Tú decides los
-                  precios y te quedas con la ganancia extra.
+                  Obtén una copia de este catálogo lista para compartir con tus propios precios.
                 </p>
                 <Button
                   onClick={handleReplicateClick}
                   disabled={replicating}
                   size="lg"
-                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-200 animate-pulse"
+                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg animate-pulse"
                 >
                   {replicating ? (
                     <>
@@ -508,7 +471,6 @@ export default function TrackQuotePage() {
           </Collapsible>
         )}
 
-        {/* Lista de Productos */}
         <Card className="shadow-sm border-slate-200 overflow-hidden">
           <CardHeader className="bg-slate-50 border-b border-slate-100 py-4">
             <CardTitle className="text-base font-semibold flex justify-between items-center">
@@ -542,14 +504,10 @@ export default function TrackQuotePage() {
                 <span>Subtotal</span>
                 <span>${(subtotal / 100).toFixed(2)}</span>
               </div>
-              {(shipping > 0 || isNegotiation || isAccepted) && (
-                <div className="flex justify-between text-sm text-slate-800 font-medium">
-                  <span className="flex items-center gap-2">
-                    <Truck className="w-4 h-4 text-indigo-600" /> Envío
-                  </span>
-                  <span>{shipping > 0 ? `$${(shipping / 100).toFixed(2)}` : "Por confirmar"}</span>
-                </div>
-              )}
+              <div className="flex justify-between text-sm text-slate-800 font-medium">
+                <span>Envío</span>
+                <span>{shipping > 0 ? `$${(shipping / 100).toFixed(2)}` : "Por confirmar"}</span>
+              </div>
               <div className="border-t border-slate-200 my-2 pt-3 flex justify-between items-end">
                 <span className="font-bold text-slate-900">Total</span>
                 <span className="text-2xl font-bold text-indigo-700">
@@ -559,69 +517,79 @@ export default function TrackQuotePage() {
             </div>
           </CardContent>
         </Card>
-        <div className="text-center mt-8 pb-10">
-          <p className="text-xs text-slate-400">Powered by CatifyPro • {format(new Date(), "yyyy")}</p>
-        </div>
       </div>
 
       {/* MODAL DE PAGOS */}
       <Dialog open={showPaymentModal} onOpenChange={setShowPaymentModal}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-center text-xl font-bold text-indigo-900">Datos de Transferencia</DialogTitle>
-            <DialogDescription className="text-center">Realiza el pago exacto.</DialogDescription>
+            <DialogTitle className="text-center">Datos de Transferencia</DialogTitle>
           </DialogHeader>
           {paymentData && (
-            <div className="space-y-6 py-4">
-              <div className="bg-indigo-50 p-4 rounded-lg border border-indigo-100 text-center space-y-1">
-                <p className="text-xs font-bold text-indigo-400 uppercase">Monto Exacto</p>
-                <p className="text-3xl font-bold text-indigo-700">
-                  ${paymentData.amount.toLocaleString("es-MX", { minimumFractionDigits: 2 })}
-                </p>
-              </div>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-3 border rounded-md bg-white">
-                  <div>
-                    <p className="text-xs text-slate-500 uppercase">Banco</p>
-                    <p className="font-semibold text-slate-900">{paymentData.bank}</p>
-                  </div>
-                  <Landmark className="text-slate-300 h-5 w-5" />
-                </div>
-                <div className="space-y-1">
-                  <p className="text-xs text-slate-500 uppercase ml-1">CLABE (Única)</p>
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 p-3 bg-slate-100 rounded-md border border-slate-200 font-mono text-lg tracking-widest text-center font-bold text-slate-800">
-                      {paymentData.clabe}
-                    </div>
-                    <Button variant="outline" size="icon" onClick={() => copyToClipboard(paymentData.clabe)}>
-                      <Copy className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </div>
-              <Alert className="bg-amber-50 text-amber-800 border-amber-200">
-                <AlertCircle className="h-4 w-4 text-amber-600" />
-                <AlertDescription className="text-xs">
-                  <strong>Importante:</strong> Esta CLABE es única para este pedido.
-                </AlertDescription>
-              </Alert>
+            <div className="space-y-4 py-4 text-center">
+              <p className="text-3xl font-bold text-indigo-700">${paymentData.amount.toLocaleString("es-MX")}</p>
+              <div className="bg-slate-100 p-4 rounded text-lg font-mono tracking-widest">{paymentData.clabe}</div>
+              <p className="text-sm text-slate-500">Banco: {paymentData.bank}</p>
             </div>
           )}
         </DialogContent>
       </Dialog>
 
-      {/* ✅ MODAL DE REGISTRO RÁPIDO (VIRAL CON GOOGLE) */}
+      {/* ✅ MODAL 1: OPORTUNIDAD DE NEGOCIO (INSTANT UPSELL) */}
+      <Dialog open={showSuccessModal} onOpenChange={setShowSuccessModal}>
+        <DialogContent className="sm:max-w-md text-center">
+          <DialogHeader>
+            <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4 animate-in zoom-in duration-300">
+              <CheckCircle className="w-8 h-8 text-green-600" />
+            </div>
+            <DialogTitle className="text-center text-2xl font-bold text-green-700">¡Pedido Confirmado!</DialogTitle>
+            <DialogDescription className="text-center text-base pt-2">
+              Hemos recibido tu orden correctamente.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-6 space-y-4">
+            <div className="p-4 bg-gradient-to-br from-indigo-50 to-purple-50 border border-indigo-100 rounded-xl">
+              <h4 className="font-bold text-indigo-900 text-lg mb-2 flex items-center justify-center gap-2">
+                <Sparkles className="w-5 h-5 text-indigo-600" />
+                Oportunidad de Negocio
+              </h4>
+              <p className="text-sm text-slate-600 mb-4">
+                ¿Sabías que puedes vender estos mismos productos y ganar dinero?
+                <br />
+                <strong>Activa tu catálogo digital gratis ahora mismo.</strong>
+              </p>
+
+              <Button
+                onClick={() => {
+                  setShowSuccessModal(false);
+                  setShowAuthModal(true);
+                }}
+                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-200 h-12 text-base animate-pulse"
+              >
+                Sí, quiero activar mi negocio
+              </Button>
+            </div>
+
+            <Button
+              variant="ghost"
+              className="text-slate-400 text-sm hover:text-slate-600"
+              onClick={() => setShowSuccessModal(false)}
+            >
+              No gracias, solo quiero mi pedido
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ✅ MODAL 2: REGISTRO RÁPIDO */}
       <Dialog open={showAuthModal} onOpenChange={setShowAuthModal}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="text-center text-xl">
               {authMode === "signup" ? "Crea tu cuenta gratis" : "Bienvenido de nuevo"}
             </DialogTitle>
-            <DialogDescription className="text-center">
-              {authMode === "signup"
-                ? "Para activar tu catálogo y empezar a vender."
-                : "Ingresa para activar este catálogo en tu cuenta."}
-            </DialogDescription>
+            <DialogDescription className="text-center">Para activar tu catálogo y empezar a vender.</DialogDescription>
           </DialogHeader>
 
           <div className="grid gap-2 mt-4">
@@ -635,16 +603,7 @@ export default function TrackQuotePage() {
               {replicating ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : (
-                <svg
-                  className="mr-2 h-4 w-4"
-                  aria-hidden="true"
-                  focusable="false"
-                  data-prefix="fab"
-                  data-icon="google"
-                  role="img"
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 488 512"
-                >
+                <svg className="mr-2 h-4 w-4" viewBox="0 0 488 512">
                   <path
                     fill="currentColor"
                     d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 123 24.5 166.3 64.9l-67.5 64.9C258.5 52.6 94.3 116.6 94.3 256c0 86.5 69.1 156.6 153.7 156.6 98.2 0 135-70.4 140.8-106.9H248v-85.3h236.1c2.3 12.7 3.9 24.9 3.9 41.4z"
@@ -677,7 +636,6 @@ export default function TrackQuotePage() {
                 />
               </div>
             )}
-
             <div className="space-y-2">
               <Label htmlFor="email">Correo Electrónico</Label>
               <Input
@@ -689,7 +647,6 @@ export default function TrackQuotePage() {
                 onChange={(e) => setAuthForm({ ...authForm, email: e.target.value })}
               />
             </div>
-
             <div className="space-y-2">
               <Label htmlFor="password">Contraseña</Label>
               <Input
@@ -702,7 +659,6 @@ export default function TrackQuotePage() {
                 onChange={(e) => setAuthForm({ ...authForm, password: e.target.value })}
               />
             </div>
-
             <div className="pt-2">
               <Button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700" disabled={replicating}>
                 {replicating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
