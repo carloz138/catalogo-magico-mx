@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUserRole } from "@/contexts/RoleContext"; // ✅ IMPORTANTE: Seguridad
 import { ResellerPriceService, ProductWithCustomPrice } from "@/services/reseller-price.service";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -9,8 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Save, Package, AlertCircle, Percent, TrendingUp, Search, Filter } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ArrowLeft, Save, Package, Percent, TrendingUp, Search } from "lucide-react";
 import { BulkPriceMarginModal } from "@/components/reseller/BulkPriceMarginModal";
 import { cn } from "@/lib/utils";
 
@@ -149,7 +149,7 @@ const ProductCard = ({
                       "text-[10px] font-medium px-1.5 py-0.5 rounded",
                       getValue(variant.id, "is_in_stock", variant.is_in_stock)
                         ? "bg-green-100 text-green-700"
-                        : "bg-gray-100 text-gray-500",
+                        : "bg-gray-100 text-gray-50",
                     )}
                   >
                     {getValue(variant.id, "is_in_stock", variant.is_in_stock) ? "Stock" : "Bajo Pedido"}
@@ -199,6 +199,7 @@ const ProductCard = ({
 
 export default function ProductPriceEditor() {
   const { user } = useAuth();
+  const { isL2, isLoadingRole } = useUserRole(); // ✅ Seguridad RBAC
   const navigate = useNavigate();
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
@@ -211,13 +212,36 @@ export default function ProductPriceEditor() {
   const [showMarginModal, setShowMarginModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
 
+  // 1. Verificación de Seguridad y Carga Inicial
   useEffect(() => {
-    if (!user || !catalogId) {
-      navigate("/");
-      return;
-    }
-    loadProducts();
-  }, [user, catalogId]);
+    const init = async () => {
+      // Esperar a que cargue el rol
+      if (isLoadingRole) return;
+
+      // Si no hay usuario, mandamos a login
+      if (!user) {
+        navigate("/login");
+        return;
+      }
+
+      // Si hay usuario pero NO es L2, denegamos acceso
+      if (!isL2) {
+        toast({ title: "Acceso denegado", description: "No tienes permisos de revendedor.", variant: "destructive" });
+        navigate("/dashboard");
+        return;
+      }
+
+      // Si no hay ID de catálogo, volvemos a la lista
+      if (!catalogId) {
+        navigate("/catalogs");
+        return;
+      }
+
+      await loadProducts();
+    };
+
+    init();
+  }, [user, catalogId, isL2, isLoadingRole]);
 
   const loadProducts = async () => {
     if (!user?.id || !catalogId) return;
@@ -276,11 +300,61 @@ export default function ProductPriceEditor() {
   };
 
   const handleApplyMargin = (margin: number, applyTo: "all" | "in_stock" | "out_of_stock") => {
-    // Lógica simplificada para demostración (igual que tu original pero más limpia)
+    // Lógica para aplicar margen masivo en el estado 'changes'
     const newChanges = new Map(changes);
-    // ... (Tu lógica original de margen aquí se mantiene igual o podemos copiarla)
-    // Para simplificar el ejemplo visual, asumo que usas la misma lógica de antes.
-    toast({ title: "Margen aplicado", description: "Recuerda guardar los cambios." });
+
+    products.forEach((product) => {
+      // Filtrar según applyTo
+      const shouldApply =
+        applyTo === "all" ||
+        (applyTo === "in_stock" && product.is_in_stock) ||
+        (applyTo === "out_of_stock" && !product.is_in_stock);
+
+      if (!shouldApply) return;
+
+      // Calcular nuevo precio (base + margen%)
+      const calculateNewPrice = (basePrice: number) => {
+        if (!basePrice) return null;
+        return Math.round(basePrice * (1 + margin / 100));
+      };
+
+      // Aplicar a producto base (si no tiene variantes o si se desea aplicar al base)
+      if (!product.has_variants) {
+        const newRetail = calculateNewPrice(product.original_price_retail);
+        const newWholesale = calculateNewPrice(product.original_price_wholesale);
+
+        const existing = newChanges.get(product.id) || {};
+        newChanges.set(product.id, {
+          ...existing,
+          custom_price_retail: newRetail,
+          custom_price_wholesale: newWholesale,
+          isVariant: false,
+        });
+      }
+
+      // Aplicar a variantes
+      if (product.variants) {
+        product.variants.forEach((variant) => {
+          const newRetail = calculateNewPrice(variant.original_price_retail);
+          const newWholesale = calculateNewPrice(variant.original_price_wholesale);
+
+          const existing = newChanges.get(variant.id) || {};
+          newChanges.set(variant.id, {
+            ...existing,
+            custom_price_retail: newRetail,
+            custom_price_wholesale: newWholesale,
+            isVariant: true,
+          });
+        });
+      }
+    });
+
+    setChanges(newChanges);
+    toast({
+      title: "Margen aplicado",
+      description: `Se aplicó un ${margin}% a los productos seleccionados. Revisa y guarda.`,
+    });
+    setShowMarginModal(false);
   };
 
   // Filtrado
@@ -304,7 +378,7 @@ export default function ProductPriceEditor() {
     return acc + count;
   }, 0);
 
-  if (loading) {
+  if (loading || isLoadingRole) {
     return (
       <div className="p-4 md:p-8 space-y-4 max-w-5xl mx-auto">
         <Skeleton className="h-12 w-full" />
