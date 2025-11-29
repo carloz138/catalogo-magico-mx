@@ -250,13 +250,16 @@ export class QuoteService {
           .single();
 
         if (quote) {
-          await supabase.functions.invoke("send-quote-accepted-email", {
+          // NOTA: Si accept-quote-public ya no envía correo, aquí solo lo mandamos si es aceptación MANUAL
+          // desde el dashboard o si lo activaste de nuevo.
+          /* await supabase.functions.invoke("send-quote-accepted-email", {
             body: {
               quoteId,
               customerEmail: quote.customer_email,
               customerName: quote.customer_name,
             },
           });
+          */
         }
       } catch (notificationError) {
         console.error("❌ Error enviando email:", notificationError);
@@ -282,7 +285,7 @@ export class QuoteService {
   }
 
   /**
-   * ✅ AQUI ESTÁ EL MÉTODO RECUPERADO: Registrar pago manual
+   * ✅ MÉTODO PARA PAGO MANUAL
    */
   static async markAsPaidManually(quoteId: string, userId: string, amount: number): Promise<void> {
     // 1. Crear transacción manual
@@ -306,10 +309,16 @@ export class QuoteService {
       .eq("user_id", userId);
     if (quoteError) throw quoteError;
 
-    // 3. Descontar Stock
-    await supabase.rpc('process_inventory_deduction', { 
-  quote_id: quoteId // ✅ Coincide con el SQL
-});
+    // 3. Descontar Stock (RPC)
+    const { error: rpcError } = await supabase.rpc("process_inventory_deduction", {
+      quote_id: quoteId,
+    });
+
+    if (rpcError) {
+      console.error("Error descontando inventario:", rpcError);
+      throw new Error("El pago se registró pero hubo un error al descontar inventario.");
+    }
+  } // <--- ESTA LLAVE ERA LA QUE FALTABA
 
   static async getQuoteStats(userId: string): Promise<{
     total: number;
