@@ -1,20 +1,20 @@
 // ==========================================
 // FUNCION: accept-quote-public
 // DESCRIPCIÓN: Permite a un cliente aceptar la cotización vía Token Público
-// ESTADO: FIX_V1.0 (CON HASHING PROTOCOL)
+// ESTADO: FIX_V2.0 (SILENT MODE - Sin Email de Confirmación)
 // ==========================================
 import { createClient } from 'jsr:@supabase/supabase-js@2.49.8';
 
-// 1. HARDENING: Leer el Hash de la variable de entorno para control de versiones
+// 1. HARDENING: Leer el Hash de la variable de entorno
 const DEPLOY_VERSION = Deno.env.get("FUNCTION_HASH") || "UNKNOWN_HASH";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type'
 };
 
 Deno.serve(async (req) => {
-  // 2. Logging Inicial Estructurado (Tu protocolo)
+  // 2. Logging Inicial Estructurado
   console.log(JSON.stringify({
     event: "FUNC_START",
     function: "accept-quote-public",
@@ -29,10 +29,9 @@ Deno.serve(async (req) => {
 
   try {
     const { token } = await req.json();
-
     if (!token) throw new Error("Token es requerido");
 
-    // Cliente Admin para bypass RLS (necesario porque el usuario es anónimo)
+    // Cliente Admin para bypass RLS
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
@@ -62,23 +61,23 @@ Deno.serve(async (req) => {
 
     if (quoteError || !quote) throw new Error("Cotización no encontrada");
 
-    // Idempotencia: Si ya estaba aceptada, no fallamos, solo retornamos éxito
+    // Idempotencia: Si ya estaba aceptada, retornamos éxito sin error
     if (quote.status === 'accepted' || quote.status === 'shipped') {
-        console.log("ℹ️ La cotización ya estaba aceptada previamente.");
-        return new Response(JSON.stringify({ 
-            success: true, 
-            message: "La cotización ya estaba aceptada",
-            version: DEPLOY_VERSION 
-        }), {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 200
-        });
+      console.log("ℹ️ La cotización ya estaba aceptada previamente.");
+      return new Response(JSON.stringify({
+        success: true,
+        message: "La cotización ya estaba aceptada",
+        version: DEPLOY_VERSION
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200
+      });
     }
 
     // 3. Actualizar estado a ACCEPTED
     const { error: updateError } = await supabaseAdmin
       .from('quotes')
-      .update({ 
+      .update({
         status: 'accepted',
         updated_at: new Date().toISOString()
       })
@@ -88,24 +87,14 @@ Deno.serve(async (req) => {
 
     console.log(`✅ Cotización ${quote.id} actualizada a ACCEPTED`);
 
-    // 4. Disparar el Email de Confirmación (Chain invocation)
-    // Esto enviará el correo con el desglose del envío y total
-    try {
-        console.log("📧 Invocando send-quote-accepted-email...");
-        await supabaseAdmin.functions.invoke('send-quote-accepted-email', {
-            body: { 
-                quoteId: quote.id,
-                customerEmail: quote.customer_email,
-                customerName: quote.customer_name
-            }
-        });
-    } catch (e) {
-        console.error("⚠️ Error disparando email (no crítico, la aceptación persistió):", e);
-    }
+    // 4. NOTIFICACIÓN SILENCIADA (Cambio Solicitado)
+    // Se eliminó la invocación a 'send-quote-accepted-email' para evitar
+    // duplicidad con el flujo viral del Modal en Frontend.
+    console.log("🔕 Email de confirmación silenciado para priorizar Modal Viral.");
 
-    return new Response(JSON.stringify({ 
-        success: true,
-        version: DEPLOY_VERSION
+    return new Response(JSON.stringify({
+      success: true,
+      version: DEPLOY_VERSION
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200
@@ -113,9 +102,9 @@ Deno.serve(async (req) => {
 
   } catch (error) {
     console.error('❌ Error general:', error);
-    return new Response(JSON.stringify({ 
-        error: error.message,
-        version: DEPLOY_VERSION
+    return new Response(JSON.stringify({
+      error: error.message,
+      version: DEPLOY_VERSION
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 400
