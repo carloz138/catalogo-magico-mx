@@ -1,460 +1,385 @@
-import { useState, useEffect } from "react";
-import { useParams, useSearchParams, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { useConsolidatedOrders } from "@/hooks/useConsolidatedOrders";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { ProductConsolidationRow } from "@/components/consolidated/ProductConsolidationRow";
-import {
-  ArrowLeft,
-  Send,
-  Save,
-  RefreshCw,
-  Package,
-  FileText,
-  DollarSign,
-  AlertCircle,
-  Plus,
-  Loader2,
-} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { 
+  ArrowLeft, 
+  Package, 
+  ShoppingCart, 
+  AlertCircle, 
+  CheckCircle, 
+  TrendingUp, 
+  Loader2,
+  Info
+} from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert"; // Importación correcta
+import { QuoteService } from "@/services/quote.service";
+
+// Tipo de dato que devuelve tu RPC
+interface ConsolidationItem {
+  product_id: string;
+  variant_id: string | null;
+  product_name: string;
+  sku: string | null;
+  image_url: string | null;
+  variant_description: string | null;
+  total_demand: number;
+  current_stock: number;
+  quantity_to_order: number;
+  source_quote_ids: string[];
+}
+
+// Estructura auxiliar para guardar reglas de precios
+interface PriceRule {
+    retail: number;
+    wholesale: number;
+    min_qty: number;
+}
 
 export default function ConsolidateOrderPage() {
-  const { supplierId } = useParams();
-  const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
+  const { supplierId } = useParams(); // ID del Catálogo del Proveedor (L1)
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { toast } = useToast();
 
-  const orderId = searchParams.get("order_id");
-  const catalogId = searchParams.get("catalog_id");
-  const replicatedCatalogId = searchParams.get("replicated_catalog_id");
+  const [loading, setLoading] = useState(true);
+  const [processing, setProcessing] = useState(false);
+  const [items, setItems] = useState<ConsolidationItem[]>([]);
+  const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
+  const [catalogInfo, setCatalogInfo] = useState<{ name: string; user_id: string } | null>(null);
 
-  const {
-    currentDraft,
-    loading,
-    syncing,
-    sending,
-    getOrCreateDraft,
-    loadDraft,
-    syncDraft,
-    updateItemQuantity,
-    removeItem,
-    sendOrder,
-    updateNotes,
-  } = useConsolidatedOrders();
-
-  const [notes, setNotes] = useState("");
-  const [showSendDialog, setShowSendDialog] = useState(false);
-  const [notesChanged, setNotesChanged] = useState(false);
-
-  // Cargar o crear draft al montar
   useEffect(() => {
-    if (!user || !supplierId) {
-      navigate("/dashboard/reseller");
-      return;
+    if (user && supplierId) {
+      fetchData();
     }
+  }, [user, supplierId]);
 
-    loadData();
-  }, [user, supplierId, orderId]);
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      
+      // 1. Obtener Info del Catálogo Proveedor
+      const { data: catData, error: catError } = await supabase
+        .from('digital_catalogs')
+        .select('name, user_id')
+        .eq('id', supplierId)
+        .single();
+      
+      if (catError) throw catError;
+      setCatalogInfo(catData);
 
-  // Sincronizar notas con el draft
-  useEffect(() => {
-    if (currentDraft?.notes) {
-      setNotes(currentDraft.notes);
-    }
-  }, [currentDraft?.id]);
-
-  const loadData = async () => {
-    if (!supplierId) return;
-
-    if (orderId) {
-      // Cargar draft existente
-      await loadDraft(supplierId);
-    } else if (catalogId && replicatedCatalogId) {
-      // Crear nuevo draft
-      await getOrCreateDraft(supplierId, catalogId, replicatedCatalogId);
-    } else {
-      // Intentar cargar draft
-      const draft = await loadDraft(supplierId);
-      if (!draft) {
-        toast({
-          title: "Error",
-          description: "No se encontró un borrador activo",
-          variant: "destructive",
-        });
-        navigate("/dashboard/reseller");
-      }
-    }
-  };
-
-  const handleSync = async () => {
-    if (!currentDraft) return;
-    await syncDraft(currentDraft.id, currentDraft.original_catalog_id);
-  };
-
-  const handleUpdateQuantity = async (itemId: string, quantity: number) => {
-    await updateItemQuantity(itemId, quantity);
-  };
-
-  const handleRemoveItem = async (itemId: string) => {
-    await removeItem(itemId);
-  };
-
-  const handleSaveNotes = async () => {
-    if (!currentDraft) return;
-    await updateNotes(currentDraft.id, notes);
-    setNotesChanged(false);
-    toast({
-      title: "✅ Notas guardadas",
-    });
-  };
-
-  const handleNotesChange = (value: string) => {
-    setNotes(value);
-    setNotesChanged(true);
-  };
-
-  const handleSendClick = () => {
-    if (!currentDraft || currentDraft.items.length === 0) {
-      toast({
-        title: "Error",
-        description: "No hay productos en el consolidado",
-        variant: "destructive",
+      // 2. LLAMADA AL RPC
+      const { data: consolidationData, error: rpcError } = await supabase.rpc('get_consolidation_preview', {
+        p_distributor_id: user?.id,
+        p_catalog_id: supplierId
       });
-      return;
+
+      if (rpcError) throw rpcError;
+
+      setItems(consolidationData || []);
+      
+      // Por defecto seleccionamos todos
+      const allIds = (consolidationData || []).map((i: any) => i.variant_id || i.product_id);
+      setSelectedItems(new Set(allIds));
+
+    } catch (error: any) {
+      console.error("Error fetching consolidation:", error);
+      toast({ title: "Error", description: "No se pudo cargar la vista previa.", variant: "destructive" });
+    } finally {
+      setLoading(false);
     }
-    setShowSendDialog(true);
   };
 
-  const handleConfirmSend = async () => {
-    if (!currentDraft) return;
+  const toggleSelection = (id: string) => {
+    const newSet = new Set(selectedItems);
+    if (newSet.has(id)) newSet.delete(id);
+    else newSet.add(id);
+    setSelectedItems(newSet);
+  };
 
-    const quoteId = await sendOrder(currentDraft.id, notes);
+  const handleCreateOrder = async () => {
+    if (!user || !catalogInfo || !supplierId) return;
+    
+    const itemsToOrder = items.filter(i => selectedItems.has(i.variant_id || i.product_id));
+    if (itemsToOrder.length === 0) {
+        toast({ title: "Selecciona productos", description: "Debes elegir al menos un ítem para pedir.", variant: "destructive" });
+        return;
+    }
 
-    if (quoteId) {
-      setShowSendDialog(false);
-      // Redirigir al dashboard de reseller
-      navigate("/dashboard/reseller");
+    setProcessing(true);
+    try {
+        // 1. OBTENER REGLAS DE PRECIO (Lógica Inteligente)
+        const productIds = itemsToOrder.map(i => i.product_id);
+        const { data: costData } = await supabase
+            .from('catalog_products')
+            .select(`
+                product_id,
+                products (
+                    id, 
+                    price_retail, 
+                    price_wholesale,
+                    wholesale_min_qty,
+                    product_variants (
+                        id, 
+                        price_retail, 
+                        price_wholesale
+                        -- Las variantes suelen heredar el min_qty del padre, o tener el suyo.
+                        -- Asumiremos que usan el min_qty del producto padre por simplicidad.
+                    )
+                )
+            `)
+            .eq('catalog_id', supplierId)
+            .in('product_id', productIds);
+
+        // Mapa de Precios { ID -> {retail, wholesale, min} }
+        const priceMap = new Map<string, PriceRule>();
+        
+        costData?.forEach((cp: any) => {
+            const p = cp.products;
+            // Regla del Producto Base
+            priceMap.set(cp.product_id, {
+                retail: p.price_retail || 0,
+                wholesale: p.price_wholesale || 0,
+                min_qty: p.wholesale_min_qty || 0
+            });
+
+            // Reglas de Variantes
+            p.product_variants.forEach((v: any) => {
+                priceMap.set(v.id, {
+                    retail: v.price_retail || p.price_retail || 0,
+                    wholesale: v.price_wholesale || p.price_wholesale || 0,
+                    min_qty: p.wholesale_min_qty || 0 // Hereda del padre
+                });
+            });
+        });
+
+        // 2. CONSTRUIR ITEMS CON PRECIO DINÁMICO
+        const quoteItems = itemsToOrder.map(item => {
+            const id = item.variant_id || item.product_id;
+            const rules = priceMap.get(id);
+            const qty = item.quantity_to_order;
+
+            // Lógica de Decisión de Precio
+            let finalPrice = 0;
+            let priceType = 'menudeo'; // Default
+
+            if (rules) {
+                // ¿Tiene precio mayoreo Y cumple el mínimo?
+                if (rules.wholesale > 0 && qty >= rules.min_qty) {
+                    finalPrice = rules.wholesale;
+                    priceType = 'mayoreo';
+                } else {
+                    // Si no, precio normal (Castigo por no llegar al mínimo o falta de configuración)
+                    finalPrice = rules.retail;
+                    priceType = 'menudeo';
+                }
+            }
+
+            return {
+                product_id: item.product_id,
+                variant_id: item.variant_id,
+                product_name: item.product_name,
+                product_sku: item.sku || '',
+                product_image_url: item.image_url,
+                variant_description: item.variant_description,
+                quantity: qty,
+                unit_price: finalPrice, 
+                price_type: priceType
+            };
+        });
+
+        // 3. Crear Cotización (Orden de Compra)
+        const quotePayload = {
+            catalog_id: supplierId,
+            customer_name: user.user_metadata?.full_name || user.email,
+            customer_email: user.email,
+            customer_company: "Revendedor Autorizado",
+            delivery_method: "shipping", 
+            notes: "Orden de Reposición Consolidada (Generada Automáticamente)",
+            items: quoteItems
+        };
+
+        const createdQuote = await QuoteService.createQuote(quotePayload);
+
+        // 4. Guardar Registro de Consolidación
+        const { data: consolidatedOrder } = await supabase
+            .from('consolidated_orders')
+            .insert({
+                distributor_id: user.id, // L2
+                supplier_id: catalogInfo.user_id, // L1
+                original_catalog_id: supplierId,
+                replicated_catalog_id: supplierId, 
+                status: 'created',
+                quote_id: createdQuote.id, 
+                created_at: new Date().toISOString()
+            })
+            .select()
+            .single();
+
+        // 5. Guardar Items Detallados
+        if (consolidatedOrder) {
+            const consolidatedItems = quoteItems.map((qItem, idx) => ({
+                consolidated_order_id: consolidatedOrder.id,
+                product_id: qItem.product_id,
+                variant_id: qItem.variant_id,
+                product_name: qItem.product_name,
+                quantity: qItem.quantity,
+                unit_price: qItem.unit_price,
+                subtotal: qItem.unit_price * qItem.quantity,
+                source_quote_ids: itemsToOrder[idx].source_quote_ids // Match por índice (array original filtrado)
+            }));
+            await supabase.from('consolidated_order_items').insert(consolidatedItems);
+        }
+
+        toast({ 
+            title: "¡Orden Generada!", 
+            description: `Pedido #${createdQuote.id.slice(0,8)} enviado al proveedor.` 
+        });
+
+        navigate('/orders');
+
+    } catch (error: any) {
+        console.error("Error creating consolidated order:", error);
+        toast({ title: "Error", description: error.message, variant: "destructive" });
+    } finally {
+        setProcessing(false);
     }
   };
 
-  if (loading && !currentDraft) {
+  // --- RENDER ---
+
+  if (loading) {
     return (
-      <div className="p-4 md:p-8">
-        <div className="max-w-6xl mx-auto space-y-6">
-          <Skeleton className="h-20 w-full" />
-          <Skeleton className="h-96 w-full" />
-        </div>
+      <div className="p-8 max-w-5xl mx-auto space-y-4">
+        <Skeleton className="h-12 w-1/3" />
+        <Skeleton className="h-64 w-full" />
       </div>
     );
   }
 
-  if (!currentDraft) {
-    return (
-      <div className="p-4 md:p-8">
-        <div className="max-w-6xl mx-auto">
-          <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              No se pudo cargar el pedido consolidado. Por favor, intenta nuevamente.
-            </AlertDescription>
-          </Alert>
-          <Button
-            variant="outline"
-            className="mt-4"
-            onClick={() => navigate("/dashboard/reseller")}
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Volver al Dashboard
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  const total = currentDraft.items.reduce((sum, item) => sum + item.subtotal, 0);
+  const totalItems = items.filter(i => selectedItems.has(i.variant_id || i.product_id)).length;
+  const totalUnits = items
+    .filter(i => selectedItems.has(i.variant_id || i.product_id))
+    .reduce((sum, i) => sum + i.quantity_to_order, 0);
 
   return (
-    <div className="p-4 md:p-8">
-      <div className="max-w-6xl mx-auto space-y-6">
+    <div className="min-h-screen bg-slate-50 p-4 md:p-8 pb-24">
+      <div className="max-w-5xl mx-auto space-y-6">
+        
         {/* Header */}
-        <div className="flex items-center justify-between flex-wrap gap-4">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              onClick={() => navigate("/dashboard/reseller")}
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Volver
-            </Button>
-            <div>
-              <h1 className="text-2xl md:text-3xl font-bold">
-                Pedido Consolidado
-              </h1>
-              <p className="text-gray-600">
-                Para: {currentDraft.supplier_business_name || currentDraft.supplier_name}
-              </p>
-              <p className="text-sm text-gray-500">
-                {currentDraft.catalog_name}
-              </p>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+                <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+                    <ArrowLeft className="w-5 h-5" />
+                </Button>
+                <div>
+                    <h1 className="text-2xl font-bold text-slate-900">Consolidar Pedidos</h1>
+                    <p className="text-slate-500">Proveedor: <span className="font-semibold text-slate-700">{catalogInfo?.name}</span></p>
+                </div>
             </div>
-          </div>
-
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              onClick={handleSync}
-              disabled={syncing}
-            >
-              {syncing ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Sincronizando...
-                </>
-              ) : (
-                <>
-                  <RefreshCw className="w-4 h-4 mr-2" />
-                  Sincronizar
-                </>
-              )}
-            </Button>
-
-            <Button
-              onClick={handleSendClick}
-              disabled={sending || currentDraft.items.length === 0}
-              className="bg-emerald-600 hover:bg-emerald-700"
-            >
-              {sending ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Enviando...
-                </>
-              ) : (
-                <>
-                  <Send className="w-4 h-4 mr-2" />
-                  Enviar Pedido
-                </>
-              )}
-            </Button>
-          </div>
         </div>
 
-        {/* Info Alert */}
-        <Alert className="bg-blue-50 border-blue-200">
-          <FileText className="h-4 w-4 text-blue-600" />
-          <AlertDescription className="text-blue-900">
-            <strong>Borrador automático:</strong> Este pedido se sincroniza automáticamente
-            con tus cotizaciones aceptadas. Puedes editarlo antes de enviarlo.
-          </AlertDescription>
-        </Alert>
+        {items.length === 0 ? (
+            <Card className="border-dashed border-2 py-12 text-center bg-slate-50/50">
+                <CheckCircle className="w-12 h-12 text-emerald-500 mx-auto mb-3" />
+                <h3 className="text-lg font-medium text-slate-900">¡Estás al día!</h3>
+                <p className="text-slate-500 max-w-md mx-auto">
+                    No tienes ventas pendientes por surtir para este proveedor. Tu stock actual cubre la demanda.
+                </p>
+                <Button variant="outline" className="mt-6" onClick={() => navigate('/dashboard')}>
+                    Volver al Dashboard
+                </Button>
+            </Card>
+        ) : (
+            <div className="space-y-6">
+                <Alert className="bg-indigo-50 border-indigo-200 text-indigo-900">
+                    <TrendingUp className="h-4 w-4 text-indigo-600" />
+                    <AlertDescription>
+                        Hemos detectado una demanda de <strong>{items.reduce((s, i) => s + i.total_demand, 0)} unidades</strong> en tus ventas recientes.
+                        El sistema calculará automáticamente si aplicas para precios de mayoreo.
+                    </AlertDescription>
+                </Alert>
 
-        {/* Estadísticas */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
-                <Package className="w-4 h-4" />
-                Productos
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-bold">{currentDraft.items_count}</p>
-            </CardContent>
-          </Card>
+                {/* Lista de Items */}
+                <div className="grid gap-4">
+                    {items.map((item) => {
+                        const id = item.variant_id || item.product_id;
+                        const isSelected = selectedItems.has(id);
 
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
-                <FileText className="w-4 h-4" />
-                Cotizaciones Origen
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-bold">{currentDraft.source_quotes_count}</p>
-            </CardContent>
-          </Card>
+                        return (
+                            <Card key={id} className={`transition-all ${isSelected ? 'border-indigo-200 shadow-sm' : 'opacity-60 border-slate-100'}`}>
+                                <CardContent className="p-4 flex items-center gap-4">
+                                    <Checkbox 
+                                        checked={isSelected}
+                                        onCheckedChange={() => toggleSelection(id)}
+                                    />
+                                    
+                                    <div className="w-12 h-12 bg-slate-100 rounded-md overflow-hidden shrink-0">
+                                        {item.image_url ? (
+                                            <img src={item.image_url} className="w-full h-full object-cover" />
+                                        ) : (
+                                            <Package className="p-2 text-slate-300 w-full h-full" />
+                                        )}
+                                    </div>
 
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
-                <DollarSign className="w-4 h-4" />
-                Total
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-bold text-emerald-600">
-                ${(total / 100).toLocaleString("es-MX", {
-                  minimumFractionDigits: 2,
-                })}{" "}
-                MXN
-              </p>
-            </CardContent>
-          </Card>
-        </div>
+                                    <div className="flex-1 min-w-0">
+                                        <h4 className="font-medium text-slate-900 truncate">{item.product_name}</h4>
+                                        <p className="text-xs text-slate-500 truncate">
+                                            {item.variant_description || item.sku || 'Estándar'}
+                                        </p>
+                                    </div>
 
-        {/* Lista de Productos */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle>Productos Consolidados</CardTitle>
-                <CardDescription>
-                  Ajusta cantidades o elimina productos antes de enviar
-                </CardDescription>
-              </div>
-              {/* TODO: Botón agregar más productos */}
-              {/* <Button variant="outline" size="sm">
-                <Plus className="w-4 h-4 mr-2" />
-                Agregar Productos
-              </Button> */}
+                                    {/* Estadísticas de Consolidación */}
+                                    <div className="flex items-center gap-4 text-sm text-right">
+                                        <div className="hidden md:block">
+                                            <div className="text-slate-400 text-xs uppercase font-bold">Demanda</div>
+                                            <div className="font-medium">{item.total_demand}</div>
+                                        </div>
+                                        <div className="hidden md:block">
+                                            <div className="text-slate-400 text-xs uppercase font-bold">Bodega</div>
+                                            <div className="font-medium text-emerald-600">{item.current_stock}</div>
+                                        </div>
+                                        <div className="bg-indigo-50 px-3 py-1 rounded-lg border border-indigo-100 min-w-[80px] text-center">
+                                            <div className="text-indigo-400 text-[10px] uppercase font-bold">A Pedir</div>
+                                            <div className="font-bold text-lg text-indigo-700">{item.quantity_to_order}</div>
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        );
+                    })}
+                </div>
             </div>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {currentDraft.items.length === 0 ? (
-              <div className="text-center py-12">
-                <Package className="w-16 h-16 mx-auto text-gray-400 mb-4" />
-                <p className="text-gray-600 mb-2">No hay productos en este consolidado</p>
-                <p className="text-sm text-gray-500">
-                  Haz clic en "Sincronizar" para agregar productos de cotizaciones aceptadas
-                </p>
-              </div>
-            ) : (
-              currentDraft.items.map((item) => (
-                <ProductConsolidationRow
-                  key={item.id}
-                  item={item}
-                  onUpdateQuantity={handleUpdateQuantity}
-                  onRemove={handleRemoveItem}
-                  disabled={sending}
-                />
-              ))
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Notas */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Notas para el Proveedor</CardTitle>
-            <CardDescription>
-              Información adicional sobre este pedido (opcional)
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Textarea
-              placeholder="Ej: Pedido urgente, necesito antes del viernes..."
-              value={notes}
-              onChange={(e) => handleNotesChange(e.target.value)}
-              rows={4}
-              disabled={sending}
-            />
-            {notesChanged && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleSaveNotes}
-              >
-                <Save className="w-4 h-4 mr-2" />
-                Guardar Notas
-              </Button>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Total Final */}
-        <Card className="border-2 border-emerald-200 bg-emerald-50">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-lg font-medium text-gray-700">Total del Pedido</p>
-                <p className="text-sm text-gray-600">
-                  {currentDraft.items_count} producto(s) • De {currentDraft.source_quotes_count} cotización(es)
-                </p>
-              </div>
-              <div className="text-right">
-                <p className="text-4xl font-bold text-emerald-600">
-                  ${(total / 100).toLocaleString("es-MX", {
-                    minimumFractionDigits: 2,
-                  })}
-                </p>
-                <p className="text-sm text-gray-600">MXN</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        )}
       </div>
 
-      {/* Dialog de confirmación de envío */}
-      <Dialog open={showSendDialog} onOpenChange={setShowSendDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>¿Enviar Pedido Consolidado?</DialogTitle>
-            <DialogDescription>
-              Estás a punto de enviar un pedido de {currentDraft.items_count} productos
-              por un total de ${(total / 100).toLocaleString("es-MX", {
-                minimumFractionDigits: 2,
-              })} MXN a{" "}
-              {currentDraft.supplier_business_name || currentDraft.supplier_name}.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 py-4">
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                Una vez enviado, este pedido se convertirá en una cotización que tu proveedor
-                podrá aceptar o rechazar. No podrás modificarlo después de enviarlo.
-              </AlertDescription>
-            </Alert>
-
-            {notes && (
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <p className="text-sm font-medium text-gray-700 mb-2">Notas incluidas:</p>
-                <p className="text-sm text-gray-600">{notes}</p>
-              </div>
-            )}
-          </div>
-
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setShowSendDialog(false)}
-              disabled={sending}
-            >
-              Cancelar
-            </Button>
-            <Button
-              onClick={handleConfirmSend}
-              disabled={sending}
-              className="bg-emerald-600 hover:bg-emerald-700"
-            >
-              {sending ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Enviando...
-                </>
-              ) : (
-                <>
-                  <Send className="w-4 h-4 mr-2" />
-                  Confirmar y Enviar
-                </>
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Floating Action Bar */}
+      {items.length > 0 && (
+        <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-slate-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] z-50">
+            <div className="max-w-5xl mx-auto flex items-center justify-between gap-4">
+                <div className="text-sm">
+                    <span className="font-bold text-slate-900">{totalItems} productos</span> seleccionados ({totalUnits} uds)
+                </div>
+                <Button 
+                    onClick={handleCreateOrder} 
+                    disabled={processing || totalItems === 0}
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-200"
+                >
+                    {processing ? (
+                        <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Calculando precios...</>
+                    ) : (
+                        <><ShoppingCart className="w-4 h-4 mr-2" /> Generar Orden de Compra</>
+                    )}
+                </Button>
+            </div>
+        </div>
+      )}
     </div>
   );
 }
