@@ -15,11 +15,14 @@ import {
   CheckCircle,
   TrendingUp,
   Loader2,
-  MapPin, // Icono para indicar que tenemos la dirección
+  MapPin,
+  AlertCircle, // ✅ CORRECCIÓN: Import agregado
   Store,
 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { QuoteService } from "@/services/quote.service";
+// Importamos el tipo para asegurar compatibilidad
+import { PriceType } from "@/types/digital-catalog";
 
 // Tipo de dato que devuelve tu RPC
 interface ConsolidationItem {
@@ -72,7 +75,7 @@ export default function ConsolidateOrderPage() {
     try {
       setLoading(true);
 
-      // 1. Obtener Info del Catálogo Proveedor (Para saber a quién le compramos)
+      // 1. Obtener Info del Catálogo Proveedor
       const { data: catData, error: catError } = await supabase
         .from("digital_catalogs")
         .select("name, user_id")
@@ -82,7 +85,7 @@ export default function ConsolidateOrderPage() {
       if (catError) throw catError;
       setCatalogInfo(catData);
 
-      // 2. Obtener Info del Revendedor (Para pre-llenar la orden de compra)
+      // 2. Obtener Info del Revendedor
       const { data: busInfo } = await supabase
         .from("business_info")
         .select("business_name, address, phone")
@@ -91,7 +94,7 @@ export default function ConsolidateOrderPage() {
 
       setResellerInfo(busInfo || {});
 
-      // 3. LLAMADA AL RPC (Items a pedir)
+      // 3. LLAMADA AL RPC
       const { data: consolidationData, error: rpcError } = await supabase.rpc("get_consolidation_preview" as any, {
         p_distributor_id: user?.id,
         p_catalog_id: supplierId,
@@ -139,7 +142,6 @@ export default function ConsolidateOrderPage() {
         description: "Por favor configura tu dirección comercial en 'Configuración' para generar órdenes automáticas.",
         variant: "destructive",
       });
-      // Opcional: navigate('/business-info')
       return;
     }
 
@@ -187,7 +189,8 @@ export default function ConsolidateOrderPage() {
         const qty = item.quantity_to_order;
 
         let finalPrice = 0;
-        let priceType = "menudeo";
+        // ✅ CORRECCIÓN: Tipado explícito para evitar TS2345
+        let priceType: "menudeo" | "mayoreo" = "menudeo";
 
         if (rules) {
           if (rules.wholesale > 0 && qty >= rules.min_qty) {
@@ -208,19 +211,18 @@ export default function ConsolidateOrderPage() {
           variant_description: item.variant_description,
           quantity: qty,
           unit_price: finalPrice,
-          price_type: priceType,
+          price_type: priceType, // Ahora sí coincide con PriceType
         };
       });
 
-      // 3. CREAR COTIZACIÓN PRE-LLENADA (LA MAGIA DE ONE-CLICK)
+      // 3. CREAR COTIZACIÓN PRE-LLENADA
       const quotePayload = {
         catalog_id: supplierId,
-        user_id: catalogInfo.user_id, // El dueño de la venta es el L1
+        user_id: catalogInfo.user_id,
 
-        // --- DATOS PRELLENADOS DEL REVENDEDOR ---
         customer_name: user.user_metadata?.full_name || user.email,
         customer_email: user.email || "",
-        customer_company: resellerInfo?.business_name || "Revendedor CatifyPro", // Si no tiene nombre comercial, ponemos uno genérico
+        customer_company: resellerInfo?.business_name || "Revendedor CatifyPro",
         customer_phone: resellerInfo?.phone || "",
 
         delivery_method: "shipping" as const,
@@ -267,7 +269,7 @@ export default function ConsolidateOrderPage() {
         description: `Se enviaron tus datos de envío y facturación al proveedor. Pedido #${createdQuote.id.slice(0, 8)}`,
       });
 
-      navigate("/orders"); // OJO: Asegúrate que esta ruta muestre las compras (Inbound)
+      navigate("/orders");
     } catch (error: any) {
       console.error("Error creating consolidated order:", error);
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -306,7 +308,6 @@ export default function ConsolidateOrderPage() {
               </p>
             </div>
           </div>
-          {/* Info de Envío Prellenada (Feedback Visual) */}
           {resellerInfo?.address && (
             <Badge
               variant="outline"
@@ -385,7 +386,6 @@ export default function ConsolidateOrderPage() {
                         </p>
                       </div>
 
-                      {/* Estadísticas */}
                       <div className="flex items-center gap-4 text-sm text-right">
                         <div className="hidden md:block">
                           <div className="text-slate-400 text-xs uppercase font-bold">Demanda</div>
