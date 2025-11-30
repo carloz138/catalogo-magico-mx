@@ -3,6 +3,7 @@ import React from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBusinessInfo } from "@/hooks/useBusinessInfo";
+import { useUserRole } from "@/contexts/RoleContext"; // ✅ IMPORTANTE: Hook de Roles
 import {
   Sidebar,
   SidebarContent,
@@ -35,7 +36,7 @@ import {
   Radar,
   PackageSearch,
   Landmark,
-  Truck, // ✅ Icono para Pedidos
+  Truck,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -58,54 +59,15 @@ interface MenuItem {
   badge?: string;
   badgeColor?: string;
   primary?: boolean;
+  roles?: string[]; // ✅ Nuevo: Roles permitidos (['L1', 'L2'])
 }
-
-const navigationItems: MenuItem[] = [
-  { title: "Dashboard", path: "/dashboard", icon: LayoutDashboard, primary: true },
-  { title: "Cotizaciones", path: "/quotes", icon: ClipboardList, primary: true },
-  // ✅ NUEVO ÍTEM: Mis Pedidos
-  { title: "Mis Pedidos", path: "/orders", icon: Truck, primary: true },
-  { title: "Mis Catálogos", path: "/catalogs", icon: BookOpen, primary: true },
-  {
-    title: "Radar de Mercado",
-    path: "/market-radar",
-    icon: Radar,
-    badge: "IA",
-    badgeColor: "bg-violet-500/20 text-violet-200 border-violet-500/30",
-    primary: true,
-  },
-  {
-    title: "Red de Distribución",
-    path: "/network",
-    icon: Network,
-    badge: "Viral",
-    badgeColor: "bg-emerald-500/20 text-emerald-200 border-emerald-500/30",
-  },
-  {
-    title: "Gestión de Productos",
-    path: "/products-management",
-    icon: PackageSearch,
-    primary: true,
-  },
-  { title: "Inventario", path: "/products", icon: Package },
-  { title: "Carga Masiva", path: "/products/bulk-upload", icon: PackageOpen },
-  { title: "Subir Productos", path: "/upload", icon: Upload },
-  { title: "Analytics", path: "/analytics", icon: BarChart3 },
-  { title: "Facturación", path: "/checkout", icon: CreditCard },
-  { title: "Guía de Inicio", path: "/onboarding", icon: PlayCircle },
-  {
-    title: "Datos Bancarios",
-    path: "/dashboard/banking",
-    icon: Landmark,
-    badge: "$",
-    badgeColor: "bg-green-900/50 text-green-300 border-green-700/50",
-  },
-  { title: "Configuración", path: "/business-info", icon: Settings },
-];
 
 export function AppSidebar() {
   const { user, signOut } = useAuth();
   const { businessInfo, hasBusinessInfo, hasMerchantAccount } = useBusinessInfo();
+  // ✅ Consumimos el Rol del Usuario
+  const { isL1, isL2, isBoth } = useUserRole();
+
   const navigate = useNavigate();
   const location = useLocation();
   const { state, toggleSidebar } = useSidebar();
@@ -122,6 +84,70 @@ export function AppSidebar() {
     const source = displayName || "CP";
     return source.substring(0, 2).toUpperCase();
   };
+
+  // --- DEFINICIÓN DE MENÚ CON ROLES ---
+  const allNavigationItems: MenuItem[] = [
+    // 1. COMUNES (Todos ven esto)
+    { title: "Dashboard", path: "/dashboard", icon: LayoutDashboard, primary: true, roles: ["L1", "L2", "BOTH"] },
+    { title: "Cotizaciones", path: "/quotes", icon: ClipboardList, primary: true, roles: ["L1", "L2", "BOTH"] },
+    { title: "Mis Pedidos", path: "/orders", icon: Truck, primary: true, roles: ["L1", "L2", "BOTH"] },
+    { title: "Mis Catálogos", path: "/catalogs", icon: BookOpen, primary: true, roles: ["L1", "L2", "BOTH"] },
+
+    // 2. EXCLUSIVOS L1 (Fabricante)
+    {
+      title: "Radar de Mercado",
+      path: "/market-radar",
+      icon: Radar,
+      badge: "IA",
+      badgeColor: "bg-violet-500/20 text-violet-200 border-violet-500/30",
+      primary: true,
+      roles: ["L1", "BOTH"], // Solo L1
+    },
+    {
+      title: "Red de Distribución",
+      path: "/network",
+      icon: Network,
+      badge: "Viral",
+      badgeColor: "bg-emerald-500/20 text-emerald-200 border-emerald-500/30",
+      roles: ["L1", "BOTH"],
+    },
+    {
+      title: "Gestión de Productos",
+      path: "/products-management",
+      icon: PackageSearch,
+      primary: true,
+      roles: ["L1", "BOTH"],
+    },
+    { title: "Inventario", path: "/products", icon: Package, roles: ["L1", "BOTH"] },
+    { title: "Carga Masiva", path: "/products/bulk-upload", icon: PackageOpen, roles: ["L1", "BOTH"] },
+    { title: "Subir Productos", path: "/upload", icon: Upload, roles: ["L1", "BOTH"] },
+    { title: "Analytics", path: "/analytics", icon: BarChart3, roles: ["L1", "BOTH"] },
+
+    // 3. PAGOS Y CONFIG (Todos)
+    { title: "Facturación", path: "/checkout", icon: CreditCard, roles: ["L1", "BOTH"] }, // L2 es gratis, no factura
+    { title: "Guía de Inicio", path: "/onboarding", icon: PlayCircle, roles: ["L1", "L2", "BOTH"] },
+    {
+      title: "Datos Bancarios",
+      path: "/dashboard/banking",
+      icon: Landmark,
+      badge: "$",
+      badgeColor: "bg-green-900/50 text-green-300 border-green-700/50",
+      roles: ["L1", "L2", "BOTH"], // Vital para L2 (cobrar)
+    },
+    { title: "Configuración", path: "/business-info", icon: Settings, roles: ["L1", "L2", "BOTH"] },
+  ];
+
+  // FILTRADO DINÁMICO
+  const navigationItems = allNavigationItems.filter((item) => {
+    // Si no definimos roles, es público por defecto (seguridad: mejor definir siempre)
+    if (!item.roles) return true;
+
+    if (isBoth) return true; // Híbrido ve todo
+    if (isL1 && item.roles.includes("L1")) return true;
+    if (isL2 && item.roles.includes("L2")) return true;
+
+    return false;
+  });
 
   const getWarningConfig = () => {
     if (!hasBusinessInfo) {
