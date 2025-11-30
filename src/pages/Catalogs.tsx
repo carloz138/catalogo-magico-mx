@@ -20,6 +20,7 @@ import {
   DollarSign,
   LayoutGrid,
   Search,
+  Truck, // ✅ Icono para Surtir
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -34,7 +35,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { BusinessInfoBanner } from "@/components/dashboard/BusinessInfoBanner";
 
 // ==========================================
-// 1. TIPOS & INTERFACES (Estrictos)
+// 1. TIPOS & INTERFACES
 // ==========================================
 
 interface PDFCatalog {
@@ -214,14 +215,12 @@ const ReplicatedCatalogCard = ({
 }) => {
   const navigate = useNavigate();
 
-  // Adaptador para el modal de Share (necesita un objeto DigitalCatalog)
   const shareAdapter = () => {
     onShare({
-      id: catalog.replicatedCatalogId, // Importante: ID de la réplica para generar el link correcto
+      id: catalog.replicatedCatalogId,
       slug: catalog.replicatedSlug,
       name: catalog.originalName,
       description: catalog.description,
-      // ... resto de props dummy
       user_id: "",
       created_at: "",
       updated_at: "",
@@ -273,34 +272,49 @@ const ReplicatedCatalogCard = ({
             </div>
           </div>
 
-          <div className="flex items-center gap-2 pt-3 mt-auto">
+          {/* --- BOTONES DE ACCIÓN L2 --- */}
+          <div className="grid grid-cols-2 gap-2 pt-3 mt-auto">
+            {/* 1. Gestionar Precios */}
             <Button
               size="sm"
-              className="flex-1 bg-violet-600 hover:bg-violet-700 text-white shadow-sm h-8 text-xs"
+              className="bg-violet-600 hover:bg-violet-700 text-white shadow-sm h-8 text-xs w-full"
               onClick={() => navigate(`/reseller/edit-prices?catalog_id=${catalog.replicatedCatalogId}`)}
             >
-              <DollarSign className="w-3.5 h-3.5 mr-1" /> Gestionar Precios
+              <DollarSign className="w-3.5 h-3.5 mr-1" /> Precios
             </Button>
 
+            {/* 2. Surtir / Reabastecer */}
             <Button
               size="sm"
               variant="outline"
-              className="h-8 w-8 p-0 border-slate-200"
-              onClick={() => window.open(`/c/${catalog.replicatedSlug}`, "_blank")}
-              title="Ver mi tienda"
+              className="border-violet-200 text-violet-700 hover:bg-violet-50 h-8 text-xs w-full"
+              onClick={() => navigate(`/reseller/consolidate/${catalog.id}`)} // Usamos el ID original (L1) para buscar productos
             >
-              <Eye className="w-3.5 h-3.5" />
+              <Truck className="w-3.5 h-3.5 mr-1" /> Surtir
             </Button>
 
-            <Button
-              size="sm"
-              variant="outline"
-              className="h-8 w-8 p-0 border-slate-200"
-              onClick={shareAdapter}
-              title="Compartir link"
-            >
-              <Share2 className="w-3.5 h-3.5" />
-            </Button>
+            {/* 3. Botones secundarios */}
+            <div className="col-span-2 flex gap-2">
+              <Button
+                size="sm"
+                variant="ghost"
+                className="flex-1 h-8 border border-slate-100 text-slate-500 hover:text-slate-700"
+                onClick={() => window.open(`/c/${catalog.replicatedSlug}`, "_blank")}
+                title="Ver mi tienda pública"
+              >
+                <Eye className="w-3.5 h-3.5 mr-2" /> Ver Tienda
+              </Button>
+
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-8 w-10 border border-slate-100 text-slate-500"
+                onClick={shareAdapter}
+                title="Compartir link"
+              >
+                <Share2 className="w-3.5 h-3.5" />
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -416,10 +430,11 @@ const Catalogs = () => {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<CatalogType>("all");
 
-  // Modales
   const [shareModalCatalog, setShareModalCatalog] = useState<DigitalCatalog | null>(null);
   const [deleteCatalog, setDeleteCatalog] = useState<DigitalCatalog | null>(null);
   const [deletePDFId, setDeletePDFId] = useState<string | null>(null);
+
+  const { limits, loading: limitsLoading } = useCatalogLimits();
 
   // --- QUERY 1: Digital Catalogs (L1) ---
   const { data: digitalCatalogs = [], isLoading: loadingDigital } = useQuery({
@@ -470,16 +485,15 @@ const Catalogs = () => {
 
       if (error) throw error;
 
-      // Transformación segura para evitar errores de null
       return (data || [])
         .map((r: any) => {
           const base = r.digital_catalogs;
-          if (!base) return null; // Si el catálogo padre se borró, lo ignoramos por ahora
+          if (!base) return null; // Si el catálogo padre se borró
 
           return {
-            ...base,
+            ...base, // ID original del proveedor
             originalName: base.name,
-            replicatedCatalogId: r.id,
+            replicatedCatalogId: r.id, // ID único de la réplica (para precios)
             replicatedSlug: r.slug,
             isActive: r.is_active,
           } as ReplicatedCatalogUI;
@@ -543,7 +557,7 @@ const Catalogs = () => {
     </div>
   );
 
-  if (isLoading) {
+  if (isLoading || limitsLoading) {
     return (
       <div className="min-h-screen bg-slate-50 p-4 md:p-8">
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mt-12">
@@ -559,7 +573,6 @@ const Catalogs = () => {
     const showDigital = type === "all" || type === "digital";
     const showPDF = type === "all" || type === "pdf";
 
-    // Filtros de visualización
     const visibleDigital = showDigital ? digitalCatalogs : [];
     const visibleReplicated = showDigital ? replicatedCatalogs : [];
     const visiblePDF = showPDF ? pdfCatalogs : [];
@@ -669,7 +682,6 @@ const Catalogs = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 p-4 md:p-8 pb-24 font-sans text-slate-900">
-      {/* Header */}
       <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-8">
         <div>
           <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Mis Catálogos</h1>
@@ -718,14 +730,12 @@ const Catalogs = () => {
         </AnimatePresence>
       </Tabs>
 
-      {/* Modales */}
       <CatalogShareModal
         catalog={shareModalCatalog}
         open={!!shareModalCatalog}
         onOpenChange={(open) => !open && setShareModalCatalog(null)}
       />
 
-      {/* Modal Borrar Digital */}
       <DeleteCatalogDialog
         catalog={deleteCatalog}
         open={!!deleteCatalog}
@@ -738,7 +748,6 @@ const Catalogs = () => {
         }}
       />
 
-      {/* Modal Borrar PDF */}
       <DeleteCatalogDialog
         catalog={deletePDFId ? ({ id: deletePDFId, name: "Archivo PDF" } as any) : null}
         open={!!deletePDFId}
