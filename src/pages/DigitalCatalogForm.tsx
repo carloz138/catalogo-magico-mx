@@ -700,7 +700,7 @@ export default function DigitalCatalogForm() {
                   <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Pixel ID</FormLabel>
 
                   <FormControl>
-                    <Input placeholder="Ej: 1234567890" {...field} className="bg-white" />
+                    <Input placeholder="Ej: 1234567890" {...field} className="bg-white bg-gray-50 border-gray-200 focus:bg-white focus:ring-2 focus:ring-primary/20 transition-all rounded-lg" />
                   </FormControl>
 
                   <FormMessage />
@@ -726,7 +726,7 @@ export default function DigitalCatalogForm() {
                   </FormLabel>
 
                   <FormControl>
-                    <Input type="password" placeholder="EAA..." {...field} className="bg-white font-mono text-xs" />
+                    <Input type="password" placeholder="EAA..." {...field} className="bg-white font-mono text-xs bg-gray-50 border-gray-200 focus:bg-white focus:ring-2 focus:ring-primary/20 transition-all rounded-lg" />
                   </FormControl>
 
                   <FormDescription>Token de larga duración generado en el Business Manager.</FormDescription>
@@ -746,7 +746,7 @@ export default function DigitalCatalogForm() {
                   </FormLabel>
 
                   <FormControl>
-                    <Input placeholder="Ej: TEST1234" {...field} className="bg-white" />
+                    <Input placeholder="Ej: TEST1234" {...field} className="bg-white bg-gray-50 border-gray-200 focus:bg-white focus:ring-2 focus:ring-primary/20 transition-all rounded-lg" />
                   </FormControl>
 
                   <FormDescription>Úsalo solo para probar eventos en tiempo real.</FormDescription>
@@ -770,7 +770,7 @@ export default function DigitalCatalogForm() {
               <FormLabel>Facebook Pixel ID</FormLabel>
 
               <FormControl>
-                <Input placeholder="Ej: 1234567890" {...field} />
+                <Input placeholder="Ej: 1234567890" {...field} className="bg-gray-50 border-gray-200 focus:bg-white focus:ring-2 focus:ring-primary/20 transition-all rounded-lg" />
               </FormControl>
 
               <FormDescription>El ID numérico de tu Pixel. Necesario para el rastreo básico y CAPI.</FormDescription>
@@ -788,7 +788,7 @@ export default function DigitalCatalogForm() {
               <FormLabel>API Access Token (Opcional)</FormLabel>
 
               <FormControl>
-                <Input type="password" placeholder="Token de conversión (CAPI)" {...field} />
+                <Input type="password" placeholder="Token de conversión (CAPI)" {...field} className="bg-gray-50 border-gray-200 focus:bg-white focus:ring-2 focus:ring-primary/20 transition-all rounded-lg" />
               </FormControl>
 
               <FormDescription>Requerido para enviar eventos servidor-servidor (Plan Empresarial).</FormDescription>
@@ -824,7 +824,7 @@ export default function DigitalCatalogForm() {
                   {...field}
                   value={field.value || ""}
                   rows={4}
-                  className="font-mono text-xs resize-none"
+                  className="font-mono text-xs resize-none bg-gray-50 border-gray-200 focus:bg-white focus:ring-2 focus:ring-primary/20 transition-all rounded-lg"
                 />
               </FormControl>
 
@@ -846,7 +846,7 @@ export default function DigitalCatalogForm() {
                   {...field}
                   value={field.value || ""}
                   rows={4}
-                  className="font-mono text-xs resize-none"
+                  className="font-mono text-xs resize-none bg-gray-50 border-gray-200 focus:bg-white focus:ring-2 focus:ring-primary/20 transition-all rounded-lg"
                 />
               </FormControl>
 
@@ -944,7 +944,7 @@ export default function DigitalCatalogForm() {
                 <Accordion type="single" collapsible className="space-y-3">
                   {/* Accordion Item 1: Productos */}
 
-                  <AccordionItem value="products" className="border rounded-lg overflow-hidden">
+                  <AccordionItem value="products" className="border-none bg-white rounded-xl shadow-sm mb-4 overflow-hidden ring-1 ring-gray-200">
                     <AccordionTrigger className="px-4 py-4 hover:no-underline hover:bg-muted/50 transition-colors">
                       <div className="flex items-center gap-3 w-full">
                         <div
@@ -997,7 +997,7 @@ export default function DigitalCatalogForm() {
 
                   {/* Accordion Item 2: Diseño */}
 
-                  <AccordionItem value="design" className="border rounded-lg overflow-hidden">
+                  <AccordionItem value="design" className="border-none bg-white rounded-xl shadow-sm mb-4 overflow-hidden ring-1 ring-gray-200">
                     <AccordionTrigger className="px-4 py-4 hover:no-underline hover:bg-muted/50 transition-colors">
                       <div className="flex items-center gap-3 w-full">
                         <div
@@ -1059,7 +1059,7 @@ export default function DigitalCatalogForm() {
 
                   {/* Accordion Item 3: Información Básica */}
 
-                  <AccordionItem value="info" className="border rounded-lg overflow-hidden">
+                  <AccordionItem value="info" className="border-none bg-white rounded-xl shadow-sm mb-4 overflow-hidden ring-1 ring-gray-200">
                     <AccordionTrigger className="px-4 py-4 hover:no-underline hover:bg-muted/50 transition-colors">
                       <div className="flex items-center gap-3 w-full">
                         <div
@@ -1094,7 +1094,7 @@ export default function DigitalCatalogForm() {
                               <Input
                                 id="catalog-name"
                                 placeholder="Ej: Catálogo Primavera 2025"
-                                className="h-12 text-base"
+                                className="h-12 text-base bg-gray-50 border-gray-200 focus:bg-white focus:ring-2 focus:ring-primary/20 transition-all rounded-lg"
                                 {...field}
                               />
                             </FormControl>
@@ -1117,7 +1117,7 @@ export default function DigitalCatalogForm() {
                               <Textarea
                                 id="catalog-description"
                                 placeholder="Describe tu catálogo..."
-                                className="min-h-[120px] resize-none text-base"
+                                className="min-h-[120px] resize-none text-base bg-gray-50 border-gray-200 focus:bg-white focus:ring-2 focus:ring-primary/20 transition-all rounded-lg"
                                 {...field}
                               />
                             </FormControl>
@@ -1133,7 +1133,7 @@ export default function DigitalCatalogForm() {
 
                   {/* Accordion Item 4: Precios */}
 
-                  <AccordionItem value="pricing" className="border rounded-lg overflow-hidden">
+                  <AccordionItem value="pricing" className="border-none bg-white rounded-xl shadow-sm mb-4 overflow-hidden ring-1 ring-gray-200">
                     <AccordionTrigger className="px-4 py-4 hover:no-underline hover:bg-muted/50 transition-colors">
                       <div className="flex items-center gap-3 w-full">
                         <div className="flex items-center justify-center w-10 h-10 rounded-full bg-muted flex-shrink-0">
@@ -1164,12 +1164,13 @@ export default function DigitalCatalogForm() {
                               <label
                                 htmlFor="menudeo_only"
                                 className={cn(
-                                  "flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all active:scale-[0.98]",
-
-                                  field.value === "menudeo_only" && "border-primary bg-primary/5",
+                                  "flex items-start gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all hover:bg-gray-50",
+                                  field.value === "menudeo_only"
+                                    ? "border-primary bg-primary/5 ring-1 ring-primary/20"
+                                    : "border-transparent bg-gray-50 hover:border-gray-200"
                                 )}
                               >
-                                <RadioGroupItem value="menudeo_only" id="menudeo_only" className="h-5 w-5" />
+                                <RadioGroupItem value="menudeo_only" id="menudeo_only" className="h-5 w-5 mt-0.5" />
 
                                 <div className="flex-1">
                                   <div className="font-medium">Solo precio menudeo</div>
@@ -1179,12 +1180,13 @@ export default function DigitalCatalogForm() {
                               <label
                                 htmlFor="mayoreo_only"
                                 className={cn(
-                                  "flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all active:scale-[0.98]",
-
-                                  field.value === "mayoreo_only" && "border-primary bg-primary/5",
+                                  "flex items-start gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all hover:bg-gray-50",
+                                  field.value === "mayoreo_only"
+                                    ? "border-primary bg-primary/5 ring-1 ring-primary/20"
+                                    : "border-transparent bg-gray-50 hover:border-gray-200"
                                 )}
                               >
-                                <RadioGroupItem value="mayoreo_only" id="mayoreo_only" className="h-5 w-5" />
+                                <RadioGroupItem value="mayoreo_only" id="mayoreo_only" className="h-5 w-5 mt-0.5" />
 
                                 <div className="flex-1">
                                   <div className="font-medium">Solo precio mayoreo</div>
@@ -1194,12 +1196,13 @@ export default function DigitalCatalogForm() {
                               <label
                                 htmlFor="both"
                                 className={cn(
-                                  "flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all active:scale-[0.98]",
-
-                                  field.value === "both" && "border-primary bg-primary/5",
+                                  "flex items-start gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all hover:bg-gray-50",
+                                  field.value === "both"
+                                    ? "border-primary bg-primary/5 ring-1 ring-primary/20"
+                                    : "border-transparent bg-gray-50 hover:border-gray-200"
                                 )}
                               >
-                                <RadioGroupItem value="both" id="both" className="h-5 w-5" />
+                                <RadioGroupItem value="both" id="both" className="h-5 w-5 mt-0.5" />
 
                                 <div className="flex-1">
                                   <div className="font-medium">Ambos precios</div>
@@ -1282,7 +1285,7 @@ export default function DigitalCatalogForm() {
 
                   {/* Accordion Item 4.5: Envíos */}
 
-                  <AccordionItem value="shipping" className="border rounded-lg overflow-hidden">
+                  <AccordionItem value="shipping" className="border-none bg-white rounded-xl shadow-sm mb-4 overflow-hidden ring-1 ring-gray-200">
                     <AccordionTrigger className="px-4 py-4 hover:no-underline hover:bg-muted/50 transition-colors">
                       <div className="flex items-center gap-3 w-full">
                         <div className="flex items-center justify-center w-10 h-10 rounded-full bg-muted flex-shrink-0">
@@ -1303,13 +1306,13 @@ export default function DigitalCatalogForm() {
                         name="enable_free_shipping"
                         render={({ field }) => (
                           <div
-                            className="flex items-center justify-between p-4 rounded-lg border cursor-pointer active:scale-[0.98] transition-all"
+                            className="flex items-center justify-between p-4 rounded-xl bg-white border border-gray-100 shadow-sm transition-all hover:border-gray-200 cursor-pointer active:scale-[0.98]"
                             onClick={() => field.onChange(!field.value)}
                           >
                             <div className="flex-1">
-                              <div className="font-medium text-base">Habilitar Envío Gratis</div>
+                              <div className="text-base font-semibold text-gray-900">Habilitar Envío Gratis</div>
 
-                              <div className="text-sm text-muted-foreground">
+                              <div className="text-sm text-gray-500 mt-1">
                                 Ofrece envío gratis sobre un monto mínimo
                               </div>
                             </div>
@@ -1343,7 +1346,7 @@ export default function DigitalCatalogForm() {
                                     min="0"
                                     step="100"
                                     placeholder="5000"
-                                    className="h-12 text-base pl-10"
+                                    className="h-12 text-base pl-10 bg-gray-50 border-gray-200 focus:bg-white focus:ring-2 focus:ring-primary/20 transition-all rounded-lg"
                                     {...field}
                                     onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
                                   />
@@ -1364,7 +1367,7 @@ export default function DigitalCatalogForm() {
 
                   {/* Accordion Item 5: Visibilidad */}
 
-                  <AccordionItem value="visibility" className="border rounded-lg overflow-hidden">
+                  <AccordionItem value="visibility" className="border-none bg-white rounded-xl shadow-sm mb-4 overflow-hidden ring-1 ring-gray-200">
                     <AccordionTrigger className="px-4 py-4 hover:no-underline hover:bg-muted/50 transition-colors">
                       <div className="flex items-center gap-3 w-full">
                         <div className="flex items-center justify-center w-10 h-10 rounded-full bg-muted flex-shrink-0">
@@ -1385,13 +1388,13 @@ export default function DigitalCatalogForm() {
                         name="show_sku"
                         render={({ field }) => (
                           <div
-                            className="flex items-center justify-between p-4 rounded-lg border cursor-pointer active:scale-[0.98] transition-all"
+                            className="flex items-center justify-between p-4 rounded-xl bg-white border border-gray-100 shadow-sm transition-all hover:border-gray-200 cursor-pointer active:scale-[0.98]"
                             onClick={() => field.onChange(!field.value)}
                           >
                             <div className="flex-1">
-                              <div className="font-medium text-base">Mostrar SKU</div>
+                              <div className="text-base font-semibold text-gray-900">Mostrar SKU</div>
 
-                              <div className="text-sm text-muted-foreground">Código de producto visible</div>
+                              <div className="text-sm text-gray-500 mt-1">Código de producto visible</div>
                             </div>
 
                             <Switch
@@ -1408,13 +1411,13 @@ export default function DigitalCatalogForm() {
                         name="show_tags"
                         render={({ field }) => (
                           <div
-                            className="flex items-center justify-between p-4 rounded-lg border cursor-pointer active:scale-[0.98] transition-all"
+                            className="flex items-center justify-between p-4 rounded-xl bg-white border border-gray-100 shadow-sm transition-all hover:border-gray-200 cursor-pointer active:scale-[0.98]"
                             onClick={() => field.onChange(!field.value)}
                           >
                             <div className="flex-1">
-                              <div className="font-medium text-base">Mostrar Tags</div>
+                              <div className="text-base font-semibold text-gray-900">Mostrar Tags</div>
 
-                              <div className="text-sm text-muted-foreground">Etiquetas del producto</div>
+                              <div className="text-sm text-gray-500 mt-1">Etiquetas del producto</div>
                             </div>
 
                             <Switch
@@ -1431,13 +1434,13 @@ export default function DigitalCatalogForm() {
                         name="show_description"
                         render={({ field }) => (
                           <div
-                            className="flex items-center justify-between p-4 rounded-lg border cursor-pointer active:scale-[0.98] transition-all"
+                            className="flex items-center justify-between p-4 rounded-xl bg-white border border-gray-100 shadow-sm transition-all hover:border-gray-200 cursor-pointer active:scale-[0.98]"
                             onClick={() => field.onChange(!field.value)}
                           >
                             <div className="flex-1">
-                              <div className="font-medium text-base">Mostrar Descripción</div>
+                              <div className="text-base font-semibold text-gray-900">Mostrar Descripción</div>
 
-                              <div className="text-sm text-muted-foreground">Descripción completa del producto</div>
+                              <div className="text-sm text-gray-500 mt-1">Descripción completa del producto</div>
                             </div>
 
                             <Switch
@@ -1454,13 +1457,13 @@ export default function DigitalCatalogForm() {
                         name="show_stock"
                         render={({ field }) => (
                           <div
-                            className="flex items-center justify-between p-4 rounded-lg border cursor-pointer active:scale-[0.98] transition-all"
+                            className="flex items-center justify-between p-4 rounded-xl bg-white border border-gray-100 shadow-sm transition-all hover:border-gray-200 cursor-pointer active:scale-[0.98]"
                             onClick={() => field.onChange(!field.value)}
                           >
                             <div className="flex-1">
-                              <div className="font-medium text-base">Mostrar Stock</div>
+                              <div className="text-base font-semibold text-gray-900">Mostrar Stock</div>
 
-                              <div className="text-sm text-muted-foreground">
+                              <div className="text-sm text-gray-500 mt-1">
                                 Mostrar cantidad disponible de variantes
                               </div>
                             </div>
@@ -1478,7 +1481,7 @@ export default function DigitalCatalogForm() {
 
                   {/* Accordion Item 6: Configuración Avanzada */}
 
-                  <AccordionItem value="advanced" className="border rounded-lg overflow-hidden">
+                  <AccordionItem value="advanced" className="border-none bg-white rounded-xl shadow-sm mb-4 overflow-hidden ring-1 ring-gray-200">
                     <AccordionTrigger className="px-4 py-4 hover:no-underline hover:bg-muted/50 transition-colors">
                       <div className="flex items-center gap-3 w-full">
                         <div className="flex items-center justify-center w-10 h-10 rounded-full bg-muted flex-shrink-0">
@@ -1573,14 +1576,14 @@ export default function DigitalCatalogForm() {
                                 <label
                                   htmlFor="public"
                                   className={cn(
-                                    "flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all active:scale-[0.98]",
-
-                                    !field.value && "border-primary bg-primary/5",
-
-                                    !canCreatePrivate && "opacity-50",
+                                    "flex items-start gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all hover:bg-gray-50",
+                                    !field.value
+                                      ? "border-primary bg-primary/5 ring-1 ring-primary/20"
+                                      : "border-transparent bg-gray-50 hover:border-gray-200",
+                                    !canCreatePrivate && "opacity-50"
                                   )}
                                 >
-                                  <RadioGroupItem value="public" id="public" className="h-5 w-5" />
+                                  <RadioGroupItem value="public" id="public" className="h-5 w-5 mt-0.5" />
 
                                   <div className="flex-1">
                                     <div className="font-medium">Público</div>
@@ -1594,20 +1597,18 @@ export default function DigitalCatalogForm() {
                                 <label
                                   htmlFor="private"
                                   className={cn(
-                                    "flex items-center gap-3 p-4 rounded-lg border-2 transition-all",
-
-                                    field.value && "border-primary bg-primary/5",
-
-                                    canCreatePrivate
-                                      ? "cursor-pointer active:scale-[0.98]"
-                                      : "opacity-50 cursor-not-allowed",
+                                    "flex items-start gap-4 p-4 rounded-xl border-2 transition-all hover:bg-gray-50",
+                                    field.value
+                                      ? "border-primary bg-primary/5 ring-1 ring-primary/20"
+                                      : "border-transparent bg-gray-50 hover:border-gray-200",
+                                    canCreatePrivate ? "cursor-pointer" : "opacity-50 cursor-not-allowed"
                                   )}
                                 >
                                   <RadioGroupItem
                                     value="private"
                                     id="private"
                                     disabled={!canCreatePrivate}
-                                    className="h-5 w-5"
+                                    className="h-5 w-5 mt-0.5"
                                   />
 
                                   <div className="flex-1">
@@ -1642,7 +1643,7 @@ export default function DigitalCatalogForm() {
                                   id="access-password"
                                   type="password"
                                   placeholder="Ingresa una contraseña"
-                                  className="h-12 text-base"
+                                  className="h-12 text-base bg-gray-50 border-gray-200 focus:bg-white focus:ring-2 focus:ring-primary/20 transition-all rounded-lg"
                                   {...field}
                                 />
                               </FormControl>
@@ -1662,7 +1663,7 @@ export default function DigitalCatalogForm() {
                   {/* Accordion Item 7: Cotización (condicional) */}
 
                   {getPlanFeatures(userPlanTier).hasQuotation ? (
-                    <AccordionItem value="quotation" className="border rounded-lg overflow-hidden">
+                    <AccordionItem value="quotation" className="border-none bg-white rounded-xl shadow-sm mb-4 overflow-hidden ring-1 ring-gray-200">
                       <AccordionTrigger className="px-4 py-4 hover:no-underline hover:bg-muted/50 transition-colors">
                         <div className="flex items-center gap-3 w-full">
                           <div className="flex items-center justify-center w-10 h-10 rounded-full bg-muted flex-shrink-0">
@@ -1683,13 +1684,13 @@ export default function DigitalCatalogForm() {
                           name="enable_quotation"
                           render={({ field }) => (
                             <div
-                              className="flex items-center justify-between p-4 rounded-lg border cursor-pointer active:scale-[0.98] transition-all mb-3"
+                              className="flex items-center justify-between p-4 rounded-xl bg-white border border-gray-100 shadow-sm transition-all hover:border-gray-200 cursor-pointer active:scale-[0.98] mb-3"
                               onClick={() => field.onChange(!field.value)}
                             >
                               <div className="flex-1">
-                                <div className="font-medium text-base">Habilitar cotizaciones</div>
+                                <div className="text-base font-semibold text-gray-900">Habilitar cotizaciones</div>
 
-                                <div className="text-sm text-muted-foreground">
+                                <div className="text-sm text-gray-500 mt-1">
                                   Los clientes podrán seleccionar productos y solicitar cotización
                                 </div>
                               </div>
@@ -1710,13 +1711,13 @@ export default function DigitalCatalogForm() {
                             render={({ field }) => (
                               <FormItem>
                                 <div
-                                  className="flex items-center justify-between p-4 rounded-lg border cursor-pointer active:scale-[0.98] transition-all"
+                                  className="flex items-center justify-between p-4 rounded-xl bg-white border border-gray-100 shadow-sm transition-all hover:border-gray-200 cursor-pointer active:scale-[0.98]"
                                   onClick={() => field.onChange(!field.value)}
                                 >
                                   <div className="flex-1">
-                                    <div className="font-medium text-base">Permitir selección de variantes</div>
+                                    <div className="text-base font-semibold text-gray-900">Permitir selección de variantes</div>
 
-                                    <div className="text-sm text-muted-foreground">
+                                    <div className="text-sm text-gray-500 mt-1">
                                       Los clientes podrán elegir variantes específicas al cotizar
                                     </div>
                                   </div>
@@ -1739,16 +1740,16 @@ export default function DigitalCatalogForm() {
                             render={({ field }) => (
                               <FormItem>
                                 <div
-                                  className="flex items-center justify-between p-4 rounded-lg border cursor-pointer active:scale-[0.98] transition-all bg-indigo-50 border-indigo-200 mt-3"
+                                  className="flex items-center justify-between p-4 rounded-xl border border-gray-100 shadow-sm transition-all hover:border-gray-200 cursor-pointer active:scale-[0.98] bg-indigo-50 border-indigo-200 mt-3"
                                   onClick={() => field.onChange(!field.value)}
                                 >
                                   <div className="flex-1">
-                                    <div className="font-medium text-base flex items-center gap-2">
+                                    <div className="text-base font-semibold text-gray-900 flex items-center gap-2">
                                       Permitir que mis clientes creen catálogos
                                       <Badge variant="secondary">Nuevo</Badge>
                                     </div>
 
-                                    <div className="text-sm text-muted-foreground">
+                                    <div className="text-sm text-gray-500 mt-1">
                                       Al aceptar cotizaciones, tus clientes podrán activar su propio catálogo GRATIS
                                     </div>
                                   </div>
@@ -1780,7 +1781,7 @@ export default function DigitalCatalogForm() {
 
                   {/* Accordion Item 8: Tracking y Píxeles (Mobile) */}
 
-                  <AccordionItem value="tracking" className="border rounded-lg overflow-hidden">
+                  <AccordionItem value="tracking" className="border-none bg-white rounded-xl shadow-sm mb-4 overflow-hidden ring-1 ring-gray-200">
                     <AccordionTrigger className="px-4 py-4 hover:no-underline hover:bg-muted/50 transition-colors">
                       <div className="flex items-center gap-3 w-full">
                         <div className="flex items-center justify-center w-10 h-10 rounded-full bg-muted flex-shrink-0">
@@ -1940,7 +1941,7 @@ export default function DigitalCatalogForm() {
                           <FormLabel>Nombre del catálogo *</FormLabel>
 
                           <FormControl>
-                            <Input placeholder="Ej: Catálogo Primavera 2025" {...field} />
+                            <Input placeholder="Ej: Catálogo Primavera 2025" className="bg-gray-50 border-gray-200 focus:bg-white focus:ring-2 focus:ring-primary/20 transition-all rounded-lg" {...field} />
                           </FormControl>
 
                           <FormMessage />
@@ -1956,7 +1957,7 @@ export default function DigitalCatalogForm() {
                           <FormLabel>Descripción (opcional)</FormLabel>
 
                           <FormControl>
-                            <Textarea placeholder="Describe tu catálogo..." className="resize-none" {...field} />
+                            <Textarea placeholder="Describe tu catálogo..." className="resize-none bg-gray-50 border-gray-200 focus:bg-white focus:ring-2 focus:ring-primary/20 transition-all rounded-lg" {...field} />
                           </FormControl>
 
                           <FormDescription>{field.value?.length || 0}/500 caracteres</FormDescription>
@@ -1976,7 +1977,7 @@ export default function DigitalCatalogForm() {
                           <FormControl>
                             <Textarea
                               placeholder="Preguntas frecuentes, términos y condiciones, información importante..."
-                              className="resize-none min-h-[120px]"
+                              className="resize-none min-h-[120px] bg-gray-50 border-gray-200 focus:bg-white focus:ring-2 focus:ring-primary/20 transition-all rounded-lg"
                               {...field}
                             />
                           </FormControl>
@@ -2129,11 +2130,11 @@ export default function DigitalCatalogForm() {
                       control={form.control}
                       name="enable_free_shipping"
                       render={({ field }) => (
-                        <FormItem className="flex items-center justify-between rounded-lg border p-4">
+                        <FormItem className="flex items-center justify-between p-4 rounded-xl bg-white border border-gray-100 shadow-sm transition-all hover:border-gray-200">
                           <div className="space-y-0.5">
-                            <FormLabel className="text-base">Habilitar Envío Gratis</FormLabel>
+                            <FormLabel className="text-base font-semibold text-gray-900">Habilitar Envío Gratis</FormLabel>
 
-                            <FormDescription>Ofrece envío gratis sobre un monto mínimo</FormDescription>
+                            <FormDescription className="text-sm text-gray-500 mt-1">Ofrece envío gratis sobre un monto mínimo</FormDescription>
                           </div>
 
                           <FormControl>
@@ -2160,7 +2161,7 @@ export default function DigitalCatalogForm() {
                                   min="0"
                                   step="100"
                                   placeholder="5000"
-                                  className="pl-9"
+                                  className="pl-9 bg-gray-50 border-gray-200 focus:bg-white focus:ring-2 focus:ring-primary/20 transition-all rounded-lg"
                                   {...field}
                                   onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
                                 />
@@ -2193,11 +2194,11 @@ export default function DigitalCatalogForm() {
                       control={form.control}
                       name="show_sku"
                       render={({ field }) => (
-                        <FormItem className="flex items-center justify-between rounded-lg border p-4">
+                        <FormItem className="flex items-center justify-between p-4 rounded-xl bg-white border border-gray-100 shadow-sm transition-all hover:border-gray-200">
                           <div className="space-y-0.5">
-                            <FormLabel className="text-base">Mostrar SKU</FormLabel>
+                            <FormLabel className="text-base font-semibold text-gray-900">Mostrar SKU</FormLabel>
 
-                            <FormDescription>Código de producto visible</FormDescription>
+                            <FormDescription className="text-sm text-gray-500 mt-1">Código de producto visible</FormDescription>
                           </div>
 
                           <FormControl>
@@ -2211,11 +2212,11 @@ export default function DigitalCatalogForm() {
                       control={form.control}
                       name="show_tags"
                       render={({ field }) => (
-                        <FormItem className="flex items-center justify-between rounded-lg border p-4">
+                        <FormItem className="flex items-center justify-between p-4 rounded-xl bg-white border border-gray-100 shadow-sm transition-all hover:border-gray-200">
                           <div className="space-y-0.5">
-                            <FormLabel className="text-base">Mostrar Tags</FormLabel>
+                            <FormLabel className="text-base font-semibold text-gray-900">Mostrar Tags</FormLabel>
 
-                            <FormDescription>Etiquetas del producto</FormDescription>
+                            <FormDescription className="text-sm text-gray-500 mt-1">Etiquetas del producto</FormDescription>
                           </div>
 
                           <FormControl>
@@ -2229,11 +2230,11 @@ export default function DigitalCatalogForm() {
                       control={form.control}
                       name="show_description"
                       render={({ field }) => (
-                        <FormItem className="flex items-center justify-between rounded-lg border p-4">
+                        <FormItem className="flex items-center justify-between p-4 rounded-xl bg-white border border-gray-100 shadow-sm transition-all hover:border-gray-200">
                           <div className="space-y-0.5">
-                            <FormLabel className="text-base">Mostrar Descripción</FormLabel>
+                            <FormLabel className="text-base font-semibold text-gray-900">Mostrar Descripción</FormLabel>
 
-                            <FormDescription>Descripción completa del producto</FormDescription>
+                            <FormDescription className="text-sm text-gray-500 mt-1">Descripción completa del producto</FormDescription>
                           </div>
 
                           <FormControl>
@@ -2247,11 +2248,11 @@ export default function DigitalCatalogForm() {
                       control={form.control}
                       name="show_stock"
                       render={({ field }) => (
-                        <FormItem className="flex items-center justify-between rounded-lg border p-4">
+                        <FormItem className="flex items-center justify-between p-4 rounded-xl bg-white border border-gray-100 shadow-sm transition-all hover:border-gray-200">
                           <div className="space-y-0.5">
-                            <FormLabel className="text-base">Mostrar Stock</FormLabel>
+                            <FormLabel className="text-base font-semibold text-gray-900">Mostrar Stock</FormLabel>
 
-                            <FormDescription>Mostrar cantidad disponible de variantes</FormDescription>
+                            <FormDescription className="text-sm text-gray-500 mt-1">Mostrar cantidad disponible de variantes</FormDescription>
                           </div>
 
                           <FormControl>
@@ -2384,7 +2385,7 @@ export default function DigitalCatalogForm() {
                             <FormLabel>Contraseña de acceso *</FormLabel>
 
                             <FormControl>
-                              <Input type="password" placeholder="Ingresa una contraseña" {...field} />
+                              <Input type="password" placeholder="Ingresa una contraseña" className="bg-gray-50 border-gray-200 focus:bg-white focus:ring-2 focus:ring-primary/20 transition-all rounded-lg" {...field} />
                             </FormControl>
 
                             <FormDescription>
@@ -2414,11 +2415,11 @@ export default function DigitalCatalogForm() {
                         control={form.control}
                         name="enable_quotation"
                         render={({ field }) => (
-                          <FormItem className="flex items-center justify-between rounded-lg border p-4">
+                          <FormItem className="flex items-center justify-between p-4 rounded-xl bg-white border border-gray-100 shadow-sm transition-all hover:border-gray-200">
                             <div className="space-y-0.5">
-                              <FormLabel className="text-base">Habilitar cotizaciones</FormLabel>
+                              <FormLabel className="text-base font-semibold text-gray-900">Habilitar cotizaciones</FormLabel>
 
-                              <FormDescription>
+                              <FormDescription className="text-sm text-gray-500 mt-1">
                                 Los clientes podrán seleccionar productos y solicitar cotización
                               </FormDescription>
                             </div>
@@ -2435,14 +2436,14 @@ export default function DigitalCatalogForm() {
                           control={form.control}
                           name="enable_variants"
                           render={({ field }) => (
-                            <FormItem className="flex items-center justify-between rounded-lg border p-4">
+                            <FormItem className="flex items-center justify-between p-4 rounded-xl bg-white border border-gray-100 shadow-sm transition-all hover:border-gray-200">
                               <div className="space-y-0.5 flex items-start gap-2">
                                 <Layers className="h-5 w-5 mt-0.5 text-muted-foreground" />
 
                                 <div>
-                                  <FormLabel className="text-base">Permitir selección de variantes</FormLabel>
+                                  <FormLabel className="text-base font-semibold text-gray-900">Permitir selección de variantes</FormLabel>
 
-                                  <FormDescription>
+                                  <FormDescription className="text-sm text-gray-500 mt-1">
                                     Los clientes podrán elegir variantes específicas (talla, color, etc.) al cotizar
                                   </FormDescription>
                                 </div>
@@ -2461,14 +2462,14 @@ export default function DigitalCatalogForm() {
                           control={form.control}
                           name="enable_distribution"
                           render={({ field }) => (
-                            <FormItem className="flex items-center justify-between rounded-lg border p-4 bg-indigo-50 border-indigo-200">
+                            <FormItem className="flex items-center justify-between p-4 rounded-xl border border-gray-100 shadow-sm transition-all hover:border-gray-200 bg-indigo-50 border-indigo-200">
                               <div className="space-y-0.5">
-                                <FormLabel className="text-base flex items-center gap-2">
+                                <FormLabel className="text-base font-semibold text-gray-900 flex items-center gap-2">
                                   Permitir que mis clientes creen catálogos
                                   <Badge variant="secondary">Nuevo</Badge>
                                 </FormLabel>
 
-                                <FormDescription>
+                                <FormDescription className="text-sm text-gray-500 mt-1">
                                   Al aceptar una cotización, tu cliente recibirá un link para activar su propio catálogo
                                   GRATIS y empezar a vender estos productos
                                 </FormDescription>
