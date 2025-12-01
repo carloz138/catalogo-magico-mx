@@ -4,8 +4,8 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBusinessInfo } from "@/hooks/useBusinessInfo";
 import { useUserRole } from "@/contexts/RoleContext";
-import { useQuery } from "@tanstack/react-query"; // ✅ Importamos React Query
-import { supabase } from "@/integrations/supabase/client"; // ✅ Importamos Supabase
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Sidebar,
   SidebarContent,
@@ -56,9 +56,9 @@ const THEME = {
 
 interface MenuItem {
   title: string;
-  path: string; // Hacemos path obligatorio para facilitar el mapeo
+  path: string;
   icon: React.ComponentType<any>;
-  badge?: string | number; // Ahora acepta números
+  badge?: string | number;
   badgeColor?: string;
   primary?: boolean;
   roles?: string[];
@@ -74,35 +74,32 @@ export function AppSidebar() {
   const { state, toggleSidebar } = useSidebar();
   const isCollapsed = state === "collapsed";
 
-  // --- 1. LOGICA DE CONTADORES (BADGES) ---
+  // --- 1. LÓGICA DE CONTADORES EXACTOS (Usando RPC) ---
   const { data: stats } = useQuery({
     queryKey: ["sidebar-stats", user?.id],
     queryFn: async () => {
       if (!user) return { quotes: 0, orders: 0 };
 
-      // Contar Cotizaciones Pendientes (Requieren atención)
-      const { count: quotesCount } = await supabase
-        .from("quotes")
-        .select("*", { count: "exact", head: true })
-        .eq("user_id", user.id)
-        .in("status", ["pending", "negotiation"]);
+      // Llamamos al RPC que filtra por PAGO REAL y Estatus Pendiente
+      const { data, error } = await supabase.rpc("get_sidebar_counts", {
+        p_user_id: user.id,
+      });
 
-      // Contar Pedidos por Surtir (Dinero en caja, falta envío)
-      // Nota: Asumimos que si está 'accepted' y 'unfulfilled' es un pedido pendiente
-      const { count: ordersCount } = await supabase
-        .from("quotes")
-        .select("*", { count: "exact", head: true })
-        .eq("user_id", user.id)
-        .eq("status", "accepted") // O 'paid' si usas payment_status
-        .eq("fulfillment_status", "unfulfilled");
+      if (error) {
+        console.error("Error fetching sidebar stats:", error);
+        return { quotes: 0, orders: 0 };
+      }
+
+      // El RPC devuelve un array, tomamos el primer elemento
+      const result = data && data[0] ? data[0] : { pending_quotes: 0, orders_to_ship: 0 };
 
       return {
-        quotes: quotesCount || 0,
-        orders: ordersCount || 0,
+        quotes: result.pending_quotes || 0,
+        orders: result.orders_to_ship || 0,
       };
     },
-    enabled: !!user, // Solo ejecuta si hay usuario
-    refetchInterval: 30000, // Refrescar cada 30 segundos (Polling suave)
+    enabled: !!user,
+    refetchInterval: 30000, // Refresca cada 30s para mantener sincronizado
   });
 
   const displayName =
@@ -126,9 +123,9 @@ export function AppSidebar() {
       icon: ClipboardList,
       primary: true,
       roles: ["L1", "L2", "BOTH"],
-      // Inyectamos el badge dinámico
+      // Badge naranja para cotizaciones pendientes de atención
       badge: stats?.quotes && stats.quotes > 0 ? stats.quotes : undefined,
-      badgeColor: "bg-amber-500 text-white border-amber-600", // Color de "Alerta/Pendiente"
+      badgeColor: "bg-amber-500 text-white border-amber-600",
     },
     {
       title: "Mis Pedidos",
@@ -136,9 +133,9 @@ export function AppSidebar() {
       icon: Truck,
       primary: true,
       roles: ["L1", "L2", "BOTH"],
-      // Inyectamos el badge dinámico
+      // Badge verde pulsante para pedidos PAGADOS que requieren envío
       badge: stats?.orders && stats.orders > 0 ? stats.orders : undefined,
-      badgeColor: "bg-emerald-500 text-white border-emerald-600 animate-pulse", // Color de "Acción/Dinero"
+      badgeColor: "bg-emerald-500 text-white border-emerald-600 animate-pulse",
     },
     { title: "Mis Catálogos", path: "/catalogs", icon: BookOpen, primary: true, roles: ["L1", "L2", "BOTH"] },
 
@@ -184,7 +181,7 @@ export function AppSidebar() {
     { title: "Configuración", path: "/business-info", icon: Settings, roles: ["L1", "L2", "BOTH"] },
   ];
 
-  // FILTRADO DINÁMICO
+  // FILTRADO DINÁMICO POR ROL
   const navigationItems = allNavigationItems.filter((item) => {
     if (!item.roles) return true;
     if (isBoth) return true;
