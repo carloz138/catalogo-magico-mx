@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { useForm, useWatch, Control } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useAuth } from "@/contexts/AuthContext";
@@ -45,11 +45,11 @@ import {
   AlertTriangle,
   Truck,
   Radar,
+  Layers,
 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
-
 import { getUserPlanTier, getPlanFeatures, PlanTier } from "@/lib/web-catalog/plan-restrictions";
 
 // --- SCHEMA ---
@@ -172,7 +172,6 @@ export default function DigitalCatalogForm() {
     },
   });
 
-  // --- CORRECCIÓN: Se agregaron web_template_id y background_pattern a watchedValues ---
   const watchedValues = {
     name: useWatch({ control: form.control, name: "name" }) || "",
     description: useWatch({ control: form.control, name: "description" }) || "",
@@ -181,9 +180,9 @@ export default function DigitalCatalogForm() {
     price_display: useWatch({ control: form.control, name: "price_display" }) || "both",
     price_adjustment_menudeo: useWatch({ control: form.control, name: "price_adjustment_menudeo" }) || 0,
     price_adjustment_mayoreo: useWatch({ control: form.control, name: "price_adjustment_mayoreo" }) || 0,
-    show_sku: useWatch({ control: form.control, name: "show_sku" }),
-    show_tags: useWatch({ control: form.control, name: "show_tags" }),
-    show_description: useWatch({ control: form.control, name: "show_description" }),
+    show_sku: useWatch({ control: form.control, name: "show_sku" }) ?? true,
+    show_tags: useWatch({ control: form.control, name: "show_tags" }) ?? true,
+    show_description: useWatch({ control: form.control, name: "show_description" }) ?? true,
     is_private: useWatch({ control: form.control, name: "is_private" }),
   };
 
@@ -313,8 +312,6 @@ export default function DigitalCatalogForm() {
 
     setIsSaving(true);
     try {
-      // --- CORRECCIÓN: Se asegura que el DTO tenga los campos requeridos ---
-      // Se utiliza el spread de data y luego se sobrescriben/añaden los campos opcionales/transformados.
       const catalogDTO = {
         ...data,
         access_password: data.is_private ? data.access_password : undefined,
@@ -333,18 +330,15 @@ export default function DigitalCatalogForm() {
                 access_token: data.tracking_config.meta_capi.access_token || undefined,
               }
             : undefined,
-          // Mantenemos los campos antiguos para compatibilidad de DTO si es necesario
           pixelId: data.pixelId,
           accessToken: data.accessToken,
         },
       };
 
       if (isEditing && id) {
-        // En un escenario real, updateCatalog usaría un UpdateDTO (parcial)
         await DigitalCatalogService.updateCatalog(id, user.id, catalogDTO as any);
         toast({ title: "Catálogo actualizado", description: "Los cambios se guardaron correctamente" });
       } else {
-        // Y createCatalog usaría el CreateDTO (completo)
         await DigitalCatalogService.createCatalog(user.id, catalogDTO as any);
         toast({ title: "Catálogo publicado", description: "Tu catálogo está disponible para compartir" });
       }
@@ -357,7 +351,8 @@ export default function DigitalCatalogForm() {
     }
   };
 
-  // --- RENDERIZADO DE SECCIONES (REUTILIZABLES) ---
+  // --- SECCIONES COMO FUNCIONES SIMPLES ---
+  // Las llamaremos DIRECTAMENTE en el JSX, NO en un array dinámico.
 
   const renderProductSection = () => (
     <FormField
@@ -922,7 +917,7 @@ export default function DigitalCatalogForm() {
     </div>
   );
 
-  // --- RENDERIZADO PRINCIPAL ---
+  // --- RENDERIZADO PRINCIPAL OPTIMIZADO ---
   if (isLoading || limitsLoading) {
     return (
       <div className="container mx-auto py-8 px-4 space-y-4">
@@ -941,23 +936,6 @@ export default function DigitalCatalogForm() {
       </div>
     );
   }
-
-  const sections = [
-    {
-      id: "products",
-      title: "Productos",
-      icon: productIds.length > 0 ? Check : Package,
-      content: renderProductSection(),
-    },
-    { id: "design", title: "Diseño", icon: webTemplateId ? Check : Palette, content: renderDesignSection() },
-    { id: "info", title: "Información", icon: form.watch("name") ? Check : "3", content: renderInfoSection() },
-    { id: "pricing", title: "Precios", icon: DollarSign, content: renderPricingSection() },
-    { id: "shipping", title: "Envíos", icon: Truck, content: renderShippingSection() },
-    { id: "visibility", title: "Visibilidad", icon: Eye, content: renderVisibilitySection() },
-    { id: "advanced", title: "Avanzado", icon: Settings, content: renderAdvancedSection() },
-    { id: "quotation", title: "Cotización", icon: ChevronRight, content: renderQuotationSection() },
-    { id: "tracking", title: "Tracking", icon: Radar, content: renderTrackingSection() },
-  ];
 
   return (
     <div className="p-4 md:p-8">
@@ -988,19 +966,113 @@ export default function DigitalCatalogForm() {
               </TabsList>
               <TabsContent value="form">
                 <Accordion type="single" collapsible className="space-y-3">
-                  {sections.map((section) => (
-                    <AccordionItem key={section.id} value={section.id} className="border rounded-lg overflow-hidden">
-                      <AccordionTrigger className="px-4 py-4 hover:no-underline hover:bg-muted/50">
-                        <div className="flex items-center gap-3 w-full">
-                          <div className="flex items-center justify-center w-10 h-10 rounded-full bg-muted flex-shrink-0">
-                            {typeof section.icon === "string" ? section.icon : <section.icon className="h-5 w-5" />}
-                          </div>
-                          <div className="flex-1 text-left font-semibold">{section.title}</div>
+                  <AccordionItem value="products" className="border rounded-lg overflow-hidden">
+                    <AccordionTrigger className="px-4 py-4 hover:no-underline hover:bg-muted/50">
+                      <div className="flex items-center gap-3 w-full">
+                        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-muted flex-shrink-0">
+                          {productIds.length > 0 ? <Check className="h-5 w-5" /> : <Package className="h-5 w-5" />}
                         </div>
-                      </AccordionTrigger>
-                      <AccordionContent className="px-4 pb-4 pt-2">{section.content}</AccordionContent>
-                    </AccordionItem>
-                  ))}
+                        <div className="flex-1 text-left font-semibold">Productos</div>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="px-4 pb-4 pt-2">{renderProductSection()}</AccordionContent>
+                  </AccordionItem>
+
+                  <AccordionItem value="design" className="border rounded-lg overflow-hidden">
+                    <AccordionTrigger className="px-4 py-4 hover:no-underline hover:bg-muted/50">
+                      <div className="flex items-center gap-3 w-full">
+                        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-muted flex-shrink-0">
+                          {webTemplateId ? <Check className="h-5 w-5" /> : <Palette className="h-5 w-5" />}
+                        </div>
+                        <div className="flex-1 text-left font-semibold">Diseño</div>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="px-4 pb-4 pt-2">{renderDesignSection()}</AccordionContent>
+                  </AccordionItem>
+
+                  <AccordionItem value="info" className="border rounded-lg overflow-hidden">
+                    <AccordionTrigger className="px-4 py-4 hover:no-underline hover:bg-muted/50">
+                      <div className="flex items-center gap-3 w-full">
+                        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-muted flex-shrink-0">
+                          {form.watch("name") ? <Check className="h-5 w-5" /> : "3"}
+                        </div>
+                        <div className="flex-1 text-left font-semibold">Información</div>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="px-4 pb-4 pt-2">{renderInfoSection()}</AccordionContent>
+                  </AccordionItem>
+
+                  <AccordionItem value="pricing" className="border rounded-lg overflow-hidden">
+                    <AccordionTrigger className="px-4 py-4 hover:no-underline hover:bg-muted/50">
+                      <div className="flex items-center gap-3 w-full">
+                        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-muted flex-shrink-0">
+                          <DollarSign className="h-5 w-5" />
+                        </div>
+                        <div className="flex-1 text-left font-semibold">Precios</div>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="px-4 pb-4 pt-2">{renderPricingSection()}</AccordionContent>
+                  </AccordionItem>
+
+                  <AccordionItem value="shipping" className="border rounded-lg overflow-hidden">
+                    <AccordionTrigger className="px-4 py-4 hover:no-underline hover:bg-muted/50">
+                      <div className="flex items-center gap-3 w-full">
+                        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-muted flex-shrink-0">
+                          <Truck className="h-5 w-5" />
+                        </div>
+                        <div className="flex-1 text-left font-semibold">Envíos</div>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="px-4 pb-4 pt-2">{renderShippingSection()}</AccordionContent>
+                  </AccordionItem>
+
+                  <AccordionItem value="visibility" className="border rounded-lg overflow-hidden">
+                    <AccordionTrigger className="px-4 py-4 hover:no-underline hover:bg-muted/50">
+                      <div className="flex items-center gap-3 w-full">
+                        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-muted flex-shrink-0">
+                          <Eye className="h-5 w-5" />
+                        </div>
+                        <div className="flex-1 text-left font-semibold">Visibilidad</div>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="px-4 pb-4 pt-2">{renderVisibilitySection()}</AccordionContent>
+                  </AccordionItem>
+
+                  <AccordionItem value="advanced" className="border rounded-lg overflow-hidden">
+                    <AccordionTrigger className="px-4 py-4 hover:no-underline hover:bg-muted/50">
+                      <div className="flex items-center gap-3 w-full">
+                        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-muted flex-shrink-0">
+                          <Settings className="h-5 w-5" />
+                        </div>
+                        <div className="flex-1 text-left font-semibold">Avanzado</div>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="px-4 pb-4 pt-2">{renderAdvancedSection()}</AccordionContent>
+                  </AccordionItem>
+
+                  <AccordionItem value="quotation" className="border rounded-lg overflow-hidden">
+                    <AccordionTrigger className="px-4 py-4 hover:no-underline hover:bg-muted/50">
+                      <div className="flex items-center gap-3 w-full">
+                        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-muted flex-shrink-0">
+                          <ChevronRight className="h-5 w-5" />
+                        </div>
+                        <div className="flex-1 text-left font-semibold">Cotización</div>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="px-4 pb-4 pt-2">{renderQuotationSection()}</AccordionContent>
+                  </AccordionItem>
+
+                  <AccordionItem value="tracking" className="border rounded-lg overflow-hidden">
+                    <AccordionTrigger className="px-4 py-4 hover:no-underline hover:bg-muted/50">
+                      <div className="flex items-center gap-3 w-full">
+                        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-muted flex-shrink-0">
+                          <Radar className="h-5 w-5" />
+                        </div>
+                        <div className="flex-1 text-left font-semibold">Tracking</div>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="px-4 pb-4 pt-2">{renderTrackingSection()}</AccordionContent>
+                  </AccordionItem>
                 </Accordion>
               </TabsContent>
               <TabsContent value="preview">
@@ -1008,7 +1080,7 @@ export default function DigitalCatalogForm() {
                   name={watchedValues.name}
                   description={watchedValues.description}
                   webTemplateId={watchedValues.web_template_id}
-                  products={selectedProducts}
+                  products={selectedProducts || []}
                   priceConfig={{
                     display: watchedValues.price_display,
                     adjustmentMenudeo: watchedValues.price_adjustment_menudeo,
@@ -1026,17 +1098,94 @@ export default function DigitalCatalogForm() {
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               <div className="space-y-6">
-                {sections.map((section, idx) => (
-                  <Card key={section.id}>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        {typeof section.icon === "string" ? section.icon : <section.icon className="h-5 w-5" />}
-                        {idx + 1}. {section.title}
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>{section.content}</CardContent>
-                  </Card>
-                ))}
+                {/* 1. Productos */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Package className="h-5 w-5" />
+                      1. Productos
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>{renderProductSection()}</CardContent>
+                </Card>
+                {/* 2. Diseño */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Palette className="h-5 w-5" />
+                      2. Diseño
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>{renderDesignSection()}</CardContent>
+                </Card>
+                {/* 3. Información */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">3. Información</CardTitle>
+                  </CardHeader>
+                  <CardContent>{renderInfoSection()}</CardContent>
+                </Card>
+                {/* 4. Precios */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <DollarSign className="h-5 w-5" />
+                      4. Precios
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>{renderPricingSection()}</CardContent>
+                </Card>
+                {/* 5. Envíos */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Truck className="h-5 w-5" />
+                      5. Envíos
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>{renderShippingSection()}</CardContent>
+                </Card>
+                {/* 6. Visibilidad */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Eye className="h-5 w-5" />
+                      6. Visibilidad
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>{renderVisibilitySection()}</CardContent>
+                </Card>
+                {/* 7. Avanzado */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Settings className="h-5 w-5" />
+                      7. Avanzado
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>{renderAdvancedSection()}</CardContent>
+                </Card>
+                {/* 8. Cotización */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <ChevronRight className="h-5 w-5" />
+                      8. Cotización
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>{renderQuotationSection()}</CardContent>
+                </Card>
+                {/* 9. Tracking */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Radar className="h-5 w-5" />
+                      9. Tracking
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>{renderTrackingSection()}</CardContent>
+                </Card>
+
                 <div className="flex gap-4 sticky bottom-0 bg-background py-4 border-t z-10">
                   <Button
                     type="button"
@@ -1057,7 +1206,7 @@ export default function DigitalCatalogForm() {
                   name={watchedValues.name}
                   description={watchedValues.description}
                   webTemplateId={watchedValues.web_template_id}
-                  products={selectedProducts}
+                  products={selectedProducts || []}
                   priceConfig={{
                     display: watchedValues.price_display,
                     adjustmentMenudeo: watchedValues.price_adjustment_menudeo,
