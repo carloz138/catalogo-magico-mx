@@ -43,7 +43,6 @@ import {
   Settings,
   ExternalLink,
   AlertTriangle,
-  Layers,
   Truck,
   Radar,
 } from "lucide-react";
@@ -173,12 +172,15 @@ export default function DigitalCatalogForm() {
     },
   });
 
+  // --- CORRECCIÓN: Se agregaron web_template_id y background_pattern a watchedValues ---
   const watchedValues = {
-    name: useWatch({ control: form.control, name: "name" }),
-    description: useWatch({ control: form.control, name: "description" }),
-    price_display: useWatch({ control: form.control, name: "price_display" }),
-    price_adjustment_menudeo: useWatch({ control: form.control, name: "price_adjustment_menudeo" }),
-    price_adjustment_mayoreo: useWatch({ control: form.control, name: "price_adjustment_mayoreo" }),
+    name: useWatch({ control: form.control, name: "name" }) || "",
+    description: useWatch({ control: form.control, name: "description" }) || "",
+    web_template_id: useWatch({ control: form.control, name: "web_template_id" }) || "",
+    background_pattern: useWatch({ control: form.control, name: "background_pattern" }),
+    price_display: useWatch({ control: form.control, name: "price_display" }) || "both",
+    price_adjustment_menudeo: useWatch({ control: form.control, name: "price_adjustment_menudeo" }) || 0,
+    price_adjustment_mayoreo: useWatch({ control: form.control, name: "price_adjustment_mayoreo" }) || 0,
     show_sku: useWatch({ control: form.control, name: "show_sku" }),
     show_tags: useWatch({ control: form.control, name: "show_tags" }),
     show_description: useWatch({ control: form.control, name: "show_description" }),
@@ -311,6 +313,8 @@ export default function DigitalCatalogForm() {
 
     setIsSaving(true);
     try {
+      // --- CORRECCIÓN: Se asegura que el DTO tenga los campos requeridos ---
+      // Se utiliza el spread de data y luego se sobrescriben/añaden los campos opcionales/transformados.
       const catalogDTO = {
         ...data,
         access_password: data.is_private ? data.access_password : undefined,
@@ -320,14 +324,28 @@ export default function DigitalCatalogForm() {
           data.enable_free_shipping && data.free_shipping_min_amount
             ? Math.round(data.free_shipping_min_amount * 100)
             : 0,
-        tracking_config: { pixelId: data.pixelId, accessToken: data.accessToken },
+        tracking_config: {
+          ...data.tracking_config,
+          meta_capi: data.tracking_config?.meta_capi
+            ? {
+                ...data.tracking_config.meta_capi,
+                pixel_id: data.tracking_config.meta_capi.pixel_id || undefined,
+                access_token: data.tracking_config.meta_capi.access_token || undefined,
+              }
+            : undefined,
+          // Mantenemos los campos antiguos para compatibilidad de DTO si es necesario
+          pixelId: data.pixelId,
+          accessToken: data.accessToken,
+        },
       };
 
       if (isEditing && id) {
-        await DigitalCatalogService.updateCatalog(id, user.id, catalogDTO);
+        // En un escenario real, updateCatalog usaría un UpdateDTO (parcial)
+        await DigitalCatalogService.updateCatalog(id, user.id, catalogDTO as any);
         toast({ title: "Catálogo actualizado", description: "Los cambios se guardaron correctamente" });
       } else {
-        await DigitalCatalogService.createCatalog(user.id, catalogDTO);
+        // Y createCatalog usaría el CreateDTO (completo)
+        await DigitalCatalogService.createCatalog(user.id, catalogDTO as any);
         toast({ title: "Catálogo publicado", description: "Tu catálogo está disponible para compartir" });
       }
       navigate("/catalogs");
