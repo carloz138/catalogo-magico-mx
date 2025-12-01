@@ -893,28 +893,33 @@ export default function DigitalCatalogForm() {
   const webTemplateId = form.watch("web_template_id");
 
   return (
-    <div className="p-4 md:p-8">
+    <div className="min-h-screen bg-gray-50/50 pb-32 md:pb-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-10">
       {/* Header Responsive */}
 
-      <div className="mb-4 md:mb-6">
+      <div className="flex flex-col gap-4 mb-8">
         <Button
           variant="ghost"
-          size={isMobile ? "sm" : "default"}
+          size="sm"
           onClick={() => navigate("/catalogs")}
-          className="mb-3 md:mb-4 -ml-2"
+          className="w-fit -ml-2 text-muted-foreground hover:text-foreground group"
         >
-          <ArrowLeft className="mr-2 h-4 w-4" />
-
-          {isMobile ? "Volver" : "Volver a catálogos"}
+          <ArrowLeft className="mr-2 h-4 w-4 transition-transform group-hover:-translate-x-1" />
+          {isMobile ? "Atrás" : "Volver a catálogos"}
         </Button>
 
-        <h1 className="text-2xl md:text-3xl font-bold">{isEditing ? "Editar Catálogo" : "Crear Catálogo Digital"}</h1>
-
-        {!isMobile && (
-          <p className="text-muted-foreground mt-2">
-            {isEditing ? "Actualiza la configuración de tu catálogo" : "Configura y publica tu catálogo de productos"}
-          </p>
-        )}
+        <div className="flex flex-col gap-1">
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-gray-900">
+            {isEditing ? "Editar Catálogo" : "Nuevo Catálogo Digital"}
+          </h1>
+          {!isMobile && (
+            <p className="text-muted-foreground text-base">
+              {isEditing 
+                ? "Gestiona la configuración y preferencias de tu catálogo." 
+                : "Configura los detalles esenciales para publicar tu catálogo."}
+            </p>
+          )}
+        </div>
       </div>
 
       <Form {...form}>
@@ -2569,21 +2574,23 @@ export default function DigitalCatalogForm() {
           {/* Sticky Bottom Action Bar (Solo Mobile) */}
 
           {isMobile && (
-            <div className="fixed bottom-0 left-0 right-0 p-4 bg-background border-t shadow-lg z-50">
-              <div className="flex gap-3">
+            <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/80 backdrop-blur-md border-t border-gray-200/50 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-50 safe-area-bottom">
+              <div className="flex gap-3 max-w-md mx-auto">
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() => navigate("/catalogs")}
                   disabled={isSaving}
-                  className="flex-1 h-12 text-base"
+                  className="flex-1 h-12 text-base font-medium border-gray-300"
                 >
                   Cancelar
                 </Button>
-
-                <Button type="submit" disabled={isSaving} className="flex-1 h-12 text-base">
-                  {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-
+                <Button 
+                  type="submit" 
+                  disabled={isSaving} 
+                  className="flex-1 h-12 text-base font-medium shadow-lg shadow-primary/20"
+                >
+                  {isSaving && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
                   {isEditing ? "Guardar" : "Publicar"}
                 </Button>
               </div>
@@ -2591,6 +2598,7 @@ export default function DigitalCatalogForm() {
           )}
         </form>
       </Form>
+      </div>
     </div>
   );
 }
