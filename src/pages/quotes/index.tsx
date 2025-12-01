@@ -17,6 +17,7 @@ import {
   ExternalLink,
   XCircle,
   CheckCircle2,
+  Search, // ✅ CORRECCIÓN: Import agregado
 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -299,7 +300,7 @@ export default function QuotesPage() {
                       </span>
                     </div>
 
-                    {/* Col 5: Actions (LIMPIO: Sin activar catálogo) */}
+                    {/* Col 5: Actions (LIMPIO) */}
                     <div className="md:col-span-2 flex justify-end gap-2 mt-3 md:mt-0 border-t md:border-none border-slate-100 pt-3 md:pt-0">
                       <Button
                         variant="ghost"
