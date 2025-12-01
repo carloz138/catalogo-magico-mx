@@ -3,7 +3,9 @@ import React from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBusinessInfo } from "@/hooks/useBusinessInfo";
-import { useUserRole } from "@/contexts/RoleContext"; // ✅ IMPORTANTE: Hook de Roles
+import { useUserRole } from "@/contexts/RoleContext";
+import { useQuery } from "@tanstack/react-query"; // ✅ Importamos React Query
+import { supabase } from "@/integrations/supabase/client"; // ✅ Importamos Supabase
 import {
   Sidebar,
   SidebarContent,
@@ -54,24 +56,54 @@ const THEME = {
 
 interface MenuItem {
   title: string;
-  path?: string;
+  path: string; // Hacemos path obligatorio para facilitar el mapeo
   icon: React.ComponentType<any>;
-  badge?: string;
+  badge?: string | number; // Ahora acepta números
   badgeColor?: string;
   primary?: boolean;
-  roles?: string[]; // ✅ Nuevo: Roles permitidos (['L1', 'L2'])
+  roles?: string[];
 }
 
 export function AppSidebar() {
   const { user, signOut } = useAuth();
   const { businessInfo, hasBusinessInfo, hasMerchantAccount } = useBusinessInfo();
-  // ✅ Consumimos el Rol del Usuario
   const { isL1, isL2, isBoth } = useUserRole();
 
   const navigate = useNavigate();
   const location = useLocation();
   const { state, toggleSidebar } = useSidebar();
   const isCollapsed = state === "collapsed";
+
+  // --- 1. LOGICA DE CONTADORES (BADGES) ---
+  const { data: stats } = useQuery({
+    queryKey: ["sidebar-stats", user?.id],
+    queryFn: async () => {
+      if (!user) return { quotes: 0, orders: 0 };
+
+      // Contar Cotizaciones Pendientes (Requieren atención)
+      const { count: quotesCount } = await supabase
+        .from("quotes")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .in("status", ["pending", "negotiation"]);
+
+      // Contar Pedidos por Surtir (Dinero en caja, falta envío)
+      // Nota: Asumimos que si está 'accepted' y 'unfulfilled' es un pedido pendiente
+      const { count: ordersCount } = await supabase
+        .from("quotes")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .eq("status", "accepted") // O 'paid' si usas payment_status
+        .eq("fulfillment_status", "unfulfilled");
+
+      return {
+        quotes: quotesCount || 0,
+        orders: ordersCount || 0,
+      };
+    },
+    enabled: !!user, // Solo ejecuta si hay usuario
+    refetchInterval: 30000, // Refrescar cada 30 segundos (Polling suave)
+  });
 
   const displayName =
     businessInfo?.business_name ||
@@ -85,15 +117,31 @@ export function AppSidebar() {
     return source.substring(0, 2).toUpperCase();
   };
 
-  // --- DEFINICIÓN DE MENÚ CON ROLES ---
+  // --- DEFINICIÓN DE MENÚ ---
   const allNavigationItems: MenuItem[] = [
-    // 1. COMUNES (Todos ven esto)
     { title: "Dashboard", path: "/dashboard", icon: LayoutDashboard, primary: true, roles: ["L1", "L2", "BOTH"] },
-    { title: "Cotizaciones", path: "/quotes", icon: ClipboardList, primary: true, roles: ["L1", "L2", "BOTH"] },
-    { title: "Mis Pedidos", path: "/orders", icon: Truck, primary: true, roles: ["L1", "L2", "BOTH"] },
+    {
+      title: "Cotizaciones",
+      path: "/quotes",
+      icon: ClipboardList,
+      primary: true,
+      roles: ["L1", "L2", "BOTH"],
+      // Inyectamos el badge dinámico
+      badge: stats?.quotes && stats.quotes > 0 ? stats.quotes : undefined,
+      badgeColor: "bg-amber-500 text-white border-amber-600", // Color de "Alerta/Pendiente"
+    },
+    {
+      title: "Mis Pedidos",
+      path: "/orders",
+      icon: Truck,
+      primary: true,
+      roles: ["L1", "L2", "BOTH"],
+      // Inyectamos el badge dinámico
+      badge: stats?.orders && stats.orders > 0 ? stats.orders : undefined,
+      badgeColor: "bg-emerald-500 text-white border-emerald-600 animate-pulse", // Color de "Acción/Dinero"
+    },
     { title: "Mis Catálogos", path: "/catalogs", icon: BookOpen, primary: true, roles: ["L1", "L2", "BOTH"] },
 
-    // 2. EXCLUSIVOS L1 (Fabricante)
     {
       title: "Radar de Mercado",
       path: "/market-radar",
@@ -101,7 +149,7 @@ export function AppSidebar() {
       badge: "IA",
       badgeColor: "bg-violet-500/20 text-violet-200 border-violet-500/30",
       primary: true,
-      roles: ["L1", "BOTH"], // Solo L1
+      roles: ["L1", "BOTH"],
     },
     {
       title: "Red de Distribución",
@@ -123,8 +171,7 @@ export function AppSidebar() {
     { title: "Subir Productos", path: "/upload", icon: Upload, roles: ["L1", "BOTH"] },
     { title: "Analytics", path: "/analytics", icon: BarChart3, roles: ["L1", "BOTH"] },
 
-    // 3. PAGOS Y CONFIG (Todos)
-    { title: "Facturación", path: "/checkout", icon: CreditCard, roles: ["L1", "BOTH"] }, // L2 es gratis, no factura
+    { title: "Facturación", path: "/checkout", icon: CreditCard, roles: ["L1", "BOTH"] },
     { title: "Guía de Inicio", path: "/onboarding", icon: PlayCircle, roles: ["L1", "L2", "BOTH"] },
     {
       title: "Datos Bancarios",
@@ -132,20 +179,17 @@ export function AppSidebar() {
       icon: Landmark,
       badge: "$",
       badgeColor: "bg-green-900/50 text-green-300 border-green-700/50",
-      roles: ["L1", "L2", "BOTH"], // Vital para L2 (cobrar)
+      roles: ["L1", "L2", "BOTH"],
     },
     { title: "Configuración", path: "/business-info", icon: Settings, roles: ["L1", "L2", "BOTH"] },
   ];
 
   // FILTRADO DINÁMICO
   const navigationItems = allNavigationItems.filter((item) => {
-    // Si no definimos roles, es público por defecto (seguridad: mejor definir siempre)
     if (!item.roles) return true;
-
-    if (isBoth) return true; // Híbrido ve todo
+    if (isBoth) return true;
     if (isL1 && item.roles.includes("L1")) return true;
     if (isL2 && item.roles.includes("L2")) return true;
-
     return false;
   });
 
@@ -209,7 +253,7 @@ export function AppSidebar() {
               }
             `}
         >
-          <button onClick={() => item.path && navigate(item.path)} className="flex items-center w-full p-2.5">
+          <button onClick={() => navigate(item.path)} className="flex items-center w-full p-2.5">
             <item.icon
               className={`h-5 w-5 flex-shrink-0 transition-colors ${isActive ? "text-white" : "text-slate-500 group-hover:text-slate-300"}`}
             />
@@ -218,7 +262,7 @@ export function AppSidebar() {
                 <span className="ml-3 flex-1 truncate text-sm">{item.title}</span>
                 {item.badge && (
                   <span
-                    className={`ml-auto text-[10px] px-1.5 py-0.5 rounded border ${item.badgeColor || "bg-slate-800 text-slate-400 border-slate-700"}`}
+                    className={`ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded border ${item.badgeColor || "bg-slate-800 text-slate-400 border-slate-700"}`}
                   >
                     {item.badge}
                   </span>
