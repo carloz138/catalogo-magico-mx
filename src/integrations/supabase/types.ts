@@ -3184,6 +3184,13 @@ export type Database = {
           total_solicitudes: number;
         }[];
       };
+      get_sidebar_counts: {
+        Args: { p_user_id: string };
+        Returns: {
+          orders_to_ship: number;
+          pending_quotes: number;
+        }[];
+      };
       get_user_analytics_level: {
         Args: { user_id_param: string };
         Returns: string;
