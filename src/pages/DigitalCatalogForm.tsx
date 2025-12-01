@@ -640,45 +640,45 @@ export default function DigitalCatalogForm() {
 
   const renderTrackingSection = () => (
     <div className="space-y-6">
-      {/* SECCIÓN CAPI DE META - Solo para Pro/Enterprise */}
-
+      {/* CAPI Block */}
       <div
         className={cn(
-          "border rounded-lg p-4 space-y-4 transition-all",
-
-          canUseCAPI ? "bg-blue-50/50 border-blue-100" : "bg-gray-50 opacity-75 relative",
+          "relative border rounded-xl p-5 transition-all overflow-hidden",
+          canUseCAPI 
+            ? "bg-blue-50/30 border-blue-200 shadow-sm" 
+            : "bg-gray-50 border-gray-200 border-dashed"
         )}
       >
         {!canUseCAPI && (
-          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-white/60 backdrop-blur-[1px] rounded-lg text-center p-4">
-            <Lock className="h-8 w-8 text-muted-foreground mb-2" />
-
-            <h4 className="font-semibold text-gray-900">Tracking Server-Side (CAPI)</h4>
-
-            <p className="text-sm text-gray-600 mb-3 max-w-xs">
-              Mejora tu ROAS enviando eventos directamente desde el servidor. Evita bloqueos de iOS 14+.
+          <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-white/60 backdrop-blur-sm text-center p-6">
+            <div className="h-12 w-12 bg-gray-100 rounded-full flex items-center justify-center mb-3">
+              <Lock className="h-6 w-6 text-gray-400" />
+            </div>
+            <h4 className="font-bold text-gray-900 text-lg">Tracking Server-Side (CAPI)</h4>
+            <p className="text-sm text-gray-500 mb-4 max-w-xs mx-auto leading-relaxed">
+              Mejora tu ROAS y evita bloqueos de iOS 14+ enviando eventos desde el servidor.
             </p>
-
-            <Button size="sm" variant="outline" onClick={() => navigate("/checkout")}>
-              Actualizar a Profesional
+            <Button size="sm" onClick={() => navigate("/checkout")} className="shadow-lg">
+              Desbloquear en Plan Pro
             </Button>
           </div>
         )}
 
-        <div className="flex items-center justify-between">
-          <div>
-            <h4 className="font-semibold text-base flex items-center gap-2">
+        <div className={cn("flex items-center justify-between", !canUseCAPI && "opacity-40 blur-[2px]")}>
+          <div className="space-y-1">
+            <h4 className="font-semibold text-gray-900 flex items-center gap-2">
+              <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-blue-100 text-blue-700">
+                <Radar className="h-4 w-4" />
+              </span>
               Meta (Facebook) CAPI
               {userPlanTier === "enterprise" && (
-                <Badge variant="secondary" className="text-xs">
-                  Full Sales Tracking
+                <Badge variant="secondary" className="text-[10px] bg-purple-100 text-purple-700 hover:bg-purple-200">
+                  Full Sales
                 </Badge>
               )}
             </h4>
-
-            <p className="text-sm text-muted-foreground">Conexión directa servidor-a-servidor.</p>
+            <p className="text-xs text-muted-foreground pl-10">Conexión directa Servidor-a-Servidor (S2S)</p>
           </div>
-
           <FormField
             control={form.control}
             name="tracking_config.meta_capi.enabled"
@@ -688,10 +688,9 @@ export default function DigitalCatalogForm() {
           />
         </div>
 
-        {/* Inputs de CAPI (Solo visibles si está habilitado) */}
-
+        {/* Inputs CAPI Expandibles */}
         {form.watch("tracking_config.meta_capi.enabled") && (
-          <div className="grid gap-4 pl-1 border-l-2 border-blue-200 ml-1">
+          <div className="mt-5 grid gap-4 pl-4 border-l-2 border-blue-200 animate-in slide-in-from-top-2 duration-200">
             <FormField
               control={form.control}
               name="tracking_config.meta_capi.pixel_id"
@@ -700,7 +699,7 @@ export default function DigitalCatalogForm() {
                   <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Pixel ID</FormLabel>
 
                   <FormControl>
-                    <Input placeholder="Ej: 1234567890" {...field} className="bg-white bg-gray-50 border-gray-200 focus:bg-white focus:ring-2 focus:ring-primary/20 transition-all rounded-lg" />
+                    <Input placeholder="Ej: 1234567890" {...field} className="bg-white" />
                   </FormControl>
 
                   <FormMessage />
@@ -726,7 +725,7 @@ export default function DigitalCatalogForm() {
                   </FormLabel>
 
                   <FormControl>
-                    <Input type="password" placeholder="EAA..." {...field} className="bg-white font-mono text-xs bg-gray-50 border-gray-200 focus:bg-white focus:ring-2 focus:ring-primary/20 transition-all rounded-lg" />
+                    <Input type="password" placeholder="EAA..." {...field} className="bg-white font-mono text-xs" />
                   </FormControl>
 
                   <FormDescription>Token de larga duración generado en el Business Manager.</FormDescription>
@@ -746,7 +745,7 @@ export default function DigitalCatalogForm() {
                   </FormLabel>
 
                   <FormControl>
-                    <Input placeholder="Ej: TEST1234" {...field} className="bg-white bg-gray-50 border-gray-200 focus:bg-white focus:ring-2 focus:ring-primary/20 transition-all rounded-lg" />
+                    <Input placeholder="Ej: TEST1234" {...field} className="bg-white" />
                   </FormControl>
 
                   <FormDescription>Úsalo solo para probar eventos en tiempo real.</FormDescription>
@@ -759,9 +758,12 @@ export default function DigitalCatalogForm() {
         )}
       </div>
 
-      {/* NUEVOS CAMPOS: Pixel ID y Access Token */}
+      {/* Legacy & Basic Pixel Section */}
+      <div className="space-y-4 pt-4 border-t border-gray-100">
+        <h4 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+          Configuración Básica
+        </h4>
 
-      <div className="pt-4 border-t space-y-4">
         <FormField
           control={form.control}
           name="pixelId"
@@ -799,61 +801,59 @@ export default function DigitalCatalogForm() {
         />
 
         <div className="my-4 border-t border-border" />
-      </div>
 
-      {/* SECCIÓN CLÁSICA (Fallback) */}
+        <div className="pt-4">
+          <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
+            Scripts personalizados
+            <Badge variant="outline" className="text-[10px] h-5">
+              Legacy
+            </Badge>
+          </h4>
 
-      <div className="pt-4">
-        <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
-          Scripts personalizados
-          <Badge variant="outline" className="text-[10px] h-5">
-            Legacy
-          </Badge>
-        </h4>
+          <FormField
+            control={form.control}
+            name="tracking_head_scripts"
+            render={({ field }) => (
+              <FormItem className="mb-4">
+                <FormLabel className="text-xs">Head Scripts (Google Analytics, Chat, etc.)</FormLabel>
 
-        <FormField
-          control={form.control}
-          name="tracking_head_scripts"
-          render={({ field }) => (
-            <FormItem className="mb-4">
-              <FormLabel className="text-xs">Head Scripts (Google Analytics, Chat, etc.)</FormLabel>
+                <FormControl>
+                  <Textarea
+                    placeholder=""
+                    {...field}
+                    value={field.value || ""}
+                    rows={4}
+                    className="font-mono text-xs resize-none bg-gray-50 border-gray-200 focus:bg-white focus:ring-2 focus:ring-primary/20 transition-all rounded-lg"
+                  />
+                </FormControl>
 
-              <FormControl>
-                <Textarea
-                  placeholder=""
-                  {...field}
-                  value={field.value || ""}
-                  rows={4}
-                  className="font-mono text-xs resize-none bg-gray-50 border-gray-200 focus:bg-white focus:ring-2 focus:ring-primary/20 transition-all rounded-lg"
-                />
-              </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+          <FormField
+            control={form.control}
+            name="tracking_body_scripts"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-xs">Body Scripts</FormLabel>
 
-        <FormField
-          control={form.control}
-          name="tracking_body_scripts"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="text-xs">Body Scripts</FormLabel>
+                <FormControl>
+                  <Textarea
+                    placeholder=""
+                    {...field}
+                    value={field.value || ""}
+                    rows={4}
+                    className="font-mono text-xs resize-none bg-gray-50 border-gray-200 focus:bg-white focus:ring-2 focus:ring-primary/20 transition-all rounded-lg"
+                  />
+                </FormControl>
 
-              <FormControl>
-                <Textarea
-                  placeholder=""
-                  {...field}
-                  value={field.value || ""}
-                  rows={4}
-                  className="font-mono text-xs resize-none bg-gray-50 border-gray-200 focus:bg-white focus:ring-2 focus:ring-primary/20 transition-all rounded-lg"
-                />
-              </FormControl>
-
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
       </div>
     </div>
   );
@@ -1841,8 +1841,9 @@ export default function DigitalCatalogForm() {
           ) : (
             /* ================ DESKTOP LAYOUT: 2 COLUMNS ================ */
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              <div className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+              {/* Columna Izquierda (Formulario) - Ocupa 7/12 */}
+              <div className="lg:col-span-7 space-y-6">
                 {/* 1. Selección de Productos */}
 
                 <Card className="border-primary">
@@ -2544,9 +2545,8 @@ export default function DigitalCatalogForm() {
                 </div>
               </div>
 
-              {/* Preview Desktop */}
-
-              <div className="lg:sticky lg:top-8 lg:self-start">
+              {/* Columna Derecha (Preview Sticky) - Ocupa 5/12 */}
+              <div className="hidden lg:block lg:col-span-5 lg:sticky lg:top-8">
                 <CatalogFormPreview
                   name={watchedValues.name}
                   description={watchedValues.description}
