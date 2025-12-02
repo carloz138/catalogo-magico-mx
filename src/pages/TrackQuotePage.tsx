@@ -34,6 +34,11 @@ import {
   Mail,
   Gift,
   ArrowRight,
+  Zap, // Nuevo
+  BrainCircuit, // Nuevo
+  LayoutDashboard, // Nuevo
+  Share2, // Nuevo
+  Search, // Nuevo
 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -70,19 +75,12 @@ export default function TrackQuotePage() {
   }, [token]);
 
   // ✅ AUTO-ACTIVACIÓN (MAGIA VIRAL)
-  // Este efecto detecta si el usuario acaba de loguearse (ej. volvió de Google)
-  // y activa el catálogo automáticamente sin pedir otro clic.
   useEffect(() => {
-    if (
-      user && // Hay usuario
-      quote?.replicated_catalogs && // Hay catálogo para replicar
-      !quote.replicated_catalogs.is_active && // Aún no está activo
-      !replicating // No estamos ya en proceso
-    ) {
+    if (user && quote?.replicated_catalogs && !quote.replicated_catalogs.is_active && !replicating) {
       console.log("🔄 Usuario detectado post-login. Auto-activando catálogo...");
       activateCatalog(user.id);
     }
-  }, [user, quote]); // Se dispara cuando 'user' cambia (al loguearse) o 'quote' carga
+  }, [user, quote]);
 
   const loadQuote = async () => {
     setLoading(true);
@@ -92,9 +90,11 @@ export default function TrackQuotePage() {
       if (data.customer_email) {
         setAuthForm((prev) => ({ ...prev, email: data.customer_email, fullName: data.customer_name }));
       }
+      return data;
     } catch (error: any) {
       console.error("Error:", error);
       toast({ title: "Error", description: "Enlace no válido o expirado", variant: "destructive" });
+      return null;
     } finally {
       setLoading(false);
     }
@@ -107,10 +107,10 @@ export default function TrackQuotePage() {
       const { data, error } = await supabase.functions.invoke("accept-quote-public", { body: { token: token } });
       if (error || !data.success) throw new Error("Error al procesar");
 
-      await loadQuote();
+      const freshQuote = await loadQuote();
 
       // Abrir modal viral si aplica
-      if (quote.replicated_catalogs && !quote.replicated_catalogs.is_active) {
+      if (freshQuote?.replicated_catalogs && !freshQuote.replicated_catalogs.is_active) {
         setShowViralOfferModal(true);
       } else {
         toast({ title: "¡Pedido Confirmado!", description: "Gracias por tu compra." });
@@ -166,7 +166,7 @@ export default function TrackQuotePage() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: window.location.href, // Vuelve aquí para que el useEffect lo capture
+          redirectTo: window.location.href,
           queryParams: { access_type: "offline", prompt: "consent" },
         },
       });
@@ -200,8 +200,6 @@ export default function TrackQuotePage() {
       }
 
       if (userId) {
-        // Si es login normal, activamos manual aquí.
-        // Si fuera Google, la redirección y el useEffect lo manejarían.
         await activateCatalog(userId);
         setShowAuthModal(false);
       }
@@ -213,7 +211,6 @@ export default function TrackQuotePage() {
 
   const activateCatalog = async (userId: string) => {
     setReplicating(true);
-    // Mostrar Toast de carga inmediato para dar feedback visual
     toast({ title: "⏳ Activando tu negocio...", description: "Configurando tu catálogo personal." });
 
     try {
@@ -238,7 +235,6 @@ export default function TrackQuotePage() {
       }, 1500);
     } catch (error: any) {
       console.error("Error activando:", error);
-      // Si dice que ya está activo, asumimos éxito y redirigimos (idempotencia)
       if (error.message?.includes("ya fue activado")) {
         toast({ title: "¡Ya tienes tu negocio!", description: "Redirigiendo..." });
         setTimeout(() => navigate("/catalogs"), 1000);
@@ -276,7 +272,6 @@ export default function TrackQuotePage() {
   const isShipped = quote.status === "shipped" || quote.fulfillment_status === "shipped";
   const isReadyPickup = quote.fulfillment_status === "ready_for_pickup";
   const isLogisticsActive = isShipped || isReadyPickup;
-
   const canReplicate = isAccepted && quote.replicated_catalogs && !quote.replicated_catalogs.is_active;
 
   const statusConfig = {
@@ -348,7 +343,7 @@ export default function TrackQuotePage() {
                       <Loader2 className="w-5 h-5 animate-spin" />
                     ) : (
                       <CheckCircle className="w-5 h-5 mr-2" />
-                    )}{" "}
+                    )}
                     Aceptar y Confirmar
                   </Button>
                 </div>
@@ -480,7 +475,7 @@ export default function TrackQuotePage() {
             <Button
               onClick={() => setShowViralOfferModal(true)}
               variant="outline"
-              className="w-full border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+              className="w-full border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 shadow-sm"
             >
               <Sparkles className="w-4 h-4 mr-2" /> Activar beneficio de reventa
             </Button>
@@ -543,40 +538,95 @@ export default function TrackQuotePage() {
         </div>
       </div>
 
-      {/* ✅ 1. MODAL "VIRAL OFFER" */}
+      {/* ✅ 1. MODAL "VIRAL OFFER" REDISEÑADO */}
       <Dialog open={showViralOfferModal} onOpenChange={setShowViralOfferModal}>
-        <DialogContent className="sm:max-w-md text-center">
-          <DialogHeader>
-            <div className="mx-auto w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mb-4 animate-bounce">
-              <Gift className="w-8 h-8 text-emerald-600" />
+        <DialogContent className="sm:max-w-2xl p-0 overflow-hidden">
+          <div className="grid md:grid-cols-2">
+            {/* Columna Izquierda: Visual */}
+            <div className="bg-gradient-to-br from-indigo-600 to-violet-700 p-8 text-white flex flex-col justify-between relative overflow-hidden">
+              <div className="absolute top-0 right-0 p-12 opacity-10">
+                <Sparkles className="w-40 h-40" />
+              </div>
+              <div>
+                <div className="w-12 h-12 bg-white/20 backdrop-blur rounded-xl flex items-center justify-center mb-6">
+                  <Gift className="w-6 h-6" />
+                </div>
+                <h2 className="text-2xl font-bold mb-2">¡Gracias por tu compra!</h2>
+                <p className="text-indigo-100 text-sm">Tu pedido ha sido confirmado exitosamente.</p>
+              </div>
+              <div className="mt-8">
+                <p className="text-xs text-indigo-200 uppercase font-bold tracking-wider mb-2">
+                  Beneficio desbloqueado
+                </p>
+                <h3 className="text-lg font-semibold leading-tight">Vende estos productos sin invertir en stock.</h3>
+              </div>
             </div>
-            <DialogTitle className="text-2xl font-bold text-slate-900">¡Gracias por tu compra!</DialogTitle>
-            <DialogDescription className="text-base pt-2">Tu pedido ha sido confirmado con éxito.</DialogDescription>
-          </DialogHeader>
 
-          <div className="bg-slate-50 p-4 rounded-xl border border-emerald-100 my-2">
-            <h4 className="font-bold text-emerald-800 mb-2 flex items-center justify-center gap-2">
-              <Sparkles className="w-4 h-4" /> Beneficio Exclusivo
-            </h4>
-            <p className="text-sm text-slate-600 leading-relaxed">
-              Por ser cliente de <strong>{quote.business_info?.business_name}</strong>, tienes acceso para
-              <span className="font-bold text-slate-900"> vender estos mismos productos</span> y generar ganancias
-              extra.
-            </p>
+            {/* Columna Derecha: Beneficios y Acción */}
+            <div className="p-6 md:p-8 bg-white flex flex-col">
+              <div className="space-y-5 flex-1">
+                <div className="flex gap-3 items-start">
+                  <div className="bg-blue-50 p-2 rounded-lg text-blue-600 mt-0.5">
+                    <Package className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h5 className="font-bold text-slate-900 text-sm">Catálogo Completo</h5>
+                    <p className="text-xs text-slate-500">
+                      Vende todo el inventario del proveedor, no solo lo que compraste.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex gap-3 items-start">
+                  <div className="bg-purple-50 p-2 rounded-lg text-purple-600 mt-0.5">
+                    <BrainCircuit className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h5 className="font-bold text-slate-900 text-sm">IA de Ventas</h5>
+                    <p className="text-xs text-slate-500">
+                      Tu tienda incluye recomendaciones inteligentes para vender más.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex gap-3 items-start">
+                  <div className="bg-emerald-50 p-2 rounded-lg text-emerald-600 mt-0.5">
+                    <LayoutDashboard className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h5 className="font-bold text-slate-900 text-sm">Centro de Comando</h5>
+                    <p className="text-xs text-slate-500">Gestiona pedidos, rastrea envíos y ve tus ganancias.</p>
+                  </div>
+                </div>
+                <div className="flex gap-3 items-start">
+                  <div className="bg-pink-50 p-2 rounded-lg text-pink-600 mt-0.5">
+                    <Share2 className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h5 className="font-bold text-slate-900 text-sm">Conexión Social</h5>
+                    <p className="text-xs text-slate-500">Conecta tu catálogo a Facebook e Instagram en un clic.</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-8 pt-6 border-t border-slate-100 space-y-3">
+                <Button
+                  size="lg"
+                  onClick={handleStartBusiness}
+                  className="w-full bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-100 text-white"
+                >
+                  Activar mi Negocio Gratis
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowViralOfferModal(false)}
+                  className="w-full text-slate-400 hover:text-slate-600 text-xs"
+                >
+                  No me interesa, gracias
+                </Button>
+              </div>
+            </div>
           </div>
-
-          <DialogFooter className="flex-col gap-2 sm:flex-col mt-2">
-            <Button
-              size="lg"
-              onClick={handleStartBusiness}
-              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-200"
-            >
-              Activar mi Catálogo Gratis <ArrowRight className="ml-2 w-4 h-4" />
-            </Button>
-            <Button variant="ghost" onClick={() => setShowViralOfferModal(false)} className="text-slate-400">
-              No gracias, solo quiero mi pedido
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
 
