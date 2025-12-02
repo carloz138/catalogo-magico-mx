@@ -9,9 +9,12 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Save, Package, Percent, TrendingUp, Search } from "lucide-react";
+import { ArrowLeft, Save, Package, Percent, TrendingUp, Search, Rocket } from "lucide-react";
 import { BulkPriceMarginModal } from "@/components/reseller/BulkPriceMarginModal";
+import { MarketingConfiguration } from "@/components/catalog/marketing/MarketingConfiguration";
+import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 
 // --- COMPONENTE INTERNO: TARJETA DE PRODUCTO (Mobile Friendly) ---
@@ -210,7 +213,10 @@ export default function ProductPriceEditor() {
   const [products, setProducts] = useState<ProductWithCustomPrice[]>([]);
   const [changes, setChanges] = useState<Map<string, any>>(new Map());
   const [showMarginModal, setShowMarginModal] = useState(false);
+  const [showMarketingSheet, setShowMarketingSheet] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [marketingConfig, setMarketingConfig] = useState<any>(null);
+  const [loadingMarketing, setLoadingMarketing] = useState(false);
 
   // 1. Verificación de Seguridad y Carga Inicial
   useEffect(() => {
@@ -254,6 +260,44 @@ export default function ProductPriceEditor() {
       toast({ title: "Error", description: "No se pudieron cargar los productos", variant: "destructive" });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadMarketingConfig = async () => {
+    if (!catalogId || !user?.id) return;
+    setLoadingMarketing(true);
+    try {
+      const { data, error } = await supabase
+        .from("replicated_catalogs")
+        .select("tracking_config")
+        .eq("id", catalogId)
+        .eq("reseller_id", user.id)
+        .single();
+
+      if (error) throw error;
+      setMarketingConfig(data?.tracking_config || {});
+    } catch (error: any) {
+      console.error("Error loading marketing config:", error);
+    } finally {
+      setLoadingMarketing(false);
+    }
+  };
+
+  const handleSaveMarketingConfig = async (config: any) => {
+    if (!catalogId || !user?.id) return;
+    
+    try {
+      const { error } = await supabase
+        .from("replicated_catalogs")
+        .update({ tracking_config: config })
+        .eq("id", catalogId)
+        .eq("reseller_id", user.id);
+
+      if (error) throw error;
+      
+      setMarketingConfig(config);
+    } catch (error) {
+      throw error;
     }
   };
 
@@ -412,6 +456,47 @@ export default function ProductPriceEditor() {
               <Percent className="w-4 h-4 mr-2" />
               Margen Masivo
             </Button>
+            
+            <Sheet open={showMarketingSheet} onOpenChange={setShowMarketingSheet}>
+              <SheetTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="flex-1 md:flex-none border-blue-200 text-blue-700 hover:bg-blue-50"
+                  onClick={() => loadMarketingConfig()}
+                >
+                  <Rocket className="w-4 h-4 mr-2" />
+                  Marketing
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-full sm:max-w-xl overflow-y-auto">
+                <SheetHeader>
+                  <SheetTitle>Configuración de Marketing</SheetTitle>
+                  <SheetDescription>
+                    Configura tu Pixel de Facebook y Feed de productos para este catálogo
+                  </SheetDescription>
+                </SheetHeader>
+                
+                <div className="mt-6">
+                  {loadingMarketing ? (
+                    <div className="space-y-4">
+                      <Skeleton className="h-32 w-full" />
+                      <Skeleton className="h-32 w-full" />
+                    </div>
+                  ) : (
+                    <MarketingConfiguration
+                      catalogId={catalogId || ""}
+                      initialConfig={{
+                        pixelId: marketingConfig?.meta_capi?.pixel_id || "",
+                        accessToken: marketingConfig?.meta_capi?.access_token || "",
+                        enabled: marketingConfig?.meta_capi?.enabled || false,
+                      }}
+                      onSave={handleSaveMarketingConfig}
+                      isL2={true}
+                    />
+                  )}
+                </div>
+              </SheetContent>
+            </Sheet>
           </div>
         </div>
 

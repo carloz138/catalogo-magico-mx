@@ -58,6 +58,8 @@ import { WebTemplateSelector } from "@/components/templates/WebTemplateSelector"
 
 import { BackgroundPatternSelector } from "@/components/catalog/BackgroundPatternSelector";
 
+import { MarketingConfiguration } from "@/components/catalog/marketing/MarketingConfiguration";
+
 import {
   ArrowLeft,
   CalendarIcon,
@@ -648,227 +650,18 @@ export default function DigitalCatalogForm() {
     }
   };
 
-  // --- RENDERIZADO DE SECCIÓN CAPI (Para reutilizar) ---
-
-  const renderTrackingSection = () => (
-    <div className="space-y-6">
-      {/* CAPI Block */}
-      <div
-        className={cn(
-          "relative border rounded-xl p-5 transition-all overflow-hidden",
-          canUseCAPI 
-            ? "bg-blue-50/30 border-blue-200 shadow-sm" 
-            : "bg-gray-50 border-gray-200 border-dashed"
-        )}
-      >
-        {!canUseCAPI && (
-          <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-white/60 backdrop-blur-sm text-center p-6">
-            <div className="h-12 w-12 bg-gray-100 rounded-full flex items-center justify-center mb-3">
-              <Lock className="h-6 w-6 text-gray-400" />
-            </div>
-            <h4 className="font-bold text-gray-900 text-lg">Tracking Server-Side (CAPI)</h4>
-            <p className="text-sm text-gray-500 mb-4 max-w-xs mx-auto leading-relaxed">
-              Mejora tu ROAS y evita bloqueos de iOS 14+ enviando eventos desde el servidor.
-            </p>
-            <Button size="sm" onClick={() => navigate("/checkout")} className="shadow-lg">
-              Desbloquear en Plan Pro
-            </Button>
-          </div>
-        )}
-
-        <div className={cn("flex items-center justify-between", !canUseCAPI && "opacity-40 blur-[2px]")}>
-          <div className="space-y-1">
-            <h4 className="font-semibold text-gray-900 flex items-center gap-2">
-              <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-blue-100 text-blue-700">
-                <Radar className="h-4 w-4" />
-              </span>
-              Meta (Facebook) CAPI
-              {userPlanTier === "enterprise" && (
-                <Badge variant="secondary" className="text-[10px] bg-purple-100 text-purple-700 hover:bg-purple-200">
-                  Full Sales
-                </Badge>
-              )}
-            </h4>
-            <p className="text-xs text-muted-foreground pl-10">Conexión directa Servidor-a-Servidor (S2S)</p>
-          </div>
-          <FormField
-            control={form.control}
-            name="tracking_config.meta_capi.enabled"
-            render={({ field }) => (
-              <Switch checked={field.value} onCheckedChange={field.onChange} disabled={!canUseCAPI} />
-            )}
-          />
-        </div>
-
-        {/* Inputs CAPI Expandibles */}
-        {form.watch("tracking_config.meta_capi.enabled") && (
-          <div className="mt-5 grid gap-4 pl-4 border-l-2 border-blue-200 animate-in slide-in-from-top-2 duration-200">
-            <FormField
-              control={form.control}
-              name="tracking_config.meta_capi.pixel_id"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Pixel ID</FormLabel>
-
-                  <FormControl>
-                    <Input placeholder="Ej: 1234567890" {...field} className="bg-white" />
-                  </FormControl>
-
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="tracking_config.meta_capi.access_token"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-xs font-bold uppercase text-muted-foreground flex items-center justify-between">
-                    Access Token (CAPI)
-                    <a
-                      href="https://developers.facebook.com/docs/marketing-api/conversions-api/get-started"
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-blue-600 hover:underline font-normal normal-case flex items-center"
-                    >
-                      ¿Cómo obtenerlo? <ExternalLink className="h-3 w-3 ml-1" />
-                    </a>
-                  </FormLabel>
-
-                  <FormControl>
-                    <Input type="password" placeholder="EAA..." {...field} className="bg-white font-mono text-xs" />
-                  </FormControl>
-
-                  <FormDescription>Token de larga duración generado en el Business Manager.</FormDescription>
-
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="tracking_config.meta_capi.test_code"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-xs font-bold uppercase text-muted-foreground">
-                    Test Event Code (Opcional)
-                  </FormLabel>
-
-                  <FormControl>
-                    <Input placeholder="Ej: TEST1234" {...field} className="bg-white" />
-                  </FormControl>
-
-                  <FormDescription>Úsalo solo para probar eventos en tiempo real.</FormDescription>
-
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-        )}
-      </div>
-
-      {/* Legacy & Basic Pixel Section */}
-      <div className="space-y-4 pt-4 border-t border-gray-100">
-        <h4 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
-          Configuración Básica
-        </h4>
-
-        <FormField
-          control={form.control}
-          name="pixelId"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Facebook Pixel ID</FormLabel>
-
-              <FormControl>
-                <Input placeholder="Ej: 1234567890" {...field} className="bg-gray-50 border-gray-200 focus:bg-white focus:ring-2 focus:ring-primary/20 transition-all rounded-lg" />
-              </FormControl>
-
-              <FormDescription>El ID numérico de tu Pixel. Necesario para el rastreo básico y CAPI.</FormDescription>
-
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="accessToken"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>API Access Token (Opcional)</FormLabel>
-
-              <FormControl>
-                <Input type="password" placeholder="Token de conversión (CAPI)" {...field} className="bg-gray-50 border-gray-200 focus:bg-white focus:ring-2 focus:ring-primary/20 transition-all rounded-lg" />
-              </FormControl>
-
-              <FormDescription>Requerido para enviar eventos servidor-servidor (Plan Empresarial).</FormDescription>
-
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <div className="my-4 border-t border-border" />
-
-        <div className="pt-4">
-          <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
-            Scripts personalizados
-            <Badge variant="outline" className="text-[10px] h-5">
-              Legacy
-            </Badge>
-          </h4>
-
-          <FormField
-            control={form.control}
-            name="tracking_head_scripts"
-            render={({ field }) => (
-              <FormItem className="mb-4">
-                <FormLabel className="text-xs">Head Scripts (Google Analytics, Chat, etc.)</FormLabel>
-
-                <FormControl>
-                  <Textarea
-                    placeholder=""
-                    {...field}
-                    value={field.value || ""}
-                    rows={4}
-                    className="font-mono text-xs resize-none bg-gray-50 border-gray-200 focus:bg-white focus:ring-2 focus:ring-primary/20 transition-all rounded-lg"
-                  />
-                </FormControl>
-
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="tracking_body_scripts"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-xs">Body Scripts</FormLabel>
-
-                <FormControl>
-                  <Textarea
-                    placeholder=""
-                    {...field}
-                    value={field.value || ""}
-                    rows={4}
-                    className="font-mono text-xs resize-none bg-gray-50 border-gray-200 focus:bg-white focus:ring-2 focus:ring-primary/20 transition-all rounded-lg"
-                  />
-                </FormControl>
-
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-      </div>
-    </div>
-  );
+  // --- HANDLER PARA GUARDAR CONFIG DE MARKETING ---
+  const handleSaveMarketingConfig = async (marketingConfig: any) => {
+    if (!user || !id) return;
+    
+    try {
+      await DigitalCatalogService.updateCatalog(id, user.id, {
+        tracking_config: marketingConfig,
+      });
+    } catch (error) {
+      throw error;
+    }
+  };
 
   // OPTIMIZACIÓN: Memorizar configuración para evitar re-renders pesados en el preview
   const previewConfig = useMemo(() => ({
@@ -1908,7 +1701,7 @@ export default function DigitalCatalogForm() {
                     </Alert>
                   )}
 
-                  {/* Accordion Item 8: Tracking y Píxeles (Mobile) */}
+                  {/* Accordion Item 8: Marketing (Mobile) */}
 
                   <AccordionItem value="tracking" id="accordion-tracking" className="border-none bg-white rounded-xl shadow-sm mb-4 overflow-hidden ring-1 ring-gray-200">
                     <AccordionTrigger className="px-4 py-4 hover:no-underline hover:bg-muted/50 transition-colors">
@@ -1919,7 +1712,7 @@ export default function DigitalCatalogForm() {
 
                         <div className="flex-1 text-left">
                           <div className="font-semibold text-base flex items-center gap-2">
-                            Tracking Avanzado
+                            Marketing
                             {canUseCAPI ? (
                               <Badge variant="default" className="bg-green-600 h-5 text-[10px]">
                                 Pro
@@ -1931,12 +1724,33 @@ export default function DigitalCatalogForm() {
                             )}
                           </div>
 
-                          <div className="text-sm text-muted-foreground">Pixel y API</div>
+                          <div className="text-sm text-muted-foreground">Pixel, CAPI & Feed</div>
                         </div>
                       </div>
                     </AccordionTrigger>
 
-                    <AccordionContent className="px-4 pb-4 pt-2">{renderTrackingSection()}</AccordionContent>
+                    <AccordionContent className="px-4 pb-4 pt-2">
+                      {isEditing && id ? (
+                        <MarketingConfiguration
+                          catalogId={id}
+                          initialConfig={{
+                            pixelId: form.watch("tracking_config.meta_capi.pixel_id") || "",
+                            accessToken: form.watch("tracking_config.meta_capi.access_token") || "",
+                            enabled: form.watch("tracking_config.meta_capi.enabled") || false,
+                          }}
+                          onSave={handleSaveMarketingConfig}
+                          isL2={false}
+                          readOnly={!canUseCAPI}
+                        />
+                      ) : (
+                        <Alert>
+                          <AlertCircle className="h-4 w-4" />
+                          <AlertDescription>
+                            Guarda el catálogo primero para configurar marketing
+                          </AlertDescription>
+                        </Alert>
+                      )}
+                    </AccordionContent>
                   </AccordionItem>
                 </Accordion>
               </TabsContent>
@@ -2607,13 +2421,13 @@ export default function DigitalCatalogForm() {
                   </Alert>
                 )}
 
-                {/* 8. Tracking y Píxeles (Desktop) */}
+                {/* 8. Marketing (Desktop) */}
 
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <Radar className="h-5 w-5" />
-                      Tracking Avanzado y Píxeles
+                      Marketing y Conversiones
                       {canUseCAPI ? (
                         <Badge variant="default" className="bg-green-600">
                           Pro
@@ -2626,11 +2440,32 @@ export default function DigitalCatalogForm() {
                     </CardTitle>
 
                     <CardDescription>
-                      Conecta tus herramientas de analítica y conversión (Meta CAPI, Pixel, GTM).
+                      Configura Pixel, CAPI y sincronización con Facebook Commerce Manager
                     </CardDescription>
                   </CardHeader>
 
-                  <CardContent>{renderTrackingSection()}</CardContent>
+                  <CardContent>
+                    {isEditing && id ? (
+                      <MarketingConfiguration
+                        catalogId={id}
+                        initialConfig={{
+                          pixelId: form.watch("tracking_config.meta_capi.pixel_id") || "",
+                          accessToken: form.watch("tracking_config.meta_capi.access_token") || "",
+                          enabled: form.watch("tracking_config.meta_capi.enabled") || false,
+                        }}
+                        onSave={handleSaveMarketingConfig}
+                        isL2={false}
+                        readOnly={!canUseCAPI}
+                      />
+                    ) : (
+                      <Alert>
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertDescription>
+                          Guarda el catálogo primero para configurar marketing
+                        </AlertDescription>
+                      </Alert>
+                    )}
+                  </CardContent>
                 </Card>
 
                 {/* Botones de Acción Desktop */}
