@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -214,6 +215,9 @@ const PublicProductCard = ({
 
 // --- COMPONENTE PRINCIPAL ---
 export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogContentProps) {
+  // Deep Linking Support
+  const [searchParams] = useSearchParams();
+  
   // Estados Generales
   const [searchTerm, setSearchTerm] = useState("");
   const debouncedSearch = useDebounce(searchTerm, 500);
@@ -313,6 +317,19 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
   }, [catalog.products, searchTerm, selectedCategory, priceRange, selectedTags]);
 
   const categories = Array.from(new Set(catalog.products?.map((p) => p.category).filter(Boolean) as string[]));
+
+  // --- DEEP LINKING: Auto-open product from URL ---
+  useEffect(() => {
+    const productHighlight = searchParams.get("product_highlight");
+    if (productHighlight && catalog.products && catalog.products.length > 0) {
+      const targetProduct = (catalog.products as unknown as Product[]).find(
+        (p) => p.id === productHighlight
+      );
+      if (targetProduct) {
+        handleViewProduct(targetProduct);
+      }
+    }
+  }, [searchParams, catalog.products]);
 
   // --- SEARCH LOGS ---
   useEffect(() => {
