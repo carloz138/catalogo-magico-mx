@@ -1,185 +1,165 @@
-import { corsHeaders } from "../_shared/cors.ts";
+// ==========================================
+// FUNCION: tracking-events (META CAPI BRIDGE)
+// ESTADO: PROD_V1 (Hashing SHA256 + Deduplicación)
+// ==========================================
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-const FACEBOOK_GRAPH_API_VERSION = "v21.0";
+const DEPLOY_VERSION = Deno.env.get("FUNCTION_HASH") || "INIT_CAPI_V1";
 
-// Hash SHA256 helper (Facebook requiere esto para PII)
-async function sha256Hash(text: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(text);
-  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+// --------------------------------------------------------------------------
+// HELPER: Hashing SHA-256 (Requisito estricto de Meta)
+// --------------------------------------------------------------------------
+async function hashData(data: string): Promise<string> {
+  const msgBuffer = new TextEncoder().encode(data);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+  const hashHex = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+  return hashHex;
 }
 
-// Normalizar email/phone antes de hashear
+// --------------------------------------------------------------------------
+// HELPER: Normalización de Datos (Limpieza antes del Hash)
+// --------------------------------------------------------------------------
 function normalizeEmail(email: string): string {
-  return email.toLowerCase().trim();
+  return email.trim().toLowerCase();
 }
 
 function normalizePhone(phone: string): string {
-  // Remover espacios, guiones, paréntesis
-  return phone.replace(/[\s\-()]/g, "");
+  // Solo números, sin símbolos ni espacios
+  return phone.replace(/[^0-9]/g, '');
 }
 
-Deno.serve(async (req) => {
-  // Handle CORS preflight
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+serve(async (req) => {
+  // 1. Log de inicio (Para debug en Dashboard)
+  console.log(JSON.stringify({
+    event: "FUNC_START",
+    function: "tracking-events",
+    version: DEPLOY_VERSION,
+    timestamp: new Date().toISOString()
+  }));
+
+  // 2. Manejo de CORS
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders });
   }
 
   try {
-    const {
-      provider,
-      event_name,
-      event_id,
-      user_data = {},
-      custom_data = {},
-      pixel_id,
-      access_token,
-      test_code,
-    } = await req.json();
+    const body = await req.json();
+    
+    // Extracción de datos del Payload (viene del Frontend Hook)
+    const { 
+      pixel_id, 
+      access_token, 
+      event_name, 
+      event_id, 
+      event_source_url, 
+      user_data, 
+      custom_data,
+      test_event_code // Opcional: Para probar en el "Test Events" de FB
+    } = body;
 
-    // Validación básica
-    if (!provider || !event_name || !pixel_id) {
-      console.error("Missing required fields:", { provider, event_name, pixel_id });
-      // Retornamos 200 para no romper UX, pero loggeamos el error
-      return new Response(
-        JSON.stringify({ success: false, error: "Missing required fields" }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    // Validación Básica
+    if (!pixel_id || !access_token) {
+      // No lanzamos error 500 para no alarmar al frontend, pero logueamos el fallo.
+      console.warn("⚠️ Falta Pixel ID o Token. Evento ignorado.");
+      return new Response(JSON.stringify({ status: 'skipped', reason: 'missing_config' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
+      });
     }
 
-    // ========================================
-    // META (FACEBOOK) CONVERSIONS API
-    // ========================================
-    if (provider === "meta") {
-      if (!access_token) {
-        console.warn("Meta CAPI: Missing access_token, skipping");
-        return new Response(
-          JSON.stringify({ success: false, error: "Missing access_token for Meta CAPI" }),
-          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
+    // --------------------------------------------------------------------------
+    // 3. PROCESAMIENTO DE DATOS DE USUARIO (HASHING)
+    // --------------------------------------------------------------------------
+    const userDataPayload: any = {
+      client_user_agent: user_data?.client_user_agent,
+      fbc: user_data?.fbc,
+      fbp: user_data?.fbp,
+      client_ip_address: req.headers.get("x-forwarded-for") || "0.0.0.0", // IP del cliente
+    };
 
-      // 1. Hashear PII (Información Personal Identificable)
-      const hashedUserData: any = {};
+    // Hashear Email si existe
+    if (user_data?.email) {
+      const normalizedEmail = normalizeEmail(user_data.email);
+      userDataPayload.em = await hashData(normalizedEmail);
+    }
 
-      if (user_data.email) {
-        hashedUserData.em = await sha256Hash(normalizeEmail(user_data.email));
-      }
+    // Hashear Teléfono si existe
+    if (user_data?.phone) {
+      const normalizedPhone = normalizePhone(user_data.phone);
+      userDataPayload.ph = await hashData(normalizedPhone);
+    }
 
-      if (user_data.phone) {
-        hashedUserData.ph = await sha256Hash(normalizePhone(user_data.phone));
-      }
+    // Hashear Nombre/Apellido si existen
+    if (user_data?.firstName) userDataPayload.fn = await hashData(user_data.firstName.toLowerCase());
+    if (user_data?.lastName) userDataPayload.ln = await hashData(user_data.lastName.toLowerCase());
 
-      if (user_data.fn) {
-        hashedUserData.fn = await sha256Hash(user_data.fn.toLowerCase().trim());
-      }
+    // --------------------------------------------------------------------------
+    // 4. CONSTRUCCIÓN DEL PAYLOAD PARA FACEBOOK
+    // --------------------------------------------------------------------------
+    const currentTimestamp = Math.floor(Date.now() / 1000);
 
-      if (user_data.ln) {
-        hashedUserData.ln = await sha256Hash(user_data.ln.toLowerCase().trim());
-      }
+    const fbPayload = {
+      data: [
+        {
+          event_name: event_name,
+          event_time: currentTimestamp,
+          event_id: event_id, // CRÍTICO: Debe ser igual al del Pixel del navegador
+          event_source_url: event_source_url,
+          action_source: "website",
+          user_data: userDataPayload,
+          custom_data: custom_data,
+        },
+      ],
+      // Si mandaron un código de prueba (ej. 'TEST1234'), lo agregamos
+      ...(test_event_code ? { test_event_code } : {}),
+    };
 
-      if (user_data.ct) {
-        hashedUserData.ct = await sha256Hash(user_data.ct.toLowerCase().trim());
-      }
+    console.log(`📤 Enviando evento '${event_name}' a Meta CAPI...`);
 
-      if (user_data.st) {
-        hashedUserData.st = await sha256Hash(user_data.st.toLowerCase().trim());
-      }
-
-      if (user_data.zp) {
-        hashedUserData.zp = await sha256Hash(user_data.zp.toLowerCase().trim());
-      }
-
-      if (user_data.country) {
-        hashedUserData.country = await sha256Hash(user_data.country.toLowerCase().trim());
-      }
-
-      // 2. Preparar el payload de Facebook
-      const fbPayload = {
-        data: [
-          {
-            event_name, // "PageView", "Purchase", "AddToCart", etc.
-            event_time: Math.floor(Date.now() / 1000), // Unix timestamp
-            event_id, // Para deduplicación con el Pixel browser-side
-            action_source: "website", // o "email", "app", etc.
-            user_data: hashedUserData,
-            custom_data: {
-              currency: custom_data.currency || "MXN",
-              value: custom_data.value || 0,
-              ...custom_data,
-            },
-          },
-        ],
-        ...(test_code && { test_event_code: test_code }), // Código de prueba opcional
-      };
-
-      // 3. Enviar a Facebook Graph API
-      const facebookUrl = `https://graph.facebook.com/${FACEBOOK_GRAPH_API_VERSION}/${pixel_id}/events?access_token=${access_token}`;
-
-      console.log("Sending event to Meta CAPI:", {
-        event_name,
-        event_id,
-        pixel_id,
-        test_code,
-      });
-
-      const fbResponse = await fetch(facebookUrl, {
-        method: "POST",
+    // --------------------------------------------------------------------------
+    // 5. ENVÍO A GRAPH API
+    // --------------------------------------------------------------------------
+    const response = await fetch(
+      `https://graph.facebook.com/v16.0/${pixel_id}/events?access_token=${access_token}`,
+      {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify(fbPayload),
-      });
-
-      const fbResult = await fbResponse.json();
-
-      if (!fbResponse.ok) {
-        console.error("Meta CAPI Error:", fbResult);
-        // Aún así retornamos 200 al frontend para no romper UX
-        return new Response(
-          JSON.stringify({
-            success: false,
-            provider: "meta",
-            error: fbResult.error || "Unknown Facebook error",
-          }),
-          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
       }
+    );
 
-      console.log("Meta CAPI Success:", fbResult);
+    const result = await response.json();
 
-      return new Response(
-        JSON.stringify({
-          success: true,
-          provider: "meta",
-          facebook_response: fbResult,
-        }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    if (!response.ok) {
+      console.error("❌ Error de Meta CAPI:", result);
+      // Aún así devolvemos 200 al frontend para no romper la experiencia, 
+      // pero el log queda registrado para ti.
+      return new Response(JSON.stringify({ success: false, meta_error: result }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200, 
+      });
     }
 
-    // ========================================
-    // OTROS PROVIDERS (TikTok, Google, etc.)
-    // ========================================
-    // Placeholder para futura expansión
-    console.warn(`Provider "${provider}" not implemented yet`);
+    console.log("✅ Evento recibido por Meta:", result);
 
-    return new Response(
-      JSON.stringify({ success: false, error: `Provider "${provider}" not supported` }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
-  } catch (error) {
-    console.error("Tracking Events Error:", error);
+    return new Response(JSON.stringify({ success: true, fb_trace_id: result.fbtrace_id }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 200,
+    });
 
-    // CRÍTICO: Siempre retornar 200 al frontend para no romper la UX
-    return new Response(
-      JSON.stringify({
-        success: false,
-        error: error.message || "Internal server error",
-      }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+  } catch (error: any) {
+    console.error("🔥 Error crítico en Edge Function:", error.message);
+    return new Response(JSON.stringify({ error: error.message }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 500,
+    });
   }
 });
