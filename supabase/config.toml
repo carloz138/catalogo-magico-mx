@@ -26,3 +26,6 @@ verify_jwt = false
 
 [functions.openpay-webhook]
 verify_jwt = false
+
+[functions.tracking-events]
+verify_jwt = false

@@ -1698,6 +1698,7 @@ export type Database = {
           reseller_email: string | null
           reseller_id: string | null
           slug: string | null
+          tracking_config: Json | null
           updated_at: string | null
         }
         Insert: {
@@ -1717,6 +1718,7 @@ export type Database = {
           reseller_email?: string | null
           reseller_id?: string | null
           slug?: string | null
+          tracking_config?: Json | null
           updated_at?: string | null
         }
         Update: {
@@ -1736,6 +1738,7 @@ export type Database = {
           reseller_email?: string | null
           reseller_id?: string | null
           slug?: string | null
+          tracking_config?: Json | null
           updated_at?: string | null
         }
         Relationships: [
