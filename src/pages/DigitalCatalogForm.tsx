@@ -219,6 +219,8 @@ export default function DigitalCatalogForm() {
 
   const [userPlanName, setUserPlanName] = useState<string | undefined>();
 
+  const [activeAccordion, setActiveAccordion] = useState("products");
+
   const isEditing = !!id;
 
   const canCreatePrivate = limits?.planName !== "Básico" && limits?.planName !== "Starter";
@@ -424,6 +426,16 @@ export default function DigitalCatalogForm() {
       return hasWholesalePrice && !hasWholesaleMin;
     });
   }, [selectedProducts, watchedValues.price_display]);
+
+  // Función para navegar entre acordeones automáticamente
+  const handleNextStep = (currentStep: string, nextStep: string) => {
+    setActiveAccordion(nextStep);
+    // Pequeño scroll suave para enfocar el siguiente paso
+    setTimeout(() => {
+      const element = document.getElementById(`accordion-${nextStep}`);
+      if (element) element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 100);
+  };
 
   const loadCatalog = async () => {
     if (!user || !id) return;
@@ -858,6 +870,35 @@ export default function DigitalCatalogForm() {
     </div>
   );
 
+  // OPTIMIZACIÓN: Memorizar configuración para evitar re-renders pesados en el preview
+  const previewConfig = useMemo(() => ({
+    name: watchedValues.name,
+    description: watchedValues.description,
+    webTemplateId: form.getValues("web_template_id"),
+    products: selectedProducts,
+    priceConfig: {
+      display: watchedValues.price_display,
+      adjustmentMenudeo: watchedValues.price_adjustment_menudeo,
+      adjustmentMayoreo: watchedValues.price_adjustment_mayoreo,
+    },
+    visibilityConfig: {
+      showSku: watchedValues.show_sku,
+      showTags: watchedValues.show_tags,
+      showDescription: watchedValues.show_description,
+    },
+    backgroundPattern: form.getValues("background_pattern")
+  }), [
+    watchedValues.name, 
+    watchedValues.description, 
+    watchedValues.price_display,
+    watchedValues.price_adjustment_menudeo,
+    watchedValues.price_adjustment_mayoreo,
+    watchedValues.show_sku,
+    watchedValues.show_tags,
+    watchedValues.show_description,
+    selectedProducts
+  ]);
+
   if (isLoading || limitsLoading) {
     return (
       <div className="container mx-auto py-4 md:py-8 px-4">
@@ -893,7 +934,7 @@ export default function DigitalCatalogForm() {
   const webTemplateId = form.watch("web_template_id");
 
   return (
-    <div className="min-h-screen bg-gray-50/50 pb-32 md:pb-12">
+    <div className="min-h-screen bg-gray-50/50 pb-32 md:pb-12 touch-manipulation">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-10">
       {/* Header Responsive */}
 
@@ -941,10 +982,10 @@ export default function DigitalCatalogForm() {
               {/* Tab: Form (Mobile Accordion) */}
 
               <TabsContent value="form" className="mt-0">
-                <Accordion type="single" collapsible className="space-y-3">
+                <Accordion type="single" collapsible value={activeAccordion} onValueChange={setActiveAccordion} className="space-y-3">
                   {/* Accordion Item 1: Productos */}
 
-                  <AccordionItem value="products" className="border-none bg-white rounded-xl shadow-sm mb-4 overflow-hidden ring-1 ring-gray-200">
+                  <AccordionItem value="products" id="accordion-products" className="border-none bg-white rounded-xl shadow-sm mb-4 overflow-hidden ring-1 ring-gray-200">
                     <AccordionTrigger className="px-4 py-4 hover:no-underline hover:bg-muted/50 transition-colors">
                       <div className="flex items-center gap-3 w-full">
                         <div
@@ -992,12 +1033,23 @@ export default function DigitalCatalogForm() {
                           </FormItem>
                         )}
                       />
+                      
+                      <div className="mt-4 pt-4 border-t flex justify-end">
+                        <Button 
+                          type="button" 
+                          size="sm" 
+                          onClick={() => handleNextStep("products", "design")}
+                          className="bg-gray-900 text-white hover:bg-gray-800 touch-manipulation"
+                        >
+                          Siguiente: Diseño <ChevronRight className="ml-2 h-4 w-4" />
+                        </Button>
+                      </div>
                     </AccordionContent>
                   </AccordionItem>
 
                   {/* Accordion Item 2: Diseño */}
 
-                  <AccordionItem value="design" className="border-none bg-white rounded-xl shadow-sm mb-4 overflow-hidden ring-1 ring-gray-200">
+                  <AccordionItem value="design" id="accordion-design" className="border-none bg-white rounded-xl shadow-sm mb-4 overflow-hidden ring-1 ring-gray-200">
                     <AccordionTrigger className="px-4 py-4 hover:no-underline hover:bg-muted/50 transition-colors">
                       <div className="flex items-center gap-3 w-full">
                         <div
@@ -1054,12 +1106,23 @@ export default function DigitalCatalogForm() {
                           </FormItem>
                         )}
                       />
+                      
+                      <div className="mt-4 pt-4 border-t flex justify-end">
+                        <Button 
+                          type="button" 
+                          size="sm" 
+                          onClick={() => handleNextStep("design", "info")}
+                          className="bg-gray-900 text-white hover:bg-gray-800 touch-manipulation"
+                        >
+                          Siguiente: Información <ChevronRight className="ml-2 h-4 w-4" />
+                        </Button>
+                      </div>
                     </AccordionContent>
                   </AccordionItem>
 
                   {/* Accordion Item 3: Información Básica */}
 
-                  <AccordionItem value="info" className="border-none bg-white rounded-xl shadow-sm mb-4 overflow-hidden ring-1 ring-gray-200">
+                  <AccordionItem value="info" id="accordion-info" className="border-none bg-white rounded-xl shadow-sm mb-4 overflow-hidden ring-1 ring-gray-200">
                     <AccordionTrigger className="px-4 py-4 hover:no-underline hover:bg-muted/50 transition-colors">
                       <div className="flex items-center gap-3 w-full">
                         <div
@@ -1128,12 +1191,23 @@ export default function DigitalCatalogForm() {
                           </FormItem>
                         )}
                       />
+                      
+                      <div className="mt-4 pt-4 border-t flex justify-end">
+                        <Button 
+                          type="button" 
+                          size="sm" 
+                          onClick={() => handleNextStep("info", "pricing")}
+                          className="bg-gray-900 text-white hover:bg-gray-800 touch-manipulation"
+                        >
+                          Siguiente: Precios <ChevronRight className="ml-2 h-4 w-4" />
+                        </Button>
+                      </div>
                     </AccordionContent>
                   </AccordionItem>
 
                   {/* Accordion Item 4: Precios */}
 
-                  <AccordionItem value="pricing" className="border-none bg-white rounded-xl shadow-sm mb-4 overflow-hidden ring-1 ring-gray-200">
+                  <AccordionItem value="pricing" id="accordion-pricing" className="border-none bg-white rounded-xl shadow-sm mb-4 overflow-hidden ring-1 ring-gray-200">
                     <AccordionTrigger className="px-4 py-4 hover:no-underline hover:bg-muted/50 transition-colors">
                       <div className="flex items-center gap-3 w-full">
                         <div className="flex items-center justify-center w-10 h-10 rounded-full bg-muted flex-shrink-0">
@@ -1277,15 +1351,26 @@ export default function DigitalCatalogForm() {
 
                               <FormMessage />
                             </FormItem>
-                          )}
+                        )}
                         />
                       )}
+                      
+                      <div className="mt-4 pt-4 border-t flex justify-end">
+                        <Button 
+                          type="button" 
+                          size="sm" 
+                          onClick={() => handleNextStep("pricing", "shipping")}
+                          className="bg-gray-900 text-white hover:bg-gray-800 touch-manipulation"
+                        >
+                          Siguiente: Envíos <ChevronRight className="ml-2 h-4 w-4" />
+                        </Button>
+                      </div>
                     </AccordionContent>
                   </AccordionItem>
 
                   {/* Accordion Item 4.5: Envíos */}
 
-                  <AccordionItem value="shipping" className="border-none bg-white rounded-xl shadow-sm mb-4 overflow-hidden ring-1 ring-gray-200">
+                  <AccordionItem value="shipping" id="accordion-shipping" className="border-none bg-white rounded-xl shadow-sm mb-4 overflow-hidden ring-1 ring-gray-200">
                     <AccordionTrigger className="px-4 py-4 hover:no-underline hover:bg-muted/50 transition-colors">
                       <div className="flex items-center gap-3 w-full">
                         <div className="flex items-center justify-center w-10 h-10 rounded-full bg-muted flex-shrink-0">
@@ -1362,12 +1447,23 @@ export default function DigitalCatalogForm() {
                           )}
                         />
                       )}
+                      
+                      <div className="mt-4 pt-4 border-t flex justify-end">
+                        <Button 
+                          type="button" 
+                          size="sm" 
+                          onClick={() => handleNextStep("shipping", "visibility")}
+                          className="bg-gray-900 text-white hover:bg-gray-800 touch-manipulation"
+                        >
+                          Siguiente: Visibilidad <ChevronRight className="ml-2 h-4 w-4" />
+                        </Button>
+                      </div>
                     </AccordionContent>
                   </AccordionItem>
 
                   {/* Accordion Item 5: Visibilidad */}
 
-                  <AccordionItem value="visibility" className="border-none bg-white rounded-xl shadow-sm mb-4 overflow-hidden ring-1 ring-gray-200">
+                  <AccordionItem value="visibility" id="accordion-visibility" className="border-none bg-white rounded-xl shadow-sm mb-4 overflow-hidden ring-1 ring-gray-200">
                     <AccordionTrigger className="px-4 py-4 hover:no-underline hover:bg-muted/50 transition-colors">
                       <div className="flex items-center gap-3 w-full">
                         <div className="flex items-center justify-center w-10 h-10 rounded-full bg-muted flex-shrink-0">
@@ -1476,12 +1572,23 @@ export default function DigitalCatalogForm() {
                           </div>
                         )}
                       />
+                      
+                      <div className="mt-4 pt-4 border-t flex justify-end">
+                        <Button 
+                          type="button" 
+                          size="sm" 
+                          onClick={() => handleNextStep("visibility", "advanced")}
+                          className="bg-gray-900 text-white hover:bg-gray-800 touch-manipulation"
+                        >
+                          Siguiente: Avanzado <ChevronRight className="ml-2 h-4 w-4" />
+                        </Button>
+                      </div>
                     </AccordionContent>
                   </AccordionItem>
 
                   {/* Accordion Item 6: Configuración Avanzada */}
 
-                  <AccordionItem value="advanced" className="border-none bg-white rounded-xl shadow-sm mb-4 overflow-hidden ring-1 ring-gray-200">
+                  <AccordionItem value="advanced" id="accordion-advanced" className="border-none bg-white rounded-xl shadow-sm mb-4 overflow-hidden ring-1 ring-gray-200">
                     <AccordionTrigger className="px-4 py-4 hover:no-underline hover:bg-muted/50 transition-colors">
                       <div className="flex items-center gap-3 w-full">
                         <div className="flex items-center justify-center w-10 h-10 rounded-full bg-muted flex-shrink-0">
@@ -1657,13 +1764,24 @@ export default function DigitalCatalogForm() {
                           )}
                         />
                       )}
+                      
+                      <div className="mt-4 pt-4 border-t flex justify-end">
+                        <Button 
+                          type="button" 
+                          size="sm" 
+                          onClick={() => handleNextStep("advanced", getPlanFeatures(userPlanTier).hasQuotation ? "quotation" : "tracking")}
+                          className="bg-gray-900 text-white hover:bg-gray-800 touch-manipulation"
+                        >
+                          Siguiente: {getPlanFeatures(userPlanTier).hasQuotation ? "Cotización" : "Tracking"} <ChevronRight className="ml-2 h-4 w-4" />
+                        </Button>
+                      </div>
                     </AccordionContent>
                   </AccordionItem>
 
                   {/* Accordion Item 7: Cotización (condicional) */}
 
                   {getPlanFeatures(userPlanTier).hasQuotation ? (
-                    <AccordionItem value="quotation" className="border-none bg-white rounded-xl shadow-sm mb-4 overflow-hidden ring-1 ring-gray-200">
+                    <AccordionItem value="quotation" id="accordion-quotation" className="border-none bg-white rounded-xl shadow-sm mb-4 overflow-hidden ring-1 ring-gray-200">
                       <AccordionTrigger className="px-4 py-4 hover:no-underline hover:bg-muted/50 transition-colors">
                         <div className="flex items-center gap-3 w-full">
                           <div className="flex items-center justify-center w-10 h-10 rounded-full bg-muted flex-shrink-0">
@@ -1764,6 +1882,17 @@ export default function DigitalCatalogForm() {
                             )}
                           />
                         )}
+                        
+                        <div className="mt-4 pt-4 border-t flex justify-end">
+                          <Button 
+                            type="button" 
+                            size="sm" 
+                            onClick={() => handleNextStep("quotation", "tracking")}
+                            className="bg-gray-900 text-white hover:bg-gray-800 touch-manipulation"
+                          >
+                            Siguiente: Tracking <ChevronRight className="ml-2 h-4 w-4" />
+                          </Button>
+                        </div>
                       </AccordionContent>
                     </AccordionItem>
                   ) : (
@@ -1781,7 +1910,7 @@ export default function DigitalCatalogForm() {
 
                   {/* Accordion Item 8: Tracking y Píxeles (Mobile) */}
 
-                  <AccordionItem value="tracking" className="border-none bg-white rounded-xl shadow-sm mb-4 overflow-hidden ring-1 ring-gray-200">
+                  <AccordionItem value="tracking" id="accordion-tracking" className="border-none bg-white rounded-xl shadow-sm mb-4 overflow-hidden ring-1 ring-gray-200">
                     <AccordionTrigger className="px-4 py-4 hover:no-underline hover:bg-muted/50 transition-colors">
                       <div className="flex items-center gap-3 w-full">
                         <div className="flex items-center justify-center w-10 h-10 rounded-full bg-muted flex-shrink-0">
@@ -1815,27 +1944,7 @@ export default function DigitalCatalogForm() {
               {/* Tab: Preview (Mobile) */}
 
               <TabsContent value="preview" className="mt-0">
-                <CatalogFormPreview
-                  name={watchedValues.name}
-                  description={watchedValues.description}
-                  webTemplateId={form.watch("web_template_id")}
-                  products={selectedProducts}
-                  priceConfig={{
-                    display: watchedValues.price_display,
-
-                    adjustmentMenudeo: watchedValues.price_adjustment_menudeo,
-
-                    adjustmentMayoreo: watchedValues.price_adjustment_mayoreo,
-                  }}
-                  visibilityConfig={{
-                    showSku: watchedValues.show_sku,
-
-                    showTags: watchedValues.show_tags,
-
-                    showDescription: watchedValues.show_description,
-                  }}
-                  backgroundPattern={form.watch("background_pattern")}
-                />
+                <CatalogFormPreview {...previewConfig} />
               </TabsContent>
             </Tabs>
           ) : (
@@ -2547,27 +2656,7 @@ export default function DigitalCatalogForm() {
 
               {/* Columna Derecha (Preview Sticky) - Ocupa 5/12 */}
               <div className="hidden lg:block lg:col-span-5 lg:sticky lg:top-8">
-                <CatalogFormPreview
-                  name={watchedValues.name}
-                  description={watchedValues.description}
-                  webTemplateId={form.watch("web_template_id")}
-                  products={selectedProducts}
-                  priceConfig={{
-                    display: watchedValues.price_display,
-
-                    adjustmentMenudeo: watchedValues.price_adjustment_menudeo,
-
-                    adjustmentMayoreo: watchedValues.price_adjustment_mayoreo,
-                  }}
-                  visibilityConfig={{
-                    showSku: watchedValues.show_sku,
-
-                    showTags: watchedValues.show_tags,
-
-                    showDescription: watchedValues.show_description,
-                  }}
-                  backgroundPattern={form.watch("background_pattern")}
-                />
+                <CatalogFormPreview {...previewConfig} />
               </div>
             </div>
           )}
