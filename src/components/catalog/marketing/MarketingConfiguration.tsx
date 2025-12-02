@@ -37,7 +37,7 @@ export function MarketingConfiguration({
     accessToken: initialConfig.accessToken ?? "",
   });
 
-  const feedUrl = `https://xqqqsvxagscmzssfabdh.supabase.co/functions/v1/generate-catalog-feed?catalog_id=${catalogId}`;
+  const feedUrl = `https://ikbexcebcpmomfxraflz.supabase.co/functions/v1/generate-catalog-feed?catalog_id=${catalogId}`;
 
   const handleCopyFeedUrl = async () => {
     try {
@@ -106,9 +106,7 @@ export function MarketingConfiguration({
           <div className="flex items-center justify-between p-4 rounded-lg border bg-muted/30">
             <div className="space-y-0.5">
               <Label className="text-base font-semibold">Activar Rastreo</Label>
-              <p className="text-sm text-muted-foreground">
-                Habilita el tracking híbrido (Browser + Servidor)
-              </p>
+              <p className="text-sm text-muted-foreground">Habilita el tracking híbrido (Browser + Servidor)</p>
             </div>
             <Switch
               checked={config.enabled}
@@ -157,9 +155,7 @@ export function MarketingConfiguration({
                   disabled={readOnly}
                   className="font-mono text-xs"
                 />
-                <p className="text-xs text-muted-foreground">
-                  Token de larga duración generado en Business Manager
-                </p>
+                <p className="text-xs text-muted-foreground">Token de larga duración generado en Business Manager</p>
               </div>
             </div>
           )}
@@ -188,37 +184,22 @@ export function MarketingConfiguration({
             <Share2 className="h-5 w-5 text-orange-600" />
             <CardTitle className="text-lg">Catálogo Dinámico (Feed XML)</CardTitle>
           </div>
-          <CardDescription>
-            Sincroniza automáticamente tus productos con Facebook Commerce Manager
-          </CardDescription>
+          <CardDescription>Sincroniza automáticamente tus productos con Facebook Commerce Manager</CardDescription>
         </CardHeader>
 
         <CardContent className="space-y-4">
           <Alert>
             <AlertDescription className="text-sm leading-relaxed">
-              Copia este enlace y pégalo en{" "}
-              <strong>Facebook Commerce Manager → Catálogos → Fuentes de datos</strong> para
-              sincronizar productos y precios automáticamente.
+              Copia este enlace y pégalo en <strong>Facebook Commerce Manager → Catálogos → Fuentes de datos</strong>{" "}
+              para sincronizar productos y precios automáticamente.
             </AlertDescription>
           </Alert>
 
           <div className="space-y-2">
             <Label htmlFor="feedUrl">URL del Feed</Label>
             <div className="flex gap-2">
-              <Input
-                id="feedUrl"
-                type="text"
-                value={feedUrl}
-                readOnly
-                className="bg-muted font-mono text-xs"
-              />
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                onClick={handleCopyFeedUrl}
-                className="shrink-0"
-              >
+              <Input id="feedUrl" type="text" value={feedUrl} readOnly className="bg-muted font-mono text-xs" />
+              <Button type="button" variant="outline" size="icon" onClick={handleCopyFeedUrl} className="shrink-0">
                 <Copy className="h-4 w-4" />
               </Button>
             </div>
@@ -244,8 +225,8 @@ export function MarketingConfiguration({
         <Alert>
           <Lock className="h-4 w-4" />
           <AlertDescription className="text-xs">
-            <strong>Nota:</strong> Esta configuración es independiente del proveedor. Tus eventos se
-            rastrearán en tu propia cuenta de Facebook Ads.
+            <strong>Nota:</strong> Esta configuración es independiente del proveedor. Tus eventos se rastrearán en tu
+            propia cuenta de Facebook Ads.
           </AlertDescription>
         </Alert>
       )}
