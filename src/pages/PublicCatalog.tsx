@@ -29,7 +29,6 @@ interface Product {
     attributes: Record<string, string>;
   }>;
   catalog_products?: any;
-  user_id?: string; // Agregado para distinguir dueño
 }
 
 // --- COMPONENTE: INYECTOR DE SCRIPTS ---
@@ -69,7 +68,7 @@ export default function PublicCatalog() {
   const [accessPassword, setAccessPassword] = useState("");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  // 1. FETCH DE DATOS (HÍBRIDO: L1 + L2)
+  // 1. FETCH DE DATOS (CORREGIDO PARA SOPORTAR L2 Y FIX PGRST201)
   const {
     data: catalog,
     isLoading,
@@ -111,7 +110,8 @@ export default function PublicCatalog() {
       // 2. Fail Check
       if (!catalogHeader || !catalogIdToFetch) return null;
 
-      // 3. Fetch Productos L1 (Dropshipping)
+      // 3. Fetch Productos (FIX PGRST201 APLICADO AQUÍ)
+      // Usamos la notación explícita !catalog_products_product_id_fkey
       const { data: rawProducts, error: prodError } = await supabase
         .from("catalog_products")
         .select(
@@ -127,34 +127,7 @@ export default function PublicCatalog() {
         throw prodError;
       }
 
-      let products = rawProducts?.map((cp: any) => cp.products).filter(Boolean) || [];
-
-      // ✅ 4. Fetch Productos L2 (Propios) - LA FUSIÓN
-      // Solo si es una réplica y tiene un revendedor asignado
-      if (isReplicated && resellerId) {
-        console.log(`--- DEBUG: Fetching owned products for L2: ${resellerId} ---`);
-
-        const { data: l2Products, error: l2Error } = await supabase
-          .from("products")
-          .select("*")
-          .eq("user_id", resellerId) // Son del revendedor
-          .eq("origin", "owned") // Son creados por él
-          .eq("is_active", true); // Están activos
-
-        if (!l2Error && l2Products && l2Products.length > 0) {
-          // Mezclamos los productos del L1 con los del L2
-          // Usamos un Map por si acaso hubiera IDs duplicados (seguridad)
-          const productsMap = new Map();
-
-          // Primero ponemos L1
-          products.forEach((p: any) => productsMap.set(p.id, p));
-
-          // Luego ponemos L2 (y si hubiera conflicto, L2 gana por ser el dueño de la tienda)
-          l2Products.forEach((p: any) => productsMap.set(p.id, p));
-
-          products = Array.from(productsMap.values());
-        }
-      }
+      const products = rawProducts?.map((cp: any) => cp.products).filter(Boolean) || [];
 
       // View Count (Fire & Forget)
       supabase.rpc("increment_view_count" as any, { row_id: catalogIdToFetch }).then();
