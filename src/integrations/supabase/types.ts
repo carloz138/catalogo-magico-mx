@@ -1320,6 +1320,7 @@ export type Database = {
           luxury_image_url: string | null
           model: string | null
           name: string
+          origin: string | null
           original_image_url: string
           price_retail: number | null
           price_wholesale: number | null
@@ -1371,6 +1372,7 @@ export type Database = {
           luxury_image_url?: string | null
           model?: string | null
           name: string
+          origin?: string | null
           original_image_url: string
           price_retail?: number | null
           price_wholesale?: number | null
@@ -1422,6 +1424,7 @@ export type Database = {
           luxury_image_url?: string | null
           model?: string | null
           name?: string
+          origin?: string | null
           original_image_url?: string
           price_retail?: number | null
           price_wholesale?: number | null
@@ -2927,6 +2930,7 @@ export type Database = {
           luxury_image_url: string | null
           model: string | null
           name: string
+          origin: string | null
           original_image_url: string
           price_retail: number | null
           price_wholesale: number | null
@@ -2987,6 +2991,7 @@ export type Database = {
           luxury_image_url: string | null
           model: string | null
           name: string
+          origin: string | null
           original_image_url: string
           price_retail: number | null
           price_wholesale: number | null
