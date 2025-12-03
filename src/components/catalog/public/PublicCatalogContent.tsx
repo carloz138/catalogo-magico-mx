@@ -14,7 +14,23 @@ import {
 } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Label } from "@/components/ui/label";
-import { Search, ShoppingCart, Radar, DollarSign, Plus, ChevronDown, Minus, X, Eye, Filter, Check } from "lucide-react";
+import {
+  Search,
+  ShoppingCart,
+  Radar,
+  DollarSign,
+  Plus,
+  ChevronDown,
+  Minus,
+  X,
+  Eye,
+  Filter,
+  Check,
+  MapPin,
+  Phone,
+  Mail,
+  Globe,
+} from "lucide-react";
 import { DigitalCatalog } from "@/types/digital-catalog";
 import { QuoteCartModal } from "@/components/public/QuoteCartModal";
 import { QuoteForm } from "@/components/public/QuoteForm";
@@ -49,12 +65,23 @@ interface Product {
   }>;
 }
 
-// ✅ CORRECCIÓN 1: Agregar replicatedCatalogId a la interface
+// ✅ CORRECCIÓN 1: Agregar business_info y replicatedCatalogId a la interface
 interface PublicCatalogContentProps {
   catalog: DigitalCatalog & {
     isReplicated?: boolean;
     resellerId?: string;
-    replicatedCatalogId?: string; // <--- VITAL PARA L2
+    replicatedCatalogId?: string;
+    // Agregamos la estructura de info de negocio
+    business_info?: {
+      business_name?: string;
+      logo_url?: string | null;
+      description?: string | null;
+      address?: string | null;
+      phone?: string | null;
+      email?: string | null;
+      website?: string | null;
+      social_media?: any;
+    };
   };
   onTrackEvent: (event: string, data?: any) => void;
 }
@@ -156,7 +183,6 @@ const PublicProductCard = ({
           </div>
         )}
 
-        {/* Acciones Rápidas (Overlay) */}
         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors duration-300" />
 
         <button
@@ -182,7 +208,6 @@ const PublicProductCard = ({
         </button>
       </div>
 
-      {/* Info Content */}
       <div className="p-4 flex flex-col flex-1">
         <div className="flex-1">
           {product.category && (
@@ -215,10 +240,8 @@ const PublicProductCard = ({
 
 // --- COMPONENTE PRINCIPAL ---
 export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogContentProps) {
-  // Deep Linking Support
   const [searchParams] = useSearchParams();
-  
-  // Estados Generales
+
   const [searchTerm, setSearchTerm] = useState("");
   const debouncedSearch = useDebounce(searchTerm, 500);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -226,21 +249,18 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
   const [isQuoteFormOpen, setIsQuoteFormOpen] = useState(false);
   const [priceRange, setPriceRange] = useState<{ min: string; max: string }>({ min: "", max: "" });
 
-  // ✅ ESTADOS DEL RADAR (Actualizados)
   const [showRadarModal, setShowRadarModal] = useState(false);
   const [radarForm, setRadarForm] = useState({
     name: "",
     email: "",
     product: "",
     quantity: "1",
-    brand: "", // Nuevo
-    description: "", // Nuevo
+    brand: "",
+    description: "",
   });
 
-  // Contexto Carrito
   const { addItem, items, clearCart, totalAmount } = useQuoteCart();
 
-  // Estados Selección Producto
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
@@ -318,20 +338,16 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
 
   const categories = Array.from(new Set(catalog.products?.map((p) => p.category).filter(Boolean) as string[]));
 
-  // --- DEEP LINKING: Auto-open product from URL ---
   useEffect(() => {
     const productHighlight = searchParams.get("product_highlight");
     if (productHighlight && catalog.products && catalog.products.length > 0) {
-      const targetProduct = (catalog.products as unknown as Product[]).find(
-        (p) => p.id === productHighlight
-      );
+      const targetProduct = (catalog.products as unknown as Product[]).find((p) => p.id === productHighlight);
       if (targetProduct) {
         handleViewProduct(targetProduct);
       }
     }
   }, [searchParams, catalog.products]);
 
-  // --- SEARCH LOGS ---
   useEffect(() => {
     if (debouncedSearch && debouncedSearch.length > 2) {
       const logSearch = async () => {
@@ -448,19 +464,17 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
     toast({ title: "¡Cotización enviada!", description: "Hemos recibido tu pedido. Te contactaremos pronto." });
   };
 
-  // ✅ LÓGICA DEL RADAR CORREGIDA
   const handleRadarSubmit = async () => {
     try {
       const { error: insertError } = await supabase.from("solicitudes_mercado").insert({
         catalogo_id: catalog.id,
         fabricante_id: catalog.user_id,
-        revendedor_id: catalog.resellerId || null, // Asegura NULL si es undefined
+        revendedor_id: catalog.resellerId || null,
 
         cliente_final_nombre: radarForm.name,
         cliente_final_email: radarForm.email,
         producto_nombre: radarForm.product,
 
-        // Campos nuevos recuperados
         producto_marca: radarForm.brand,
         producto_descripcion: radarForm.description,
 
@@ -476,7 +490,6 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
 
       toast({ title: "Solicitud recibida", description: "Buscaremos este producto para ti." });
       setShowRadarModal(false);
-      // Reset completo del formulario
       setRadarForm({ name: "", email: "", product: "", quantity: "1", brand: "", description: "" });
       onTrackEvent("Contact", { content_name: "Radar: " + radarForm.product });
     } catch (e) {
@@ -486,7 +499,7 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
 
   // --- RENDER ---
   return (
-    <div className="catalog-public-container min-h-screen bg-slate-50/50 pb-24 md:pb-20 font-sans">
+    <div className="catalog-public-container min-h-screen bg-slate-50/50 pb-24 md:pb-20 font-sans flex flex-col">
       <style>{templateCSS}</style>
 
       {/* BANNER HERO */}
@@ -518,7 +531,7 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
         </div>
       </div>
 
-      <div className="container mx-auto px-4 -mt-8 relative z-20">
+      <div className="container mx-auto px-4 -mt-8 relative z-20 flex-1">
         {/* TOOLBAR */}
         <div className="bg-white rounded-xl shadow-xl shadow-slate-200/40 p-4 mb-8 border border-slate-100">
           <div className="flex flex-col gap-4">
@@ -703,6 +716,75 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
           </div>
         )}
       </div>
+
+      {/* ✅ NUEVO FOOTER: INFORMACIÓN DE CONTACTO */}
+      {catalog.business_info && (
+        <div className="bg-slate-900 text-white mt-12 py-12 px-4 relative z-20">
+          <div className="container mx-auto max-w-4xl">
+            <div className="grid md:grid-cols-2 gap-8 items-center">
+              <div>
+                <h3 className="text-2xl font-bold mb-4">{catalog.business_info.business_name}</h3>
+                {catalog.business_info.description && (
+                  <p className="text-slate-400 mb-6 max-w-sm">{catalog.business_info.description}</p>
+                )}
+                <div className="space-y-3">
+                  {catalog.business_info.address && (
+                    <div className="flex items-center gap-3 text-slate-300">
+                      <MapPin className="h-5 w-5 text-primary" />
+                      <span>{catalog.business_info.address}</span>
+                    </div>
+                  )}
+                  {catalog.business_info.phone && (
+                    <div className="flex items-center gap-3 text-slate-300">
+                      <Phone className="h-5 w-5 text-primary" />
+                      <a href={`tel:${catalog.business_info.phone}`} className="hover:text-white transition-colors">
+                        {catalog.business_info.phone}
+                      </a>
+                    </div>
+                  )}
+                  {catalog.business_info.email && (
+                    <div className="flex items-center gap-3 text-slate-300">
+                      <Mail className="h-5 w-5 text-primary" />
+                      <a href={`mailto:${catalog.business_info.email}`} className="hover:text-white transition-colors">
+                        {catalog.business_info.email}
+                      </a>
+                    </div>
+                  )}
+                  {catalog.business_info.website && (
+                    <div className="flex items-center gap-3 text-slate-300">
+                      <Globe className="h-5 w-5 text-primary" />
+                      <a
+                        href={catalog.business_info.website}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="hover:text-white transition-colors"
+                      >
+                        {catalog.business_info.website}
+                      </a>
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="flex justify-center md:justify-end">
+                {/* Aquí podrías poner un mapa o un QR si quisieras en el futuro */}
+                {catalog.logo_url && (
+                  <img
+                    src={catalog.logo_url}
+                    alt="Logo Footer"
+                    className="h-32 w-32 object-contain bg-white/10 rounded-xl p-4 backdrop-blur-sm"
+                  />
+                )}
+              </div>
+            </div>
+            <div className="border-t border-slate-800 mt-10 pt-6 text-center text-sm text-slate-500">
+              <p>
+                © {new Date().getFullYear()} {catalog.business_info.business_name}. Todos los derechos reservados.
+              </p>
+              <p className="mt-1 text-xs">Powered by CatifyPro</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* FLOATING CART */}
       <AnimatePresence>
