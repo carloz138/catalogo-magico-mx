@@ -83,15 +83,17 @@ export const SaaSMarketingProvider: React.FC<SaaSMarketingProviderProps> = ({ ch
 
     // 2. SERVER CAPI (via Edge Function)
     try {
+      const requestBody = {
+        event_name: eventName,
+        event_id: eventId,
+        event_source_url: window.location.href,
+        user_email: data?.email,
+        user_phone: data?.phone,
+        custom_data: data
+      };
+      
       const { error } = await supabase.functions.invoke('fb-conversion', {
-        body: {
-          event_name: eventName,
-          event_id: eventId,
-          event_source_url: window.location.href,
-          user_email: data?.email,
-          user_phone: data?.phone,
-          custom_data: data
-        }
+        body: requestBody
       });
 
       if (error) {
