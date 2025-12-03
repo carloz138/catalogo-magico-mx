@@ -294,27 +294,40 @@ export class DigitalCatalogService {
         .select("*")
         .eq("replicated_catalog_id", replicatedCatalog.id);
 
+      // Crear mapas para búsqueda O(1) en lugar de O(n) con find()
+      const productPriceMap = new Map(
+        (customProductPrices || []).map((p) => [p.product_id, p])
+      );
+      const variantPriceMap = new Map(
+        (customVariantPrices || []).map((v) => [v.variant_id, v])
+      );
+
       const products =
         catalogProducts
           ?.map((cp: any) => {
             const product = cp.products;
-            const customPrice = customProductPrices?.find((p) => p.product_id === product.id);
+            if (!product) return null;
+            
+            const customPrice = productPriceMap.get(product.id);
 
             const processedVariants = (product.product_variants || []).map((variant: any) => {
-              const customVariantPrice = customVariantPrices?.find((v) => v.variant_id === variant.id);
+              const customVariantPrice = variantPriceMap.get(variant.id);
+              
+              // Usar ?? para respetar valores 0, solo usar original si es null/undefined
               return {
                 ...variant,
-                price_retail: customVariantPrice?.custom_price_retail || variant.price_retail,
-                price_wholesale: customVariantPrice?.custom_price_wholesale || variant.price_wholesale,
-                stock_quantity: customVariantPrice?.stock_quantity || variant.stock_quantity,
-                is_in_stock: customVariantPrice?.is_in_stock ?? variant.stock_quantity > 0,
+                price_retail: customVariantPrice?.custom_price_retail ?? variant.price_retail,
+                price_wholesale: customVariantPrice?.custom_price_wholesale ?? variant.price_wholesale,
+                stock_quantity: customVariantPrice?.stock_quantity ?? variant.stock_quantity,
+                is_in_stock: customVariantPrice?.is_in_stock ?? (variant.stock_quantity > 0),
               };
             });
 
             return {
               ...product,
-              price_retail: customPrice?.custom_price_retail || product.price_retail,
-              price_wholesale: customPrice?.custom_price_wholesale || product.price_wholesale,
+              // Usar ?? para que solo use original si custom es null/undefined
+              price_retail: customPrice?.custom_price_retail ?? product.price_retail,
+              price_wholesale: customPrice?.custom_price_wholesale ?? product.price_wholesale,
               image_url: product.processed_image_url || product.original_image_url,
               variants: processedVariants,
             };
