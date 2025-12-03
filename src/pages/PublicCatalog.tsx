@@ -97,9 +97,10 @@ export default function PublicCatalog() {
           // Usamos la base del original
           catalogHeader = { ...replica.digital_catalogs };
 
-          // BRANDING: Si hay nombre custom, lo usamos
-          if (replica.custom_name) {
-            catalogHeader.name = replica.custom_name;
+          // BRANDING: Si hay nombre custom, lo usamos (cast para columnas nuevas)
+          const replicaData = replica as typeof replica & { custom_name?: string | null };
+          if (replicaData.custom_name) {
+            catalogHeader.name = replicaData.custom_name;
           }
 
           isReplicated = true;
