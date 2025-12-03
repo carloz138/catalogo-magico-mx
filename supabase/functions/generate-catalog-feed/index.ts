@@ -1,11 +1,10 @@
 // ==========================================
-// FUNCION: generate-catalog-feed (META XML)
-// ESTADO: FIX_PGRST201 (Relación Explícita)
+// FUNCION: generate-catalog-feed (FIX L2 PRICES)
+// ESTADO: PROD_V2 (Sincronizado con lógica Frontend)
 // ==========================================
 import { createClient } from 'jsr:@supabase/supabase-js@2.49.8';
 
-const DEPLOY_VERSION = Deno.env.get("FUNCTION_HASH") || "FIX_AMBIGUOUS_FK";
-// Cambia esto a tu dominio real si no es catifypro.com
+const DEPLOY_VERSION = Deno.env.get("FUNCTION_HASH") || "FIX_L2_PRICES_V2";
 const BASE_DOMAIN = "https://catifypro.com"; 
 
 const corsHeaders = {
@@ -13,7 +12,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type'
 };
 
-// Helper para limpiar texto XML
 const escapeXml = (unsafe: string | null | undefined) => {
   if (!unsafe) return '';
   return unsafe.replace(/[<>&'"]/g, (c) => {
@@ -50,15 +48,13 @@ Deno.serve(async (req) => {
       { auth: { persistSession: false } }
     );
 
-    // ---------------------------------------------------------
-    // 1. IDENTIFICAR CATÁLOGO (L1 o L2)
-    // ---------------------------------------------------------
+    // 1. IDENTIFICAR CATÁLOGO
     let catalogInfo: any = null;
     let isL2 = false;
-    let targetProductSourceId = catalogId; // De qué ID sacamos los productos
+    let targetProductSourceId = catalogId; 
     let resellerId: string | null = null;
 
-    // A. Intentar buscar en L1
+    // A. Buscar en L1
     const { data: l1Data } = await supabaseAdmin
       .from('digital_catalogs')
       .select('id, name, description, slug')
@@ -67,9 +63,8 @@ Deno.serve(async (req) => {
 
     if (l1Data) {
       catalogInfo = l1Data;
-      console.log("📦 Catálogo L1 detectado:", l1Data.slug);
     } else {
-      // B. Intentar buscar en L2
+      // B. Buscar en L2
       const { data: l2Data } = await supabaseAdmin
         .from('replicated_catalogs')
         .select(`
@@ -85,23 +80,20 @@ Deno.serve(async (req) => {
       if (l2Data) {
         isL2 = true;
         catalogInfo = {
-          id: l2Data.id,
+          id: l2Data.id, // ID de la Réplica
           name: l2Data.digital_catalogs?.name || "Catálogo",
           description: l2Data.digital_catalogs?.description || "",
           slug: l2Data.slug
         };
-        targetProductSourceId = l2Data.original_catalog_id; // Sacamos productos del padre
+        targetProductSourceId = l2Data.original_catalog_id; // Productos del padre
         resellerId = l2Data.reseller_id;
-        console.log("🔄 Catálogo L2 (Replica) detectado:", l2Data.slug);
+        console.log("🔄 L2 Detectado. ID Réplica:", l2Data.id);
       }
     }
 
     if (!catalogInfo) throw new Error('Catálogo no encontrado');
 
-    // ---------------------------------------------------------
-    // 2. OBTENER PRODUCTOS BASE (CORREGIDO)
-    // ---------------------------------------------------------
-    // AQUÍ ESTABA EL ERROR: Agregamos !catalog_products_product_id_fkey
+    // 2. OBTENER PRODUCTOS BASE
     const { data: productsData, error: prodError } = await supabaseAdmin
       .from('catalog_products')
       .select(`
@@ -114,50 +106,45 @@ Deno.serve(async (req) => {
       `)
       .eq('catalog_id', targetProductSourceId);
 
-    if (prodError) {
-        console.error("❌ Error query productos:", prodError);
-        throw prodError;
-    }
+    if (prodError) throw prodError;
 
-    // ---------------------------------------------------------
-    // 3. LOGICA DE PRECIOS (Si es L2)
-    // ---------------------------------------------------------
     let finalProducts = productsData?.map((p: any) => p.products).filter(Boolean) || [];
 
-    if (isL2 && resellerId) {
-      // Obtener precios personalizados del revendedor
+    // 3. SOBRESCRIBIR PRECIOS (CORREGIDO PARA USAR LA COLUMNA CORRECTA)
+    if (isL2) {
+      console.log("🔎 Buscando precios para Réplica ID:", catalogId);
+      
       const { data: overrides } = await supabaseAdmin
-        .from('reseller_product_prices') 
+        .from('reseller_product_prices')
         .select('product_id, custom_price_retail')
-        .eq('catalog_id', catalogId) 
-        .eq('user_id', resellerId); 
+        // AQUÍ ESTABA EL ERROR: Usamos replicated_catalog_id en lugar de catalog_id
+        .eq('replicated_catalog_id', catalogId); 
 
       if (overrides && overrides.length > 0) {
         const priceMap = new Map(overrides.map((o: any) => [o.product_id, o.custom_price_retail]));
         
         finalProducts = finalProducts.map((prod: any) => {
           const customPrice = priceMap.get(prod.id);
-          return {
-            ...prod,
-            price_retail: customPrice !== undefined && customPrice !== null ? customPrice : prod.price_retail
-          };
+          // Solo sobrescribimos si existe un precio personalizado
+          if (customPrice !== undefined && customPrice !== null) {
+             return { ...prod, price_retail: customPrice };
+          }
+          return prod;
         });
-        console.log(`💰 Se aplicaron ${overrides.length} precios personalizados.`);
+        console.log(`✅ ${overrides.length} precios actualizados correctamente.`);
+      } else {
+        console.log("⚠️ No se encontraron precios personalizados para esta réplica.");
       }
     }
 
-    // ---------------------------------------------------------
-    // 4. GENERAR XML (Facebook/Google Feed Format)
-    // ---------------------------------------------------------
+    // 4. GENERAR XML
     let xmlItems = '';
 
     for (const product of finalProducts) {
       const priceValue = (product.price_retail / 100).toFixed(2);
       const imageUrl = product.image_url || product.original_image_url;
-      // DEEP LINKING MAGICO:
       const productLink = `${BASE_DOMAIN}/c/${catalogInfo.slug}?product_highlight=${product.id}`;
 
-      // Validar datos mínimos requeridos por FB
       if (imageUrl && product.name) {
         xmlItems += `
     <item>
@@ -188,18 +175,14 @@ ${xmlItems}
       headers: {
         ...corsHeaders,
         'Content-Type': 'application/xml; charset=utf-8',
-        'Cache-Control': 'public, max-age=3600'
+        'Cache-Control': 'no-cache' // Forzamos no-cache para ver cambios rápido
       },
       status: 200
     });
 
   } catch (error: any) {
-    console.error('❌ Error generando feed:', error);
-    return new Response(JSON.stringify({
-      error: error.message,
-      details: error.details, // Para ver detalles en el log si vuelve a fallar
-      version: DEPLOY_VERSION
-    }), {
+    console.error('❌ Error:', error);
+    return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500
     });
