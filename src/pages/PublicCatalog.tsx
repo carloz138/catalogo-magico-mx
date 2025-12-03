@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import { Helmet } from "react-helmet-async";
 import { supabase } from "@/integrations/supabase/client";
 import { DigitalCatalog } from "@/types/digital-catalog";
 import { Lock, AlertCircle, ShieldCheck } from "lucide-react";
@@ -104,6 +105,17 @@ export default function PublicCatalog() {
           replicatedCatalogId = replica.id;
           resellerId = replica.reseller_id || undefined;
           catalogIdToFetch = catalogHeader.id || null;
+          
+          // L2 Branding: Override name/description if reseller has custom values
+          if ((replica as any).custom_name) {
+            catalogHeader.name = (replica as any).custom_name;
+          }
+          if ((replica as any).custom_description) {
+            catalogHeader.description = (replica as any).custom_description;
+          }
+          if ((replica as any).custom_logo_url) {
+            catalogHeader.logo_url = (replica as any).custom_logo_url;
+          }
         }
       } else {
         catalogHeader = data;
@@ -310,9 +322,28 @@ export default function PublicCatalog() {
     );
   }
 
+  // Extract brand colors for theme
+  const brandColors = catalog.brand_colors as { primary?: string; secondary?: string } | null;
+  const themeColor = brandColors?.primary || "#6366f1";
+  const ogImage = catalog.logo_url || "/social-preview.png";
+  const ogDescription = catalog.description || `Explora el catálogo ${catalog.name}`;
+
   // RENDER FINAL
   return (
     <QuoteCartProvider>
+      <Helmet>
+        <title>{catalog.name} | Catálogo Digital</title>
+        <meta name="description" content={ogDescription} />
+        <meta property="og:title" content={catalog.name} />
+        <meta property="og:description" content={ogDescription} />
+        <meta property="og:image" content={ogImage} />
+        <meta property="og:type" content="website" />
+        <meta name="theme-color" content={themeColor} />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={catalog.name} />
+        <meta name="twitter:description" content={ogDescription} />
+        <meta name="twitter:image" content={ogImage} />
+      </Helmet>
       <ScriptInjector headScripts={catalog.tracking_head_scripts} bodyScripts={catalog.tracking_body_scripts} />
       <PublicCatalogContent catalog={catalog} onTrackEvent={trackEvent} />
     </QuoteCartProvider>
