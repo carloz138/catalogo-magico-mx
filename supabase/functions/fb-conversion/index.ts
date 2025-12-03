@@ -2,7 +2,6 @@
 // FUNCION: fb-conversion (CAPI)
 // ESTADO: PROD_V2 (Soporte Deduplicación + Hashing)
 // ==========================================
-import { createClient } from 'jsr:@supabase/supabase-js@2'
 
 // CONTROL DE VERSION - Actualiza esto cuando hagas cambios para verlos en logs
 const DEPLOY_VERSION = "FB_CAPI_V2_DEDUPE";

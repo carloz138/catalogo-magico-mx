@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useRef, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 
 interface SaaSMarketingContextValue {
   trackSaaSEvent: (eventName: string, data?: Record<string, any>) => void;
@@ -58,28 +59,50 @@ export const SaaSMarketingProvider: React.FC<SaaSMarketingProviderProps> = ({ ch
     window.fbq?.('track', 'PageView');
   }, [location.pathname, pixelId]);
 
-  // Function to track custom events
-  const trackSaaSEvent = useCallback((eventName: string, data?: Record<string, any>) => {
-    if (!pixelId || !window.fbq) {
-      console.warn('[SaaS Pixel] Not initialized, skipping event:', eventName);
-      return;
+  // Hybrid tracking function: Browser Pixel + Server CAPI
+  const trackSaaSEvent = useCallback(async (eventName: string, data?: Record<string, any>) => {
+    // Generate unique event ID for deduplication
+    const eventId = crypto.randomUUID();
+
+    // 1. BROWSER PIXEL (Client-side)
+    if (pixelId && window.fbq) {
+      const standardEvents = [
+        'AddPaymentInfo', 'AddToCart', 'AddToWishlist', 'CompleteRegistration',
+        'Contact', 'CustomizeProduct', 'Donate', 'FindLocation', 'InitiateCheckout',
+        'Lead', 'Purchase', 'Schedule', 'Search', 'StartTrial', 'SubmitApplication',
+        'Subscribe', 'ViewContent'
+      ];
+
+      if (standardEvents.includes(eventName)) {
+        window.fbq('track', eventName, data, { eventID: eventId });
+      } else {
+        window.fbq('trackCustom', eventName, data, { eventID: eventId });
+      }
+      console.log('[SaaS Pixel] Browser event:', eventName, eventId);
     }
 
-    // Use standard events when applicable, otherwise trackCustom
-    const standardEvents = [
-      'AddPaymentInfo', 'AddToCart', 'AddToWishlist', 'CompleteRegistration',
-      'Contact', 'CustomizeProduct', 'Donate', 'FindLocation', 'InitiateCheckout',
-      'Lead', 'Purchase', 'Schedule', 'Search', 'StartTrial', 'SubmitApplication',
-      'Subscribe', 'ViewContent'
-    ];
+    // 2. SERVER CAPI (via Edge Function)
+    try {
+      const { error } = await supabase.functions.invoke('fb-conversion', {
+        body: {
+          event_name: eventName,
+          event_id: eventId,
+          event_source_url: window.location.href,
+          user_email: data?.email,
+          user_phone: data?.phone,
+          custom_data: data
+        }
+      });
 
-    if (standardEvents.includes(eventName)) {
-      window.fbq?.('track', eventName, data);
-    } else {
-      window.fbq?.('trackCustom', eventName, data);
+      if (error) {
+        console.warn('[SaaS CAPI] Error:', error.message);
+      } else {
+        console.log('[SaaS CAPI] Server event sent:', eventName, eventId);
+      }
+    } catch (err) {
+      // Silent fail - don't break UX if CAPI fails
+      console.warn('[SaaS CAPI] Failed:', err);
     }
-
-    console.log('[SaaS Pixel] Event tracked:', eventName, data);
   }, [pixelId]);
 
   const contextValue: SaaSMarketingContextValue = {
