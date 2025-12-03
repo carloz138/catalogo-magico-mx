@@ -1,10 +1,10 @@
 // ==========================================
 // FUNCION: fb-conversion (CAPI)
-// ESTADO: PROD_V2 (Soporte Deduplicación + Hashing)
+// ESTADO: PROD_V3 (Fix IP Formatting + Dedupe)
 // ==========================================
+import { createClient } from 'jsr:@supabase/supabase-js@2'
 
-// CONTROL DE VERSION - Actualiza esto cuando hagas cambios para verlos en logs
-const DEPLOY_VERSION = "FB_CAPI_V2_DEDUPE";
+const DEPLOY_VERSION = "FB_CAPI_V3_IP_FIX";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,11 +12,10 @@ const corsHeaders = {
 };
 
 // ------------------------------------------------------------------
-// HELPER: Hashing SHA-256 (Protocolo de privacidad de FB)
+// HELPER: Hashing SHA-256
 // ------------------------------------------------------------------
 async function hashData(data: string) {
   if (!data) return undefined;
-  // Normalización: minúsculas y sin espacios extra antes del hash
   const msgBuffer = new TextEncoder().encode(data.toLowerCase().trim());
   const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
@@ -24,10 +23,22 @@ async function hashData(data: string) {
 }
 
 // ------------------------------------------------------------------
+// HELPER: Limpiar IP (El fix para Facebook)
+// ------------------------------------------------------------------
+function getClientIp(req: Request): string {
+  const forwardedHeader = req.headers.get('x-forwarded-for');
+  // Si hay múltiples IPs (ej: "client, proxy"), tomamos la primera
+  if (forwardedHeader) {
+    return forwardedHeader.split(',')[0].trim();
+  }
+  return '0.0.0.0';
+}
+
+// ------------------------------------------------------------------
 // MAIN SERVER
 // ------------------------------------------------------------------
 Deno.serve(async (req) => {
-  // 1. LOG DE INICIO
+  // LOG DE VERSIÓN
   console.log(JSON.stringify({
     event: "FUNC_START",
     function: "fb-conversion",
@@ -35,33 +46,31 @@ Deno.serve(async (req) => {
     timestamp: new Date().toISOString()
   }));
 
-  // 2. MANEJO DE CORS
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
 
   try {
-    // Leemos el body incluyendo event_id
+    // Leemos el body
     const { 
       event_name, 
-      event_id,        // <--- IMPORTANTE: ID para deduplicación
+      event_id,        
       user_email, 
       user_phone, 
       custom_data, 
       event_source_url 
     } = await req.json()
     
-    // 3. OBTENER SECRETOS
     const PIXEL_ID = Deno.env.get('FB_PIXEL_ID')
     const ACCESS_TOKEN = Deno.env.get('FB_ACCESS_TOKEN')
 
     if (!PIXEL_ID || !ACCESS_TOKEN) {
-      console.error(`[${DEPLOY_VERSION}] Faltan variables de entorno (FB_PIXEL_ID o FB_ACCESS_TOKEN)`);
+      console.error(`[${DEPLOY_VERSION}] Faltan Secrets`);
       throw new Error('Configuración incompleta en servidor')
     }
 
-    // 4. PREPARAR DATOS DE USUARIO (HASHING)
-    const clientIp = req.headers.get('x-forwarded-for') || '0.0.0.0';
+    // 1. OBTENER IP LIMPIA (FIX APLICADO AQUI)
+    const clientIp = getClientIp(req);
     const userAgent = req.headers.get('user-agent') || '';
 
     const userData: any = {
@@ -69,16 +78,14 @@ Deno.serve(async (req) => {
       client_user_agent: userAgent,
     };
 
-    // Aplicamos hashing antes de enviar
     if (user_email) userData.em = [await hashData(user_email)];
     if (user_phone) userData.ph = [await hashData(user_phone)];
 
-    // 5. CONSTRUIR PAYLOAD DE FACEBOOK
     const payload = {
       data: [
         {
           event_name: event_name || 'Lead', 
-          event_id: event_id, // <--- Enviamos el mismo ID que el Pixel
+          event_id: event_id,
           event_time: Math.floor(Date.now() / 1000),
           action_source: 'website',
           event_source_url: event_source_url,
@@ -88,9 +95,8 @@ Deno.serve(async (req) => {
       ]
     };
 
-    console.log(`[${DEPLOY_VERSION}] Enviando evento '${event_name}' (ID: ${event_id || 'N/A'}) a FB...`);
+    console.log(`[${DEPLOY_VERSION}] Enviando evento '${event_name}' (IP: ${clientIp}) a FB...`);
 
-    // 6. ENVIAR A META GRAPH API (v19.0)
     const fbResponse = await fetch(
       `https://graph.facebook.com/v19.0/${PIXEL_ID}/events?access_token=${ACCESS_TOKEN}`,
       {
@@ -103,7 +109,8 @@ Deno.serve(async (req) => {
     const fbResult = await fbResponse.json()
 
     if (!fbResponse.ok) {
-      console.error(`[${DEPLOY_VERSION}] Error FB:`, fbResult)
+      // Si falla, mostramos el error completo para debug
+      console.error(`[${DEPLOY_VERSION}] Error FB:`, JSON.stringify(fbResult))
       return new Response(JSON.stringify({ error: fbResult }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400
