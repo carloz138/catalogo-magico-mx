@@ -1,11 +1,11 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CheckCircle, CreditCard, ArrowRight, Home } from 'lucide-react';
+import { useSaaSMarketing } from '@/providers/SaaSMarketingProvider';
 
 interface Transaction {
   id: string;
@@ -22,9 +22,11 @@ const PaymentSuccess = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { trackSaaSEvent } = useSaaSMarketing();
   const [transaction, setTransaction] = useState<Transaction | null>(null);
   const [userCredits, setUserCredits] = useState<number>(0);
   const [loading, setLoading] = useState(true);
+  const hasTrackedPurchase = useRef(false);
 
   const transactionId = searchParams.get('transaction_id');
 
@@ -64,6 +66,16 @@ const PaymentSuccess = () => {
       }
 
       setTransaction(transactionData);
+
+      // Track Purchase event (only once)
+      if (!hasTrackedPurchase.current && transactionData) {
+        trackSaaSEvent('Purchase', {
+          value: transactionData.amount_mxn / 100, // Convert from cents to MXN
+          currency: 'MXN',
+          content_name: transactionData.credit_packages?.name || 'Paquete de créditos',
+        });
+        hasTrackedPurchase.current = true;
+      }
 
       // Fetch current user credits
       const { data: userData, error: userError } = await supabase

@@ -11,6 +11,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { toast } from "../components/ui/use-toast";
 import { Mail, Loader2, CheckCircle, AlertCircle, ArrowLeft, Lock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useSaaSMarketing } from "@/providers/SaaSMarketingProvider";
 
 const businessTypeOptions = [
   { value: "pyme", label: "PyME / Pequeña Empresa" },
@@ -22,6 +23,7 @@ const businessTypeOptions = [
 
 export default function LoginPage() {
   const { signIn, signUp, signInWithGoogle } = useAuth();
+  const { trackSaaSEvent } = useSaaSMarketing();
   const [loading, setLoading] = useState(false);
   const [magicLinkLoading, setMagicLinkLoading] = useState(false);
   const [showResetPassword, setShowResetPassword] = useState(false);
@@ -70,6 +72,8 @@ export default function LoginPage() {
     if (error) {
       setFeedback({ type: "error", message: error.message });
     } else {
+      // Track successful registration
+      trackSaaSEvent('CompleteRegistration', { content_name: 'New User Signup' });
       setFeedback({ type: "success", message: "¡Cuenta creada! Revisa tu email para confirmar tu cuenta." });
     }
     setLoading(false);
