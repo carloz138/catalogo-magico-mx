@@ -7,22 +7,21 @@ export const useUploadTracking = () => {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  // Estados para la UI (Barra de progreso)
+  // Estados para la UI
   const [uploadsUsed, setUploadsUsed] = useState(0);
   const [maxUploads, setMaxUploads] = useState(0);
   const [loading, setLoading] = useState(true);
 
   // Lógica derivada
-  const isUnlimited = maxUploads > 10000; // Asumimos >10k como infinito
-  const remaining = Math.max(0, maxUploads - uploadsUsed);
+  const isUnlimited = maxUploads > 10000;
+  const remaining = Math.max(0, maxUploads - uploadsUsed); // <--- Aquí se calcula
   const canUpload = isUnlimited || remaining > 0;
   const percentage = isUnlimited ? 0 : Math.min(100, Math.round((uploadsUsed / maxUploads) * 100));
 
-  // 1. CARGA INICIAL (Para pintar la barra en el Dashboard)
+  // 1. CARGA INICIAL
   const fetchUsage = async () => {
     if (!user) return;
     try {
-      // a. Obtener Plan
       const { data: subscription } = await (supabase as any)
         .from("subscriptions")
         .select("credit_packages(max_uploads)")
@@ -33,7 +32,6 @@ export const useUploadTracking = () => {
       const limit = subscription?.credit_packages?.max_uploads || 0;
       setMaxUploads(limit);
 
-      // b. Obtener Uso
       const currentMonth = new Date().getFullYear() * 100 + (new Date().getMonth() + 1);
       const { data: usage } = await (supabase as any)
         .from("catalog_usage")
@@ -54,14 +52,10 @@ export const useUploadTracking = () => {
     fetchUsage();
   }, [user]);
 
-  // 2. VALIDACIÓN (Lógica original tuya, mantenida para Upload)
+  // 2. VALIDACIÓN
   const checkUploadLimits = async (filesToUpload: number = 1) => {
-    // Reutilizamos el estado si ya cargó, para no llamar a DB doble vez si no es necesario
-    // Pero por seguridad, recalculamos "remaining" en caliente si es crítico
     if (loading) await fetchUsage();
 
-    // Si sigue cargando o falló, validación estricta manual (tu lógica original simplificada)
-    // Para simplificar, usamos los valores del estado que acabamos de asegurar
     const updatedRemaining = isUnlimited ? 9999 : maxUploads - uploadsUsed;
 
     if (updatedRemaining < filesToUpload) {
@@ -74,13 +68,12 @@ export const useUploadTracking = () => {
     return { canUpload: true, reason: "within_limit" };
   };
 
-  // 3. INCREMENTAR (Tu lógica original mantenida)
+  // 3. INCREMENTAR
   const incrementUploadUsage = async (numberOfFiles: number) => {
     if (!user) return { success: false };
     try {
       const currentMonth = new Date().getFullYear() * 100 + (new Date().getMonth() + 1);
 
-      // Upsert simple
       const { data: existingUsage } = await (supabase as any)
         .from("catalog_usage")
         .select("id, uploads_used")
@@ -94,7 +87,6 @@ export const useUploadTracking = () => {
           .update({ uploads_used: existingUsage.uploads_used + numberOfFiles })
           .eq("id", existingUsage.id);
       } else {
-        // Crear si no existe
         const { data: sub } = await supabase
           .from("subscriptions")
           .select("package_id")
@@ -108,7 +100,6 @@ export const useUploadTracking = () => {
         });
       }
 
-      // Actualizamos el estado local para reflejar el cambio en la UI sin recargar
       setUploadsUsed((prev) => prev + numberOfFiles);
       return { success: true };
     } catch (error) {
@@ -131,15 +122,13 @@ export const useUploadTracking = () => {
   };
 
   return {
-    // Datos para UI (Products.tsx)
     uploadsUsed,
     maxUploads,
     percentage,
     isUnlimited,
-    canUpload, // Booleano simple para deshabilitar botones
+    canUpload,
     loading,
-
-    // Métodos (Upload.tsx)
+    remaining, // <--- ¡ESTO FALTABA! AHORA SÍ SE EXPORTA
     checkUploadLimits,
     incrementUploadUsage,
     validateBeforeUpload,
