@@ -1,10 +1,25 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useCatalogLimits } from "@/hooks/useCatalogLimits";
+import { useUploadTracking } from "@/hooks/useUploadTracking"; // <--- NUEVO IMPORT
 import { useBusinessInfo } from "@/hooks/useBusinessInfo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Package, Search, Scissors, Upload, Plus, Loader2, AlertTriangle, ImageIcon, Sparkles, X } from "lucide-react";
+import { Progress } from "@/components/ui/progress"; // <--- NUEVO IMPORT UI
+import {
+  Package,
+  Search,
+  Scissors,
+  Upload,
+  Plus,
+  Loader2,
+  AlertTriangle,
+  ImageIcon,
+  Sparkles,
+  X,
+  Lock, // <--- NUEVO ICONO
+  Zap, // <--- NUEVO ICONO
+} from "lucide-react";
 
 import { ProductCard } from "@/components/products/ProductCard";
 import { BusinessInfoBanner, isBusinessInfoCompleteForCatalog } from "@/components/products/BusinessInfoBanner";
@@ -12,6 +27,14 @@ import { ProductModals } from "@/components/products/ProductModals";
 import { useProductsLogic } from "@/hooks/useProductsLogic";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { useDebounce } from "@/hooks/useDebounce";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"; // <--- NUEVO PARA MODAL UPGRADE
 
 const Products = () => {
   const {
@@ -45,6 +68,12 @@ const Products = () => {
     selectedProduct,
   } = useProductsLogic();
 
+  // --- NUEVO: TRACKING DE UPLOADS ---
+  const { uploadsUsed, maxUploads, canUpload, percentage, isUnlimited, loading: loadingTracking } = useUploadTracking();
+
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  // ----------------------------------
+
   const [localSearchTerm, setLocalSearchTerm] = useState("");
   const debouncedSearchTerm = useDebounce(localSearchTerm, 300);
 
@@ -52,7 +81,7 @@ const Products = () => {
     setHookSearchTerm(debouncedSearchTerm);
   }, [debouncedSearchTerm, setHookSearchTerm]);
 
-  const { limits, canGenerate, catalogsUsed } = useCatalogLimits();
+  const { limits, canGenerate } = useCatalogLimits();
   const { businessInfo, loading: businessInfoLoading } = useBusinessInfo();
   const isBusinessInfoComplete = isBusinessInfoCompleteForCatalog(businessInfo);
 
@@ -63,7 +92,16 @@ const Products = () => {
     }
   }, []);
 
-  // --- 1. ALERTAS ---
+  // --- MANEJO DEL BOTÓN SUBIR ---
+  const handleUploadClick = () => {
+    if (canUpload) {
+      navigate("/upload");
+    } else {
+      setShowUpgradeModal(true);
+    }
+  };
+
+  // --- 1. ALERTAS (Mantenemos tu alerta de catálogos) ---
   const LimitsAlert = () => {
     if (!limits || canGenerate) return null;
     return (
@@ -72,7 +110,7 @@ const Products = () => {
           <CardContent className="p-3 flex flex-col sm:flex-row items-center gap-3">
             <div className="flex items-center gap-2 text-red-700">
               <AlertTriangle className="w-5 h-5 shrink-0" />
-              <span className="text-sm font-medium">Límite alcanzado</span>
+              <span className="text-sm font-medium">Límite de catálogos alcanzado</span>
             </div>
             <Button
               size="sm"
@@ -98,17 +136,39 @@ const Products = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 pb-32">
-      {/* 2. TOP BAR FIJA (Título y Botones de acción) */}
+      {/* 2. TOP BAR FIJA */}
       <div className="bg-white border-b sticky top-0 z-30 pt-safe-top shadow-sm">
         <div className="container mx-auto px-4 h-14 flex items-center justify-between gap-4">
-          <h1 className="text-lg font-bold text-gray-900">Biblioteca</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-lg font-bold text-gray-900">Biblioteca</h1>
+
+            {/* NUEVO: INDICADOR DE UPLOADS (SOLO SI NO ES ILIMITADO) */}
+            {!isUnlimited && !loadingTracking && (
+              <div className="hidden sm:flex items-center gap-2 bg-slate-100 px-2 py-1 rounded-full border border-slate-200">
+                <div className="w-20">
+                  <Progress
+                    value={percentage}
+                    className={`h-2 ${percentage >= 100 ? "bg-red-100" : ""}`}
+                    indicatorClassName={percentage >= 100 ? "bg-red-500" : "bg-indigo-500"}
+                  />
+                </div>
+                <span className={`text-[10px] font-bold ${percentage >= 100 ? "text-red-600" : "text-slate-600"}`}>
+                  {uploadsUsed} / {maxUploads}
+                </span>
+              </div>
+            )}
+          </div>
+
           <div className="flex gap-2">
+            {/* BOTÓN SUBIR MODIFICADO */}
             <Button
-              onClick={() => navigate("/upload")}
-              className="bg-indigo-600 hover:bg-indigo-700 shadow-sm h-8 px-3 text-xs"
+              onClick={handleUploadClick}
+              className={`${!canUpload ? "bg-slate-100 text-slate-400 hover:bg-slate-200" : "bg-indigo-600 hover:bg-indigo-700"} shadow-sm h-8 px-3 text-xs transition-all`}
             >
-              <Plus className="h-3.5 w-3.5 mr-1.5" /> Subir
+              {!canUpload ? <Lock className="h-3.5 w-3.5 mr-1.5" /> : <Plus className="h-3.5 w-3.5 mr-1.5" />}
+              Subir
             </Button>
+
             <Button
               onClick={() => navigate("/products/bulk-upload")}
               variant="outline"
@@ -121,7 +181,7 @@ const Products = () => {
           </div>
         </div>
 
-        {/* 3. BARRA DE FILTROS & BÚSQUEDA (STICKY) */}
+        {/* 3. BARRA DE FILTROS & BÚSQUEDA */}
         <div className="bg-white/95 backdrop-blur-sm border-b border-gray-100 py-3 px-4">
           <div className="container mx-auto flex flex-col gap-3">
             {/* Search Input */}
@@ -143,7 +203,7 @@ const Products = () => {
               )}
             </div>
 
-            {/* FILTROS (GRID 3 COLUMNAS - ÚNICO LUGAR DE FILTRADO) */}
+            {/* FILTROS */}
             <div className="grid grid-cols-3 gap-2 w-full">
               <button
                 onClick={() => handleTabChange("all")}
@@ -160,7 +220,7 @@ const Products = () => {
                   {stats?.total || 0}
                 </span>
               </button>
-
+              {/* Resto de botones igual... */}
               <button
                 onClick={() => handleTabChange("no-background")}
                 className={`py-1.5 px-1 rounded-md text-xs font-medium transition-all border flex flex-col sm:flex-row items-center justify-center gap-1 ${
@@ -178,7 +238,6 @@ const Products = () => {
                   {stats?.noBackground || 0}
                 </span>
               </button>
-
               <button
                 onClick={() => handleTabChange("with-background")}
                 className={`py-1.5 px-1 rounded-md text-xs font-medium transition-all border flex flex-col sm:flex-row items-center justify-center gap-1 ${
@@ -206,6 +265,19 @@ const Products = () => {
         <div className="px-4 md:px-0">
           <LimitsAlert />
 
+          {/* ALERTA MOVIL DE LIMITE (Solo si está lleno) */}
+          {!isUnlimited && !canUpload && (
+            <div className="mb-4 sm:hidden bg-red-50 border border-red-200 rounded-lg p-3 flex items-center gap-3">
+              <AlertTriangle className="h-5 w-5 text-red-600 shrink-0" />
+              <div className="text-xs text-red-800">
+                <span className="font-bold block">
+                  Has usado {uploadsUsed}/{maxUploads} productos.
+                </span>
+                Sube de nivel para agregar más.
+              </div>
+            </div>
+          )}
+
           {!businessInfoLoading && !isBusinessInfoComplete && showBusinessInfoBanner && (
             <BusinessInfoBanner onDismiss={() => setShowBusinessInfoBanner(false)} />
           )}
@@ -218,7 +290,7 @@ const Products = () => {
               </div>
               <h3 className="text-lg font-bold text-slate-900">Sin imágenes</h3>
               <p className="text-slate-500 text-sm mb-6 max-w-xs">Sube tus fotos para empezar.</p>
-              <Button onClick={() => navigate("/upload")} className="bg-indigo-600 hover:bg-indigo-700">
+              <Button onClick={handleUploadClick} className="bg-indigo-600 hover:bg-indigo-700">
                 <Upload className="h-4 w-4 mr-2" /> Subir Fotos
               </Button>
             </div>
@@ -239,7 +311,6 @@ const Products = () => {
             </div>
           ) : (
             <>
-              {/* Texto de selección */}
               {selectedProducts.length > 0 && (
                 <div className="flex items-center justify-between mb-3 text-sm animate-in fade-in sticky top-40 z-10 bg-slate-50/90 backdrop-blur-sm py-1 rounded-lg px-2">
                   <span className="text-indigo-600 font-medium">{selectedProducts.length} seleccionados</span>
@@ -252,7 +323,6 @@ const Products = () => {
                 </div>
               )}
 
-              {/* GRID DE PRODUCTOS */}
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-4">
                 {filteredProducts.map((product) => (
                   <ProductCard
@@ -271,7 +341,7 @@ const Products = () => {
         </div>
       </div>
 
-      {/* 5. FLOATING ACTION BAR (MOBILE OPTIMIZED) */}
+      {/* 5. FLOATING ACTION BAR */}
       {selectedProducts.length > 0 && (
         <div className="fixed bottom-6 left-4 right-4 z-50 flex justify-center animate-in slide-in-from-bottom-10 duration-300">
           <div className="bg-slate-900/95 backdrop-blur text-white pl-4 pr-2 py-2 rounded-full shadow-2xl flex items-center justify-between gap-3 w-full max-w-md border border-slate-700">
@@ -297,7 +367,6 @@ const Products = () => {
                 variant="ghost"
                 className="h-9 w-9 text-slate-300 hover:text-white hover:bg-white/10 rounded-full"
                 onClick={handleRemoveBackground}
-                title="Quitar Fondo"
                 disabled={processing}
               >
                 {processing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Scissors className="h-4 w-4" />}
@@ -316,7 +385,6 @@ const Products = () => {
         </div>
       )}
 
-      {/* MODALES */}
       <ProductModals
         showViewModal={showViewModal}
         setShowViewModal={setShowViewModal}
@@ -338,6 +406,35 @@ const Products = () => {
         onConfirm={confirmDeleteProduct}
         variant="destructive"
       />
+
+      {/* NUEVO: MODAL DE UPGRADE */}
+      <Dialog open={showUpgradeModal} onOpenChange={setShowUpgradeModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-indigo-600">
+              <Zap className="h-5 w-5 fill-indigo-600" /> ¡Alcanzaste tu límite!
+            </DialogTitle>
+            <DialogDescription className="pt-2">
+              Has usado{" "}
+              <b>
+                {uploadsUsed} de {maxUploads}
+              </b>{" "}
+              productos permitidos en tu plan actual.
+              <br />
+              <br />
+              Para seguir subiendo más productos y desbloquear la Inteligencia Artificial, necesitas mejorar tu plan.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex flex-col sm:flex-row gap-2 mt-4">
+            <Button variant="outline" onClick={() => setShowUpgradeModal(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={() => navigate("/checkout")} className="bg-indigo-600 hover:bg-indigo-700">
+              Ver Planes de Upgrade
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
