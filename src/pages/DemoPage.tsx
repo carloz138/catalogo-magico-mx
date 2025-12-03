@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DEMO_DATA, Industry } from "@/data/demoData";
+import { useSaaSMarketing } from "@/providers/SaaSMarketingProvider";
 import {
   DemoRadarWidget,
   DemoSearchWidget,
@@ -33,7 +34,13 @@ import { DemoHotspot } from "@/components/demo/DemoHotspot";
 export default function DemoPage() {
   const [industry, setIndustry] = useState<Industry>("ropa");
   const [showWelcome, setShowWelcome] = useState(true);
+  const { trackSaaSEvent } = useSaaSMarketing();
   const data = DEMO_DATA[industry];
+
+  // Track ViewContent on mount
+  useEffect(() => {
+    trackSaaSEvent('ViewContent', { content_name: 'SaaS Demo Page' });
+  }, []);
 
   const IndustryIcon = {
     ropa: Shirt,
