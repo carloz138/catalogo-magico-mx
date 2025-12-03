@@ -1,10 +1,10 @@
 // ==========================================
 // FUNCION: generate-catalog-feed (META XML)
-// ESTADO: PROD_V1 (Soporte L1/L2 + Deep Linking)
+// ESTADO: FIX_PGRST201 (Relación Explícita)
 // ==========================================
 import { createClient } from 'jsr:@supabase/supabase-js@2.49.8';
 
-const DEPLOY_VERSION = Deno.env.get("FUNCTION_HASH") || "INIT_HASH";
+const DEPLOY_VERSION = Deno.env.get("FUNCTION_HASH") || "FIX_AMBIGUOUS_FK";
 // Cambia esto a tu dominio real si no es catifypro.com
 const BASE_DOMAIN = "https://catifypro.com"; 
 
@@ -99,13 +99,14 @@ Deno.serve(async (req) => {
     if (!catalogInfo) throw new Error('Catálogo no encontrado');
 
     // ---------------------------------------------------------
-    // 2. OBTENER PRODUCTOS BASE
+    // 2. OBTENER PRODUCTOS BASE (CORREGIDO)
     // ---------------------------------------------------------
+    // AQUÍ ESTABA EL ERROR: Agregamos !catalog_products_product_id_fkey
     const { data: productsData, error: prodError } = await supabaseAdmin
       .from('catalog_products')
       .select(`
         product_id,
-        products (
+        products!catalog_products_product_id_fkey (
           id, name, description, sku, 
           price_retail, 
           image_url, original_image_url
@@ -113,7 +114,10 @@ Deno.serve(async (req) => {
       `)
       .eq('catalog_id', targetProductSourceId);
 
-    if (prodError) throw prodError;
+    if (prodError) {
+        console.error("❌ Error query productos:", prodError);
+        throw prodError;
+    }
 
     // ---------------------------------------------------------
     // 3. LOGICA DE PRECIOS (Si es L2)
@@ -123,16 +127,14 @@ Deno.serve(async (req) => {
     if (isL2 && resellerId) {
       // Obtener precios personalizados del revendedor
       const { data: overrides } = await supabaseAdmin
-        .from('reseller_product_prices') // Ajusta el nombre de tu tabla de precios
+        .from('reseller_product_prices') 
         .select('product_id, custom_price_retail')
-        .eq('catalog_id', catalogId) // Ojo: Precios ligados a este catálogo específico
-        .eq('user_id', resellerId); // Y a este usuario
+        .eq('catalog_id', catalogId) 
+        .eq('user_id', resellerId); 
 
       if (overrides && overrides.length > 0) {
-        // Crear mapa de precios para acceso rápido
         const priceMap = new Map(overrides.map((o: any) => [o.product_id, o.custom_price_retail]));
         
-        // Aplicar overrides
         finalProducts = finalProducts.map((prod: any) => {
           const customPrice = priceMap.get(prod.id);
           return {
@@ -186,16 +188,16 @@ ${xmlItems}
       headers: {
         ...corsHeaders,
         'Content-Type': 'application/xml; charset=utf-8',
-        'Cache-Control': 'public, max-age=3600' // Cache de 1 hora para FB
+        'Cache-Control': 'public, max-age=3600'
       },
       status: 200
     });
 
   } catch (error: any) {
     console.error('❌ Error generando feed:', error);
-    // Retornamos JSON en error para debugging, aunque FB espere XML
     return new Response(JSON.stringify({
       error: error.message,
+      details: error.details, // Para ver detalles en el log si vuelve a fallar
       version: DEPLOY_VERSION
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
