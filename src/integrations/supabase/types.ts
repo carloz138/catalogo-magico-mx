@@ -1689,6 +1689,8 @@ export type Database = {
           activation_paid: boolean | null
           activation_token: string
           created_at: string | null
+          custom_logo: string | null
+          custom_name: string | null
           distributor_id: string
           enable_free_shipping: boolean | null
           expires_at: string | null
@@ -1709,6 +1711,8 @@ export type Database = {
           activation_paid?: boolean | null
           activation_token: string
           created_at?: string | null
+          custom_logo?: string | null
+          custom_name?: string | null
           distributor_id: string
           enable_free_shipping?: boolean | null
           expires_at?: string | null
@@ -1729,6 +1733,8 @@ export type Database = {
           activation_paid?: boolean | null
           activation_token?: string
           created_at?: string | null
+          custom_logo?: string | null
+          custom_name?: string | null
           distributor_id?: string
           enable_free_shipping?: boolean | null
           expires_at?: string | null

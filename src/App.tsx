@@ -9,6 +9,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { RoleProvider } from "@/contexts/RoleContext";
 import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
 import { QuoteCartProvider } from "@/contexts/QuoteCartContext";
+import { SaaSMarketingProvider } from "@/providers/SaaSMarketingProvider";
 
 // Components & Layouts
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
@@ -70,10 +71,11 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <AuthProvider>
-          <RoleProvider>
-            <SubscriptionProvider>
-              <Routes>
+        <SaaSMarketingProvider>
+          <AuthProvider>
+            <RoleProvider>
+              <SubscriptionProvider>
+                <Routes>
                 {/* --- Rutas Públicas (Sin Sidebar) --- */}
                 <Route path="/" element={<Index />} />
                 <Route path="/login" element={<LoginPage />} />
@@ -154,9 +156,10 @@ const App = () => (
                 {/* Ruta para Not Found al final */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
-            </SubscriptionProvider>
-          </RoleProvider>
-        </AuthProvider>
+              </SubscriptionProvider>
+            </RoleProvider>
+          </AuthProvider>
+        </SaaSMarketingProvider>
       </TooltipProvider>
     </QueryClientProvider>
   </BrowserRouter>
