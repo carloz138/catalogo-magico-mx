@@ -7,14 +7,16 @@ import { Lock, AlertCircle, ShieldCheck } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { PublicCatalogContent } from "@/components/catalog/public/PublicCatalogContent";
 import { toast } from "@/hooks/use-toast";
 import { useMetaTracking } from "@/hooks/useMetaTracking";
 import { QuoteCartProvider } from "@/contexts/QuoteCartContext";
 import { Skeleton } from "@/components/ui/skeleton";
 import { motion } from "framer-motion";
 
-// DEFINICIÓN LOCAL DE PRODUCT (Mantenemos consistencia)
+// Asegúrate de que esta ruta apunte a tu archivo "largo"
+import { PublicCatalogContent } from "@/components/catalog/public/PublicCatalogContent";
+
+// Definición local de Product para TypeScript
 interface Product {
   id: string;
   name: string;
@@ -28,7 +30,8 @@ interface Product {
     price_retail: number;
     attributes: Record<string, string>;
   }>;
-  catalog_products?: any;
+  // Bandera opcional por si la necesitas visualmente en el futuro
+  is_reseller_product?: boolean;
 }
 
 // --- COMPONENTE: INYECTOR DE SCRIPTS ---
@@ -68,7 +71,7 @@ export default function PublicCatalog() {
   const [accessPassword, setAccessPassword] = useState("");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  // 1. FETCH DE DATOS (CORREGIDO PARA SOPORTAR L2 Y FIX PGRST201)
+  // 1. FETCH DE DATOS: AQUÍ ESTÁ LA MAGIA DE LA MEZCLA (L1 + L2)
   const {
     data: catalog,
     isLoading,
@@ -84,10 +87,10 @@ export default function PublicCatalog() {
       let resellerId: string | undefined = undefined;
       let catalogHeader: any | null = null;
 
-      // 1.1 Buscar L1 (Catálogo Original)
+      // PASO 1.1: Buscar L1 (Catálogo Original)
       let { data, error: errL1 } = await supabase.from("digital_catalogs").select(`*`).eq("slug", slug).maybeSingle();
 
-      // 1.2 Buscar L2 (Si no es L1, buscamos en Réplicas)
+      // PASO 1.2: Buscar L2 (Si no es L1, buscamos en Réplicas)
       if (!data) {
         const { data: replica } = await supabase
           .from("replicated_catalogs")
@@ -107,12 +110,13 @@ export default function PublicCatalog() {
         catalogIdToFetch = data.id;
       }
 
-      // 2. Fail Check
+      // Validación de fallo
       if (!catalogHeader || !catalogIdToFetch) return null;
 
-      // 3. Fetch Productos (FIX PGRST201 APLICADO AQUÍ)
-      // Usamos la notación explícita !catalog_products_product_id_fkey
-      const { data: rawProducts, error: prodError } = await supabase
+      // PASO 2: OBTENER PRODUCTOS (MEZCLA)
+
+      // A) Productos del Fabricante (L1) - Vienen de la tabla intermedia catalog_products
+      const { data: rawL1Products, error: prodError } = await supabase
         .from("catalog_products")
         .select(
           `
@@ -127,15 +131,41 @@ export default function PublicCatalog() {
         throw prodError;
       }
 
-      const products = rawProducts?.map((cp: any) => cp.products).filter(Boolean) || [];
+      // Limpiamos el array de L1
+      const l1Products = rawL1Products?.map((cp: any) => cp.products).filter(Boolean) || [];
+
+      // B) Productos del Revendedor (L2) - Vienen directo de la tabla products
+      let l2Products: any[] = [];
+
+      // Solo buscamos si es una réplica y tenemos el ID del revendedor
+      if (isReplicated && resellerId) {
+        // Buscamos productos creados por este revendedor que no estén borrados
+        const { data: rawL2Products, error: l2Error } = await supabase
+          .from("products")
+          .select("*")
+          .eq("user_id", resellerId)
+          .is("deleted_at", null);
+
+        if (!l2Error && rawL2Products) {
+          l2Products = rawL2Products.map((p) => ({
+            ...p,
+            is_reseller_product: true, // Marca interna por si quieres ponerle un badge visual luego
+          }));
+        }
+      }
+
+      // C) LA MEZCLA FINAL (The Merge)
+      // Concatenamos ambos arrays. El componente visual (PublicCatalogContent) ya tiene
+      // la lógica para filtrarlos, buscarlos y paginarlos, así que funcionará automático.
+      const allProducts = [...l1Products, ...l2Products];
 
       // View Count (Fire & Forget)
       supabase.rpc("increment_view_count" as any, { row_id: catalogIdToFetch }).then();
 
-      // RETORNAMOS EL OBJETO COMPLETO
+      // Retornamos el objeto híbrido
       return {
         ...catalogHeader,
-        products: products as Product[],
+        products: allProducts as Product[], // <--- Aquí va la lista mezclada
         isReplicated,
         replicatedCatalogId,
         resellerId,
@@ -149,7 +179,7 @@ export default function PublicCatalog() {
     retry: false,
   });
 
-  // 2. SEO TITLE UPDATE
+  // 2. SEO TITLE
   useEffect(() => {
     if (catalog?.name) {
       document.title = `${catalog.name} | Catálogo Digital`;
@@ -161,7 +191,7 @@ export default function PublicCatalog() {
     };
   }, [catalog?.name]);
 
-  // 3. TRACKING CONFIG
+  // 3. TRACKING
   const trackingConfig = (catalog?.tracking_config as any) || {};
   const { trackEvent } = useMetaTracking({
     enabled: true,
@@ -170,7 +200,7 @@ export default function PublicCatalog() {
     isEnterprise: !!trackingConfig.accessToken,
   });
 
-  // 4. PAGE VIEW TRACKING
+  // 4. PAGE VIEW
   useEffect(() => {
     if (catalog) {
       trackEvent("PageView");
@@ -184,18 +214,13 @@ export default function PublicCatalog() {
 
   // --- ESTADOS DE INTERFAZ ---
 
-  // A) LOADING: Skeleton Screen "Premium"
+  // LOADING
   if (isLoading) {
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col">
-        {/* Banner Skeleton */}
         <div className="h-64 w-full bg-slate-200 animate-pulse" />
-
         <div className="container mx-auto px-4 -mt-8 z-10">
-          {/* Toolbar Skeleton */}
           <div className="bg-white rounded-xl shadow-lg p-4 mb-8 border border-slate-100 h-24 w-full animate-pulse" />
-
-          {/* Grid Skeleton */}
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
               <div key={i} className="bg-white rounded-xl border border-slate-100 overflow-hidden h-80">
@@ -212,7 +237,7 @@ export default function PublicCatalog() {
     );
   }
 
-  // B) ERROR: Diseño Industrial Limpio
+  // ERROR
   if (error || !catalog) {
     return (
       <div className="min-h-screen w-full flex flex-col items-center justify-center bg-slate-50 p-4 text-center">
@@ -220,9 +245,7 @@ export default function PublicCatalog() {
           <AlertCircle className="h-8 w-8 text-slate-400" />
         </div>
         <h1 className="text-2xl font-bold text-slate-900 mb-2">Enlace no disponible</h1>
-        <p className="text-slate-500 max-w-md">
-          Es posible que el catálogo haya expirado, haya sido eliminado por el proveedor o el enlace sea incorrecto.
-        </p>
+        <p className="text-slate-500 max-w-md">Es posible que el catálogo haya expirado o el enlace sea incorrecto.</p>
         <Button variant="outline" className="mt-6" onClick={() => window.location.reload()}>
           Recargar página
         </Button>
@@ -230,7 +253,7 @@ export default function PublicCatalog() {
     );
   }
 
-  // C) LOCK SCREEN: Diseño "Vault" (Caja Fuerte)
+  // LOCK SCREEN
   if (catalog.is_private && !isAuthenticated) {
     const handleUnlock = () => {
       if (accessPassword === catalog.access_password) {
@@ -243,9 +266,7 @@ export default function PublicCatalog() {
 
     return (
       <div className="min-h-screen w-full flex items-center justify-center bg-slate-100 p-4 relative overflow-hidden">
-        {/* Background Pattern */}
         <div className="absolute inset-0 opacity-[0.03] bg-[radial-gradient(#0f172a_1px,transparent_1px)] [background-size:16px_16px]"></div>
-
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -281,26 +302,18 @@ export default function PublicCatalog() {
                 <ShieldCheck className="w-4 h-4 mr-2" />
                 Desbloquear Acceso
               </Button>
-
-              <div className="pt-4 text-center">
-                <p className="text-xs text-slate-400 uppercase tracking-wider font-medium">Secured by CatifyPro</p>
-              </div>
             </CardContent>
           </Card>
         </motion.div>
-
         <ScriptInjector headScripts={catalog.tracking_head_scripts} bodyScripts={catalog.tracking_body_scripts} />
       </div>
     );
   }
 
-  // D) RENDER FINAL: Catálogo Abierto
+  // RENDER FINAL
   return (
     <QuoteCartProvider>
       <ScriptInjector headScripts={catalog.tracking_head_scripts} bodyScripts={catalog.tracking_body_scripts} />
-      {/* catalog.replicatedCatalogId es la clave para que la venta sea viral.
-          PublicCatalogContent se encargará de pasarlo al QuoteForm.
-      */}
       <PublicCatalogContent catalog={catalog} onTrackEvent={trackEvent} />
     </QuoteCartProvider>
   );
