@@ -300,6 +300,12 @@ export interface ReplicatedCatalog {
   reseller_id: string | null;
   distributor_id: string;
   reseller_email: string | null;
+  
+  // Branding para Revendedores (L2)
+  custom_name?: string | null;
+  custom_description?: string | null;
+  custom_logo_url?: string | null;
+  
   is_active: boolean;
   activation_token: string;
   activation_paid: boolean;
