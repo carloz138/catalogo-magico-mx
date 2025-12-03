@@ -16,6 +16,7 @@ import { Helmet } from "react-helmet-async";
 
 import { PublicCatalogContent } from "@/components/catalog/public/PublicCatalogContent";
 
+// Tipos locales
 interface Product {
   id: string;
   name: string;
@@ -82,10 +83,10 @@ export default function PublicCatalog() {
       let resellerId: string | undefined = undefined;
       let catalogHeader: any | null = null;
 
-      // 1. Buscar L1 (Catálogo Original)
+      // 1. Intentar buscar como Catálogo Original (L1)
       let { data, error: errL1 } = await supabase.from("digital_catalogs").select(`*`).eq("slug", slug).maybeSingle();
 
-      // 2. Buscar L2 (Réplica)
+      // 2. Si no existe, buscar como Réplica (L2)
       if (!data) {
         const { data: replica } = await supabase
           .from("replicated_catalogs")
@@ -94,14 +95,8 @@ export default function PublicCatalog() {
           .maybeSingle();
 
         if (replica && replica.digital_catalogs) {
-          // Usamos la base del original
+          // AQUI ESTA LA CLAVE: Heredamos TODO el objeto del catálogo original (Template, Configuración, Scripts)
           catalogHeader = { ...replica.digital_catalogs };
-
-          // BRANDING: Si hay nombre custom, lo usamos (cast para columnas nuevas)
-          const replicaData = replica as typeof replica & { custom_name?: string | null };
-          if (replicaData.custom_name) {
-            catalogHeader.name = replicaData.custom_name;
-          }
 
           isReplicated = true;
           replicatedCatalogId = replica.id;
@@ -109,15 +104,54 @@ export default function PublicCatalog() {
           catalogIdToFetch = catalogHeader.id || null;
         }
       } else {
+        // Es un catálogo original
         catalogHeader = data;
         catalogIdToFetch = data.id;
       }
 
       if (!catalogHeader || !catalogIdToFetch) return null;
 
-      // --- 3. FETCH DE PRODUCTOS ---
+      // --- LOGICA DE BRANDING (Solo para Revendedores) ---
+      // Si es L2, consultamos SU tabla de business_info para "vestir" el catálogo
+      if (isReplicated && resellerId) {
+        const { data: businessInfo } = await supabase
+          .from("business_info")
+          .select("*")
+          .eq("user_id", resellerId)
+          .maybeSingle();
 
-      // A) Productos del Fabricante (L1)
+        if (businessInfo) {
+          // 1. Sobrescribimos Identidad Visual (Header y Metaetiquetas)
+          if (businessInfo.business_name) catalogHeader.name = businessInfo.business_name;
+          if (businessInfo.description) catalogHeader.description = businessInfo.description;
+          if (businessInfo.logo_url) catalogHeader.logo_url = businessInfo.logo_url;
+
+          // 2. Sobrescribimos Colores (Respetando el Template L1, solo cambiamos la paleta)
+          if (businessInfo.primary_color) {
+            catalogHeader.brand_colors = {
+              primary: businessInfo.primary_color,
+              secondary: businessInfo.secondary_color || catalogHeader.brand_colors?.secondary || "#000000",
+            };
+          }
+
+          // 3. Sobrescribimos Datos de Contacto (Para el Footer/Botones de contacto)
+          // Esto llena la prop 'business_info' que espera tu componente PublicCatalogContent
+          catalogHeader.business_info = {
+            business_name: businessInfo.business_name,
+            logo_url: businessInfo.logo_url,
+            phone: businessInfo.phone,
+            email: businessInfo.email,
+            website: businessInfo.website,
+            address: businessInfo.address,
+            social_media: businessInfo.social_media, // Si tu componente lo usa
+          };
+        }
+      }
+      // ----------------------------------------------------
+
+      // --- FETCH DE PRODUCTOS (Híbrido) ---
+
+      // A) Productos L1 (Originales)
       const { data: rawL1Products, error: prodError } = await supabase
         .from("catalog_products")
         .select(`product_id, products!catalog_products_product_id_fkey (*)`)
@@ -127,8 +161,7 @@ export default function PublicCatalog() {
 
       let l1Products = rawL1Products?.map((cp: any) => cp.products).filter(Boolean) || [];
 
-      // --- PASO INTERMEDIO: HIDRATACIÓN DE PRECIOS (Lógica Nueva) ---
-      // Si es una réplica, consultamos los precios personalizados y sobrescribimos
+      // HIDRATACIÓN DE PRECIOS (Si el revendedor cambió precios)
       if (isReplicated && replicatedCatalogId) {
         const { data: customPrices } = await supabase
           .from("reseller_product_prices")
@@ -136,16 +169,12 @@ export default function PublicCatalog() {
           .eq("replicated_catalog_id", replicatedCatalogId);
 
         if (customPrices && customPrices.length > 0) {
-          // Creamos un mapa para búsqueda rápida O(1)
           const priceMap = new Map(customPrices.map((p) => [p.product_id, p]));
-
-          // Sobrescribimos precios en el array L1
           l1Products = l1Products.map((p: any) => {
             const override = priceMap.get(p.id);
             if (override) {
               return {
                 ...p,
-                // Si custom_price_retail existe, úsalo. Si es null, mantén el original.
                 price_retail: override.custom_price_retail ?? p.price_retail,
                 price_wholesale: override.custom_price_wholesale ?? p.price_wholesale,
               };
@@ -154,10 +183,8 @@ export default function PublicCatalog() {
           });
         }
       }
-      // -----------------------------------------------------------
 
-      // B) Productos del Revendedor (L2) - Owned Products
-      // Estos NO necesitan hidratación porque el revendedor los creó con SU precio.
+      // B) Productos L2 (Propios del Revendedor)
       let l2Products: any[] = [];
       if (isReplicated && resellerId) {
         const { data: rawL2Products, error: l2Error } = await supabase
@@ -174,11 +201,13 @@ export default function PublicCatalog() {
         }
       }
 
-      // C) LA MEZCLA FINAL
+      // MEZCLA FINAL
       const allProducts = [...l1Products, ...l2Products];
 
       supabase.rpc("increment_view_count" as any, { row_id: catalogIdToFetch }).then();
 
+      // RETORNO
+      // Notarás que 'catalogHeader' ya trae el 'web_template_id' correcto del original
       return {
         ...catalogHeader,
         products: allProducts as Product[],
@@ -215,7 +244,6 @@ export default function PublicCatalog() {
     }
   }, [catalog?.id]);
 
-  // --- LOADING ---
   if (isLoading) {
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col">
@@ -224,7 +252,6 @@ export default function PublicCatalog() {
     );
   }
 
-  // --- ERROR ---
   if (error || !catalog) {
     return (
       <div className="min-h-screen w-full flex flex-col items-center justify-center bg-slate-50 p-4 text-center">
@@ -237,7 +264,6 @@ export default function PublicCatalog() {
     );
   }
 
-  // --- LOCK SCREEN ---
   if (catalog.is_private && !isAuthenticated) {
     const handleUnlock = () => {
       if (accessPassword === catalog.access_password) {
@@ -270,7 +296,6 @@ export default function PublicCatalog() {
     );
   }
 
-  // --- RENDER FINAL ---
   return (
     <QuoteCartProvider>
       <Helmet>
