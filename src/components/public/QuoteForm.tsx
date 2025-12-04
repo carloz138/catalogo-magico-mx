@@ -9,17 +9,26 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { CheckCircle, Loader2, MapPin, Truck } from "lucide-react";
+import {
+  CheckCircle,
+  Loader2,
+  MapPin,
+  Truck,
+  ChevronDown,
+  ChevronUp,
+  Store,
+  Building2,
+  StickyNote,
+} from "lucide-react";
 import { QuoteService } from "@/services/quote.service";
 import { toast } from "sonner";
 import { Separator } from "@/components/ui/separator";
+import { cn } from "@/lib/utils"; // Asegúrate de tener esta utilidad, si no, usa template strings
 
 // Declaraciones de tipos para tracking
 declare global {
   interface Window {
     dataLayer?: any[];
-    // Eliminamos 'fbq' de aquí para evitar el conflicto (Error TS2717)
-    // Lo usaremos como 'any' directamente en el código
   }
 }
 
@@ -50,7 +59,6 @@ const schema = z
 
 type FormData = z.infer<typeof schema>;
 
-// ✅ INTERFACE EXPLÍCITA Y EXPORTADA
 export interface QuoteFormProps {
   catalogId: string;
   replicatedCatalogId?: string | undefined;
@@ -63,11 +71,12 @@ export interface QuoteFormProps {
 }
 
 export function QuoteForm(props: QuoteFormProps) {
-  // Destructuring dentro del componente
   const { catalogId, replicatedCatalogId, items, totalAmount, isOpen, onClose, onSuccess, businessAddress } = props;
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  // Estado para controlar la visibilidad de campos opcionales
+  const [showExtras, setShowExtras] = useState(false);
 
   const form = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -77,7 +86,7 @@ export function QuoteForm(props: QuoteFormProps) {
       company: "",
       phone: "",
       notes: "",
-      delivery_method: "shipping",
+      delivery_method: "pickup", // UX: Default a Pickup si queremos priorizarlo, o shipping según tu negocio
       shipping_address: "",
     },
   });
@@ -121,8 +130,6 @@ export function QuoteForm(props: QuoteFormProps) {
       setSubmitted(true);
       toast.success("Cotización enviada correctamente");
 
-      console.log("Disparando eventos de conversión...");
-
       try {
         if (window.dataLayer) {
           window.dataLayer.push({
@@ -131,25 +138,22 @@ export function QuoteForm(props: QuoteFormProps) {
             currency: "MXN",
             items_count: items.length,
           });
-          console.log("Evento 'generate_quote' enviado a dataLayer (GTM).");
         }
       } catch (e) {
-        console.error("Error al disparar evento GTM:", e);
+        console.error("Error GTM:", e);
       }
 
-      // CORRECCIÓN AQUÍ: Usamos (window as any) para evitar el error de TS
       try {
-        const fbq = (window as any).fbq; // Casteo explícito para evitar conflictos
+        const fbq = (window as any).fbq;
         if (typeof fbq === "function") {
           fbq("track", "Lead", {
             content_name: "Cotizacion Generada",
             value: totalAmount / 100,
             currency: "MXN",
           });
-          console.log("Evento 'Lead' enviado a Meta Pixel (fbq).");
         }
       } catch (e) {
-        console.error("Error al disparar evento Meta Pixel:", e);
+        console.error("Error Pixel:", e);
       }
 
       setTimeout(() => {
@@ -170,16 +174,19 @@ export function QuoteForm(props: QuoteFormProps) {
   if (submitted) {
     return (
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-md">
-          <div className="flex flex-col items-center justify-center py-8">
-            <CheckCircle className="h-16 w-16 text-green-500 mb-4" />
-            <h2 className="text-2xl font-bold mb-2">¡Cotización enviada!</h2>
-            <p className="text-center text-muted-foreground mb-4">
-              Hemos recibido tu solicitud. Nos pondremos en contacto contigo pronto.
+        <DialogContent className="max-w-md rounded-xl">
+          <div className="flex flex-col items-center justify-center py-10 px-4 text-center">
+            <div className="h-20 w-20 bg-green-100 rounded-full flex items-center justify-center mb-6 animate-in zoom-in duration-300">
+              <CheckCircle className="h-10 w-10 text-green-600" />
+            </div>
+            <h2 className="text-2xl font-bold mb-2 text-gray-900">¡Pedido Recibido!</h2>
+            <p className="text-muted-foreground mb-6">
+              Gracias <strong>{form.getValues("name")}</strong>. Hemos recibido tu solicitud correctamente.
             </p>
-            <p className="text-sm text-center text-muted-foreground">
-              Enviamos una copia a: <strong>{form.getValues("email")}</strong>
-            </p>
+            <div className="bg-gray-50 p-4 rounded-lg w-full text-sm border border-gray-100">
+              <p className="text-gray-500">Enviamos el comprobante a:</p>
+              <p className="font-medium text-gray-900 mt-1">{form.getValues("email")}</p>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
@@ -188,169 +195,241 @@ export function QuoteForm(props: QuoteFormProps) {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-lg flex flex-col max-h-[90vh] p-0">
-        <DialogHeader className="p-6 pb-4">
-          <DialogTitle>Solicitar Cotización</DialogTitle>
+      <DialogContent className="w-[95vw] max-w-lg flex flex-col max-h-[90vh] p-0 rounded-xl overflow-hidden sm:w-full">
+        {/* Header Compacto */}
+        <DialogHeader className="p-5 border-b bg-white z-10">
+          <DialogTitle className="text-lg md:text-xl flex items-center gap-2">🛒 Finalizar Cotización</DialogTitle>
+          <div className="text-sm text-muted-foreground mt-1 flex justify-between items-center">
+            <span>{items.length} productos</span>
+            <span className="font-bold text-primary">${(totalAmount / 100).toFixed(2)}</span>
+          </div>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto px-6 space-y-4">
-          <div className="bg-muted p-3 rounded">
-            <p className="text-sm">
-              <strong>{items.length}</strong> producto(s) en tu cotización
-            </p>
-            <p className="text-lg font-bold">Subtotal: ${(totalAmount / 100).toFixed(2)}</p>
-            <p className="text-xs text-muted-foreground">(El costo de envío se agregará después por el vendedor)</p>
-          </div>
-
+        <div className="flex-1 overflow-y-auto p-5 space-y-6 bg-gray-50/50">
           <Form {...form}>
-            <form id="quote-form" onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Nombre completo *</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email *</FormLabel>
-                    <FormControl>
-                      <Input type="email" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="company"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Empresa (opcional)</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="phone"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Teléfono (opcional)</FormLabel>
-                    <FormControl>
-                      <Input type="tel" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <Separator className="my-6" />
-
-              <FormField
-                control={form.control}
-                name="delivery_method"
-                render={({ field }) => (
-                  <FormItem className="space-y-3">
-                    <FormLabel className="text-base font-semibold">Método de Entrega *</FormLabel>
-                    <FormControl>
-                      <RadioGroup
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                        className="flex flex-col space-y-1"
-                      >
-                        <FormItem className="flex items-center space-x-3 space-y-0">
-                          <FormControl>
-                            <RadioGroupItem value="shipping" />
-                          </FormControl>
-                          <FormLabel className="font-normal flex items-center gap-2">
-                            <Truck className="h-4 w-4" /> Envío a Domicilio
-                          </FormLabel>
-                        </FormItem>
-                        <FormItem className="flex items-center space-x-3 space-y-0">
-                          <FormControl>
-                            <RadioGroupItem value="pickup" />
-                          </FormControl>
-                          <FormLabel className="font-normal flex items-center gap-2">
-                            <MapPin className="h-4 w-4" /> Recoger en Tienda
-                          </FormLabel>
-                        </FormItem>
-                      </RadioGroup>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {deliveryMethod === "pickup" && businessAddress && (
-                <Alert variant="default" className="bg-blue-50 border-blue-200">
-                  <MapPin className="h-4 w-4 text-blue-600" />
-                  <AlertDescription className="text-blue-900">
-                    Puedes recoger tu pedido en: <br />
-                    <strong>{businessAddress}</strong>
-                  </AlertDescription>
-                </Alert>
-              )}
-
-              {deliveryMethod === "shipping" && (
+            <form id="quote-form" onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+              {/* 1. SELECCIÓN DE MÉTODO (Tile Design para Mobile) */}
+              <div className="space-y-3">
+                <FormLabel className="text-base font-semibold text-gray-900">¿Cómo deseas recibir tu pedido?</FormLabel>
                 <FormField
                   control={form.control}
-                  name="shipping_address"
+                  name="delivery_method"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Dirección de Envío *</FormLabel>
                       <FormControl>
-                        <Textarea
-                          placeholder="Calle, número, colonia, ciudad, estado, C.P. y referencias"
-                          {...field}
-                          rows={4}
-                        />
+                        <RadioGroup
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
+                          className="grid grid-cols-2 gap-3"
+                        >
+                          {/* Opción Pickup */}
+                          <FormItem>
+                            <FormControl>
+                              <RadioGroupItem value="pickup" className="peer sr-only" />
+                            </FormControl>
+                            <FormLabel className="flex flex-col items-center justify-between rounded-xl border-2 border-muted bg-white p-4 hover:bg-gray-50 peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-blue-50/50 cursor-pointer transition-all h-full text-center">
+                              <Store className="mb-2 h-6 w-6 text-gray-500 peer-data-[state=checked]:text-primary" />
+                              <span className="font-semibold text-sm">Recoger en Tienda</span>
+                            </FormLabel>
+                          </FormItem>
+
+                          {/* Opción Envío */}
+                          <FormItem>
+                            <FormControl>
+                              <RadioGroupItem value="shipping" className="peer sr-only" />
+                            </FormControl>
+                            <FormLabel className="flex flex-col items-center justify-between rounded-xl border-2 border-muted bg-white p-4 hover:bg-gray-50 peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-blue-50/50 cursor-pointer transition-all h-full text-center">
+                              <Truck className="mb-2 h-6 w-6 text-gray-500 peer-data-[state=checked]:text-primary" />
+                              <span className="font-semibold text-sm">Envío a Domicilio</span>
+                            </FormLabel>
+                          </FormItem>
+                        </RadioGroup>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
+              </div>
+
+              {/* Alerta de Dirección de Recolección (Solo si es Pickup) */}
+              {deliveryMethod === "pickup" && businessAddress && (
+                <div className="bg-blue-50 border border-blue-100 rounded-lg p-3 flex gap-3 items-start animate-in fade-in slide-in-from-top-1">
+                  <MapPin className="h-5 w-5 text-blue-600 mt-0.5 shrink-0" />
+                  <div className="text-sm text-blue-900">
+                    <p className="font-medium">Ubicación de la tienda:</p>
+                    <p className="text-blue-700 mt-0.5">{businessAddress}</p>
+                  </div>
+                </div>
               )}
 
-              <Separator className="my-6" />
+              {/* 2. DATOS DE CONTACTO (Agrupados) */}
+              <div className="space-y-4 bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+                <h4 className="font-semibold text-sm text-gray-900 mb-2">Tus Datos</h4>
 
-              <FormField
-                control={form.control}
-                name="notes"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Notas adicionales</FormLabel>
-                    <FormControl>
-                      <Textarea {...field} rows={3} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem className="md:col-span-2">
+                        <FormLabel className="text-xs font-medium text-gray-500 uppercase">Nombre Completo</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Ej: Juan Pérez" {...field} className="bg-gray-50 border-gray-200" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-xs font-medium text-gray-500 uppercase">Email</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="email"
+                            placeholder="nombre@correo.com"
+                            {...field}
+                            className="bg-gray-50 border-gray-200"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="phone"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-xs font-medium text-gray-500 uppercase">
+                          Teléfono (Opcional)
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            type="tel"
+                            placeholder="10 dígitos"
+                            {...field}
+                            className="bg-gray-50 border-gray-200"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+
+              {/* 3. DIRECCIÓN DE ENVÍO (Solo si es Shipping) */}
+              {deliveryMethod === "shipping" && (
+                <div className="space-y-3 animate-in fade-in slide-in-from-top-2">
+                  <FormField
+                    control={form.control}
+                    name="shipping_address"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-base font-semibold">¿A dónde enviamos?</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            placeholder="Calle, número, colonia, código postal, ciudad..."
+                            {...field}
+                            rows={3}
+                            className="resize-none bg-white"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              )}
+
+              {/* 4. EXTRAS (Colapsables para reducir ruido visual) */}
+              <div className="pt-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => setShowExtras(!showExtras)}
+                  className="w-full justify-between text-muted-foreground hover:text-foreground h-auto py-2 px-1"
+                >
+                  <span className="flex items-center gap-2 text-sm">
+                    {showExtras ? "Ocultar detalles opcionales" : "Agregar notas o datos de empresa"}
+                  </span>
+                  {showExtras ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                </Button>
+
+                {showExtras && (
+                  <div className="space-y-4 mt-3 pl-2 border-l-2 border-gray-100 animate-in slide-in-from-top-2 duration-200">
+                    <FormField
+                      control={form.control}
+                      name="company"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="flex items-center gap-2 text-xs font-medium text-gray-500 uppercase">
+                            <Building2 className="h-3 w-3" /> Empresa / Facturación
+                          </FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="Nombre de la empresa (Opcional)"
+                              {...field}
+                              className="bg-white h-9 text-sm"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="notes"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="flex items-center gap-2 text-xs font-medium text-gray-500 uppercase">
+                            <StickyNote className="h-3 w-3" /> Notas Adicionales
+                          </FormLabel>
+                          <FormControl>
+                            <Textarea
+                              {...field}
+                              rows={2}
+                              placeholder="Instrucciones especiales..."
+                              className="bg-white min-h-[60px] text-sm"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
                 )}
-              />
+              </div>
             </form>
           </Form>
         </div>
 
-        <DialogFooter className="p-6 pt-4 border-t">
-          <div className="flex gap-2 w-full">
-            <Button type="button" variant="outline" onClick={onClose} className="flex-1" disabled={isSubmitting}>
+        {/* Footer Fijo en Mobile */}
+        <DialogFooter className="p-4 border-t bg-white">
+          <div className="flex gap-3 w-full">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+              className="flex-1 h-12 rounded-xl border-gray-200"
+              disabled={isSubmitting}
+            >
               Cancelar
             </Button>
-            <Button type="submit" form="quote-form" disabled={isSubmitting} className="flex-1">
-              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Enviar Cotización
+            <Button
+              type="submit"
+              form="quote-form"
+              disabled={isSubmitting}
+              className="flex-[2] h-12 rounded-xl text-base font-medium shadow-lg shadow-primary/20"
+            >
+              {isSubmitting && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
+              {deliveryMethod === "pickup" ? "Confirmar Recolección" : "Solicitar Envío"}
             </Button>
           </div>
         </DialogFooter>
