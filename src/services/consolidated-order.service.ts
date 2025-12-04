@@ -238,6 +238,7 @@ export class ConsolidatedOrderService {
     supplierId: string
   ): Promise<ConsolidatedOrderWithDetails | null> {
     try {
+      // 1. Obtener el borrador con catálogo
       const { data, error } = await supabase
         .from("consolidated_orders")
         .select(
@@ -246,10 +247,7 @@ export class ConsolidatedOrderService {
           consolidated_order_items (*),
           digital_catalogs!consolidated_orders_original_catalog_id_fkey (
             name,
-            users!digital_catalogs_user_id_fkey (
-              full_name,
-              business_name
-            )
+            user_id
           )
         `
         )
@@ -261,21 +259,27 @@ export class ConsolidatedOrderService {
       if (error) throw error;
       if (!data) return null;
 
+      // 2. Obtener info del proveedor desde business_info
+      const { data: businessInfo } = await supabase
+        .from("business_info")
+        .select("business_name")
+        .eq("user_id", supplierId)
+        .maybeSingle();
+
       // Calcular totales
       const items = (data.consolidated_order_items || []) as ConsolidatedOrderItem[];
       const total_amount = items.reduce((sum, item) => sum + item.subtotal, 0);
       const source_quotes_count = new Set(items.flatMap((item) => item.source_quote_ids)).size;
 
       const catalog = data.digital_catalogs as any;
-      const user = catalog?.users;
 
       return {
         ...data,
         items,
         items_count: items.length,
         total_amount,
-        supplier_name: user?.full_name || "Proveedor",
-        supplier_business_name: user?.business_name,
+        supplier_name: businessInfo?.business_name || "Proveedor",
+        supplier_business_name: businessInfo?.business_name,
         catalog_name: catalog?.name || "Catálogo",
         source_quotes_count,
       } as ConsolidatedOrderWithDetails;
@@ -296,6 +300,7 @@ export class ConsolidatedOrderService {
     }
   ): Promise<ConsolidatedOrderWithDetails[]> {
     try {
+      // 1. Obtener los pedidos consolidados con catálogos
       let query = supabase
         .from("consolidated_orders")
         .select(
@@ -304,10 +309,7 @@ export class ConsolidatedOrderService {
           consolidated_order_items (*),
           digital_catalogs!consolidated_orders_original_catalog_id_fkey (
             name,
-            users!digital_catalogs_user_id_fkey (
-              full_name,
-              business_name
-            )
+            user_id
           )
         `
         )
@@ -325,22 +327,37 @@ export class ConsolidatedOrderService {
       const { data, error } = await query;
 
       if (error) throw error;
+      if (!data || data.length === 0) return [];
 
-      return (data || []).map((order: any) => {
+      // 2. Obtener IDs únicos de proveedores
+      const supplierIds = [...new Set(data.map((order: any) => order.supplier_id))];
+
+      // 3. Obtener info de todos los proveedores en una sola query
+      const { data: businessInfos } = await supabase
+        .from("business_info")
+        .select("user_id, business_name")
+        .in("user_id", supplierIds);
+
+      // Crear mapa para búsqueda rápida
+      const businessInfoMap = new Map(
+        (businessInfos || []).map((info) => [info.user_id, info])
+      );
+
+      return data.map((order: any) => {
         const items = (order.consolidated_order_items || []) as ConsolidatedOrderItem[];
         const total_amount = items.reduce((sum, item) => sum + item.subtotal, 0);
-        const source_quotes_count = new Set(items.flatMap((item) => item.source_quote_ids)).size;
+        const source_quotes_count = new Set(items.flatMap((item) => item.source_quote_ids || [])).size;
 
         const catalog = order.digital_catalogs;
-        const user = catalog?.users;
+        const supplierInfo = businessInfoMap.get(order.supplier_id);
 
         return {
           ...order,
           items,
           items_count: items.length,
           total_amount,
-          supplier_name: user?.full_name || "Proveedor",
-          supplier_business_name: user?.business_name,
+          supplier_name: supplierInfo?.business_name || "Proveedor",
+          supplier_business_name: supplierInfo?.business_name,
           catalog_name: catalog?.name || "Catálogo",
           source_quotes_count,
         } as ConsolidatedOrderWithDetails;
