@@ -63,8 +63,15 @@ const ScriptInjector = ({ headScripts, bodyScripts }: { headScripts?: string | n
   return null;
 };
 
-export default function PublicCatalog() {
-  const { slug } = useParams();
+interface PublicCatalogProps {
+  /** Slug pasado desde SubdomainRouter (cuando se accede via subdominio) */
+  subdomainSlug?: string;
+}
+
+export default function PublicCatalog({ subdomainSlug }: PublicCatalogProps = {}) {
+  const { slug: pathSlug } = useParams();
+  // Priorizar subdomainSlug sobre el path param
+  const slug = subdomainSlug || pathSlug;
   const [accessPassword, setAccessPassword] = useState("");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
