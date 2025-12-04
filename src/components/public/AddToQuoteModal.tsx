@@ -56,9 +56,11 @@ export function AddToQuoteModal({ product, priceConfig, isOpen, onClose, onAdd, 
     }
   }, [product]);
 
+  const PLACEHOLDER_URL = "https://ikbexcebcpmomfxraflz.supabase.co/storage/v1/object/public/business-logos/Package.png";
+
   if (!product) return null;
 
-  const imageUrl = product.processed_image_url || product.original_image_url;
+  const imageUrl = product.processed_image_url || product.original_image_url || PLACEHOLDER_URL;
   
   // Obtener la variante seleccionada si el producto tiene variantes
   const selectedVariant = product.has_variants && product.variants 

@@ -83,10 +83,12 @@ export const RecommendationBanner = ({ recommendations, onAddToCart, loading }: 
             {/* 1. IMAGEN DEL PRODUCTO */}
             <div className="h-20 w-20 shrink-0 bg-slate-50 rounded-lg overflow-hidden border border-slate-100 self-center">
               <img
-                src={product.processed_image_url || product.image_url || ""}
+                src={product.processed_image_url || product.original_image_url || product.image_url || "https://ikbexcebcpmomfxraflz.supabase.co/storage/v1/object/public/business-logos/Package.png"}
                 alt={product.name}
                 className="h-full w-full object-cover mix-blend-multiply"
-                onError={(e) => (e.currentTarget.style.display = "none")}
+                onError={(e) => {
+                  e.currentTarget.src = "https://ikbexcebcpmomfxraflz.supabase.co/storage/v1/object/public/business-logos/Package.png";
+                }}
               />
             </div>
 

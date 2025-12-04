@@ -90,7 +90,7 @@ export const useProductRecommendations = (currentCartProductIds: string[] = [], 
           confidence_score,
           co_occurrence_count,
           products!product_b_id (
-            id, name, price_retail, processed_image_url
+            id, name, price_retail, processed_image_url, original_image_url
           )
         `,
         )
