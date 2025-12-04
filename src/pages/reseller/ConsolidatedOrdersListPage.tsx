@@ -1,29 +1,110 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import { useConsolidatedOrders } from "@/hooks/useConsolidatedOrders";
 import { ConsolidatedOrderCard } from "@/components/consolidated/ConsolidatedOrderCard";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Package, Plus } from "lucide-react";
+import { ArrowLeft, Package, RefreshCw } from "lucide-react";
 import { ConsolidatedOrderStatus } from "@/types/consolidated-order";
+import { useToast } from "@/hooks/use-toast";
 
 export default function ConsolidatedOrdersListPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<ConsolidatedOrderStatus | "all">("all");
   const [syncingId, setSyncingId] = useState<string | null>(null);
+  const [initializing, setInitializing] = useState(true);
 
-  const { orders, loading, syncDraft } = useConsolidatedOrders({
+  const { orders, loading, loadOrders, getOrCreateDraft, syncDraft } = useConsolidatedOrders({
     status: activeTab === "all" ? undefined : activeTab,
-    autoLoad: true,
+    autoLoad: false, // No cargar automáticamente, lo hacemos después de inicializar
   });
+
+  // Inicializar borradores automáticamente al cargar
+  useEffect(() => {
+    if (user?.id) {
+      initializeConsolidatedOrders();
+    }
+  }, [user?.id]);
+
+  /**
+   * Detecta catálogos replicados con cotizaciones aceptadas y crea/sincroniza borradores
+   */
+  const initializeConsolidatedOrders = async () => {
+    if (!user?.id) return;
+    
+    setInitializing(true);
+    try {
+      // 1. Buscar todos los catálogos replicados del usuario con cotizaciones aceptadas
+      const { data: replicatedCatalogs, error: rcError } = await supabase
+        .from("replicated_catalogs")
+        .select(`
+          id,
+          original_catalog_id,
+          distributor_id
+        `)
+        .eq("reseller_id", user.id)
+        .eq("is_active", true);
+
+      if (rcError) throw rcError;
+
+      if (!replicatedCatalogs || replicatedCatalogs.length === 0) {
+        console.log("No hay catálogos replicados activos");
+        await loadOrders();
+        return;
+      }
+
+      // 2. Para cada catálogo replicado, verificar si tiene cotizaciones aceptadas
+      for (const rc of replicatedCatalogs) {
+        const { data: acceptedQuotes, error: qError } = await supabase
+          .from("quotes")
+          .select("id")
+          .eq("replicated_catalog_id", rc.id)
+          .eq("status", "accepted")
+          .eq("user_id", user.id)
+          .limit(1);
+
+        if (qError) {
+          console.error("Error checking quotes:", qError);
+          continue;
+        }
+
+        // Si hay cotizaciones aceptadas, crear/sincronizar borrador
+        if (acceptedQuotes && acceptedQuotes.length > 0) {
+          console.log(`📦 Creando/sincronizando borrador para catálogo ${rc.original_catalog_id}`);
+          await getOrCreateDraft(
+            rc.distributor_id, // supplier_id = L1 (proveedor)
+            rc.original_catalog_id,
+            rc.id // replicated_catalog_id
+          );
+        }
+      }
+
+      // 3. Cargar la lista actualizada
+      await loadOrders();
+    } catch (error: any) {
+      console.error("Error initializing consolidated orders:", error);
+      toast({
+        title: "Error",
+        description: "No se pudieron cargar los pedidos consolidados",
+        variant: "destructive",
+      });
+    } finally {
+      setInitializing(false);
+    }
+  };
 
   const handleSync = async (orderId: string) => {
     setSyncingId(orderId);
     const order = orders.find((o) => o.id === orderId);
     if (order) {
-      await syncDraft(orderId, order.original_catalog_id);
+      await syncDraft(orderId, order.replicated_catalog_id);
+      await loadOrders();
     }
     setSyncingId(null);
   };
@@ -50,7 +131,7 @@ export default function ConsolidatedOrdersListPage() {
   // Ordenar por número de productos (descendente)
   const sortedOrders = [...orders].sort((a, b) => b.items_count - a.items_count);
 
-  if (loading) {
+  if (loading || initializing) {
     return (
       <div className="p-4 md:p-8">
         <div className="max-w-7xl mx-auto space-y-6">
@@ -79,6 +160,14 @@ export default function ConsolidatedOrdersListPage() {
               </p>
             </div>
           </div>
+          <Button
+            variant="outline"
+            onClick={initializeConsolidatedOrders}
+            disabled={initializing}
+          >
+            <RefreshCw className={`w-4 h-4 mr-2 ${initializing ? "animate-spin" : ""}`} />
+            Actualizar
+          </Button>
         </div>
 
         {/* Tabs */}
@@ -100,8 +189,8 @@ export default function ConsolidatedOrdersListPage() {
                     No hay pedidos consolidados
                   </h3>
                   <p className="text-muted-foreground mb-6">
-                    Los pedidos consolidados aparecerán aquí cuando aceptes cotizaciones
-                    de tus proveedores
+                    Los pedidos consolidados se crean automáticamente cuando aceptas cotizaciones de clientes 
+                    en tus catálogos replicados. Vuelve a las cotizaciones para aceptar pedidos.
                   </p>
                   <Button onClick={() => navigate("/quotes")}>
                     Ver Cotizaciones

@@ -69,8 +69,8 @@ export class ConsolidatedOrderService {
 
       console.log("✅ Nuevo borrador creado:", newDraft.id);
 
-      // 3. Sincronizar con cotizaciones aceptadas
-      await this.syncDraftWithQuotes(newDraft.id, distributorId, originalCatalogId);
+      // 3. Sincronizar con cotizaciones aceptadas (usar replicatedCatalogId, no originalCatalogId)
+      await this.syncDraftWithQuotes(newDraft.id, distributorId, replicatedCatalogId);
 
       // 4. Obtener items creados
       const { data: items, error: itemsError } = await supabase
@@ -93,17 +93,18 @@ export class ConsolidatedOrderService {
 
   /**
    * Sincronizar borrador con cotizaciones aceptadas
-   * Agrupa productos de todas las cotizaciones aceptadas del mismo catálogo
+   * Agrupa productos de todas las cotizaciones aceptadas del mismo catálogo replicado
    */
   static async syncDraftWithQuotes(
     consolidatedOrderId: string,
     distributorId: string,
-    originalCatalogId: string
+    replicatedCatalogId: string
   ): Promise<void> {
-    console.log("🔄 Sincronizando borrador con cotizaciones...");
+    console.log("🔄 Sincronizando borrador con cotizaciones...", { consolidatedOrderId, distributorId, replicatedCatalogId });
 
     try {
-      // 1. Obtener todas las cotizaciones aceptadas de este catálogo
+      // 1. Obtener todas las cotizaciones aceptadas del catálogo replicado del L2
+      // Las cotizaciones de L2 vienen de replicated_catalog_id, no de digital_catalogs
       const { data: quotes, error: quotesError } = await supabase
         .from("quotes")
         .select(
@@ -116,15 +117,13 @@ export class ConsolidatedOrderService {
             product_name,
             product_sku,
             variant_description,
+            product_image_url,
             quantity,
             unit_price
-          ),
-          digital_catalogs!inner (
-            id
           )
         `
         )
-        .eq("digital_catalogs.id", originalCatalogId)
+        .eq("replicated_catalog_id", replicatedCatalogId)
         .eq("status", "accepted")
         .eq("user_id", distributorId); // Cotizaciones que L2 recibió de sus clientes
 
@@ -191,7 +190,7 @@ export class ConsolidatedOrderService {
 
   /**
    * Agrupar productos de múltiples cotizaciones
-   * Suma cantidades de productos duplicados
+   * Suma cantidades de productos duplicados (respetando variantes)
    */
   private static aggregateProducts(quotes: any[]): ProductAggregation[] {
     const aggregationMap = new Map<string, ProductAggregation>();
@@ -200,25 +199,29 @@ export class ConsolidatedOrderService {
       const items = quote.quote_items || [];
 
       items.forEach((item: any) => {
-        // Crear key única: product_id + variant_id
+        // Crear key única: product_id + variant_id (para agrupar correctamente variantes)
         const key = `${item.product_id}-${item.variant_id || "null"}`;
 
         if (aggregationMap.has(key)) {
-          // Producto ya existe, sumar cantidad
+          // Producto/variante ya existe, sumar cantidad
           const existing = aggregationMap.get(key)!;
           existing.total_quantity += item.quantity;
           if (!existing.source_quote_ids.includes(quote.id)) {
             existing.source_quote_ids.push(quote.id);
           }
+          // Actualizar imagen si no la tenía
+          if (!existing.product_image_url && item.product_image_url) {
+            existing.product_image_url = item.product_image_url;
+          }
         } else {
-          // Producto nuevo
+          // Producto/variante nuevo
           aggregationMap.set(key, {
             product_id: item.product_id,
             variant_id: item.variant_id,
             product_name: item.product_name,
             product_sku: item.product_sku,
             variant_description: item.variant_description,
-            product_image_url: null, // Se puede obtener después si es necesario
+            product_image_url: item.product_image_url || null,
             total_quantity: item.quantity,
             unit_price: item.unit_price,
             source_quote_ids: [quote.id],

@@ -129,7 +129,7 @@ export function useConsolidatedOrders(options: UseConsolidatedOrdersOptions = {}
   /**
    * Sincronizar borrador con cotizaciones nuevas
    */
-  const syncDraft = async (consolidatedOrderId: string, originalCatalogId: string) => {
+  const syncDraft = async (consolidatedOrderId: string, replicatedCatalogId: string) => {
     if (!user?.id) return;
 
     setSyncing(true);
@@ -137,7 +137,7 @@ export function useConsolidatedOrders(options: UseConsolidatedOrdersOptions = {}
       await ConsolidatedOrderService.syncDraftWithQuotes(
         consolidatedOrderId,
         user.id,
-        originalCatalogId
+        replicatedCatalogId
       );
 
       toast({
