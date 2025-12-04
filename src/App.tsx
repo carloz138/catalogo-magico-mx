@@ -21,6 +21,7 @@ import Index from "@/pages/Index";
 import LoginPage from "@/pages/LoginPage";
 import DemoPage from "@/pages/DemoPage"; // ✅ IMPORTADO: PÁGINA DE DEMO
 import PublicCatalog from "@/pages/PublicCatalog";
+import { SubdomainRouter } from "@/components/routing/SubdomainRouter";
 import ActivateCatalog from "@/pages/ActivateCatalog";
 import CompleteActivation from "@/pages/CompleteActivation";
 import TermsAndConditions from "@/pages/TermsAndConditions";
@@ -77,7 +78,8 @@ const App = () => (
               <SubscriptionProvider>
                 <Routes>
                 {/* --- Rutas Públicas (Sin Sidebar) --- */}
-                <Route path="/" element={<Index />} />
+                {/* Ruta raíz con detección de subdominio */}
+                <Route path="/" element={<SubdomainRouter fallback={<Index />} />} />
                 <Route path="/login" element={<LoginPage />} />
 
                 {/* ✅ RUTA NUEVA: DEMO INTERACTIVO (Accesible para ventas) */}
