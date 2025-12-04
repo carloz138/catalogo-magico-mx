@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -16,12 +16,13 @@ import {
   TrendingUp,
   Loader2,
   MapPin,
-  AlertCircle, // ✅ CORRECCIÓN: Import agregado
+  AlertCircle,
   Store,
 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { QuoteService } from "@/services/quote.service";
-// Importamos el tipo para asegurar compatibilidad
+import { RecommendationBanner } from "@/components/quotes/RecommendationBanner";
+import { useProductRecommendations } from "@/hooks/useProductRecommendations";
 import { PriceType } from "@/types/digital-catalog";
 
 // Tipo de dato que devuelve tu RPC
@@ -64,6 +65,53 @@ export default function ConsolidateOrderPage() {
     address?: string;
     phone?: string;
   } | null>(null);
+
+  // IDs de productos seleccionados para recomendaciones
+  const selectedProductIds = useMemo(() => {
+    return items
+      .filter((i) => selectedItems.has(i.variant_id || i.product_id))
+      .map((i) => i.product_id);
+  }, [items, selectedItems]);
+
+  // Hook de recomendaciones basado en productos del pedido
+  const { recommendations, loading: loadingRecommendations } = useProductRecommendations(
+    selectedProductIds,
+    catalogInfo?.user_id || null
+  );
+
+  // Handler para agregar producto recomendado al pedido
+  const handleAddRecommendation = (product: any) => {
+    const existingItem = items.find((i) => i.product_id === product.id);
+    if (existingItem) {
+      toast({
+        title: "Ya incluido",
+        description: `${product.name} ya está en tu pedido`,
+      });
+      return;
+    }
+
+    // Agregar como nuevo item
+    const newItem: ConsolidationItem = {
+      product_id: product.id,
+      variant_id: null,
+      product_name: product.name,
+      sku: product.sku || null,
+      image_url: product.processed_image_url || product.image_url || null,
+      variant_description: null,
+      total_demand: 0,
+      current_stock: 0,
+      quantity_to_order: 1,
+      source_quote_ids: [],
+    };
+
+    setItems((prev) => [...prev, newItem]);
+    setSelectedItems((prev) => new Set([...prev, product.id]));
+
+    toast({
+      title: "✅ Agregado",
+      description: `${product.name} añadido al pedido`,
+    });
+  };
 
   useEffect(() => {
     if (user && supplierId) {
@@ -405,6 +453,19 @@ export default function ConsolidateOrderPage() {
                 );
               })}
             </div>
+
+            {/* Banner de Recomendaciones */}
+            {selectedProductIds.length > 0 && (
+              <Card className="border-violet-100 bg-gradient-to-br from-violet-50/50 to-white">
+                <CardContent className="p-4">
+                  <RecommendationBanner
+                    recommendations={recommendations}
+                    onAddToCart={handleAddRecommendation}
+                    loading={loadingRecommendations}
+                  />
+                </CardContent>
+              </Card>
+            )}
           </div>
         )}
       </div>
