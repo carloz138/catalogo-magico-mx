@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBusinessInfo } from "@/hooks/useBusinessInfo";
@@ -9,8 +9,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Save, ArrowLeft, Building2, Upload, X } from "lucide-react";
-// ❌ AppLayout eliminado
+import { Loader2, Save, ArrowLeft, Building2, Upload, X, Globe, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function BusinessInfoSettings() {
   const { user } = useAuth();
@@ -19,6 +19,7 @@ export default function BusinessInfoSettings() {
 
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [subdomainStatus, setSubdomainStatus] = useState<'idle' | 'checking' | 'available' | 'taken' | 'invalid'>('idle');
 
   const [formData, setFormData] = useState({
     business_name: businessInfo?.business_name || "",
@@ -28,10 +29,69 @@ export default function BusinessInfoSettings() {
     address: businessInfo?.address || "",
     description: businessInfo?.description || "",
     logo_url: businessInfo?.logo_url || "",
+    subdomain: (businessInfo as any)?.subdomain || "",
   });
+
+  // Sync form when businessInfo loads
+  useEffect(() => {
+    if (businessInfo) {
+      setFormData({
+        business_name: businessInfo.business_name || "",
+        phone: businessInfo.phone || "",
+        email: businessInfo.email || "",
+        website: businessInfo.website || "",
+        address: businessInfo.address || "",
+        description: businessInfo.description || "",
+        logo_url: businessInfo.logo_url || "",
+        subdomain: (businessInfo as any)?.subdomain || "",
+      });
+    }
+  }, [businessInfo]);
+
+  // Check subdomain availability
+  const checkSubdomainAvailability = async (subdomain: string) => {
+    if (!subdomain || subdomain.length < 4) {
+      setSubdomainStatus('idle');
+      return;
+    }
+
+    // Validate format
+    const validFormat = /^[a-z0-9][a-z0-9-]{2,30}[a-z0-9]$/.test(subdomain);
+    if (!validFormat) {
+      setSubdomainStatus('invalid');
+      return;
+    }
+
+    setSubdomainStatus('checking');
+    
+    const { data, error } = await supabase
+      .from('business_info')
+      .select('user_id')
+      .eq('subdomain', subdomain)
+      .maybeSingle();
+
+    if (error) {
+      setSubdomainStatus('idle');
+      return;
+    }
+
+    // Available if no result OR it's the current user's subdomain
+    if (!data || data.user_id === user?.id) {
+      setSubdomainStatus('available');
+    } else {
+      setSubdomainStatus('taken');
+    }
+  };
 
   const handleChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+    
+    // Special handling for subdomain
+    if (field === 'subdomain') {
+      const normalized = value.toLowerCase().replace(/[^a-z0-9-]/g, '');
+      setFormData((prev) => ({ ...prev, subdomain: normalized }));
+      checkSubdomainAvailability(normalized);
+    }
   };
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -90,6 +150,7 @@ export default function BusinessInfoSettings() {
           address: formData.address || null,
           description: formData.description || null,
           logo_url: formData.logo_url || null,
+          subdomain: formData.subdomain || null,
         },
         {
           onConflict: "user_id",
@@ -263,6 +324,39 @@ export default function BusinessInfoSettings() {
                     placeholder="https://www.tunegocio.com"
                   />
                 </div>
+              </div>
+
+              {/* Subdominio Personalizado */}
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="subdomain" className="flex items-center gap-2">
+                  <Globe className="w-4 h-4" />
+                  Enlace Personalizado (Subdominio)
+                </Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    id="subdomain"
+                    value={formData.subdomain}
+                    onChange={(e) => handleChange("subdomain", e.target.value)}
+                    placeholder="mi-tienda"
+                    className="max-w-[200px]"
+                  />
+                  <span className="text-sm text-muted-foreground">.catifypro.com</span>
+                  {subdomainStatus === 'checking' && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />}
+                  {subdomainStatus === 'available' && <CheckCircle2 className="w-4 h-4 text-green-500" />}
+                  {subdomainStatus === 'taken' && <AlertCircle className="w-4 h-4 text-destructive" />}
+                </div>
+                {subdomainStatus === 'invalid' && (
+                  <p className="text-xs text-destructive">Usa solo letras minúsculas, números y guiones. Mínimo 4 caracteres.</p>
+                )}
+                {subdomainStatus === 'taken' && (
+                  <p className="text-xs text-destructive">Este subdominio ya está en uso.</p>
+                )}
+                {subdomainStatus === 'available' && formData.subdomain && (
+                  <p className="text-xs text-green-600">¡Disponible! Tu catálogo estará en: {formData.subdomain}.catifypro.com</p>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  Ejemplo: Si escribes "mi-tienda", tu catálogo será accesible en <strong>mi-tienda.catifypro.com</strong>
+                </p>
               </div>
 
               <div className="space-y-2">

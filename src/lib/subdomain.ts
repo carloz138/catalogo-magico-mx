@@ -3,14 +3,7 @@
  * Enables automatic subdomains like: mi-tienda.catifypro.com
  */
 
-// Dominios base que NO son subdominios de catálogo
-const BASE_DOMAINS = [
-  'localhost',
-  'catifypro.com',
-  'www.catifypro.com',
-  'lovable.app',
-  'lovable.dev',
-];
+import { supabase } from "@/integrations/supabase/client";
 
 // Subdominios del sistema que no son catálogos
 const RESERVED_SUBDOMAINS = [
@@ -21,11 +14,14 @@ const RESERVED_SUBDOMAINS = [
   'staging',
   'dev',
   'test',
+  'mail',
+  'smtp',
+  'ftp',
 ];
 
 /**
- * Extrae el slug del catálogo desde el subdominio
- * @returns El slug del catálogo si existe, null si es dominio base
+ * Extrae el subdominio desde la URL actual
+ * @returns El subdominio si existe, null si es dominio base
  * 
  * Ejemplos:
  * - mi-tienda.catifypro.com → "mi-tienda"
@@ -33,7 +29,7 @@ const RESERVED_SUBDOMAINS = [
  * - www.catifypro.com → null
  * - localhost:5173 → null
  */
-export function getSubdomainSlug(): string | null {
+export function getSubdomainFromUrl(): string | null {
   const hostname = window.location.hostname;
   
   // Localhost nunca tiene subdominio de catálogo
@@ -74,10 +70,45 @@ export function getSubdomainSlug(): string | null {
 }
 
 /**
+ * Busca el catálogo asociado a un subdominio
+ * @returns El slug del catálogo principal del usuario con ese subdominio
+ */
+export async function getCatalogBySubdomain(subdomain: string): Promise<{
+  userId: string;
+  catalogSlug: string | null;
+} | null> {
+  // 1. Buscar usuario por subdominio en business_info
+  const { data: businessInfo, error } = await supabase
+    .from('business_info')
+    .select('user_id')
+    .eq('subdomain', subdomain)
+    .maybeSingle();
+
+  if (error || !businessInfo) {
+    return null;
+  }
+
+  // 2. Buscar el catálogo activo más reciente del usuario
+  const { data: catalog } = await supabase
+    .from('digital_catalogs')
+    .select('slug')
+    .eq('user_id', businessInfo.user_id)
+    .eq('is_active', true)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  return {
+    userId: businessInfo.user_id,
+    catalogSlug: catalog?.slug || null,
+  };
+}
+
+/**
  * Verifica si la URL actual es un acceso por subdominio
  */
 export function isSubdomainAccess(): boolean {
-  return getSubdomainSlug() !== null;
+  return getSubdomainFromUrl() !== null;
 }
 
 /**

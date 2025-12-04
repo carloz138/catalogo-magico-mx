@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { getSubdomainSlug } from '@/lib/subdomain';
+import { getSubdomainFromUrl, getCatalogBySubdomain } from '@/lib/subdomain';
 import PublicCatalog from '@/pages/PublicCatalog';
 import { QuoteCartProvider } from '@/contexts/QuoteCartContext';
+import { Loader2 } from 'lucide-react';
 
 interface SubdomainRouterProps {
   /** Componente a renderizar si NO hay subdominio de catálogo */
@@ -13,29 +14,57 @@ interface SubdomainRouterProps {
  * Si no hay subdominio, renderiza el fallback (normalmente la landing page)
  */
 export function SubdomainRouter({ fallback }: SubdomainRouterProps) {
-  const [subdomainSlug, setSubdomainSlug] = useState<string | null>(null);
-  const [checked, setChecked] = useState(false);
+  const [state, setState] = useState<{
+    checked: boolean;
+    catalogSlug: string | null;
+    loading: boolean;
+  }>({
+    checked: false,
+    catalogSlug: null,
+    loading: true,
+  });
 
   useEffect(() => {
-    const slug = getSubdomainSlug();
-    setSubdomainSlug(slug);
-    setChecked(true);
+    const checkSubdomain = async () => {
+      const subdomain = getSubdomainFromUrl();
+      
+      if (!subdomain) {
+        setState({ checked: true, catalogSlug: null, loading: false });
+        return;
+      }
+
+      // Buscar catálogo asociado al subdominio
+      const result = await getCatalogBySubdomain(subdomain);
+      
+      if (result?.catalogSlug) {
+        setState({ checked: true, catalogSlug: result.catalogSlug, loading: false });
+      } else {
+        // Subdominio no encontrado, mostrar fallback
+        setState({ checked: true, catalogSlug: null, loading: false });
+      }
+    };
+
+    checkSubdomain();
   }, []);
 
-  // Mientras verificamos, no renderizar nada para evitar flash
-  if (!checked) {
-    return null;
+  // Mientras verificamos, mostrar loading
+  if (state.loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+      </div>
+    );
   }
 
-  // Si hay subdominio, mostrar el catálogo público
-  if (subdomainSlug) {
+  // Si hay catálogo, mostrar el catálogo público
+  if (state.catalogSlug) {
     return (
       <QuoteCartProvider>
-        <PublicCatalog subdomainSlug={subdomainSlug} />
+        <PublicCatalog subdomainSlug={state.catalogSlug} />
       </QuoteCartProvider>
     );
   }
 
-  // Si no hay subdominio, mostrar el fallback (landing page)
+  // Si no hay subdominio o no se encontró, mostrar el fallback (landing page)
   return <>{fallback}</>;
 }

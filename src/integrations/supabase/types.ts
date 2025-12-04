@@ -48,6 +48,7 @@ export type Database = {
           primary_color: string | null
           secondary_color: string | null
           social_media: Json | null
+          subdomain: string | null
           updated_at: string | null
           user_id: string | null
           website: string | null
@@ -64,6 +65,7 @@ export type Database = {
           primary_color?: string | null
           secondary_color?: string | null
           social_media?: Json | null
+          subdomain?: string | null
           updated_at?: string | null
           user_id?: string | null
           website?: string | null
@@ -80,6 +82,7 @@ export type Database = {
           primary_color?: string | null
           secondary_color?: string | null
           social_media?: Json | null
+          subdomain?: string | null
           updated_at?: string | null
           user_id?: string | null
           website?: string | null
