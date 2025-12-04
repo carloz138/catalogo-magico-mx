@@ -27,7 +27,125 @@ import {
   MonitorPlay,
   Ticket,
   Info,
+  Gift,
+  Rocket,
+  Zap,
+  Globe,
+  Radar,
+  Bot,
+  Share2,
+  CreditCard,
+  Store,
+  Sparkles,
+  BrainCircuit,
+  Search,
+  Megaphone,
+  Clock,
+  LucideIcon,
 } from "lucide-react";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { CardContent, CardDescription } from "@/components/ui/card";
+
+// Beneficios Data
+const benefitsForProvider: Array<{ icon: LucideIcon; title: string; description: string }> = [
+  { icon: Rocket, title: "Generas ventas ocultas", description: "Cuando piden algo que no está en el catálogo, se marca como pedido especial y la venta perdida termina en tus manos." },
+  { icon: Zap, title: "Caos convertido en clic", description: "Tu cliente recibe pedidos agrupados y te envía la cotización limpia y completa. Cero chats eternos." },
+  { icon: Globe, title: "Visión 360° del Mercado", description: "Ves lo que buscan tus clientes y los clientes de tus clientes. Información que antes no existía para ti." },
+  { icon: Radar, title: "Radar de Oportunidades", description: "Si alguien en tu red pide algo que no tienes, lo ves al instante para entender la moda antes que nadie." },
+  { icon: Bot, title: "Recomendador IA", description: "Aprende del comportamiento de tu red y recomienda productos para subir tu ticket y repetición." },
+  { icon: Share2, title: "Catálogo Multiplicado", description: "Conecta con Meta CAPI. Cuando tus clientes conectan sus redes, tu marca aparece donde nunca invertiste." },
+  { icon: CreditCard, title: "Pagos SPEI Automatizados", description: "OpenPay integrado con confirmación automática. Todo fluye sin manos." },
+];
+
+const benefitsForClients: Array<{ icon: LucideIcon; title: string; description: string }> = [
+  { icon: Store, title: "Venden sin inventario", description: "Usan tu catálogo como suyo. Ellos ofrecen, tú surtes. Su primera tienda digital real." },
+  { icon: Sparkles, title: "Pedidos Especiales", description: "Si su cliente pide algo que no tienen, el sistema lo detecta y lo agrupa para cotizarte rápido." },
+  { icon: BrainCircuit, title: "IA Profesional", description: "Recomendaciones smart y sugerencias automáticas que los hacen ver profesionales desde el día 1." },
+  { icon: Search, title: "Search Logs & Radar", description: "Saben qué buscan sus clientes sin preguntar y detectan tendencias para vender de inmediato." },
+  { icon: Megaphone, title: "Marketing Avanzado", description: "Catálogo conectado a Facebook/Instagram Shop con Pixel y CAPI listos para campañas inteligentes." },
+  { icon: Clock, title: "Procesos Rápidos", description: "Cotizaciones al momento, envío por WhatsApp y pagos SPEI integrados. Menos pasos, más cierres." },
+];
+
+// Componente de Beneficios
+function BenefitsSection() {
+  const [perspective, setPerspective] = useState<"provider" | "clients">("provider");
+  
+  const benefits = perspective === "provider" ? benefitsForProvider : benefitsForClients;
+  
+  return (
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="text-center">
+        <h2 className="text-2xl md:text-3xl font-bold text-slate-800 mb-2">
+          El Ecosistema CatifyPro
+        </h2>
+        <p className="text-slate-500 max-w-2xl mx-auto">
+          Descubre cómo nuestra plataforma potencia tu negocio y el de tu red de distribución.
+        </p>
+      </div>
+
+      {/* Toggle Group */}
+      <div className="flex justify-center">
+        <ToggleGroup
+          type="single"
+          value={perspective}
+          onValueChange={(val) => val && setPerspective(val as "provider" | "clients")}
+          className="bg-slate-100 p-1 rounded-xl"
+        >
+          <ToggleGroupItem
+            value="provider"
+            className="px-4 py-2.5 rounded-lg data-[state=on]:bg-white data-[state=on]:shadow-sm data-[state=on]:text-indigo-600 font-medium text-sm transition-all"
+          >
+            <Rocket className="w-4 h-4 mr-2" />
+            Para Ti (Proveedor)
+          </ToggleGroupItem>
+          <ToggleGroupItem
+            value="clients"
+            className="px-4 py-2.5 rounded-lg data-[state=on]:bg-white data-[state=on]:shadow-sm data-[state=on]:text-emerald-600 font-medium text-sm transition-all"
+          >
+            <Store className="w-4 h-4 mr-2" />
+            Para Tus Clientes
+          </ToggleGroupItem>
+        </ToggleGroup>
+      </div>
+
+      {/* Benefits Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {benefits.map((benefit, index) => {
+          const IconComponent = benefit.icon;
+          const isProvider = perspective === "provider";
+          
+          return (
+            <Card
+              key={index}
+              className="group hover:shadow-lg hover:-translate-y-1 transition-all duration-300 border-slate-200"
+            >
+              <CardContent className="p-6">
+                <div
+                  className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${
+                    isProvider ? "bg-indigo-50" : "bg-emerald-50"
+                  }`}
+                >
+                  <IconComponent
+                    className={`w-6 h-6 ${
+                      isProvider ? "text-indigo-600" : "text-emerald-600"
+                    }`}
+                  />
+                </div>
+                <CardTitle className="text-lg font-bold text-slate-800 mb-2">
+                  {benefit.title}
+                </CardTitle>
+                <CardDescription className="text-slate-600 leading-relaxed">
+                  {benefit.description}
+                </CardDescription>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 import WelcomeTour from "@/components/demo/WelcomeTour";
 import { DemoHotspot } from "@/components/demo/DemoHotspot";
 
@@ -116,13 +234,22 @@ export default function DemoPage() {
         <Tabs defaultValue="dashboard" className="w-full">
           {/* 🔥 TABS OPTIMIZADOS PARA MÓVIL Y DESKTOP 🔥 */}
           <div className="flex flex-col items-center mb-8 gap-4">
-            <TabsList className="w-full grid grid-cols-2 h-auto p-1.5 bg-slate-200/60 rounded-xl gap-1 md:w-auto md:inline-flex md:bg-white md:border md:border-slate-200 md:shadow-sm">
+            <TabsList className="w-full grid grid-cols-3 h-auto p-1.5 bg-slate-200/60 rounded-xl gap-1 md:w-auto md:inline-flex md:bg-white md:border md:border-slate-200 md:shadow-sm">
               <TabsTrigger
                 value="dashboard"
                 className="h-10 md:h-11 rounded-lg md:rounded-xl data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm md:data-[state=active]:bg-slate-900 md:data-[state=active]:text-white font-medium text-xs md:text-base transition-all"
               >
                 <LayoutDashboard className="w-3.5 h-3.5 md:w-4 md:h-4 mr-1.5 md:mr-2" />
-                Inteligencia
+                <span className="hidden sm:inline">Inteligencia</span>
+                <span className="sm:hidden">Intel</span>
+              </TabsTrigger>
+
+              <TabsTrigger
+                value="beneficios"
+                className="h-10 md:h-11 rounded-lg md:rounded-xl data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm md:data-[state=active]:bg-slate-900 md:data-[state=active]:text-white font-medium text-xs md:text-base transition-all"
+              >
+                <Gift className="w-3.5 h-3.5 md:w-4 md:h-4 mr-1.5 md:mr-2" />
+                Beneficios
               </TabsTrigger>
 
               <TabsTrigger
@@ -130,7 +257,8 @@ export default function DemoPage() {
                 className="relative h-10 md:h-11 rounded-lg md:rounded-xl data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm md:data-[state=active]:bg-slate-900 md:data-[state=active]:text-white font-medium text-xs md:text-base transition-all overflow-visible"
               >
                 <ShoppingCart className="w-3.5 h-3.5 md:w-4 md:h-4 mr-1.5 md:mr-2" />
-                Catálogo Interactivo
+                <span className="hidden sm:inline">Catálogo</span>
+                <span className="sm:hidden">Tienda</span>
                 {/* 🔴 PUNTO PULSANTE PARA INVITAR AL CLIC */}
                 <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5 md:h-3 md:w-3">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
@@ -244,6 +372,11 @@ export default function DemoPage() {
                 <DemoForecastWidget productsData={data.topDemandProducts} />
               </div>
             </section>
+          </TabsContent>
+
+          {/* 🎁 TAB BENEFICIOS */}
+          <TabsContent value="beneficios" className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <BenefitsSection />
           </TabsContent>
 
           <TabsContent value="catalogo" className="animate-in fade-in slide-in-from-bottom-4 duration-500">
