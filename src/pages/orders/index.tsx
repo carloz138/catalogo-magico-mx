@@ -59,6 +59,7 @@ export default function OrdersPage() {
 
   const { quotes, loading, refetch } = useQuotes({ autoLoad: true });
 
+  // Filtramos solo pedidos pagados
   const paidOrders = quotes.filter((q) => (q as any).payment_status === "paid");
 
   const filteredOrders = paidOrders.filter((order) => {
@@ -72,13 +73,15 @@ export default function OrdersPage() {
   });
 
   const stats = {
-    unfulfilled: paidOrders.filter((o) => o.fulfillment_status === "unfulfilled").length,
+    unfulfilled: paidOrders.filter((o) => o.fulfillment_status === "unfulfilled" || !o.fulfillment_status).length,
     processing: paidOrders.filter((o) => o.fulfillment_status === "processing").length,
-    shipped: paidOrders.filter((o) => ["shipped", "ready_for_pickup"].includes(o.fulfillment_status)).length,
+    shipped: paidOrders.filter((o) => ["shipped", "ready_for_pickup", "delivered"].includes(o.fulfillment_status))
+      .length,
   };
 
   const openFulfillmentModal = (order: Quote) => {
     setSelectedOrder(order);
+    // Precargar datos si ya existen, o limpiar si es nuevo despacho
     setTrackingCode(order.tracking_code || "");
     setCarrierName(order.carrier_name || "");
     setShowFulfillmentModal(true);
@@ -89,16 +92,15 @@ export default function OrdersPage() {
 
     setIsSubmitting(true);
     try {
-      // ✅ CORRECCIÓN LÓGICA: Si no es explícitamente pickup, asumimos shipping
+      // Determinar tipo de despacho
       const isPickup = selectedOrder.delivery_method === "pickup";
-
       const newStatus: FulfillmentStatus = isPickup ? "ready_for_pickup" : "shipped";
 
-      // Validación estricta solo si NO es pickup
+      // Validación: Si es envío, requerimos datos. Si es pickup, no.
       if (!isPickup && (!trackingCode || !carrierName)) {
         toast({
           title: "Datos incompletos",
-          description: "Debes ingresar la paquetería y el número de guía.",
+          description: "Debes ingresar la paquetería y el número de guía para envíos a domicilio.",
           variant: "destructive",
         });
         setIsSubmitting(false);
@@ -114,11 +116,13 @@ export default function OrdersPage() {
 
       toast({
         title: isPickup ? "✅ Listo para Recoger" : "✅ Pedido Enviado",
-        description: "La información de rastreo ha sido actualizada.",
+        description: isPickup
+          ? "El cliente ha sido notificado para pasar por su pedido."
+          : "La información de rastreo ha sido enviada al cliente.",
       });
 
       setShowFulfillmentModal(false);
-      refetch();
+      refetch(); // Recargar lista
     } catch (error: any) {
       console.error(error);
       toast({ title: "Error", description: "No se pudo actualizar el pedido.", variant: "destructive" });
@@ -127,7 +131,7 @@ export default function OrdersPage() {
     }
   };
 
-  // Helper para determinar el tipo visualmente
+  // Helper seguro para el renderizado
   const isPickupOrder = selectedOrder?.delivery_method === "pickup";
 
   if (loading)
@@ -168,7 +172,7 @@ export default function OrdersPage() {
             <div className="relative flex-1 max-w-md">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               <Input
-                placeholder="Buscar pedido..."
+                placeholder="Buscar pedido por cliente o #..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10 bg-slate-50 border-slate-200"
@@ -183,7 +187,11 @@ export default function OrdersPage() {
                 <button
                   key={tab.id}
                   onClick={() => setStatusFilter(tab.id as any)}
-                  className={`px-4 py-2 rounded-lg text-xs font-medium transition-colors whitespace-nowrap ${statusFilter === tab.id ? "bg-slate-900 text-white shadow-md" : "bg-white text-slate-500 border border-slate-200"}`}
+                  className={`px-4 py-2 rounded-lg text-xs font-medium transition-colors whitespace-nowrap ${
+                    statusFilter === tab.id
+                      ? "bg-slate-900 text-white shadow-md"
+                      : "bg-white text-slate-500 border border-slate-200 hover:bg-slate-50"
+                  }`}
                 >
                   {tab.label}
                 </button>
@@ -195,10 +203,11 @@ export default function OrdersPage() {
             <div className="text-center py-24">
               <Package className="w-16 h-16 text-slate-300 mx-auto mb-4" />
               <h3 className="text-slate-900 font-medium">No hay pedidos</h3>
+              <p className="text-slate-500 text-sm mt-1">Los pedidos pagados aparecerán aquí.</p>
             </div>
           ) : (
             <div className="divide-y divide-slate-100">
-              <div className="hidden md:grid grid-cols-12 gap-4 px-6 py-3 bg-slate-50/50 text-xs font-semibold text-slate-500 uppercase">
+              <div className="hidden md:grid grid-cols-12 gap-4 px-6 py-3 bg-slate-50/50 text-xs font-semibold text-slate-500 uppercase tracking-wider">
                 <div className="col-span-3">Pedido</div>
                 <div className="col-span-3">Cliente</div>
                 <div className="col-span-2">Fecha Pago</div>
@@ -211,8 +220,9 @@ export default function OrdersPage() {
                   key={order.id}
                   className="group md:grid md:grid-cols-12 md:gap-4 p-4 md:px-6 md:py-4 items-center hover:bg-slate-50 transition-colors"
                 >
+                  {/* Mobile View */}
                   <div className="md:hidden flex justify-between mb-3">
-                    <div className="font-bold">#{order.order_number || order.id.slice(0, 6)}</div>
+                    <div className="font-bold text-slate-900">#{order.order_number || order.id.slice(0, 6)}</div>
                     <FulfillmentBadge status={order.fulfillment_status} />
                   </div>
 
@@ -227,12 +237,12 @@ export default function OrdersPage() {
                   </div>
 
                   <div className="md:col-span-3 mb-2 md:mb-0">
-                    <div className="font-medium">{order.customer_name}</div>
+                    <div className="font-medium text-slate-900">{order.customer_name}</div>
                     <div className="text-xs text-slate-500 flex items-center gap-1">
                       {order.delivery_method === "pickup" ? (
-                        <MapPin className="w-3 h-3" />
+                        <MapPin className="w-3 h-3 text-indigo-500" />
                       ) : (
-                        <Truck className="w-3 h-3" />
+                        <Truck className="w-3 h-3 text-purple-500" />
                       )}
                       {order.delivery_method === "pickup" ? "Recolección" : "Envío Domicilio"}
                     </div>
@@ -246,7 +256,7 @@ export default function OrdersPage() {
                     <FulfillmentBadge status={order.fulfillment_status} />
                   </div>
 
-                  <div className="md:col-span-2 flex justify-end gap-2">
+                  <div className="md:col-span-2 flex justify-end gap-2 border-t md:border-none pt-3 md:pt-0 mt-2 md:mt-0">
                     {order.fulfillment_status === "unfulfilled" || order.fulfillment_status === "processing" ? (
                       <Button
                         size="sm"
@@ -259,7 +269,7 @@ export default function OrdersPage() {
                       <Button
                         size="sm"
                         variant="outline"
-                        className="w-full md:w-auto h-8 text-xs"
+                        className="w-full md:w-auto h-8 text-xs text-slate-600"
                         onClick={() => openFulfillmentModal(order)}
                       >
                         Ver Guía
@@ -286,7 +296,6 @@ export default function OrdersPage() {
           </DialogHeader>
 
           <div className="py-4 space-y-4">
-            {/* ✅ CORRECCIÓN: Usamos !isPickupOrder para que salga por defecto si es null o shipping */}
             {!isPickupOrder && (
               <>
                 <div className="space-y-2">
