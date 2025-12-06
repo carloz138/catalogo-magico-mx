@@ -4,7 +4,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
@@ -17,8 +16,8 @@ import {
   Loader2,
   MapPin,
   AlertCircle,
-  Store, // ✅ Icono tienda
-  Truck, // ✅ Icono camión
+  Store,
+  Truck,
 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { RecommendationBanner } from "@/components/quotes/RecommendationBanner";
@@ -49,7 +48,7 @@ export default function ConsolidateOrderPage() {
   const [items, setItems] = useState<ConsolidationItem[]>([]);
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
 
-  // ✅ NUEVO ESTADO: Método de entrega
+  // Estado para método de entrega
   const [deliveryMethod, setDeliveryMethod] = useState<"shipping" | "pickup">("shipping");
 
   const [catalogInfo, setCatalogInfo] = useState<{ name: string; user_id: string } | null>(null);
@@ -156,7 +155,7 @@ export default function ConsolidateOrderPage() {
       return;
     }
 
-    // ✅ VALIDACIÓN CONDICIONAL: Solo exigimos dirección si pide ENVÍO
+    // Validación condicional: Solo pedimos dirección si es Envío
     if (deliveryMethod === "shipping" && (!resellerInfo?.address || resellerInfo.address.length < 5)) {
       toast({
         title: "Falta dirección",
@@ -175,7 +174,7 @@ export default function ConsolidateOrderPage() {
         source_quote_ids: item.source_quote_ids || [],
       }));
 
-      // ✅ Enviamos el parámetro p_delivery_method
+      // Llamada al RPC con los parámetros actualizados
       const { data, error } = await supabase.rpc("create_consolidated_order" as any, {
         p_distributor_id: user.id,
         p_supplier_id: catalogInfo.user_id,
@@ -183,7 +182,7 @@ export default function ConsolidateOrderPage() {
         p_items: orderPayload,
         p_shipping_address: deliveryMethod === "shipping" ? resellerInfo.address : "Recoger en Tienda",
         p_notes: `[REPOSICIÓN DE STOCK] Pedido consolidado. Método: ${deliveryMethod === "pickup" ? "RECOGER EN TIENDA" : "ENVÍO A DOMICILIO"}`,
-        p_delivery_method: deliveryMethod, // ✅ Nuevo parámetro
+        p_delivery_method: deliveryMethod,
       });
 
       if (error) throw error;
@@ -254,7 +253,7 @@ export default function ConsolidateOrderPage() {
               </AlertDescription>
             </Alert>
 
-            {/* ✅ NUEVO: Selector de Método de Entrega */}
+            {/* Selector de Método de Entrega */}
             <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
               <h3 className="text-sm font-semibold text-slate-900 mb-3">Método de Entrega</h3>
               <div className="grid grid-cols-2 gap-3">
@@ -277,7 +276,6 @@ export default function ConsolidateOrderPage() {
                 </div>
               </div>
 
-              {/* Info dinámica según selección */}
               <div className="mt-3 pt-3 border-t border-slate-100 text-xs md:text-sm text-slate-500">
                 {deliveryMethod === "shipping" ? (
                   resellerInfo?.address ? (
@@ -302,7 +300,7 @@ export default function ConsolidateOrderPage() {
               </div>
             </div>
 
-            {/* --- LISTA DE ITEMS --- */}
+            {/* Lista de Items */}
             <div className="grid grid-cols-1 gap-3 md:gap-4">
               {items.map((item) => {
                 const id = item.variant_id || item.product_id;
@@ -384,8 +382,10 @@ export default function ConsolidateOrderPage() {
         )}
       </div>
 
+      {/* --- BARRA FLOTANTE DE ACCIÓN --- */}
       {items.length > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 shadow-[0_-4px_10px_rgba(0,0,0,0.05)] z-50 px-4 py-3 md:px-8 md:py-4 safe-area-bottom">
+        // ✅ AQUÍ ESTÁ EL ARREGLO: z-20 para no tapar el Sidebar
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 shadow-[0_-4px_10px_rgba(0,0,0,0.05)] z-20 px-4 py-3 md:px-8 md:py-4 safe-area-bottom">
           <div className="max-w-5xl mx-auto flex flex-row items-center justify-between gap-4">
             <div className="flex flex-col">
               <span className="text-xs text-slate-500 font-medium uppercase tracking-wide">Total a Pedir</span>
@@ -408,7 +408,6 @@ export default function ConsolidateOrderPage() {
               ) : (
                 <>
                   <ShoppingCart className="w-5 h-5" />
-                  {/* Texto dinámico según el método */}
                   <span>{deliveryMethod === "pickup" ? "Confirmar Recolección" : "Confirmar Envío"}</span>
                 </>
               )}
