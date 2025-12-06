@@ -8,24 +8,14 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import {
-  ArrowLeft,
-  Package,
-  ShoppingCart,
-  CheckCircle,
-  TrendingUp,
-  Loader2,
-  MapPin,
-  AlertCircle,
-  Store,
-} from "lucide-react";
+import { ArrowLeft, Package, ShoppingCart, CheckCircle, TrendingUp, Loader2, MapPin, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { QuoteService } from "@/services/quote.service";
 import { RecommendationBanner } from "@/components/quotes/RecommendationBanner";
 import { useProductRecommendations } from "@/hooks/useProductRecommendations";
-import { PriceType } from "@/types/digital-catalog";
+// Importamos el tipo de respuesta para el RPC
+import { CreateConsolidatedOrderResponse } from "@/types/consolidated-order";
 
-// Tipo de dato que devuelve tu RPC
+// Tipo de dato para la vista previa (Fetch inicial)
 interface ConsolidationItem {
   product_id: string;
   variant_id: string | null;
@@ -37,12 +27,6 @@ interface ConsolidationItem {
   current_stock: number;
   quantity_to_order: number;
   source_quote_ids: string[];
-}
-
-interface PriceRule {
-  retail: number;
-  wholesale: number;
-  min_qty: number;
 }
 
 export default function ConsolidateOrderPage() {
@@ -140,7 +124,7 @@ export default function ConsolidateOrderPage() {
 
       setResellerInfo(busInfo || {});
 
-      // 3. LLAMADA AL RPC
+      // 3. LLAMADA AL RPC (Vista Previa)
       const { data: consolidationData, error: rpcError } = await supabase.rpc("get_consolidation_preview" as any, {
         p_distributor_id: user?.id,
         p_catalog_id: supplierId,
@@ -168,37 +152,47 @@ export default function ConsolidateOrderPage() {
     setSelectedItems(newSet);
   };
 
-  // En src/pages/reseller/ConsolidatedOrders.tsx
-
+  // =========================================================
+  // CORE LOGIC: CREACIÓN DE ORDEN VIA RPC (SECURE MODE)
+  // =========================================================
   const handleCreateOrder = async () => {
-    // 1. Validaciones básicas de UI (Se mantienen igual)
+    // 1. Validaciones básicas de UI
     if (!user || !catalogInfo || !supplierId) return;
 
     const itemsToOrder = items.filter((i) => selectedItems.has(i.variant_id || i.product_id));
 
     if (itemsToOrder.length === 0) {
-      toast({ title: "Selecciona productos", description: "Debes elegir al menos un ítem.", variant: "destructive" });
+      toast({
+        title: "Selecciona productos",
+        description: "Debes elegir al menos un ítem para pedir.",
+        variant: "destructive",
+      });
       return;
     }
 
     if (!resellerInfo?.address || resellerInfo.address.length < 5) {
-      toast({ title: "Falta dirección", description: "Configura tu dirección de envío.", variant: "destructive" });
+      toast({
+        title: "Falta dirección de envío",
+        description: "Por favor configura tu dirección comercial en 'Configuración' para generar órdenes automáticas.",
+        variant: "destructive",
+      });
       return;
     }
 
     setProcessing(true);
     try {
       // 2. PREPARAR PAYLOAD LIMPIO
-      // Solo enviamos QUÉ queremos y CUÁNTO. El Backend decide CUÁNTO CUESTA.
+      // Solo enviamos QUÉ queremos y CUÁNTO. El Backend (PostgreSQL) decide CUÁNTO CUESTA.
       const orderPayload = itemsToOrder.map((item) => ({
         product_id: item.product_id,
-        variant_id: item.variant_id, // Puede ser null, está bien
+        variant_id: item.variant_id, // Puede ser null
         quantity: item.quantity_to_order,
         source_quote_ids: item.source_quote_ids || [], // Array de IDs de las ventas L3
       }));
 
       // 3. LLAMADA AL RPC BLINDADO
-      const { data, error } = await supabase.rpc("create_consolidated_order", {
+      // 'as any' se usa temporalmente en el nombre de la función para evitar error TS estricto
+      const { data, error } = await supabase.rpc("create_consolidated_order" as any, {
         p_distributor_id: user.id,
         p_supplier_id: catalogInfo.user_id, // El ID del L1
         p_catalog_id: supplierId, // El ID del catálogo
@@ -209,20 +203,24 @@ export default function ConsolidateOrderPage() {
 
       if (error) throw error;
 
-      console.log("Orden Creada:", data);
+      // 4. CASTING DE RESPUESTA
+      // Convertimos la respuesta JSON genérica a nuestro tipo definido
+      const result = data as unknown as CreateConsolidatedOrderResponse;
+
+      console.log("Orden Creada:", result);
 
       toast({
-        title: "¡Orden Generada!",
-        description: `Se ha enviado el pedido al proveedor. Total: $${data.total_amount}`,
+        title: "¡Orden Generada Exitosamente!",
+        description: `Se ha enviado el pedido al proveedor. Total Confirmado: $${result.total_amount}`,
       });
 
-      // 4. Redirección
+      // 5. Redirección
       navigate("/orders");
     } catch (error: any) {
-      console.error("Error creating order:", error);
+      console.error("Error creating consolidated order:", error);
       toast({
-        title: "Error al crear orden",
-        description: error.message || "Ocurrió un error inesperado.",
+        title: "Error al procesar",
+        description: error.message || "Ocurrió un error inesperado al crear la orden.",
         variant: "destructive",
       });
     } finally {
@@ -325,7 +323,7 @@ export default function ConsolidateOrderPage() {
 
                       <div className="w-12 h-12 bg-slate-100 rounded-md overflow-hidden shrink-0">
                         {item.image_url ? (
-                          <img src={item.image_url} className="w-full h-full object-cover" />
+                          <img src={item.image_url} className="w-full h-full object-cover" alt={item.product_name} />
                         ) : (
                           <Package className="p-2 text-slate-300 w-full h-full" />
                         )}
