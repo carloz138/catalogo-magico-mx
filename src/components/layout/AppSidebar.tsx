@@ -1,4 +1,3 @@
-// /src/components/layout/AppSidebar.tsx
 import React from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -71,16 +70,15 @@ export function AppSidebar() {
 
   const navigate = useNavigate();
   const location = useLocation();
-  const { state, toggleSidebar } = useSidebar();
+
+  // ✅ FIX 1: Obtenemos isMobile y setOpenMobile para cerrar el menú
+  const { state, toggleSidebar, isMobile, setOpenMobile } = useSidebar();
   const isCollapsed = state === "collapsed";
 
-  // --- 1. LÓGICA DE CONTADORES EXACTOS (Usando RPC) ---
   const { data: stats } = useQuery({
     queryKey: ["sidebar-stats", user?.id],
     queryFn: async () => {
       if (!user) return { quotes: 0, orders: 0 };
-
-      // Llamamos al RPC que filtra por PAGO REAL y Estatus Pendiente
       const { data, error } = await supabase.rpc("get_sidebar_counts", {
         p_user_id: user.id,
       });
@@ -90,7 +88,6 @@ export function AppSidebar() {
         return { quotes: 0, orders: 0 };
       }
 
-      // El RPC devuelve un array, tomamos el primer elemento
       const result = data && data[0] ? data[0] : { pending_quotes: 0, orders_to_ship: 0 };
 
       return {
@@ -99,7 +96,7 @@ export function AppSidebar() {
       };
     },
     enabled: !!user,
-    refetchInterval: 30000, // Refresca cada 30s para mantener sincronizado
+    refetchInterval: 30000,
   });
 
   const displayName =
@@ -114,7 +111,14 @@ export function AppSidebar() {
     return source.substring(0, 2).toUpperCase();
   };
 
-  // --- DEFINICIÓN DE MENÚ ---
+  // ✅ FIX 2: Función unificada para navegar y cerrar menú en móvil
+  const handleNavigation = (path: string) => {
+    navigate(path);
+    if (isMobile) {
+      setOpenMobile(false);
+    }
+  };
+
   const allNavigationItems: MenuItem[] = [
     { title: "Dashboard", path: "/dashboard", icon: LayoutDashboard, primary: true, roles: ["L1", "L2", "BOTH"] },
     {
@@ -123,7 +127,6 @@ export function AppSidebar() {
       icon: ClipboardList,
       primary: true,
       roles: ["L1", "L2", "BOTH"],
-      // Badge naranja para cotizaciones pendientes de atención
       badge: stats?.quotes && stats.quotes > 0 ? stats.quotes : undefined,
       badgeColor: "bg-amber-500 text-white border-amber-600",
     },
@@ -133,12 +136,10 @@ export function AppSidebar() {
       icon: Truck,
       primary: true,
       roles: ["L1", "L2", "BOTH"],
-      // Badge verde pulsante para pedidos PAGADOS que requieren envío
       badge: stats?.orders && stats.orders > 0 ? stats.orders : undefined,
       badgeColor: "bg-emerald-500 text-white border-emerald-600 animate-pulse",
     },
     { title: "Mis Catálogos", path: "/catalogs", icon: BookOpen, primary: true, roles: ["L1", "L2", "BOTH"] },
-
     {
       title: "Radar de Mercado",
       path: "/market-radar",
@@ -167,7 +168,6 @@ export function AppSidebar() {
     { title: "Carga Masiva", path: "/products/bulk-upload", icon: PackageOpen, roles: ["L1", "BOTH"] },
     { title: "Subir Productos", path: "/upload", icon: Upload, roles: ["L1", "BOTH"] },
     { title: "Analytics", path: "/analytics", icon: BarChart3, roles: ["L1", "BOTH"] },
-
     { title: "Facturación", path: "/checkout", icon: CreditCard, roles: ["L1", "BOTH"] },
     { title: "Guía de Inicio", path: "/onboarding", icon: PlayCircle, roles: ["L1", "L2", "BOTH"] },
     {
@@ -181,7 +181,6 @@ export function AppSidebar() {
     { title: "Configuración", path: "/business-info", icon: Settings, roles: ["L1", "L2", "BOTH"] },
   ];
 
-  // FILTRADO DINÁMICO POR ROL
   const navigationItems = allNavigationItems.filter((item) => {
     if (!item.roles) return true;
     if (isBoth) return true;
@@ -250,7 +249,11 @@ export function AppSidebar() {
               }
             `}
         >
-          <button onClick={() => navigate(item.path)} className="flex items-center w-full p-2.5">
+          {/* ✅ FIX 3: Botón optimizado para colapsado (justify-center y p-2) */}
+          <button
+            onClick={() => handleNavigation(item.path)}
+            className={`flex items-center w-full p-2.5 ${isCollapsed ? "justify-center p-2" : ""}`}
+          >
             <item.icon
               className={`h-5 w-5 flex-shrink-0 transition-colors ${isActive ? "text-white" : "text-slate-500 group-hover:text-slate-300"}`}
             />
@@ -273,8 +276,11 @@ export function AppSidebar() {
   };
 
   return (
-    <Sidebar collapsible="icon" className={`border-r ${THEME.sidebarBorder} ${THEME.sidebarBg}`}>
-      <SidebarHeader className={`h-16 flex items-center px-4 border-b ${THEME.sidebarBorder} bg-slate-950 shrink-0`}>
+    <Sidebar collapsible="icon" className={`border-r ${THEME.sidebarBorder} ${THEME.sidebarBg} z-50`}>
+      {/* ✅ FIX 4: Header Padding dinámico (px-2 si está colapsado) */}
+      <SidebarHeader
+        className={`h-16 flex items-center ${isCollapsed ? "px-2" : "px-4"} border-b ${THEME.sidebarBorder} bg-slate-950 shrink-0 transition-all`}
+      >
         <div className="flex items-center justify-between w-full overflow-hidden">
           <div
             className={`flex items-center gap-3 transition-all duration-300 ${isCollapsed ? "justify-center w-full" : "flex-1 min-w-0"}`}
@@ -326,7 +332,9 @@ export function AppSidebar() {
       <SidebarFooter className={`${THEME.footerBorder} bg-slate-950 p-2`}>
         {warning.show && !isCollapsed && (
           <div
-            onClick={() => warning.path && navigate(warning.path)}
+            onClick={() => {
+              handleNavigation(warning.path);
+            }}
             className={`mb-3 mx-1 p-3 rounded-lg border cursor-pointer transition-all group ${warning.bg}`}
           >
             <div className={`flex items-center gap-2 mb-1 ${warning.color}`}>
@@ -341,7 +349,7 @@ export function AppSidebar() {
           <SidebarMenuItem>
             <div
               className={`flex items-center gap-3 p-2 rounded-xl cursor-pointer group transition-all duration-200 hover:bg-white/5 border border-transparent hover:border-white/5 ${isCollapsed ? "justify-center" : ""}`}
-              onClick={() => navigate("/business-info")}
+              onClick={() => handleNavigation("/business-info")}
             >
               <Avatar className="h-9 w-9 rounded-lg border border-slate-700 shadow-sm group-hover:border-indigo-500/50 transition-colors">
                 <AvatarImage src={user?.user_metadata?.avatar_url} />
