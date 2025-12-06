@@ -68,15 +68,13 @@ export default function ConsolidateOrderPage() {
 
   // IDs de productos seleccionados para recomendaciones
   const selectedProductIds = useMemo(() => {
-    return items
-      .filter((i) => selectedItems.has(i.variant_id || i.product_id))
-      .map((i) => i.product_id);
+    return items.filter((i) => selectedItems.has(i.variant_id || i.product_id)).map((i) => i.product_id);
   }, [items, selectedItems]);
 
   // Hook de recomendaciones basado en productos del pedido
   const { recommendations, loading: loadingRecommendations } = useProductRecommendations(
     selectedProductIds,
-    catalogInfo?.user_id || null
+    catalogInfo?.user_id || null,
   );
 
   // Handler para agregar producto recomendado al pedido
@@ -170,157 +168,63 @@ export default function ConsolidateOrderPage() {
     setSelectedItems(newSet);
   };
 
+  // En src/pages/reseller/ConsolidatedOrders.tsx
+
   const handleCreateOrder = async () => {
+    // 1. Validaciones básicas de UI (Se mantienen igual)
     if (!user || !catalogInfo || !supplierId) return;
 
     const itemsToOrder = items.filter((i) => selectedItems.has(i.variant_id || i.product_id));
+
     if (itemsToOrder.length === 0) {
-      toast({
-        title: "Selecciona productos",
-        description: "Debes elegir al menos un ítem para pedir.",
-        variant: "destructive",
-      });
+      toast({ title: "Selecciona productos", description: "Debes elegir al menos un ítem.", variant: "destructive" });
       return;
     }
 
-    // Validación básica de dirección
     if (!resellerInfo?.address || resellerInfo.address.length < 5) {
-      toast({
-        title: "Falta dirección de envío",
-        description: "Por favor configura tu dirección comercial en 'Configuración' para generar órdenes automáticas.",
-        variant: "destructive",
-      });
+      toast({ title: "Falta dirección", description: "Configura tu dirección de envío.", variant: "destructive" });
       return;
     }
 
     setProcessing(true);
     try {
-      // 1. OBTENER REGLAS DE PRECIO
-      const productIds = itemsToOrder.map((i) => i.product_id);
-      const { data: costData } = await supabase
-        .from("catalog_products")
-        .select(
-          `
-                product_id,
-                products (
-                    id, price_retail, price_wholesale, wholesale_min_qty,
-                    product_variants (id, price_retail, price_wholesale)
-                )
-            `,
-        )
-        .eq("catalog_id", supplierId)
-        .in("product_id", productIds);
+      // 2. PREPARAR PAYLOAD LIMPIO
+      // Solo enviamos QUÉ queremos y CUÁNTO. El Backend decide CUÁNTO CUESTA.
+      const orderPayload = itemsToOrder.map((item) => ({
+        product_id: item.product_id,
+        variant_id: item.variant_id, // Puede ser null, está bien
+        quantity: item.quantity_to_order,
+        source_quote_ids: item.source_quote_ids || [], // Array de IDs de las ventas L3
+      }));
 
-      const priceMap = new Map<string, PriceRule>();
-
-      costData?.forEach((cp: any) => {
-        const p = cp.products;
-        priceMap.set(cp.product_id, {
-          retail: p.price_retail || 0,
-          wholesale: p.price_wholesale || 0,
-          min_qty: p.wholesale_min_qty || 0,
-        });
-
-        p.product_variants.forEach((v: any) => {
-          priceMap.set(v.id, {
-            retail: v.price_retail || p.price_retail || 0,
-            wholesale: v.price_wholesale || p.price_wholesale || 0,
-            min_qty: p.wholesale_min_qty || 0,
-          });
-        });
+      // 3. LLAMADA AL RPC BLINDADO
+      const { data, error } = await supabase.rpc("create_consolidated_order", {
+        p_distributor_id: user.id,
+        p_supplier_id: catalogInfo.user_id, // El ID del L1
+        p_catalog_id: supplierId, // El ID del catálogo
+        p_items: orderPayload,
+        p_shipping_address: resellerInfo.address,
+        p_notes: "[REPOSICIÓN DE STOCK] Pedido consolidado automáticamente.",
       });
 
-      // 2. CONSTRUIR ITEMS
-      const quoteItems = itemsToOrder.map((item) => {
-        const id = item.variant_id || item.product_id;
-        const rules = priceMap.get(id);
-        const qty = item.quantity_to_order;
+      if (error) throw error;
 
-        let finalPrice = 0;
-        // ✅ CORRECCIÓN: Tipado explícito para evitar TS2345
-        let priceType: "menudeo" | "mayoreo" = "menudeo";
-
-        if (rules) {
-          if (rules.wholesale > 0 && qty >= rules.min_qty) {
-            finalPrice = rules.wholesale;
-            priceType = "mayoreo";
-          } else {
-            finalPrice = rules.retail;
-            priceType = "menudeo";
-          }
-        }
-
-        return {
-          product_id: item.product_id,
-          variant_id: item.variant_id,
-          product_name: item.product_name,
-          product_sku: item.sku || "",
-          product_image_url: item.image_url,
-          variant_description: item.variant_description,
-          quantity: qty,
-          unit_price: finalPrice,
-          price_type: priceType, // Ahora sí coincide con PriceType
-        };
-      });
-
-      // 3. CREAR COTIZACIÓN PRE-LLENADA
-      const quotePayload = {
-        catalog_id: supplierId,
-        user_id: catalogInfo.user_id,
-
-        customer_name: user.user_metadata?.full_name || user.email,
-        customer_email: user.email || "",
-        customer_company: resellerInfo?.business_name || "Revendedor CatifyPro",
-        customer_phone: resellerInfo?.phone || "",
-
-        delivery_method: "shipping" as const,
-        shipping_address: resellerInfo?.address || "Dirección pendiente de confirmar",
-
-        notes: "[REPOSICIÓN DE STOCK] Pedido consolidado automáticamente por sistema.",
-        items: quoteItems,
-      };
-
-      const createdQuote = await QuoteService.createQuote(quotePayload);
-
-      // 4. Guardar Registro de Consolidación
-      const { data: consolidatedOrder } = await supabase
-        .from("consolidated_orders")
-        .insert({
-          distributor_id: user.id,
-          supplier_id: catalogInfo.user_id,
-          original_catalog_id: supplierId,
-          replicated_catalog_id: supplierId,
-          status: "created",
-          quote_id: createdQuote.id,
-          created_at: new Date().toISOString(),
-        })
-        .select()
-        .single();
-
-      // 5. Guardar Items Detallados
-      if (consolidatedOrder) {
-        const consolidatedItems = quoteItems.map((qItem, idx) => ({
-          consolidated_order_id: consolidatedOrder.id,
-          product_id: qItem.product_id,
-          variant_id: qItem.variant_id,
-          product_name: qItem.product_name,
-          quantity: qItem.quantity,
-          unit_price: qItem.unit_price,
-          subtotal: qItem.unit_price * qItem.quantity,
-          source_quote_ids: itemsToOrder[idx].source_quote_ids,
-        }));
-        await supabase.from("consolidated_order_items").insert(consolidatedItems);
-      }
+      console.log("Orden Creada:", data);
 
       toast({
         title: "¡Orden Generada!",
-        description: `Se enviaron tus datos de envío y facturación al proveedor. Pedido #${createdQuote.id.slice(0, 8)}`,
+        description: `Se ha enviado el pedido al proveedor. Total: $${data.total_amount}`,
       });
 
+      // 4. Redirección
       navigate("/orders");
     } catch (error: any) {
-      console.error("Error creating consolidated order:", error);
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      console.error("Error creating order:", error);
+      toast({
+        title: "Error al crear orden",
+        description: error.message || "Ocurrió un error inesperado.",
+        variant: "destructive",
+      });
     } finally {
       setProcessing(false);
     }
