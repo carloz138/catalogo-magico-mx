@@ -17,15 +17,14 @@ import {
   Loader2,
   MapPin,
   AlertCircle,
-  ArrowRight,
+  Store, // ✅ Icono tienda
+  Truck, // ✅ Icono camión
 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { RecommendationBanner } from "@/components/quotes/RecommendationBanner";
 import { useProductRecommendations } from "@/hooks/useProductRecommendations";
-// Importamos el tipo de respuesta para el RPC
 import { CreateConsolidatedOrderResponse } from "@/types/consolidated-order";
 
-// Tipo de dato para la vista previa
 interface ConsolidationItem {
   product_id: string;
   variant_id: string | null;
@@ -50,10 +49,10 @@ export default function ConsolidateOrderPage() {
   const [items, setItems] = useState<ConsolidationItem[]>([]);
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
 
-  // Info del Proveedor (L1)
-  const [catalogInfo, setCatalogInfo] = useState<{ name: string; user_id: string } | null>(null);
+  // ✅ NUEVO ESTADO: Método de entrega
+  const [deliveryMethod, setDeliveryMethod] = useState<"shipping" | "pickup">("shipping");
 
-  // Info del Revendedor (Tú - L2)
+  const [catalogInfo, setCatalogInfo] = useState<{ name: string; user_id: string } | null>(null);
   const [resellerInfo, setResellerInfo] = useState<{
     business_name?: string;
     address?: string;
@@ -156,8 +155,14 @@ export default function ConsolidateOrderPage() {
       toast({ title: "Selecciona productos", description: "Elige al menos uno.", variant: "destructive" });
       return;
     }
-    if (!resellerInfo?.address || resellerInfo.address.length < 5) {
-      toast({ title: "Falta dirección", description: "Configura tu dirección de envío.", variant: "destructive" });
+
+    // ✅ VALIDACIÓN CONDICIONAL: Solo exigimos dirección si pide ENVÍO
+    if (deliveryMethod === "shipping" && (!resellerInfo?.address || resellerInfo.address.length < 5)) {
+      toast({
+        title: "Falta dirección",
+        description: "Para envíos a domicilio, necesitas configurar tu dirección.",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -170,13 +175,15 @@ export default function ConsolidateOrderPage() {
         source_quote_ids: item.source_quote_ids || [],
       }));
 
+      // ✅ Enviamos el parámetro p_delivery_method
       const { data, error } = await supabase.rpc("create_consolidated_order" as any, {
         p_distributor_id: user.id,
         p_supplier_id: catalogInfo.user_id,
         p_catalog_id: supplierId,
         p_items: orderPayload,
-        p_shipping_address: resellerInfo.address,
-        p_notes: "[REPOSICIÓN DE STOCK] Pedido consolidado automáticamente.",
+        p_shipping_address: deliveryMethod === "shipping" ? resellerInfo.address : "Recoger en Tienda",
+        p_notes: `[REPOSICIÓN DE STOCK] Pedido consolidado. Método: ${deliveryMethod === "pickup" ? "RECOGER EN TIENDA" : "ENVÍO A DOMICILIO"}`,
+        p_delivery_method: deliveryMethod, // ✅ Nuevo parámetro
       });
 
       if (error) throw error;
@@ -209,10 +216,9 @@ export default function ConsolidateOrderPage() {
     .reduce((sum, i) => sum + i.quantity_to_order, 0);
 
   return (
-    // ✅ PB-32 agregado para que el footer no tape el contenido en móviles
     <div className="min-h-screen bg-slate-50 p-3 md:p-8 pb-32">
       <div className="max-w-5xl mx-auto space-y-4 md:space-y-6">
-        {/* --- Header Mobile First --- */}
+        {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-start gap-3">
             <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="-ml-2 md:ml-0">
@@ -225,16 +231,6 @@ export default function ConsolidateOrderPage() {
               </p>
             </div>
           </div>
-
-          {resellerInfo?.address && (
-            <div className="bg-white border border-slate-200 rounded-lg p-2.5 flex items-start gap-2 text-xs md:text-sm text-slate-600 max-w-full md:max-w-xs shadow-sm">
-              <MapPin className="w-4 h-4 text-indigo-500 shrink-0 mt-0.5" />
-              <div className="min-w-0">
-                <span className="block font-medium text-slate-900 mb-0.5">Dirección de Envío:</span>
-                <span className="block truncate">{resellerInfo.address}</span>
-              </div>
-            </div>
-          )}
         </div>
 
         {items.length === 0 ? (
@@ -250,22 +246,6 @@ export default function ConsolidateOrderPage() {
           </Card>
         ) : (
           <div className="space-y-4 md:space-y-6">
-            {!resellerInfo?.address && (
-              <Alert variant="destructive" className="bg-red-50 border-red-200 text-red-900">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription className="ml-2 text-xs md:text-sm">
-                  <strong>Sin dirección:</strong> Configura tu dirección para pedir.
-                  <Button
-                    variant="link"
-                    className="p-0 h-auto font-bold ml-1 text-red-900 underline"
-                    onClick={() => navigate("/business-info")}
-                  >
-                    Ir a Configuración
-                  </Button>
-                </AlertDescription>
-              </Alert>
-            )}
-
             <Alert className="bg-indigo-50 border-indigo-200 text-indigo-900">
               <TrendingUp className="h-4 w-4 text-indigo-600" />
               <AlertDescription className="text-xs md:text-sm">
@@ -274,7 +254,55 @@ export default function ConsolidateOrderPage() {
               </AlertDescription>
             </Alert>
 
-            {/* --- LISTA DE ITEMS (GRID ADAPTATIVO) --- */}
+            {/* ✅ NUEVO: Selector de Método de Entrega */}
+            <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+              <h3 className="text-sm font-semibold text-slate-900 mb-3">Método de Entrega</h3>
+              <div className="grid grid-cols-2 gap-3">
+                <div
+                  onClick={() => setDeliveryMethod("shipping")}
+                  className={`cursor-pointer rounded-lg border p-3 flex flex-col items-center justify-center gap-2 transition-all ${deliveryMethod === "shipping" ? "border-indigo-600 bg-indigo-50 text-indigo-700" : "border-slate-200 hover:border-slate-300 text-slate-600"}`}
+                >
+                  <Truck
+                    className={`w-6 h-6 ${deliveryMethod === "shipping" ? "text-indigo-600" : "text-slate-400"}`}
+                  />
+                  <span className="text-xs font-bold">Envío a Domicilio</span>
+                </div>
+
+                <div
+                  onClick={() => setDeliveryMethod("pickup")}
+                  className={`cursor-pointer rounded-lg border p-3 flex flex-col items-center justify-center gap-2 transition-all ${deliveryMethod === "pickup" ? "border-indigo-600 bg-indigo-50 text-indigo-700" : "border-slate-200 hover:border-slate-300 text-slate-600"}`}
+                >
+                  <Store className={`w-6 h-6 ${deliveryMethod === "pickup" ? "text-indigo-600" : "text-slate-400"}`} />
+                  <span className="text-xs font-bold">Recoger en Tienda</span>
+                </div>
+              </div>
+
+              {/* Info dinámica según selección */}
+              <div className="mt-3 pt-3 border-t border-slate-100 text-xs md:text-sm text-slate-500">
+                {deliveryMethod === "shipping" ? (
+                  resellerInfo?.address ? (
+                    <div className="flex items-start gap-2">
+                      <MapPin className="w-4 h-4 text-indigo-500 mt-0.5 shrink-0" />
+                      <span>
+                        Se enviará a: <strong>{resellerInfo.address}</strong>
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 text-red-600 font-medium">
+                      <AlertCircle className="w-4 h-4" />
+                      <span>Necesitas configurar tu dirección de envío.</span>
+                    </div>
+                  )
+                ) : (
+                  <div className="flex items-center gap-2 text-emerald-600 font-medium">
+                    <CheckCircle className="w-4 h-4" />
+                    <span>Pasarás a recoger el pedido. No se cobrará envío.</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* --- LISTA DE ITEMS --- */}
             <div className="grid grid-cols-1 gap-3 md:gap-4">
               {items.map((item) => {
                 const id = item.variant_id || item.product_id;
@@ -289,9 +317,7 @@ export default function ConsolidateOrderPage() {
                       ${isSelected ? "border-indigo-500 shadow-md bg-indigo-50/10 ring-1 ring-indigo-500" : "border-slate-200 hover:border-slate-300"}
                     `}
                   >
-                    {/* Estructura Mobile: Flex Column / Desktop: Flex Row */}
                     <div className="flex gap-3 md:gap-4 items-start">
-                      {/* Checkbox (Más grande para touch) */}
                       <div className="pt-1">
                         <Checkbox
                           checked={isSelected}
@@ -299,7 +325,6 @@ export default function ConsolidateOrderPage() {
                         />
                       </div>
 
-                      {/* Imagen */}
                       <div className="w-16 h-16 md:w-14 md:h-14 bg-slate-100 rounded-lg overflow-hidden shrink-0 border border-slate-100">
                         {item.image_url ? (
                           <img src={item.image_url} className="w-full h-full object-cover" alt="" />
@@ -308,7 +333,6 @@ export default function ConsolidateOrderPage() {
                         )}
                       </div>
 
-                      {/* Contenido Principal */}
                       <div className="flex-1 min-w-0">
                         <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-2">
                           <div>
@@ -320,7 +344,6 @@ export default function ConsolidateOrderPage() {
                             </p>
                           </div>
 
-                          {/* Badge de Cantidad a Pedir (Destacado en Móvil) */}
                           <div className="mt-2 md:mt-0 flex items-center gap-2 md:block md:text-right">
                             <div className="bg-indigo-600 text-white text-xs font-bold px-2 py-1 rounded-md shadow-sm inline-flex items-center gap-1">
                               <span className="opacity-80 font-normal mr-1">A PEDIR:</span>
@@ -329,7 +352,6 @@ export default function ConsolidateOrderPage() {
                           </div>
                         </div>
 
-                        {/* Stats Grid (Mobile & Desktop) */}
                         <div className="mt-3 grid grid-cols-2 md:flex md:justify-end gap-2 text-xs md:text-sm">
                           <div className="bg-slate-50 p-1.5 rounded border border-slate-100 text-center md:text-right md:bg-transparent md:border-none md:p-0">
                             <span className="text-slate-400 font-medium md:mr-1 block md:inline">DEMANDA:</span>
@@ -347,7 +369,6 @@ export default function ConsolidateOrderPage() {
               })}
             </div>
 
-            {/* Banner de Recomendaciones */}
             {selectedProductIds.length > 0 && (
               <Card className="border-violet-100 bg-gradient-to-br from-violet-50/50 to-white overflow-hidden">
                 <CardContent className="p-3 md:p-4">
@@ -363,24 +384,20 @@ export default function ConsolidateOrderPage() {
         )}
       </div>
 
-      {/* --- FLOATING ACTION BAR (Mobile Optimized) --- */}
       {items.length > 0 && (
         <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 shadow-[0_-4px_10px_rgba(0,0,0,0.05)] z-50 px-4 py-3 md:px-8 md:py-4 safe-area-bottom">
           <div className="max-w-5xl mx-auto flex flex-row items-center justify-between gap-4">
-            {/* Info Resumen */}
             <div className="flex flex-col">
               <span className="text-xs text-slate-500 font-medium uppercase tracking-wide">Total a Pedir</span>
               <div className="flex items-baseline gap-1">
                 <span className="text-xl md:text-2xl font-bold text-slate-900">{totalUnits}</span>
                 <span className="text-sm text-slate-500 font-medium">uds</span>
-                <span className="text-xs text-slate-300 ml-1">({totalItems} items)</span>
               </div>
             </div>
 
-            {/* Botón Principal (Grande y Fácil de Tocar) */}
             <Button
               onClick={handleCreateOrder}
-              disabled={processing || totalItems === 0 || !resellerInfo?.address}
+              disabled={processing || totalItems === 0 || (deliveryMethod === "shipping" && !resellerInfo?.address)}
               className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-200 rounded-xl h-12 md:h-11 px-6 md:px-8 text-sm md:text-base font-semibold flex items-center gap-2 grow md:grow-0 justify-center"
             >
               {processing ? (
@@ -391,7 +408,8 @@ export default function ConsolidateOrderPage() {
               ) : (
                 <>
                   <ShoppingCart className="w-5 h-5" />
-                  <span>Confirmar Pedido</span>
+                  {/* Texto dinámico según el método */}
+                  <span>{deliveryMethod === "pickup" ? "Confirmar Recolección" : "Confirmar Envío"}</span>
                 </>
               )}
             </Button>
