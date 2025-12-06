@@ -110,7 +110,7 @@ export default function ConsolidateOrderPage() {
         .from("digital_catalogs")
         .select("name, user_id")
         .eq("id", supplierId)
-        .single();
+        .maybeSingle();
 
       if (catError) throw catError;
       setCatalogInfo(catData);
