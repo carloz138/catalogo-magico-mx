@@ -71,7 +71,6 @@ export function AppSidebar() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // ✅ FIX 1: Obtenemos isMobile y setOpenMobile para cerrar el menú
   const { state, toggleSidebar, isMobile, setOpenMobile } = useSidebar();
   const isCollapsed = state === "collapsed";
 
@@ -111,7 +110,6 @@ export function AppSidebar() {
     return source.substring(0, 2).toUpperCase();
   };
 
-  // ✅ FIX 2: Función unificada para navegar y cerrar menú en móvil
   const handleNavigation = (path: string) => {
     navigate(path);
     if (isMobile) {
@@ -119,6 +117,7 @@ export function AppSidebar() {
     }
   };
 
+  // ... (La definición de allNavigationItems y warnings sigue igual) ...
   const allNavigationItems: MenuItem[] = [
     { title: "Dashboard", path: "/dashboard", icon: LayoutDashboard, primary: true, roles: ["L1", "L2", "BOTH"] },
     {
@@ -249,10 +248,10 @@ export function AppSidebar() {
               }
             `}
         >
-          {/* ✅ FIX 3: Botón optimizado para colapsado (justify-center y p-2) */}
+          {/* ✅ FIX ICONOS MENU: Cuando está colapsado, usamos 'justify-center px-0' para que el icono no se corte */}
           <button
             onClick={() => handleNavigation(item.path)}
-            className={`flex items-center w-full p-2.5 ${isCollapsed ? "justify-center p-2" : ""}`}
+            className={`flex items-center w-full transition-all ${isCollapsed ? "justify-center px-0 py-2" : "p-2.5"}`}
           >
             <item.icon
               className={`h-5 w-5 flex-shrink-0 transition-colors ${isActive ? "text-white" : "text-slate-500 group-hover:text-slate-300"}`}
@@ -277,7 +276,6 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon" className={`border-r ${THEME.sidebarBorder} ${THEME.sidebarBg} z-50`}>
-      {/* ✅ FIX 4: Header Padding dinámico (px-2 si está colapsado) */}
       <SidebarHeader
         className={`h-16 flex items-center ${isCollapsed ? "px-2" : "px-4"} border-b ${THEME.sidebarBorder} bg-slate-950 shrink-0 transition-all`}
       >
@@ -347,11 +345,12 @@ export function AppSidebar() {
 
         <SidebarMenu>
           <SidebarMenuItem>
+            {/* ✅ FIX ICONO PERFIL: Cuando está colapsado, quitamos el gap y reducimos padding */}
             <div
-              className={`flex items-center gap-3 p-2 rounded-xl cursor-pointer group transition-all duration-200 hover:bg-white/5 border border-transparent hover:border-white/5 ${isCollapsed ? "justify-center" : ""}`}
+              className={`flex items-center rounded-xl cursor-pointer group transition-all duration-200 hover:bg-white/5 border border-transparent hover:border-white/5 ${isCollapsed ? "justify-center p-1 gap-0" : "p-2 gap-3"}`}
               onClick={() => handleNavigation("/business-info")}
             >
-              <Avatar className="h-9 w-9 rounded-lg border border-slate-700 shadow-sm group-hover:border-indigo-500/50 transition-colors">
+              <Avatar className="h-9 w-9 rounded-lg border border-slate-700 shadow-sm group-hover:border-indigo-500/50 transition-colors shrink-0">
                 <AvatarImage src={user?.user_metadata?.avatar_url} />
                 <AvatarFallback className="rounded-lg bg-gradient-to-br from-indigo-600 to-violet-700 text-white text-xs font-bold">
                   {getUserInitials()}
@@ -371,9 +370,10 @@ export function AppSidebar() {
           </SidebarMenuItem>
           <button
             onClick={handleLogout}
-            className={`w-full mt-1 flex items-center ${isCollapsed ? "justify-center" : "justify-start px-3"} py-2 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all duration-200 group`}
+            // ✅ FIX ICONO LOGOUT: Misma lógica para el botón de salir
+            className={`w-full mt-1 flex items-center ${isCollapsed ? "justify-center px-0 py-2" : "justify-start px-3 py-2"} text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all duration-200 group`}
           >
-            <LogOut className="h-4 w-4 group-hover:translate-x-0.5 transition-transform" />
+            <LogOut className="h-4 w-4 group-hover:translate-x-0.5 transition-transform shrink-0" />
             {!isCollapsed && <span className="ml-3 text-xs font-medium">Cerrar Sesión</span>}
           </button>
         </SidebarMenu>
