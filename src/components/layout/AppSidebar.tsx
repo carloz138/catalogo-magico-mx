@@ -71,6 +71,7 @@ export function AppSidebar() {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // Obtenemos estados para controlar el cierre en móvil
   const { state, toggleSidebar, isMobile, setOpenMobile } = useSidebar();
   const isCollapsed = state === "collapsed";
 
@@ -110,6 +111,7 @@ export function AppSidebar() {
     return source.substring(0, 2).toUpperCase();
   };
 
+  // ✅ Función unificada para navegar y cerrar el menú en móvil
   const handleNavigation = (path: string) => {
     navigate(path);
     if (isMobile) {
@@ -117,7 +119,6 @@ export function AppSidebar() {
     }
   };
 
-  // ... (La definición de allNavigationItems y warnings sigue igual) ...
   const allNavigationItems: MenuItem[] = [
     { title: "Dashboard", path: "/dashboard", icon: LayoutDashboard, primary: true, roles: ["L1", "L2", "BOTH"] },
     {
@@ -248,7 +249,7 @@ export function AppSidebar() {
               }
             `}
         >
-          {/* ✅ FIX ICONOS MENU: Cuando está colapsado, usamos 'justify-center px-0' para que el icono no se corte */}
+          {/* ✅ FIX ICONOS MENU: Centrado perfecto al colapsar */}
           <button
             onClick={() => handleNavigation(item.path)}
             className={`flex items-center w-full transition-all ${isCollapsed ? "justify-center px-0 py-2" : "p-2.5"}`}
@@ -275,7 +276,9 @@ export function AppSidebar() {
   };
 
   return (
+    // ✅ FIX Z-INDEX: z-50 para estar siempre encima de la barra de pedido
     <Sidebar collapsible="icon" className={`border-r ${THEME.sidebarBorder} ${THEME.sidebarBg} z-50`}>
+      {/* ✅ FIX HEADER: Padding reducido al colapsar para que no corte el logo */}
       <SidebarHeader
         className={`h-16 flex items-center ${isCollapsed ? "px-2" : "px-4"} border-b ${THEME.sidebarBorder} bg-slate-950 shrink-0 transition-all`}
       >
@@ -345,12 +348,15 @@ export function AppSidebar() {
 
         <SidebarMenu>
           <SidebarMenuItem>
-            {/* ✅ FIX ICONO PERFIL: Cuando está colapsado, quitamos el gap y reducimos padding */}
+            {/* ✅ FIX AVATAR/PERFIL: Eliminamos padding y gap al colapsar. Avatar w-8 en vez de w-9 */}
             <div
-              className={`flex items-center rounded-xl cursor-pointer group transition-all duration-200 hover:bg-white/5 border border-transparent hover:border-white/5 ${isCollapsed ? "justify-center p-1 gap-0" : "p-2 gap-3"}`}
+              className={`flex items-center rounded-xl cursor-pointer group transition-all duration-200 hover:bg-white/5 border border-transparent hover:border-white/5 
+              ${isCollapsed ? "justify-center p-0 py-2 gap-0" : "p-2 gap-3"}`}
               onClick={() => handleNavigation("/business-info")}
             >
-              <Avatar className="h-9 w-9 rounded-lg border border-slate-700 shadow-sm group-hover:border-indigo-500/50 transition-colors shrink-0">
+              <Avatar
+                className={`${isCollapsed ? "h-8 w-8" : "h-9 w-9"} rounded-lg border border-slate-700 shadow-sm group-hover:border-indigo-500/50 transition-all shrink-0`}
+              >
                 <AvatarImage src={user?.user_metadata?.avatar_url} />
                 <AvatarFallback className="rounded-lg bg-gradient-to-br from-indigo-600 to-violet-700 text-white text-xs font-bold">
                   {getUserInitials()}
@@ -370,7 +376,7 @@ export function AppSidebar() {
           </SidebarMenuItem>
           <button
             onClick={handleLogout}
-            // ✅ FIX ICONO LOGOUT: Misma lógica para el botón de salir
+            // ✅ FIX LOGOUT: Misma lógica de centrado
             className={`w-full mt-1 flex items-center ${isCollapsed ? "justify-center px-0 py-2" : "justify-start px-3 py-2"} text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all duration-200 group`}
           >
             <LogOut className="h-4 w-4 group-hover:translate-x-0.5 transition-transform shrink-0" />
