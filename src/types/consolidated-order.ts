@@ -1,6 +1,6 @@
 // Types para Pedidos Consolidados
 
-export type ConsolidatedOrderStatus = 'draft' | 'sent' | 'accepted' | 'rejected';
+export type ConsolidatedOrderStatus = "draft" | "sent" | "accepted" | "rejected";
 
 export interface ConsolidatedOrder {
   id: string;
@@ -81,4 +81,11 @@ export interface CreateDraftResponse {
   consolidated_order: ConsolidatedOrder;
   is_new: boolean; // true si se creó, false si ya existía
   items: ConsolidatedOrderItem[];
+}
+
+export interface CreateConsolidatedOrderResponse {
+  success: boolean;
+  consolidated_order_id: string;
+  quote_id: string;
+  total_amount: number;
 }
