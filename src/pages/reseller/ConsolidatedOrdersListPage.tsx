@@ -41,6 +41,7 @@ export default function ConsolidatedOrdersListPage() {
     setInitializing(true);
     try {
       // 1. Buscar todos los catálogos replicados del usuario con cotizaciones aceptadas
+      // 1. Buscar todos los catálogos replicados del usuario con cotizaciones aceptadas
       const { data: replicatedCatalogs, error: rcError } = await supabase
         .from("replicated_catalogs")
         .select(`
@@ -51,7 +52,12 @@ export default function ConsolidatedOrdersListPage() {
         .eq("reseller_id", user.id)
         .eq("is_active", true);
 
-      if (rcError) throw rcError;
+      if (rcError) {
+        console.error("Error fetching replicated catalogs:", rcError);
+        throw rcError;
+      }
+
+      console.log("📦 Catálogos replicados encontrados:", replicatedCatalogs?.length || 0, replicatedCatalogs);
 
       if (!replicatedCatalogs || replicatedCatalogs.length === 0) {
         console.log("No hay catálogos replicados activos");
@@ -61,12 +67,14 @@ export default function ConsolidatedOrdersListPage() {
 
       // 2. Para cada catálogo replicado, verificar si tiene cotizaciones aceptadas
       for (const rc of replicatedCatalogs) {
+        console.log("🔍 Verificando catálogo:", rc.id, "original:", rc.original_catalog_id);
+        
         const { data: acceptedQuotes, error: qError } = await supabase
           .from("quotes")
           .select("id")
           .eq("replicated_catalog_id", rc.id)
           .eq("status", "accepted")
-          .eq("user_id", user.id)
+          .eq("user_id", user.id) // L2 recibe cotizaciones de sus clientes
           .limit(1);
 
         if (qError) {
@@ -74,14 +82,20 @@ export default function ConsolidatedOrdersListPage() {
           continue;
         }
 
+        console.log(`📊 Cotizaciones aceptadas para ${rc.id}:`, acceptedQuotes?.length || 0);
+
         // Si hay cotizaciones aceptadas, crear/sincronizar borrador
         if (acceptedQuotes && acceptedQuotes.length > 0) {
           console.log(`📦 Creando/sincronizando borrador para catálogo ${rc.original_catalog_id}`);
-          await getOrCreateDraft(
-            rc.distributor_id, // supplier_id = L1 (proveedor)
-            rc.original_catalog_id,
-            rc.id // replicated_catalog_id
-          );
+          try {
+            await getOrCreateDraft(
+              rc.distributor_id, // supplier_id = L1 (proveedor original del catálogo)
+              rc.original_catalog_id,
+              rc.id // replicated_catalog_id
+            );
+          } catch (draftError: any) {
+            console.error("Error creating draft:", draftError);
+          }
         }
       }
 

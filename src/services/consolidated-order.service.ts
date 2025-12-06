@@ -302,6 +302,8 @@ export class ConsolidatedOrderService {
       supplier_id?: string;
     }
   ): Promise<ConsolidatedOrderWithDetails[]> {
+    console.log("📋 getConsolidatedOrders called with:", { distributorId, filters });
+    
     try {
       // 1. Obtener los pedidos consolidados con catálogos
       let query = supabase
@@ -328,6 +330,8 @@ export class ConsolidatedOrderService {
       }
 
       const { data, error } = await query;
+
+      console.log("📋 getConsolidatedOrders result:", { count: data?.length || 0, error, data });
 
       if (error) throw error;
       if (!data || data.length === 0) return [];

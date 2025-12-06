@@ -29,8 +29,12 @@ export function useConsolidatedOrders(options: UseConsolidatedOrdersOptions = {}
    * Cargar lista de consolidados
    */
   const loadOrders = useCallback(async () => {
-    if (!user?.id) return;
+    if (!user?.id) {
+      console.log("⚠️ loadOrders: No user id");
+      return;
+    }
 
+    console.log("📋 loadOrders: Loading for user", user.id);
     setLoading(true);
     try {
       const data = await ConsolidatedOrderService.getConsolidatedOrders(user.id, {
@@ -38,6 +42,7 @@ export function useConsolidatedOrders(options: UseConsolidatedOrdersOptions = {}
         supplier_id: options.supplierId,
       });
 
+      console.log("📋 loadOrders: Got", data.length, "orders");
       setOrders(data);
     } catch (error: any) {
       console.error("Error loading consolidated orders:", error);
