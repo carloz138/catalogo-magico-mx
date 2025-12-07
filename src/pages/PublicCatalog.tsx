@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom"; // <-- AGREGADO useNavigate
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { DigitalCatalog } from "@/types/digital-catalog";
-import { Lock, AlertCircle, ShieldCheck } from "lucide-react";
+import { Lock, AlertCircle, ShieldCheck, GitFork, Copy } from "lucide-react"; // <-- AGREGADO GitFork/Copy
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -70,10 +70,31 @@ interface PublicCatalogProps {
 
 export default function PublicCatalog({ subdomainSlug }: PublicCatalogProps = {}) {
   const { slug: pathSlug } = useParams();
+  const navigate = useNavigate(); // --- NUEVO: Hook de navegación
   // Priorizar subdomainSlug sobre el path param
   const slug = subdomainSlug || pathSlug;
   const [accessPassword, setAccessPassword] = useState("");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  // --- NUEVO: Estado para Auth y Replicación ---
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [isCloning, setIsCloning] = useState(false);
+
+  // Detectar sesión al montar (Efecto "Google")
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setCurrentUser(session?.user || null);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setCurrentUser(session?.user || null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+  // ---------------------------------------------
 
   const {
     data: catalog,
@@ -251,6 +272,56 @@ export default function PublicCatalog({ subdomainSlug }: PublicCatalogProps = {}
     }
   }, [catalog?.id]);
 
+  // --- NUEVO: Lógica de Clonación ---
+  const handleReplication = async () => {
+    if (!catalog) return;
+
+    // A. Si no hay sesión: Guardar intención y redirigir
+    if (!currentUser) {
+      // Guardamos la intención en localStorage para recuperarla tras el login
+      localStorage.setItem("pending_replication_catalog_id", catalog.id);
+
+      // AQUI NECESITO TU AYUDA:
+      // No sé cuál es tu ruta de Login. Asumo "/auth" o "/login".
+      // Cámbialo por tu ruta real.
+      toast({
+        title: "Inicia sesión para vender",
+        description: "Regístrate o logueate para clonar este catálogo.",
+      });
+      navigate("/auth?intent=replicate");
+      return;
+    }
+
+    // B. Si hay sesión: Ejecutar RPC
+    setIsCloning(true);
+    try {
+      const { data, error } = await supabase.rpc("clone_catalog_direct", {
+        p_original_catalog_id: catalog.id,
+      });
+
+      if (error) throw error;
+
+      if (data.success) {
+        toast({
+          title: "¡Catálogo clonado!",
+          description: "Ahora puedes configurar tus propios precios.",
+        });
+        // Redirigir al editor de precios
+        navigate(`/reseller/edit-prices?catalog_id=${data.catalog_id}`);
+      }
+    } catch (err: any) {
+      console.error("Error cloning catalog:", err);
+      toast({
+        title: "Error al clonar",
+        description: err.message || "No se pudo realizar la acción",
+        variant: "destructive",
+      });
+    } finally {
+      setIsCloning(false);
+    }
+  };
+  // ----------------------------------
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col">
@@ -303,6 +374,12 @@ export default function PublicCatalog({ subdomainSlug }: PublicCatalogProps = {}
     );
   }
 
+  // --- NUEVO: Validar si mostramos el botón de replicación ---
+  // 1. Debe permitir distribución
+  // 2. El usuario actual NO debe ser el dueño (si es que está logueado)
+  const canReplicate = catalog.enable_distribution && (!currentUser || currentUser.id !== catalog.user_id);
+  // -----------------------------------------------------------
+
   return (
     <QuoteCartProvider>
       <Helmet>
@@ -321,6 +398,32 @@ export default function PublicCatalog({ subdomainSlug }: PublicCatalogProps = {}
       <ScriptInjector headScripts={catalog.tracking_head_scripts} bodyScripts={catalog.tracking_body_scripts} />
 
       <PublicCatalogContent catalog={catalog} onTrackEvent={trackEvent} />
+
+      {/* --- NUEVO: BARRA FLOTANTE DE REPLICACIÓN --- */}
+      {/* Se renderiza sobre el contenido usando fixed positioning */}
+      {canReplicate && (
+        <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/95 backdrop-blur border-t shadow-lg z-50 flex items-center justify-between gap-4 animate-in slide-in-from-bottom duration-500">
+          <div className="flex-1">
+            <h3 className="font-semibold text-sm text-gray-900">¿Quieres vender estos productos?</h3>
+            <p className="text-xs text-gray-500 hidden sm:block">Clona este catálogo y empieza tu negocio hoy.</p>
+          </div>
+          <Button
+            onClick={handleReplication}
+            disabled={isCloning}
+            className="bg-purple-600 hover:bg-purple-700 text-white shrink-0"
+          >
+            {isCloning ? (
+              "Creando..."
+            ) : (
+              <>
+                <GitFork className="w-4 h-4 mr-2" />
+                Vender Ahora
+              </>
+            )}
+          </Button>
+        </div>
+      )}
+      {/* ------------------------------------------- */}
     </QuoteCartProvider>
   );
 }
