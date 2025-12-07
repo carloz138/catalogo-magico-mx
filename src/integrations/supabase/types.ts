@@ -460,7 +460,7 @@ export type Database = {
           notes: string | null
           original_catalog_id: string
           quote_id: string | null
-          replicated_catalog_id: string
+          replicated_catalog_id: string | null
           sent_at: string | null
           status: string
           supplier_id: string
@@ -473,7 +473,7 @@ export type Database = {
           notes?: string | null
           original_catalog_id: string
           quote_id?: string | null
-          replicated_catalog_id: string
+          replicated_catalog_id?: string | null
           sent_at?: string | null
           status?: string
           supplier_id: string
@@ -486,7 +486,7 @@ export type Database = {
           notes?: string | null
           original_catalog_id?: string
           quote_id?: string | null
-          replicated_catalog_id?: string
+          replicated_catalog_id?: string | null
           sent_at?: string | null
           status?: string
           supplier_id?: string
