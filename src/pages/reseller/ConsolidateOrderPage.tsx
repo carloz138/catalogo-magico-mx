@@ -190,7 +190,7 @@ export default function ConsolidateOrderPage() {
 
       toast({
         title: "¡Orden Generada!",
-        description: `Enviada al proveedor. Total: $${result.total_amount}`,
+        description: `Enviada al proveedor. Total: $${(result.total_amount / 100).toLocaleString("es-MX", { minimumFractionDigits: 2 })}`,
       });
       navigate("/orders");
     } catch (error: any) {
