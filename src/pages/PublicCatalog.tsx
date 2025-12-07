@@ -1,22 +1,21 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom"; // <-- AGREGADO useNavigate
+import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { DigitalCatalog } from "@/types/digital-catalog";
-import { Lock, AlertCircle, ShieldCheck, GitFork, Copy } from "lucide-react"; // <-- AGREGADO GitFork/Copy
+import { Lock, AlertCircle, GitFork } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
 import { useMetaTracking } from "@/hooks/useMetaTracking";
 import { QuoteCartProvider } from "@/contexts/QuoteCartContext";
-import { Skeleton } from "@/components/ui/skeleton";
-import { motion } from "framer-motion";
 import { Helmet } from "react-helmet-async";
 
 import { PublicCatalogContent } from "@/components/catalog/public/PublicCatalogContent";
 
-// Tipos locales
+// --- TIPOS ---
+
 interface Product {
   id: string;
   name: string;
@@ -32,6 +31,16 @@ interface Product {
   }>;
   is_reseller_product?: boolean;
 }
+
+// Tipo para la respuesta de la RPC de clonación
+type CloneResponse = {
+  success: boolean;
+  slug: string;
+  is_new: boolean;
+  catalog_id: string;
+};
+
+// --- COMPONENTES AUXILIARES ---
 
 const ScriptInjector = ({ headScripts, bodyScripts }: { headScripts?: string | null; bodyScripts?: string | null }) => {
   useEffect(() => {
@@ -68,19 +77,22 @@ interface PublicCatalogProps {
   subdomainSlug?: string;
 }
 
+// --- COMPONENTE PRINCIPAL ---
+
 export default function PublicCatalog({ subdomainSlug }: PublicCatalogProps = {}) {
   const { slug: pathSlug } = useParams();
-  const navigate = useNavigate(); // --- NUEVO: Hook de navegación
+  const navigate = useNavigate();
+
   // Priorizar subdomainSlug sobre el path param
   const slug = subdomainSlug || pathSlug;
+
+  // Estados Locales
   const [accessPassword, setAccessPassword] = useState("");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-
-  // --- NUEVO: Estado para Auth y Replicación ---
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [isCloning, setIsCloning] = useState(false);
 
-  // Detectar sesión al montar (Efecto "Google")
+  // Detectar sesión al montar (Efecto "Google" / Auth Interception)
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setCurrentUser(session?.user || null);
@@ -94,8 +106,8 @@ export default function PublicCatalog({ subdomainSlug }: PublicCatalogProps = {}
 
     return () => subscription.unsubscribe();
   }, []);
-  // ---------------------------------------------
 
+  // Query Principal de Datos
   const {
     data: catalog,
     isLoading,
@@ -123,7 +135,7 @@ export default function PublicCatalog({ subdomainSlug }: PublicCatalogProps = {}
           .maybeSingle();
 
         if (replica && replica.digital_catalogs) {
-          // AQUI ESTA LA CLAVE: Heredamos TODO el objeto del catálogo original (Template, Configuración, Scripts)
+          // AQUI ESTA LA CLAVE: Heredamos TODO el objeto del catálogo original
           catalogHeader = { ...replica.digital_catalogs };
 
           isReplicated = true;
@@ -140,7 +152,6 @@ export default function PublicCatalog({ subdomainSlug }: PublicCatalogProps = {}
       if (!catalogHeader || !catalogIdToFetch) return null;
 
       // --- LOGICA DE BRANDING (Solo para Revendedores) ---
-      // Si es L2, consultamos SU tabla de business_info para "vestir" el catálogo
       if (isReplicated && resellerId) {
         const { data: businessInfo } = await supabase
           .from("business_info")
@@ -149,12 +160,12 @@ export default function PublicCatalog({ subdomainSlug }: PublicCatalogProps = {}
           .maybeSingle();
 
         if (businessInfo) {
-          // 1. Sobrescribimos Identidad Visual (Header y Metaetiquetas)
+          // 1. Sobrescribimos Identidad Visual
           if (businessInfo.business_name) catalogHeader.name = businessInfo.business_name;
           if (businessInfo.description) catalogHeader.description = businessInfo.description;
           if (businessInfo.logo_url) catalogHeader.logo_url = businessInfo.logo_url;
 
-          // 2. Sobrescribimos Colores (Respetando el Template L1, solo cambiamos la paleta)
+          // 2. Sobrescribimos Colores
           if (businessInfo.primary_color) {
             catalogHeader.brand_colors = {
               primary: businessInfo.primary_color,
@@ -162,8 +173,7 @@ export default function PublicCatalog({ subdomainSlug }: PublicCatalogProps = {}
             };
           }
 
-          // 3. Sobrescribimos Datos de Contacto (Para el Footer/Botones de contacto)
-          // Esto llena la prop 'business_info' que espera tu componente PublicCatalogContent
+          // 3. Sobrescribimos Datos de Contacto
           catalogHeader.business_info = {
             business_name: businessInfo.business_name,
             logo_url: businessInfo.logo_url,
@@ -171,11 +181,10 @@ export default function PublicCatalog({ subdomainSlug }: PublicCatalogProps = {}
             email: businessInfo.email,
             website: businessInfo.website,
             address: businessInfo.address,
-            social_media: businessInfo.social_media, // Si tu componente lo usa
+            social_media: businessInfo.social_media,
           };
         }
       }
-      // ----------------------------------------------------
 
       // --- FETCH DE PRODUCTOS (Híbrido) ---
 
@@ -189,7 +198,7 @@ export default function PublicCatalog({ subdomainSlug }: PublicCatalogProps = {}
 
       let l1Products = rawL1Products?.map((cp: any) => cp.products).filter(Boolean) || [];
 
-      // HIDRATACIÓN DE PRECIOS (Si el revendedor cambió precios)
+      // HIDRATACIÓN DE PRECIOS L2
       if (isReplicated && replicatedCatalogId) {
         const { data: customPrices } = await supabase
           .from("reseller_product_prices")
@@ -234,8 +243,6 @@ export default function PublicCatalog({ subdomainSlug }: PublicCatalogProps = {}
 
       supabase.rpc("increment_view_count" as any, { row_id: catalogIdToFetch }).then();
 
-      // RETORNO
-      // Notarás que 'catalogHeader' ya trae el 'web_template_id' correcto del original
       return {
         ...catalogHeader,
         products: allProducts as Product[],
@@ -252,7 +259,7 @@ export default function PublicCatalog({ subdomainSlug }: PublicCatalogProps = {}
     retry: false,
   });
 
-  // Tracking
+  // Tracking Meta/Pixel
   const trackingConfig = (catalog?.tracking_config as any) || {};
   const { trackEvent } = useMetaTracking({
     enabled: true,
@@ -272,22 +279,19 @@ export default function PublicCatalog({ subdomainSlug }: PublicCatalogProps = {}
     }
   }, [catalog?.id]);
 
-  // --- NUEVO: Lógica de Clonación ---
+  // --- LÓGICA DE REPLICACIÓN (One-Click) ---
   const handleReplication = async () => {
     if (!catalog) return;
 
-    // A. Si no hay sesión: Guardar intención y redirigir
+    // A. Si no hay sesión: Guardar intención y redirigir a Auth
     if (!currentUser) {
-      // Guardamos la intención en localStorage para recuperarla tras el login
       localStorage.setItem("pending_replication_catalog_id", catalog.id);
 
-      // AQUI NECESITO TU AYUDA:
-      // No sé cuál es tu ruta de Login. Asumo "/auth" o "/login".
-      // Cámbialo por tu ruta real.
       toast({
         title: "Inicia sesión para vender",
         description: "Regístrate o logueate para clonar este catálogo.",
       });
+      // Asegúrate que esta ruta coincida con tu Router
       navigate("/auth?intent=replicate");
       return;
     }
@@ -301,13 +305,15 @@ export default function PublicCatalog({ subdomainSlug }: PublicCatalogProps = {}
 
       if (error) throw error;
 
-      if (data.success) {
+      // Casteo seguro de la respuesta JSON a nuestra interfaz
+      const result = data as unknown as CloneResponse;
+
+      if (result && result.success) {
         toast({
           title: "¡Catálogo clonado!",
           description: "Ahora puedes configurar tus propios precios.",
         });
-        // Redirigir al editor de precios
-        navigate(`/reseller/edit-prices?catalog_id=${data.catalog_id}`);
+        navigate(`/reseller/edit-prices?catalog_id=${result.catalog_id}`);
       }
     } catch (err: any) {
       console.error("Error cloning catalog:", err);
@@ -320,7 +326,8 @@ export default function PublicCatalog({ subdomainSlug }: PublicCatalogProps = {}
       setIsCloning(false);
     }
   };
-  // ----------------------------------
+
+  // --- RENDERIZADO DE ESTADOS DE CARGA/ERROR ---
 
   if (isLoading) {
     return (
@@ -374,11 +381,11 @@ export default function PublicCatalog({ subdomainSlug }: PublicCatalogProps = {}
     );
   }
 
-  // --- NUEVO: Validar si mostramos el botón de replicación ---
-  // 1. Debe permitir distribución
-  // 2. El usuario actual NO debe ser el dueño (si es que está logueado)
+  // --- VALIDACIÓN DE BOTÓN FLOTANTE ---
+  // Muestra el botón solo si:
+  // 1. El catálogo permite distribución (enable_distribution = true)
+  // 2. El usuario actual (si existe) NO es el dueño
   const canReplicate = catalog.enable_distribution && (!currentUser || currentUser.id !== catalog.user_id);
-  // -----------------------------------------------------------
 
   return (
     <QuoteCartProvider>
@@ -399,8 +406,7 @@ export default function PublicCatalog({ subdomainSlug }: PublicCatalogProps = {}
 
       <PublicCatalogContent catalog={catalog} onTrackEvent={trackEvent} />
 
-      {/* --- NUEVO: BARRA FLOTANTE DE REPLICACIÓN --- */}
-      {/* Se renderiza sobre el contenido usando fixed positioning */}
+      {/* --- BARRA FLOTANTE DE REPLICACIÓN --- */}
       {canReplicate && (
         <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/95 backdrop-blur border-t shadow-lg z-50 flex items-center justify-between gap-4 animate-in slide-in-from-bottom duration-500">
           <div className="flex-1">
@@ -423,7 +429,6 @@ export default function PublicCatalog({ subdomainSlug }: PublicCatalogProps = {}
           </Button>
         </div>
       )}
-      {/* ------------------------------------------- */}
     </QuoteCartProvider>
   );
 }
