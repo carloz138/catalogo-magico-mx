@@ -385,7 +385,8 @@ export default function PublicCatalog({ subdomainSlug }: PublicCatalogProps = {}
   // Muestra el botón solo si:
   // 1. El catálogo permite distribución (enable_distribution = true)
   // 2. El usuario actual (si existe) NO es el dueño
-  const canReplicate = catalog.enable_distribution && (!currentUser || currentUser.id !== catalog.user_id);
+  const canReplicate =
+    catalog.enable_distribution && (!currentUser || currentUser.id !== catalog.user_id) && !catalog.isReplicated;
 
   return (
     <QuoteCartProvider>
