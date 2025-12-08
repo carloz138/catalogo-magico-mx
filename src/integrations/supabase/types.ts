@@ -3045,6 +3045,15 @@ export type Database = {
       generate_activation_token: { Args: never; Returns: string };
       generate_catalog_slug: { Args: never; Returns: string };
       generate_order_number: { Args: never; Returns: string };
+      get_backorder_alerts: {
+        Args: { p_reseller_id: string };
+        Returns: {
+          supplier_id: string;
+          supplier_name: string;
+          total_items_needed: number;
+          total_units_needed: number;
+        }[];
+      };
       get_catalog_by_token: {
         Args: { p_token: string };
         Returns: {
@@ -3070,7 +3079,6 @@ export type Database = {
           product_name: string;
           quantity_to_order: number;
           sku: string;
-          source_quote_ids: string[];
           total_demand: number;
           variant_description: string;
           variant_id: string;
