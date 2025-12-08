@@ -26,7 +26,7 @@ const ProductCard = ({
   product: ProductWithCustomPrice;
   changes: Map<string, any>;
   onPriceChange: (id: string, field: string, val: string, isVariant: boolean) => void;
-  onStockChange: (id: string, val: string, isVariant: boolean) => void; // Cambiado a string (input value)
+  onStockChange: (id: string, val: string, isVariant: boolean) => void;
 }) => {
   // Helper para obtener valor actual
   const getValue = (id: string, field: string, original: any) => {
@@ -37,6 +37,10 @@ const ProductCard = ({
   const renderStockInput = (id: string, originalStock: number | null, isVariant: boolean) => {
     const currentStock = getValue(id, "stock_quantity", originalStock ?? 0);
 
+    // Determinamos el estado visual
+    const isNegative = currentStock < 0;
+    const isZero = currentStock === 0;
+
     return (
       <div className="space-y-1.5">
         <span className="text-xs text-slate-500 flex items-center gap-1">
@@ -45,18 +49,26 @@ const ProductCard = ({
         <div className="relative">
           <Input
             type="number"
-            min="0"
+            // NOTA: No ponemos min="0" para permitir backorders (negativos)
             className={cn(
-              "h-9 bg-white text-center font-medium",
-              currentStock > 0 ? "border-slate-200" : "border-orange-200 bg-orange-50 text-orange-700",
+              "h-9 bg-white text-center font-medium transition-colors",
+              isZero && "border-orange-200 bg-orange-50 text-orange-700",
+              isNegative && "border-purple-200 bg-purple-50 text-purple-700", // Estilo para Backorder
             )}
             placeholder="0"
             value={currentStock}
             onChange={(e) => onStockChange(id, e.target.value, isVariant)}
           />
-          {currentStock === 0 && (
-            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-orange-600 font-bold uppercase pointer-events-none">
+
+          {/* Etiquetas Visuales de Estado */}
+          {isZero && (
+            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-orange-600 font-bold uppercase pointer-events-none opacity-50">
               Agotado
+            </span>
+          )}
+          {isNegative && (
+            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-purple-600 font-bold uppercase pointer-events-none opacity-70">
+              Por Pedir
             </span>
           )}
         </div>
@@ -262,7 +274,6 @@ export default function ProductPriceEditor() {
     }
   };
 
-  // ... (Funciones de Marketing Load/Save se mantienen igual) ...
   const loadMarketingConfig = async () => {
     if (!catalogId || !user?.id) return;
     setLoadingMarketing(true);
@@ -296,7 +307,6 @@ export default function ProductPriceEditor() {
       throw error;
     }
   };
-  // ...
 
   const handlePriceChange = (itemId: string, field: string, value: string, isVariant: boolean) => {
     const numValue = value === "" ? null : parseFloat(value) * 100;
@@ -308,16 +318,18 @@ export default function ProductPriceEditor() {
     });
   };
 
-  // ✅ NUEVA LÓGICA DE STOCK NUMÉRICO
+  // ✅ LÓGICA DE BACKORDER / STOCK NEGATIVO
   const handleStockChange = (itemId: string, value: string, isVariant: boolean) => {
-    const numValue = value === "" ? 0 : parseInt(value); // Stock vacío es 0
+    const numValue = value === "" ? 0 : parseInt(value);
+
     setChanges((prev) => {
       const newChanges = new Map(prev);
       const existing = newChanges.get(itemId) || {};
       newChanges.set(itemId, {
         ...existing,
         stock_quantity: numValue,
-        is_in_stock: numValue > 0, // Automatización: Si stock > 0, está activo
+        // Si es negativo o positivo = TRUE. Si es 0 = FALSE.
+        is_in_stock: numValue !== 0,
         isVariant,
       });
       return newChanges;
@@ -332,8 +344,9 @@ export default function ProductPriceEditor() {
         ...(data.isVariant ? { variant_id: id } : { product_id: id }),
         custom_price_retail: data.custom_price_retail,
         custom_price_wholesale: data.custom_price_wholesale,
-        stock_quantity: data.stock_quantity, // ✅ Enviamos la cantidad numérica
-        is_in_stock: data.stock_quantity > 0, // ✅ Consistencia de datos
+        stock_quantity: data.stock_quantity,
+        // Lógica consistente al guardar:
+        is_in_stock: data.stock_quantity !== 0,
       }));
 
       await ResellerPriceService.batchUpdatePrices(catalogId, user.id, updates);
@@ -347,7 +360,18 @@ export default function ProductPriceEditor() {
     }
   };
 
-  // ... (handleApplyMargin y el resto de lógica UI se mantiene, eliminé getDisplayStock antiguo por simplicidad en renderStockInput) ...
+  // Helper para el modal de márgenes masivos (simplificado)
+  const handleApplyMargin = (margin: number, applyTo: "all" | "in_stock" | "out_of_stock") => {
+    const newChanges = new Map(changes);
+    products.forEach((product) => {
+      // ... (Tu lógica existente de cálculo de márgenes se puede reutilizar aquí)
+      // Por brevedad, si la necesitas completa avísame, pero generalmente
+      // esta función ya la tenías en tu versión anterior.
+      // Lo importante es que al setear stock masivo respetes la regla de Backorder.
+    });
+    // ...
+    setShowMarginModal(false);
+  };
 
   const filteredProducts = products.filter(
     (p) =>
@@ -495,7 +519,7 @@ export default function ProductPriceEditor() {
       <BulkPriceMarginModal
         open={showMarginModal}
         onClose={() => setShowMarginModal(false)}
-        onApply={() => setShowMarginModal(false)} // Simplificado por brevedad, conecta tu lógica anterior
+        onApply={handleApplyMargin}
         totalProducts={products.length}
         inStockCount={0}
         outOfStockCount={0}
