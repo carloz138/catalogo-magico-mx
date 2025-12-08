@@ -40,6 +40,8 @@ export class QuoteService {
       }
     >
   > {
+    console.log("🔍 [QuoteService] getUserQuotes - userId:", userId, "filters:", filters);
+    
     const selectQuery = `
         *,
         quote_items (count),
@@ -85,8 +87,17 @@ export class QuoteService {
 
     const [ownResult, replicatedResult] = await Promise.all([ownQuery, replicatedQuery]);
 
-    if (ownResult.error) throw ownResult.error;
-    if (replicatedResult.error) throw replicatedResult.error;
+    console.log("🔍 [QuoteService] ownResult:", ownResult.error ? `ERROR: ${ownResult.error.message}` : `${ownResult.data?.length} quotes`);
+    console.log("🔍 [QuoteService] replicatedResult:", replicatedResult.error ? `ERROR: ${replicatedResult.error.message}` : `${replicatedResult.data?.length} quotes`);
+
+    if (ownResult.error) {
+      console.error("❌ [QuoteService] ownResult error:", ownResult.error);
+      throw ownResult.error;
+    }
+    if (replicatedResult.error) {
+      console.error("❌ [QuoteService] replicatedResult error:", replicatedResult.error);
+      throw replicatedResult.error;
+    }
 
     const processQuotes = (quotes: any[], isReplicated: boolean) => {
       return quotes.map((quote) => ({
