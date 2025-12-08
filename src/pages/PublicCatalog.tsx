@@ -21,6 +21,19 @@ const businessTypeOptions = [
   { value: "otros", label: "Otros" },
 ];
 
+    // 1. AGREGA ESTA INTERFAZ SI NO ESTÁ
+    interface PublicCatalogProps {
+      subdomainSlug?: string;
+    }
+    
+    // 2. MODIFICA LA LÍNEA DE EXPORTACIÓN PARA QUE USE "PublicCatalogProps"
+    export default function PublicCatalog({ subdomainSlug }: PublicCatalogProps = {}) {
+      const { slug: pathSlug } = useParams();
+      const navigate = useNavigate();
+      
+      // Priorizar subdomainSlug sobre el path param
+      const slug = subdomainSlug || pathSlug;
+
 export default function LoginPage() {
   const { signIn, signUp, signInWithGoogle } = useAuth();
   const { trackSaaSEvent } = useSaaSMarketing();
