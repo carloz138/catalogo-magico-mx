@@ -28,16 +28,20 @@ const ProductCard = ({
   onPriceChange: (id: string, field: string, val: string, isVariant: boolean) => void;
   onStockChange: (id: string, val: string, isVariant: boolean) => void;
 }) => {
-  // Helper para obtener valor actual
+  // Helper para obtener valor actual (Visualización)
   const getValue = (id: string, field: string, original: any) => {
     const change = changes.get(id);
     return change && change[field] !== undefined ? change[field] : original;
   };
 
+  // ✅ FIX 2: Bloqueo de Scroll en Inputs
+  const handleWheel = (e: React.WheelEvent<HTMLInputElement>) => {
+    e.currentTarget.blur();
+  };
+
   const renderStockInput = (id: string, originalStock: number | null, isVariant: boolean) => {
     const currentStock = getValue(id, "stock_quantity", originalStock ?? 0);
 
-    // Determinamos el estado visual
     const isNegative = currentStock < 0;
     const isZero = currentStock === 0;
 
@@ -49,18 +53,17 @@ const ProductCard = ({
         <div className="relative">
           <Input
             type="number"
-            // NOTA: No ponemos min="0" para permitir backorders (negativos)
+            onWheel={handleWheel} // 🔒 Bloquea el scroll
             className={cn(
               "h-9 bg-white text-center font-medium transition-colors",
               isZero && "border-orange-200 bg-orange-50 text-orange-700",
-              isNegative && "border-purple-200 bg-purple-50 text-purple-700", // Estilo para Backorder
+              isNegative && "border-purple-200 bg-purple-50 text-purple-700",
             )}
             placeholder="0"
             value={currentStock}
             onChange={(e) => onStockChange(id, e.target.value, isVariant)}
           />
 
-          {/* Etiquetas Visuales de Estado */}
           {isZero && (
             <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-orange-600 font-bold uppercase pointer-events-none opacity-50">
               Agotado
@@ -105,6 +108,7 @@ const ProductCard = ({
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">$</span>
           <Input
             type="number"
+            onWheel={handleWheel} // 🔒 Bloquea el scroll
             className={cn("pl-7 h-9 bg-white", margin < 0 && "border-red-300 bg-red-50 text-red-700")}
             placeholder={(cost / 100).toFixed(2)}
             value={displayValue}
@@ -146,10 +150,10 @@ const ProductCard = ({
           {/* Controles para Producto Simple */}
           {!product.has_variants && (
             <div className="mt-4 grid grid-cols-3 gap-3 items-end">
-              {/* 1. Stock (Columna Nueva) */}
+              {/* Stock */}
               {renderStockInput(product.id, product.stock_quantity, false)}
 
-              {/* 2. Precio Público */}
+              {/* Precio Público */}
               <div className="col-span-2">
                 {renderPriceInput(
                   "Precio Público",
@@ -180,7 +184,6 @@ const ProductCard = ({
                 </span>
               </div>
 
-              {/* Grid de 3 columnas para Variantes: Stock | Retail | Wholesale */}
               <div className="grid grid-cols-3 gap-3">
                 {/* Stock Variante */}
                 {renderStockInput(variant.id, variant.stock_quantity, true)}
@@ -318,58 +321,127 @@ export default function ProductPriceEditor() {
     });
   };
 
-  // ✅ LÓGICA DE BACKORDER / STOCK NEGATIVO
   const handleStockChange = (itemId: string, value: string, isVariant: boolean) => {
     const numValue = value === "" ? 0 : parseInt(value);
-
     setChanges((prev) => {
       const newChanges = new Map(prev);
       const existing = newChanges.get(itemId) || {};
       newChanges.set(itemId, {
         ...existing,
         stock_quantity: numValue,
-        // Si es negativo o positivo = TRUE. Si es 0 = FALSE.
-        is_in_stock: numValue !== 0,
+        // OJO: Aquí guardamos la intención de cambio, pero la lógica real está en handleSave
         isVariant,
       });
       return newChanges;
     });
   };
 
+  // ✅ FIX 1: LÓGICA DE GUARDADO ROBUSTA
+  // Fusionamos los cambios con los datos existentes para no perder info al guardar
   const handleSave = async () => {
     if (!user?.id || !catalogId || changes.size === 0) return;
     setSaving(true);
     try {
-      const updates = Array.from(changes.entries()).map(([id, data]) => ({
-        ...(data.isVariant ? { variant_id: id } : { product_id: id }),
-        custom_price_retail: data.custom_price_retail,
-        custom_price_wholesale: data.custom_price_wholesale,
-        stock_quantity: data.stock_quantity,
-        // Lógica consistente al guardar:
-        is_in_stock: data.stock_quantity !== 0,
-      }));
+      const updates = Array.from(changes.entries()).map(([id, changeData]) => {
+        // 1. Buscamos el producto/variante ORIGINAL en el estado para rellenar huecos
+        let originalItem: any = null;
+
+        if (changeData.isVariant) {
+          // Buscar variante dentro de productos
+          for (const p of products) {
+            const found = p.variants?.find((v) => v.id === id);
+            if (found) {
+              originalItem = found;
+              break;
+            }
+          }
+        } else {
+          // Buscar producto directo
+          originalItem = products.find((p) => p.id === id);
+        }
+
+        // 2. Determinamos los valores finales (Cambio ?? Existente ?? Default)
+        // Usamos nullish coalescing (??) porque 0 es un valor válido
+        const finalRetail =
+          changeData.custom_price_retail ?? originalItem?.custom_price_retail ?? originalItem?.original_price_retail;
+        const finalWholesale =
+          changeData.custom_price_wholesale ??
+          originalItem?.custom_price_wholesale ??
+          originalItem?.original_price_wholesale;
+        const finalStock = changeData.stock_quantity ?? originalItem?.stock_quantity ?? 0;
+
+        return {
+          ...(changeData.isVariant ? { variant_id: id } : { product_id: id }),
+          custom_price_retail: finalRetail,
+          custom_price_wholesale: finalWholesale,
+          stock_quantity: finalStock,
+          // 3. Calculamos is_in_stock basado en el FINAL stock
+          is_in_stock: finalStock !== 0,
+        };
+      });
 
       await ResellerPriceService.batchUpdatePrices(catalogId, user.id, updates);
       toast({ title: "✅ Cambios guardados", description: `Se actualizaron ${updates.length} items` });
       setChanges(new Map());
       await loadProducts();
     } catch (error: any) {
+      console.error(error);
       toast({ title: "Error", description: "Error al guardar cambios", variant: "destructive" });
     } finally {
       setSaving(false);
     }
   };
 
-  // Helper para el modal de márgenes masivos (simplificado)
+  // Helper para márgenes masivos
   const handleApplyMargin = (margin: number, applyTo: "all" | "in_stock" | "out_of_stock") => {
     const newChanges = new Map(changes);
     products.forEach((product) => {
-      // ... (Tu lógica existente de cálculo de márgenes se puede reutilizar aquí)
-      // Por brevedad, si la necesitas completa avísame, pero generalmente
-      // esta función ya la tenías en tu versión anterior.
-      // Lo importante es que al setear stock masivo respetes la regla de Backorder.
+      const shouldApply =
+        applyTo === "all" ||
+        (applyTo === "in_stock" && (product.stock_quantity ?? 0) !== 0) ||
+        (applyTo === "out_of_stock" && (product.stock_quantity ?? 0) === 0); // Lógica simple basada en 0
+
+      if (!shouldApply) return;
+
+      const calculateNewPrice = (basePrice: number) => {
+        if (!basePrice) return null;
+        return Math.round(basePrice * (1 + margin / 100));
+      };
+
+      if (!product.has_variants) {
+        const newRetail = calculateNewPrice(product.original_price_retail);
+        const newWholesale = calculateNewPrice(product.original_price_wholesale);
+        const existing = newChanges.get(product.id) || {};
+
+        newChanges.set(product.id, {
+          ...existing,
+          custom_price_retail: newRetail,
+          custom_price_wholesale: newWholesale,
+          isVariant: false,
+        });
+      }
+
+      if (product.variants) {
+        product.variants.forEach((variant) => {
+          const newRetail = calculateNewPrice(variant.original_price_retail);
+          const newWholesale = calculateNewPrice(variant.original_price_wholesale);
+          const existing = newChanges.get(variant.id) || {};
+
+          newChanges.set(variant.id, {
+            ...existing,
+            custom_price_retail: newRetail,
+            custom_price_wholesale: newWholesale,
+            isVariant: true,
+          });
+        });
+      }
     });
-    // ...
+
+    setChanges(newChanges);
+    toast({
+      title: "Margen aplicado",
+      description: `Se aplicó un ${margin}% a los productos seleccionados (preliminar). Guarda para confirmar.`,
+    });
     setShowMarginModal(false);
   };
 
