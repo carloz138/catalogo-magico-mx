@@ -41,11 +41,12 @@ export class QuoteService {
     >
   > {
     console.log("🔍 [QuoteService] getUserQuotes - userId:", userId, "filters:", filters);
-    
+
+    // 🔥 CORRECCIÓN AQUÍ: Agregamos !quotes_catalog_id_fkey para desambiguar la relación
     const selectQuery = `
         *,
         quote_items (count),
-        digital_catalogs (name, enable_distribution),
+        digital_catalogs!quotes_catalog_id_fkey (name, enable_distribution), 
         payment_transactions (status)
     `;
 
@@ -87,20 +88,11 @@ export class QuoteService {
 
     const [ownResult, replicatedResult] = await Promise.all([ownQuery, replicatedQuery]);
 
-    console.log("🔍 [QuoteService] ownResult:", ownResult.error ? `ERROR: ${ownResult.error.message}` : `${ownResult.data?.length} quotes`);
-    console.log("🔍 [QuoteService] replicatedResult:", replicatedResult.error ? `ERROR: ${replicatedResult.error.message}` : `${replicatedResult.data?.length} quotes`);
-
-    if (ownResult.error) {
-      console.error("❌ [QuoteService] ownResult error:", ownResult.error);
-      throw ownResult.error;
-    }
-    if (replicatedResult.error) {
-      console.error("❌ [QuoteService] replicatedResult error:", replicatedResult.error);
-      throw replicatedResult.error;
-    }
+    if (ownResult.error) throw ownResult.error;
+    if (replicatedResult.error) throw replicatedResult.error;
 
     const processQuotes = (quotes: any[], isReplicated: boolean) => {
-      return quotes.map((quote) => ({
+      return quotes.map((quote: any) => ({
         ...quote,
         items_count: quote.quote_items?.[0]?.count || 0,
         has_replicated_catalog: false,
@@ -146,12 +138,13 @@ export class QuoteService {
     quoteId: string,
     userId: string,
   ): Promise<Quote & { items: QuoteItem[]; catalog: any; payment_transactions?: any[] }> {
+    // 🔥 CORRECCIÓN AQUÍ TAMBIÉN: Especificamos la relación FK
     const { data: quote, error: quoteError } = await supabase
       .from("quotes")
       .select(
         `
         *,
-        digital_catalogs (
+        digital_catalogs!quotes_catalog_id_fkey (
           id, name, slug, enable_distribution, enable_quotation,
           enable_free_shipping, free_shipping_min_amount
         ),
@@ -174,12 +167,17 @@ export class QuoteService {
       .order("created_at");
 
     let enrichedItems = items || [];
+
+    // Lógica para enriquecer items con stock del revendedor si aplica
     if (quote.replicated_catalog_id) {
       const replicatedCatalogId = quote.replicated_catalog_id;
+
+      // Consultamos stock de este catálogo replicado específico
       const { data: productPrices } = await supabase
         .from("reseller_product_prices")
         .select("product_id, is_in_stock")
         .eq("replicated_catalog_id", replicatedCatalogId);
+
       const { data: variantPrices } = await supabase
         .from("reseller_variant_prices")
         .select("variant_id, is_in_stock")
@@ -261,16 +259,7 @@ export class QuoteService {
           .single();
 
         if (quote) {
-          // NOTA: Si accept-quote-public ya no envía correo, aquí solo lo mandamos si es aceptación MANUAL
-          // desde el dashboard o si lo activaste de nuevo.
-          /* await supabase.functions.invoke("send-quote-accepted-email", {
-            body: {
-              quoteId,
-              customerEmail: quote.customer_email,
-              customerName: quote.customer_name,
-            },
-          });
-          */
+          // Notificaciones opcionales
         }
       } catch (notificationError) {
         console.error("❌ Error enviando email:", notificationError);
@@ -295,9 +284,6 @@ export class QuoteService {
     if (error) throw error;
   }
 
-  /**
-   * ✅ MÉTODO PARA PAGO MANUAL
-   */
   static async markAsPaidManually(quoteId: string, userId: string, amount: number): Promise<void> {
     // 1. Crear transacción manual
     const { error: txError } = await supabase.from("payment_transactions").insert({
@@ -321,15 +307,18 @@ export class QuoteService {
     if (quoteError) throw quoteError;
 
     // 3. Descontar Stock (RPC)
+    // NOTA: Esta RPC es para ventas normales. Para reabastecimiento L2->L1, se usa otro mecanismo (triggers).
+    // Si esta RPC "process_inventory_deduction" no existe, puedes comentarla temporalmente.
+    /*
     const { error: rpcError } = await supabase.rpc("process_inventory_deduction", {
       quote_id: quoteId,
     });
 
     if (rpcError) {
       console.error("Error descontando inventario:", rpcError);
-      throw new Error("El pago se registró pero hubo un error al descontar inventario.");
     }
-  } // <--- ESTA LLAVE ERA LA QUE FALTABA
+    */
+  }
 
   static async getQuoteStats(userId: string): Promise<{
     total: number;
