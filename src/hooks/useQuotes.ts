@@ -39,32 +39,32 @@ export function useQuotes(options: UseQuotesOptions = {}) {
   });
 
   const loadQuotes = async () => {
-    console.log("🔍 [useQuotes] loadQuotes iniciado - user:", user?.id);
+    console.log("🔍 [useQuotes] loadQuotes iniciado - user:", user?.id, "options:", options);
     if (!user) {
       console.log("⚠️ [useQuotes] No hay usuario, abortando carga");
+      setLoading(false);
       return;
     }
 
     setLoading(true);
-    console.log("🔍 [useQuotes] Llamando a QuoteService.getUserQuotes...");
+    console.log("🔍 [useQuotes] Llamando a QuoteService.getUserQuotes con userId:", user.id);
     try {
       const data = await QuoteService.getUserQuotes(user.id, {
         catalog_id: options.catalog_id,
         status: options.status,
       });
-      console.log("✅ [useQuotes] Cotizaciones recibidas:", data?.length, data);
-      // Casting seguro
+      console.log("✅ [useQuotes] Cotizaciones recibidas:", data?.length, "quotes:", data);
       setQuotes(data as unknown as QuoteWithMetadata[]);
-    } catch (error) {
-      console.error("❌ [useQuotes] Error loading quotes:", error);
+    } catch (error: any) {
+      console.error("❌ [useQuotes] Error loading quotes:", error?.message || error);
       toast({
         title: "Error",
-        description: "No se pudieron cargar las cotizaciones",
+        description: "No se pudieron cargar las cotizaciones: " + (error?.message || "Error desconocido"),
         variant: "destructive",
       });
     } finally {
       setLoading(false);
-      console.log("🔍 [useQuotes] Carga finalizada");
+      console.log("🔍 [useQuotes] Carga finalizada, loading=false");
     }
   };
 
@@ -106,9 +106,16 @@ export function useQuotes(options: UseQuotesOptions = {}) {
   };
 
   useEffect(() => {
+    console.log("🔄 [useQuotes] useEffect triggered - autoLoad:", options.autoLoad, "user:", user?.id);
     if (options.autoLoad !== false && user) {
+      console.log("✅ [useQuotes] Condición cumplida, cargando quotes...");
       loadQuotes();
       loadStats();
+    } else {
+      console.log("⏭️ [useQuotes] Condición NO cumplida - autoLoad:", options.autoLoad, "user:", !!user);
+      if (!user) {
+        setLoading(false);
+      }
     }
   }, [user, options.catalog_id, options.status]);
 
