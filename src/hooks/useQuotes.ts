@@ -39,18 +39,24 @@ export function useQuotes(options: UseQuotesOptions = {}) {
   });
 
   const loadQuotes = async () => {
-    if (!user) return;
+    console.log("🔍 [useQuotes] loadQuotes iniciado - user:", user?.id);
+    if (!user) {
+      console.log("⚠️ [useQuotes] No hay usuario, abortando carga");
+      return;
+    }
 
     setLoading(true);
+    console.log("🔍 [useQuotes] Llamando a QuoteService.getUserQuotes...");
     try {
       const data = await QuoteService.getUserQuotes(user.id, {
         catalog_id: options.catalog_id,
         status: options.status,
       });
+      console.log("✅ [useQuotes] Cotizaciones recibidas:", data?.length, data);
       // Casting seguro
       setQuotes(data as unknown as QuoteWithMetadata[]);
     } catch (error) {
-      console.error("Error loading quotes:", error);
+      console.error("❌ [useQuotes] Error loading quotes:", error);
       toast({
         title: "Error",
         description: "No se pudieron cargar las cotizaciones",
@@ -58,6 +64,7 @@ export function useQuotes(options: UseQuotesOptions = {}) {
       });
     } finally {
       setLoading(false);
+      console.log("🔍 [useQuotes] Carga finalizada");
     }
   };
 
