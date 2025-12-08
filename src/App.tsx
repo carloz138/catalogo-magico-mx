@@ -1,8 +1,10 @@
+import { useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client"; // ✅ IMPORTANTE: Cliente Supabase
 
 // Providers
 import { AuthProvider } from "@/contexts/AuthContext";
@@ -19,7 +21,7 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 // Public Pages
 import Index from "@/pages/Index";
 import LoginPage from "@/pages/LoginPage";
-import DemoPage from "@/pages/DemoPage"; // ✅ IMPORTADO: PÁGINA DE DEMO
+import DemoPage from "@/pages/DemoPage";
 import PublicCatalog from "@/pages/PublicCatalog";
 import { SubdomainRouter } from "@/components/routing/SubdomainRouter";
 import ActivateCatalog from "@/pages/ActivateCatalog";
@@ -66,105 +68,129 @@ import OrdersPage from "@/pages/orders/index";
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <BrowserRouter>
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <SaaSMarketingProvider>
-          <AuthProvider>
-            <RoleProvider>
-              <SubscriptionProvider>
-                <Routes>
-                {/* --- Rutas Públicas (Sin Sidebar) --- */}
-                {/* Ruta raíz con detección de subdominio */}
-                <Route path="/" element={<SubdomainRouter fallback={<Index />} />} />
-                <Route path="/login" element={<LoginPage />} />
+const App = () => {
+  // --- 🔥 FIX CRÍTICO: DETECTOR DE SESIÓN CORRUPTA ---
+  useEffect(() => {
+    // Escucha cambios en el estado de autenticación
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event) => {
+      // Si el servidor nos dice "SIGNED_OUT" (incluso por error 400/Token inválido)
+      if (event === "SIGNED_OUT") {
+        console.log("⚠️ Sesión cerrada o inválida. Limpiando almacenamiento...");
 
-                {/* ✅ RUTA NUEVA: DEMO INTERACTIVO (Accesible para ventas) */}
-                <Route path="/demo" element={<DemoPage />} />
+        // 1. Borramos la llave específica de tu proyecto (sacada de tus logs)
+        localStorage.removeItem("sb-aibdxsebwhalbnugsqel-auth-token");
 
-                <Route path="/creditos" element={<Navigate to="/checkout" replace />} />
-                <Route path="/why-subscribe" element={<WhySubscribePage />} />
-                <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
-                <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-                <Route path="/reset-password" element={<ResetPassword />} />
+        // 2. Limpiamos caché de React Query para evitar re-intentos infinitos
+        queryClient.clear();
+      }
+    });
 
-                {/* Ruta OpenPay Demo */}
-                <Route path="/openpay-demo" element={<OpenpayDemo />} />
+    return () => subscription.unsubscribe();
+  }, []);
+  // ----------------------------------------------------
 
-                {/* Ruta Catálogos Públicos */}
-                <Route
-                  path="/c/:slug"
-                  element={
-                    <QuoteCartProvider>
-                      <PublicCatalog />
-                    </QuoteCartProvider>
-                  }
-                />
+  return (
+    <BrowserRouter>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <SaaSMarketingProvider>
+            <AuthProvider>
+              <RoleProvider>
+                <SubscriptionProvider>
+                  <Routes>
+                    {/* --- Rutas Públicas (Sin Sidebar) --- */}
+                    {/* Ruta raíz con detección de subdominio */}
+                    <Route path="/" element={<SubdomainRouter fallback={<Index />} />} />
+                    <Route path="/login" element={<LoginPage />} />
 
-                {/* Rutas de Activación y Tracking */}
-                <Route path="/track" element={<ActivateCatalog />} />
-                <Route path="/blog" element={<Blog />} />
-                <Route path="/blog/:slug" element={<BlogPost />} />
-                <Route path="/tracking/:token" element={<QuoteTracking />} />
-                <Route path="/track/:token" element={<TrackQuotePage />} />
+                    {/* RUTA NUEVA: DEMO INTERACTIVO */}
+                    <Route path="/demo" element={<DemoPage />} />
 
-                {/* --- Rutas Protegidas (Con Sidebar) --- */}
-                <Route element={<ProtectedRoute />}>
-                  <Route element={<DashboardLayout />}>
-                    <Route path="/dashboard" element={<MainDashboard />} />
-                    <Route path="/analytics" element={<Analytics />} />
-                    <Route path="/upload" element={<Upload />} />
-                    <Route path="/products" element={<Products />} />
-                    <Route path="/products/bulk-upload" element={<BulkUpload />} />
-                    <Route path="/products-management" element={<ProductsManagement />} />
-                    <Route path="/deleted-products" element={<DeletedProducts />} />
-                    <Route path="/image-review" element={<ImageReview />} />
-                    <Route path="/template-selection" element={<TemplateSelectionEnhanced />} />
-                    <Route path="/catalogs" element={<Catalogs />} />
-                    <Route path="/catalogs/new" element={<DigitalCatalogForm />} />
-                    <Route path="/catalogs/:id/edit" element={<DigitalCatalogForm />} />
+                    <Route path="/creditos" element={<Navigate to="/checkout" replace />} />
+                    <Route path="/why-subscribe" element={<WhySubscribePage />} />
+                    <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
+                    <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+                    <Route path="/reset-password" element={<ResetPassword />} />
 
-                    {/* Ventas */}
-                    <Route path="/quotes" element={<QuotesPage />} />
-                    <Route path="/quotes/:id" element={<QuoteDetailPage />} />
+                    {/* Ruta OpenPay Demo */}
+                    <Route path="/openpay-demo" element={<OpenpayDemo />} />
 
-                    {/* Logística */}
-                    <Route path="/orders" element={<OrdersPage />} />
+                    {/* Ruta Catálogos Públicos */}
+                    <Route
+                      path="/c/:slug"
+                      element={
+                        <QuoteCartProvider>
+                          <PublicCatalog />
+                        </QuoteCartProvider>
+                      }
+                    />
 
-                    {/* Red y Revendedores */}
-                    <Route path="/market-radar" element={<MarketRadar />} />
-                    <Route path="/network" element={<DistributionNetwork />} />
-                    <Route path="/dashboard/reseller" element={<ResellerDashboard />} />
-                    <Route path="/reseller/edit-prices" element={<ProductPriceEditor />} />
-                    <Route path="/reseller/consolidated-orders" element={<ConsolidatedOrdersListPage />} />
-                    <Route path="/reseller/consolidate/:supplierId" element={<ConsolidateOrderPage />} />
+                    {/* Rutas de Activación y Tracking */}
+                    <Route path="/track" element={<ActivateCatalog />} />
+                    <Route path="/blog" element={<Blog />} />
+                    <Route path="/blog/:slug" element={<BlogPost />} />
+                    <Route path="/tracking/:token" element={<QuoteTracking />} />
+                    <Route path="/track/:token" element={<TrackQuotePage />} />
 
-                    {/* Configuración y Pagos */}
-                    <Route path="/complete-activation" element={<CompleteActivation />} />
-                    <Route path="/business-info" element={<BusinessInfoPage />} />
-                    <Route path="/settings/business" element={<BusinessInfoSettings />} />
-                    <Route path="/dashboard/banking" element={<BankingSettings />} />
+                    {/* --- Rutas Protegidas (Con Sidebar) --- */}
+                    <Route element={<ProtectedRoute />}>
+                      <Route element={<DashboardLayout />}>
+                        <Route path="/dashboard" element={<MainDashboard />} />
+                        <Route path="/analytics" element={<Analytics />} />
+                        <Route path="/upload" element={<Upload />} />
+                        <Route path="/products" element={<Products />} />
+                        <Route path="/products/bulk-upload" element={<BulkUpload />} />
+                        <Route path="/products-management" element={<ProductsManagement />} />
+                        <Route path="/deleted-products" element={<DeletedProducts />} />
+                        <Route path="/image-review" element={<ImageReview />} />
+                        <Route path="/template-selection" element={<TemplateSelectionEnhanced />} />
+                        <Route path="/catalogs" element={<Catalogs />} />
+                        <Route path="/catalogs/new" element={<DigitalCatalogForm />} />
+                        <Route path="/catalogs/:id/edit" element={<DigitalCatalogForm />} />
 
-                    <Route path="/onboarding" element={<OnboardingPage />} />
-                    <Route path="/checkout" element={<Checkout />} />
-                    <Route path="/payment-success" element={<PaymentSuccess />} />
-                    <Route path="/payment-instructions/:transactionId" element={<PaymentInstructions />} />
-                  </Route>
-                </Route>
+                        {/* Ventas */}
+                        <Route path="/quotes" element={<QuotesPage />} />
+                        <Route path="/quotes/:id" element={<QuoteDetailPage />} />
 
-                {/* Ruta para Not Found al final */}
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-              </SubscriptionProvider>
-            </RoleProvider>
-          </AuthProvider>
-        </SaaSMarketingProvider>
-      </TooltipProvider>
-    </QueryClientProvider>
-  </BrowserRouter>
-);
+                        {/* Logística */}
+                        <Route path="/orders" element={<OrdersPage />} />
+
+                        {/* Red y Revendedores */}
+                        <Route path="/market-radar" element={<MarketRadar />} />
+                        <Route path="/network" element={<DistributionNetwork />} />
+                        <Route path="/dashboard/reseller" element={<ResellerDashboard />} />
+                        <Route path="/reseller/edit-prices" element={<ProductPriceEditor />} />
+                        <Route path="/reseller/consolidated-orders" element={<ConsolidatedOrdersListPage />} />
+                        <Route path="/reseller/consolidate/:supplierId" element={<ConsolidateOrderPage />} />
+
+                        {/* Configuración y Pagos */}
+                        <Route path="/complete-activation" element={<CompleteActivation />} />
+                        <Route path="/business-info" element={<BusinessInfoPage />} />
+                        <Route path="/settings/business" element={<BusinessInfoSettings />} />
+                        <Route path="/dashboard/banking" element={<BankingSettings />} />
+
+                        <Route path="/onboarding" element={<OnboardingPage />} />
+                        <Route path="/checkout" element={<Checkout />} />
+                        <Route path="/payment-success" element={<PaymentSuccess />} />
+                        <Route path="/payment-instructions/:transactionId" element={<PaymentInstructions />} />
+                      </Route>
+                    </Route>
+
+                    {/* Ruta para Not Found al final */}
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                </SubscriptionProvider>
+              </RoleProvider>
+            </AuthProvider>
+          </SaaSMarketingProvider>
+        </TooltipProvider>
+      </QueryClientProvider>
+    </BrowserRouter>
+  );
+};
 
 export default App;
