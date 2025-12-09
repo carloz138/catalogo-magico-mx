@@ -7,6 +7,18 @@ import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+// ✅ IMPORT NUEVO: Componentes del Modal de Alerta
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import {
   Loader2,
   ArrowLeft,
@@ -49,7 +61,7 @@ export default function QuoteDetailPage() {
   const [shippingCostInput, setShippingCostInput] = useState<string>("0");
   const [deliveryDateInput, setDeliveryDateInput] = useState<string>("");
 
-  // ✅ LÓGICA DE PAGO: Verificar si existe una transacción pagada
+  // Lógica de Pago
   const paymentTx = (quote as any)?.payment_transactions?.find((tx: any) => tx.status === "paid");
   const isPaid = !!paymentTx;
 
@@ -58,10 +70,8 @@ export default function QuoteDetailPage() {
       if (quote.shipping_cost !== null && quote.shipping_cost !== undefined) {
         setShippingCostInput((quote.shipping_cost / 100).toString());
       } else {
-        // Auto-calcular envío gratis
         const itemsSubtotal = quote.items.reduce((sum, item) => sum + item.subtotal, 0);
         const catalog = quote.catalog;
-        // Asumimos que free_shipping_min_amount viene en pesos desde la DB (si viene en centavos, quitar * 100)
         const minAmountCents = (catalog?.free_shipping_min_amount || 0) * 100;
 
         if (catalog?.enable_free_shipping && itemsSubtotal >= minAmountCents) {
@@ -86,17 +96,9 @@ export default function QuoteDetailPage() {
 
   // --- HANDLERS ---
 
-  // ✅ MANEJO DE PAGO MANUAL
+  // ✅ MANEJO DE PAGO MANUAL (Limpiado: Ya no tiene window.confirm)
   const handleManualPayment = async () => {
     if (!quote || !user?.id) return;
-
-    if (
-      !window.confirm(
-        "¿Confirmas que recibiste el pago por fuera de la plataforma? Esto marcará el pedido como pagado.",
-      )
-    ) {
-      return;
-    }
 
     setActionLoading(true);
     try {
@@ -108,7 +110,7 @@ export default function QuoteDetailPage() {
 
       toast({
         title: "✅ Pago Registrado",
-        description: "El pedido se movió a la sección 'Mis Pedidos'.",
+        description: "El estatus de pago ha sido actualizado.",
       });
       refetch();
     } catch (error: any) {
@@ -122,7 +124,7 @@ export default function QuoteDetailPage() {
   const handleNegotiateQuote = async () => {
     if (!quote || !user?.id) return;
 
-    const costValue = parseFloat(shippingCostInput);
+    const costValue = parseFloat(shippingCostInput || "0");
     if (isNaN(costValue) || costValue < 0) {
       toast({ title: "Monto inválido", variant: "destructive" });
       return;
@@ -186,10 +188,25 @@ export default function QuoteDetailPage() {
 
   const handleMarkAsShipped = async () => {
     if (!quote || !user?.id) return;
+
+    // Aquí podemos dejar un confirm simple o migrarlo también a Modal si prefieres
+    // Por ahora lo dejo con confirm para no complicar demasiado este cambio, pero
+    // el botón de pago (que era el importante) ya usa Modal.
+    if (!isPaid && quote.status !== "shipped") {
+      if (
+        !window.confirm("Advertencia: Esta orden no aparece como pagada. ¿Seguro que deseas marcarla como enviada?")
+      ) {
+        return;
+      }
+    }
+
     setActionLoading(true);
     try {
       await QuoteService.updateQuoteStatus(quote.id, user.id, "shipped");
-      toast({ title: "✅ Enviado" });
+      toast({
+        title: "✅ Enviado / Cerrado",
+        description: "Si esta es una orden de revendedor, su stock se ha actualizado automáticamente.",
+      });
       refetch();
     } catch (error: any) {
       toast({ title: "Error", variant: "destructive" });
@@ -198,7 +215,6 @@ export default function QuoteDetailPage() {
     }
   };
 
-  // UI Config
   const getStatusConfig = (status: QuoteStatus) => {
     if (status === "accepted" && isPaid) {
       return {
@@ -285,17 +301,24 @@ export default function QuoteDetailPage() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {/* El botón de Marcar Enviado se mantiene por flexibilidad */}
-            {quote.status === "accepted" && isPaid && (
+            {(quote.status === "accepted" && isPaid) || quote.status === "shipped" ? (
               <Button
                 size="sm"
                 className="bg-purple-600 hover:bg-purple-700 text-white"
                 onClick={handleMarkAsShipped}
-                disabled={actionLoading}
+                disabled={actionLoading || quote.status === "shipped"}
               >
-                <Truck className="w-4 h-4 mr-2" /> Marcar Enviado
+                {quote.status === "shipped" ? (
+                  <>
+                    <CheckCircle className="w-4 h-4 mr-2" /> Orden Cerrada
+                  </>
+                ) : (
+                  <>
+                    <Truck className="w-4 h-4 mr-2" /> Marcar Enviado
+                  </>
+                )}
               </Button>
-            )}
+            ) : null}
           </div>
         </div>
       </div>
@@ -418,7 +441,6 @@ export default function QuoteDetailPage() {
 
           {/* COLUMNA DERECHA */}
           <div className="space-y-6">
-            {/* ✅ TARJETA DE ESTATUS FINANCIERO */}
             {isPaid ? (
               <Card className="bg-emerald-50 border-emerald-200 shadow-sm">
                 <CardContent className="p-6 text-center">
@@ -437,7 +459,7 @@ export default function QuoteDetailPage() {
                 </CardContent>
               </Card>
             ) : (
-              // ✅ BOTÓN DE PAGO MANUAL (Visible solo si aceptada + no pagada)
+              // ✅ BOTÓN DE PAGO MANUAL CON MODAL
               quote.status === "accepted" && (
                 <Card className="bg-amber-50 border-amber-200 shadow-sm">
                   <CardContent className="p-6 text-center">
@@ -449,14 +471,39 @@ export default function QuoteDetailPage() {
                       El cliente aceptó. Esperando pago SPEI o confirmación manual.
                     </p>
 
-                    <Button
-                      variant="outline"
-                      className="w-full border-amber-300 text-amber-800 hover:bg-amber-100 bg-white"
-                      onClick={handleManualPayment}
-                      disabled={actionLoading}
-                    >
-                      <CheckCircle className="w-4 h-4 mr-2" /> Registrar Pago Manual
-                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className="w-full border-amber-300 text-amber-800 hover:bg-amber-100 bg-white"
+                          disabled={actionLoading}
+                        >
+                          <CheckCircle className="w-4 h-4 mr-2" /> Registrar Pago Manual
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>¿Confirmar Pago Manual?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Estás a punto de registrar que recibiste{" "}
+                            <strong>${(quote.total_amount / 100).toFixed(2)}</strong> por fuera de la plataforma
+                            (Efectivo, Transferencia Directa, etc.).
+                            <br />
+                            <br />
+                            Esta acción marcará el pedido como <strong>PAGADO</strong> y habilitará la opción de envío.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={handleManualPayment}
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                          >
+                            Sí, Confirmar Pago
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </CardContent>
                 </Card>
               )
