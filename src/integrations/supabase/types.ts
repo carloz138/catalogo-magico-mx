@@ -3125,7 +3125,7 @@ export type Database = {
       get_dashboard_stats: { Args: { p_user_id: string }; Returns: Json }
       get_dead_stock_report:
         | {
-            Args: { days_inactive: number; p_user_id: string }
+            Args: { days_inactive: number }
             Returns: {
               current_stock: number
               days_since_last_sale: number
@@ -3137,7 +3137,7 @@ export type Database = {
             }[]
           }
         | {
-            Args: { days_inactive: number }
+            Args: { days_inactive: number; p_user_id: string }
             Returns: {
               current_stock: number
               days_since_last_sale: number
