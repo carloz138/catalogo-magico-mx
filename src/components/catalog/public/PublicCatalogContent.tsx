@@ -11,7 +11,7 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-  DialogClose, // Importamos esto para el botón de cerrar
+  DialogClose,
 } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Label } from "@/components/ui/label";
@@ -92,7 +92,7 @@ const fadeIn = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.3 } },
 };
 
-// --- COMPONENTE: TARJETA DE PRODUCTO (MODIFICADO: SIN BOTÓN DE OJO) ---
+// --- COMPONENTE: TARJETA DE PRODUCTO ---
 const PublicProductCard = ({ product, onAdd, onView }: { product: Product; onAdd: () => void; onView: () => void }) => {
   const price = product.price_retail ? product.price_retail / 100 : 0;
   const hasVariants = product.has_variants || (product.variants && product.variants.length > 0);
@@ -126,7 +126,6 @@ const PublicProductCard = ({ product, onAdd, onView }: { product: Product; onAdd
 
         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors duration-300" />
 
-        {/* Solo dejamos el botón de + rápido */}
         <button
           onClick={(e) => {
             e.stopPropagation();
@@ -737,17 +736,17 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
         )}
       </AnimatePresence>
 
-      {/* ✅ MODAL PRINCIPAL REDISEÑADO (Estilo Zoom + Controles) */}
+      {/* ✅ MODAL PRINCIPAL REDISEÑADO (Estilo "Ojo" Original + Controles de Compra) */}
       <Dialog open={!!selectedProduct} onOpenChange={(open) => !open && setSelectedProduct(null)}>
-        <DialogContent className="max-w-4xl w-full p-0 overflow-hidden bg-white gap-0 border-none">
-          <div className="flex flex-col md:flex-row h-full max-h-[85vh]">
-            {/* COLUMNA IZQUIERDA: IMAGEN GRANDE */}
-            <div className="w-full md:w-1/2 bg-slate-100 relative flex items-center justify-center p-6 min-h-[300px]">
+        <DialogContent className="max-w-3xl w-full p-0 overflow-hidden bg-transparent border-none shadow-2xl rounded-xl">
+          <div className="relative bg-white flex flex-col md:flex-row h-full md:max-h-[85vh]">
+            {/* COLUMNA IZQUIERDA: IMAGEN (2/3 del ancho) */}
+            <div className="w-full md:w-2/3 bg-slate-100 flex items-center justify-center relative aspect-square md:aspect-auto min-h-[300px]">
               {selectedProduct && (selectedProduct.image_url || selectedProduct.original_image_url) ? (
                 <img
                   src={selectedProduct.image_url || selectedProduct.original_image_url || "/placeholder.png"}
                   alt={selectedProduct.name}
-                  className="max-h-[35vh] md:max-h-[70vh] w-full object-contain"
+                  className="w-full h-full object-contain max-h-[50vh] md:max-h-full p-4"
                 />
               ) : (
                 <div className="text-slate-300 flex flex-col items-center">
@@ -756,20 +755,16 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
                 </div>
               )}
 
-              {/* Botón Cerrar flotante en Móvil */}
-              <DialogClose className="absolute top-4 right-4 md:hidden bg-white/50 backdrop-blur rounded-full p-2">
-                <X className="w-5 h-5 text-slate-600" />
+              {/* ÚNICO BOTÓN DE CERRAR FLOTANTE */}
+              <DialogClose className="absolute top-3 right-3 bg-black/50 text-white hover:bg-black/70 rounded-full p-2 backdrop-blur-sm transition-colors z-10 cursor-pointer">
+                <X className="h-5 w-5" />
               </DialogClose>
             </div>
 
-            {/* COLUMNA DERECHA: DETALLES Y CONTROLES */}
-            <div className="w-full md:w-1/2 flex flex-col h-full bg-white relative">
-              {/* Botón cerrar Desktop */}
-              <DialogClose className="absolute top-4 right-4 hidden md:block hover:bg-slate-100 rounded-full p-2 transition-colors">
-                <X className="w-5 h-5 text-slate-400" />
-              </DialogClose>
-
-              <div className="p-6 md:p-8 overflow-y-auto flex-1">
+            {/* COLUMNA DERECHA: DETALLES Y CONTROLES (1/3 del ancho) */}
+            <div className="w-full md:w-1/3 bg-white flex flex-col h-full border-l border-slate-100">
+              {/* Área scrolleable para detalles */}
+              <div className="p-6 overflow-y-auto flex-1">
                 {selectedProduct && (
                   <>
                     {selectedProduct.category && (
@@ -777,7 +772,7 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
                         {selectedProduct.category}
                       </span>
                     )}
-                    <h2 className="text-2xl md:text-3xl font-bold text-slate-900 mb-2 leading-tight">
+                    <h2 className="text-xl md:text-2xl font-bold text-slate-900 mb-2 leading-tight">
                       {selectedProduct.name}
                     </h2>
                     {selectedProduct.sku && (
@@ -792,20 +787,20 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
                       ).toFixed(2)}
                     </div>
 
-                    <p className="text-slate-600 leading-relaxed mb-8">
+                    <p className="text-slate-600 leading-relaxed mb-8 text-sm">
                       {selectedProduct.description || "Sin descripción disponible para este producto."}
                     </p>
 
                     {/* SELECTOR DE VARIANTES */}
                     {selectedProduct.variants && selectedProduct.variants.length > 0 && (
                       <div className="space-y-3 mb-8">
-                        <Label className="text-slate-900 font-medium">Opciones</Label>
+                        <Label className="text-slate-900 font-medium text-sm">Opciones disponibles</Label>
                         <div className="flex flex-wrap gap-2">
                           {selectedProduct.variants.map((variant) => (
                             <div
                               key={variant.id}
                               className={cn(
-                                "px-4 py-2 rounded-lg border cursor-pointer transition-all text-sm select-none",
+                                "px-3 py-1.5 rounded-md border cursor-pointer transition-all text-sm select-none",
                                 selectedVariantId === variant.id
                                   ? "border-indigo-600 bg-indigo-50 text-indigo-700 font-medium ring-1 ring-indigo-600"
                                   : "border-slate-200 hover:border-slate-300 text-slate-600 bg-white",
@@ -822,26 +817,26 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
                 )}
               </div>
 
-              {/* FOOTER FIJO CON ACCIONES */}
-              <div className="p-6 border-t border-slate-100 bg-slate-50/50 mt-auto">
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center bg-white border border-slate-200 rounded-lg h-12">
+              {/* Footer Fijo con Cantidad y Botón */}
+              <div className="p-4 border-t border-slate-100 bg-slate-50/80 mt-auto backdrop-blur-sm">
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center bg-white border border-slate-200 rounded-lg h-11 shrink-0">
                     <button
                       onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                      className="w-10 h-full flex items-center justify-center hover:bg-slate-50 text-slate-600"
+                      className="w-10 h-full flex items-center justify-center hover:bg-slate-50 text-slate-600 rounded-l-lg"
                     >
                       <Minus className="w-4 h-4" />
                     </button>
-                    <span className="w-10 text-center font-bold text-slate-900">{quantity}</span>
+                    <span className="w-10 text-center font-bold text-slate-900 text-sm">{quantity}</span>
                     <button
                       onClick={() => setQuantity(quantity + 1)}
-                      className="w-10 h-full flex items-center justify-center hover:bg-slate-50 text-slate-600"
+                      className="w-10 h-full flex items-center justify-center hover:bg-slate-50 text-slate-600 rounded-r-lg"
                     >
                       <Plus className="w-4 h-4" />
                     </button>
                   </div>
                   <Button
-                    className="flex-1 h-12 text-base bg-slate-900 hover:bg-slate-800 shadow-lg shadow-slate-200"
+                    className="flex-1 h-11 text-sm bg-slate-900 hover:bg-slate-800 shadow-md"
                     onClick={handleAddVariantToCart}
                   >
                     Agregar al Pedido
