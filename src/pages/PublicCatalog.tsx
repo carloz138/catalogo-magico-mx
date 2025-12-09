@@ -11,6 +11,7 @@ import { toast } from "@/hooks/use-toast";
 import { useMetaTracking } from "@/hooks/useMetaTracking";
 import { QuoteCartProvider } from "@/contexts/QuoteCartContext";
 import { Helmet } from "react-helmet-async";
+import { useUserRole } from "@/contexts/RoleContext"; // ✅ IMPORT NUEVO
 
 import { PublicCatalogContent } from "@/components/catalog/public/PublicCatalogContent";
 
@@ -32,7 +33,6 @@ interface Product {
   is_reseller_product?: boolean;
 }
 
-// Tipo para la respuesta de la RPC de clonación
 type CloneResponse = {
   success: boolean;
   slug: string;
@@ -40,9 +40,7 @@ type CloneResponse = {
   catalog_id: string;
 };
 
-// ✅ FIX: Definimos las props que espera el componente para que SubdomainRouter no falle
 interface PublicCatalogProps {
-  /** Slug pasado desde SubdomainRouter (cuando se accede via subdominio) */
   subdomainSlug?: string;
 }
 
@@ -83,17 +81,16 @@ const ScriptInjector = ({ headScripts, bodyScripts }: { headScripts?: string | n
 export default function PublicCatalog({ subdomainSlug }: PublicCatalogProps = {}) {
   const { slug: pathSlug } = useParams();
   const navigate = useNavigate();
+  // ✅ HOOK NUEVO: Necesitamos refrescar el rol si un usuario logueado clona
+  const { refreshRole } = useUserRole();
 
-  // Priorizar subdomainSlug sobre el path param
   const slug = subdomainSlug || pathSlug;
 
-  // Estados Locales
   const [accessPassword, setAccessPassword] = useState("");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [isCloning, setIsCloning] = useState(false);
 
-  // Detectar sesión al montar (Efecto "Google" / Auth Interception)
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setCurrentUser(session?.user || null);
@@ -108,7 +105,6 @@ export default function PublicCatalog({ subdomainSlug }: PublicCatalogProps = {}
     return () => subscription.unsubscribe();
   }, []);
 
-  // Query Principal de Datos
   const {
     data: catalog,
     isLoading,
@@ -124,10 +120,8 @@ export default function PublicCatalog({ subdomainSlug }: PublicCatalogProps = {}
       let resellerId: string | undefined = undefined;
       let catalogHeader: any | null = null;
 
-      // 1. Intentar buscar como Catálogo Original (L1)
       let { data, error: errL1 } = await supabase.from("digital_catalogs").select(`*`).eq("slug", slug).maybeSingle();
 
-      // 2. Si no existe, buscar como Réplica (L2)
       if (!data) {
         const { data: replica } = await supabase
           .from("replicated_catalogs")
@@ -136,23 +130,19 @@ export default function PublicCatalog({ subdomainSlug }: PublicCatalogProps = {}
           .maybeSingle();
 
         if (replica && replica.digital_catalogs) {
-          // AQUI ESTA LA CLAVE: Heredamos TODO el objeto del catálogo original
           catalogHeader = { ...replica.digital_catalogs };
-
           isReplicated = true;
           replicatedCatalogId = replica.id;
           resellerId = replica.reseller_id || undefined;
           catalogIdToFetch = catalogHeader.id || null;
         }
       } else {
-        // Es un catálogo original
         catalogHeader = data;
         catalogIdToFetch = data.id;
       }
 
       if (!catalogHeader || !catalogIdToFetch) return null;
 
-      // --- LOGICA DE BRANDING (Solo para Revendedores) ---
       if (isReplicated && resellerId) {
         const { data: businessInfo } = await supabase
           .from("business_info")
@@ -161,12 +151,10 @@ export default function PublicCatalog({ subdomainSlug }: PublicCatalogProps = {}
           .maybeSingle();
 
         if (businessInfo) {
-          // 1. Sobrescribimos Identidad Visual
           if (businessInfo.business_name) catalogHeader.name = businessInfo.business_name;
           if (businessInfo.description) catalogHeader.description = businessInfo.description;
           if (businessInfo.logo_url) catalogHeader.logo_url = businessInfo.logo_url;
 
-          // 2. Sobrescribimos Colores
           if (businessInfo.primary_color) {
             catalogHeader.brand_colors = {
               primary: businessInfo.primary_color,
@@ -174,7 +162,6 @@ export default function PublicCatalog({ subdomainSlug }: PublicCatalogProps = {}
             };
           }
 
-          // 3. Sobrescribimos Datos de Contacto
           catalogHeader.business_info = {
             business_name: businessInfo.business_name,
             logo_url: businessInfo.logo_url,
@@ -187,9 +174,6 @@ export default function PublicCatalog({ subdomainSlug }: PublicCatalogProps = {}
         }
       }
 
-      // --- FETCH DE PRODUCTOS (Híbrido) ---
-
-      // A) Productos L1 (Originales)
       const { data: rawL1Products, error: prodError } = await supabase
         .from("catalog_products")
         .select(`product_id, products!catalog_products_product_id_fkey (*)`)
@@ -199,7 +183,6 @@ export default function PublicCatalog({ subdomainSlug }: PublicCatalogProps = {}
 
       let l1Products = rawL1Products?.map((cp: any) => cp.products).filter(Boolean) || [];
 
-      // HIDRATACIÓN DE PRECIOS L2
       if (isReplicated && replicatedCatalogId) {
         const { data: customPrices } = await supabase
           .from("reseller_product_prices")
@@ -222,7 +205,6 @@ export default function PublicCatalog({ subdomainSlug }: PublicCatalogProps = {}
         }
       }
 
-      // B) Productos L2 (Propios del Revendedor)
       let l2Products: any[] = [];
       if (isReplicated && resellerId) {
         const { data: rawL2Products, error: l2Error } = await supabase
@@ -239,7 +221,6 @@ export default function PublicCatalog({ subdomainSlug }: PublicCatalogProps = {}
         }
       }
 
-      // MEZCLA FINAL
       const allProducts = [...l1Products, ...l2Products];
 
       supabase.rpc("increment_view_count" as any, { row_id: catalogIdToFetch }).then();
@@ -260,7 +241,6 @@ export default function PublicCatalog({ subdomainSlug }: PublicCatalogProps = {}
     retry: false,
   });
 
-  // Tracking Meta/Pixel
   const trackingConfig = (catalog?.tracking_config as any) || {};
   const { trackEvent } = useMetaTracking({
     enabled: true,
@@ -280,19 +260,18 @@ export default function PublicCatalog({ subdomainSlug }: PublicCatalogProps = {}
     }
   }, [catalog?.id]);
 
-  // --- LÓGICA DE REPLICACIÓN (One-Click) ---
   const handleReplication = async () => {
     if (!catalog) return;
 
-    // A. Si no hay sesión: Guardar intención y redirigir a Auth
+    // A. Si no hay sesión: Guardar intención y redirigir
     if (!currentUser) {
+      // 🔥 ESTO ES CRÍTICO: Guardamos el ID para usarlo después del Login
       localStorage.setItem("pending_replication_catalog_id", catalog.id);
 
       toast({
         title: "Inicia sesión para vender",
         description: "Regístrate o logueate para clonar este catálogo.",
       });
-      // ✅ FIX: Ruta corregida a /login para coincidir con LoginPage.tsx
       navigate("/login?intent=replicate");
       return;
     }
@@ -306,7 +285,6 @@ export default function PublicCatalog({ subdomainSlug }: PublicCatalogProps = {}
 
       if (error) throw error;
 
-      // Casteo seguro de la respuesta JSON a nuestra interfaz
       const result = data as unknown as CloneResponse;
 
       if (result && result.success) {
@@ -314,6 +292,10 @@ export default function PublicCatalog({ subdomainSlug }: PublicCatalogProps = {}
           title: "¡Catálogo clonado!",
           description: "Ahora puedes configurar tus propios precios.",
         });
+
+        // 🔥 FIX: Actualizar rol antes de navegar (por si era L1 puro)
+        await refreshRole();
+
         navigate(`/reseller/edit-prices?catalog_id=${result.catalog_id}`);
       }
     } catch (err: any) {
@@ -327,8 +309,6 @@ export default function PublicCatalog({ subdomainSlug }: PublicCatalogProps = {}
       setIsCloning(false);
     }
   };
-
-  // --- RENDERIZADO DE ESTADOS DE CARGA/ERROR ---
 
   if (isLoading) {
     return (
@@ -382,11 +362,6 @@ export default function PublicCatalog({ subdomainSlug }: PublicCatalogProps = {}
     );
   }
 
-  // --- VALIDACIÓN DE BOTÓN FLOTANTE ---
-  // Muestra el botón solo si:
-  // 1. El catálogo permite distribución (enable_distribution = true)
-  // 2. El usuario actual (si existe) NO es el dueño
-  // 3. El catálogo actual NO es ya una réplica (evitar L3...)
   const canReplicate =
     catalog.enable_distribution && (!currentUser || currentUser.id !== catalog.user_id) && !catalog.isReplicated;
 
@@ -409,7 +384,6 @@ export default function PublicCatalog({ subdomainSlug }: PublicCatalogProps = {}
 
       <PublicCatalogContent catalog={catalog} onTrackEvent={trackEvent} />
 
-      {/* --- BARRA FLOTANTE DE REPLICACIÓN --- */}
       {canReplicate && (
         <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/95 backdrop-blur border-t shadow-lg z-50 flex items-center justify-between gap-4 animate-in slide-in-from-bottom duration-500">
           <div className="flex-1">
