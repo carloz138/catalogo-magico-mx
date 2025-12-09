@@ -1,7 +1,7 @@
 // ==========================================
 // FUNCION: send-quote-notification
 // DESCRIPCIÓN: Notifica al VENDEDOR (L1 o L2) de una nueva venta
-// ESTADO: FIX_V12 (URL DASHBOARD CORREGIDA)
+// ESTADO: FIX_V13 (FIXED AMBIGUOUS FOREIGN KEY)
 // ==========================================
 import { createClient } from 'jsr:@supabase/supabase-js@2.49.8';
 
@@ -39,20 +39,24 @@ Deno.serve(async (req) => {
         { auth: { persistSession: false } }
     );
 
-    // A. Obtener quote
-    const { data: quote, error: quoteError } = await supabaseAdmin.from('quotes').select(`
-                *,
-                quote_items (*),
-                digital_catalogs (name)
-            `).eq('id', quoteId).single();
+    // A. OBTENER QUOTE (FIX AMBIGÜEDAD FK)
+    // Usamos !quotes_catalog_id_fkey para decirle a Supabase cuál relación usar
+    const { data: quote, error: quoteError } = await supabaseAdmin
+        .from('quotes')
+        .select(`
+            *,
+            quote_items (*),
+            digital_catalogs!quotes_catalog_id_fkey (name)
+        `)
+        .eq('id', quoteId)
+        .single();
 
     if (quoteError || !quote) {
       console.error(`Error fetching quote: ${JSON.stringify(quoteError)}`);
       throw new Error("Quote not found in database.");
     }
 
-    // B. IDENTIFICAR AL DESTINATARIO (FIX MULTI-TENANT)
-    // Usamos quote.user_id para asegurar que le llegue al Revendedor L2 si aplica
+    // B. IDENTIFICAR AL DESTINATARIO
     const ownerId = quote.user_id; 
 
     console.log(`🔔 Notificando al Vendedor ID: ${ownerId}`);
@@ -164,7 +168,7 @@ function formatCurrency(valueInCents: number): string {
     return valueInUnits.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-// 📧 TEMPLATE EMAIL CORREGIDO
+// 📧 TEMPLATE EMAIL
 function generateEmailTemplate(quote: any, user: any) {
     const items = quote.quote_items || [];
     const totalInCents = items.reduce((sum: number, item: any) => sum + item.subtotal, 0);
@@ -183,8 +187,6 @@ function generateEmailTemplate(quote: any, user: any) {
         </tr>
     `).join('');
 
-    // ✅ CORRECCIÓN 1: URL Base limpia
-    // Asumimos que SITE_URL es "https://catifypro.com" sin slash al final
     const siteUrl = Deno.env.get('SITE_URL') || 'https://catifypro.com';
 
     return `
@@ -233,7 +235,7 @@ function generateEmailTemplate(quote: any, user: any) {
                 
                 <div style="text-align: center; margin-top: 30px;">
                     <a href="${siteUrl}/quotes/${quote.id}" 
-                        style="display: inline-block; padding: 15px 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
+                       style="display: inline-block; padding: 15px 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
                         Gestionar Venta en Dashboard
                     </a>
                 </div>
@@ -243,14 +245,12 @@ function generateEmailTemplate(quote: any, user: any) {
     `;
 }
 
-// 📱 TEMPLATE WHATSAPP CORREGIDO
+// 📱 TEMPLATE WHATSAPP
 function generateWhatsAppMessage(quote: any, user: any) {
     const items = quote.quote_items || [];
     const totalInCents = items.reduce((sum: number, item: any) => sum + item.subtotal, 0);
     const total = formatCurrency(totalInCents);
     
-    // ✅ CORRECCIÓN 3: URL WhatsApp
-    // Hardcoded para asegurar la estructura exacta que pediste
     return `🔔 *Nueva Cotización Recibida*
 📦 Catálogo: ${quote.digital_catalogs?.name || 'Tu Catálogo'}
 👤 *Cliente:* ${quote.customer_name}
