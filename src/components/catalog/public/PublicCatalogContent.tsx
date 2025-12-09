@@ -11,6 +11,7 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
+  DialogClose, // Importamos esto para el botón de cerrar
 } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Label } from "@/components/ui/label";
@@ -30,6 +31,7 @@ import {
   Phone,
   Mail,
   Globe,
+  Share2,
 } from "lucide-react";
 import { DigitalCatalog } from "@/types/digital-catalog";
 import { QuoteCartModal } from "@/components/public/QuoteCartModal";
@@ -65,13 +67,11 @@ interface Product {
   }>;
 }
 
-// ✅ CORRECCIÓN 1: Agregar business_info y replicatedCatalogId a la interface
 interface PublicCatalogContentProps {
   catalog: DigitalCatalog & {
     isReplicated?: boolean;
     resellerId?: string;
     replicatedCatalogId?: string;
-    // Agregamos la estructura de info de negocio
     business_info?: {
       business_name?: string;
       logo_url?: string | null;
@@ -92,67 +92,8 @@ const fadeIn = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.3 } },
 };
 
-// --- COMPONENTE: MODAL IMAGEN GRANDE ---
-const ProductImageZoomModal = ({
-  product,
-  isOpen,
-  onClose,
-}: {
-  product: Product | null;
-  isOpen: boolean;
-  onClose: () => void;
-}) => {
-  if (!product) return null;
-  return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-3xl w-full p-0 overflow-hidden bg-transparent border-none shadow-none">
-        <div className="relative bg-white rounded-xl overflow-hidden shadow-2xl flex flex-col md:flex-row">
-          <div className="w-full md:w-2/3 bg-slate-100 flex items-center justify-center relative aspect-square md:aspect-auto">
-            <img
-              src={product.image_url || product.original_image_url || "/placeholder.png"}
-              alt={product.name}
-              className="w-full h-full object-contain max-h-[60vh] md:max-h-[80vh]"
-            />
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onClose}
-              className="absolute top-3 right-3 bg-black/50 text-white hover:bg-black/70 rounded-full backdrop-blur-sm"
-            >
-              <X className="h-5 w-5" />
-            </Button>
-          </div>
-          <div className="w-full md:w-1/3 p-6 bg-white flex flex-col justify-center">
-            <h3 className="text-xl font-bold text-slate-900 leading-tight">{product.name}</h3>
-            {product.sku && <span className="text-xs font-mono text-slate-400 mt-1">SKU: {product.sku}</span>}
-            <div className="my-4 w-full h-px bg-slate-100" />
-            <p className="text-slate-600 text-sm leading-relaxed">
-              {product.description || "Sin descripción detallada."}
-            </p>
-            <div className="mt-6">
-              <span className="text-2xl font-bold text-slate-900 block">
-                ${(product.price_retail / 100).toFixed(2)}
-              </span>
-            </div>
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-};
-
-// --- COMPONENTE: TARJETA DE PRODUCTO ---
-const PublicProductCard = ({
-  product,
-  onAdd,
-  onView,
-  onZoomImage,
-}: {
-  product: Product;
-  onAdd: () => void;
-  onView: () => void;
-  onZoomImage: () => void;
-}) => {
+// --- COMPONENTE: TARJETA DE PRODUCTO (MODIFICADO: SIN BOTÓN DE OJO) ---
+const PublicProductCard = ({ product, onAdd, onView }: { product: Product; onAdd: () => void; onView: () => void }) => {
   const price = product.price_retail ? product.price_retail / 100 : 0;
   const hasVariants = product.has_variants || (product.variants && product.variants.length > 0);
 
@@ -161,7 +102,7 @@ const PublicProductCard = ({
       variants={fadeIn}
       initial="hidden"
       animate="visible"
-      className="group flex flex-col bg-white border border-slate-200 rounded-xl overflow-hidden hover:shadow-lg hover:border-indigo-200 transition-all duration-300 cursor-pointer h-full select-none"
+      className="group flex flex-col bg-white border border-slate-200 rounded-xl overflow-hidden hover:shadow-lg hover:border-indigo-200 transition-all duration-300 cursor-pointer h-full select-none relative"
       onClick={onView}
       onDoubleClick={(e) => {
         e.stopPropagation();
@@ -185,17 +126,7 @@ const PublicProductCard = ({
 
         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors duration-300" />
 
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onZoomImage();
-          }}
-          className="absolute top-3 right-3 h-8 w-8 bg-white/90 backdrop-blur text-slate-600 rounded-full flex items-center justify-center shadow-sm opacity-0 group-hover:opacity-100 transform translate-y-[-10px] group-hover:translate-y-0 transition-all duration-300 hover:text-indigo-600 z-20"
-          title="Ampliar imagen"
-        >
-          <Eye className="h-4 w-4" />
-        </button>
-
+        {/* Solo dejamos el botón de + rápido */}
         <button
           onClick={(e) => {
             e.stopPropagation();
@@ -264,7 +195,6 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
-  const [productToZoom, setProductToZoom] = useState<Product | null>(null);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
 
@@ -470,23 +400,17 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
         catalogo_id: catalog.id,
         fabricante_id: catalog.user_id,
         revendedor_id: catalog.resellerId || null,
-
         cliente_final_nombre: radarForm.name,
         cliente_final_email: radarForm.email,
         producto_nombre: radarForm.product,
-
         producto_marca: radarForm.brand,
         producto_descripcion: radarForm.description,
-
         cantidad: parseInt(radarForm.quantity) || 1,
         estatus_fabricante: "nuevo",
         estatus_revendedor: "nuevo",
       });
 
-      if (insertError) {
-        console.error("Error al insertar solicitud radar:", insertError);
-        throw insertError;
-      }
+      if (insertError) throw insertError;
 
       toast({ title: "Solicitud recibida", description: "Buscaremos este producto para ti." });
       setShowRadarModal(false);
@@ -710,14 +634,13 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
                 product={product}
                 onView={() => handleViewProduct(product)}
                 onAdd={() => handleSmartAdd(product)}
-                onZoomImage={() => setProductToZoom(product)}
               />
             ))}
           </div>
         )}
       </div>
 
-      {/* ✅ NUEVO FOOTER: INFORMACIÓN DE CONTACTO */}
+      {/* NUEVO FOOTER */}
       {catalog.business_info && (
         <div className="bg-slate-900 text-white mt-12 py-12 px-4 relative z-20">
           <div className="container mx-auto max-w-4xl">
@@ -766,7 +689,6 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
                 </div>
               </div>
               <div className="flex justify-center md:justify-end">
-                {/* Aquí podrías poner un mapa o un QR si quisieras en el futuro */}
                 {catalog.logo_url && (
                   <img
                     src={catalog.logo_url}
@@ -815,97 +737,121 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
         )}
       </AnimatePresence>
 
-      {/* MODALES */}
+      {/* ✅ MODAL PRINCIPAL REDISEÑADO (Estilo Zoom + Controles) */}
       <Dialog open={!!selectedProduct} onOpenChange={(open) => !open && setSelectedProduct(null)}>
-        <DialogContent className="sm:max-w-[450px] p-0 overflow-hidden">
-          {selectedProduct && (
-            <>
-              <DialogHeader className="px-6 pt-6 pb-2">
-                <DialogTitle className="text-xl">{selectedProduct.name}</DialogTitle>
-                <DialogDescription>Personaliza tu pedido</DialogDescription>
-              </DialogHeader>
-
-              <div className="px-6 pb-6 space-y-6">
-                <div className="flex gap-4">
-                  <div className="w-20 h-20 rounded-lg bg-slate-100 overflow-hidden border border-slate-200 shrink-0">
-                    <img
-                      src={selectedProduct.image_url || "/placeholder.png"}
-                      className="w-full h-full object-cover"
-                      alt=""
-                    />
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm text-slate-500 line-clamp-3">{selectedProduct.description}</p>
-                  </div>
+        <DialogContent className="max-w-4xl w-full p-0 overflow-hidden bg-white gap-0 border-none">
+          <div className="flex flex-col md:flex-row h-full max-h-[85vh]">
+            {/* COLUMNA IZQUIERDA: IMAGEN GRANDE */}
+            <div className="w-full md:w-1/2 bg-slate-100 relative flex items-center justify-center p-6 min-h-[300px]">
+              {selectedProduct && (selectedProduct.image_url || selectedProduct.original_image_url) ? (
+                <img
+                  src={selectedProduct.image_url || selectedProduct.original_image_url || "/placeholder.png"}
+                  alt={selectedProduct.name}
+                  className="max-h-[35vh] md:max-h-[70vh] w-full object-contain"
+                />
+              ) : (
+                <div className="text-slate-300 flex flex-col items-center">
+                  <Radar className="w-16 h-16 mb-2" />
+                  <span>Sin imagen</span>
                 </div>
+              )}
 
-                {selectedProduct.variants && selectedProduct.variants.length > 0 && (
-                  <div className="space-y-3">
-                    <Label className="text-slate-900 font-medium">Opciones disponibles</Label>
-                    <div className="grid grid-cols-1 gap-2 max-h-[200px] overflow-y-auto pr-1">
-                      {selectedProduct.variants.map((variant) => (
-                        <div
-                          key={variant.id}
-                          className={cn(
-                            "flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-all",
-                            selectedVariantId === variant.id
-                              ? "border-indigo-600 bg-indigo-50 text-indigo-900 ring-1 ring-indigo-600"
-                              : "border-slate-200 hover:border-slate-300 hover:bg-slate-50",
-                          )}
-                          onClick={() => setSelectedVariantId(variant.id)}
-                        >
-                          <span className="text-sm font-medium">
-                            {Object.values(variant.attributes || {}).join(" / ")}
-                          </span>
-                          <span className="font-bold">${((variant.price_retail || 0) / 100).toFixed(2)}</span>
-                        </div>
-                      ))}
+              {/* Botón Cerrar flotante en Móvil */}
+              <DialogClose className="absolute top-4 right-4 md:hidden bg-white/50 backdrop-blur rounded-full p-2">
+                <X className="w-5 h-5 text-slate-600" />
+              </DialogClose>
+            </div>
+
+            {/* COLUMNA DERECHA: DETALLES Y CONTROLES */}
+            <div className="w-full md:w-1/2 flex flex-col h-full bg-white relative">
+              {/* Botón cerrar Desktop */}
+              <DialogClose className="absolute top-4 right-4 hidden md:block hover:bg-slate-100 rounded-full p-2 transition-colors">
+                <X className="w-5 h-5 text-slate-400" />
+              </DialogClose>
+
+              <div className="p-6 md:p-8 overflow-y-auto flex-1">
+                {selectedProduct && (
+                  <>
+                    {selectedProduct.category && (
+                      <span className="text-xs font-bold text-indigo-600 uppercase tracking-wider mb-2 block">
+                        {selectedProduct.category}
+                      </span>
+                    )}
+                    <h2 className="text-2xl md:text-3xl font-bold text-slate-900 mb-2 leading-tight">
+                      {selectedProduct.name}
+                    </h2>
+                    {selectedProduct.sku && (
+                      <span className="text-xs font-mono text-slate-400 block mb-4">SKU: {selectedProduct.sku}</span>
+                    )}
+
+                    <div className="text-3xl font-bold text-slate-900 mb-6">
+                      $
+                      {(
+                        (selectedProduct.variants?.find((v) => v.id === selectedVariantId)?.price_retail ||
+                          selectedProduct.price_retail) / 100
+                      ).toFixed(2)}
                     </div>
-                  </div>
+
+                    <p className="text-slate-600 leading-relaxed mb-8">
+                      {selectedProduct.description || "Sin descripción disponible para este producto."}
+                    </p>
+
+                    {/* SELECTOR DE VARIANTES */}
+                    {selectedProduct.variants && selectedProduct.variants.length > 0 && (
+                      <div className="space-y-3 mb-8">
+                        <Label className="text-slate-900 font-medium">Opciones</Label>
+                        <div className="flex flex-wrap gap-2">
+                          {selectedProduct.variants.map((variant) => (
+                            <div
+                              key={variant.id}
+                              className={cn(
+                                "px-4 py-2 rounded-lg border cursor-pointer transition-all text-sm select-none",
+                                selectedVariantId === variant.id
+                                  ? "border-indigo-600 bg-indigo-50 text-indigo-700 font-medium ring-1 ring-indigo-600"
+                                  : "border-slate-200 hover:border-slate-300 text-slate-600 bg-white",
+                              )}
+                              onClick={() => setSelectedVariantId(variant.id)}
+                            >
+                              {Object.values(variant.attributes || {}).join(" / ")}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </>
                 )}
-
-                <div className="flex items-center justify-between pt-4 border-t border-slate-100">
-                  <span className="font-medium text-slate-900">Cantidad</span>
-                  <div className="flex items-center gap-3 bg-slate-50 rounded-lg p-1 border border-slate-200">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 rounded-md bg-white shadow-sm"
-                      onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    >
-                      <Minus className="h-3 w-3" />
-                    </Button>
-                    <span className="w-8 text-center font-bold text-slate-900">{quantity}</span>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 rounded-md bg-white shadow-sm"
-                      onClick={() => setQuantity(quantity + 1)}
-                    >
-                      <Plus className="h-3 w-3" />
-                    </Button>
-                  </div>
-                </div>
-
-                <Button
-                  className="w-full h-12 text-base bg-slate-900 hover:bg-slate-800"
-                  onClick={handleAddVariantToCart}
-                >
-                  Agregar al Carrito - $
-                  {(
-                    ((selectedProduct.variants?.find((v) => v.id === selectedVariantId)?.price_retail ||
-                      selectedProduct.price_retail) *
-                      quantity) /
-                    100
-                  ).toFixed(2)}
-                </Button>
               </div>
-            </>
-          )}
+
+              {/* FOOTER FIJO CON ACCIONES */}
+              <div className="p-6 border-t border-slate-100 bg-slate-50/50 mt-auto">
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center bg-white border border-slate-200 rounded-lg h-12">
+                    <button
+                      onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                      className="w-10 h-full flex items-center justify-center hover:bg-slate-50 text-slate-600"
+                    >
+                      <Minus className="w-4 h-4" />
+                    </button>
+                    <span className="w-10 text-center font-bold text-slate-900">{quantity}</span>
+                    <button
+                      onClick={() => setQuantity(quantity + 1)}
+                      className="w-10 h-full flex items-center justify-center hover:bg-slate-50 text-slate-600"
+                    >
+                      <Plus className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <Button
+                    className="flex-1 h-12 text-base bg-slate-900 hover:bg-slate-800 shadow-lg shadow-slate-200"
+                    onClick={handleAddVariantToCart}
+                  >
+                    Agregar al Pedido
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
-
-      <ProductImageZoomModal product={productToZoom} isOpen={!!productToZoom} onClose={() => setProductToZoom(null)} />
 
       <QuoteCartModal
         isOpen={isCartOpen}
@@ -915,7 +861,6 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
         freeShippingThreshold={catalog.free_shipping_min_amount || null}
       />
 
-      {/* ✅ CORRECCIÓN 2: Pasamos el replicatedCatalogId CORRECTO */}
       <QuoteForm
         catalogId={catalog.id}
         replicatedCatalogId={catalog.isReplicated ? catalog.replicatedCatalogId : undefined}
@@ -927,7 +872,7 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
         businessAddress={null}
       />
 
-      {/* ✅ MODAL DE RADAR REDISEÑADO */}
+      {/* MODAL RADAR */}
       <Dialog open={showRadarModal} onOpenChange={setShowRadarModal}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
@@ -941,7 +886,6 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
           </DialogHeader>
 
           <div className="space-y-4 py-4">
-            {/* Producto y Marca */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Producto buscado *</Label>
@@ -963,7 +907,6 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
               </div>
             </div>
 
-            {/* Descripción Ampliada */}
             <div className="space-y-2">
               <Label>Detalles adicionales (Color, Talla, Modelo)</Label>
               <textarea
@@ -974,7 +917,6 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
               />
             </div>
 
-            {/* Cantidad */}
             <div className="space-y-2">
               <Label>Cantidad requerida</Label>
               <Input
@@ -985,7 +927,6 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
               />
             </div>
 
-            {/* Datos de Contacto */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Tu Nombre</Label>
