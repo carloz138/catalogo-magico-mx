@@ -119,8 +119,10 @@ export function AppSidebar() {
     }
   };
 
+  // NOTA: "NONE" = usuarios free sin suscripción activa ni catálogos replicados
+  // Deben poder ver opciones básicas para explorar la plataforma
   const allNavigationItems: MenuItem[] = [
-    { title: "Dashboard", path: "/dashboard", icon: LayoutDashboard, primary: true, roles: ["L1", "L2", "BOTH"] },
+    { title: "Dashboard", path: "/dashboard", icon: LayoutDashboard, primary: true, roles: ["L1", "L2", "BOTH", "NONE"] },
     {
       title: "Cotizaciones",
       path: "/quotes",
@@ -139,7 +141,7 @@ export function AppSidebar() {
       badge: stats?.orders && stats.orders > 0 ? stats.orders : undefined,
       badgeColor: "bg-emerald-500 text-white border-emerald-600 animate-pulse",
     },
-    { title: "Mis Catálogos", path: "/catalogs", icon: BookOpen, primary: true, roles: ["L1", "L2", "BOTH"] },
+    { title: "Mis Catálogos", path: "/catalogs", icon: BookOpen, primary: true, roles: ["L1", "L2", "BOTH", "NONE"] },
     {
       title: "Radar de Mercado",
       path: "/market-radar",
@@ -162,14 +164,14 @@ export function AppSidebar() {
       path: "/products-management",
       icon: PackageSearch,
       primary: true,
-      roles: ["L1", "BOTH"],
+      roles: ["L1", "BOTH", "NONE"],
     },
-    { title: "Inventario", path: "/products", icon: Package, roles: ["L1", "BOTH"] },
+    { title: "Inventario", path: "/products", icon: Package, roles: ["L1", "BOTH", "NONE"] },
     { title: "Carga Masiva", path: "/products/bulk-upload", icon: PackageOpen, roles: ["L1", "BOTH"] },
-    { title: "Subir Productos", path: "/upload", icon: Upload, roles: ["L1", "BOTH"] },
+    { title: "Subir Productos", path: "/upload", icon: Upload, roles: ["L1", "BOTH", "NONE"] },
     { title: "Analytics", path: "/analytics", icon: BarChart3, roles: ["L1", "BOTH"] },
-    { title: "Facturación", path: "/checkout", icon: CreditCard, roles: ["L1", "BOTH"] },
-    { title: "Guía de Inicio", path: "/onboarding", icon: PlayCircle, roles: ["L1", "L2", "BOTH"] },
+    { title: "Facturación", path: "/checkout", icon: CreditCard, roles: ["L1", "BOTH", "NONE"] },
+    { title: "Guía de Inicio", path: "/onboarding", icon: PlayCircle, roles: ["L1", "L2", "BOTH", "NONE"] },
     {
       title: "Datos Bancarios",
       path: "/dashboard/banking",
@@ -178,15 +180,16 @@ export function AppSidebar() {
       badgeColor: "bg-green-900/50 text-green-300 border-green-700/50",
       roles: ["L1", "L2", "BOTH"],
     },
-    { title: "Configuración", path: "/business-info", icon: Settings, roles: ["L1", "L2", "BOTH"] },
+    { title: "Configuración", path: "/business-info", icon: Settings, roles: ["L1", "L2", "BOTH", "NONE"] },
   ];
 
+  const { userRole } = useUserRole();
+  
   const navigationItems = allNavigationItems.filter((item) => {
     if (!item.roles) return true;
-    if (isBoth) return true;
-    if (isL1 && item.roles.includes("L1")) return true;
-    if (isL2 && item.roles.includes("L2")) return true;
-    return false;
+    // Permitir acceso basado en el rol actual del usuario
+    return item.roles.includes(userRole) || 
+           (isBoth && (item.roles.includes("L1") || item.roles.includes("L2") || item.roles.includes("BOTH")));
   });
 
   const getWarningConfig = () => {
