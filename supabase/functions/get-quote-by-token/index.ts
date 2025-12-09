@@ -1,7 +1,7 @@
 // ==========================================
 // FUNCION: get-quote-by-token
-// DESCRIPCIÓN: Obtiene datos seguros (Estrategia Multi-Query para evitar fallos de JOIN)
-// ESTADO: FIX_V8 (INFALIBLE)
+// DESCRIPCIÓN: Obtiene datos seguros (Fix Ambigüedad FK)
+// ESTADO: FIX_V9 (PGRST201 SOLVED)
 // ==========================================
 import { createClient } from 'jsr:@supabase/supabase-js@2.49.8';
 
@@ -64,13 +64,13 @@ Deno.serve(async (req) => {
        throw new Error("Token inválido o expirado");
     }
 
-    // 2. Obtener Cotización (Query Limpia sin Joins complicados)
+    // 2. Obtener Cotización (Query con FIX de Ambigüedad)
     const { data: quote, error: quoteError } = await supabaseAdmin
       .from('quotes')
       .select(`
         *,
         quote_items (*),
-        digital_catalogs (
+        digital_catalogs!quotes_catalog_id_fkey (
             name, slug, user_id
         )
       `)
@@ -83,21 +83,25 @@ Deno.serve(async (req) => {
     }
 
     // 3. Obtener Info de Negocio (Dueño)
-    if (quote.digital_catalogs?.user_id) {
+    // Nota: Como 'digital_catalogs' ahora es un objeto simple gracias al fix, accedemos directo
+    const catalogUserId = quote.digital_catalogs?.user_id;
+
+    if (catalogUserId) {
         const { data: businessInfo } = await supabaseAdmin
             .from('business_info')
             .select('business_name, phone, email, logo_url')
-            .eq('user_id', quote.digital_catalogs.user_id)
+            .eq('user_id', catalogUserId)
             .maybeSingle();
         
         // Inyectamos la info en la estructura que espera el frontend
         if (quote.digital_catalogs) {
-            quote.digital_catalogs.users = businessInfo; 
+            // El frontend espera "users" dentro de digital_catalogs
+            // (aunque venga de business_info, mantenemos la estructura)
+            (quote.digital_catalogs as any).users = businessInfo; 
         }
     }
 
     // 4. Obtener Catálogo Replicado (Query Manual Infalible)
-    // Buscamos directamente en la tabla usando el ID de la cotización
     const { data: replica } = await supabaseAdmin
         .from('replicated_catalogs')
         .select('id, is_active')
@@ -105,7 +109,7 @@ Deno.serve(async (req) => {
         .maybeSingle();
     
     // Inyectamos manualmente la relación
-    quote.replicated_catalogs = replica;
+    (quote as any).replicated_catalogs = replica;
 
     console.log(`✅ Cotización cargada. Tiene réplica: ${!!replica}`);
 
