@@ -1,11 +1,11 @@
 // ==========================================
 // FUNCION: send-quote-update
-// DESCRIPCIÓN: Notifica al cliente (con identidad del Vendedor L2/L1 correcta)
-// ESTADO: FIX_V2.2 (AMBIGUOUS FK FIXED)
+// DESCRIPCIÓN: Notifica al CLIENTE que el vendedor (L1/L2) actualizó costos/fecha
+// ESTADO: FIX_V3.0 (REAL DATA TABLES + AMBIGUOUS FK FIX)
 // ==========================================
 import { createClient } from 'jsr:@supabase/supabase-js@2.49.8';
 
-// 1. HARDENING: Leer el Hash de la variable de entorno
+// 1. HARDENING
 const DEPLOY_VERSION = Deno.env.get("FUNCTION_HASH") || "UNKNOWN_HASH";
 
 const corsHeaders = {
@@ -14,7 +14,6 @@ const corsHeaders = {
 };
 
 Deno.serve(async (req) => {
-  // 2. Logging Inicial Estructurado
   console.log(JSON.stringify({
     event: "FUNC_START",
     function: "send-quote-update",
@@ -36,11 +35,9 @@ Deno.serve(async (req) => {
       { auth: { persistSession: false } }
     );
 
-    // 1. Obtener datos de la cotización
-    // NOTA: Traemos 'user_id' que es el DUENO de la venta (L1 o L2)
+    // 2. OBTENER QUOTE (Con Fix de Ambigüedad)
     console.log(`🔍 Buscando cotización: ${quoteId}`);
     
-    // 🔥 FIX APLICADO: !quotes_catalog_id_fkey para desambiguar la relación
     const { data: quote, error } = await supabaseAdmin
       .from('quotes')
       .select(`
@@ -56,34 +53,30 @@ Deno.serve(async (req) => {
       throw new Error("Quote not found");
     }
 
-    // 2. Obtener identidad del Vendedor (FIX CRÍTICO MULTI-TENANT)
-    // Antes buscábamos al dueño del catálogo. Ahora buscamos al dueño de la QUOTE (user_id).
-    // Esto asegura que si es una reventa (L2), salga el nombre del L2.
-    const { data: owner } = await supabaseAdmin
-      .from('business_info')
-      .select('business_name')
-      .eq('user_id', quote.user_id) 
-      .single();
+    // 3. IDENTIFICAR AL VENDEDOR (Dueño de la cotización)
+    const ownerId = quote.user_id;
+    console.log(`🏢 Buscando datos del vendedor ID: ${ownerId}`);
 
-    // Prioridad: Nombre del Negocio (Business Info) > Nombre del Catálogo
-    const providerName = owner?.business_name || quote.digital_catalogs.name;
+    // 🔥 USAMOS LA FUNCIÓN ROBUSTA CON TUS TABLAS REALES
+    const ownerData = await getOwnerDataReal(supabaseAdmin, ownerId);
+    
+    // Nombre a mostrar en el correo (Negocio > Nombre > Catálogo)
+    const providerName = ownerData?.business_name || ownerData?.full_name || quote.digital_catalogs?.name || "El Vendedor";
 
-    console.log(`🏢 Proveedor identificado: ${providerName} (User ID: ${quote.user_id})`);
+    console.log(`✅ Proveedor identificado: ${providerName}`);
 
-    // 3. Generar Link de Tracking
+    // 4. Generar Link de Tracking
     const { data: tokenData } = await supabaseAdmin
       .from('quote_tracking_tokens')
       .select('token')
       .eq('quote_id', quoteId)
-      .single();
+      .maybeSingle(); // maybeSingle es más seguro aquí
 
     const trackingLink = tokenData 
       ? `${Deno.env.get('SITE_URL')}/track/${tokenData.token}` 
       : `${Deno.env.get('SITE_URL')}/track/order/${quote.order_number}`;
 
-    console.log(`📧 Preparando email para: ${quote.customer_email}`);
-
-    // Formateo de fecha
+    // 5. Formateo de fecha
     let deliveryDateStr = 'Por confirmar';
     if (quote.estimated_delivery_date) {
       const dateObj = new Date(quote.estimated_delivery_date);
@@ -96,7 +89,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // 4. Enviar Email
+    // 6. Enviar Email al CLIENTE
     if (!Deno.env.get('RESEND_API_KEY')) {
       throw new Error("RESEND_API_KEY no configurada");
     }
@@ -182,3 +175,30 @@ Deno.serve(async (req) => {
     });
   }
 });
+
+// --- HELPERS (Adaptados a tus tablas reales) ---
+
+async function getOwnerDataReal(supabaseAdmin: any, ownerId: string): Promise<any> {
+    // 1. Obtener Datos de Negocio (Prioridad 1)
+    const { data: business } = await supabaseAdmin
+        .from('business_info')
+        .select('business_name')
+        .eq('user_id', ownerId)
+        .maybeSingle();
+
+    // 2. Obtener Datos Personales (Respaldo)
+    const { data: profile } = await supabaseAdmin
+        .from('users') // TABLA REAL QUE ME PASASTE
+        .select('full_name')
+        .eq('id', ownerId)
+        .maybeSingle();
+
+    // LÓGICA DE EXTRACCIÓN
+    const businessName = business?.business_name;
+    const fullName = profile?.full_name;
+
+    return {
+        business_name: businessName,
+        full_name: fullName
+    };
+}
