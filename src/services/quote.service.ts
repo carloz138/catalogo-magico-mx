@@ -40,9 +40,7 @@ export class QuoteService {
       }
     >
   > {
-    console.log("🔍 [QuoteService] getUserQuotes - userId:", userId, "filters:", filters);
-
-    // 🔥 CORRECCIÓN AQUÍ: Agregamos !quotes_catalog_id_fkey para desambiguar la relación
+    // Agregamos !quotes_catalog_id_fkey para desambiguar la relación
     const selectQuery = `
         *,
         quote_items (count),
@@ -110,6 +108,7 @@ export class QuoteService {
       (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
     );
 
+    // --- AQUÍ ESTABA EL ERROR 406 ---
     const quotesWithMetadata = await Promise.all(
       allQuotes.map(async (quote) => {
         if (quote.is_from_replicated) return quote;
@@ -119,7 +118,7 @@ export class QuoteService {
           .select("id")
           .eq("quote_id", quote.id)
           .eq("is_active", true)
-          .single();
+          .maybeSingle(); // 🔥 CAMBIO CLAVE: .maybeSingle() en lugar de .single()
 
         return {
           ...quote,
@@ -131,14 +130,12 @@ export class QuoteService {
     return quotesWithMetadata as any;
   }
 
-  /**
-   * Obtener detalle
-   */
+  // ... (El resto del archivo se mantiene igual que antes)
+
   static async getQuoteDetail(
     quoteId: string,
     userId: string,
   ): Promise<Quote & { items: QuoteItem[]; catalog: any; payment_transactions?: any[] }> {
-    // 🔥 CORRECCIÓN AQUÍ TAMBIÉN: Especificamos la relación FK
     const { data: quote, error: quoteError } = await supabase
       .from("quotes")
       .select(
@@ -168,11 +165,9 @@ export class QuoteService {
 
     let enrichedItems = items || [];
 
-    // Lógica para enriquecer items con stock del revendedor si aplica
     if (quote.replicated_catalog_id) {
       const replicatedCatalogId = quote.replicated_catalog_id;
 
-      // Consultamos stock de este catálogo replicado específico
       const { data: productPrices } = await supabase
         .from("reseller_product_prices")
         .select("product_id, is_in_stock")
@@ -259,7 +254,7 @@ export class QuoteService {
           .single();
 
         if (quote) {
-          // Notificaciones opcionales
+          // Notificaciones
         }
       } catch (notificationError) {
         console.error("❌ Error enviando email:", notificationError);
@@ -285,7 +280,6 @@ export class QuoteService {
   }
 
   static async markAsPaidManually(quoteId: string, userId: string, amount: number): Promise<void> {
-    // 1. Crear transacción manual
     const { error: txError } = await supabase.from("payment_transactions").insert({
       quote_id: quoteId,
       amount_total: amount,
@@ -298,26 +292,12 @@ export class QuoteService {
     });
     if (txError) throw txError;
 
-    // 2. Actualizar Cotización
     const { error: quoteError } = await supabase
       .from("quotes")
       .update({ updated_at: new Date().toISOString() })
       .eq("id", quoteId)
       .eq("user_id", userId);
     if (quoteError) throw quoteError;
-
-    // 3. Descontar Stock (RPC)
-    // NOTA: Esta RPC es para ventas normales. Para reabastecimiento L2->L1, se usa otro mecanismo (triggers).
-    // Si esta RPC "process_inventory_deduction" no existe, puedes comentarla temporalmente.
-    /*
-    const { error: rpcError } = await supabase.rpc("process_inventory_deduction", {
-      quote_id: quoteId,
-    });
-
-    if (rpcError) {
-      console.error("Error descontando inventario:", rpcError);
-    }
-    */
   }
 
   static async getQuoteStats(userId: string): Promise<{
