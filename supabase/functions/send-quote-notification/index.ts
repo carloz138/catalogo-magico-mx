@@ -1,11 +1,11 @@
 // ==========================================
 // FUNCION: send-quote-notification
 // DESCRIPCIÓN: Notifica al VENDEDOR (L1 o L2) de una nueva venta
-// ESTADO: FIX_V13 (FIXED AMBIGUOUS FOREIGN KEY)
+// ESTADO: FIX_V15 (REAL DATA TABLES)
 // ==========================================
 import { createClient } from 'jsr:@supabase/supabase-js@2.49.8';
 
-// 1. HARDENING: Leer el Hash de la variable de entorno para inmutabilidad
+// 1. HARDENING: Leer el Hash de la variable de entorno
 const DEPLOY_VERSION = Deno.env.get('FUNCTION_HASH') || "UNKNOWN_HASH"; 
 
 const corsHeaders = {
@@ -13,10 +13,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type'
 };
 
-// --- FUNCIÓN PRINCIPAL (Deno.serve) ---
-
 Deno.serve(async (req) => {
-  // Logging Inicial
   console.log(JSON.stringify({
     event: "FUNC_START",
     function: "send-quote-notification",
@@ -32,15 +29,15 @@ Deno.serve(async (req) => {
     const { quoteId } = await req.json();
     if (!quoteId) throw new Error('Quote ID is required');
 
-    // 2. CLIENTE ADMIN
+    // 1. CLIENTE ADMIN
     const supabaseAdmin = createClient(
         Deno.env.get('SUPABASE_URL') ?? '', 
         Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '', 
         { auth: { persistSession: false } }
     );
 
-    // A. OBTENER QUOTE (FIX AMBIGÜEDAD FK)
-    // Usamos !quotes_catalog_id_fkey para decirle a Supabase cuál relación usar
+    // 2. OBTENER QUOTE
+    // Usamos el parche !quotes_catalog_id_fkey para evitar el error de ambigüedad
     const { data: quote, error: quoteError } = await supabaseAdmin
         .from('quotes')
         .select(`
@@ -56,26 +53,32 @@ Deno.serve(async (req) => {
       throw new Error("Quote not found in database.");
     }
 
-    // B. IDENTIFICAR AL DESTINATARIO
+    // 3. IDENTIFICAR AL VENDEDOR
     const ownerId = quote.user_id; 
-
     console.log(`🔔 Notificando al Vendedor ID: ${ownerId}`);
 
-    let user = await getOwnerData(supabaseAdmin, ownerId);
+    // 🔥 FIX: Usamos las tablas reales (users y business_info)
+    let user = await getOwnerDataReal(supabaseAdmin, ownerId);
 
-    if (!user) {
+    if (!user || !user.email) {
         throw new Error("Owner user data not accessible.");
     }
     
-    // C. Verificar Suscripción WhatsApp
-    const { data: subscription } = await supabaseAdmin.from('subscriptions').select('package_id, credit_packages(name)').eq('user_id', ownerId).eq('status', 'active').maybeSingle();
+    // 4. Verificar Suscripción (Para saber si enviamos WhatsApp)
+    const { data: subscription } = await supabaseAdmin
+        .from('subscriptions')
+        .select('package_id, credit_packages(name)')
+        .eq('user_id', ownerId)
+        .eq('status', 'active')
+        .maybeSingle();
+        
     const packageName = subscription?.credit_packages?.name?.toLowerCase() || '';
     const hasWhatsApp = packageName.includes('medio') || packageName.includes('profesional') || packageName.includes('premium') || packageName.includes('empresarial');
     
     let emailSent = false;
     let whatsappSent = false;
 
-    // D. Enviar Email (Resend)
+    // 5. Enviar Email (Resend)
     const resendKey = Deno.env.get('RESEND_API_KEY');
     if (resendKey) {
       const res = await fetch('https://api.resend.com/emails', {
@@ -100,7 +103,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    // E. Enviar WhatsApp (Twilio)
+    // 6. Enviar WhatsApp (Twilio)
     const twilioSid = Deno.env.get('TWILIO_ACCOUNT_SID');
     const twilioToken = Deno.env.get('TWILIO_AUTH_TOKEN');
     const twilioPhone = Deno.env.get('TWILIO_PHONE_NUMBER');
@@ -110,6 +113,9 @@ Deno.serve(async (req) => {
         const twilioAuth = btoa(`${twilioSid}:${twilioToken}`);
         const message = generateWhatsAppMessage(quote, user);
         
+        // Limpieza final del teléfono por si tiene guiones (ej: 81-83...)
+        const cleanPhone = user.phone.replace(/\D/g, ''); 
+        
         const twilioRes = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${twilioSid}/Messages.json`, {
           method: 'POST',
           headers: {
@@ -117,7 +123,7 @@ Deno.serve(async (req) => {
             'Content-Type': 'application/x-www-form-urlencoded'
           },
           body: new URLSearchParams({
-            To: `whatsapp:${user.phone}`,
+            To: `whatsapp:+521${cleanPhone}`, // Asumimos MX, ajustar si es internacional
             From: `whatsapp:${twilioPhone}`,
             Body: message
           })
@@ -149,18 +155,60 @@ Deno.serve(async (req) => {
 });
 
 
-// --- HELPERS ---
+// --- HELPERS ACTUALIZADOS CON TUS TABLAS REALES ---
 
-async function getOwnerData(supabaseAdmin: any, ownerId: string): Promise<any> {
-    const tablesToTry = ['profiles', 'business_info']; 
-    const selectFields = 'email, full_name, business_name, phone';
+async function getOwnerDataReal(supabaseAdmin: any, ownerId: string): Promise<any> {
+    // 1. Obtener Email Seguro (Auth Admin)
+    const { data: authData } = await supabaseAdmin.auth.admin.getUserById(ownerId);
+    const email = authData?.user?.email;
 
-    for (const tableName of tablesToTry) {
-        const { data } = await supabaseAdmin.from(tableName).select(selectFields).eq('user_id', ownerId).maybeSingle(); 
-        if (data) return data;
+    // 2. Obtener Datos de Negocio (Prioridad 1)
+    // Tabla: business_info
+    // Columnas clave: business_name, social_media (para whatsapp), phone
+    const { data: business } = await supabaseAdmin
+        .from('business_info')
+        .select('business_name, phone, social_media')
+        .eq('user_id', ownerId)
+        .maybeSingle();
+
+    // 3. Obtener Datos Personales (Respaldo)
+    // Tabla: users
+    // Columnas clave: full_name, phone
+    const { data: profile } = await supabaseAdmin
+        .from('users')
+        .select('full_name, phone')
+        .eq('id', ownerId)
+        .maybeSingle();
+
+    // LÓGICA DE EXTRACCIÓN DE DATOS
+    // Nombre: Negocio > Nombre Personal > "Vendedor"
+    const displayName = business?.business_name || profile?.full_name || "Vendedor";
+
+    // Teléfono: WhatsApp en social_media > Teléfono Negocio > Teléfono Personal > Teléfono Auth
+    let phone = "";
+    
+    // Intento 1: WhatsApp explícito en JSON
+    if (business?.social_media && typeof business.social_media === 'object') {
+        // Casteamos a any para acceder a propiedades dinámicas del JSONB
+        const social = business.social_media as any;
+        if (social.whatsapp) phone = social.whatsapp;
     }
-    const { data } = await supabaseAdmin.from('profiles').select('email, full_name, phone').eq('id', ownerId).maybeSingle();
-    return data;
+
+    // Intento 2: Teléfono de negocio
+    if (!phone && business?.phone) phone = business.phone;
+
+    // Intento 3: Teléfono de perfil personal
+    if (!phone && profile?.phone) phone = profile.phone;
+
+    // Intento 4: Teléfono de Auth
+    if (!phone && authData?.user?.phone) phone = authData.user.phone;
+
+    return {
+        email: email,
+        business_name: displayName,
+        full_name: profile?.full_name || displayName,
+        phone: phone // "811-7992-757" (sucio)
+    };
 }
 
 function formatCurrency(valueInCents: number): string {
@@ -168,12 +216,11 @@ function formatCurrency(valueInCents: number): string {
     return valueInUnits.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-// 📧 TEMPLATE EMAIL
 function generateEmailTemplate(quote: any, user: any) {
     const items = quote.quote_items || [];
     const totalInCents = items.reduce((sum: number, item: any) => sum + item.subtotal, 0);
     const total = formatCurrency(totalInCents);
-    const businessName = user.business_name || user.full_name || 'Vendedor';
+    const businessName = user.business_name;
 
     const itemsHTML = items.map((item: any) => `
         <tr>
@@ -245,7 +292,6 @@ function generateEmailTemplate(quote: any, user: any) {
     `;
 }
 
-// 📱 TEMPLATE WHATSAPP
 function generateWhatsAppMessage(quote: any, user: any) {
     const items = quote.quote_items || [];
     const totalInCents = items.reduce((sum: number, item: any) => sum + item.subtotal, 0);
