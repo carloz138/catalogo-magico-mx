@@ -1,7 +1,7 @@
 // ==========================================
 // FUNCION: send-quote-update
 // DESCRIPCIÓN: Notifica al cliente (con identidad del Vendedor L2/L1 correcta)
-// ESTADO: V2.1 (MULTI-TENANT FIX)
+// ESTADO: FIX_V2.2 (AMBIGUOUS FK FIXED)
 // ==========================================
 import { createClient } from 'jsr:@supabase/supabase-js@2.49.8';
 
@@ -39,12 +39,14 @@ Deno.serve(async (req) => {
     // 1. Obtener datos de la cotización
     // NOTA: Traemos 'user_id' que es el DUENO de la venta (L1 o L2)
     console.log(`🔍 Buscando cotización: ${quoteId}`);
+    
+    // 🔥 FIX APLICADO: !quotes_catalog_id_fkey para desambiguar la relación
     const { data: quote, error } = await supabaseAdmin
       .from('quotes')
       .select(`
         *,
         quote_items (*),
-        digital_catalogs (name)
+        digital_catalogs!quotes_catalog_id_fkey (name)
       `)
       .eq('id', quoteId)
       .single();
@@ -60,7 +62,7 @@ Deno.serve(async (req) => {
     const { data: owner } = await supabaseAdmin
       .from('business_info')
       .select('business_name')
-      .eq('user_id', quote.user_id) // <--- CAMBIO AQUÍ: Usamos quote.user_id
+      .eq('user_id', quote.user_id) 
       .single();
 
     // Prioridad: Nombre del Negocio (Business Info) > Nombre del Catálogo
