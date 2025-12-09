@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast"; // ✅ Agregado para notificaciones
 
 // Contextos
 import { useAuth } from "@/contexts/AuthContext";
@@ -38,12 +39,17 @@ import {
 
 export default function MainDashboard() {
   const { user } = useAuth();
-  const { userRole, isL1, isL2, isLoadingRole } = useUserRole(); // Usamos los helpers
+  const { userRole, isL1, isL2, isLoadingRole, refreshRole } = useUserRole(); // ✅ Obtenemos refreshRole
   const { paqueteUsuario } = useSubscription();
   const navigate = useNavigate();
+  const { toast } = useToast();
 
-  // Control de Tabs
   const [activeTab, setActiveTab] = useState("resumen");
+  const [hasActiveCatalog, setHasActiveCatalog] = useState(false);
+  const [isLoadingData, setIsLoadingData] = useState(true);
+
+  // ✅ ESTADO NUEVO: Para mostrar pantalla de carga si estamos clonando
+  const [isProcessingPending, setIsProcessingPending] = useState(false);
 
   // Estado de Métricas
   const [metrics, setMetrics] = useState({
@@ -58,8 +64,57 @@ export default function MainDashboard() {
     marketOpportunities: 0,
   });
 
-  const [hasActiveCatalog, setHasActiveCatalog] = useState(false);
-  const [isLoadingData, setIsLoadingData] = useState(true);
+  // --- 🔥 LOGICA DE REPLICACIÓN AUTOMÁTICA AL ENTRAR ---
+  useEffect(() => {
+    const checkPendingReplication = async () => {
+      // 1. Buscamos si hay algo pendiente en la "mochila" del navegador
+      const pendingCatalogId = localStorage.getItem("pending_replication_catalog_id");
+
+      if (pendingCatalogId && user) {
+        console.log("⚡ Detectada replicación pendiente:", pendingCatalogId);
+        setIsProcessingPending(true); // Activamos pantalla de carga
+
+        try {
+          // 2. Ejecutamos la clonación (RPC)
+          const { data, error } = await supabase.rpc("clone_catalog_direct", {
+            p_original_catalog_id: pendingCatalogId,
+          });
+
+          if (error) throw error;
+
+          // 3. Limpiamos la mochila (ya no está pendiente)
+          localStorage.removeItem("pending_replication_catalog_id");
+
+          // 4. Actualizamos el rol (para que el dashboard detecte L2/Both)
+          await refreshRole();
+
+          toast({
+            title: "¡Catálogo listo!",
+            description: "Te hemos redirigido para que configures tus precios.",
+          });
+
+          // 5. Redirigimos al editor de precios
+          const result = data as any;
+          if (result && result.catalog_id) {
+            navigate(`/reseller/edit-prices?catalog_id=${result.catalog_id}`);
+          }
+        } catch (error: any) {
+          console.error("Error en replicación automática:", error);
+          toast({
+            title: "Error al clonar",
+            description: "No pudimos procesar tu solicitud pendiente.",
+            variant: "destructive",
+          });
+          // Si falla, borramos el item para evitar un bucle infinito
+          localStorage.removeItem("pending_replication_catalog_id");
+        } finally {
+          setIsProcessingPending(false);
+        }
+      }
+    };
+
+    checkPendingReplication();
+  }, [user, navigate, refreshRole]);
 
   // 1. Verificar catálogo activo
   useEffect(() => {
@@ -98,6 +153,19 @@ export default function MainDashboard() {
     };
     loadMetrics();
   }, [user]);
+
+  // --- RENDERIZADO DE PANTALLA DE CARGA (Si estamos clonando) ---
+  if (isProcessingPending) {
+    return (
+      <div className="h-[80vh] flex flex-col items-center justify-center space-y-4">
+        <Loader2 className="h-12 w-12 animate-spin text-purple-600" />
+        <div className="text-center">
+          <h2 className="text-xl font-bold text-slate-900">Preparando tu catálogo...</h2>
+          <p className="text-slate-500">Estamos configurando tu espacio de ventas automáticamente.</p>
+        </div>
+      </div>
+    );
+  }
 
   if (isLoadingRole || !user) {
     return (
@@ -143,7 +211,7 @@ export default function MainDashboard() {
               <Button
                 variant="outline"
                 className="border-violet-200 text-violet-700 hover:bg-violet-50"
-                onClick={() => navigate("/catalogs")}
+                onClick={() => navigate("/reseller/edit-prices")}
               >
                 <DollarSign className="w-4 h-4 mr-2" /> Precios
               </Button>
