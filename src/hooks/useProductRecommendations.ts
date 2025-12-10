@@ -23,7 +23,28 @@ type AssociationResponse = {
   products: Product;
 };
 
-export const useProductRecommendations = (currentCartProductIds: string[] = [], catalogOwnerId: string | null) => {
+interface UseProductRecommendationsOptions {
+  currentCartProductIds?: string[];
+  catalogOwnerId: string | null;
+  currentCatalogId?: string | null;
+}
+
+// Helper function to filter valid products (Reality Filter)
+const isValidProduct = (product: Product | null): product is Product => {
+  if (!product) return false;
+  // Check 1: Not Deleted
+  if (product.deleted_at !== null) return false;
+  // Check 2: Active (is_processed check - product was successfully processed)
+  // Check 3: In Stock
+  if ((product.stock_quantity ?? 0) <= 0) return false;
+  return true;
+};
+
+export const useProductRecommendations = (
+  currentCartProductIds: string[] = [],
+  catalogOwnerId: string | null,
+  currentCatalogId?: string | null
+) => {
   const [recommendations, setRecommendations] = useState<RecommendedProduct[]>([]);
   const [loading, setLoading] = useState(false);
   const [ownerPlan, setOwnerPlan] = useState<OwnerPlan | null>(null);
@@ -79,9 +100,24 @@ export const useProductRecommendations = (currentCartProductIds: string[] = [], 
 
       setLoading(true);
 
+      // --- HELPER: Validate product is in current catalog ---
+      const validateCatalogContext = async (productIds: string[]): Promise<Set<string>> => {
+        if (!currentCatalogId || productIds.length === 0) {
+          return new Set(productIds); // No catalog filter, allow all
+        }
+        
+        const { data: catalogProducts } = await supabase
+          .from("catalog_products")
+          .select("product_id")
+          .eq("catalog_id", currentCatalogId)
+          .in("product_id", productIds);
+        
+        return new Set((catalogProducts || []).map(cp => cp.product_id));
+      };
+
       // --- INICIA LA CASCADA ---
 
-      // 1. Intento #1: MBA (Ventas Pasadas)
+      // 1. Intento #1: MBA (Ventas Pasadas) with Reality Filter
       const { data: mbaResults, error: mbaError } = await supabase
         .from("product_associations")
         .select(
@@ -90,7 +126,8 @@ export const useProductRecommendations = (currentCartProductIds: string[] = [], 
           confidence_score,
           co_occurrence_count,
           products!product_b_id (
-            id, name, price_retail, processed_image_url, original_image_url
+            id, name, price_retail, processed_image_url, original_image_url,
+            deleted_at, stock_quantity, is_processed
           )
         `,
         )
@@ -98,15 +135,24 @@ export const useProductRecommendations = (currentCartProductIds: string[] = [], 
         .not("product_b_id", "in", `(${currentCartProductIds.join(",")})`)
         .order("confidence_score", { ascending: false })
         .order("co_occurrence_count", { ascending: false })
-        .limit(3);
+        .limit(10); // Fetch more to filter zombies
 
       if (mbaError) console.error("Error en Cascada (Paso 1 - MBA):", mbaError);
 
       if (mbaResults && mbaResults.length > 0) {
-        // Forzamos el tipo aquí también por seguridad
-        const formattedResults = (mbaResults as unknown as AssociationResponse[]).reduce(
-          (acc: RecommendedProduct[], item) => {
-            if (item.products && !acc.find((r) => r.id === item.products.id)) {
+        // Apply Reality Filter
+        const validAssociations = (mbaResults as unknown as AssociationResponse[])
+          .filter(item => isValidProduct(item.products));
+        
+        // Apply Catalog Context Filter
+        const productIds = validAssociations.map(a => a.products.id);
+        const validInCatalog = await validateCatalogContext(productIds);
+        
+        const formattedResults = validAssociations
+          .filter(item => validInCatalog.has(item.products.id))
+          .slice(0, 3) // Limit to 3 after filtering
+          .reduce((acc: RecommendedProduct[], item) => {
+            if (!acc.find((r) => r.id === item.products.id)) {
               acc.push({
                 ...item.products,
                 reason: `${item.co_occurrence_count} clientes también compraron esto`,
@@ -114,13 +160,13 @@ export const useProductRecommendations = (currentCartProductIds: string[] = [], 
               });
             }
             return acc;
-          },
-          [],
-        );
+          }, []);
 
-        setRecommendations(formattedResults);
-        setLoading(false);
-        return; // ¡Éxito!
+        if (formattedResults.length > 0) {
+          setRecommendations(formattedResults);
+          setLoading(false);
+          return; // ¡Éxito!
+        }
       }
 
       // 2. Revisión: Si NO es Empresarial, nos detenemos
@@ -136,44 +182,63 @@ export const useProductRecommendations = (currentCartProductIds: string[] = [], 
       const { data: similarData, error: similarError } = await supabase.rpc("fn_get_similar_products" as any, {
         p_owner_id: catalogOwnerId,
         product_ids_in_cart: currentCartProductIds,
-        p_limit: 3,
+        p_limit: 10, // Fetch more to filter zombies
       });
 
       if (similarError) console.error("Error en Cascada (Paso 2 - Similares):", similarError);
 
-      // TypeScript no sabe que esto es un array de productos, así que lo forzamos
-      const similarProducts = (similarData as unknown as Product[]) || [];
-
+      const similarProducts = ((similarData as unknown as Product[]) || [])
+        .filter(isValidProduct);
+      
       if (similarProducts.length > 0) {
-        const formattedResults = similarProducts.map((product) => ({
-          ...product,
-          reason: "Porque es similar a lo que llevas",
-          confidence: 0,
-        }));
-        setRecommendations(formattedResults);
-        setLoading(false);
-        return; // ¡Éxito!
+        const productIds = similarProducts.map(p => p.id);
+        const validInCatalog = await validateCatalogContext(productIds);
+        
+        const formattedResults = similarProducts
+          .filter(p => validInCatalog.has(p.id))
+          .slice(0, 3)
+          .map((product) => ({
+            ...product,
+            reason: "Porque es similar a lo que llevas",
+            confidence: 0,
+          }));
+        
+        if (formattedResults.length > 0) {
+          setRecommendations(formattedResults);
+          setLoading(false);
+          return; // ¡Éxito!
+        }
       }
 
       // 4. Intento #3: "Más Vendidos"
       const { data: topSoldData, error: topSoldError } = await supabase.rpc("fn_get_top_sold_products" as any, {
         p_owner_id: catalogOwnerId,
-        p_limit: 3,
+        p_limit: 10, // Fetch more to filter zombies
       });
 
       if (topSoldError) console.error("Error en Cascada (Paso 3 - Más Vendidos):", topSoldError);
 
-      const topSoldProducts = (topSoldData as unknown as Product[]) || [];
+      const topSoldProducts = ((topSoldData as unknown as Product[]) || [])
+        .filter(isValidProduct);
 
       if (topSoldProducts.length > 0) {
-        const formattedResults = topSoldProducts.map((product) => ({
-          ...product,
-          reason: "¡Es uno de los más vendidos!",
-          confidence: 0,
-        }));
-        setRecommendations(formattedResults);
-        setLoading(false);
-        return; // ¡Éxito!
+        const productIds = topSoldProducts.map(p => p.id);
+        const validInCatalog = await validateCatalogContext(productIds);
+        
+        const formattedResults = topSoldProducts
+          .filter(p => validInCatalog.has(p.id))
+          .slice(0, 3)
+          .map((product) => ({
+            ...product,
+            reason: "¡Es uno de los más vendidos!",
+            confidence: 0,
+          }));
+        
+        if (formattedResults.length > 0) {
+          setRecommendations(formattedResults);
+          setLoading(false);
+          return; // ¡Éxito!
+        }
       }
 
       // 5. Cascada Fallida
@@ -182,7 +247,7 @@ export const useProductRecommendations = (currentCartProductIds: string[] = [], 
     };
 
     fetchRecommendations();
-  }, [cartIdsKey, catalogOwnerId, ownerPlan, loadingPlan]);
+  }, [cartIdsKey, catalogOwnerId, ownerPlan, loadingPlan, currentCatalogId]);
 
   return { recommendations, loading };
 };
