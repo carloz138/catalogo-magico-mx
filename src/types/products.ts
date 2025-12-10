@@ -58,6 +58,11 @@ export interface Product {
   has_variants?: boolean;
   variant_count?: number;
 
+  // ✅ CAMPOS MULTI-VENDOR & BACKORDER
+  vendor_id?: string;
+  allow_backorder?: boolean;
+  lead_time_days?: number;
+
   // ✅ CAMPOS DE SISTEMA
   created_at: string;
   updated_at: string;

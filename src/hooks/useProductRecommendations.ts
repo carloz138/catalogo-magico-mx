@@ -29,14 +29,23 @@ interface UseProductRecommendationsOptions {
   currentCatalogId?: string | null;
 }
 
+// Extended Product type with backorder fields
+type ProductWithBackorder = Product & {
+  allow_backorder?: boolean;
+  lead_time_days?: number;
+};
+
 // Helper function to filter valid products (Reality Filter)
-const isValidProduct = (product: Product | null): product is Product => {
+// Updated to support Make-to-Order (Backorder) logic
+const isValidProduct = (product: ProductWithBackorder | null): product is ProductWithBackorder => {
   if (!product) return false;
   // Check 1: Not Deleted
   if (product.deleted_at !== null) return false;
   // Check 2: Active (is_processed check - product was successfully processed)
-  // Check 3: In Stock
-  if ((product.stock_quantity ?? 0) <= 0) return false;
+  // Check 3: In Stock OR allows backorder
+  const hasStock = (product.stock_quantity ?? 0) > 0;
+  const allowsBackorder = product.allow_backorder === true;
+  if (!hasStock && !allowsBackorder) return false;
   return true;
 };
 
