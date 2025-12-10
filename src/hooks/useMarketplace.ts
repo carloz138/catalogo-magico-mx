@@ -51,23 +51,34 @@ export function useMarketplace() {
     fetchCatalogs();
   }, [fetchCatalogs]);
 
-  const subscribeToCatalog = async (catalogId: string) => {
+  const subscribeWithMargin = async (catalogId: string, marginPercentage: number) => {
     if (!user) {
       toast({
         title: 'Inicia sesión',
         description: 'Necesitas iniciar sesión para suscribirte a un catálogo',
         variant: 'destructive'
       });
-      return false;
+      return null;
     }
 
     setSubscribing(catalogId);
     try {
-      const { data, error } = await supabase.rpc('subscribe_to_catalog', {
-        p_catalog_id: catalogId
+      const { data, error } = await supabase.rpc('subscribe_with_margin', {
+        p_catalog_id: catalogId,
+        p_margin_percentage: marginPercentage
       });
 
       if (error) throw error;
+
+      const result = data as {
+        success: boolean;
+        subscription_id: string;
+        replicated_catalog_id: string;
+        products_processed: number;
+        variants_processed: number;
+        margin_applied: number;
+        message: string;
+      };
 
       // Update local state
       setCatalogs(prev => 
@@ -79,19 +90,19 @@ export function useMarketplace() {
       );
 
       toast({
-        title: '¡Suscripción exitosa!',
-        description: 'Ahora puedes vender los productos de este catálogo'
+        title: '¡Productos importados!',
+        description: `Se importaron ${result.products_processed} productos y ${result.variants_processed} variantes con ${marginPercentage}% de margen`
       });
 
-      return true;
+      return result;
     } catch (error: any) {
-      console.error('Error subscribing to catalog:', error);
+      console.error('Error subscribing with margin:', error);
       toast({
         title: 'Error',
         description: error.message || 'No se pudo completar la suscripción',
         variant: 'destructive'
       });
-      return false;
+      return null;
     } finally {
       setSubscribing(null);
     }
@@ -142,7 +153,7 @@ export function useMarketplace() {
     catalogs,
     loading,
     subscribing,
-    subscribeToCatalog,
+    subscribeWithMargin,
     unsubscribeFromCatalog,
     refetch: fetchCatalogs
   };
