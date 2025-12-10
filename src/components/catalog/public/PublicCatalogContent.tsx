@@ -60,6 +60,8 @@ interface Product {
   image_url?: string;
   original_image_url?: string | null;
   has_variants?: boolean;
+  vendor_id?: string | null;
+  user_id?: string | null;
   variants?: Array<{
     id: string;
     price_retail: number;
@@ -280,9 +282,18 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
   useEffect(() => {
     if (debouncedSearch && debouncedSearch.length > 2) {
       const logSearch = async () => {
-        // Extract vendor IDs from filtered results for analytics routing
-        // For now, we use the catalog owner as the related vendor
-        const relatedVendorIds = filteredProducts.length > 0 ? [catalog.user_id] : [];
+        // Extract unique vendor IDs from filtered products for accurate L1 analytics attribution
+        // This ensures L1 vendors see search traffic even when searches happen on L2 stores
+        const uniqueVendorIds = [...new Set(
+          filteredProducts
+            .map((p: Product) => p.vendor_id || p.user_id) // Fallback to user_id if vendor_id not set
+            .filter((id): id is string => id != null)
+        )];
+        
+        // If no products found but we have catalog owner, include them for "zero results" tracking
+        const relatedVendorIds = uniqueVendorIds.length > 0 
+          ? uniqueVendorIds 
+          : (catalog.user_id ? [catalog.user_id] : []);
         
         await supabase.from("search_logs").insert({
           catalog_id: catalog.id,
