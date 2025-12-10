@@ -1,16 +1,18 @@
 import { useState, useEffect, createContext, useContext, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useDevSimulation } from "@/contexts/DevSimulationContext";
 
 export type UserRole = "L1" | "L2" | "BOTH" | "NONE" | "LOADING";
 
 interface RoleContextProps {
   userRole: UserRole;
+  realRole: UserRole; // The actual role from DB (for debugging)
   isLoadingRole: boolean;
-  // Helpers para facilitar la vida en el UI
   isL1: boolean;
   isL2: boolean;
   isBoth: boolean;
+  isSimulated: boolean;
   refreshRole: () => Promise<void>;
 }
 
@@ -18,28 +20,25 @@ const RoleContext = createContext<RoleContextProps | undefined>(undefined);
 
 export const RoleProvider = ({ children }: { children: ReactNode }) => {
   const { user } = useAuth();
-  const [userRole, setUserRole] = useState<UserRole>("LOADING");
+  const { simulatedRole } = useDevSimulation();
+  const [realRole, setRealRole] = useState<UserRole>("LOADING");
   const [isLoadingRole, setIsLoadingRole] = useState(true);
 
   const fetchRole = async () => {
     if (!user?.id) {
-      setUserRole("NONE");
+      setRealRole("NONE");
       setIsLoadingRole(false);
       return;
     }
 
     setIsLoadingRole(true);
     try {
-      // EJECUCIÓN PARALELA: Consultamos ambas tablas al mismo tiempo para velocidad máxima
       const [l1Result, l2Result] = await Promise.all([
-        // 1. Check L1: ¿Tiene suscripción activa?
         supabase
           .from("subscriptions")
           .select("*", { count: "exact", head: true })
           .eq("user_id", user.id)
           .in("status", ["active", "trialing"]),
-
-        // 2. Check L2: ¿Tiene catálogos replicados activos?
         supabase
           .from("replicated_catalogs")
           .select("*", { count: "exact", head: true })
@@ -50,19 +49,18 @@ export const RoleProvider = ({ children }: { children: ReactNode }) => {
       const isL1Found = (l1Result.count || 0) > 0;
       const isL2Found = (l2Result.count || 0) > 0;
 
-      // 3. Asignación de Rol
       if (isL1Found && isL2Found) {
-        setUserRole("BOTH");
+        setRealRole("BOTH");
       } else if (isL1Found) {
-        setUserRole("L1");
+        setRealRole("L1");
       } else if (isL2Found) {
-        setUserRole("L2");
+        setRealRole("L2");
       } else {
-        setUserRole("NONE");
+        setRealRole("NONE");
       }
     } catch (error) {
       console.error("Error fetching user role:", error);
-      setUserRole("NONE");
+      setRealRole("NONE");
     } finally {
       setIsLoadingRole(false);
     }
@@ -72,12 +70,20 @@ export const RoleProvider = ({ children }: { children: ReactNode }) => {
     fetchRole();
   }, [user]);
 
+  // 🔒 THE SECURITY GUARD: Only allow simulation if real user is admin
+  const isRealAdmin = user?.user_metadata?.role === "admin";
+  const finalRole: UserRole =
+    isRealAdmin && simulatedRole ? simulatedRole : realRole;
+  const isSimulated = isRealAdmin && simulatedRole !== null;
+
   const value = {
-    userRole,
+    userRole: finalRole,
+    realRole,
     isLoadingRole,
-    isL1: userRole === "L1" || userRole === "BOTH",
-    isL2: userRole === "L2" || userRole === "BOTH",
-    isBoth: userRole === "BOTH",
+    isL1: finalRole === "L1" || finalRole === "BOTH",
+    isL2: finalRole === "L2" || finalRole === "BOTH",
+    isBoth: finalRole === "BOTH",
+    isSimulated,
     refreshRole: fetchRole,
   };
 
