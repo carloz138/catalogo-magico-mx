@@ -21,6 +21,8 @@ export interface VariantType {
   category: ProductCategory | null;
   input_type: VariantInputType;
   is_required: boolean;
+  is_global: boolean; // ✅ NEW: Whether this type applies to all categories
+  allow_custom_values: boolean; // ✅ NEW: Whether users can type custom values
   sort_order: number;
   created_at: string;
   updated_at: string;

@@ -65,6 +65,8 @@ export function useProductVariants(productId: string) {
         category: category as any,
         input_type: vt.input_type,
         is_required: vt.is_required,
+        is_global: vt.is_global ?? true,
+        allow_custom_values: vt.allow_custom_values ?? false,
         sort_order: 0,
         created_at: '',
         updated_at: '',

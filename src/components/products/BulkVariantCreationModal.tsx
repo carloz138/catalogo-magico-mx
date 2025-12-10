@@ -73,8 +73,21 @@ export const BulkVariantCreationModal: React.FC<BulkVariantCreationModalProps> =
       });
 
       if (error) throw error;
-      // Cast the data to the correct type
-      const typedData = (data || []) as VariantType[];
+      // Map the RPC response to the correct VariantType structure
+      const typedData: VariantType[] = (data || []).map((vt: any) => ({
+        id: vt.id,
+        name: vt.name,
+        display_name: vt.display_name,
+        category: category,
+        input_type: vt.input_type,
+        is_required: vt.is_required,
+        is_global: vt.is_global ?? true,
+        allow_custom_values: vt.allow_custom_values ?? false,
+        sort_order: 0,
+        created_at: '',
+        updated_at: '',
+        variant_values: vt.variant_values || []
+      }));
       setVariantTypes(typedData);
     } catch (error) {
       console.error('Error loading variant types:', error);
