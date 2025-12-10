@@ -877,6 +877,9 @@ export function PublicCatalogContent({ catalog, onTrackEvent, subscribedVendorId
         onRequestQuote={handleSubmitQuote}
         catalogOwnerId={catalog.user_id}
         freeShippingThreshold={catalog.free_shipping_min_amount || null}
+        minOrderAmount={catalog.min_order_amount ?? null}
+        minOrderQuantity={catalog.min_order_quantity ?? null}
+        isWholesaleOnly={catalog.is_wholesale_only ?? false}
       />
 
       <QuoteForm
