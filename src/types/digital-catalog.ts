@@ -50,6 +50,11 @@ export interface DigitalCatalog {
   enable_free_shipping: boolean;
   free_shipping_min_amount: number;
 
+  // Wholesale rules (MOQ/MOV)
+  min_order_quantity: number | null;
+  min_order_amount: number | null;
+  is_wholesale_only: boolean;
+
   // Tracking Legacy & CAPI
   tracking_head_scripts: string | null;
   tracking_body_scripts: string | null;

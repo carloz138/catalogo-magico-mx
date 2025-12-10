@@ -4,13 +4,15 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { Minus, Plus, Trash2, ShoppingCart, Truck, ArrowRight, Sparkles, X, Factory, Clock } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Minus, Plus, Trash2, ShoppingCart, Truck, ArrowRight, Sparkles, X, Factory, Clock, AlertTriangle } from "lucide-react";
 import { useQuoteCart, type QuoteItem, type CartProduct } from "@/contexts/QuoteCartContext";
 import { type Tables } from "@/integrations/supabase/types";
 import { useProductRecommendations } from "@/hooks/useProductRecommendations";
 import { RecommendationBanner } from "@/components/quotes/RecommendationBanner";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { validateCartRules, getProgressMessage, type WholesaleRules, type CartItem } from "@/lib/utils/cart-validation";
 
 type Product = Tables<"products">;
 
@@ -20,6 +22,9 @@ interface Props {
   onRequestQuote: () => void;
   catalogOwnerId: string | null;
   freeShippingThreshold: number | null;
+  minOrderAmount?: number | null;
+  minOrderQuantity?: number | null;
+  isWholesaleOnly?: boolean;
 }
 
 // Cart Item Row Component
@@ -80,8 +85,52 @@ function CartItemRow({
   );
 }
 
-export function QuoteCartModal({ isOpen, onClose, onRequestQuote, catalogOwnerId, freeShippingThreshold }: Props) {
+export function QuoteCartModal({ 
+  isOpen, 
+  onClose, 
+  onRequestQuote, 
+  catalogOwnerId, 
+  freeShippingThreshold,
+  minOrderAmount,
+  minOrderQuantity,
+  isWholesaleOnly 
+}: Props) {
   const { items, updateQuantity, removeItem, clearCart, totalAmount, addItem, backorderItems, readyItems, hasBackorderItems, maxLeadTimeDays } = useQuoteCart();
+
+  // Wholesale rules validation
+  const wholesaleValidation = useMemo(() => {
+    const rules: WholesaleRules = {
+      is_wholesale_only: isWholesaleOnly ?? false,
+      min_order_quantity: minOrderQuantity ?? 1,
+      min_order_amount: minOrderAmount ?? 0,
+    };
+
+    const cartItems: CartItem[] = items.map(item => ({
+      product_id: item.product.id,
+      quantity: item.quantity,
+      unit_price: item.unitPrice,
+      subtotal: item.unitPrice * item.quantity,
+    }));
+
+    return validateCartRules(cartItems, rules);
+  }, [items, minOrderAmount, minOrderQuantity, isWholesaleOnly]);
+
+  const progressMessage = useMemo(() => {
+    const rules: WholesaleRules = {
+      is_wholesale_only: isWholesaleOnly ?? false,
+      min_order_quantity: minOrderQuantity ?? 1,
+      min_order_amount: minOrderAmount ?? 0,
+    };
+
+    const cartItems: CartItem[] = items.map(item => ({
+      product_id: item.product.id,
+      quantity: item.quantity,
+      unit_price: item.unitPrice,
+      subtotal: item.unitPrice * item.quantity,
+    }));
+
+    return getProgressMessage(cartItems, rules);
+  }, [items, minOrderAmount, minOrderQuantity, isWholesaleOnly]);
 
   const shippingStatus = useMemo(() => {
     if (!freeShippingThreshold) return null;
@@ -158,13 +207,36 @@ export function QuoteCartModal({ isOpen, onClose, onRequestQuote, catalogOwnerId
         </ScrollArea>
 
         <div className="border-t p-6 space-y-4">
+          {/* Wholesale validation blocker */}
+          {!wholesaleValidation.isValid && (
+            <Alert variant="destructive" className="bg-amber-50 border-amber-200 text-amber-800">
+              <AlertTriangle className="h-4 w-4 text-amber-600" />
+              <AlertDescription className="text-sm">
+                {wholesaleValidation.errors.map((error, idx) => (
+                  <p key={idx}>{error}</p>
+                ))}
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {/* Progress message when getting close to minimums */}
+          {wholesaleValidation.isValid && progressMessage && (
+            <p className="text-xs text-muted-foreground text-center">{progressMessage}</p>
+          )}
+
           <div className="flex justify-between font-bold text-lg">
             <span>Total</span>
             <span>${(totalAmount / 100).toFixed(2)}</span>
           </div>
           <div className="grid grid-cols-4 gap-2">
             <Button variant="outline" onClick={clearCart} className="col-span-1"><Trash2 className="h-4 w-4" /></Button>
-            <Button onClick={onRequestQuote} className="col-span-3">Solicitar Cotización <ArrowRight className="h-4 w-4 ml-2" /></Button>
+            <Button 
+              onClick={onRequestQuote} 
+              className="col-span-3"
+              disabled={!wholesaleValidation.isValid}
+            >
+              Solicitar Cotización <ArrowRight className="h-4 w-4 ml-2" />
+            </Button>
           </div>
         </div>
       </SheetContent>
