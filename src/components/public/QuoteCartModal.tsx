@@ -2,11 +2,10 @@ import { useMemo } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetClose } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Minus, Plus, Trash2, ShoppingCart, Truck, ArrowRight, Sparkles, X, Factory, Clock } from "lucide-react";
-import { useQuoteCart } from "@/contexts/QuoteCartContext";
+import { useQuoteCart, type QuoteItem, type CartProduct } from "@/contexts/QuoteCartContext";
 import { type Tables } from "@/integrations/supabase/types";
 import { useProductRecommendations } from "@/hooks/useProductRecommendations";
 import { RecommendationBanner } from "@/components/quotes/RecommendationBanner";
@@ -14,17 +13,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 type Product = Tables<"products">;
-
-interface QuoteItem {
-  product: Product;
-  quantity: number;
-  priceType: 'retail' | 'wholesale';
-  unitPrice: number;
-  variantId?: string | null;
-  variantDescription?: string | null;
-  isBackorder?: boolean;
-  leadTimeDays?: number;
-}
 
 interface Props {
   isOpen: boolean;
