@@ -280,11 +280,16 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
   useEffect(() => {
     if (debouncedSearch && debouncedSearch.length > 2) {
       const logSearch = async () => {
+        // Extract vendor IDs from filtered results for analytics routing
+        // For now, we use the catalog owner as the related vendor
+        const relatedVendorIds = filteredProducts.length > 0 ? [catalog.user_id] : [];
+        
         await supabase.from("search_logs").insert({
           catalog_id: catalog.id,
           search_term: debouncedSearch,
           results_count: filteredProducts.length,
           user_id: catalog.user_id,
+          related_vendor_ids: relatedVendorIds,
         });
       };
       logSearch();
