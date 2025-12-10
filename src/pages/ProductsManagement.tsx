@@ -4,6 +4,7 @@ import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+
 import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
@@ -26,14 +27,25 @@ import { ProductWithUI, PRODUCT_CATEGORIES } from "@/types/products";
 // Importamos la función de exportación inteligente
 import { handleExportFullInventory } from "@/utils/exportUtils";
 
+// Extended type for products with vendor info
+interface ExtendedProductWithUI extends ProductWithUI {
+  allow_backorder?: boolean;
+  lead_time_days?: number;
+  vendor_id?: string;
+  vendor_name?: string;
+}
+
 const ProductsManagement = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  
+  // Check admin status from user metadata (not UserRole which is L1/L2/BOTH)
+  const isAdmin = user?.user_metadata?.role === "admin";
 
   // Estados principales
-  const [products, setProducts] = useState<ProductWithUI[]>([]);
+  const [products, setProducts] = useState<ExtendedProductWithUI[]>([]);
   const [loading, setLoading] = useState(true);
-  const [variantModalProduct, setVariantModalProduct] = useState<ProductWithUI | null>(null);
+  const [variantModalProduct, setVariantModalProduct] = useState<ExtendedProductWithUI | null>(null);
 
   // Estados para Acciones Masivas (Barra flotante negra)
   const [bulkAction, setBulkAction] = useState<{
@@ -47,28 +59,41 @@ const ProductsManagement = () => {
   const fetchProducts = useCallback(async () => {
     if (!user) return;
     setLoading(true);
-    // Usamos 'active_products' si es una vista, o 'products' directo con filtro
-    const { data, error } = await supabase
-      .from("active_products")
-      .select("*")
-      .eq("user_id", user.id)
+    
+    // Build query - Admin sees ALL products, regular users see their own
+    let query = supabase
+      .from("products")
+      .select(`
+        *,
+        vendors:vendor_id (name)
+      `)
       .is("deleted_at", null)
       .order("created_at", { ascending: false });
+    
+    // Only filter by user_id if NOT admin
+    if (!isAdmin) {
+      query = query.eq("user_id", user.id);
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       console.error(error);
       toast({ title: "Error cargando productos", variant: "destructive" });
     } else {
       // Formateamos los datos para la UI
-      const formatted: ProductWithUI[] = (data || []).map((p) => ({
+      const formatted: ExtendedProductWithUI[] = (data || []).map((p: any) => ({
         ...p,
         isSaving: false,
-        tags: Array.isArray(p.tags) ? p.tags : [], // Asegurar que siempre sea array
+        tags: Array.isArray(p.tags) ? p.tags : [],
+        allow_backorder: p.allow_backorder ?? false,
+        lead_time_days: p.lead_time_days ?? 0,
+        vendor_name: p.vendors?.name || null,
       }));
       setProducts(formatted);
     }
     setLoading(false);
-  }, [user]);
+  }, [user, isAdmin]);
 
   useEffect(() => {
     if (user) fetchProducts();
@@ -203,6 +228,7 @@ const ProductsManagement = () => {
           onBulkCatalog={(ids) => console.log("Catálogo", ids)}
           onOpenVariants={setVariantModalProduct}
           onBulkAction={(type, ids) => setBulkAction({ type, value: "", ids })}
+          isAdmin={isAdmin}
         />
       </div>
 

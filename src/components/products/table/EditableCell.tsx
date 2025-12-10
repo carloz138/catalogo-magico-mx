@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import { PRODUCT_CATEGORIES } from "@/types/products";
 
@@ -10,11 +11,12 @@ interface EditableCellProps {
   row: any;
   column: any;
   table: any;
-  type?: "text" | "number" | "currency" | "select" | "tags";
+  type?: "text" | "number" | "currency" | "select" | "tags" | "boolean";
   className?: string;
+  disabled?: boolean;
 }
 
-export const EditableCell = ({ getValue, row, column, table, type = "text", className }: EditableCellProps) => {
+export const EditableCell = ({ getValue, row, column, table, type = "text", className, disabled = false }: EditableCellProps) => {
   const initialValue = getValue();
   const [value, setValue] = useState(initialValue);
   const [isEditing, setIsEditing] = useState(false);
@@ -51,6 +53,23 @@ export const EditableCell = ({ getValue, row, column, table, type = "text", clas
       setIsEditing(false);
     }
   };
+
+  // --- BOOLEAN TYPE (Switch) - No editing mode needed ---
+  if (type === "boolean") {
+    const boolValue = Boolean(value);
+    return (
+      <div className={cn("flex items-center justify-center", disabled && "opacity-50", className)}>
+        <Switch
+          checked={boolValue}
+          disabled={disabled}
+          onCheckedChange={(checked) => {
+            setValue(checked);
+            table.options.meta?.updateData(row.original.id, column.id, checked);
+          }}
+        />
+      </div>
+    );
+  }
 
   // --- MODO EDICIÓN ---
   if (isEditing) {

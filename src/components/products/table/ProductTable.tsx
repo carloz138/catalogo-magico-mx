@@ -9,15 +9,17 @@ import {
   createColumnHelper,
   SortingState,
   RowSelectionState,
+  ColumnDef,
 } from "@tanstack/react-table";
 import { ProductWithUI, PRODUCT_CATEGORIES } from "@/types/products";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { ArrowUpDown, Search, Trash2, X, Loader2, GitBranch, Layers, Tag, Hash } from "lucide-react";
+import { ArrowUpDown, Search, Trash2, X, Loader2, GitBranch, Layers, Tag, Hash, Clock } from "lucide-react";
 import { EditableCell } from "./EditableCell";
 import { motion, AnimatePresence } from "framer-motion";
+
 
 // --- COMPONENTE INTERNO: TARJETA MÓVIL ---
 const MobileProductRow = ({ row, table }: { row: any; table: any }) => {
@@ -106,7 +108,8 @@ const MobileProductRow = ({ row, table }: { row: any; table: any }) => {
 
 const columnHelper = createColumnHelper<ProductWithUI>();
 
-const columns = [
+// Base columns (used by all users)
+const getBaseColumns = () => [
   columnHelper.display({
     id: "select",
     header: ({ table }) => (
@@ -160,7 +163,6 @@ const columns = [
       </div>
     ),
   }),
-  // --- CATEGORÍA CON BÚSQUEDA ---
   columnHelper.accessor("category", {
     header: "Categoría",
     cell: (props) => <EditableCell {...props} type="select" className="w-[140px]" />,
@@ -168,7 +170,6 @@ const columns = [
       const category = row.getValue(columnId) as string;
       if (!category) return false;
       const term = filterValue.toLowerCase();
-      // Buscar en valor "Ropa" o en label "Ropa 👕"
       return (
         category.toLowerCase().includes(term) ||
         PRODUCT_CATEGORIES.find((c) => c.value === category)
@@ -178,11 +179,9 @@ const columns = [
       );
     },
   }),
-  // --- TAGS ARREGLADO PARA BÚSQUEDA ---
   columnHelper.accessor((row) => (row.tags || []).join(" "), {
     id: "tags",
     header: "Tags",
-    // Importante: Usamos row.original.tags para que la celda reciba el Array real, no el string unido
     cell: (props) => (
       <EditableCell {...props} type="tags" getValue={() => props.row.original.tags} className="max-w-[200px]" />
     ),
@@ -198,6 +197,29 @@ const columns = [
   columnHelper.accessor("wholesale_min_qty", {
     header: () => <div className="text-center text-xs">Min Qty</div>,
     cell: (props) => <EditableCell {...props} type="number" className="text-center" />,
+  }),
+  // --- BACKORDER COLUMNS ---
+  columnHelper.accessor("allow_backorder", {
+    header: () => <div className="text-center text-xs">S/Stock</div>,
+    cell: (props) => <EditableCell {...props} type="boolean" />,
+  }),
+  columnHelper.accessor("lead_time_days", {
+    header: () => (
+      <div className="text-center text-xs flex items-center justify-center gap-1">
+        <Clock className="w-3 h-3" /> Días
+      </div>
+    ),
+    cell: (props) => {
+      const allowBackorder = props.row.original.allow_backorder;
+      return (
+        <EditableCell 
+          {...props} 
+          type="number" 
+          className={`text-center ${!allowBackorder ? "opacity-40" : ""}`}
+          disabled={!allowBackorder}
+        />
+      );
+    },
   }),
   columnHelper.display({
     id: "variants",
@@ -222,6 +244,20 @@ const columns = [
   }),
 ];
 
+// Admin-only vendor column
+const getVendorColumn = () => columnHelper.accessor((row) => (row as any).vendor_name, {
+  id: "vendor",
+  header: "Vendor",
+  cell: (props) => {
+    const vendorName = (props.row.original as any).vendor_name || (props.row.original as any).vendor_id;
+    return (
+      <div className="text-xs text-slate-500 truncate max-w-[100px]" title={vendorName}>
+        {vendorName || <span className="text-slate-300 italic">--</span>}
+      </div>
+    );
+  },
+});
+
 interface ProductTableProps {
   data: ProductWithUI[];
   isLoading: boolean;
@@ -230,6 +266,7 @@ interface ProductTableProps {
   onBulkCatalog: (ids: string[]) => void;
   onOpenVariants: (product: ProductWithUI) => void;
   onBulkAction: (action: "category" | "tags" | "min_qty", ids: string[]) => void;
+  isAdmin?: boolean;
 }
 
 export function ProductTable({
@@ -240,10 +277,22 @@ export function ProductTable({
   onBulkCatalog,
   onOpenVariants,
   onBulkAction,
+  isAdmin = false,
 }: ProductTableProps) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
+
+  // Build columns dynamically based on role
+  const columns = (() => {
+    const baseColumns = getBaseColumns();
+    if (isAdmin) {
+      // Insert vendor column after select checkbox
+      const vendorCol = getVendorColumn();
+      return [baseColumns[0], vendorCol, ...baseColumns.slice(1)] as ColumnDef<ProductWithUI, any>[];
+    }
+    return baseColumns as ColumnDef<ProductWithUI, any>[];
+  })();
 
   const table = useReactTable({
     data,
