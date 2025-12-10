@@ -1,34 +1,37 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
 
-interface Product {
+// Minimal product interface for cart - compatible with full Product type
+export interface CartProduct {
   id: string;
   name: string;
-  price_retail: number;
+  price_retail: number | null;
   price_wholesale: number | null;
   wholesale_min_qty: number | null;
   processed_image_url: string | null;
   original_image_url: string;
   sku: string | null;
+  allow_backorder?: boolean | null;
+  lead_time_days?: number | null;
 }
 
-interface QuoteItem {
-  product: Product;
+export interface QuoteItem {
+  product: CartProduct;
   quantity: number;
   priceType: 'retail' | 'wholesale';
   unitPrice: number; // Centavos
-  variantId?: string | null; // ID de la variante seleccionada
-  variantDescription?: string | null; // Descripción legible de la variante
-  isBackorder?: boolean; // ✅ NEW: Flag for backorder items
-  leadTimeDays?: number; // ✅ NEW: Production lead time
+  variantId?: string | null;
+  variantDescription?: string | null;
+  isBackorder?: boolean;
+  leadTimeDays?: number;
 }
 
 interface QuoteCartContextType {
   items: QuoteItem[];
   addItem: (
-    product: Product, 
+    product: CartProduct, 
     quantity: number, 
     priceType: 'retail' | 'wholesale', 
-    unitPrice: number,
+    unitPrice: number | null,
     variantId?: string | null,
     variantDescription?: string | null,
     isBackorder?: boolean,
@@ -52,10 +55,10 @@ export function QuoteCartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<QuoteItem[]>([]);
 
   const addItem = useCallback((
-    product: Product, 
+    product: CartProduct, 
     quantity: number, 
     priceType: 'retail' | 'wholesale', 
-    unitPrice: number,
+    unitPrice: number | null,
     variantId?: string | null,
     variantDescription?: string | null,
     isBackorder?: boolean,
