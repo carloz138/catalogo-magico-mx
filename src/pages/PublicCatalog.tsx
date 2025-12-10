@@ -241,6 +241,29 @@ export default function PublicCatalog({ subdomainSlug }: PublicCatalogProps = {}
     retry: false,
   });
 
+  // Fetch subscribed vendor IDs for L2 multi-vendor analytics attribution
+  // This runs after catalog is loaded to get the resellerId
+  const { data: subscribedVendorIds = [] } = useQuery({
+    queryKey: ["subscribed-vendors", catalog?.resellerId],
+    queryFn: async () => {
+      if (!catalog?.resellerId) return [];
+      
+      // Get all catalogs this reseller is subscribed to and extract owner IDs
+      const { data: subscriptions } = await supabase
+        .from("catalog_subscriptions")
+        .select("original_catalog_id, digital_catalogs!catalog_subscriptions_original_catalog_id_fkey(user_id)")
+        .eq("subscriber_id", catalog.resellerId)
+        .eq("is_active", true);
+      
+      if (!subscriptions) return [];
+      
+      return subscriptions
+        .map((s: any) => s.digital_catalogs?.user_id)
+        .filter((id: string | null): id is string => id != null);
+    },
+    enabled: !!catalog?.resellerId,
+  });
+
   const trackingConfig = (catalog?.tracking_config as any) || {};
   const { trackEvent } = useMetaTracking({
     enabled: true,
@@ -382,7 +405,7 @@ export default function PublicCatalog({ subdomainSlug }: PublicCatalogProps = {}
 
       <ScriptInjector headScripts={catalog.tracking_head_scripts} bodyScripts={catalog.tracking_body_scripts} />
 
-      <PublicCatalogContent catalog={catalog} onTrackEvent={trackEvent} />
+      <PublicCatalogContent catalog={catalog} onTrackEvent={trackEvent} subscribedVendorIds={subscribedVendorIds} />
 
       {canReplicate && (
         <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/95 backdrop-blur border-t shadow-lg z-50 flex items-center justify-between gap-4 animate-in slide-in-from-bottom duration-500">
