@@ -3360,9 +3360,11 @@ export type Database = {
       get_variant_types_by_category: {
         Args: { category_name: string }
         Returns: {
+          allow_custom_values: boolean
           display_name: string
           id: string
           input_type: string
+          is_global: boolean
           is_required: boolean
           name: string
           variant_values: Json

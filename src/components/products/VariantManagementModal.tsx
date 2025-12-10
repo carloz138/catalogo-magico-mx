@@ -132,6 +132,7 @@ export function VariantManagementModal({
                   onSubmit={handleCreateVariant}
                   onCancel={() => setActiveTab('list')}
                   productId={productId}
+                  productCategory={productCategory}
                   basePrice={basePrice}
                   basePriceWholesale={basePriceWholesale}
                 />
