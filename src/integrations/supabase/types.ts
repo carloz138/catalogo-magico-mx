@@ -846,6 +846,9 @@ export type Database = {
           id: string
           is_active: boolean | null
           is_private: boolean | null
+          is_wholesale_only: boolean | null
+          min_order_amount: number | null
+          min_order_quantity: number | null
           name: string
           price_adjustment_mayoreo: number | null
           price_adjustment_menudeo: number | null
@@ -880,6 +883,9 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           is_private?: boolean | null
+          is_wholesale_only?: boolean | null
+          min_order_amount?: number | null
+          min_order_quantity?: number | null
           name: string
           price_adjustment_mayoreo?: number | null
           price_adjustment_menudeo?: number | null
@@ -914,6 +920,9 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           is_private?: boolean | null
+          is_wholesale_only?: boolean | null
+          min_order_amount?: number | null
+          min_order_quantity?: number | null
           name?: string
           price_adjustment_mayoreo?: number | null
           price_adjustment_menudeo?: number | null

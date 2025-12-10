@@ -141,6 +141,13 @@ const catalogSchema = z
 
     free_shipping_min_amount: z.coerce.number().min(0).optional(),
 
+    // Wholesale Rules (MOQ/MOV)
+    is_wholesale_only: z.boolean().optional(),
+
+    min_order_quantity: z.coerce.number().min(1).optional(),
+
+    min_order_amount: z.coerce.number().min(0).optional(),
+
     // Scripts Legacy
 
     tracking_head_scripts: z.string().optional().nullable(),
@@ -276,6 +283,13 @@ export default function DigitalCatalogForm() {
       enable_free_shipping: false,
 
       free_shipping_min_amount: 0,
+
+      // Wholesale Rules defaults
+      is_wholesale_only: false,
+
+      min_order_quantity: 1,
+
+      min_order_amount: 0,
 
       tracking_head_scripts: "",
 
@@ -492,6 +506,13 @@ export default function DigitalCatalogForm() {
 
         free_shipping_min_amount: catalog.free_shipping_min_amount ? catalog.free_shipping_min_amount / 100 : 0,
 
+        // Wholesale Rules
+        is_wholesale_only: (catalog as any).is_wholesale_only || false,
+
+        min_order_quantity: (catalog as any).min_order_quantity || 1,
+
+        min_order_amount: (catalog as any).min_order_amount ? (catalog as any).min_order_amount / 100 : 0,
+
         tracking_head_scripts: catalog.tracking_head_scripts || "",
 
         tracking_body_scripts: catalog.tracking_body_scripts || "",
@@ -602,6 +623,15 @@ export default function DigitalCatalogForm() {
           data.enable_free_shipping && data.free_shipping_min_amount
             ? Math.round(data.free_shipping_min_amount * 100)
             : 0,
+
+        // Wholesale Rules (MOQ/MOV)
+        is_wholesale_only: data.is_wholesale_only ?? false,
+
+        min_order_quantity: data.min_order_quantity ?? 1,
+
+        min_order_amount: data.min_order_amount
+          ? Math.round(data.min_order_amount * 100)
+          : 0,
 
         tracking_head_scripts: data.tracking_head_scripts || null,
 
@@ -1147,6 +1177,96 @@ export default function DigitalCatalogForm() {
                         )}
                         />
                       )}
+
+                      {/* Wholesale Rules Section */}
+                      <div className="mt-6 pt-6 border-t border-gray-200">
+                        <h4 className="text-sm font-semibold text-gray-700 mb-4">Reglas de Mayoreo</h4>
+                        
+                        <FormField
+                          control={form.control}
+                          name="is_wholesale_only"
+                          render={({ field }) => (
+                            <div
+                              className="flex items-center justify-between p-4 rounded-xl bg-white border border-gray-100 shadow-sm transition-all hover:border-gray-200 cursor-pointer active:scale-[0.98] mb-4"
+                              onClick={() => field.onChange(!field.value)}
+                            >
+                              <div className="flex-1">
+                                <div className="text-base font-semibold text-gray-900">Venta Exclusiva Mayoreo</div>
+                                <div className="text-sm text-gray-500 mt-1">
+                                  Solo permite compra si se cumplen los mínimos
+                                </div>
+                              </div>
+                              <Switch
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                                className="pointer-events-none"
+                              />
+                            </div>
+                          )}
+                        />
+
+                        {form.watch("is_wholesale_only") && (
+                          <>
+                            <FormField
+                              control={form.control}
+                              name="min_order_quantity"
+                              render={({ field }) => (
+                                <FormItem className="mb-4">
+                                  <FormLabel htmlFor="min-order-qty" className="text-base">
+                                    Mínimo de Piezas (MOQ)
+                                  </FormLabel>
+                                  <FormControl>
+                                    <Input
+                                      id="min-order-qty"
+                                      type="number"
+                                      min="1"
+                                      placeholder="10"
+                                      className="h-12 text-base bg-gray-50 border-gray-200 focus:bg-white focus:ring-2 focus:ring-primary/20 transition-all rounded-lg"
+                                      {...field}
+                                      onChange={(e) => field.onChange(parseInt(e.target.value) || 1)}
+                                    />
+                                  </FormControl>
+                                  <FormDescription>
+                                    Cantidad mínima de productos en el carrito
+                                  </FormDescription>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={form.control}
+                              name="min_order_amount"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel htmlFor="min-order-amount" className="text-base">
+                                    Monto Mínimo de Compra ($MXN)
+                                  </FormLabel>
+                                  <FormControl>
+                                    <div className="relative">
+                                      <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                                      <Input
+                                        id="min-order-amount"
+                                        type="number"
+                                        min="0"
+                                        step="100"
+                                        placeholder="5000"
+                                        className="h-12 text-base pl-10 bg-gray-50 border-gray-200 focus:bg-white focus:ring-2 focus:ring-primary/20 transition-all rounded-lg"
+                                        {...field}
+                                        onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                                      />
+                                    </div>
+                                  </FormControl>
+                                  <FormDescription>
+                                    Valor mínimo del pedido (MOV)
+                                  </FormDescription>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </>
+                        )}
+                      </div>
                       
                       <div className="mt-4 pt-4 border-t flex justify-end">
                         <Button 
@@ -2034,6 +2154,81 @@ export default function DigitalCatalogForm() {
                         )}
                       />
                     )}
+
+                    {/* Wholesale Rules Section - Desktop */}
+                    <div className="mt-6 pt-6 border-t border-gray-200">
+                      <h4 className="text-sm font-semibold text-gray-700 mb-4">Reglas de Mayoreo</h4>
+                      
+                      <FormField
+                        control={form.control}
+                        name="is_wholesale_only"
+                        render={({ field }) => (
+                          <FormItem className="flex items-center justify-between p-4 rounded-xl bg-white border border-gray-100 shadow-sm transition-all hover:border-gray-200 mb-4">
+                            <div className="space-y-0.5">
+                              <FormLabel className="text-base font-semibold text-gray-900">Venta Exclusiva Mayoreo</FormLabel>
+                              <FormDescription className="text-sm text-gray-500 mt-1">
+                                Solo permite compra si se cumplen los mínimos
+                              </FormDescription>
+                            </div>
+                            <FormControl>
+                              <Switch checked={field.value} onCheckedChange={field.onChange} />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+
+                      {form.watch("is_wholesale_only") && (
+                        <div className="grid grid-cols-2 gap-4">
+                          <FormField
+                            control={form.control}
+                            name="min_order_quantity"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Mínimo de Piezas (MOQ)</FormLabel>
+                                <FormControl>
+                                  <Input
+                                    type="number"
+                                    min="1"
+                                    placeholder="10"
+                                    className="bg-gray-50 border-gray-200 focus:bg-white focus:ring-2 focus:ring-primary/20 transition-all rounded-lg"
+                                    {...field}
+                                    onChange={(e) => field.onChange(parseInt(e.target.value) || 1)}
+                                  />
+                                </FormControl>
+                                <FormDescription>Cantidad mínima en carrito</FormDescription>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={form.control}
+                            name="min_order_amount"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Monto Mínimo ($MXN)</FormLabel>
+                                <FormControl>
+                                  <div className="relative">
+                                    <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                    <Input
+                                      type="number"
+                                      min="0"
+                                      step="100"
+                                      placeholder="5000"
+                                      className="pl-9 bg-gray-50 border-gray-200 focus:bg-white focus:ring-2 focus:ring-primary/20 transition-all rounded-lg"
+                                      {...field}
+                                      onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                                    />
+                                  </div>
+                                </FormControl>
+                                <FormDescription>Valor mínimo (MOV)</FormDescription>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                      )}
+                    </div>
                   </CardContent>
                 </Card>
 
