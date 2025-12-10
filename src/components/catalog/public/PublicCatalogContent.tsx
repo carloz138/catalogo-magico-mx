@@ -86,6 +86,7 @@ interface PublicCatalogContentProps {
     };
   };
   onTrackEvent: (event: string, data?: any) => void;
+  subscribedVendorIds?: string[]; // IDs of all L1 vendors this L2 reseller is subscribed to
 }
 
 // --- ANIMACIONES ---
@@ -171,7 +172,7 @@ const PublicProductCard = ({ product, onAdd, onView }: { product: Product; onAdd
 };
 
 // --- COMPONENTE PRINCIPAL ---
-export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogContentProps) {
+export function PublicCatalogContent({ catalog, onTrackEvent, subscribedVendorIds = [] }: PublicCatalogContentProps) {
   const [searchParams] = useSearchParams();
 
   const [searchTerm, setSearchTerm] = useState("");
@@ -282,18 +283,24 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
   useEffect(() => {
     if (debouncedSearch && debouncedSearch.length > 2) {
       const logSearch = async () => {
-        // Extract unique vendor IDs from filtered products for accurate L1 analytics attribution
-        // This ensures L1 vendors see search traffic even when searches happen on L2 stores
-        const uniqueVendorIds = [...new Set(
-          filteredProducts
-            .map((p: Product) => p.vendor_id || p.user_id) // Fallback to user_id if vendor_id not set
-            .filter((id): id is string => id != null)
-        )];
+        let relatedVendorIds: string[] = [];
         
-        // If no products found but we have catalog owner, include them for "zero results" tracking
-        const relatedVendorIds = uniqueVendorIds.length > 0 
-          ? uniqueVendorIds 
-          : (catalog.user_id ? [catalog.user_id] : []);
+        if (filteredProducts.length > 0) {
+          // SCENARIO A: Results Found - Extract unique vendor IDs from displayed products
+          // This ensures each L1 vendor gets credit for searches that return their products
+          relatedVendorIds = [...new Set(
+            filteredProducts
+              .map((p: Product) => p.vendor_id || p.user_id)
+              .filter((id): id is string => id != null)
+          )];
+        } else {
+          // SCENARIO B: No Results (Market Radar Signal)
+          // Notify ALL vendors that supply this reseller so they see the demand signal
+          // Use subscribedVendorIds if available (L2 marketplace context), else fallback to catalog owner
+          relatedVendorIds = subscribedVendorIds.length > 0 
+            ? subscribedVendorIds 
+            : (catalog.user_id ? [catalog.user_id] : []);
+        }
         
         await supabase.from("search_logs").insert({
           catalog_id: catalog.id,
@@ -306,7 +313,7 @@ export function PublicCatalogContent({ catalog, onTrackEvent }: PublicCatalogCon
       logSearch();
       onTrackEvent("Search", { search_string: debouncedSearch });
     }
-  }, [debouncedSearch, filteredProducts.length, catalog.id, catalog.user_id, onTrackEvent]);
+  }, [debouncedSearch, filteredProducts.length, catalog.id, catalog.user_id, subscribedVendorIds, onTrackEvent]);
 
   // --- HANDLERS ---
 
