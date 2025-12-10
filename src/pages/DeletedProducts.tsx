@@ -173,12 +173,12 @@ export default function DeletedProducts() {
         )}
       </div>
 
-      {/* Modal de confirmación de restauración */}
+      {/* Modal de confirmación de restauración con advertencia de visibilidad */}
       <ConfirmationDialog
         open={showRestoreConfirm}
         onOpenChange={setShowRestoreConfirm}
         title="Restaurar producto"
-        description={`¿Estás seguro que quieres restaurar "${selectedProductName}"? El producto volverá a aparecer en tu lista de productos activos.`}
+        description={`¿Estás seguro que quieres restaurar "${selectedProductName}"? El producto volverá a aparecer en tu lista de productos activos y será visible en todos los catálogos donde estaba incluido anteriormente.`}
         confirmText="Restaurar"
         cancelText="Cancelar"
         onConfirm={confirmRestore}
