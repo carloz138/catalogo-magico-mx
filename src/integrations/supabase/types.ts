@@ -1299,6 +1299,7 @@ export type Database = {
           ai_confidence_score: number | null
           ai_description: string | null
           ai_tags: string[] | null
+          allow_backorder: boolean | null
           brand: string | null
           catalog_image_url: string | null
           category: string | null
@@ -1320,6 +1321,7 @@ export type Database = {
           image_url: string | null
           is_processed: boolean | null
           last_sale_at: string | null
+          lead_time_days: number | null
           luxury_image_url: string | null
           model: string | null
           name: string
@@ -1344,6 +1346,7 @@ export type Database = {
           updated_at: string
           user_id: string
           variant_count: number | null
+          vendor_id: string | null
           video_url: string | null
           wholesale_min_qty: number | null
         }
@@ -1351,6 +1354,7 @@ export type Database = {
           ai_confidence_score?: number | null
           ai_description?: string | null
           ai_tags?: string[] | null
+          allow_backorder?: boolean | null
           brand?: string | null
           catalog_image_url?: string | null
           category?: string | null
@@ -1372,6 +1376,7 @@ export type Database = {
           image_url?: string | null
           is_processed?: boolean | null
           last_sale_at?: string | null
+          lead_time_days?: number | null
           luxury_image_url?: string | null
           model?: string | null
           name: string
@@ -1396,6 +1401,7 @@ export type Database = {
           updated_at?: string
           user_id: string
           variant_count?: number | null
+          vendor_id?: string | null
           video_url?: string | null
           wholesale_min_qty?: number | null
         }
@@ -1403,6 +1409,7 @@ export type Database = {
           ai_confidence_score?: number | null
           ai_description?: string | null
           ai_tags?: string[] | null
+          allow_backorder?: boolean | null
           brand?: string | null
           catalog_image_url?: string | null
           category?: string | null
@@ -1424,6 +1431,7 @@ export type Database = {
           image_url?: string | null
           is_processed?: boolean | null
           last_sale_at?: string | null
+          lead_time_days?: number | null
           luxury_image_url?: string | null
           model?: string | null
           name?: string
@@ -1448,6 +1456,7 @@ export type Database = {
           updated_at?: string
           user_id?: string
           variant_count?: number | null
+          vendor_id?: string | null
           video_url?: string | null
           wholesale_min_qty?: number | null
         }
@@ -1457,6 +1466,13 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
             referencedColumns: ["id"]
           },
         ]
@@ -1470,6 +1486,7 @@ export type Database = {
           product_image_url: string | null
           product_name: string
           product_sku: string | null
+          production_status: string | null
           quantity: number
           quote_id: string
           subtotal: number
@@ -1485,6 +1502,7 @@ export type Database = {
           product_image_url?: string | null
           product_name: string
           product_sku?: string | null
+          production_status?: string | null
           quantity: number
           quote_id: string
           subtotal: number
@@ -1500,6 +1518,7 @@ export type Database = {
           product_image_url?: string | null
           product_name?: string
           product_sku?: string | null
+          production_status?: string | null
           quantity?: number
           quote_id?: string
           subtotal?: number
@@ -2304,33 +2323,39 @@ export type Database = {
       }
       variant_types: {
         Row: {
+          allow_custom_values: boolean | null
           category: string | null
           created_at: string | null
           display_name: string
           id: string
           input_type: string | null
+          is_global: boolean | null
           is_required: boolean | null
           name: string
           sort_order: number | null
           updated_at: string | null
         }
         Insert: {
+          allow_custom_values?: boolean | null
           category?: string | null
           created_at?: string | null
           display_name: string
           id?: string
           input_type?: string | null
+          is_global?: boolean | null
           is_required?: boolean | null
           name: string
           sort_order?: number | null
           updated_at?: string | null
         }
         Update: {
+          allow_custom_values?: boolean | null
           category?: string | null
           created_at?: string | null
           display_name?: string
           id?: string
           input_type?: string | null
+          is_global?: boolean | null
           is_required?: boolean | null
           name?: string
           sort_order?: number | null
@@ -2378,6 +2403,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      vendors: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          logo_url: string | null
+          name: string
+          owner_id: string
+          slug: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          logo_url?: string | null
+          name: string
+          owner_id: string
+          slug: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          logo_url?: string | null
+          name?: string
+          owner_id?: string
+          slug?: string
+          updated_at?: string | null
+        }
+        Relationships: []
       }
     }
     Views: {
@@ -2796,6 +2857,15 @@ export type Database = {
         Args: { p_reseller_id: string; p_token: string }
         Returns: boolean
       }
+      allocate_stock_to_backorders: {
+        Args: {
+          p_new_stock: number
+          p_product_id: string
+          p_user_id: string
+          p_variant_id: string
+        }
+        Returns: Json
+      }
       archive_old_deleted_products: { Args: never; Returns: number }
       calculate_adjusted_price: {
         Args: { adjustment_percentage: number; base_price: number }
@@ -2944,6 +3014,7 @@ export type Database = {
           ai_confidence_score: number | null
           ai_description: string | null
           ai_tags: string[] | null
+          allow_backorder: boolean | null
           brand: string | null
           catalog_image_url: string | null
           category: string | null
@@ -2965,6 +3036,7 @@ export type Database = {
           image_url: string | null
           is_processed: boolean | null
           last_sale_at: string | null
+          lead_time_days: number | null
           luxury_image_url: string | null
           model: string | null
           name: string
@@ -2989,6 +3061,7 @@ export type Database = {
           updated_at: string
           user_id: string
           variant_count: number | null
+          vendor_id: string | null
           video_url: string | null
           wholesale_min_qty: number | null
         }[]
@@ -3005,6 +3078,7 @@ export type Database = {
           ai_confidence_score: number | null
           ai_description: string | null
           ai_tags: string[] | null
+          allow_backorder: boolean | null
           brand: string | null
           catalog_image_url: string | null
           category: string | null
@@ -3026,6 +3100,7 @@ export type Database = {
           image_url: string | null
           is_processed: boolean | null
           last_sale_at: string | null
+          lead_time_days: number | null
           luxury_image_url: string | null
           model: string | null
           name: string
@@ -3050,6 +3125,7 @@ export type Database = {
           updated_at: string
           user_id: string
           variant_count: number | null
+          vendor_id: string | null
           video_url: string | null
           wholesale_min_qty: number | null
         }[]
@@ -3197,6 +3273,14 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      get_pending_backorders: {
+        Args: { p_product_id: string; p_variant_id?: string }
+        Returns: {
+          pending_count: number
+          quote_item_ids: string[]
+          total_quantity: number
+        }[]
+      }
       get_product_variants: {
         Args: { product_uuid: string }
         Returns: {
@@ -3208,6 +3292,21 @@ export type Database = {
           stock_quantity: number
           variant_id: string
           variant_images: Json
+        }[]
+      }
+      get_production_queue: {
+        Args: { p_vendor_user_id: string }
+        Returns: {
+          oldest_order_date: string
+          order_count: number
+          product_id: string
+          product_image_url: string
+          product_name: string
+          product_sku: string
+          quote_item_ids: string[]
+          total_quantity: number
+          variant_description: string
+          variant_id: string
         }[]
       }
       get_products_with_variants_for_table: {
@@ -3273,6 +3372,10 @@ export type Database = {
       increment_catalog_views: {
         Args: { p_catalog_id: string }
         Returns: undefined
+      }
+      mark_production_batch_ready: {
+        Args: { p_quote_item_ids: string[]; p_user_id: string }
+        Returns: Json
       }
       permanently_delete_product: {
         Args: { product_id: string; requesting_user_id: string }

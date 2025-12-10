@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ShoppingCart, Send } from 'lucide-react';
+import { ShoppingCart, Clock, Factory } from 'lucide-react';
 import { calculateAdjustedPrice } from '@/lib/utils/price-calculator';
 import { VariantSelector } from './VariantSelector';
 
@@ -30,6 +30,9 @@ interface Product {
   tags: string[] | null;
   has_variants?: boolean;
   variants?: ProductVariant[];
+  stock_quantity?: number;
+  allow_backorder?: boolean;
+  lead_time_days?: number;
 }
 
 interface Props {
@@ -99,6 +102,15 @@ export function PublicProductCard({
   const wholesalePrice = baseWholesalePrice 
     ? calculateAdjustedPrice(baseWholesalePrice, priceConfig.adjustmentMayoreo)
     : null;
+
+  // ✅ BACKORDER LOGIC
+  const stockQuantity = selectedVariant?.stock_quantity ?? product.stock_quantity ?? 0;
+  const allowBackorder = product.allow_backorder ?? false;
+  const leadTimeDays = product.lead_time_days ?? 0;
+  
+  const isBackorderItem = useMemo(() => {
+    return stockQuantity <= 0 && allowBackorder;
+  }, [stockQuantity, allowBackorder]);
 
   return (
     <div className="catalog-product-card group border rounded-lg overflow-hidden hover:shadow-lg transition-shadow">
@@ -192,6 +204,22 @@ export function PublicProductCard({
           )}
         </div>
         
+        {/* ✅ BACKORDER WARNING BADGE */}
+        {isBackorderItem && (
+          <div className="flex items-center gap-2 p-2 bg-amber-50 border border-amber-200 rounded-lg">
+            <Factory className="h-4 w-4 text-amber-600 shrink-0" />
+            <div className="text-xs">
+              <span className="font-medium text-amber-800">Fabricación bajo pedido</span>
+              {leadTimeDays > 0 && (
+                <span className="text-amber-600 flex items-center gap-1 mt-0.5">
+                  <Clock className="h-3 w-3" />
+                  Tiempo de producción: {leadTimeDays} días
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Botón de agregar a cotización (siempre disponible) */}
         {onAddToQuote && (
           <Button 
@@ -232,13 +260,24 @@ export function PublicProductCard({
                 quantity: 1,
                 retailPrice: retailPrice,
                 wholesalePrice: wholesalePrice,
-                isInStock: isPurchased // ✅ Indicar si está en stock para la cotización
+                isInStock: isPurchased,
+                isBackorder: isBackorderItem, // ✅ NEW: Flag for backorder items
+                leadTimeDays: leadTimeDays // ✅ NEW: Lead time for production
               });
             }}
-            className="w-full catalog-add-button"
+            className={`w-full ${isBackorderItem ? 'bg-amber-600 hover:bg-amber-700' : 'catalog-add-button'}`}
           >
-            <ShoppingCart className="mr-2 h-4 w-4" />
-            Agregar a cotización
+            {isBackorderItem ? (
+              <>
+                <Factory className="mr-2 h-4 w-4" />
+                Ordenar bajo pedido
+              </>
+            ) : (
+              <>
+                <ShoppingCart className="mr-2 h-4 w-4" />
+                Agregar a cotización
+              </>
+            )}
           </Button>
         )}
       </div>

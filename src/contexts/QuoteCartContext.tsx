@@ -18,6 +18,8 @@ interface QuoteItem {
   unitPrice: number; // Centavos
   variantId?: string | null; // ID de la variante seleccionada
   variantDescription?: string | null; // Descripción legible de la variante
+  isBackorder?: boolean; // ✅ NEW: Flag for backorder items
+  leadTimeDays?: number; // ✅ NEW: Production lead time
 }
 
 interface QuoteCartContextType {
@@ -28,13 +30,20 @@ interface QuoteCartContextType {
     priceType: 'retail' | 'wholesale', 
     unitPrice: number,
     variantId?: string | null,
-    variantDescription?: string | null
+    variantDescription?: string | null,
+    isBackorder?: boolean,
+    leadTimeDays?: number
   ) => void;
   updateQuantity: (productId: string, priceType: string, quantity: number, variantId?: string | null) => void;
   removeItem: (productId: string, priceType: string, variantId?: string | null) => void;
   clearCart: () => void;
   totalItems: number;
   totalAmount: number;
+  // ✅ NEW: Computed properties for backorder grouping
+  backorderItems: QuoteItem[];
+  readyItems: QuoteItem[];
+  hasBackorderItems: boolean;
+  maxLeadTimeDays: number;
 }
 
 const QuoteCartContext = createContext<QuoteCartContextType | undefined>(undefined);
@@ -48,7 +57,9 @@ export function QuoteCartProvider({ children }: { children: React.ReactNode }) {
     priceType: 'retail' | 'wholesale', 
     unitPrice: number,
     variantId?: string | null,
-    variantDescription?: string | null
+    variantDescription?: string | null,
+    isBackorder?: boolean,
+    leadTimeDays?: number
   ) => {
     setItems(prev => {
       // Buscar si ya existe este producto con la misma variante y tipo de precio
@@ -71,7 +82,9 @@ export function QuoteCartProvider({ children }: { children: React.ReactNode }) {
         priceType, 
         unitPrice,
         variantId,
-        variantDescription
+        variantDescription,
+        isBackorder,
+        leadTimeDays
       }];
     });
   }, []);
@@ -111,6 +124,12 @@ export function QuoteCartProvider({ children }: { children: React.ReactNode }) {
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
   const totalAmount = items.reduce((sum, item) => sum + (item.unitPrice * item.quantity), 0);
 
+  // ✅ NEW: Computed properties for backorder grouping
+  const backorderItems = items.filter(item => item.isBackorder);
+  const readyItems = items.filter(item => !item.isBackorder);
+  const hasBackorderItems = backorderItems.length > 0;
+  const maxLeadTimeDays = Math.max(0, ...backorderItems.map(item => item.leadTimeDays || 0));
+
   return (
     <QuoteCartContext.Provider value={{
       items,
@@ -120,6 +139,10 @@ export function QuoteCartProvider({ children }: { children: React.ReactNode }) {
       clearCart,
       totalItems,
       totalAmount,
+      backorderItems,
+      readyItems,
+      hasBackorderItems,
+      maxLeadTimeDays,
     }}>
       {children}
     </QuoteCartContext.Provider>
