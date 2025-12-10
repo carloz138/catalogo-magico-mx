@@ -5,6 +5,10 @@ export interface CSVProduct {
   precio_mayoreo?: string;
   descripcion?: string;
   categoria?: string;
+  // New multi-vendor & backorder fields
+  allow_backorder?: string;
+  lead_time_days?: string;
+  tags?: string;
 }
 
 export interface ImageFile {
@@ -27,4 +31,11 @@ export interface UploadProgress {
   failed: number;
   current: string;
   retrying?: boolean;
+}
+
+// Variant validation result
+export interface VariantValidationResult {
+  isValid: boolean;
+  normalizedValue: string;
+  warning?: string;
 }
