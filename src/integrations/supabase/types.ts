@@ -1908,7 +1908,7 @@ export type Database = {
       }
       search_logs: {
         Row: {
-          catalog_id: string
+          catalog_id: string | null
           created_at: string | null
           id: string
           results_count: number | null
@@ -1916,7 +1916,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
-          catalog_id: string
+          catalog_id?: string | null
           created_at?: string | null
           id?: string
           results_count?: number | null
@@ -1924,7 +1924,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
-          catalog_id?: string
+          catalog_id?: string | null
           created_at?: string | null
           id?: string
           results_count?: number | null
