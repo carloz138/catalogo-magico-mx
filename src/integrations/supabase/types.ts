@@ -3402,6 +3402,24 @@ export type Database = {
           pending_quotes: number
         }[]
       }
+      get_subscribed_catalog_products: {
+        Args: { p_subscriber_id: string }
+        Returns: {
+          catalog_id: string
+          catalog_name: string
+          category: string
+          image_url: string
+          is_subscribed: boolean
+          price_retail: number
+          price_wholesale: number
+          product_description: string
+          product_id: string
+          product_name: string
+          product_sku: string
+          vendor_id: string
+          vendor_name: string
+        }[]
+      }
       get_user_analytics_level: {
         Args: { user_id_param: string }
         Returns: string

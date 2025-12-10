@@ -264,7 +264,7 @@ export class DigitalCatalogService {
         }
       }
 
-      // Get catalog products (CORREGIDO CON FK EXPLÍCITA)
+      // Get catalog products (CORREGIDO CON FK EXPLÍCITA + vendor_id for analytics)
       const { data: catalogProducts, error: productsError } = await supabase
         .from("catalog_products")
         .select(
@@ -272,6 +272,7 @@ export class DigitalCatalogService {
           products!catalog_products_product_id_fkey (
             id, name, sku, description, price_retail, price_wholesale,
             wholesale_min_qty, original_image_url, processed_image_url, tags, category, has_variants,
+            vendor_id, user_id,
             product_variants (
               id, variant_combination, sku, price_retail, price_wholesale, stock_quantity, is_default
             )
@@ -376,7 +377,7 @@ export class DigitalCatalogService {
       throw new Error("Catálogo expirado");
     }
 
-    // Get catalog products (CORREGIDO CON FK EXPLÍCITA)
+    // Get catalog products (CORREGIDO CON FK EXPLÍCITA + vendor_id for analytics)
     const { data: catalogProducts, error: productsError } = await supabase
       .from("catalog_products")
       .select(
@@ -384,6 +385,7 @@ export class DigitalCatalogService {
         products!catalog_products_product_id_fkey (
           id, name, sku, description, price_retail, price_wholesale,
           wholesale_min_qty, original_image_url, processed_image_url, tags, category, has_variants,
+          vendor_id, user_id,
           product_variants (
             id, variant_combination, sku, price_retail, price_wholesale, stock_quantity, is_default
           )
