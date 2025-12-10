@@ -1,5 +1,19 @@
 import { z } from 'zod';
 
+// Helper to parse boolean-like strings
+const booleanLikeString = z.string().optional().transform(val => {
+  if (!val) return false;
+  const lower = val.toLowerCase().trim();
+  return ['true', '1', 'yes', 'si', 'sí'].includes(lower);
+});
+
+// Helper to parse integer strings with default
+const integerString = (defaultVal: number) => z.string().optional().transform(val => {
+  if (!val) return defaultVal;
+  const parsed = parseInt(val, 10);
+  return isNaN(parsed) ? defaultVal : parsed;
+});
+
 // Validación de archivos de imagen
 export const imageFileSchema = z.instanceof(File)
   .refine(file => file.size <= 5000000, {
@@ -20,7 +34,7 @@ export const csvFileSchema = z.instanceof(File)
     { message: 'Solo se aceptan archivos CSV' }
   );
 
-// Validación de producto del CSV
+// Validación de producto del CSV - Extended for multi-vendor & backorder
 export const csvProductSchema = z.object({
   sku: z.string()
     .min(1, 'SKU es requerido')
@@ -39,8 +53,19 @@ export const csvProductSchema = z.object({
       message: 'El precio de mayoreo debe ser un número positivo'
     }),
   descripcion: z.string().optional(),
-  categoria: z.string().optional()
+  categoria: z.string().optional(),
+  tags: z.string().optional(),
+  // New backorder fields
+  allow_backorder: z.string().optional(),
+  lead_time_days: z.string().optional(),
 });
+
+// Parsed product with transformed values
+export const parsedProductSchema = csvProductSchema.transform(data => ({
+  ...data,
+  allow_backorder_bool: booleanLikeString.parse(data.allow_backorder),
+  lead_time_days_num: integerString(0).parse(data.lead_time_days),
+}));
 
 // Validación del batch completo
 export const bulkUploadSchema = z.object({
@@ -55,4 +80,5 @@ export const bulkUploadSchema = z.object({
 // Tipos TypeScript inferidos
 export type ImageFile = z.infer<typeof imageFileSchema>;
 export type CSVProduct = z.infer<typeof csvProductSchema>;
+export type ParsedProduct = z.infer<typeof parsedProductSchema>;
 export type BulkUpload = z.infer<typeof bulkUploadSchema>;

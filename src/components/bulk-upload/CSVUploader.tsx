@@ -191,11 +191,14 @@ export const CSVUploader = ({ onCSVParsed, csvProducts }: CSVUploaderProps) => {
 
       <div className="text-xs text-muted-foreground p-3 bg-muted/20 rounded border">
         <p className="font-medium mb-1">Ejemplo de CSV válido:</p>
-        <pre className="text-xs">
-          sku,nombre,precio,precio_mayoreo,descripcion,categoria
-          PROD001,Camisa Azul M,299,250,Camisa de algodón,ropa
-          PROD002,Zapatos Negros 42,899,750,Zapatos de cuero,calzado
+        <pre className="text-xs overflow-x-auto">
+          sku,nombre,precio,precio_mayoreo,descripcion,categoria,tags,allow_backorder,lead_time_days
+          PROD001,Camisa Azul M,299,250,Camisa de algodón,ropa,nuevo,false,0
+          PROD002,Zapatos Negros 42,899,750,Zapatos de cuero,calzado,premium,true,14
         </pre>
+        <p className="mt-2 text-muted-foreground">
+          <strong>allow_backorder:</strong> true/false | <strong>lead_time_days:</strong> días de fabricación
+        </p>
       </div>
     </div>
   );

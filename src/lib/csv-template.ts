@@ -1,10 +1,21 @@
 export const generateCSVTemplate = () => {
-  const headers = ['sku', 'nombre', 'precio', 'precio_mayoreo', 'descripcion', 'categoria'];
+  // Extended headers with backorder columns
+  const headers = [
+    'sku',
+    'nombre',
+    'precio',
+    'precio_mayoreo',
+    'descripcion',
+    'categoria',
+    'tags',
+    'allow_backorder',
+    'lead_time_days'
+  ];
   
   const exampleRows = [
-    ['PROD001', 'Camisa Azul Talla M', '299', '250', 'Camisa de algodón 100%', 'ropa'],
-    ['PROD002', 'Zapatos Negros Talla 42', '899', '750', 'Zapatos de cuero genuino', 'calzado'],
-    ['PROD003', 'Gorra Deportiva', '199', '150', 'Gorra ajustable con logo bordado', 'accesorios']
+    ['PROD001', 'Camisa Azul Talla M', '299', '250', 'Camisa de algodón 100%', 'ropa', 'nuevo,algodón', 'false', '0'],
+    ['PROD002', 'Zapatos Negros Talla 42', '899', '750', 'Zapatos de cuero genuino', 'calzado', 'cuero,premium', 'true', '14'],
+    ['PROD003', 'Gorra Deportiva', '199', '150', 'Gorra ajustable con logo bordado', 'accesorios', 'deportivo', 'false', '0']
   ];
   
   const csvContent = [

@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDropzone } from "react-dropzone";
 import * as XLSX from "xlsx";
@@ -7,6 +7,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useCatalogLimits } from "@/hooks/useCatalogLimits";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { useVendors, useCurrentUserVendor } from "@/hooks/useVendors";
 import {
   ArrowLeft,
   Upload,
@@ -19,21 +21,65 @@ import {
   RefreshCw,
   FileWarning,
   Download,
+  Building2,
+  ShieldCheck,
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 // Componentes y Hooks
 import { ColumnMapper } from "@/components/bulk-upload/ColumnMapper";
 import { useBulkMatching, type BulkProduct, type BulkImage } from "@/hooks/useBulkMatching";
 import { uploadImageToSupabase } from "@/utils/imageProcessing";
 
+// Helper to parse boolean-like strings
+const parseBooleanString = (val?: string): boolean => {
+  if (!val) return false;
+  const lower = val.toLowerCase().trim();
+  return ['true', '1', 'yes', 'si', 'sí'].includes(lower);
+};
+
+// Helper to parse integer strings
+const parseIntString = (val?: string, defaultVal = 0): number => {
+  if (!val) return defaultVal;
+  const parsed = parseInt(val, 10);
+  return isNaN(parsed) ? defaultVal : parsed;
+};
+
 export default function BulkUpload() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth();
   const { limits } = useCatalogLimits();
 
+  // Admin check from user metadata
+  const isAdmin = user?.user_metadata?.role === "admin";
+
+  // Vendor data
+  const { data: vendors = [], isLoading: loadingVendors } = useVendors(isAdmin);
+  const { data: currentUserVendor } = useCurrentUserVendor();
+
+  // Selected vendor for upload
+  const [selectedVendorId, setSelectedVendorId] = useState<string | null>(null);
+
+  // Auto-set vendor for non-admins
+  useEffect(() => {
+    if (!isAdmin && currentUserVendor) {
+      setSelectedVendorId(currentUserVendor.id);
+    }
+  }, [isAdmin, currentUserVendor]);
+
   // Estados del flujo
-  const [step, setStep] = useState<"upload" | "mapping" | "matching" | "uploading" | "finished">("upload");
+  const [step, setStep] = useState<"vendor" | "upload" | "mapping" | "matching" | "uploading" | "finished">(
+    isAdmin ? "vendor" : "upload"
+  );
 
   // Datos
   const [rawFile, setRawFile] = useState<any[]>([]);
@@ -42,13 +88,45 @@ export default function BulkUpload() {
   const [images, setImages] = useState<BulkImage[]>([]);
 
   // Estados visuales y de reporte
-  const [isProcessingImages, setIsProcessingImages] = useState(false); // 👈 NUESTRO SPINNER
+  const [isProcessingImages, setIsProcessingImages] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [failedReport, setFailedReport] = useState<any[]>([]);
   const [successCount, setSuccessCount] = useState(0);
 
+  // SKU duplicates check state
+  const [existingSkus, setExistingSkus] = useState<Set<string>>(new Set());
+
   // Hook de Matching
   const { matches, setManualMatch, useDefaultImage, applyDefaultToAllUnmatched } = useBulkMatching(products, images);
+
+  // Fetch existing SKUs for the selected vendor
+  useEffect(() => {
+    const fetchExistingSkus = async () => {
+      if (!selectedVendorId) {
+        setExistingSkus(new Set());
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("products")
+        .select("sku")
+        .eq("vendor_id", selectedVendorId)
+        .not("sku", "is", null);
+
+      if (!error && data) {
+        setExistingSkus(new Set(data.map(p => p.sku?.toLowerCase() || "")));
+      }
+    };
+
+    fetchExistingSkus();
+  }, [selectedVendorId]);
+
+  // Get selected vendor name for display
+  const selectedVendorName = useMemo(() => {
+    if (!isAdmin && currentUserVendor) return currentUserVendor.name;
+    const vendor = vendors.find(v => v.id === selectedVendorId);
+    return vendor?.name || "Sin seleccionar";
+  }, [isAdmin, currentUserVendor, vendors, selectedVendorId]);
 
   // 1. LEER EXCEL
   const onFileDrop = useCallback(
@@ -86,13 +164,12 @@ export default function BulkUpload() {
   // 2. LEER IMÁGENES (Con Feedback de Carga)
   const onImagesDrop = useCallback(
     (acceptedFiles: File[]) => {
-      setIsProcessingImages(true); // 1. MOSTRAR SPINNER
+      setIsProcessingImages(true);
       toast({
         title: `Procesando ${acceptedFiles.length} imágenes...`,
         description: "Buscando coincidencias, esto puede tardar...",
       });
 
-      // 2. Usar timeout para permitir que React renderice el spinner
       setTimeout(() => {
         const newImages = acceptedFiles.map((file) => ({
           id: crypto.randomUUID(),
@@ -101,44 +178,39 @@ export default function BulkUpload() {
           name: file.name,
         }));
 
-        setImages((prev) => {
-          // 3. Setear estado (esto dispara el hook de matching)
-          const updated = [...prev, ...newImages];
-          return updated;
-        });
-        // 4. NO quitamos el spinner aquí. El useEffect [matches] lo hará.
+        setImages((prev) => [...prev, ...newImages]);
       }, 50);
     },
     [toast],
   );
 
-  // 👇 NUEVO HOOK: Se dispara cuando 'useBulkMatching' termina y actualiza 'matches'
+  // Hook: Se dispara cuando 'useBulkMatching' termina
   useEffect(() => {
     if (isProcessingImages) {
-      setIsProcessingImages(false); // 5. QUITAR SPINNER
+      setIsProcessingImages(false);
       toast({
         title: "¡Coincidencias listas!",
         description: "Las imágenes se han procesado.",
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [matches]); // Se ejecuta solo cuando 'matches' cambia
+  }, [matches]);
 
-  // DROPZONE 1: Excel (Paso 1)
+  // DROPZONE 1: Excel
   const { getRootProps: getFileProps, getInputProps: getFileInputProps } = useDropzone({
     onDrop: onFileDrop,
     accept: { "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [".xlsx"], "text/csv": [".csv"] },
     maxFiles: 1,
   });
 
-  // DROPZONE 2: Imágenes Principal (Paso 1)
+  // DROPZONE 2: Imágenes Principal
   const { getRootProps: getImageProps, getInputProps: getImageInputProps } = useDropzone({
     onDrop: onImagesDrop,
     accept: { "image/*": [".png", ".jpg", ".jpeg", ".webp"] },
-    disabled: isProcessingImages, // Desactivar si está cargando
+    disabled: isProcessingImages,
   });
 
-  // DROPZONE 3: Imágenes Extra "Rescue" (Paso 3)
+  // DROPZONE 3: Imágenes Extra "Rescue"
   const {
     getRootProps: getExtraImageProps,
     getInputProps: getExtraImageInputProps,
@@ -148,11 +220,13 @@ export default function BulkUpload() {
     onDrop: onImagesDrop,
     accept: { "image/*": [".png", ".jpg", ".jpeg", ".webp"] },
     noClick: true,
-    disabled: isProcessingImages, // Desactivar si está cargando
+    disabled: isProcessingImages,
   });
 
-  // 3. CONFIRMAR MAPEO
+  // 3. CONFIRMAR MAPEO (with SKU duplicate check)
   const handleMappingConfirm = (mapping: Record<string, string>) => {
+    const skuDuplicates: string[] = [];
+    
     const mappedProducts: BulkProduct[] = rawFile
       .map((row) => {
         const tagsRaw = row[mapping["tags"]];
@@ -163,14 +237,24 @@ export default function BulkUpload() {
               .filter((t) => t.length > 0)
           : [];
 
+        const sku = row[mapping["sku"]] || "";
+        
+        // Check for SKU duplicates within vendor scope
+        if (sku && existingSkus.has(sku.toLowerCase())) {
+          skuDuplicates.push(sku);
+        }
+
         return {
           id: crypto.randomUUID(),
           name: row[mapping["name"]],
           price: parseFloat(row[mapping["price"]] || "0"),
-          sku: row[mapping["sku"]] || "",
+          sku: sku,
           description: row[mapping["description"]] || "",
           category: row[mapping["category"]] || "",
           tags: tagsArray,
+          // Extended fields
+          allow_backorder: parseBooleanString(row[mapping["allow_backorder"]]),
+          lead_time_days: parseIntString(row[mapping["lead_time_days"]], 0),
           originalData: row,
         };
       })
@@ -179,6 +263,16 @@ export default function BulkUpload() {
     if (mappedProducts.length === 0) {
       toast({ title: "No se encontraron productos válidos", variant: "destructive" });
       return;
+    }
+
+    // Warn about duplicates but allow to continue
+    if (skuDuplicates.length > 0) {
+      toast({
+        title: `⚠️ SKUs duplicados detectados`,
+        description: `${skuDuplicates.length} SKU(s) ya existen para este vendor: ${skuDuplicates.slice(0, 3).join(", ")}${skuDuplicates.length > 3 ? "..." : ""}`,
+        variant: "destructive",
+        duration: 6000,
+      });
     }
 
     const maxUploads = limits?.maxUploads || 50;
@@ -197,25 +291,29 @@ export default function BulkUpload() {
     setStep("matching");
   };
 
-  // 4. SUBIDA FINAL (CON REPORTE DE ERRORES)
+  // 4. SUBIDA FINAL (WITH VENDOR_ID & BACKORDER FIELDS)
   const handleFinalUpload = async () => {
     const unmatchedCount = matches.filter((m) => m.status === "unmatched").length;
     if (unmatchedCount > 0) {
-      // No usamos window.confirm, usamos el toast (más amigable en iframes)
       toast({
         title: `⚠️ Tienes ${unmatchedCount} productos sin imagen`,
         description: "Se omitirán de la carga. Asígnales 'Default' si quieres subirlos.",
         variant: "destructive",
         duration: 6000,
       });
-      // Permitimos continuar, pero solo subirá los que tienen 'matched' o 'default'
     }
 
     const {
-      data: { user },
+      data: { user: authUser },
     } = await supabase.auth.getUser();
-    if (!user) {
+    if (!authUser) {
       toast({ title: "Error de sesión", description: "No se encontró usuario activo", variant: "destructive" });
+      return;
+    }
+
+    // Validate vendor selection
+    if (!selectedVendorId) {
+      toast({ title: "Error", description: "No se ha seleccionado un vendor", variant: "destructive" });
       return;
     }
 
@@ -252,7 +350,7 @@ export default function BulkUpload() {
 
             if (match.status === "matched" && match.image) {
               const fileExt = match.image.file.name.split(".").pop();
-              const rawFilePath = `${user.id}/${Date.now()}_${match.image.id}.${fileExt}`;
+              const rawFilePath = `${authUser.id}/${Date.now()}_${match.image.id}.${fileExt}`;
 
               await supabase.storage.from("product-images").upload(rawFilePath, match.image.file);
               const { data: rawUrlData } = supabase.storage.from("product-images").getPublicUrl(rawFilePath);
@@ -278,22 +376,33 @@ export default function BulkUpload() {
               }
             }
 
+            // Extended product with BulkProduct type
+            const product = match.product as BulkProduct & { 
+              allow_backorder?: boolean; 
+              lead_time_days?: number; 
+            };
+
             return {
               id: match.productId,
-              user_id: user.id,
-              name: match.product.name,
-              price_retail: Math.round(match.product.price * 100),
-              sku: match.product.sku,
-              description: match.product.description,
-              category: match.product.category,
-              tags: match.product.tags,
+              user_id: authUser.id,
+              vendor_id: selectedVendorId, // 🔥 CRITICAL: Multi-vendor support
+              name: product.name,
+              price_retail: Math.round(product.price * 100),
+              sku: product.sku,
+              description: product.description,
+              category: product.category,
+              tags: product.tags,
+              // 🔥 NEW: Backorder fields
+              allow_backorder: product.allow_backorder ?? false,
+              lead_time_days: product.lead_time_days ?? 0,
+              // Image URLs
               original_image_url: imageUrls.original,
               thumbnail_image_url: imageUrls.thumb,
               catalog_image_url: imageUrls.catalog,
               luxury_image_url: imageUrls.luxury,
               print_image_url: imageUrls.print,
               processing_status: "completed",
-              _originalData: match.product.originalData,
+              _originalData: product.originalData,
             };
           } catch (e) {
             console.error(`Error procesando producto ${match.product.name}:`, e);
@@ -340,9 +449,15 @@ export default function BulkUpload() {
     XLSX.writeFile(wb, `reporte_errores_${new Date().toISOString().slice(0, 10)}.xlsx`);
   };
 
+  // Handle vendor selection (Admin only)
+  const handleVendorSelect = (vendorId: string) => {
+    setSelectedVendorId(vendorId);
+    setStep("upload");
+  };
+
   return (
     <div className="container mx-auto py-8 px-4 relative">
-      {/* 👇 NUEVO OVERLAY DE PÁGINA COMPLETA */}
+      {/* OVERLAY DE PÁGINA COMPLETA */}
       {isProcessingImages && (
         <div className="absolute inset-0 bg-white/80 z-[100] flex flex-col items-center justify-center backdrop-blur-sm rounded-lg -m-8">
           <RefreshCw className="h-10 w-10 text-blue-600 animate-spin mb-4" />
@@ -361,6 +476,82 @@ export default function BulkUpload() {
 
       {step !== "finished" && (
         <p className="text-gray-500 mb-8">Importa tu inventario desde Excel y nosotros organizamos las fotos.</p>
+      )}
+
+      {/* PASO 0: SELECCIÓN DE VENDOR (Solo Admin) */}
+      {step === "vendor" && isAdmin && (
+        <Card className="max-w-xl mx-auto">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-3 bg-amber-100 rounded-full">
+                <ShieldCheck className="h-6 w-6 text-amber-600" />
+              </div>
+              <div>
+                <h2 className="font-semibold text-lg">Modo Administrador</h2>
+                <p className="text-sm text-muted-foreground">
+                  Selecciona el vendor al que pertenecerán estos productos
+                </p>
+              </div>
+            </div>
+
+            {loadingVendors ? (
+              <div className="flex items-center justify-center py-8">
+                <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : vendors.length === 0 ? (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Sin vendors disponibles</AlertTitle>
+                <AlertDescription>
+                  No hay vendors activos en el sistema. Crea uno primero.
+                </AlertDescription>
+              </Alert>
+            ) : (
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Vendor destino</label>
+                  <Select onValueChange={handleVendorSelect}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Selecciona un vendor..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {vendors.map((vendor) => (
+                        <SelectItem key={vendor.id} value={vendor.id}>
+                          <div className="flex items-center gap-2">
+                            <Building2 className="h-4 w-4 text-muted-foreground" />
+                            <span>{vendor.name}</span>
+                            {vendor.slug && (
+                              <span className="text-xs text-muted-foreground">({vendor.slug})</span>
+                            )}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Vendor Badge (visible after selection) */}
+      {selectedVendorId && step !== "vendor" && step !== "finished" && (
+        <div className="mb-6 flex items-center gap-2 bg-muted/50 rounded-lg px-4 py-2 w-fit">
+          <Building2 className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm font-medium">Vendor:</span>
+          <span className="text-sm text-primary">{selectedVendorName}</span>
+          {isAdmin && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="ml-2 h-6 px-2 text-xs"
+              onClick={() => setStep("vendor")}
+            >
+              Cambiar
+            </Button>
+          )}
+        </div>
       )}
 
       {/* PASO 1: SUBIDA */}
@@ -443,7 +634,7 @@ export default function BulkUpload() {
             </div>
           </div>
 
-          {/* 👇 BARRA DE ESTADO CORREGIDA */}
+          {/* BARRA DE ESTADO */}
           {(() => {
             const countMatched = matches.filter((m) => m.status === "matched").length;
             const countDefault = matches.filter((m) => m.status === "default").length;
@@ -537,6 +728,12 @@ export default function BulkUpload() {
                       <span className="font-mono">${match.product.price}</span>
                       <span className="text-gray-500 text-xs truncate max-w-[100px]">{match.product.sku}</span>
                     </div>
+                    {/* Show backorder badge if enabled */}
+                    {(match.product as any).allow_backorder && (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800 mt-1">
+                        Backorder ({(match.product as any).lead_time_days}d)
+                      </span>
+                    )}
                   </div>
 
                   <div className="mt-auto">
