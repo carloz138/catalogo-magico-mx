@@ -68,6 +68,7 @@ import ProductPriceEditor from "@/pages/reseller/ProductPriceEditor";
 import ConsolidateOrderPage from "@/pages/reseller/ConsolidateOrderPage";
 import ConsolidatedOrdersListPage from "@/pages/reseller/ConsolidatedOrdersListPage";
 import MarketRadar from "@/pages/MarketRadar";
+import Marketplace from "@/pages/Marketplace";
 import BankingSettings from "@/pages/dashboard/BankingSettings";
 import OrdersPage from "@/pages/orders/index";
 
@@ -163,6 +164,7 @@ const App = () => {
 
                           {/* Red y Revendedores */}
                           <Route path="/market-radar" element={<MarketRadar />} />
+                          <Route path="/marketplace" element={<Marketplace />} />
                           <Route path="/network" element={<DistributionNetwork />} />
                           <Route path="/dashboard/reseller" element={<ResellerDashboard />} />
                           <Route path="/reseller/edit-prices" element={<ProductPriceEditor />} />

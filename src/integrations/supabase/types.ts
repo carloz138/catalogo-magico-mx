@@ -178,6 +178,41 @@ export type Database = {
           },
         ]
       }
+      catalog_subscriptions: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          original_catalog_id: string
+          subscriber_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          original_catalog_id: string
+          subscriber_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          original_catalog_id?: string
+          subscriber_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "catalog_subscriptions_original_catalog_id_fkey"
+            columns: ["original_catalog_id"]
+            isOneToOne: false
+            referencedRelation: "digital_catalogs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       catalog_usage: {
         Row: {
           catalogs_generated: number | null
@@ -1930,6 +1965,7 @@ export type Database = {
           catalog_id: string | null
           created_at: string | null
           id: string
+          related_vendor_ids: string[] | null
           results_count: number | null
           search_term: string
           user_id: string | null
@@ -1938,6 +1974,7 @@ export type Database = {
           catalog_id?: string | null
           created_at?: string | null
           id?: string
+          related_vendor_ids?: string[] | null
           results_count?: number | null
           search_term: string
           user_id?: string | null
@@ -1946,6 +1983,7 @@ export type Database = {
           catalog_id?: string | null
           created_at?: string | null
           id?: string
+          related_vendor_ids?: string[] | null
           results_count?: number | null
           search_term?: string
           user_id?: string | null
@@ -3254,6 +3292,21 @@ export type Database = {
         }[]
       }
       get_market_radar: { Args: { p_user_id: string }; Returns: Json }
+      get_marketplace_catalogs: {
+        Args: { p_limit?: number; p_offset?: number }
+        Returns: {
+          catalog_description: string
+          catalog_id: string
+          catalog_name: string
+          catalog_slug: string
+          created_at: string
+          is_subscribed: boolean
+          product_count: number
+          vendor_id: string
+          vendor_logo: string
+          vendor_name: string
+        }[]
+      }
       get_or_create_monthly_usage: {
         Args: { p_user_id: string }
         Returns: {
@@ -3370,6 +3423,15 @@ export type Database = {
           variant_values: Json
         }[]
       }
+      get_vendor_search_analytics: {
+        Args: { p_days?: number; p_vendor_id: string }
+        Returns: {
+          last_searched: string
+          search_term: string
+          total_count: number
+          zero_results_count: number
+        }[]
+      }
       increment_catalog_usage: { Args: { p_user_id: string }; Returns: Json }
       increment_catalog_views: {
         Args: { p_catalog_id: string }
@@ -3398,6 +3460,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      subscribe_to_catalog: { Args: { p_catalog_id: string }; Returns: Json }
       update_product_field: {
         Args: { field_name: string; field_value: string; product_id: string }
         Returns: boolean

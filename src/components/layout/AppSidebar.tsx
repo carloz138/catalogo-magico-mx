@@ -38,6 +38,7 @@ import {
   PackageSearch,
   Landmark,
   Truck,
+  ShoppingBag,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -150,6 +151,15 @@ export function AppSidebar() {
       badgeColor: "bg-violet-500/20 text-violet-200 border-violet-500/30",
       primary: true,
       roles: ["L1", "BOTH"],
+    },
+    {
+      title: "Marketplace",
+      path: "/marketplace",
+      icon: ShoppingBag,
+      badge: "Nuevo",
+      badgeColor: "bg-pink-500/20 text-pink-200 border-pink-500/30",
+      primary: true,
+      roles: ["L2", "BOTH", "NONE"],
     },
     {
       title: "Red de Distribución",

@@ -72,16 +72,34 @@ export const SearchStatsWidget = ({ userId }: SearchStatsProps) => {
     if (!userId) return;
     setLoadingData(true);
     try {
-      // CONSULTA GLOBAL POR USUARIO
-      const { data, error } = await supabase
-        .from("search_logs")
-        .select("search_term, results_count")
-        .eq("user_id", userId)
-        .order("created_at", { ascending: false })
-        .limit(300); // Muestra amplia para mejor agrupación
+      // Use vendor-specific analytics RPC for better cross-network visibility
+      const { data, error } = await supabase.rpc("get_vendor_search_analytics", {
+        p_vendor_id: userId,
+        p_days: 30
+      });
 
-      if (error) throw error;
-      if (data) processLogs(data);
+      if (error) {
+        // Fallback to legacy query if RPC fails
+        console.warn("RPC failed, falling back to direct query:", error);
+        const { data: fallbackData, error: fallbackError } = await supabase
+          .from("search_logs")
+          .select("search_term, results_count")
+          .eq("user_id", userId)
+          .order("created_at", { ascending: false })
+          .limit(300);
+        
+        if (fallbackError) throw fallbackError;
+        if (fallbackData) processLogs(fallbackData);
+      } else if (data) {
+        // Process RPC data directly (already aggregated)
+        const processedTerms: SearchTermGroup[] = (data as any[]).map(item => ({
+          mainTerm: normalizeText(item.search_term),
+          totalCount: Number(item.total_count),
+          zeroResultsCount: Number(item.zero_results_count),
+          variations: [item.search_term]
+        }));
+        setTerms(processedTerms.slice(0, 15));
+      }
     } catch (error) {
       console.error("Error fetching logs:", error);
     } finally {
