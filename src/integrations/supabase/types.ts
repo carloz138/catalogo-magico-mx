@@ -3411,6 +3411,32 @@ export type Database = {
           pending_quotes: number
         }[]
       }
+      get_smart_recommendations: {
+        Args: {
+          p_catalog_id?: string
+          p_limit?: number
+          p_product_ids: string[]
+          p_reseller_id?: string
+          p_scope?: string
+          p_target_category?: string
+          p_vendor_id?: string
+        }
+        Returns: {
+          allow_backorder: boolean
+          category: string
+          confidence_score: number
+          id: string
+          lead_time_days: number
+          name: string
+          original_image_url: string
+          price_retail: number
+          processed_image_url: string
+          recommendation_reason: string
+          source_type: string
+          stock_quantity: number
+          vendor_id: string
+        }[]
+      }
       get_subscribed_catalog_products: {
         Args: { p_subscriber_id: string }
         Returns: {
