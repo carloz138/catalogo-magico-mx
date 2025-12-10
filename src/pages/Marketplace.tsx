@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMarketplace, MarketplaceCatalog } from '@/hooks/useMarketplace';
 import { useSubscribedProducts } from '@/hooks/useSubscribedProducts';
+import { MarginModal } from '@/components/marketplace/MarginModal';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -15,21 +16,20 @@ import {
   Package,
   Search,
   CheckCircle,
-  Plus,
   ExternalLink,
   Loader2,
   ShoppingBag,
   Sparkles,
-  Users,
   Building
 } from 'lucide-react';
 
 export default function Marketplace() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { catalogs, loading, subscribing, subscribeToCatalog, unsubscribeFromCatalog } = useMarketplace();
-  const { products: subscribedProducts, productsByVendor, loading: loadingProducts } = useSubscribedProducts();
+  const { catalogs, loading, subscribing, subscribeWithMargin, unsubscribeFromCatalog } = useMarketplace();
+  const { products: subscribedProducts, productsByVendor, loading: loadingProducts, refetch: refetchProducts } = useSubscribedProducts();
   const [searchQuery, setSearchQuery] = useState('');
+  const [marginModalCatalog, setMarginModalCatalog] = useState<MarketplaceCatalog | null>(null);
 
   // Filter catalogs by search
   const filteredCatalogs = catalogs.filter(catalog => {
@@ -41,11 +41,24 @@ export default function Marketplace() {
     );
   });
 
-  const handleSubscribe = async (catalog: MarketplaceCatalog) => {
+  const handleSubscribeClick = (catalog: MarketplaceCatalog) => {
     if (catalog.is_subscribed) {
-      await unsubscribeFromCatalog(catalog.catalog_id);
+      unsubscribeFromCatalog(catalog.catalog_id);
     } else {
-      await subscribeToCatalog(catalog.catalog_id);
+      // Open margin modal for new subscriptions
+      setMarginModalCatalog(catalog);
+    }
+  };
+
+  const handleConfirmMargin = async (marginPercentage: number) => {
+    if (!marginModalCatalog) return;
+    
+    const result = await subscribeWithMargin(marginModalCatalog.catalog_id, marginPercentage);
+    if (result?.success) {
+      setMarginModalCatalog(null);
+      refetchProducts();
+      // Navigate to products tab
+      navigate('/marketplace?tab=products');
     }
   };
 
@@ -174,7 +187,7 @@ export default function Marketplace() {
                 <CatalogCard
                   key={catalog.catalog_id}
                   catalog={catalog}
-                  onSubscribe={handleSubscribe}
+                  onSubscribe={handleSubscribeClick}
                   isSubscribing={subscribing === catalog.catalog_id}
                 />
               ))}
@@ -229,6 +242,15 @@ export default function Marketplace() {
           )}
         </TabsContent>
       </Tabs>
+
+      {/* Margin Modal */}
+      <MarginModal
+        open={!!marginModalCatalog}
+        onOpenChange={(open) => !open && setMarginModalCatalog(null)}
+        catalogName={marginModalCatalog?.catalog_name || ''}
+        onConfirm={handleConfirmMargin}
+        isLoading={!!subscribing}
+      />
     </div>
   );
 }

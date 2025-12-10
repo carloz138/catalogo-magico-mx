@@ -3479,6 +3479,10 @@ export type Database = {
         Returns: boolean
       }
       subscribe_to_catalog: { Args: { p_catalog_id: string }; Returns: Json }
+      subscribe_with_margin: {
+        Args: { p_catalog_id: string; p_margin_percentage?: number }
+        Returns: Json
+      }
       update_product_field: {
         Args: { field_name: string; field_value: string; product_id: string }
         Returns: boolean
