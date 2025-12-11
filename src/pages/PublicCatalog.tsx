@@ -3,7 +3,8 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { DigitalCatalog } from "@/types/digital-catalog";
-import { Lock, AlertCircle, GitFork, Loader2 } from "lucide-react";
+// SECCIÓN MODIFICADA: Agregué iconos más comerciales (Banknote, Sparkles, Store)
+import { Lock, AlertCircle, Loader2, Banknote, Sparkles, Store, ChevronRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -418,34 +419,49 @@ export default function PublicCatalog({ subdomainSlug }: PublicCatalogProps = {}
       {/* ✅ Pasar propiedades nuevas al componente de contenido si fuera necesario */}
       <PublicCatalogContent catalog={catalog} onTrackEvent={trackEvent} subscribedVendorIds={subscribedVendorIds} />
 
-      {/* BARRA FLOTANTE DE VENDER AHORA */}
+      {/* --- UX MEJORADA: TARJETA FLOTANTE "VENDER AHORA" ---
+        Cambios:
+        1. Posicionamiento: Fixed Bottom-Left (Desktop) o Bottom (Mobile con max-width).
+           - md:left-6 md:bottom-6 md:right-auto: En PC se va a la esquina izquierda (no tapa el carrito a la derecha).
+           - Mobile: Se mantiene abajo pero como una "cápsula" flotante, no barra full-width.
+        2. Estilo: Glassmorphism suave + Borde sutil.
+        3. Animación: Slide-in y hover scale.
+      */}
       {canReplicate && (
-        <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/95 backdrop-blur border-t shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] z-50 flex items-center justify-between gap-4 animate-in slide-in-from-bottom duration-500 safe-area-bottom">
-          <div className="flex-1">
-            <h3 className="font-bold text-sm text-gray-900 flex items-center gap-2">
-              <GitFork className="w-4 h-4 text-purple-600" />
-              ¿Quieres vender estos productos?
-            </h3>
-            <p className="text-xs text-gray-500 hidden sm:block">
-              Impórtalos a tu tienda con un clic y gana comisiones.
-            </p>
+        <div className="fixed bottom-4 left-4 right-4 z-40 md:left-8 md:bottom-8 md:right-auto md:w-auto animate-in slide-in-from-bottom-4 duration-700 fade-in">
+          <div className="bg-white/90 backdrop-blur-md border border-purple-100 shadow-2xl rounded-2xl p-1 flex items-center gap-3 pr-2 md:max-w-sm ring-1 ring-black/5">
+            {/* Icon Box Visual */}
+            <div className="bg-gradient-to-br from-purple-600 to-indigo-600 w-12 h-12 rounded-xl flex items-center justify-center shrink-0 shadow-lg shadow-purple-200">
+              <Store className="w-6 h-6 text-white" />
+            </div>
+
+            <div className="flex-1 pl-1 min-w-0 py-1">
+              <h3 className="font-bold text-sm text-gray-900 leading-tight flex items-center gap-1">
+                Vende esto <Sparkles className="w-3 h-3 text-amber-500 fill-amber-500 animate-pulse" />
+              </h3>
+              <p className="text-[11px] text-gray-500 truncate leading-tight">Gana comisiones sin stock.</p>
+            </div>
+
+            <Button
+              onClick={handleSellNowClick}
+              size="sm"
+              className="bg-gray-900 hover:bg-black text-white font-medium rounded-lg px-3 py-4 shadow-lg hover:shadow-xl transition-all active:scale-95 shrink-0 group ml-2"
+            >
+              <span className="mr-1 text-emerald-400 font-bold">$</span>
+              Vender
+              <ChevronRight className="w-4 h-4 ml-1 opacity-70 group-hover:translate-x-0.5 transition-transform" />
+            </Button>
           </div>
-          <Button
-            onClick={handleSellNowClick}
-            className="bg-purple-600 hover:bg-purple-700 text-white font-semibold shadow-md shrink-0 transition-transform hover:scale-105"
-          >
-            Vender Ahora
-          </Button>
         </div>
       )}
 
-      {/* ✅ MODAL DE MARGEN (Corregido y con nombre) */}
+      {/* ✅ MODAL DE MARGEN */}
       <MarginModal
         open={isMarginModalOpen}
         onOpenChange={setIsMarginModalOpen}
         onConfirm={handleConfirmSubscription}
         isLoading={isProcessingSubscription}
-        catalogName={catalog?.name || "Catálogo"} // 👈 ESTA ERA LA LÍNEA FALTANTE
+        catalogName={catalog?.name || "Catálogo"}
       />
     </QuoteCartProvider>
   );
