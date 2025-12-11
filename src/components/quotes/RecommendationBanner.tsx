@@ -119,10 +119,14 @@ export const RecommendationBanner = ({ recommendations, onAddToCart, loading }: 
                   <span className="text-base font-bold text-slate-900">${(product.price_retail / 100).toFixed(2)}</span>
                 </div>
 
+                {/* Touch-friendly button (min 44px touch target) */}
                 <Button
                   size="sm"
-                  className="h-8 w-8 rounded-full p-0 bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white shadow-sm border border-indigo-100 transition-all"
-                  onClick={() => onAddToCart(product)}
+                  className="h-11 w-11 min-h-[44px] min-w-[44px] rounded-full p-0 bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white active:scale-95 shadow-sm border border-indigo-100 transition-all touch-manipulation"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onAddToCart(product);
+                  }}
                   title="Agregar recomendación"
                 >
                   <Plus className="w-5 h-5" />
