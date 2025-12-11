@@ -21,6 +21,7 @@ interface Props {
   onClose: () => void;
   onRequestQuote: () => void;
   catalogOwnerId: string | null;
+  catalogId?: string | null;
   freeShippingThreshold: number | null;
   minOrderAmount?: number | null;
   minOrderQuantity?: number | null;
@@ -89,7 +90,8 @@ export function QuoteCartModal({
   isOpen, 
   onClose, 
   onRequestQuote, 
-  catalogOwnerId, 
+  catalogOwnerId,
+  catalogId,
   freeShippingThreshold,
   minOrderAmount,
   minOrderQuantity,
@@ -140,7 +142,14 @@ export function QuoteCartModal({
   }, [totalAmount, freeShippingThreshold]);
 
   const productIdsInCart = useMemo(() => items.map((item) => item.product.id), [items]);
-  const { recommendations, loading: loadingRecommendations } = useProductRecommendations(productIdsInCart, catalogOwnerId);
+  
+  // Smart recommendations with CATALOG scope (strict filtering)
+  const { recommendations, loading: loadingRecommendations } = useProductRecommendations(
+    productIdsInCart, 
+    catalogOwnerId,
+    catalogId,
+    { scope: "CATALOG" }
+  );
 
   const handleAddToCartFromBanner = (productToAdd: Product) => {
     addItem(productToAdd, 1, "retail", productToAdd.price_retail);
@@ -197,10 +206,14 @@ export function QuoteCartModal({
                 <AnimatePresence>{readyItems.map(item => <CartItemRow key={`${item.product.id}-${item.variantId}`} item={item} updateQuantity={updateQuantity} removeItem={removeItem} isBackorder={false} />)}</AnimatePresence>
               </div>
             )}
-            {recommendations?.length > 0 && (
-              <div className="pt-4 border-t border-dashed">
-                <div className="flex items-center gap-2 mb-3"><Sparkles className="w-4 h-4 text-indigo-500" /><span className="text-sm font-bold">Te podría interesar</span></div>
-                <RecommendationBanner loading={loadingRecommendations} recommendations={recommendations} onAddToCart={handleAddToCartFromBanner} />
+            {/* Smart Recommendations - Mobile-First */}
+            {(recommendations?.length > 0 || loadingRecommendations) && (
+              <div className="mt-4 pt-4 bg-slate-50/80 -mx-6 px-4 sm:px-6 border-t border-dashed border-slate-200">
+                <RecommendationBanner 
+                  loading={loadingRecommendations} 
+                  recommendations={recommendations} 
+                  onAddToCart={handleAddToCartFromBanner} 
+                />
               </div>
             )}
           </div>

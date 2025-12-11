@@ -61,9 +61,12 @@ export default function ConsolidateOrderPage() {
     return items.filter((i) => selectedItems.has(i.variant_id || i.product_id)).map((i) => i.product_id);
   }, [items, selectedItems]);
 
+  // Smart recommendations with CATALOG scope for strict wholesale filtering
   const { recommendations, loading: loadingRecommendations } = useProductRecommendations(
     selectedProductIds,
     catalogInfo?.user_id || null,
+    supplierId || null,
+    { scope: "CATALOG" }
   );
 
   const handleAddRecommendation = (product: any) => {
@@ -239,7 +242,7 @@ export default function ConsolidateOrderPage() {
     .reduce((sum, i) => sum + i.quantity_to_order, 0);
 
   return (
-    <div className="min-h-screen bg-slate-50 p-3 md:p-8 pb-32">
+    <div className="min-h-screen bg-slate-50 p-3 md:p-8 pb-36">
       <div className="max-w-5xl mx-auto space-y-4 md:space-y-6">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -389,14 +392,17 @@ export default function ConsolidateOrderPage() {
               })}
             </div>
 
-            {selectedProductIds.length > 0 && (
-              <Card className="border-violet-100 bg-gradient-to-br from-violet-50/50 to-white overflow-hidden">
-                <CardContent className="p-3 md:p-4">
-                  <RecommendationBanner
-                    recommendations={recommendations}
-                    onAddToCart={handleAddRecommendation}
-                    loading={loadingRecommendations}
-                  />
+            {/* Smart Recommendations - Mobile-First Responsive */}
+            {(selectedProductIds.length > 0 && (recommendations?.length > 0 || loadingRecommendations)) && (
+              <Card className="border-violet-100 bg-gradient-to-br from-violet-50/50 to-white overflow-hidden shadow-sm">
+                <CardContent className="p-0">
+                  <div className="p-3 md:p-4">
+                    <RecommendationBanner
+                      recommendations={recommendations}
+                      onAddToCart={handleAddRecommendation}
+                      loading={loadingRecommendations}
+                    />
+                  </div>
                 </CardContent>
               </Card>
             )}
