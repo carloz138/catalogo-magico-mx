@@ -21,6 +21,7 @@ import {
   LayoutGrid,
   Search,
   Truck, // ✅ Icono para Surtir
+  Store,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -65,7 +66,9 @@ interface ReplicatedCatalogUI extends Partial<DigitalCatalog> {
   replicatedCatalogId: string;
   replicatedSlug: string;
   originalName: string;
+  originalCatalogId: string; // Necesario para consolidar
   isActive: boolean;
+  distributorId?: string; // ID del L1
 }
 
 type CatalogType = "all" | "pdf" | "digital";
@@ -237,7 +240,7 @@ const ReplicatedCatalogCard = ({
         <div className="relative h-32 bg-violet-50/50 overflow-hidden shrink-0">
           <div className="absolute top-3 left-4 right-3 flex justify-between items-start">
             <Badge variant="outline" className="bg-white/90 backdrop-blur text-violet-700 border-violet-200 shadow-sm">
-              <Share2 className="w-3 h-3 mr-1.5" /> Replicado (L2)
+              <Store className="w-3 h-3 mr-1.5" /> Replicado (L2)
             </Badge>
           </div>
           <div className="flex h-full items-center justify-center">
@@ -277,18 +280,18 @@ const ReplicatedCatalogCard = ({
             {/* 1. Gestionar Precios */}
             <Button
               size="sm"
-              className="bg-violet-600 hover:bg-violet-700 text-white shadow-sm h-8 text-xs w-full"
+              variant="outline"
+              className="border-violet-200 text-violet-700 hover:bg-violet-50 h-8 text-xs w-full"
               onClick={() => navigate(`/reseller/edit-prices?catalog_id=${catalog.replicatedCatalogId}`)}
             >
               <DollarSign className="w-3.5 h-3.5 mr-1" /> Precios
             </Button>
 
-            {/* 2. Surtir / Reabastecer */}
+            {/* 2. Surtir / Reabastecer (USAR ID ORIGINAL PARA BUSCAR EL PROVEEDOR) */}
             <Button
               size="sm"
-              variant="outline"
-              className="border-violet-200 text-violet-700 hover:bg-violet-50 h-8 text-xs w-full"
-              onClick={() => navigate(`/reseller/consolidate/${catalog.id}`)} // Usamos el ID original (L1) para buscar productos
+              className="bg-violet-600 hover:bg-violet-700 text-white shadow-sm h-8 text-xs w-full"
+              onClick={() => navigate(`/reseller/consolidate/${catalog.originalCatalogId}`)}
             >
               <Truck className="w-3.5 h-3.5 mr-1" /> Surtir
             </Button>
@@ -467,6 +470,7 @@ const Catalogs = () => {
     queryKey: ["replicated-catalogs", user?.id],
     queryFn: async () => {
       if (!user) return [];
+      // Consulta relajada: solo requiere que el reseller_id coincida
       const { data, error } = await supabase
         .from("replicated_catalogs")
         .select(
@@ -474,13 +478,14 @@ const Catalogs = () => {
             id, 
             slug, 
             is_active,
+            original_catalog_id,
             digital_catalogs (
-                id, name, description, is_private, view_count
+                id, name, description, is_private, view_count, user_id
             )
         `,
         )
         .eq("reseller_id", user.id)
-        .eq("is_active", true)
+        // .eq("is_active", true) // 👈 REMOVIDO: Para mostrar incluso si se desactivaron
         .order("activated_at", { ascending: false });
 
       if (error) throw error;
@@ -488,12 +493,14 @@ const Catalogs = () => {
       return (data || [])
         .map((r: any) => {
           const base = r.digital_catalogs;
-          if (!base) return null; // Si el catálogo padre se borró
+          if (!base) return null;
 
           return {
-            ...base, // ID original del proveedor
+            ...base,
             originalName: base.name,
-            replicatedCatalogId: r.id, // ID único de la réplica (para precios)
+            originalCatalogId: r.original_catalog_id, // Key para consolidar
+            distributorId: base.user_id,
+            replicatedCatalogId: r.id,
             replicatedSlug: r.slug,
             isActive: r.is_active,
           } as ReplicatedCatalogUI;
