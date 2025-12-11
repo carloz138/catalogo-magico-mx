@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { DigitalCatalog } from "@/types/digital-catalog";
-import { Lock, AlertCircle, GitFork } from "lucide-react";
+import { Lock, AlertCircle, GitFork, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,9 +11,11 @@ import { toast } from "@/hooks/use-toast";
 import { useMetaTracking } from "@/hooks/useMetaTracking";
 import { QuoteCartProvider } from "@/contexts/QuoteCartContext";
 import { Helmet } from "react-helmet-async";
-import { useUserRole } from "@/contexts/RoleContext"; // ✅ IMPORT NUEVO
+import { useUserRole } from "@/contexts/RoleContext";
 
 import { PublicCatalogContent } from "@/components/catalog/public/PublicCatalogContent";
+// ✅ IMPORT NUEVO: El modal de margen que creamos hoy
+import { MarginModal } from "@/components/marketplace/MarginModal";
 
 // --- TIPOS ---
 
@@ -32,13 +34,6 @@ interface Product {
   }>;
   is_reseller_product?: boolean;
 }
-
-type CloneResponse = {
-  success: boolean;
-  slug: string;
-  is_new: boolean;
-  catalog_id: string;
-};
 
 interface PublicCatalogProps {
   subdomainSlug?: string;
@@ -81,7 +76,6 @@ const ScriptInjector = ({ headScripts, bodyScripts }: { headScripts?: string | n
 export default function PublicCatalog({ subdomainSlug }: PublicCatalogProps = {}) {
   const { slug: pathSlug } = useParams();
   const navigate = useNavigate();
-  // ✅ HOOK NUEVO: Necesitamos refrescar el rol si un usuario logueado clona
   const { refreshRole } = useUserRole();
 
   const slug = subdomainSlug || pathSlug;
@@ -89,7 +83,10 @@ export default function PublicCatalog({ subdomainSlug }: PublicCatalogProps = {}
   const [accessPassword, setAccessPassword] = useState("");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
-  const [isCloning, setIsCloning] = useState(false);
+
+  // Estados para el flujo moderno de suscripción
+  const [isMarginModalOpen, setIsMarginModalOpen] = useState(false);
+  const [isProcessingSubscription, setIsProcessingSubscription] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -120,9 +117,11 @@ export default function PublicCatalog({ subdomainSlug }: PublicCatalogProps = {}
       let resellerId: string | undefined = undefined;
       let catalogHeader: any | null = null;
 
+      // 1. Intentar buscar en digital_catalogs (L1)
       let { data, error: errL1 } = await supabase.from("digital_catalogs").select(`*`).eq("slug", slug).maybeSingle();
 
       if (!data) {
+        // 2. Si no, buscar en replicated_catalogs (L2)
         const { data: replica } = await supabase
           .from("replicated_catalogs")
           .select(`*, digital_catalogs (*)`)
@@ -143,6 +142,7 @@ export default function PublicCatalog({ subdomainSlug }: PublicCatalogProps = {}
 
       if (!catalogHeader || !catalogIdToFetch) return null;
 
+      // 3. Si es replicado, sobreescribir branding con datos del Reseller
       if (isReplicated && resellerId) {
         const { data: businessInfo } = await supabase
           .from("business_info")
@@ -174,6 +174,7 @@ export default function PublicCatalog({ subdomainSlug }: PublicCatalogProps = {}
         }
       }
 
+      // 4. Fetch Products (L1 Original)
       const { data: rawL1Products, error: prodError } = await supabase
         .from("catalog_products")
         .select(`product_id, products!catalog_products_product_id_fkey (*)`)
@@ -183,6 +184,7 @@ export default function PublicCatalog({ subdomainSlug }: PublicCatalogProps = {}
 
       let l1Products = rawL1Products?.map((cp: any) => cp.products).filter(Boolean) || [];
 
+      // 5. Si es replicado, aplicar precios personalizados (Overlay Prices)
       if (isReplicated && replicatedCatalogId) {
         const { data: customPrices } = await supabase
           .from("reseller_product_prices")
@@ -205,6 +207,7 @@ export default function PublicCatalog({ subdomainSlug }: PublicCatalogProps = {}
         }
       }
 
+      // 6. Si el Reseller tiene productos propios, agregarlos (Hybrid Catalog)
       let l2Products: any[] = [];
       if (isReplicated && resellerId) {
         const { data: rawL2Products, error: l2Error } = await supabase
@@ -223,6 +226,7 @@ export default function PublicCatalog({ subdomainSlug }: PublicCatalogProps = {}
 
       const allProducts = [...l1Products, ...l2Products];
 
+      // Incrementar contador de visitas
       supabase.rpc("increment_view_count" as any, { row_id: catalogIdToFetch }).then();
 
       return {
@@ -242,21 +246,19 @@ export default function PublicCatalog({ subdomainSlug }: PublicCatalogProps = {}
   });
 
   // Fetch subscribed vendor IDs for L2 multi-vendor analytics attribution
-  // This runs after catalog is loaded to get the resellerId
   const { data: subscribedVendorIds = [] } = useQuery({
     queryKey: ["subscribed-vendors", catalog?.resellerId],
     queryFn: async () => {
       if (!catalog?.resellerId) return [];
-      
-      // Get all catalogs this reseller is subscribed to and extract owner IDs
+
       const { data: subscriptions } = await supabase
         .from("catalog_subscriptions")
         .select("original_catalog_id, digital_catalogs!catalog_subscriptions_original_catalog_id_fkey(user_id)")
         .eq("subscriber_id", catalog.resellerId)
         .eq("is_active", true);
-      
+
       if (!subscriptions) return [];
-      
+
       return subscriptions
         .map((s: any) => s.digital_catalogs?.user_id)
         .filter((id: string | null): id is string => id != null);
@@ -283,53 +285,58 @@ export default function PublicCatalog({ subdomainSlug }: PublicCatalogProps = {}
     }
   }, [catalog?.id]);
 
-  const handleReplication = async () => {
+  // --- LÓGICA DE BOTÓN VENDER AHORA ---
+  const handleSellNowClick = () => {
     if (!catalog) return;
 
     // A. Si no hay sesión: Guardar intención y redirigir
     if (!currentUser) {
-      // 🔥 ESTO ES CRÍTICO: Guardamos el ID para usarlo después del Login
       localStorage.setItem("pending_replication_catalog_id", catalog.id);
-
       toast({
         title: "Inicia sesión para vender",
-        description: "Regístrate o logueate para clonar este catálogo.",
+        description: "Crea una cuenta GRATIS para importar estos productos.",
       });
       navigate("/login?intent=replicate");
       return;
     }
 
-    // B. Si hay sesión: Ejecutar RPC
-    setIsCloning(true);
+    // B. Si hay sesión: Abrir Modal de Margen
+    setIsMarginModalOpen(true);
+  };
+
+  // --- LÓGICA DE CONFIRMACIÓN DEL MODAL ---
+  const handleConfirmSubscription = async (marginPercentage: number) => {
+    if (!catalog || !currentUser) return;
+
+    setIsProcessingSubscription(true);
     try {
-      const { data, error } = await supabase.rpc("clone_catalog_direct", {
-        p_original_catalog_id: catalog.id,
+      // Llamada al RPC moderno que calcula precios sobre costo mayoreo
+      const { data, error } = await supabase.rpc("subscribe_with_margin", {
+        p_catalog_id: catalog.id,
+        p_margin_percentage: marginPercentage,
       });
 
       if (error) throw error;
 
-      const result = data as unknown as CloneResponse;
-
-      if (result && result.success) {
-        toast({
-          title: "¡Catálogo clonado!",
-          description: "Ahora puedes configurar tus propios precios.",
-        });
-
-        // 🔥 FIX: Actualizar rol antes de navegar (por si era L1 puro)
-        await refreshRole();
-
-        navigate(`/reseller/edit-prices?catalog_id=${result.catalog_id}`);
-      }
-    } catch (err: any) {
-      console.error("Error cloning catalog:", err);
       toast({
-        title: "Error al clonar",
-        description: err.message || "No se pudo realizar la acción",
+        title: "¡Catálogo Importado!",
+        description: `Productos agregados con ${marginPercentage}% de margen.`,
+        className: "bg-green-50 border-green-200 text-green-800",
+      });
+
+      // Refrescar rol y redirigir
+      await refreshRole();
+      navigate("/products"); // Redirigir a "Mis Productos" para ver el inventario nuevo
+    } catch (err: any) {
+      console.error("Error subscribing:", err);
+      toast({
+        title: "Error al importar",
+        description: err.message || "Intenta de nuevo más tarde",
         variant: "destructive",
       });
     } finally {
-      setIsCloning(false);
+      setIsProcessingSubscription(false);
+      setIsMarginModalOpen(false);
     }
   };
 
@@ -345,7 +352,7 @@ export default function PublicCatalog({ subdomainSlug }: PublicCatalogProps = {}
     return (
       <div className="min-h-screen w-full flex flex-col items-center justify-center bg-slate-50 p-4 text-center">
         <AlertCircle className="h-8 w-8 text-slate-400 mb-4" />
-        <h1 className="text-2xl font-bold text-slate-900 mb-2">Enlace no disponible</h1>
+        <h1 className="text-2xl font-bold text-slate-900 mb-2">Catálogo no encontrado</h1>
         <Button variant="outline" className="mt-6" onClick={() => window.location.reload()}>
           Recargar página
         </Button>
@@ -385,6 +392,10 @@ export default function PublicCatalog({ subdomainSlug }: PublicCatalogProps = {}
     );
   }
 
+  // Mostrar botón "Vender Ahora" solo si:
+  // 1. El catálogo permite distribución (L1 lo activó)
+  // 2. NO es mi propio catálogo (L1 viendo su obra)
+  // 3. NO es ya un catálogo replicado (L2 viendo su tienda)
   const canReplicate =
     catalog.enable_distribution && (!currentUser || currentUser.id !== catalog.user_id) && !catalog.isReplicated;
 
@@ -405,30 +416,37 @@ export default function PublicCatalog({ subdomainSlug }: PublicCatalogProps = {}
 
       <ScriptInjector headScripts={catalog.tracking_head_scripts} bodyScripts={catalog.tracking_body_scripts} />
 
+      {/* ✅ Pasar propiedades nuevas al componente de contenido si fuera necesario */}
       <PublicCatalogContent catalog={catalog} onTrackEvent={trackEvent} subscribedVendorIds={subscribedVendorIds} />
 
+      {/* BARRA FLOTANTE DE VENDER AHORA */}
       {canReplicate && (
-        <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/95 backdrop-blur border-t shadow-lg z-50 flex items-center justify-between gap-4 animate-in slide-in-from-bottom duration-500">
+        <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/95 backdrop-blur border-t shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] z-50 flex items-center justify-between gap-4 animate-in slide-in-from-bottom duration-500 safe-area-bottom">
           <div className="flex-1">
-            <h3 className="font-semibold text-sm text-gray-900">¿Quieres vender estos productos?</h3>
-            <p className="text-xs text-gray-500 hidden sm:block">Clona este catálogo y empieza tu negocio hoy.</p>
+            <h3 className="font-bold text-sm text-gray-900 flex items-center gap-2">
+              <GitFork className="w-4 h-4 text-purple-600" />
+              ¿Quieres vender estos productos?
+            </h3>
+            <p className="text-xs text-gray-500 hidden sm:block">
+              Impórtalos a tu tienda con un clic y gana comisiones.
+            </p>
           </div>
           <Button
-            onClick={handleReplication}
-            disabled={isCloning}
-            className="bg-purple-600 hover:bg-purple-700 text-white shrink-0"
+            onClick={handleSellNowClick}
+            className="bg-purple-600 hover:bg-purple-700 text-white font-semibold shadow-md shrink-0 transition-transform hover:scale-105"
           >
-            {isCloning ? (
-              "Creando..."
-            ) : (
-              <>
-                <GitFork className="w-4 h-4 mr-2" />
-                Vender Ahora
-              </>
-            )}
+            Vender Ahora
           </Button>
         </div>
       )}
+
+      {/* ✅ MODAL DE MARGEN (Integración Nueva) */}
+      <MarginModal
+        isOpen={isMarginModalOpen}
+        onClose={() => setIsMarginModalOpen(false)}
+        onConfirm={handleConfirmSubscription}
+        isLoading={isProcessingSubscription}
+      />
     </QuoteCartProvider>
   );
 }
