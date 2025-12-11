@@ -14,7 +14,6 @@ import { Helmet } from "react-helmet-async";
 import { useUserRole } from "@/contexts/RoleContext";
 
 import { PublicCatalogContent } from "@/components/catalog/public/PublicCatalogContent";
-// ✅ IMPORT NUEVO: El modal de margen que creamos hoy
 import { MarginModal } from "@/components/marketplace/MarginModal";
 
 // --- TIPOS ---
@@ -440,10 +439,10 @@ export default function PublicCatalog({ subdomainSlug }: PublicCatalogProps = {}
         </div>
       )}
 
-     {/* ✅ MODAL DE MARGEN (Corregido para Shadcn UI) */}
-      <MarginModal 
-        open={isMarginModalOpen}             {/* Se usa 'open' en lugar de 'isOpen' */}
-        onOpenChange={setIsMarginModalOpen}  {/* Se usa 'onOpenChange' para manejar el cierre */}
+      {/* ✅ MODAL DE MARGEN (CORREGIDO FINAL) */}
+      <MarginModal
+        open={isMarginModalOpen}
+        onOpenChange={setIsMarginModalOpen}
         onConfirm={handleConfirmSubscription}
         isLoading={isProcessingSubscription}
       />
