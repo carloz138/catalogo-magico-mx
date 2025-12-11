@@ -439,12 +439,13 @@ export default function PublicCatalog({ subdomainSlug }: PublicCatalogProps = {}
         </div>
       )}
 
-      {/* ✅ MODAL DE MARGEN (CORREGIDO FINAL) */}
+      {/* ✅ MODAL DE MARGEN (Corregido y con nombre) */}
       <MarginModal
         open={isMarginModalOpen}
         onOpenChange={setIsMarginModalOpen}
         onConfirm={handleConfirmSubscription}
         isLoading={isProcessingSubscription}
+        catalogName={catalog?.name || "Catálogo"} // 👈 ESTA ERA LA LÍNEA FALTANTE
       />
     </QuoteCartProvider>
   );
