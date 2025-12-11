@@ -1,6 +1,8 @@
-import { ShoppingCart } from "lucide-react";
+import { ShoppingCart, Menu } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils"; // Asegúrate de tener cn importado, si no, quítalo y usa strings normales
+import { cn } from "@/lib/utils";
+// ✅ IMPORTANTE: Importamos la fuente de la verdad de los diseños
+import { EXPANDED_WEB_TEMPLATES } from "@/lib/web-catalog/expanded-templates-catalog";
 
 interface CatalogHeaderProps {
   businessName: string;
@@ -8,8 +10,9 @@ interface CatalogHeaderProps {
   catalogName: string;
   catalogDescription?: string | null;
   quoteItemCount?: number;
-  // ✅ NUEVO: Recibimos el color de la marca
+  // ✅ Recibimos el color directo O el ID del template para buscarlo
   primaryColor?: string;
+  templateId?: string;
 }
 
 export default function CatalogHeader({
@@ -19,64 +22,100 @@ export default function CatalogHeader({
   catalogDescription,
   quoteItemCount = 0,
   primaryColor,
+  templateId,
 }: CatalogHeaderProps) {
-  // Lógica simple: Si hay un color primario definido, asumimos que es un color fuerte
-  // y ponemos el texto en blanco. Si no, usamos los colores por defecto (fondo blanco, texto negro).
-  const hasCustomColor = !!primaryColor;
+  // 1. Lógica Inteligente de Color:
+  // Si no me das un color explícito, lo busco en la lista de templates usando el ID.
+  const activeTemplate = templateId ? EXPANDED_WEB_TEMPLATES.find((t) => t.id === templateId) : null;
+
+  const bgColor = primaryColor || activeTemplate?.colorScheme.primary;
+
+  // 2. Lógica de Contraste (Accesibilidad):
+  // Si el color de fondo es muy claro (ej. Amarillo), usamos texto oscuro.
+  // Si es oscuro (ej. Azul, Negro), usamos texto blanco.
+  // Nota: Si el template define un 'text' específico para el header, podríamos usarlo,
+  // pero por seguridad visual, invertiremos basado en el theme.
+  const isDarkTheme =
+    activeTemplate?.colorScheme.background === "#000000" || activeTemplate?.colorScheme.background === "#09090b";
+
+  // Si tenemos un color de fondo definido, asumimos que queremos texto blanco
+  // SALVO que sea un tema muy claro. Por simplicidad y elegancia,
+  // la mayoría de tus templates usan colores fuertes en "primary", así que blanco va bien.
+  const hasCustomColor = !!bgColor;
 
   return (
     <header
       className={cn(
-        "sticky top-0 border-b shadow-sm z-40 transition-colors duration-300",
-        // Si NO hay color personalizado, usa el fondo default
-        !hasCustomColor && "bg-background",
+        "sticky top-0 border-b shadow-sm z-40 transition-all duration-500",
+        // Mobile First: Padding ajustado para dedos
+        "py-3 md:py-4",
+        !hasCustomColor && "bg-background/95 backdrop-blur-md",
       )}
       style={
         hasCustomColor
           ? {
-              backgroundColor: primaryColor,
-              color: "#ffffff", // Forzamos texto blanco para contraste
+              backgroundColor: bgColor,
+              color: "#ffffff", // Por defecto texto blanco sobre color primario
               borderColor: "rgba(255,255,255,0.1)",
             }
           : undefined
       }
     >
-      <div className="container mx-auto px-4 py-4">
+      <div className="container mx-auto px-4">
         <div className="flex items-center justify-between gap-4">
-          {/* Business Branding */}
+          {/* --- BLOQUE IZQUIERDO: BRANDING --- */}
           <div className="flex items-center gap-3 min-w-0">
-            {businessLogo && (
+            {businessLogo ? (
               <img
                 src={businessLogo}
                 alt={businessName}
-                className="h-10 w-10 md:h-12 md:w-12 rounded-full object-cover flex-shrink-0 bg-white/10"
+                className="h-10 w-10 md:h-12 md:w-12 rounded-full object-cover flex-shrink-0 bg-white shadow-sm border border-white/20"
               />
+            ) : (
+              <div className="h-10 w-10 md:h-12 md:w-12 rounded-full bg-white/20 flex items-center justify-center font-bold text-lg uppercase flex-shrink-0">
+                {businessName.substring(0, 2)}
+              </div>
             )}
-            <div className="min-w-0">
+
+            <div className="min-w-0 flex flex-col justify-center">
               <h2
                 className={cn(
-                  "text-sm md:text-base font-semibold truncate",
-                  hasCustomColor ? "text-white" : "text-foreground",
+                  "text-xs md:text-sm font-medium tracking-wide opacity-90 truncate uppercase",
+                  hasCustomColor ? "text-white/90" : "text-muted-foreground",
                 )}
               >
                 {businessName}
               </h2>
+              <h1
+                className={cn(
+                  "text-lg md:text-xl font-bold truncate leading-tight",
+                  hasCustomColor ? "text-white" : "text-foreground",
+                )}
+              >
+                {catalogName}
+              </h1>
             </div>
           </div>
 
-          {/* Mobile Quote Button */}
+          {/* --- BLOQUE DERECHO: CARRITO (Mobile Optimized) --- */}
           {quoteItemCount > 0 && (
             <button
               className={cn(
-                "md:hidden relative p-2 rounded-full transition-colors",
-                hasCustomColor ? "hover:bg-white/20 text-white" : "hover:bg-accent text-foreground",
+                "relative p-3 rounded-full transition-transform active:scale-95",
+                hasCustomColor
+                  ? "bg-white/20 hover:bg-white/30 text-white shadow-inner"
+                  : "bg-secondary hover:bg-secondary/80 text-foreground",
               )}
+              aria-label="Ver carrito"
             >
-              <ShoppingCart className="h-5 w-5" />
+              <ShoppingCart className="h-5 w-5 md:h-6 md:w-6" />
+
               <Badge
                 className={cn(
-                  "absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center text-xs",
-                  hasCustomColor ? "bg-white text-black hover:bg-white/90" : "", // Badge invertido si hay fondo
+                  "absolute -top-1 -right-1 h-5 min-w-[20px] px-1 flex items-center justify-center text-[10px] font-bold border-2",
+                  hasCustomColor
+                    ? "bg-white text-black border-transparent" // Badge blanco sobre fondo color
+                    : "bg-black text-white border-white", // Badge negro sobre fondo blanco
                 )}
               >
                 {quoteItemCount}
@@ -85,27 +124,19 @@ export default function CatalogHeader({
           )}
         </div>
 
-        {/* Catalog Info */}
-        <div className="mt-4">
-          <h1
-            className={cn(
-              "text-xl md:text-2xl lg:text-3xl font-bold mb-2",
-              hasCustomColor ? "text-white" : "text-foreground",
-            )}
-          >
-            {catalogName}
-          </h1>
-          {catalogDescription && (
+        {/* --- DESCRIPCIÓN (Opcional, se oculta en scroll si quisieras animarlo después) --- */}
+        {catalogDescription && (
+          <div className="mt-3 hidden md:block animate-in fade-in slide-in-from-top-1 duration-500">
             <p
               className={cn(
-                "text-sm md:text-base line-clamp-2",
-                hasCustomColor ? "text-white/80" : "text-muted-foreground",
+                "text-sm md:text-base line-clamp-1 opacity-80",
+                hasCustomColor ? "text-white" : "text-muted-foreground",
               )}
             >
               {catalogDescription}
             </p>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </header>
   );
