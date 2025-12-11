@@ -440,10 +440,10 @@ export default function PublicCatalog({ subdomainSlug }: PublicCatalogProps = {}
         </div>
       )}
 
-      {/* ✅ MODAL DE MARGEN (Integración Nueva) */}
-      <MarginModal
-        isOpen={isMarginModalOpen}
-        onClose={() => setIsMarginModalOpen(false)}
+     {/* ✅ MODAL DE MARGEN (Corregido para Shadcn UI) */}
+      <MarginModal 
+        open={isMarginModalOpen}             {/* Se usa 'open' en lugar de 'isOpen' */}
+        onOpenChange={setIsMarginModalOpen}  {/* Se usa 'onOpenChange' para manejar el cierre */}
         onConfirm={handleConfirmSubscription}
         isLoading={isProcessingSubscription}
       />
