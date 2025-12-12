@@ -27,14 +27,11 @@ type RecommendedProduct = Product & {
   source_type?: string;
 };
 
-// 🧼 HELPER: Limpia UUIDs para evitar Error 400
-// Si recibe "", undefined o strings raros, devuelve null
-const cleanUUID = (id: string | null | undefined): string | null => {
-  if (!id) return null;
-  if (id.trim() === "") return null;
-  // Validación básica de formato UUID (8-4-4-4-12 caracteres)
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  return uuidRegex.test(id) ? id : null;
+// Helper para limpiar IDs individuales
+const cleanString = (val: string | null | undefined): string | null => {
+  if (!val) return null;
+  const trimmed = val.trim();
+  return trimmed === "" ? null : trimmed;
 };
 
 export const useProductRecommendations = (
@@ -56,12 +53,27 @@ export const useProductRecommendations = (
   const vendorId = options?.vendorId ?? null;
   const targetCategory = options?.targetCategory ?? null;
 
+  // Clave para detectar cambios en el carrito
   const cartIdsKey = useMemo(() => JSON.stringify(currentCartProductIds.sort()), [currentCartProductIds]);
 
   useEffect(() => {
     const fetchRecommendations = async () => {
-      // Validación básica
-      if (!catalogOwnerId || currentCartProductIds.length === 0) {
+      // 1. LIMPIEZA DE ARRAY (CRÍTICO PARA EVITAR ERROR 400)
+      // Filtramos IDs basura dentro del array
+      const validProductIds = currentCartProductIds
+        .map((id) => cleanString(id))
+        .filter((id) => id !== null) as string[];
+
+      // LOG DE DIAGNÓSTICO 🚨
+      console.group("🔍 DIAGNÓSTICO RECOMENDADOR");
+      console.log("1. IDs Originales:", currentCartProductIds);
+      console.log("2. IDs Limpios:", validProductIds);
+      console.log("3. Owner ID:", catalogOwnerId);
+      console.log("4. Catalog ID:", currentCatalogId);
+
+      if (!catalogOwnerId || validProductIds.length === 0) {
+        console.log("❌ ABORTANDO: Faltan datos críticos.");
+        console.groupEnd();
         setRecommendations([]);
         return;
       }
@@ -69,26 +81,28 @@ export const useProductRecommendations = (
       setLoading(true);
 
       try {
-        // 🧼 SANITIZACIÓN DE DATOS (Aquí arreglamos el Error 400)
-        // Convertimos cualquier "undefined" o string vacío a NULL explícito
-        const safeParams = {
-          p_product_ids: currentCartProductIds,
+        // Preparamos el paquete de datos
+        const rpcPayload = {
+          p_product_ids: validProductIds, // Enviamos solo los limpios
           p_scope: scope,
-          p_catalog_id: cleanUUID(currentCatalogId),
-          p_reseller_id: cleanUUID(resellerId),
-          p_vendor_id: cleanUUID(vendorId),
-          p_target_category: targetCategory || null, // Strings vacíos a null
+          p_catalog_id: cleanString(currentCatalogId),
+          p_reseller_id: cleanString(resellerId),
+          p_vendor_id: cleanString(vendorId),
+          p_target_category: cleanString(targetCategory),
           p_limit: 5,
         };
 
-        console.log("🔥 [Hook] Enviando Params Limpios:", safeParams);
+        console.log("🚀 PAYLOAD FINAL A SUPABASE:", JSON.stringify(rpcPayload, null, 2));
 
-        const { data, error } = await supabase.rpc("get_smart_recommendations", safeParams);
+        // Llamada RPC
+        const { data, error } = await supabase.rpc("get_smart_recommendations", rpcPayload);
 
         if (error) {
-          console.error("🔥 [Hook] Error RPC:", error);
+          console.error("💥 ERROR SUPABASE (400/500):", error);
+          console.error("Detalle:", error.message, error.details, error.hint);
           setRecommendations([]);
         } else {
+          console.log("✅ ÉXITO. Datos recibidos:", data);
           const results = (data as unknown as SmartRecommendation[]) || [];
 
           const formattedResults: RecommendedProduct[] = results.map(
@@ -116,9 +130,10 @@ export const useProductRecommendations = (
           setRecommendations(formattedResults.slice(0, 3));
         }
       } catch (err) {
-        console.error("🔥 [Hook] Error inesperado:", err);
+        console.error("💀 ERROR FATAL JS:", err);
         setRecommendations([]);
       } finally {
+        console.groupEnd();
         setLoading(false);
       }
     };
