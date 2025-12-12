@@ -5,7 +5,6 @@ import { type Tables } from "@/integrations/supabase/types";
 type Product = Tables<"products">;
 export type RecommendationScope = "CATALOG" | "STORE" | "GLOBAL";
 
-// ... (Mismos tipos de antes: SmartRecommendation, RecommendedProduct) ...
 type SmartRecommendation = {
   id: string;
   name: string;
@@ -26,6 +25,16 @@ type RecommendedProduct = Product & {
   reason: string;
   confidence: number;
   source_type?: string;
+};
+
+// 🧼 HELPER: Limpia UUIDs para evitar Error 400
+// Si recibe "", undefined o strings raros, devuelve null
+const cleanUUID = (id: string | null | undefined): string | null => {
+  if (!id) return null;
+  if (id.trim() === "") return null;
+  // Validación básica de formato UUID (8-4-4-4-12 caracteres)
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(id) ? id : null;
 };
 
 export const useProductRecommendations = (
@@ -51,17 +60,8 @@ export const useProductRecommendations = (
 
   useEffect(() => {
     const fetchRecommendations = async () => {
-      // 🕵️ LOG 1: VERIFICAR ENTRADAS
-      console.log("🔥 [Hook] Iniciando búsqueda...", {
-        cartIds: currentCartProductIds,
-        catalogOwnerId,
-        currentCatalogId, // <--- OJO AQUÍ: Si esto es undefined/null en scope CATALOG, fallará.
-        scope,
-        resellerId,
-      });
-
+      // Validación básica
       if (!catalogOwnerId || currentCartProductIds.length === 0) {
-        console.log("🔥 [Hook] Cancelado: Faltan datos (Owner o Carrito vacío)");
         setRecommendations([]);
         return;
       }
@@ -69,26 +69,27 @@ export const useProductRecommendations = (
       setLoading(true);
 
       try {
-        const rpcParams = {
+        // 🧼 SANITIZACIÓN DE DATOS (Aquí arreglamos el Error 400)
+        // Convertimos cualquier "undefined" o string vacío a NULL explícito
+        const safeParams = {
           p_product_ids: currentCartProductIds,
           p_scope: scope,
-          p_catalog_id: currentCatalogId ?? null,
-          p_reseller_id: resellerId,
-          p_vendor_id: vendorId,
-          p_target_category: targetCategory,
+          p_catalog_id: cleanUUID(currentCatalogId),
+          p_reseller_id: cleanUUID(resellerId),
+          p_vendor_id: cleanUUID(vendorId),
+          p_target_category: targetCategory || null, // Strings vacíos a null
           p_limit: 5,
         };
 
-        console.log("🔥 [Hook] Enviando a RPC:", rpcParams);
+        console.log("🔥 [Hook] Enviando Params Limpios:", safeParams);
 
-        const { data, error } = await supabase.rpc("get_smart_recommendations", rpcParams);
+        const { data, error } = await supabase.rpc("get_smart_recommendations", safeParams);
 
         if (error) {
           console.error("🔥 [Hook] Error RPC:", error);
           setRecommendations([]);
         } else {
           const results = (data as unknown as SmartRecommendation[]) || [];
-          console.log(`🔥 [Hook] Resultados recibidos: ${results.length}`, results); // <--- ¿Llega vacío aquí?
 
           const formattedResults: RecommendedProduct[] = results.map(
             (rec) =>
