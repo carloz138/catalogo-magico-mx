@@ -34,7 +34,7 @@ import {
   Share2,
 } from "lucide-react";
 import { DigitalCatalog } from "@/types/digital-catalog";
-import { QuoteCartModal } from "@/components/public/QuoteCartModal"; // Asegúrate que esta ruta sea la correcta (a veces es @/components/cart/QuoteCartModal)
+import { QuoteCartModal } from "@/components/public/QuoteCartModal";
 import { QuoteForm } from "@/components/public/QuoteForm";
 import { useDebounce } from "@/hooks/useDebounce";
 import { supabase } from "@/integrations/supabase/client";
@@ -86,7 +86,7 @@ interface PublicCatalogContentProps {
     };
   };
   onTrackEvent: (event: string, data?: any) => void;
-  subscribedVendorIds?: string[]; // IDs of all L1 vendors this L2 reseller is subscribed to
+  subscribedVendorIds?: string[];
 }
 
 // --- ANIMACIONES ---
@@ -132,6 +132,8 @@ const PublicProductCard = ({ product, onAdd, onView }: { product: Product; onAdd
         <button
           onClick={(e) => {
             e.stopPropagation();
+            // 🚨 LOG 1: Clic detectado en tarjeta
+            console.log("🖱️ [UI] Clic en botón + del producto:", product.name);
             onAdd();
           }}
           className="absolute bottom-3 right-3 h-10 w-10 md:h-11 md:w-11 bg-white text-slate-900 rounded-full flex items-center justify-center shadow-lg shadow-slate-200/50 opacity-100 md:opacity-0 md:group-hover:opacity-100 md:translate-y-4 md:group-hover:translate-y-0 transition-all duration-300 hover:bg-indigo-600 hover:text-white z-20 active:scale-95"
@@ -200,7 +202,18 @@ export function PublicCatalogContent({ catalog, onTrackEvent, subscribedVendorId
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
 
-  // --- LÓGICA TEMPLATES ---
+  // 🚨 LOG DE DIAGNÓSTICO DEL CATÁLOGO
+  // Queremos ver si el catálogo tiene ID antes de renderizar nada
+  useEffect(() => {
+    console.log("🔍 [Page Load] Catálogo Cargado:", {
+      id: catalog.id,
+      name: catalog.name,
+      ownerId: catalog.user_id,
+      productsCount: catalog.products?.length || 0,
+    });
+  }, [catalog.id]);
+
+  // --- LÓGICA TEMPLATES (Mantenida igual) ---
   const activeTemplate = useMemo(
     () => EXPANDED_WEB_TEMPLATES.find((t) => t.id === catalog.web_template_id) || EXPANDED_WEB_TEMPLATES[0],
     [catalog.web_template_id],
@@ -324,6 +337,8 @@ export function PublicCatalogContent({ catalog, onTrackEvent, subscribedVendorId
   };
 
   const handleSmartAdd = (product: Product) => {
+    // 🚨 LOG 2: Entrando a lógica Smart Add
+    console.log("🧠 [Logic] handleSmartAdd invocado para:", product.id);
     const hasVariants = product.has_variants || (product.variants && product.variants.length > 0);
 
     if (hasVariants) {
@@ -335,6 +350,9 @@ export function PublicCatalogContent({ catalog, onTrackEvent, subscribedVendorId
   };
 
   const addToCartSimple = (product: Product) => {
+    // 🚨 LOG 3: Preparando producto para Context
+    console.log("🛒 [Context] addToCartSimple invocado. ID:", product.id);
+
     const productForContext = {
       id: product.id,
       name: product.name,
@@ -347,6 +365,7 @@ export function PublicCatalogContent({ catalog, onTrackEvent, subscribedVendorId
     };
 
     addItem(productForContext, 1, "retail", product.price_retail || 0, null, null);
+
     toast({
       title: "¡Agregado!",
       description: (
@@ -437,6 +456,13 @@ export function PublicCatalogContent({ catalog, onTrackEvent, subscribedVendorId
     }
   };
 
+  // 🚨 LOG 4: Verificación de Props al Modal
+  console.log("📦 [Props -> Modal] Enviando datos al Modal:", {
+    isOpen: isCartOpen,
+    catalogId: catalog.id,
+    catalogOwnerId: catalog.user_id,
+  });
+
   // --- RENDER ---
   return (
     <div className="catalog-public-container min-h-screen bg-slate-50/50 pb-24 md:pb-20 font-sans flex flex-col">
@@ -444,6 +470,7 @@ export function PublicCatalogContent({ catalog, onTrackEvent, subscribedVendorId
 
       {/* BANNER HERO */}
       <div className="relative bg-slate-900 overflow-hidden shadow-lg">
+        {/* ... (Banner code same as before) ... */}
         <div
           className="absolute inset-0 bg-cover bg-center"
           style={{
@@ -472,7 +499,7 @@ export function PublicCatalogContent({ catalog, onTrackEvent, subscribedVendorId
       </div>
 
       <div className="container mx-auto px-4 -mt-8 relative z-20 flex-1">
-        {/* TOOLBAR */}
+        {/* TOOLBAR (Same as before) */}
         <div className="bg-white rounded-xl shadow-xl shadow-slate-200/40 p-4 mb-8 border border-slate-100">
           <div className="flex flex-col gap-4">
             <div className="flex flex-col md:flex-row gap-3">
@@ -503,6 +530,7 @@ export function PublicCatalogContent({ catalog, onTrackEvent, subscribedVendorId
                     </Button>
                   </SheetTrigger>
                   <SheetContent side="left" className="w-[85vw] sm:w-[400px] overflow-y-auto">
+                    {/* ... (Filters Content) ... */}
                     <SheetHeader className="mb-6 text-left">
                       <SheetTitle className="text-xl font-bold">Filtrar Catálogo</SheetTitle>
                     </SheetHeader>
@@ -541,6 +569,7 @@ export function PublicCatalogContent({ catalog, onTrackEvent, subscribedVendorId
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-80 p-4 shadow-xl border-slate-100" align="end">
+                    {/* ... (Price Filter Content) ... */}
                     <div className="space-y-4">
                       <h4 className="font-semibold text-slate-900">Rango de Precio</h4>
                       <div className="flex items-center gap-2">
@@ -660,6 +689,7 @@ export function PublicCatalogContent({ catalog, onTrackEvent, subscribedVendorId
       {catalog.business_info && (
         <div className="bg-slate-900 text-white mt-12 py-12 px-4 relative z-20">
           <div className="container mx-auto max-w-4xl">
+            {/* ... (Footer Content) ... */}
             <div className="grid md:grid-cols-2 gap-8 items-center">
               <div>
                 <h3 className="text-2xl font-bold mb-4">{catalog.business_info.business_name}</h3>
@@ -753,8 +783,9 @@ export function PublicCatalogContent({ catalog, onTrackEvent, subscribedVendorId
         )}
       </AnimatePresence>
 
-      {/* MODAL DETALLES PRODUCTO */}
+      {/* MODAL DETALLES PRODUCTO (Mantenido Igual) */}
       <Dialog open={!!selectedProduct} onOpenChange={(open) => !open && setSelectedProduct(null)}>
+        {/* ... (Dialog Content from your file) ... */}
         <DialogContent className="max-w-3xl w-full p-0 overflow-hidden bg-transparent border-none shadow-2xl rounded-xl">
           <div className="relative bg-white flex flex-col md:flex-row h-full md:max-h-[85vh]">
             <div className="w-full md:w-2/3 bg-slate-100 flex items-center justify-center relative aspect-square md:aspect-auto min-h-[300px]">
@@ -884,8 +915,9 @@ export function PublicCatalogContent({ catalog, onTrackEvent, subscribedVendorId
         businessAddress={null}
       />
 
-      {/* MODAL RADAR */}
+      {/* MODAL RADAR (Mantenido Igual) */}
       <Dialog open={showRadarModal} onOpenChange={setShowRadarModal}>
+        {/* ... */}
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <div className="mx-auto w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center mb-4">
