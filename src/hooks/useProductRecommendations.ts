@@ -54,7 +54,7 @@ export const useProductRecommendations = (
     resellerId?: string | null;
     vendorId?: string | null;
     targetCategory?: string | null;
-  }
+  },
 ) => {
   const [recommendations, setRecommendations] = useState<RecommendedProduct[]>([]);
   const [loading, setLoading] = useState(false);
@@ -68,10 +68,7 @@ export const useProductRecommendations = (
   const targetCategory = options?.targetCategory ?? null;
 
   // Memoized cart IDs key for dependency tracking
-  const cartIdsKey = useMemo(
-    () => JSON.stringify(currentCartProductIds.sort()),
-    [currentCartProductIds]
-  );
+  const cartIdsKey = useMemo(() => JSON.stringify(currentCartProductIds.sort()), [currentCartProductIds]);
 
   // 1. FETCH OWNER PLAN
   useEffect(() => {
@@ -107,13 +104,13 @@ export const useProductRecommendations = (
         return;
       }
 
-      const level = ownerPlan.analytics_level;
+      /* const level = ownerPlan.analytics_level;
 
       // Only 'pro' level gets recommendations
       if (level !== "pro") {
         setRecommendations([]);
         return;
-      }
+      } */
 
       setLoading(true);
 
@@ -139,25 +136,28 @@ export const useProductRecommendations = (
         const results = (data as unknown as SmartRecommendation[]) || [];
 
         // Transform to RecommendedProduct format
-        const formattedResults: RecommendedProduct[] = results.map((rec) => ({
-          id: rec.id,
-          name: rec.name,
-          price_retail: rec.price_retail,
-          processed_image_url: rec.processed_image_url,
-          original_image_url: rec.original_image_url,
-          stock_quantity: rec.stock_quantity,
-          allow_backorder: rec.allow_backorder,
-          lead_time_days: rec.lead_time_days,
-          category: rec.category,
-          vendor_id: rec.vendor_id,
-          reason: rec.recommendation_reason,
-          confidence: rec.confidence_score,
-          source_type: rec.source_type,
-          // Fill in required Product fields with defaults
-          user_id: "",
-          created_at: "",
-          updated_at: "",
-        } as RecommendedProduct));
+        const formattedResults: RecommendedProduct[] = results.map(
+          (rec) =>
+            ({
+              id: rec.id,
+              name: rec.name,
+              price_retail: rec.price_retail,
+              processed_image_url: rec.processed_image_url,
+              original_image_url: rec.original_image_url,
+              stock_quantity: rec.stock_quantity,
+              allow_backorder: rec.allow_backorder,
+              lead_time_days: rec.lead_time_days,
+              category: rec.category,
+              vendor_id: rec.vendor_id,
+              reason: rec.recommendation_reason,
+              confidence: rec.confidence_score,
+              source_type: rec.source_type,
+              // Fill in required Product fields with defaults
+              user_id: "",
+              created_at: "",
+              updated_at: "",
+            }) as RecommendedProduct,
+        );
 
         setRecommendations(formattedResults.slice(0, 3)); // Show max 3 in UI
       } catch (err) {
