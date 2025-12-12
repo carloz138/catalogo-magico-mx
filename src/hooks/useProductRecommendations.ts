@@ -4,11 +4,6 @@ import { type Tables } from "@/integrations/supabase/types";
 
 type Product = Tables<"products">;
 
-type OwnerPlan = {
-  name: string;
-  analytics_level: "basic" | "advanced" | "pro";
-};
-
 // Recommendation scope types
 export type RecommendationScope = "CATALOG" | "STORE" | "GLOBAL";
 
@@ -26,7 +21,7 @@ type SmartRecommendation = {
   vendor_id: string | null;
   recommendation_reason: string;
   confidence_score: number;
-  source_type: string; // 'mba', 'similar', 'top_sold', 'category_network'
+  source_type: string;
 };
 
 type RecommendedProduct = Product & {
@@ -34,16 +29,6 @@ type RecommendedProduct = Product & {
   confidence: number;
   source_type?: string;
 };
-
-interface UseProductRecommendationsOptions {
-  currentCartProductIds?: string[];
-  catalogOwnerId: string | null;
-  currentCatalogId?: string | null;
-  scope?: RecommendationScope;
-  resellerId?: string | null;
-  vendorId?: string | null;
-  targetCategory?: string | null;
-}
 
 export const useProductRecommendations = (
   currentCartProductIds: string[] = [],
@@ -58,8 +43,6 @@ export const useProductRecommendations = (
 ) => {
   const [recommendations, setRecommendations] = useState<RecommendedProduct[]>([]);
   const [loading, setLoading] = useState(false);
-  const [ownerPlan, setOwnerPlan] = useState<OwnerPlan | null>(null);
-  const [loadingPlan, setLoadingPlan] = useState(true);
 
   // Extract options with defaults
   const scope = options?.scope ?? "CATALOG";
@@ -70,53 +53,20 @@ export const useProductRecommendations = (
   // Memoized cart IDs key for dependency tracking
   const cartIdsKey = useMemo(() => JSON.stringify(currentCartProductIds.sort()), [currentCartProductIds]);
 
-  // 1. FETCH OWNER PLAN
-  useEffect(() => {
-    if (!catalogOwnerId) {
-      setOwnerPlan(null);
-      setLoadingPlan(false);
-      return;
-    }
-
-    const fetchOwnerPlan = async () => {
-      setLoadingPlan(true);
-      const { data, error } = await supabase.rpc("fn_get_owner_plan_details" as any, {
-        p_owner_id: catalogOwnerId,
-      });
-
-      if (error) {
-        console.error("Error fetching owner plan:", error);
-        setOwnerPlan(null);
-      } else {
-        setOwnerPlan(data as unknown as OwnerPlan);
-      }
-      setLoadingPlan(false);
-    };
-    fetchOwnerPlan();
-  }, [catalogOwnerId]);
-
-  // 2. FETCH SMART RECOMMENDATIONS
+  // FETCH SMART RECOMMENDATIONS (Direct Access for Everyone)
   useEffect(() => {
     const fetchRecommendations = async () => {
-      // Validation
-      if (loadingPlan || !ownerPlan || !catalogOwnerId || currentCartProductIds.length === 0) {
+      // Basic Validation: We need at least one product in cart to recommend something
+      if (!catalogOwnerId || currentCartProductIds.length === 0) {
         setRecommendations([]);
         return;
       }
-
-      /* const level = ownerPlan.analytics_level;
-
-      // Only 'pro' level gets recommendations
-      if (level !== "pro") {
-        setRecommendations([]);
-        return;
-      } */
 
       setLoading(true);
 
       try {
         // Call the smart recommendations RPC
-        const { data, error } = await supabase.rpc("get_smart_recommendations" as any, {
+        const { data, error } = await supabase.rpc("get_smart_recommendations", {
           p_product_ids: currentCartProductIds,
           p_scope: scope,
           p_catalog_id: currentCatalogId ?? null,
@@ -152,7 +102,7 @@ export const useProductRecommendations = (
               reason: rec.recommendation_reason,
               confidence: rec.confidence_score,
               source_type: rec.source_type,
-              // Fill in required Product fields with defaults
+              // Fill in required Product fields with defaults needed for UI
               user_id: "",
               created_at: "",
               updated_at: "",
@@ -169,17 +119,7 @@ export const useProductRecommendations = (
     };
 
     fetchRecommendations();
-  }, [
-    cartIdsKey,
-    catalogOwnerId,
-    ownerPlan,
-    loadingPlan,
-    currentCatalogId,
-    scope,
-    resellerId,
-    vendorId,
-    targetCategory,
-  ]);
+  }, [cartIdsKey, catalogOwnerId, currentCatalogId, scope, resellerId, vendorId, targetCategory]);
 
   return { recommendations, loading };
 };
