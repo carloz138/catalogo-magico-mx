@@ -71,6 +71,7 @@ import MarketRadar from "@/pages/MarketRadar";
 import Marketplace from "@/pages/Marketplace";
 import BankingSettings from "@/pages/dashboard/BankingSettings";
 import OrdersPage from "@/pages/orders/index";
+import SupplierOrdersPage from "@/pages/supplier/SupplierOrdersPage"; // ✅ NUEVA PÁGINA IMPORTADA
 
 const queryClient = new QueryClient();
 
@@ -159,8 +160,11 @@ const App = () => {
                           <Route path="/quotes" element={<QuotesPage />} />
                           <Route path="/quotes/:id" element={<QuoteDetailPage />} />
 
-                          {/* Logística */}
+                          {/* Logística L2 (Mis Pedidos como cliente) */}
                           <Route path="/orders" element={<OrdersPage />} />
+
+                          {/* ✅ Logística L1 (Surtir Pedidos) */}
+                          <Route path="/supplier/orders" element={<SupplierOrdersPage />} />
 
                           {/* Red y Revendedores */}
                           <Route path="/market-radar" element={<MarketRadar />} />
