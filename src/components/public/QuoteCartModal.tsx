@@ -24,7 +24,7 @@ import { useProductRecommendations } from "@/hooks/useProductRecommendations";
 import { RecommendationBanner } from "@/components/quotes/RecommendationBanner";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
-// Asegúrate de que este archivo exista (lo creó Lovable anteriormente)
+// Asegúrate de que la ruta a 'cart-validation' sea correcta en tu proyecto
 import { validateCartRules, getProgressMessage, type WholesaleRules, type CartItem } from "@/lib/utils/cart-validation";
 
 type Product = Tables<"products">;
@@ -34,14 +34,14 @@ interface Props {
   onClose: () => void;
   onRequestQuote: () => void;
   catalogOwnerId: string | null;
-  catalogId?: string | null; // ID del catálogo actual
+  catalogId?: string | null;
   freeShippingThreshold: number | null;
   minOrderAmount?: number | null;
   minOrderQuantity?: number | null;
-  isWholesaleOnly?: boolean; // Flag para saber si es L1 estricto
+  isWholesaleOnly?: boolean;
 }
 
-// --- SUBCOMPONENTE: FILA DEL CARRITO ---
+// --- Fila de Producto ---
 function CartItemRow({
   item,
   updateQuantity,
@@ -120,7 +120,7 @@ function CartItemRow({
   );
 }
 
-// --- COMPONENTE PRINCIPAL ---
+// --- Componente Principal ---
 export function QuoteCartModal({
   isOpen,
   onClose,
@@ -145,7 +145,7 @@ export function QuoteCartModal({
     maxLeadTimeDays,
   } = useQuoteCart();
 
-  // 1. VALIDACIÓN DE REGLAS DE MAYOREO (Backend Logic en Frontend)
+  // 1. VALIDACIÓN DE REGLAS MAYORISTAS
   const wholesaleValidation = useMemo(() => {
     const rules: WholesaleRules = {
       is_wholesale_only: isWholesaleOnly ?? false,
@@ -163,7 +163,6 @@ export function QuoteCartModal({
     return validateCartRules(cartItems, rules);
   }, [items, minOrderAmount, minOrderQuantity, isWholesaleOnly]);
 
-  // Mensaje de progreso ("Te faltan $500")
   const progressMessage = useMemo(() => {
     const rules: WholesaleRules = {
       is_wholesale_only: isWholesaleOnly ?? false,
@@ -179,7 +178,7 @@ export function QuoteCartModal({
     return getProgressMessage(cartItems, rules);
   }, [items, minOrderAmount, minOrderQuantity, isWholesaleOnly]);
 
-  // 2. STATUS DE ENVÍO GRATIS
+  // 2. ENVÍO GRATIS
   const shippingStatus = useMemo(() => {
     if (!freeShippingThreshold) return null;
     const progress = Math.min(100, (totalAmount / freeShippingThreshold) * 100);
@@ -187,17 +186,15 @@ export function QuoteCartModal({
     return { progress, amountLeft, isQualified: totalAmount >= freeShippingThreshold };
   }, [totalAmount, freeShippingThreshold]);
 
-  // 3. SISTEMA DE RECOMENDACIONES (FIXED)
+  // 3. RECOMENDADOR INTELIGENTE (HOOK V2)
   const productIdsInCart = useMemo(() => items.map((item) => item.product.id), [items]);
 
   const { recommendations, loading: loadingRecommendations } = useProductRecommendations(
-    productIdsInCart,
-    catalogOwnerId,
-    catalogId, // ⬅️ Argumento 3: ID del Catálogo (String o null)
+    productIdsInCart, // Arg 1: IDs
+    catalogOwnerId, // Arg 2: Dueño
+    catalogId, // Arg 3: Catálogo Actual
     {
-      // ⬅️ Argumento 4: Opciones (Objeto)
-      // Si es "Solo Mayoreo" (L1), usamos Scope CATALOG para filtrar estricto.
-      // Si NO (L2 Super Catalogo), usamos Scope STORE para buscar en todo el inventario.
+      // Arg 4: Opciones (Scope dinámico)
       scope: isWholesaleOnly ? "CATALOG" : "STORE",
     },
   );
@@ -205,8 +202,6 @@ export function QuoteCartModal({
   const handleAddToCartFromBanner = (productToAdd: Product) => {
     addItem(productToAdd, 1, "retail", productToAdd.price_retail);
   };
-
-  // --- RENDER ---
 
   if (items.length === 0) {
     return (
@@ -233,7 +228,6 @@ export function QuoteCartModal({
           </div>
         </SheetHeader>
 
-        {/* Barra de Envío Gratis */}
         {shippingStatus && (
           <div className={cn("px-6 py-3 border-b", shippingStatus.isQualified ? "bg-emerald-50" : "bg-slate-50")}>
             <div className="flex justify-between text-sm mb-1">
@@ -256,7 +250,6 @@ export function QuoteCartModal({
 
         <ScrollArea className="flex-1 px-6">
           <div className="py-4 space-y-4">
-            {/* Sección Backorder */}
             {hasBackorderItems && (
               <div className="space-y-3">
                 <div className="flex items-center gap-2 text-amber-700">
@@ -282,7 +275,6 @@ export function QuoteCartModal({
               </div>
             )}
 
-            {/* Sección Disponible */}
             {readyItems.length > 0 && (
               <div className="space-y-3">
                 {hasBackorderItems && (
@@ -305,7 +297,7 @@ export function QuoteCartModal({
               </div>
             )}
 
-            {/* Banner de Recomendaciones (Siempre visible si hay datos) */}
+            {/* Banner de Recomendaciones */}
             {(recommendations?.length > 0 || loadingRecommendations) && (
               <div className="mt-4 pt-4 bg-slate-50/80 -mx-6 px-4 sm:px-6 border-t border-dashed border-slate-200">
                 <RecommendationBanner
@@ -318,9 +310,8 @@ export function QuoteCartModal({
           </div>
         </ScrollArea>
 
-        {/* Footer */}
         <div className="border-t p-6 space-y-4 bg-white z-10">
-          {/* Alerta de Bloqueo por Mínimos */}
+          {/* Bloqueo por Mínimos */}
           {!wholesaleValidation.isValid && (
             <Alert variant="destructive" className="bg-amber-50 border-amber-200 text-amber-800">
               <AlertTriangle className="h-4 w-4 text-amber-600" />
@@ -335,9 +326,8 @@ export function QuoteCartModal({
             </Alert>
           )}
 
-          {/* Mensaje de Progreso (Casi llegas) */}
           {wholesaleValidation.isValid && progressMessage && (
-            <p className="text-xs text-muted-foreground text-center animate-pulse">{progressMessage}</p>
+            <p className="text-xs text-muted-foreground text-center">{progressMessage}</p>
           )}
 
           <div className="flex justify-between font-bold text-lg">
@@ -349,11 +339,7 @@ export function QuoteCartModal({
             <Button variant="outline" onClick={clearCart} className="col-span-1">
               <Trash2 className="h-4 w-4" />
             </Button>
-            <Button
-              onClick={onRequestQuote}
-              className="col-span-3"
-              disabled={!wholesaleValidation.isValid} // 🚫 Bloqueo Real
-            >
+            <Button onClick={onRequestQuote} className="col-span-3" disabled={!wholesaleValidation.isValid}>
               Solicitar Cotización <ArrowRight className="h-4 w-4 ml-2" />
             </Button>
           </div>
