@@ -34,7 +34,7 @@ import {
   Share2,
 } from "lucide-react";
 import { DigitalCatalog } from "@/types/digital-catalog";
-import { QuoteCartModal } from "@/components/public/QuoteCartModal";
+import { QuoteCartModal } from "@/components/public/QuoteCartModal"; // Asegúrate que esta ruta sea la correcta (a veces es @/components/cart/QuoteCartModal)
 import { QuoteForm } from "@/components/public/QuoteForm";
 import { useDebounce } from "@/hooks/useDebounce";
 import { supabase } from "@/integrations/supabase/client";
@@ -284,24 +284,18 @@ export function PublicCatalogContent({ catalog, onTrackEvent, subscribedVendorId
     if (debouncedSearch && debouncedSearch.length > 2) {
       const logSearch = async () => {
         let relatedVendorIds: string[] = [];
-        
+
         if (filteredProducts.length > 0) {
-          // SCENARIO A: Results Found - Extract unique vendor IDs from displayed products
-          // This ensures each L1 vendor gets credit for searches that return their products
-          relatedVendorIds = [...new Set(
-            filteredProducts
-              .map((p: Product) => p.vendor_id || p.user_id)
-              .filter((id): id is string => id != null)
-          )];
+          relatedVendorIds = [
+            ...new Set(
+              filteredProducts.map((p: Product) => p.vendor_id || p.user_id).filter((id): id is string => id != null),
+            ),
+          ];
         } else {
-          // SCENARIO B: No Results (Market Radar Signal)
-          // Notify ALL vendors that supply this reseller so they see the demand signal
-          // Use subscribedVendorIds if available (L2 marketplace context), else fallback to catalog owner
-          relatedVendorIds = subscribedVendorIds.length > 0 
-            ? subscribedVendorIds 
-            : (catalog.user_id ? [catalog.user_id] : []);
+          relatedVendorIds =
+            subscribedVendorIds.length > 0 ? subscribedVendorIds : catalog.user_id ? [catalog.user_id] : [];
         }
-        
+
         await supabase.from("search_logs").insert({
           catalog_id: catalog.id,
           search_term: debouncedSearch,
@@ -759,11 +753,10 @@ export function PublicCatalogContent({ catalog, onTrackEvent, subscribedVendorId
         )}
       </AnimatePresence>
 
-      {/* ✅ MODAL PRINCIPAL REDISEÑADO (Estilo "Ojo" Original + Controles de Compra) */}
+      {/* MODAL DETALLES PRODUCTO */}
       <Dialog open={!!selectedProduct} onOpenChange={(open) => !open && setSelectedProduct(null)}>
         <DialogContent className="max-w-3xl w-full p-0 overflow-hidden bg-transparent border-none shadow-2xl rounded-xl">
           <div className="relative bg-white flex flex-col md:flex-row h-full md:max-h-[85vh]">
-            {/* COLUMNA IZQUIERDA: IMAGEN (2/3 del ancho) */}
             <div className="w-full md:w-2/3 bg-slate-100 flex items-center justify-center relative aspect-square md:aspect-auto min-h-[300px]">
               {selectedProduct && (selectedProduct.image_url || selectedProduct.original_image_url) ? (
                 <img
@@ -777,16 +770,12 @@ export function PublicCatalogContent({ catalog, onTrackEvent, subscribedVendorId
                   <span>Sin imagen</span>
                 </div>
               )}
-
-              {/* ÚNICO BOTÓN DE CERRAR FLOTANTE */}
               <DialogClose className="absolute top-3 right-3 bg-black/50 text-white hover:bg-black/70 rounded-full p-2 backdrop-blur-sm transition-colors z-10 cursor-pointer">
                 <X className="h-5 w-5" />
               </DialogClose>
             </div>
 
-            {/* COLUMNA DERECHA: DETALLES Y CONTROLES (1/3 del ancho) */}
             <div className="w-full md:w-1/3 bg-white flex flex-col h-full border-l border-slate-100">
-              {/* Área scrolleable para detalles */}
               <div className="p-6 overflow-y-auto flex-1">
                 {selectedProduct && (
                   <>
@@ -814,7 +803,6 @@ export function PublicCatalogContent({ catalog, onTrackEvent, subscribedVendorId
                       {selectedProduct.description || "Sin descripción disponible para este producto."}
                     </p>
 
-                    {/* SELECTOR DE VARIANTES */}
                     {selectedProduct.variants && selectedProduct.variants.length > 0 && (
                       <div className="space-y-3 mb-8">
                         <Label className="text-slate-900 font-medium text-sm">Opciones disponibles</Label>
@@ -840,7 +828,6 @@ export function PublicCatalogContent({ catalog, onTrackEvent, subscribedVendorId
                 )}
               </div>
 
-              {/* Footer Fijo con Cantidad y Botón */}
               <div className="p-4 border-t border-slate-100 bg-slate-50/80 mt-auto backdrop-blur-sm">
                 <div className="flex items-center gap-3">
                   <div className="flex items-center bg-white border border-slate-200 rounded-lg h-11 shrink-0">
@@ -871,12 +858,16 @@ export function PublicCatalogContent({ catalog, onTrackEvent, subscribedVendorId
         </DialogContent>
       </Dialog>
 
+      {/* ✅ QUOTE CART MODAL: CON TODOS LOS PROPS NECESARIOS */}
       <QuoteCartModal
         isOpen={isCartOpen}
         onClose={() => setIsCartOpen(false)}
         onRequestQuote={handleSubmitQuote}
         catalogOwnerId={catalog.user_id}
+        // 👇 CONEXIÓN CRÍTICA PARA EL RECOMENDADOR
+        catalogId={catalog.id}
         freeShippingThreshold={catalog.free_shipping_min_amount || null}
+        // 👇 CONEXIÓN PARA VALIDACIÓN DE MAYOREO
         minOrderAmount={catalog.min_order_amount ?? null}
         minOrderQuantity={catalog.min_order_quantity ?? null}
         isWholesaleOnly={catalog.is_wholesale_only ?? false}
