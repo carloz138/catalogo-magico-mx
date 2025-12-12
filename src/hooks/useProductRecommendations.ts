@@ -5,7 +5,7 @@ import { type Tables } from "@/integrations/supabase/types";
 type Product = Tables<"products">;
 export type RecommendationScope = "CATALOG" | "STORE" | "GLOBAL";
 
-// ... (Tipos sin cambios) ...
+// Estructura que devuelve la Base de Datos (V2)
 type SmartRecommendation = {
   id: string;
   name: string;
@@ -22,10 +22,18 @@ type SmartRecommendation = {
   source_type: string;
 };
 
+// Estructura que usa el Frontend
 type RecommendedProduct = Product & {
   reason: string;
   confidence: number;
   source_type?: string;
+};
+
+// Helper para limpiar strings vacíos o undefined
+const cleanString = (val: string | null | undefined): string | null => {
+  if (!val) return null;
+  const trimmed = val.trim();
+  return trimmed === "" ? null : trimmed;
 };
 
 export const useProductRecommendations = (
@@ -47,12 +55,18 @@ export const useProductRecommendations = (
   const vendorId = options?.vendorId ?? null;
   const targetCategory = options?.targetCategory ?? null;
 
+  // Clave para detectar cambios en el carrito y evitar re-renders infinitos
   const cartIdsKey = useMemo(() => JSON.stringify(currentCartProductIds.sort()), [currentCartProductIds]);
 
   useEffect(() => {
     const fetchRecommendations = async () => {
-      // Validación estricta antes de enviar
-      if (!catalogOwnerId || currentCartProductIds.length === 0) {
+      // 1. Limpieza de IDs del carrito (Filtrar nulos/vacíos)
+      const validProductIds = currentCartProductIds
+        .map((id) => cleanString(id))
+        .filter((id) => id !== null) as string[];
+
+      // Validación básica: Si no hay dueño o productos, no hay recomendaciones
+      if (!catalogOwnerId || validProductIds.length === 0) {
         setRecommendations([]);
         return;
       }
@@ -60,31 +74,33 @@ export const useProductRecommendations = (
       setLoading(true);
 
       try {
-        // ✅ ESTRATEGIA JSON: Empaquetamos todo en un solo objeto 'payload'
+        // 2. Construcción del Payload JSON (Para la función V2)
         const payloadObject = {
-          product_ids: currentCartProductIds,
+          product_ids: validProductIds,
           scope: scope,
-          catalog_id: currentCatalogId || null,
-          reseller_id: resellerId || null,
-          vendor_id: vendorId || null,
-          target_category: targetCategory || null,
+          catalog_id: cleanString(currentCatalogId),
+          reseller_id: cleanString(resellerId),
+          vendor_id: cleanString(vendorId),
+          target_category: cleanString(targetCategory),
           limit: 5,
         };
 
-        console.log("🚀 [Hook V2] Enviando Payload JSON:", payloadObject);
+        console.log("🚀 [Hook V2] Enviando Payload:", payloadObject);
 
-        // Llamamos a la nueva función V2
-        const { data, error } = await supabase.rpc("get_smart_recommendations_v2", {
-          payload: payloadObject, // Pasamos el objeto completo como un solo parámetro
+        // 3. Llamada RPC a la versión V2 (Usamos 'as any' para evitar error de tipos de TS)
+        const { data, error } = await supabase.rpc("get_smart_recommendations_v2" as any, {
+          payload: payloadObject,
         });
 
         if (error) {
-          console.error("💥 [Hook V2] Error:", error);
+          console.error("💥 [Hook V2] Error Supabase:", error);
           setRecommendations([]);
         } else {
-          console.log("✅ [Hook V2] Éxito:", data);
+          console.log("✅ [Hook V2] Recomendaciones recibidas:", data);
+
           const results = (data as unknown as SmartRecommendation[]) || [];
 
+          // Mapeo de snake_case (DB) a camelCase (Frontend)
           const formattedResults: RecommendedProduct[] = results.map(
             (rec) =>
               ({
@@ -101,16 +117,16 @@ export const useProductRecommendations = (
                 reason: rec.recommendation_reason,
                 confidence: rec.confidence_score,
                 source_type: rec.source_type,
-                user_id: "",
+                user_id: "", // Defaults necesarios para el tipo Product
                 created_at: "",
                 updated_at: "",
               }) as RecommendedProduct,
           );
 
-          setRecommendations(formattedResults.slice(0, 3));
+          setRecommendations(formattedResults.slice(0, 3)); // Mostrar máx 3
         }
       } catch (err) {
-        console.error("💀 [Hook V2] Error JS:", err);
+        console.error("💀 [Hook V2] Error inesperado JS:", err);
         setRecommendations([]);
       } finally {
         setLoading(false);
