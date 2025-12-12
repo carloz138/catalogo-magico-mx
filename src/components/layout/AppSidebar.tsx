@@ -39,6 +39,7 @@ import {
   Landmark,
   Truck,
   ShoppingBag,
+  PackageCheck, // ✅ NUEVO ICONO PARA SURTIDO
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -123,7 +124,13 @@ export function AppSidebar() {
   // NOTA: "NONE" = usuarios free sin suscripción activa ni catálogos replicados
   // Deben poder ver opciones básicas para explorar la plataforma
   const allNavigationItems: MenuItem[] = [
-    { title: "Dashboard", path: "/dashboard", icon: LayoutDashboard, primary: true, roles: ["L1", "L2", "BOTH", "NONE"] },
+    {
+      title: "Dashboard",
+      path: "/dashboard",
+      icon: LayoutDashboard,
+      primary: true,
+      roles: ["L1", "L2", "BOTH", "NONE"],
+    },
     {
       title: "Cotizaciones",
       path: "/quotes",
@@ -141,6 +148,16 @@ export function AppSidebar() {
       roles: ["L1", "L2", "BOTH"],
       badge: stats?.orders && stats.orders > 0 ? stats.orders : undefined,
       badgeColor: "bg-emerald-500 text-white border-emerald-600 animate-pulse",
+    },
+    // ✅ NUEVO ITEM: Surtir Pedidos (Para Proveedores L1)
+    {
+      title: "Surtir Pedidos (L1)",
+      path: "/supplier/orders",
+      icon: PackageCheck,
+      primary: true,
+      roles: ["L1", "L2", "BOTH", "NONE"], // Visible para todos para fomentar que se vuelvan proveedores
+      badge: "B2B",
+      badgeColor: "bg-blue-500/20 text-blue-200 border-blue-500/30",
     },
     { title: "Mis Catálogos", path: "/catalogs", icon: BookOpen, primary: true, roles: ["L1", "L2", "BOTH", "NONE"] },
     {
@@ -194,12 +211,14 @@ export function AppSidebar() {
   ];
 
   const { userRole } = useUserRole();
-  
+
   const navigationItems = allNavigationItems.filter((item) => {
     if (!item.roles) return true;
     // Permitir acceso basado en el rol actual del usuario
-    return item.roles.includes(userRole) || 
-           (isBoth && (item.roles.includes("L1") || item.roles.includes("L2") || item.roles.includes("BOTH")));
+    return (
+      item.roles.includes(userRole) ||
+      (isBoth && (item.roles.includes("L1") || item.roles.includes("L2") || item.roles.includes("BOTH")))
+    );
   });
 
   const getWarningConfig = () => {
