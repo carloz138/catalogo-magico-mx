@@ -5,8 +5,20 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Minus, Plus, Trash2, ShoppingCart, Truck, ArrowRight, Sparkles, X, Factory, Clock, AlertTriangle } from "lucide-react";
-import { useQuoteCart, type QuoteItem, type CartProduct } from "@/contexts/QuoteCartContext";
+import {
+  Minus,
+  Plus,
+  Trash2,
+  ShoppingCart,
+  Truck,
+  ArrowRight,
+  Sparkles,
+  X,
+  Factory,
+  Clock,
+  AlertTriangle,
+} from "lucide-react";
+import { useQuoteCart, type QuoteItem } from "@/contexts/QuoteCartContext";
 import { type Tables } from "@/integrations/supabase/types";
 import { useProductRecommendations } from "@/hooks/useProductRecommendations";
 import { RecommendationBanner } from "@/components/quotes/RecommendationBanner";
@@ -29,19 +41,19 @@ interface Props {
 }
 
 // Cart Item Row Component
-function CartItemRow({ 
-  item, 
-  updateQuantity, 
-  removeItem, 
-  isBackorder 
-}: { 
-  item: QuoteItem; 
+function CartItemRow({
+  item,
+  updateQuantity,
+  removeItem,
+  isBackorder,
+}: {
+  item: QuoteItem;
   updateQuantity: (productId: string, priceType: string, quantity: number, variantId?: string | null) => void;
   removeItem: (productId: string, priceType: string, variantId?: string | null) => void;
   isBackorder: boolean;
 }) {
   const imageUrl = item.product.processed_image_url || item.product.original_image_url;
-  
+
   return (
     <motion.div
       layout
@@ -63,21 +75,42 @@ function CartItemRow({
             </p>
           </div>
           <div className="text-xs text-slate-500 mt-1 flex flex-wrap gap-1">
-            {item.variantDescription && <span className="bg-slate-100 px-1.5 py-0.5 rounded">{item.variantDescription}</span>}
-            {isBackorder && <Badge variant="outline" className="text-[10px] border-amber-300 text-amber-700">Bajo pedido</Badge>}
+            {item.variantDescription && (
+              <span className="bg-slate-100 px-1.5 py-0.5 rounded">{item.variantDescription}</span>
+            )}
+            {isBackorder && (
+              <Badge variant="outline" className="text-[10px] border-amber-300 text-amber-700">
+                Bajo pedido
+              </Badge>
+            )}
           </div>
         </div>
         <div className="flex items-center justify-between mt-2">
           <div className="flex items-center bg-slate-50 rounded-lg border border-slate-200 p-0.5">
-            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => updateQuantity(item.product.id, item.priceType, item.quantity - 1, item.variantId)}>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6"
+              onClick={() => updateQuantity(item.product.id, item.priceType, item.quantity - 1, item.variantId)}
+            >
               <Minus className="h-3 w-3" />
             </Button>
             <span className="w-6 text-center text-sm font-medium">{item.quantity}</span>
-            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => updateQuantity(item.product.id, item.priceType, item.quantity + 1, item.variantId)}>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6"
+              onClick={() => updateQuantity(item.product.id, item.priceType, item.quantity + 1, item.variantId)}
+            >
               <Plus className="h-3 w-3" />
             </Button>
           </div>
-          <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-300 hover:text-red-500" onClick={() => removeItem(item.product.id, item.priceType, item.variantId)}>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 text-slate-300 hover:text-red-500"
+            onClick={() => removeItem(item.product.id, item.priceType, item.variantId)}
+          >
             <Trash2 className="h-4 w-4" />
           </Button>
         </div>
@@ -86,18 +119,29 @@ function CartItemRow({
   );
 }
 
-export function QuoteCartModal({ 
-  isOpen, 
-  onClose, 
-  onRequestQuote, 
+export function QuoteCartModal({
+  isOpen,
+  onClose,
+  onRequestQuote,
   catalogOwnerId,
   catalogId,
   freeShippingThreshold,
   minOrderAmount,
   minOrderQuantity,
-  isWholesaleOnly 
+  isWholesaleOnly,
 }: Props) {
-  const { items, updateQuantity, removeItem, clearCart, totalAmount, addItem, backorderItems, readyItems, hasBackorderItems, maxLeadTimeDays } = useQuoteCart();
+  const {
+    items,
+    updateQuantity,
+    removeItem,
+    clearCart,
+    totalAmount,
+    addItem,
+    backorderItems,
+    readyItems,
+    hasBackorderItems,
+    maxLeadTimeDays,
+  } = useQuoteCart();
 
   // Wholesale rules validation
   const wholesaleValidation = useMemo(() => {
@@ -107,7 +151,7 @@ export function QuoteCartModal({
       min_order_amount: minOrderAmount ?? 0,
     };
 
-    const cartItems: CartItem[] = items.map(item => ({
+    const cartItems: CartItem[] = items.map((item) => ({
       product_id: item.product.id,
       quantity: item.quantity,
       unit_price: item.unitPrice,
@@ -124,7 +168,7 @@ export function QuoteCartModal({
       min_order_amount: minOrderAmount ?? 0,
     };
 
-    const cartItems: CartItem[] = items.map(item => ({
+    const cartItems: CartItem[] = items.map((item) => ({
       product_id: item.product.id,
       quantity: item.quantity,
       unit_price: item.unitPrice,
@@ -142,13 +186,18 @@ export function QuoteCartModal({
   }, [totalAmount, freeShippingThreshold]);
 
   const productIdsInCart = useMemo(() => items.map((item) => item.product.id), [items]);
-  
-  // Smart recommendations with CATALOG scope (strict filtering)
+
+  // ✅ CORRECCIÓN AQUÍ: Pasamos los argumentos correctamente empaquetados
   const { recommendations, loading: loadingRecommendations } = useProductRecommendations(
-    productIdsInCart, 
+    productIdsInCart,
     catalogOwnerId,
-    catalogId,
-    { scope: "CATALOG" }
+    {
+      // Si es un Super Catálogo (que puede tener productos de varios orígenes),
+      // es mejor usar el scope 'STORE' para buscar en todo el inventario del revendedor.
+      // Si es "Wholesale Only" (L1 puro), usamos 'CATALOG'.
+      scope: isWholesaleOnly ? "CATALOG" : "STORE",
+      catalogId: catalogId || undefined,
+    },
   );
 
   const handleAddToCartFromBanner = (productToAdd: Product) => {
@@ -174,14 +223,26 @@ export function QuoteCartModal({
         <SheetHeader className="px-6 py-4 border-b">
           <div className="flex items-center justify-between">
             <SheetTitle>Tu Pedido ({items.length})</SheetTitle>
-            <SheetClose><X className="h-5 w-5" /></SheetClose>
+            <SheetClose>
+              <X className="h-5 w-5" />
+            </SheetClose>
           </div>
         </SheetHeader>
 
         {shippingStatus && (
           <div className={cn("px-6 py-3 border-b", shippingStatus.isQualified ? "bg-emerald-50" : "bg-slate-50")}>
             <div className="flex justify-between text-sm mb-1">
-              <span className="flex items-center gap-1">{shippingStatus.isQualified ? <><Sparkles className="w-4 h-4 text-emerald-500" /> ¡Envío Gratis!</> : <><Truck className="w-4 h-4" /> Envío</>}</span>
+              <span className="flex items-center gap-1">
+                {shippingStatus.isQualified ? (
+                  <>
+                    <Sparkles className="w-4 h-4 text-emerald-500" /> ¡Envío Gratis!
+                  </>
+                ) : (
+                  <>
+                    <Truck className="w-4 h-4" /> Envío
+                  </>
+                )}
+              </span>
               {!shippingStatus.isQualified && <span>Faltan ${(shippingStatus.amountLeft / 100).toFixed(2)}</span>}
             </div>
             <Progress value={shippingStatus.progress} className="h-2" />
@@ -195,24 +256,54 @@ export function QuoteCartModal({
                 <div className="flex items-center gap-2 text-amber-700">
                   <Factory className="h-4 w-4" />
                   <span className="text-sm font-medium">Requiere Producción ({backorderItems.length})</span>
-                  {maxLeadTimeDays > 0 && <Badge variant="outline" className="ml-auto text-xs"><Clock className="h-3 w-3 mr-1" />~{maxLeadTimeDays} días</Badge>}
+                  {maxLeadTimeDays > 0 && (
+                    <Badge variant="outline" className="ml-auto text-xs">
+                      <Clock className="h-3 w-3 mr-1" />~{maxLeadTimeDays} días
+                    </Badge>
+                  )}
                 </div>
-                <AnimatePresence>{backorderItems.map(item => <CartItemRow key={`${item.product.id}-${item.variantId}`} item={item} updateQuantity={updateQuantity} removeItem={removeItem} isBackorder />)}</AnimatePresence>
+                <AnimatePresence>
+                  {backorderItems.map((item) => (
+                    <CartItemRow
+                      key={`${item.product.id}-${item.variantId}`}
+                      item={item}
+                      updateQuantity={updateQuantity}
+                      removeItem={removeItem}
+                      isBackorder
+                    />
+                  ))}
+                </AnimatePresence>
               </div>
             )}
             {readyItems.length > 0 && (
               <div className="space-y-3">
-                {hasBackorderItems && <div className="flex items-center gap-2 text-slate-600"><ShoppingCart className="h-4 w-4" /><span className="text-sm font-medium">Disponible ({readyItems.length})</span></div>}
-                <AnimatePresence>{readyItems.map(item => <CartItemRow key={`${item.product.id}-${item.variantId}`} item={item} updateQuantity={updateQuantity} removeItem={removeItem} isBackorder={false} />)}</AnimatePresence>
+                {hasBackorderItems && (
+                  <div className="flex items-center gap-2 text-slate-600">
+                    <ShoppingCart className="h-4 w-4" />
+                    <span className="text-sm font-medium">Disponible ({readyItems.length})</span>
+                  </div>
+                )}
+                <AnimatePresence>
+                  {readyItems.map((item) => (
+                    <CartItemRow
+                      key={`${item.product.id}-${item.variantId}`}
+                      item={item}
+                      updateQuantity={updateQuantity}
+                      removeItem={removeItem}
+                      isBackorder={false}
+                    />
+                  ))}
+                </AnimatePresence>
               </div>
             )}
+
             {/* Smart Recommendations - Mobile-First */}
             {(recommendations?.length > 0 || loadingRecommendations) && (
               <div className="mt-4 pt-4 bg-slate-50/80 -mx-6 px-4 sm:px-6 border-t border-dashed border-slate-200">
-                <RecommendationBanner 
-                  loading={loadingRecommendations} 
-                  recommendations={recommendations} 
-                  onAddToCart={handleAddToCartFromBanner} 
+                <RecommendationBanner
+                  loading={loadingRecommendations}
+                  recommendations={recommendations}
+                  onAddToCart={handleAddToCartFromBanner}
                 />
               </div>
             )}
@@ -242,12 +333,10 @@ export function QuoteCartModal({
             <span>${(totalAmount / 100).toFixed(2)}</span>
           </div>
           <div className="grid grid-cols-4 gap-2">
-            <Button variant="outline" onClick={clearCart} className="col-span-1"><Trash2 className="h-4 w-4" /></Button>
-            <Button 
-              onClick={onRequestQuote} 
-              className="col-span-3"
-              disabled={!wholesaleValidation.isValid}
-            >
+            <Button variant="outline" onClick={clearCart} className="col-span-1">
+              <Trash2 className="h-4 w-4" />
+            </Button>
+            <Button onClick={onRequestQuote} className="col-span-3" disabled={!wholesaleValidation.isValid}>
               Solicitar Cotización <ArrowRight className="h-4 w-4 ml-2" />
             </Button>
           </div>
