@@ -419,7 +419,7 @@ export default function PublicCatalog({ subdomainSlug }: PublicCatalogProps = {}
       {/* ✅ Pasar propiedades nuevas al componente de contenido si fuera necesario */}
       <PublicCatalogContent catalog={catalog} onTrackEvent={trackEvent} subscribedVendorIds={subscribedVendorIds} />
 
-      {/* --- UX MEJORADA: TARJETA FLOTANTE "VENDER AHORA" ---
+      {/* --- UX MEJORADA: TARJETA FLOTANTE "VENDER AHORA" --- 
         Cambios:
         1. Posicionamiento: Fixed Bottom-Left (Desktop) o Bottom (Mobile con max-width).
            - md:left-6 md:bottom-6 md:right-auto: En PC se va a la esquina izquierda (no tapa el carrito a la derecha).
