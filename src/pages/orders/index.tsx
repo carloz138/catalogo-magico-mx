@@ -47,8 +47,7 @@ const formatMoney = (amountInCents: number) => {
   }).format(amountInCents / 100);
 };
 
-// --- COMPONENTE INTELIGENTE PARA MOSTRAR DIRECCIÓN ---
-// Maneja tanto el formato viejo (string) como el nuevo (JSON) sin romper nada
+// --- COMPONENTE INTELIGENTE PARA MOSTRAR DIRECCIÓN (CORREGIDO) ---
 const AddressDisplay = ({ address }: { address: string | ShippingAddressStructured | null }) => {
   if (!address) return <p className="text-sm text-slate-400 italic">No especificada</p>;
 
@@ -74,8 +73,8 @@ const AddressDisplay = ({ address }: { address: string | ShippingAddressStructur
     );
   }
 
-  // Caso 2: Es texto plano (Pedidos viejos)
-  return <p className="text-sm text-slate-600 whitespace-pre-wrap">{address}</p>;
+  // Caso 2: Es texto plano (Pedidos viejos) - FORZAMOS EL TIPO STRING
+  return <p className="text-sm text-slate-600 whitespace-pre-wrap">{address as string}</p>;
 };
 
 // --- TIPOS INTERNOS ---
@@ -332,7 +331,6 @@ export default function UnifiedOrdersPage() {
 
           {/* === TAB 2: WHOLESALE === */}
           <TabsContent value="wholesale" className="space-y-6 animate-in fade-in-50">
-            {/* ... (Contenido Wholesale igual que antes) ... */}
             <div className="flex gap-4 mb-4">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
@@ -440,7 +438,6 @@ export default function UnifiedOrdersPage() {
       {/* --- MODAL 2: WHOLESALE --- */}
       <Dialog open={isWholesaleModalOpen} onOpenChange={setIsWholesaleModalOpen}>
         <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
-          {/* ... (Contenido modal wholesale igual) ... */}
           <DialogHeader>
             <DialogTitle>Surtir Pedido #{selectedWholesaleOrder?.id.slice(0, 6)}</DialogTitle>
             <DialogDescription>Confirma los productos antes de enviar.</DialogDescription>
@@ -464,7 +461,6 @@ export default function UnifiedOrdersPage() {
                   ))}
                 </div>
               </div>
-              {/* Inputs tracking */}
               <div className="grid gap-4">
                 <div className="space-y-2">
                   <Label>Paquetería</Label>
