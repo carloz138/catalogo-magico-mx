@@ -7,7 +7,6 @@ import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-// ✅ IMPORT NUEVO: Componentes del Modal de Alerta
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,16 +35,47 @@ import {
   Calendar as CalendarIcon,
   MapPin,
   Gift,
+  Map as MapIcon, // Importado para el AddressDisplay
 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { QuoteStatus } from "@/types/digital-catalog";
+// ✅ IMPORTAR EL TIPO NUEVO
+import { QuoteStatus, ShippingAddressStructured } from "@/types/digital-catalog";
 import { QuoteService } from "@/services/quote.service";
 import { QuoteTrackingService } from "@/services/quote-tracking.service";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
 import { WhatsAppShareButton } from "@/components/quotes/WhatsAppShareButton";
+
+// --- COMPONENTE AUXILIAR PARA MOSTRAR DIRECCIÓN ---
+const AddressDisplay = ({ address }: { address: string | ShippingAddressStructured | null }) => {
+  if (!address) return null;
+
+  if (typeof address === "object" && address !== null) {
+    const addr = address as ShippingAddressStructured;
+    return (
+      <div className="text-xs text-slate-600 space-y-0.5 mt-1">
+        <p className="font-medium text-slate-800">{addr.street}</p>
+        <p>
+          {addr.colony ? `Col. ${addr.colony}, ` : ""} C.P. {addr.zip_code}
+        </p>
+        <p>
+          {addr.city}, {addr.state}
+        </p>
+        {addr.references && (
+          <div className="mt-1.5 p-1.5 bg-slate-50 rounded border border-slate-100 flex gap-1 items-start">
+            <MapIcon className="w-3 h-3 mt-0.5 text-slate-400 shrink-0" />
+            <span className="italic">{addr.references}</span>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Fallback para strings viejos
+  return <span className="text-xs">{address as string}</span>;
+};
 
 export default function QuoteDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -61,7 +91,6 @@ export default function QuoteDetailPage() {
   const [shippingCostInput, setShippingCostInput] = useState<string>("0");
   const [deliveryDateInput, setDeliveryDateInput] = useState<string>("");
 
-  // Lógica de Pago
   const paymentTx = (quote as any)?.payment_transactions?.find((tx: any) => tx.status === "paid");
   const isPaid = !!paymentTx;
 
@@ -95,8 +124,6 @@ export default function QuoteDetailPage() {
   }, [quote]);
 
   // --- HANDLERS ---
-
-  // ✅ MANEJO DE PAGO MANUAL (Limpiado: Ya no tiene window.confirm)
   const handleManualPayment = async () => {
     if (!quote || !user?.id) return;
 
@@ -189,9 +216,6 @@ export default function QuoteDetailPage() {
   const handleMarkAsShipped = async () => {
     if (!quote || !user?.id) return;
 
-    // Aquí podemos dejar un confirm simple o migrarlo también a Modal si prefieres
-    // Por ahora lo dejo con confirm para no complicar demasiado este cambio, pero
-    // el botón de pago (que era el importante) ya usa Modal.
     if (!isPaid && quote.status !== "shipped") {
       if (
         !window.confirm("Advertencia: Esta orden no aparece como pagada. ¿Seguro que deseas marcarla como enviada?")
@@ -650,7 +674,10 @@ export default function QuoteDetailPage() {
                   {quote.shipping_address && (
                     <div className="flex items-start gap-3 text-slate-600">
                       <Truck className="w-4 h-4 text-slate-400 mt-0.5" />
-                      <span className="text-xs">{quote.shipping_address}</span>
+                      {/* 🔥 AQUÍ USAMOS EL AddressDisplay PARA QUE NO EXPLOTE 🔥 */}
+                      <div className="flex-1">
+                        <AddressDisplay address={quote.shipping_address} />
+                      </div>
                     </div>
                   )}
                 </div>
