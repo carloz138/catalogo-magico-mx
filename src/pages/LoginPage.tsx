@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "../integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "../components/ui/card";
 import { Input } from "../components/ui/input";
@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs"
 import { useAuth } from "../contexts/AuthContext";
 import { toast } from "../components/ui/use-toast";
 import { Mail, Loader2, CheckCircle, AlertCircle, ArrowLeft, Lock } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useSaaSMarketing } from "@/providers/SaaSMarketingProvider";
 
 const businessTypeOptions = [
@@ -22,7 +22,7 @@ const businessTypeOptions = [
 ];
 
 export default function LoginPage() {
-  const { signIn, signUp, signInWithGoogle } = useAuth();
+  const { signIn, signUp } = useAuth();
   const { trackSaaSEvent } = useSaaSMarketing();
   const [loading, setLoading] = useState(false);
   const [magicLinkLoading, setMagicLinkLoading] = useState(false);
@@ -32,7 +32,21 @@ export default function LoginPage() {
     type: "",
     message: "",
   });
+
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // ✅ CAMBIO 1: El default ahora es "/dashboard" (La página segura para todos)
+  const [redirectPath, setRedirectPath] = useState("/dashboard");
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const redirectTo = params.get("redirect_to");
+    if (redirectTo) {
+      console.log("📍 Detectada redirección pendiente a:", redirectTo);
+      setRedirectPath(redirectTo);
+    }
+  }, [location]);
 
   const [loginData, setLoginData] = useState({ email: "", password: "" });
   const [signupData, setSignupData] = useState({
@@ -44,7 +58,6 @@ export default function LoginPage() {
     phone: "",
   });
 
-  // ✅ CAMBIO 1: Redirigir a /products después de login exitoso
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -54,7 +67,7 @@ export default function LoginPage() {
       setFeedback({ type: "error", message: error.message });
     } else {
       toast({ title: "¡Bienvenido!", description: "Has iniciado sesión correctamente" });
-      navigate("/products"); // ✅ CAMBIADO DE /dashboard A /products
+      navigate(redirectPath);
     }
     setLoading(false);
   };
@@ -72,8 +85,7 @@ export default function LoginPage() {
     if (error) {
       setFeedback({ type: "error", message: error.message });
     } else {
-      // Track successful registration
-      trackSaaSEvent('CompleteRegistration', { content_name: 'New User Signup' });
+      trackSaaSEvent("CompleteRegistration", { content_name: "New User Signup" });
       setFeedback({ type: "success", message: "¡Cuenta creada! Revisa tu email para confirmar tu cuenta." });
     }
     setLoading(false);
@@ -81,12 +93,20 @@ export default function LoginPage() {
 
   const handleGoogleLogin = async () => {
     setLoading(true);
-    const { error } = await signInWithGoogle();
-    if (error) {
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          // ✅ CAMBIO 2: Si no hay redirectPath específico, usa /dashboard
+          redirectTo: `${window.location.origin}${redirectPath === "/dashboard" ? "/dashboard" : redirectPath}`,
+        },
+      });
+
+      if (error) throw error;
+    } catch (error: any) {
       setFeedback({ type: "error", message: `Error con Google: ${error.message}` });
       setLoading(false);
     }
-    // El redirect ocurre automáticamente
   };
 
   const handleResetPassword = async (e: React.FormEvent) => {
@@ -112,7 +132,6 @@ export default function LoginPage() {
     }
   };
 
-  // ✅ CAMBIO 2: Magic Link redirige a /products
   const handleMagicLink = async (e: React.FormEvent) => {
     e.preventDefault();
     setMagicLinkLoading(true);
@@ -125,10 +144,13 @@ export default function LoginPage() {
       return;
     }
 
+    // ✅ CAMBIO 3: Aseguramos el fallback a /dashboard
+    const destinationUrl = `${window.location.origin}${redirectPath}`;
+
     const { error } = await supabase.auth.signInWithOtp({
       email: emailToUse,
       options: {
-        emailRedirectTo: `${window.location.origin}/products`, // ✅ CAMBIADO DE /dashboard A /products
+        emailRedirectTo: destinationUrl,
       },
     });
 
@@ -167,7 +189,11 @@ export default function LoginPage() {
             )}
           </CardTitle>
           {!showResetPassword && (
-            <CardDescription>Elige tu método preferido para acceder o crear tu cuenta.</CardDescription>
+            <CardDescription>
+              {redirectPath.includes("quotes")
+                ? "Inicia sesión para ver tu cotización."
+                : "Elige tu método preferido para acceder o crear tu cuenta."}
+            </CardDescription>
           )}
         </CardHeader>
 
