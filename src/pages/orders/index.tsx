@@ -481,7 +481,7 @@ export default function UnifiedOrdersPage() {
         </DialogContent>
       </Dialog>
 
-      {/* --- MODAL 3: VISOR DE DETALLES (SOLO LECTURA) --- */}
+      {/* --- MODAL 3: VISOR DE DETALLES (SOLO LECTURA - CORREGIDO) --- */}
       <Dialog open={!!viewingOrder} onOpenChange={(open) => !open && setViewingOrder(null)}>
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
@@ -513,11 +513,13 @@ export default function UnifiedOrdersPage() {
                       </span>
                     ) : (
                       <>
-                        <p>{viewingOrder.shipping_address?.street || "Dirección no registrada"}</p>
+                        {/* AQUÍ ESTÁ LA CORRECCIÓN: (viewingOrder.shipping_address as any) */}
+                        <p>{(viewingOrder.shipping_address as any)?.street || "Dirección no registrada"}</p>
                         <p>
-                          {viewingOrder.shipping_address?.city}, {viewingOrder.shipping_address?.state}
+                          {(viewingOrder.shipping_address as any)?.city},{" "}
+                          {(viewingOrder.shipping_address as any)?.state}
                         </p>
-                        <p>{viewingOrder.shipping_address?.zip_code}</p>
+                        <p>{(viewingOrder.shipping_address as any)?.zip_code}</p>
                         {viewingOrder.tracking_code && (
                           <div className="mt-2 text-xs bg-white p-1.5 border rounded w-fit">
                             <span className="font-bold">{viewingOrder.carrier_name}:</span> {viewingOrder.tracking_code}
@@ -544,7 +546,6 @@ export default function UnifiedOrdersPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y">
-                      {/* Intentamos leer 'items' o 'quote_items' por si acaso */}
                       {((viewingOrder as any).items || (viewingOrder as any).quote_items || []).map(
                         (item: any, idx: number) => (
                           <tr key={idx} className="bg-white">
@@ -582,11 +583,12 @@ export default function UnifiedOrdersPage() {
                 <div className="w-48 space-y-2">
                   <div className="flex justify-between text-sm text-slate-500">
                     <span>Subtotal</span>
-                    <span>{formatMoney(viewingOrder.subtotal_amount || 0)}</span>
+                    {/* AQUÍ ESTÁ LA OTRA CORRECCIÓN: (viewingOrder as any).subtotal_amount */}
+                    <span>{formatMoney((viewingOrder as any).subtotal_amount || 0)}</span>
                   </div>
                   <div className="flex justify-between text-sm text-slate-500">
                     <span>Envío</span>
-                    <span>{formatMoney(viewingOrder.shipping_cost || 0)}</span>
+                    <span>{formatMoney((viewingOrder as any).shipping_cost || 0)}</span>
                   </div>
                   <div className="flex justify-between text-base font-bold text-slate-900 border-t pt-2 mt-2">
                     <span>Total</span>
