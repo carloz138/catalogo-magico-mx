@@ -8,7 +8,6 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   CheckCircle,
   Loader2,
@@ -19,11 +18,11 @@ import {
   Store,
   Building2,
   StickyNote,
+  Home,
+  Map as MapIcon,
 } from "lucide-react";
 import { QuoteService } from "@/services/quote.service";
 import { toast } from "sonner";
-import { Separator } from "@/components/ui/separator";
-import { cn } from "@/lib/utils"; // Asegúrate de tener esta utilidad, si no, usa template strings
 
 // Declaraciones de tipos para tracking
 declare global {
@@ -32,6 +31,7 @@ declare global {
   }
 }
 
+// 1. ACTUALIZAMOS EL SCHEMA PARA VALIDAR CAMPOS INDIVIDUALES
 const schema = z
   .object({
     name: z.string().min(2, "El nombre completo es requerido."),
@@ -41,21 +41,49 @@ const schema = z
     delivery_method: z.enum(["pickup", "shipping"], {
       required_error: "Debes seleccionar un método de entrega.",
     }),
-    shipping_address: z.string().optional(),
     notes: z.string().max(500, "Las notas no pueden exceder los 500 caracteres.").optional(),
+
+    // Nuevos campos de dirección (opcionales al inicio, validados abajo)
+    street: z.string().optional(),
+    colony: z.string().optional(),
+    zip_code: z.string().optional(),
+    city: z.string().optional(),
+    state: z.string().optional(),
+    references: z.string().optional(),
   })
-  .refine(
-    (data) => {
-      if (data.delivery_method === "shipping") {
-        return !!data.shipping_address && data.shipping_address.length > 10;
+  .superRefine((data, ctx) => {
+    // Solo validamos dirección si eligió envío
+    if (data.delivery_method === "shipping") {
+      if (!data.street || data.street.length < 5) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Ingresa la calle y número.",
+          path: ["street"],
+        });
       }
-      return true;
-    },
-    {
-      message: "La dirección de envío es requerida y debe tener al menos 10 caracteres.",
-      path: ["shipping_address"],
-    },
-  );
+      if (!data.zip_code || data.zip_code.length < 4) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Requerido.",
+          path: ["zip_code"],
+        });
+      }
+      if (!data.city) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Ingresa la ciudad.",
+          path: ["city"],
+        });
+      }
+      if (!data.state) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Ingresa el estado.",
+          path: ["state"],
+        });
+      }
+    }
+  });
 
 type FormData = z.infer<typeof schema>;
 
@@ -75,7 +103,6 @@ export function QuoteForm(props: QuoteFormProps) {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  // Estado para controlar la visibilidad de campos opcionales
   const [showExtras, setShowExtras] = useState(false);
 
   const form = useForm<FormData>({
@@ -86,8 +113,13 @@ export function QuoteForm(props: QuoteFormProps) {
       company: "",
       phone: "",
       notes: "",
-      delivery_method: "pickup", // UX: Default a Pickup si queremos priorizarlo, o shipping según tu negocio
-      shipping_address: "",
+      delivery_method: "pickup",
+      street: "",
+      colony: "",
+      zip_code: "",
+      city: "",
+      state: "",
+      references: "",
     },
   });
 
@@ -97,11 +129,19 @@ export function QuoteForm(props: QuoteFormProps) {
     setIsSubmitting(true);
 
     try {
-      console.log("📤 Enviando cotización con:", {
-        catalog_id: catalogId,
-        replicated_catalog_id: replicatedCatalogId,
-        isReplicated: !!replicatedCatalogId,
-      });
+      // 2. CONSTRUIMOS EL OBJETO DE DIRECCIÓN AQUÍ
+      let structuredAddress = null;
+
+      if (data.delivery_method === "shipping") {
+        structuredAddress = {
+          street: data.street,
+          colony: data.colony,
+          zip_code: data.zip_code,
+          city: data.city,
+          state: data.state,
+          references: data.references,
+        };
+      }
 
       await QuoteService.createQuote({
         catalog_id: catalogId,
@@ -113,7 +153,8 @@ export function QuoteForm(props: QuoteFormProps) {
         customer_phone: data.phone,
         notes: data.notes,
         delivery_method: data.delivery_method,
-        shipping_address: data.delivery_method === "shipping" ? data.shipping_address : null,
+        // Enviamos el objeto JSON (Supabase lo maneja si la columna es JSONB, o lo stringify si es texto)
+        shipping_address: structuredAddress as any,
         items: items.map((item) => ({
           product_id: item.product.id,
           product_name: item.product.name,
@@ -130,6 +171,7 @@ export function QuoteForm(props: QuoteFormProps) {
       setSubmitted(true);
       toast.success("Cotización enviada correctamente");
 
+      // Trackings (GTM / Pixel)
       try {
         if (window.dataLayer) {
           window.dataLayer.push({
@@ -208,7 +250,7 @@ export function QuoteForm(props: QuoteFormProps) {
         <div className="flex-1 overflow-y-auto p-5 space-y-6 bg-gray-50/50">
           <Form {...form}>
             <form id="quote-form" onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-              {/* 1. SELECCIÓN DE MÉTODO (Tile Design para Mobile) */}
+              {/* 1. SELECCIÓN DE MÉTODO */}
               <div className="space-y-3">
                 <FormLabel className="text-base font-semibold text-gray-900">¿Cómo deseas recibir tu pedido?</FormLabel>
                 <FormField
@@ -222,7 +264,6 @@ export function QuoteForm(props: QuoteFormProps) {
                           defaultValue={field.value}
                           className="grid grid-cols-2 gap-3"
                         >
-                          {/* Opción Pickup */}
                           <FormItem>
                             <FormControl>
                               <RadioGroupItem value="pickup" className="peer sr-only" />
@@ -233,7 +274,6 @@ export function QuoteForm(props: QuoteFormProps) {
                             </FormLabel>
                           </FormItem>
 
-                          {/* Opción Envío */}
                           <FormItem>
                             <FormControl>
                               <RadioGroupItem value="shipping" className="peer sr-only" />
@@ -251,7 +291,7 @@ export function QuoteForm(props: QuoteFormProps) {
                 />
               </div>
 
-              {/* Alerta de Dirección de Recolección (Solo si es Pickup) */}
+              {/* Alerta de Dirección de Recolección */}
               {deliveryMethod === "pickup" && businessAddress && (
                 <div className="bg-blue-50 border border-blue-100 rounded-lg p-3 flex gap-3 items-start animate-in fade-in slide-in-from-top-1">
                   <MapPin className="h-5 w-5 text-blue-600 mt-0.5 shrink-0" />
@@ -262,10 +302,9 @@ export function QuoteForm(props: QuoteFormProps) {
                 </div>
               )}
 
-              {/* 2. DATOS DE CONTACTO (Agrupados) */}
+              {/* 2. DATOS DE CONTACTO */}
               <div className="space-y-4 bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
                 <h4 className="font-semibold text-sm text-gray-900 mb-2">Tus Datos</h4>
-
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
@@ -323,21 +362,102 @@ export function QuoteForm(props: QuoteFormProps) {
                 </div>
               </div>
 
-              {/* 3. DIRECCIÓN DE ENVÍO (Solo si es Shipping) */}
+              {/* 3. DIRECCIÓN DE ENVÍO ESTRUCTURADA */}
               {deliveryMethod === "shipping" && (
-                <div className="space-y-3 animate-in fade-in slide-in-from-top-2">
+                <div className="space-y-4 bg-white p-4 rounded-xl border border-gray-100 shadow-sm animate-in fade-in slide-in-from-top-2">
+                  <h4 className="font-semibold text-sm text-gray-900 mb-2 flex items-center gap-2">
+                    <MapIcon className="w-4 h-4 text-primary" /> Dirección de Entrega
+                  </h4>
+
+                  {/* Calle y Número */}
                   <FormField
                     control={form.control}
-                    name="shipping_address"
+                    name="street"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-base font-semibold">¿A dónde enviamos?</FormLabel>
+                        <FormLabel className="text-xs font-medium text-gray-500 uppercase">Calle y Número</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Ej: Av. Reforma 123" {...field} className="bg-gray-50 border-gray-200" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {/* Grid de Colonia y CP */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="colony"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs font-medium text-gray-500 uppercase">Colonia</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Ej: Centro" {...field} className="bg-gray-50 border-gray-200" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="zip_code"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs font-medium text-gray-500 uppercase">C.P.</FormLabel>
+                          <FormControl>
+                            <Input placeholder="00000" {...field} className="bg-gray-50 border-gray-200" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  {/* Grid de Ciudad y Estado */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="city"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs font-medium text-gray-500 uppercase">Ciudad</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Ej: Monterrey" {...field} className="bg-gray-50 border-gray-200" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="state"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs font-medium text-gray-500 uppercase">Estado</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Ej: Nuevo León" {...field} className="bg-gray-50 border-gray-200" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  {/* Referencias */}
+                  <FormField
+                    control={form.control}
+                    name="references"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-xs font-medium text-gray-500 uppercase">
+                          Referencias (Opcional)
+                        </FormLabel>
                         <FormControl>
                           <Textarea
-                            placeholder="Calle, número, colonia, código postal, ciudad..."
+                            placeholder="Entre calles, color de fachada, etc."
                             {...field}
-                            rows={3}
-                            className="resize-none bg-white"
+                            className="bg-gray-50 border-gray-200 resize-none h-16"
                           />
                         </FormControl>
                         <FormMessage />
@@ -347,7 +467,7 @@ export function QuoteForm(props: QuoteFormProps) {
                 </div>
               )}
 
-              {/* 4. EXTRAS (Colapsables para reducir ruido visual) */}
+              {/* 4. EXTRAS */}
               <div className="pt-2">
                 <Button
                   type="button"
@@ -410,7 +530,7 @@ export function QuoteForm(props: QuoteFormProps) {
           </Form>
         </div>
 
-        {/* Footer Fijo en Mobile */}
+        {/* Footer Fijo */}
         <DialogFooter className="p-4 border-t bg-white">
           <div className="flex gap-3 w-full">
             <Button
