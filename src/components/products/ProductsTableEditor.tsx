@@ -12,14 +12,23 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Switch } from "@/components/ui/switch"; // ✅ IMPORTANTE
+import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Search, Trash2, Edit2, Eye, ArrowUpDown, Package, Layers, Archive, AlertCircle } from "lucide-react";
+import {
+  Search,
+  Trash2,
+  Edit2,
+  Eye,
+  ArrowUpDown,
+  Package,
+  Layers,
+  AlertCircle, // Usamos este icono correctamente importado
+  X, // Usamos X para cerrar
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Product } from "@/types/products";
 import { useCatalogLimits } from "@/hooks/useCatalogLimits";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 // --- TIPOS ---
 type EditorProduct = Product & {
@@ -41,7 +50,8 @@ const EditableCell = ({ getValue, row, column, table, type = "text" }: any) => {
   const onBlur = () => {
     setIsEditing(false);
     if (value != initialValue) {
-      table.options.meta?.updateData(row.index, column.id, value);
+      // ✅ FIX: Usamos (table.options.meta as any) para evitar error de tipos
+      (table.options.meta as any)?.updateData(row.index, column.id, value);
     }
   };
 
@@ -84,7 +94,8 @@ const CategoryCell = ({ getValue, row, column, table }: any) => {
 
   const onChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setValue(e.target.value);
-    table.options.meta?.updateData(row.index, column.id, e.target.value);
+    // ✅ FIX: Usamos (table.options.meta as any) para evitar error de tipos
+    (table.options.meta as any)?.updateData(row.index, column.id, e.target.value);
   };
 
   return (
@@ -132,7 +143,7 @@ export default function ProductsTableEditor({
     setData(externalProducts);
   }, [externalProducts]);
 
-  // Función para guardar cambios (Optimistic UI + Supabase)
+  // Función para guardar cambios
   const updateData = async (rowIndex: number, columnId: string, value: any) => {
     const oldData = [...data];
     const product = data[rowIndex];
@@ -147,7 +158,6 @@ export default function ProductsTableEditor({
       }),
     );
 
-    // 2. Notificar al padre
     onProductsChange?.(data);
 
     // 3. Guardar en Supabase
@@ -160,7 +170,6 @@ export default function ProductsTableEditor({
       } else if (columnId === "wholesale_min_qty" || columnId === "stock_quantity") {
         dbValue = parseInt(value) || 0;
       }
-      // allow_backorder es boolean, pasa directo
 
       const { error } = await supabase
         .from("products")
@@ -171,7 +180,7 @@ export default function ProductsTableEditor({
       toast({ title: "Guardado", description: "Actualizado correctamente", duration: 1000 });
     } catch (error) {
       console.error(error);
-      setData(oldData); // Revertir
+      setData(oldData);
       toast({ title: "Error", description: "No se pudo guardar", variant: "destructive" });
     }
   };
@@ -231,14 +240,14 @@ export default function ProductsTableEditor({
         header: "Categoría",
         cell: CategoryCell,
       }),
-      // ✅ NUEVO: STOCK (Inventario)
+      // STOCK
       columnHelper.accessor("stock_quantity", {
         header: "Stock",
         cell: ({ row, getValue, column, table }) => (
           <EditableCell getValue={getValue} row={row} column={column} table={table} type="number" />
         ),
       }),
-      // ✅ NUEVO: BACKORDER (Preventa)
+      // BACKORDER (Switch)
       columnHelper.accessor("allow_backorder", {
         header: () => (
           <div className="flex items-center gap-1 cursor-help" title="¿Permitir vender cuando el stock llegue a 0?">
@@ -252,7 +261,8 @@ export default function ProductsTableEditor({
             <div className="flex justify-center">
               <Switch
                 checked={!!val}
-                onCheckedChange={(checked) => table.options.meta?.updateData(row.index, column.id, checked)}
+                // ✅ FIX: Usamos (table.options.meta as any)
+                onCheckedChange={(checked) => (table.options.meta as any)?.updateData(row.index, column.id, checked)}
                 className="scale-75 data-[state=checked]:bg-indigo-600"
               />
             </div>
@@ -418,7 +428,8 @@ export default function ProductsTableEditor({
             className="h-6 w-6 rounded-full hover:bg-gray-800 text-gray-400"
             onClick={() => table.toggleAllRowsSelected(false)}
           >
-            <alert-circle className="w-3.5 h-3.5" />
+            {/* ✅ FIX: Icono corregido 'X' para cerrar */}
+            <X className="w-3.5 h-3.5" />
           </Button>
         </div>
       )}
