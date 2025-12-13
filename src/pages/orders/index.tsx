@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuotes } from "@/hooks/useQuotes";
 import { QuoteService } from "@/services/quote.service";
-import { FulfillmentStatus, Quote } from "@/types/digital-catalog";
+import { FulfillmentStatus, Quote, ShippingAddressStructured } from "@/types/digital-catalog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,13 +26,12 @@ import {
   Truck,
   MapPin,
   Box,
-  ArrowRight,
   ShoppingBag,
   PackageCheck,
   Barcode,
   CheckCircle2,
   User,
-  Calendar,
+  Map as MapIcon,
 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -48,7 +47,38 @@ const formatMoney = (amountInCents: number) => {
   }).format(amountInCents / 100);
 };
 
-// --- TIPOS ---
+// --- COMPONENTE INTELIGENTE PARA MOSTRAR DIRECCIÓN ---
+// Maneja tanto el formato viejo (string) como el nuevo (JSON) sin romper nada
+const AddressDisplay = ({ address }: { address: string | ShippingAddressStructured | null }) => {
+  if (!address) return <p className="text-sm text-slate-400 italic">No especificada</p>;
+
+  // Caso 1: Es el objeto nuevo (JSON Estructurado)
+  if (typeof address === "object" && address !== null) {
+    const addr = address as ShippingAddressStructured;
+    return (
+      <div className="text-sm text-slate-600 space-y-0.5">
+        <p className="font-medium text-slate-900">{addr.street}</p>
+        <p>
+          {addr.colony ? `Col. ${addr.colony}, ` : ""} C.P. {addr.zip_code}
+        </p>
+        <p>
+          {addr.city}, {addr.state}
+        </p>
+        {addr.references && (
+          <div className="mt-2 text-xs bg-amber-50 p-2 rounded border border-amber-100 text-amber-800 flex gap-1 items-start">
+            <MapIcon className="w-3 h-3 mt-0.5 shrink-0" />
+            <span>Ref: {addr.references}</span>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Caso 2: Es texto plano (Pedidos viejos)
+  return <p className="text-sm text-slate-600 whitespace-pre-wrap">{address}</p>;
+};
+
+// --- TIPOS INTERNOS ---
 interface OrderItem {
   id: string;
   product_name: string;
@@ -72,13 +102,11 @@ interface ConsolidatedOrder {
 // --- SUB-COMPONENTE: BADGE DE ESTATUS ---
 const FulfillmentBadge = ({ status }: { status: string }) => {
   const config: Record<string, { label: string; bg: string; text: string; icon: any }> = {
-    // Retail Statuses
     unfulfilled: { label: "Por Empacar", bg: "bg-amber-100", text: "text-amber-800", icon: Box },
     processing: { label: "Empacando", bg: "bg-blue-100", text: "text-blue-800", icon: Loader2 },
     ready_for_pickup: { label: "Listo en Tienda", bg: "bg-indigo-100", text: "text-indigo-800", icon: MapPin },
     shipped: { label: "En Camino", bg: "bg-purple-100", text: "text-purple-800", icon: Truck },
     delivered: { label: "Entregado", bg: "bg-emerald-100", text: "text-emerald-800", icon: CheckCircle2 },
-    // Wholesale Statuses
     sent: { label: "Por Surtir", bg: "bg-rose-100", text: "text-rose-800", icon: PackageCheck },
     draft: { label: "Borrador", bg: "bg-gray-100", text: "text-gray-500", icon: Box },
   };
@@ -102,20 +130,16 @@ export default function UnifiedOrdersPage() {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("sales");
 
-  // --- LÓGICA TAB 1: MIS VENTAS (Retail) ---
+  // --- LÓGICA RETAIL ---
   const { quotes, loading: loadingQuotes, refetch: refetchQuotes } = useQuotes({ autoLoad: true });
   const [retailSearch, setRetailSearch] = useState("");
-
-  // Modal Retail (Atender)
   const [selectedRetailOrder, setSelectedRetailOrder] = useState<Quote | null>(null);
   const [isRetailModalOpen, setIsRetailModalOpen] = useState(false);
   const [retailTracking, setRetailTracking] = useState({ code: "", carrier: "" });
   const [isSubmittingRetail, setIsSubmittingRetail] = useState(false);
-
-  // Modal Retail (Ver Detalles - NUEVO)
   const [viewingOrder, setViewingOrder] = useState<Quote | null>(null);
 
-  const retailOrders = quotes.filter((q) => (q as any).payment_status === "paid"); // Solo pagadas
+  const retailOrders = quotes.filter((q) => (q as any).payment_status === "paid");
   const filteredRetail = retailOrders.filter(
     (o) =>
       o.customer_name.toLowerCase().includes(retailSearch.toLowerCase()) ||
@@ -146,7 +170,7 @@ export default function UnifiedOrdersPage() {
     }
   };
 
-  // --- LÓGICA TAB 2: CENTRO DE SURTIDO (Wholesale) ---
+  // --- LÓGICA WHOLESALE ---
   const [wholesaleSearch, setWholesaleSearch] = useState("");
   const [selectedWholesaleOrder, setSelectedWholesaleOrder] = useState<ConsolidatedOrder | null>(null);
   const [isWholesaleModalOpen, setIsWholesaleModalOpen] = useState(false);
@@ -234,7 +258,7 @@ export default function UnifiedOrdersPage() {
             </TabsTrigger>
           </TabsList>
 
-          {/* === TAB 1: MIS VENTAS (RETAIL) === */}
+          {/* === TAB 1: MIS VENTAS === */}
           <TabsContent value="sales" className="space-y-6 animate-in fade-in-50">
             <div className="flex gap-4 mb-4">
               <div className="relative flex-1">
@@ -294,7 +318,6 @@ export default function UnifiedOrdersPage() {
                             Atender
                           </Button>
                         ) : (
-                          // BOTÓN ACTIVADO PARA VER DETALLES
                           <Button variant="outline" size="sm" onClick={() => setViewingOrder(order)}>
                             Ver Detalles
                           </Button>
@@ -307,8 +330,9 @@ export default function UnifiedOrdersPage() {
             )}
           </TabsContent>
 
-          {/* === TAB 2: CENTRO DE SURTIDO (WHOLESALE) === */}
+          {/* === TAB 2: WHOLESALE === */}
           <TabsContent value="wholesale" className="space-y-6 animate-in fade-in-50">
+            {/* ... (Contenido Wholesale igual que antes) ... */}
             <div className="flex gap-4 mb-4">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
@@ -374,7 +398,7 @@ export default function UnifiedOrdersPage() {
         </Tabs>
       </div>
 
-      {/* --- MODAL 1: ATENDER VENTA RETAIL --- */}
+      {/* --- MODAL 1: ATENDER --- */}
       <Dialog open={isRetailModalOpen} onOpenChange={setIsRetailModalOpen}>
         <DialogContent>
           <DialogHeader>
@@ -413,9 +437,10 @@ export default function UnifiedOrdersPage() {
         </DialogContent>
       </Dialog>
 
-      {/* --- MODAL 2: DESPACHAR WHOLESALE (PICKING LIST) --- */}
+      {/* --- MODAL 2: WHOLESALE --- */}
       <Dialog open={isWholesaleModalOpen} onOpenChange={setIsWholesaleModalOpen}>
         <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+          {/* ... (Contenido modal wholesale igual) ... */}
           <DialogHeader>
             <DialogTitle>Surtir Pedido #{selectedWholesaleOrder?.id.slice(0, 6)}</DialogTitle>
             <DialogDescription>Confirma los productos antes de enviar.</DialogDescription>
@@ -439,7 +464,7 @@ export default function UnifiedOrdersPage() {
                   ))}
                 </div>
               </div>
-
+              {/* Inputs tracking */}
               <div className="grid gap-4">
                 <div className="space-y-2">
                   <Label>Paquetería</Label>
@@ -481,7 +506,7 @@ export default function UnifiedOrdersPage() {
         </DialogContent>
       </Dialog>
 
-      {/* --- MODAL 3: VISOR DE DETALLES (SOLO LECTURA - CORREGIDO) --- */}
+      {/* --- MODAL 3: VISOR DETALLES (ACTUALIZADO CON AddressDisplay) --- */}
       <Dialog open={!!viewingOrder} onOpenChange={(open) => !open && setViewingOrder(null)}>
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
@@ -496,42 +521,41 @@ export default function UnifiedOrdersPage() {
 
           {viewingOrder && (
             <div className="space-y-6 mt-2">
-              {/* Sección 1: Datos de Envío y Cliente */}
               <div className="grid md:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-lg border border-slate-100">
                 <div>
                   <h4 className="font-semibold text-sm text-slate-900 mb-1">Cliente</h4>
                   <p className="text-sm text-slate-600">{viewingOrder.customer_name}</p>
                   <p className="text-sm text-slate-500">{viewingOrder.customer_email}</p>
                   <p className="text-sm text-slate-500">{viewingOrder.customer_phone}</p>
+                  {viewingOrder.notes && (
+                    <div className="mt-2 p-2 bg-yellow-50 text-yellow-800 text-xs rounded border border-yellow-100">
+                      <strong>Nota:</strong> {viewingOrder.notes}
+                    </div>
+                  )}
                 </div>
                 <div>
                   <h4 className="font-semibold text-sm text-slate-900 mb-1">Entrega</h4>
-                  <div className="text-sm text-slate-600">
-                    {viewingOrder.delivery_method === "pickup" ? (
+                  {viewingOrder.delivery_method === "pickup" ? (
+                    <div className="text-sm text-slate-600">
                       <span className="flex items-center gap-1">
                         <MapPin className="w-3 h-3" /> Recolección en Tienda
                       </span>
-                    ) : (
-                      <>
-                        {/* AQUÍ ESTÁ LA CORRECCIÓN: (viewingOrder.shipping_address as any) */}
-                        <p>{(viewingOrder.shipping_address as any)?.street || "Dirección no registrada"}</p>
-                        <p>
-                          {(viewingOrder.shipping_address as any)?.city},{" "}
-                          {(viewingOrder.shipping_address as any)?.state}
-                        </p>
-                        <p>{(viewingOrder.shipping_address as any)?.zip_code}</p>
-                        {viewingOrder.tracking_code && (
-                          <div className="mt-2 text-xs bg-white p-1.5 border rounded w-fit">
-                            <span className="font-bold">{viewingOrder.carrier_name}:</span> {viewingOrder.tracking_code}
-                          </div>
-                        )}
-                      </>
-                    )}
-                  </div>
+                    </div>
+                  ) : (
+                    <>
+                      {/* 🔥 AQUÍ USAMOS EL COMPONENTE INTELIGENTE 🔥 */}
+                      <AddressDisplay address={viewingOrder.shipping_address} />
+
+                      {viewingOrder.tracking_code && (
+                        <div className="mt-2 text-xs bg-white p-1.5 border rounded w-fit">
+                          <span className="font-bold">{viewingOrder.carrier_name}:</span> {viewingOrder.tracking_code}
+                        </div>
+                      )}
+                    </>
+                  )}
                 </div>
               </div>
 
-              {/* Sección 2: Lista de Productos */}
               <div>
                 <h4 className="font-semibold text-sm text-slate-900 mb-3 flex items-center gap-2">
                   <Box className="w-4 h-4 text-slate-500" /> Productos
@@ -578,18 +602,8 @@ export default function UnifiedOrdersPage() {
                 </div>
               </div>
 
-              {/* Sección 3: Totales */}
               <div className="flex justify-end border-t pt-4">
                 <div className="w-48 space-y-2">
-                  <div className="flex justify-between text-sm text-slate-500">
-                    <span>Subtotal</span>
-                    {/* AQUÍ ESTÁ LA OTRA CORRECCIÓN: (viewingOrder as any).subtotal_amount */}
-                    <span>{formatMoney((viewingOrder as any).subtotal_amount || 0)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm text-slate-500">
-                    <span>Envío</span>
-                    <span>{formatMoney((viewingOrder as any).shipping_cost || 0)}</span>
-                  </div>
                   <div className="flex justify-between text-base font-bold text-slate-900 border-t pt-2 mt-2">
                     <span>Total</span>
                     <span>{formatMoney(viewingOrder.total_amount || 0)}</span>
