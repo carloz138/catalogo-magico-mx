@@ -5,8 +5,17 @@ export type PriceDisplay = "menudeo_only" | "mayoreo_only" | "both";
 export type QuoteStatus = "pending" | "negotiation" | "accepted" | "rejected" | "shipped";
 export type PriceType = "menudeo" | "mayoreo";
 export type DeliveryMethod = "pickup" | "shipping";
-// ✅ NUEVO: Estatus logístico para la pantalla de Pedidos
 export type FulfillmentStatus = "unfulfilled" | "processing" | "ready_for_pickup" | "shipped" | "delivered";
+
+// ✅ NUEVO: Interfaz para la dirección estructurada
+export interface ShippingAddressStructured {
+  street?: string;
+  colony?: string;
+  zip_code?: string;
+  city?: string;
+  state?: string;
+  references?: string;
+}
 
 // ==========================================
 // INTERFACES DE BASE DE DATOS (Entidades)
@@ -50,12 +59,10 @@ export interface DigitalCatalog {
   enable_free_shipping: boolean;
   free_shipping_min_amount: number;
 
-  // Wholesale rules (MOQ/MOV)
   min_order_quantity: number | null;
   min_order_amount: number | null;
   is_wholesale_only: boolean;
 
-  // Tracking Legacy & CAPI
   tracking_head_scripts: string | null;
   tracking_body_scripts: string | null;
   tracking_config?: {
@@ -88,40 +95,34 @@ export interface Quote {
   catalog_id: string;
   user_id: string;
 
-  // ✅ Identificadores
-  order_number?: string | null; // Para mostrar #CTF-123
+  order_number?: string | null;
 
-  // Datos del cliente
   customer_name: string;
   customer_email: string;
   customer_company: string | null;
   customer_phone: string | null;
   notes: string | null;
 
-  // Estado General
   status: QuoteStatus;
   created_at: string;
   updated_at: string;
 
-  // Entrega
   delivery_method: DeliveryMethod;
-  shipping_address: string | null;
 
-  // ✅ Costos y Fechas (Negociación)
+  // ✅ CAMBIO CLAVE: Acepta string (viejo) O estructura (nuevo)
+  shipping_address: string | ShippingAddressStructured | null;
+
   shipping_cost: number | null;
   total_amount: number;
   estimated_delivery_date?: string | null;
 
-  // ✅ Logística (Pedidos)
   fulfillment_status: FulfillmentStatus;
   tracking_code?: string | null;
   carrier_name?: string | null;
 
-  // Relaciones
   items: QuoteItem[];
   catalog?: DigitalCatalog;
 
-  // Replicación
   replicated_catalogs?: string | null;
   tracking_token?: string | null;
 }
@@ -157,7 +158,7 @@ export interface CatalogView {
 }
 
 // ==========================================
-// DATA TRANSFER OBJECTS (DTOs) - Formularios
+// DATA TRANSFER OBJECTS (DTOs)
 // ==========================================
 
 export interface CreateDigitalCatalogDTO {
@@ -185,7 +186,7 @@ export interface CreateDigitalCatalogDTO {
   free_shipping_min_amount?: number;
   tracking_head_scripts?: string | null;
   tracking_body_scripts?: string | null;
-  tracking_config?: any; // ✅ Actualizado para soportar CAPI config
+  tracking_config?: any;
 }
 
 export interface UpdateDigitalCatalogDTO {
@@ -214,7 +215,7 @@ export interface UpdateDigitalCatalogDTO {
   free_shipping_min_amount?: number;
   tracking_head_scripts?: string | null;
   tracking_body_scripts?: string | null;
-  tracking_config?: any; // ✅ Actualizado para soportar CAPI config
+  tracking_config?: any;
 }
 
 export interface CreateQuoteDTO {
@@ -228,7 +229,9 @@ export interface CreateQuoteDTO {
   notes?: string;
 
   delivery_method: DeliveryMethod;
-  shipping_address: string | null;
+
+  // ✅ CAMBIO CLAVE AQUÍ TAMBIÉN
+  shipping_address: string | ShippingAddressStructured | null;
 
   items: {
     product_id: string;
@@ -252,10 +255,9 @@ export interface CatalogLimitInfo {
 }
 
 // ==========================================
-// VISTAS PÚBLICAS Y REPLICACIÓN
+// VISTAS PÚBLICAS Y REPLICACIÓN (Sin Cambios)
 // ==========================================
 
-// Tipo extendido para vista pública (incluye productos)
 export interface PublicCatalogView extends DigitalCatalog {
   products: Array<{
     id: string;
@@ -305,12 +307,9 @@ export interface ReplicatedCatalog {
   reseller_id: string | null;
   distributor_id: string;
   reseller_email: string | null;
-  
-  // Branding para Revendedores (L2)
   custom_name?: string | null;
   custom_description?: string | null;
   custom_logo_url?: string | null;
-  
   is_active: boolean;
   activation_token: string;
   activation_paid: boolean;
@@ -434,7 +433,7 @@ export interface ResellerDashboardData {
   };
 }
 
-// ✅ TYPE HELPER EXPORTADO (Para arreglar el error de OrdersPage)
+// ✅ TYPE HELPER EXPORTADO
 export type QuoteWithMetadata = Quote & {
   items_count: number;
   total_amount: number;
