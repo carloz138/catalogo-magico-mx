@@ -38,6 +38,17 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { useToast } from "@/hooks/use-toast";
 
+// --- FUNCIÓN AUXILIAR PARA MONEDA ---
+// Convierte centavos (150000) a pesos formateados ($1,500.00)
+const formatMoney = (amountInCents: number) => {
+  if (!amountInCents && amountInCents !== 0) return "$0.00";
+  return new Intl.NumberFormat("es-MX", {
+    style: "currency",
+    currency: "MXN",
+    minimumFractionDigits: 2,
+  }).format(amountInCents / 100);
+};
+
 // --- TIPOS ---
 interface OrderItem {
   id: string;
@@ -263,7 +274,9 @@ export default function UnifiedOrdersPage() {
                       </div>
                       <div className="flex items-center gap-4">
                         <div className="text-right hidden md:block">
-                          <div className="font-bold text-slate-900">${(order.total_amount || 0).toFixed(2)}</div>
+                          {/* --- AQUÍ ESTÁ EL CAMBIO APLICADO --- */}
+                          <div className="font-bold text-slate-900">{formatMoney(order.total_amount || 0)}</div>
+                          {/* ---------------------------------- */}
                           <div className="text-xs text-slate-400">
                             {format(new Date(order.created_at), "PPP", { locale: es })}
                           </div>
