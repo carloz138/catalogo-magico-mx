@@ -1,13 +1,16 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { useQuotes } from "@/hooks/useQuotes";
 import { QuoteService } from "@/services/quote.service";
 import { FulfillmentStatus, Quote } from "@/types/digital-catalog";
-import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -16,339 +19,463 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Loader2, Search, Package, Truck, CheckCircle2, MapPin, Box, ArrowRight, Barcode } from "lucide-react";
+import {
+  Loader2,
+  Search,
+  Package,
+  Truck,
+  MapPin,
+  Box,
+  ArrowRight,
+  ShoppingBag,
+  PackageCheck,
+  Barcode,
+  CheckCircle2,
+  User,
+  Calendar,
+} from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { useToast } from "@/hooks/use-toast";
 
-const FulfillmentBadge = ({ status }: { status: FulfillmentStatus }) => {
-  const config = {
+// --- TIPOS ---
+interface OrderItem {
+  id: string;
+  product_name: string;
+  quantity: number;
+  product_image_url?: string;
+  sku?: string;
+}
+
+interface ConsolidatedOrder {
+  id: string;
+  created_at: string;
+  status: "draft" | "sent" | "shipped" | "delivered" | "cancelled";
+  total_amount: number;
+  shipping_address?: string;
+  tracking_company?: string;
+  tracking_number?: string;
+  distributor?: { business_name: string; phone: string; email: string };
+  items: OrderItem[];
+}
+
+// --- SUB-COMPONENTE: BADGE DE ESTATUS ---
+const FulfillmentBadge = ({ status }: { status: string }) => {
+  const config: Record<string, { label: string; bg: string; text: string; icon: any }> = {
+    // Retail Statuses
     unfulfilled: { label: "Por Empacar", bg: "bg-amber-100", text: "text-amber-800", icon: Box },
     processing: { label: "Empacando", bg: "bg-blue-100", text: "text-blue-800", icon: Loader2 },
     ready_for_pickup: { label: "Listo en Tienda", bg: "bg-indigo-100", text: "text-indigo-800", icon: MapPin },
     shipped: { label: "En Camino", bg: "bg-purple-100", text: "text-purple-800", icon: Truck },
     delivered: { label: "Entregado", bg: "bg-emerald-100", text: "text-emerald-800", icon: CheckCircle2 },
-  }[status] || { label: status, bg: "bg-gray-100", text: "text-gray-800", icon: Box };
+    // Wholesale Statuses
+    sent: { label: "Por Surtir", bg: "bg-rose-100", text: "text-rose-800", icon: PackageCheck },
+    draft: { label: "Borrador", bg: "bg-gray-100", text: "text-gray-500", icon: Box },
+  };
 
-  const Icon = config.icon;
+  const info = config[status] || { label: status, bg: "bg-gray-100", text: "text-gray-800", icon: Box };
+  const Icon = info.icon;
 
   return (
     <div
-      className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold w-fit ${config.bg} ${config.text} border border-transparent`}
+      className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold w-fit ${info.bg} ${info.text}`}
     >
       <Icon className="w-3.5 h-3.5" />
-      {config.label}
+      {info.label}
     </div>
   );
 };
 
-export default function OrdersPage() {
-  const navigate = useNavigate();
+export default function UnifiedOrdersPage() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [activeTab, setActiveTab] = useState("sales");
 
-  const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<FulfillmentStatus | "all">("all");
+  // --- LÓGICA TAB 1: MIS VENTAS (Retail) ---
+  const { quotes, loading: loadingQuotes, refetch: refetchQuotes } = useQuotes({ autoLoad: true });
+  const [retailSearch, setRetailSearch] = useState("");
 
-  const [selectedOrder, setSelectedOrder] = useState<Quote | null>(null);
-  const [showFulfillmentModal, setShowFulfillmentModal] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  // Modal Retail
+  const [selectedRetailOrder, setSelectedRetailOrder] = useState<Quote | null>(null);
+  const [isRetailModalOpen, setIsRetailModalOpen] = useState(false);
+  const [retailTracking, setRetailTracking] = useState({ code: "", carrier: "" });
+  const [isSubmittingRetail, setIsSubmittingRetail] = useState(false);
 
-  const [trackingCode, setTrackingCode] = useState("");
-  const [carrierName, setCarrierName] = useState("");
+  const retailOrders = quotes.filter((q) => (q as any).payment_status === "paid"); // Solo pagadas
+  const filteredRetail = retailOrders.filter(
+    (o) =>
+      o.customer_name.toLowerCase().includes(retailSearch.toLowerCase()) ||
+      o.order_number?.toLowerCase().includes(retailSearch.toLowerCase()),
+  );
 
-  const { quotes, loading, refetch } = useQuotes({ autoLoad: true });
-
-  // Filtramos solo pedidos pagados
-  const paidOrders = quotes.filter((q) => (q as any).payment_status === "paid");
-
-  const filteredOrders = paidOrders.filter((order) => {
-    const matchesSearch =
-      order.customer_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.order_number?.toLowerCase().includes(searchQuery.toLowerCase());
-
-    const matchesStatus = statusFilter === "all" || order.fulfillment_status === statusFilter;
-
-    return matchesSearch && matchesStatus;
-  });
-
-  const stats = {
-    unfulfilled: paidOrders.filter((o) => o.fulfillment_status === "unfulfilled" || !o.fulfillment_status).length,
-    processing: paidOrders.filter((o) => o.fulfillment_status === "processing").length,
-    shipped: paidOrders.filter((o) => ["shipped", "ready_for_pickup", "delivered"].includes(o.fulfillment_status))
-      .length,
-  };
-
-  const openFulfillmentModal = (order: Quote) => {
-    setSelectedOrder(order);
-    // Precargar datos si ya existen, o limpiar si es nuevo despacho
-    setTrackingCode(order.tracking_code || "");
-    setCarrierName(order.carrier_name || "");
-    setShowFulfillmentModal(true);
-  };
-
-  const handleFulfillOrder = async () => {
-    if (!selectedOrder || !user) return;
-
-    setIsSubmitting(true);
+  const handleUpdateRetail = async () => {
+    if (!selectedRetailOrder || !user) return;
+    setIsSubmittingRetail(true);
     try {
-      // Determinar tipo de despacho
-      const isPickup = selectedOrder.delivery_method === "pickup";
-      const newStatus: FulfillmentStatus = isPickup ? "ready_for_pickup" : "shipped";
-
-      // Validación: Si es envío, requerimos datos. Si es pickup, no.
-      if (!isPickup && (!trackingCode || !carrierName)) {
-        toast({
-          title: "Datos incompletos",
-          description: "Debes ingresar la paquetería y el número de guía para envíos a domicilio.",
-          variant: "destructive",
-        });
-        setIsSubmitting(false);
-        return;
-      }
+      const isPickup = selectedRetailOrder.delivery_method === "pickup";
+      const newStatus = isPickup ? "ready_for_pickup" : "shipped";
 
       await QuoteService.updateFulfillmentStatus(
-        selectedOrder.id,
+        selectedRetailOrder.id,
         user.id,
         newStatus,
-        isPickup ? undefined : { code: trackingCode, carrier: carrierName },
+        isPickup ? undefined : { code: retailTracking.code, carrier: retailTracking.carrier },
       );
 
-      toast({
-        title: isPickup ? "✅ Listo para Recoger" : "✅ Pedido Enviado",
-        description: isPickup
-          ? "El cliente ha sido notificado para pasar por su pedido."
-          : "La información de rastreo ha sido enviada al cliente.",
-      });
-
-      setShowFulfillmentModal(false);
-      refetch(); // Recargar lista
-    } catch (error: any) {
-      console.error(error);
-      toast({ title: "Error", description: "No se pudo actualizar el pedido.", variant: "destructive" });
+      toast({ title: "✅ Pedido Actualizado", description: "El cliente ha sido notificado." });
+      setIsRetailModalOpen(false);
+      refetchQuotes();
+    } catch (e) {
+      toast({ title: "Error", variant: "destructive" });
     } finally {
-      setIsSubmitting(false);
+      setIsSubmittingRetail(false);
     }
   };
 
-  // Helper seguro para el renderizado
-  const isPickupOrder = selectedOrder?.delivery_method === "pickup";
+  // --- LÓGICA TAB 2: CENTRO DE SURTIDO (Wholesale) ---
+  const [wholesaleSearch, setWholesaleSearch] = useState("");
+  const [selectedWholesaleOrder, setSelectedWholesaleOrder] = useState<ConsolidatedOrder | null>(null);
+  const [isWholesaleModalOpen, setIsWholesaleModalOpen] = useState(false);
+  const [wholesaleTracking, setWholesaleTracking] = useState({ code: "", carrier: "" });
 
-  if (loading)
-    return (
-      <div className="flex justify-center p-20">
-        <Loader2 className="w-10 h-10 animate-spin text-indigo-600" />
-      </div>
-    );
+  const { data: wholesaleOrders = [], isLoading: loadingWholesale } = useQuery({
+    queryKey: ["supplier-orders", user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const { data, error } = await supabase
+        .from("consolidated_orders")
+        .select(
+          `*, items:consolidated_order_items(*), distributor:business_info!consolidated_orders_distributor_id_fkey(business_name)`,
+        )
+        .eq("supplier_id", user.id)
+        .neq("status", "draft")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data as unknown as ConsolidatedOrder[];
+    },
+    enabled: !!user,
+  });
+
+  const fulfillMutation = useMutation({
+    mutationFn: async () => {
+      if (!selectedWholesaleOrder) return;
+      const { error } = await supabase
+        .from("consolidated_orders")
+        .update({
+          status: "shipped",
+          tracking_company: wholesaleTracking.carrier,
+          tracking_number: wholesaleTracking.code,
+          shipped_at: new Date().toISOString(),
+        })
+        .eq("id", selectedWholesaleOrder.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({ title: "✅ Orden Despachada", description: "El revendedor ha sido notificado." });
+      setIsWholesaleModalOpen(false);
+      setWholesaleTracking({ carrier: "", code: "" });
+      queryClient.invalidateQueries({ queryKey: ["supplier-orders"] });
+    },
+  });
+
+  const filteredWholesale = wholesaleOrders.filter(
+    (o) =>
+      o.distributor?.business_name.toLowerCase().includes(wholesaleSearch.toLowerCase()) ||
+      o.id.toLowerCase().includes(wholesaleSearch.toLowerCase()),
+  );
+
+  const pendingWholesaleCount = wholesaleOrders.filter((o) => o.status === "sent").length;
 
   return (
     <div className="min-h-screen bg-slate-50/50 p-4 md:p-8 pb-20 font-sans text-slate-900">
-      {/* HEADER */}
-      <header className="max-w-7xl mx-auto mb-8">
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Mis Pedidos</h1>
-            <p className="text-slate-500 mt-1">Gestiona la logística y envíos de ventas pagadas.</p>
-          </div>
-
-          <div className="flex gap-3 overflow-x-auto pb-2 md:pb-0 no-scrollbar">
-            <div className="bg-white border border-slate-200 rounded-xl px-5 py-3 shadow-sm min-w-[140px]">
-              <div className="flex items-center gap-2 mb-1 text-xs font-bold text-amber-600 uppercase">
-                <Box className="w-3.5 h-3.5" /> Por Empacar
-              </div>
-              <span className="text-2xl font-bold text-slate-900">{stats.unfulfilled}</span>
-            </div>
-            <div className="bg-white border border-slate-200 rounded-xl px-5 py-3 shadow-sm min-w-[140px]">
-              <div className="flex items-center gap-2 mb-1 text-xs font-bold text-purple-600 uppercase">
-                <Truck className="w-3.5 h-3.5" /> Enviados
-              </div>
-              <span className="text-2xl font-bold text-slate-900">{stats.shipped}</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-          <div className="p-4 border-b border-slate-100 flex flex-col md:flex-row gap-4 justify-between bg-white">
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-              <Input
-                placeholder="Buscar pedido por cliente o #..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 bg-slate-50 border-slate-200"
-              />
-            </div>
-            <div className="flex gap-2 overflow-x-auto">
-              {[
-                { id: "all", label: "Todos" },
-                { id: "unfulfilled", label: "Por Empacar" },
-                { id: "shipped", label: "Enviados" },
-              ].map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setStatusFilter(tab.id as any)}
-                  className={`px-4 py-2 rounded-lg text-xs font-medium transition-colors whitespace-nowrap ${
-                    statusFilter === tab.id
-                      ? "bg-slate-900 text-white shadow-md"
-                      : "bg-white text-slate-500 border border-slate-200 hover:bg-slate-50"
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {filteredOrders.length === 0 ? (
-            <div className="text-center py-24">
-              <Package className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-              <h3 className="text-slate-900 font-medium">No hay pedidos</h3>
-              <p className="text-slate-500 text-sm mt-1">Los pedidos pagados aparecerán aquí.</p>
-            </div>
-          ) : (
-            <div className="divide-y divide-slate-100">
-              <div className="hidden md:grid grid-cols-12 gap-4 px-6 py-3 bg-slate-50/50 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                <div className="col-span-3">Pedido</div>
-                <div className="col-span-3">Cliente</div>
-                <div className="col-span-2">Fecha Pago</div>
-                <div className="col-span-2 text-center">Estado</div>
-                <div className="col-span-2 text-right">Acción</div>
-              </div>
-
-              {filteredOrders.map((order) => (
-                <div
-                  key={order.id}
-                  className="group md:grid md:grid-cols-12 md:gap-4 p-4 md:px-6 md:py-4 items-center hover:bg-slate-50 transition-colors"
-                >
-                  {/* Mobile View */}
-                  <div className="md:hidden flex justify-between mb-3">
-                    <div className="font-bold text-slate-900">#{order.order_number || order.id.slice(0, 6)}</div>
-                    <FulfillmentBadge status={order.fulfillment_status} />
-                  </div>
-
-                  <div className="hidden md:flex col-span-3 items-center gap-3">
-                    <div className="h-10 w-10 bg-indigo-50 text-indigo-600 rounded-lg flex items-center justify-center font-bold text-xs">
-                      {order.items_count}
-                    </div>
-                    <div>
-                      <div className="font-bold text-slate-900">#{order.order_number || order.id.slice(0, 8)}</div>
-                      <div className="text-xs text-slate-500">{order.items_count} items</div>
-                    </div>
-                  </div>
-
-                  <div className="md:col-span-3 mb-2 md:mb-0">
-                    <div className="font-medium text-slate-900">{order.customer_name}</div>
-                    <div className="text-xs text-slate-500 flex items-center gap-1">
-                      {order.delivery_method === "pickup" ? (
-                        <MapPin className="w-3 h-3 text-indigo-500" />
-                      ) : (
-                        <Truck className="w-3 h-3 text-purple-500" />
-                      )}
-                      {order.delivery_method === "pickup" ? "Recolección" : "Envío Domicilio"}
-                    </div>
-                  </div>
-
-                  <div className="hidden md:block col-span-2 text-sm text-slate-500">
-                    {format(new Date(order.updated_at), "d MMM, HH:mm", { locale: es })}
-                  </div>
-
-                  <div className="hidden md:flex col-span-2 justify-center">
-                    <FulfillmentBadge status={order.fulfillment_status} />
-                  </div>
-
-                  <div className="md:col-span-2 flex justify-end gap-2 border-t md:border-none pt-3 md:pt-0 mt-2 md:mt-0">
-                    {order.fulfillment_status === "unfulfilled" || order.fulfillment_status === "processing" ? (
-                      <Button
-                        size="sm"
-                        className="w-full md:w-auto h-8 text-xs bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm"
-                        onClick={() => openFulfillmentModal(order)}
-                      >
-                        Despachar
-                      </Button>
-                    ) : (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="w-full md:w-auto h-8 text-xs text-slate-600"
-                        onClick={() => openFulfillmentModal(order)}
-                      >
-                        Ver Guía
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+      <header className="max-w-6xl mx-auto mb-8">
+        <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Gestión de Pedidos</h1>
+        <p className="text-slate-500 mt-1">Administra tus ventas directas y tus envíos a revendedores.</p>
       </header>
 
-      {/* --- MODAL DE DESPACHO --- */}
-      <Dialog open={showFulfillmentModal} onOpenChange={setShowFulfillmentModal}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Procesar Pedido #{selectedOrder?.order_number}</DialogTitle>
-            <DialogDescription>
-              {isPickupOrder
-                ? "El cliente pasará a recoger este pedido a tu ubicación."
-                : "Ingresa los datos de la paquetería para notificar al cliente."}
-            </DialogDescription>
-          </DialogHeader>
+      <div className="max-w-6xl mx-auto">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="bg-white border border-slate-200 mb-6 p-1 h-auto w-full md:w-auto grid grid-cols-2 md:inline-flex">
+            <TabsTrigger
+              value="sales"
+              className="py-2.5 data-[state=active]:bg-indigo-50 data-[state=active]:text-indigo-700"
+            >
+              <ShoppingBag className="w-4 h-4 mr-2" />
+              Mis Ventas
+              {retailOrders.filter((o) => o.fulfillment_status === "unfulfilled").length > 0 && (
+                <Badge className="ml-2 bg-indigo-600 hover:bg-indigo-700 h-5 px-1.5">
+                  {retailOrders.filter((o) => o.fulfillment_status === "unfulfilled").length}
+                </Badge>
+              )}
+            </TabsTrigger>
+            <TabsTrigger
+              value="wholesale"
+              className="py-2.5 data-[state=active]:bg-rose-50 data-[state=active]:text-rose-700"
+            >
+              <PackageCheck className="w-4 h-4 mr-2" />
+              Surtir a Revendedores
+              {pendingWholesaleCount > 0 && (
+                <Badge className="ml-2 bg-rose-600 hover:bg-rose-700 h-5 px-1.5">{pendingWholesaleCount}</Badge>
+              )}
+            </TabsTrigger>
+          </TabsList>
 
-          <div className="py-4 space-y-4">
-            {!isPickupOrder && (
-              <>
-                <div className="space-y-2">
-                  <Label>Paquetería / Servicio</Label>
-                  <div className="relative">
-                    <Truck className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-                    <Input
-                      className="pl-9"
-                      placeholder="Ej. DHL, FedEx, Uber Flash"
-                      value={carrierName}
-                      onChange={(e) => setCarrierName(e.target.value)}
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label>Número de Rastreo (Tracking)</Label>
-                  <div className="relative">
-                    <Barcode className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-                    <Input
-                      className="pl-9"
-                      placeholder="Ej. 1Z999AA101..."
-                      value={trackingCode}
-                      onChange={(e) => setTrackingCode(e.target.value)}
-                    />
-                  </div>
-                </div>
-              </>
-            )}
+          {/* === TAB 1: MIS VENTAS (RETAIL) === */}
+          <TabsContent value="sales" className="space-y-6 animate-in fade-in-50">
+            <div className="flex gap-4 mb-4">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <Input
+                  placeholder="Buscar cliente final..."
+                  className="pl-10 bg-white"
+                  value={retailSearch}
+                  onChange={(e) => setRetailSearch(e.target.value)}
+                />
+              </div>
+            </div>
 
-            {isPickupOrder && (
-              <div className="bg-indigo-50 p-4 rounded-lg border border-indigo-100 flex items-start gap-3">
-                <CheckCircle2 className="w-5 h-5 text-indigo-600 mt-0.5" />
-                <div>
-                  <h4 className="text-sm font-bold text-indigo-900">Confirmar Disponibilidad</h4>
-                  <p className="text-xs text-indigo-700 mt-1">
-                    Al confirmar, el sistema notificará al cliente que su paquete está listo en mostrador.
-                  </p>
-                </div>
+            {loadingQuotes ? (
+              <div className="flex justify-center p-12">
+                <Loader2 className="animate-spin text-indigo-600" />
+              </div>
+            ) : filteredRetail.length === 0 ? (
+              <EmptyState title="Sin ventas recientes" desc="Aquí aparecerán tus ventas a cliente final." />
+            ) : (
+              <div className="space-y-3">
+                {filteredRetail.map((order) => (
+                  <Card key={order.id} className="hover:border-indigo-200 transition-all">
+                    <CardContent className="p-5 flex flex-col md:flex-row justify-between md:items-center gap-4">
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-bold text-slate-900">#{order.order_number}</span>
+                          <FulfillmentBadge status={order.fulfillment_status} />
+                        </div>
+                        <div className="text-sm text-slate-600 font-medium">{order.customer_name}</div>
+                        <div className="text-xs text-slate-400 flex items-center gap-1 mt-1">
+                          {order.delivery_method === "pickup" ? (
+                            <MapPin className="w-3 h-3" />
+                          ) : (
+                            <Truck className="w-3 h-3" />
+                          )}
+                          {order.delivery_method === "pickup" ? "Recolección" : "Envío a Domicilio"}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <div className="text-right hidden md:block">
+                          <div className="font-bold text-slate-900">${(order.total_amount || 0).toFixed(2)}</div>
+                          <div className="text-xs text-slate-400">
+                            {format(new Date(order.created_at), "PPP", { locale: es })}
+                          </div>
+                        </div>
+                        {order.fulfillment_status === "unfulfilled" || order.fulfillment_status === "processing" ? (
+                          <Button
+                            size="sm"
+                            onClick={() => {
+                              setSelectedRetailOrder(order);
+                              setRetailTracking({ code: order.tracking_code || "", carrier: order.carrier_name || "" });
+                              setIsRetailModalOpen(true);
+                            }}
+                            className="bg-indigo-600 hover:bg-indigo-700"
+                          >
+                            Atender
+                          </Button>
+                        ) : (
+                          <Button variant="outline" size="sm">
+                            Ver Detalles
+                          </Button>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
               </div>
             )}
-          </div>
+          </TabsContent>
 
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="outline" onClick={() => setShowFulfillmentModal(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={handleFulfillOrder} disabled={isSubmitting} className="bg-indigo-600 hover:bg-indigo-700">
-              {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRight className="w-4 h-4 mr-2" />}
-              {isPickupOrder ? "Marcar Listo" : "Confirmar Envío"}
+          {/* === TAB 2: CENTRO DE SURTIDO (WHOLESALE) === */}
+          <TabsContent value="wholesale" className="space-y-6 animate-in fade-in-50">
+            <div className="flex gap-4 mb-4">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <Input
+                  placeholder="Buscar revendedor o ID..."
+                  className="pl-10 bg-white"
+                  value={wholesaleSearch}
+                  onChange={(e) => setWholesaleSearch(e.target.value)}
+                />
+              </div>
+            </div>
+
+            {loadingWholesale ? (
+              <div className="flex justify-center p-12">
+                <Loader2 className="animate-spin text-rose-600" />
+              </div>
+            ) : filteredWholesale.length === 0 ? (
+              <EmptyState title="Sin pedidos de abasto" desc="No tienes solicitudes de otros revendedores." />
+            ) : (
+              <div className="space-y-3">
+                {filteredWholesale.map((order) => (
+                  <Card key={order.id} className="hover:border-rose-200 transition-all border-l-4 border-l-rose-500">
+                    <CardContent className="p-5 flex flex-col md:flex-row justify-between md:items-center gap-4">
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-bold text-slate-900">ABASTO #{order.id.slice(0, 6)}</span>
+                          <FulfillmentBadge status={order.status} />
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-slate-700">
+                          <User className="w-4 h-4 text-slate-400" />
+                          <span className="font-semibold">{order.distributor?.business_name || "Revendedor"}</span>
+                        </div>
+                        <div className="text-xs text-slate-500 mt-1">{order.items.length} productos para empacar</div>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        {order.status === "sent" ? (
+                          <Button
+                            size="sm"
+                            onClick={() => {
+                              setSelectedWholesaleOrder(order);
+                              setWholesaleTracking({ carrier: "", code: "" });
+                              setIsWholesaleModalOpen(true);
+                            }}
+                            className="bg-rose-600 hover:bg-rose-700"
+                          >
+                            Despachar <Package className="w-4 h-4 ml-2" />
+                          </Button>
+                        ) : (
+                          <div className="text-right">
+                            <Badge variant="outline" className="text-emerald-600 border-emerald-200 bg-emerald-50">
+                              Enviado
+                            </Badge>
+                            <div className="text-xs text-slate-400 mt-1">{order.tracking_company}</div>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
+      </div>
+
+      {/* --- MODAL 1: ATENDER VENTA RETAIL --- */}
+      <Dialog open={isRetailModalOpen} onOpenChange={setIsRetailModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Atender Pedido #{selectedRetailOrder?.order_number}</DialogTitle>
+            <DialogDescription>
+              {selectedRetailOrder?.delivery_method === "pickup"
+                ? "El cliente pasará a recoger."
+                : "Ingresa los datos de envío."}
+            </DialogDescription>
+          </DialogHeader>
+          {selectedRetailOrder?.delivery_method !== "pickup" && (
+            <div className="space-y-3 py-4">
+              <div className="space-y-1">
+                <Label>Paquetería</Label>
+                <Input
+                  value={retailTracking.carrier}
+                  onChange={(e) => setRetailTracking({ ...retailTracking, carrier: e.target.value })}
+                  placeholder="DHL, FedEx..."
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>Guía</Label>
+                <Input
+                  value={retailTracking.code}
+                  onChange={(e) => setRetailTracking({ ...retailTracking, code: e.target.value })}
+                  placeholder="12345..."
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button onClick={handleUpdateRetail} disabled={isSubmittingRetail} className="bg-indigo-600">
+              {isSubmittingRetail ? <Loader2 className="animate-spin" /> : "Confirmar"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* --- MODAL 2: DESPACHAR WHOLESALE (PICKING LIST) --- */}
+      <Dialog open={isWholesaleModalOpen} onOpenChange={setIsWholesaleModalOpen}>
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Surtir Pedido #{selectedWholesaleOrder?.id.slice(0, 6)}</DialogTitle>
+            <DialogDescription>Confirma los productos antes de enviar.</DialogDescription>
+          </DialogHeader>
+
+          {selectedWholesaleOrder && (
+            <div className="space-y-6 py-2">
+              <div className="bg-slate-50 p-3 rounded-lg border border-slate-100">
+                <div className="text-xs font-bold text-slate-500 uppercase mb-2 flex items-center gap-2">
+                  <Box className="w-3 h-3" /> Picking List
+                </div>
+                <div className="space-y-2">
+                  {selectedWholesaleOrder.items.map((item) => (
+                    <div
+                      key={item.id}
+                      className="flex justify-between items-center bg-white p-2 rounded border border-slate-200"
+                    >
+                      <div className="text-sm font-medium truncate max-w-[200px]">{item.product_name}</div>
+                      <Badge variant="secondary">x{item.quantity}</Badge>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="grid gap-4">
+                <div className="space-y-2">
+                  <Label>Paquetería</Label>
+                  <div className="relative">
+                    <Truck className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                    <Input
+                      className="pl-9"
+                      value={wholesaleTracking.carrier}
+                      onChange={(e) => setWholesaleTracking({ ...wholesaleTracking, carrier: e.target.value })}
+                      placeholder="DHL, Estafeta..."
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Número de Rastreo</Label>
+                  <div className="relative">
+                    <Barcode className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                    <Input
+                      className="pl-9"
+                      value={wholesaleTracking.code}
+                      onChange={(e) => setWholesaleTracking({ ...wholesaleTracking, code: e.target.value })}
+                      placeholder="TRACK123..."
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button
+              onClick={() => fulfillMutation.mutate()}
+              disabled={fulfillMutation.isPending || !wholesaleTracking.code}
+              className="bg-rose-600 hover:bg-rose-700"
+            >
+              {fulfillMutation.isPending ? <Loader2 className="animate-spin" /> : "Confirmar Envío"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+function EmptyState({ title, desc }: { title: string; desc: string }) {
+  return (
+    <div className="text-center py-16 border-2 border-dashed border-slate-200 rounded-xl bg-white">
+      <Package className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+      <h3 className="font-medium text-slate-900">{title}</h3>
+      <p className="text-sm text-slate-500">{desc}</p>
     </div>
   );
 }
