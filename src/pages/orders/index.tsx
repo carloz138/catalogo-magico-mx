@@ -39,7 +39,6 @@ import { es } from "date-fns/locale";
 import { useToast } from "@/hooks/use-toast";
 
 // --- FUNCIÓN AUXILIAR PARA MONEDA ---
-// Convierte centavos (150000) a pesos formateados ($1,500.00)
 const formatMoney = (amountInCents: number) => {
   if (!amountInCents && amountInCents !== 0) return "$0.00";
   return new Intl.NumberFormat("es-MX", {
@@ -107,11 +106,14 @@ export default function UnifiedOrdersPage() {
   const { quotes, loading: loadingQuotes, refetch: refetchQuotes } = useQuotes({ autoLoad: true });
   const [retailSearch, setRetailSearch] = useState("");
 
-  // Modal Retail
+  // Modal Retail (Atender)
   const [selectedRetailOrder, setSelectedRetailOrder] = useState<Quote | null>(null);
   const [isRetailModalOpen, setIsRetailModalOpen] = useState(false);
   const [retailTracking, setRetailTracking] = useState({ code: "", carrier: "" });
   const [isSubmittingRetail, setIsSubmittingRetail] = useState(false);
+
+  // Modal Retail (Ver Detalles - NUEVO)
+  const [viewingOrder, setViewingOrder] = useState<Quote | null>(null);
 
   const retailOrders = quotes.filter((q) => (q as any).payment_status === "paid"); // Solo pagadas
   const filteredRetail = retailOrders.filter(
@@ -274,9 +276,7 @@ export default function UnifiedOrdersPage() {
                       </div>
                       <div className="flex items-center gap-4">
                         <div className="text-right hidden md:block">
-                          {/* --- AQUÍ ESTÁ EL CAMBIO APLICADO --- */}
                           <div className="font-bold text-slate-900">{formatMoney(order.total_amount || 0)}</div>
-                          {/* ---------------------------------- */}
                           <div className="text-xs text-slate-400">
                             {format(new Date(order.created_at), "PPP", { locale: es })}
                           </div>
@@ -294,7 +294,8 @@ export default function UnifiedOrdersPage() {
                             Atender
                           </Button>
                         ) : (
-                          <Button variant="outline" size="sm">
+                          // BOTÓN ACTIVADO PARA VER DETALLES
+                          <Button variant="outline" size="sm" onClick={() => setViewingOrder(order)}>
                             Ver Detalles
                           </Button>
                         )}
@@ -475,6 +476,130 @@ export default function UnifiedOrdersPage() {
               className="bg-rose-600 hover:bg-rose-700"
             >
               {fulfillMutation.isPending ? <Loader2 className="animate-spin" /> : "Confirmar Envío"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* --- MODAL 3: VISOR DE DETALLES (SOLO LECTURA) --- */}
+      <Dialog open={!!viewingOrder} onOpenChange={(open) => !open && setViewingOrder(null)}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <div className="flex items-center justify-between mr-8">
+              <DialogTitle className="text-xl">Orden #{viewingOrder?.order_number}</DialogTitle>
+              {viewingOrder && <FulfillmentBadge status={viewingOrder.fulfillment_status} />}
+            </div>
+            <DialogDescription>
+              Realizada el {viewingOrder && format(new Date(viewingOrder.created_at), "PPP p", { locale: es })}
+            </DialogDescription>
+          </DialogHeader>
+
+          {viewingOrder && (
+            <div className="space-y-6 mt-2">
+              {/* Sección 1: Datos de Envío y Cliente */}
+              <div className="grid md:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-lg border border-slate-100">
+                <div>
+                  <h4 className="font-semibold text-sm text-slate-900 mb-1">Cliente</h4>
+                  <p className="text-sm text-slate-600">{viewingOrder.customer_name}</p>
+                  <p className="text-sm text-slate-500">{viewingOrder.customer_email}</p>
+                  <p className="text-sm text-slate-500">{viewingOrder.customer_phone}</p>
+                </div>
+                <div>
+                  <h4 className="font-semibold text-sm text-slate-900 mb-1">Entrega</h4>
+                  <div className="text-sm text-slate-600">
+                    {viewingOrder.delivery_method === "pickup" ? (
+                      <span className="flex items-center gap-1">
+                        <MapPin className="w-3 h-3" /> Recolección en Tienda
+                      </span>
+                    ) : (
+                      <>
+                        <p>{viewingOrder.shipping_address?.street || "Dirección no registrada"}</p>
+                        <p>
+                          {viewingOrder.shipping_address?.city}, {viewingOrder.shipping_address?.state}
+                        </p>
+                        <p>{viewingOrder.shipping_address?.zip_code}</p>
+                        {viewingOrder.tracking_code && (
+                          <div className="mt-2 text-xs bg-white p-1.5 border rounded w-fit">
+                            <span className="font-bold">{viewingOrder.carrier_name}:</span> {viewingOrder.tracking_code}
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Sección 2: Lista de Productos */}
+              <div>
+                <h4 className="font-semibold text-sm text-slate-900 mb-3 flex items-center gap-2">
+                  <Box className="w-4 h-4 text-slate-500" /> Productos
+                </h4>
+                <div className="border rounded-lg overflow-hidden">
+                  <table className="w-full text-sm text-left">
+                    <thead className="bg-slate-50 text-slate-500 font-medium border-b">
+                      <tr>
+                        <th className="px-4 py-2">Producto</th>
+                        <th className="px-4 py-2 text-center">Cant.</th>
+                        <th className="px-4 py-2 text-right">Total</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y">
+                      {/* Intentamos leer 'items' o 'quote_items' por si acaso */}
+                      {((viewingOrder as any).items || (viewingOrder as any).quote_items || []).map(
+                        (item: any, idx: number) => (
+                          <tr key={idx} className="bg-white">
+                            <td className="px-4 py-3">
+                              <div className="flex items-center gap-3">
+                                {item.product_image_url && (
+                                  <img
+                                    src={item.product_image_url}
+                                    alt=""
+                                    className="w-10 h-10 rounded object-cover border bg-slate-100"
+                                  />
+                                )}
+                                <div>
+                                  <p className="font-medium text-slate-900 line-clamp-1">
+                                    {item.product_name || item.name}
+                                  </p>
+                                  <p className="text-xs text-slate-500">{item.sku}</p>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3 text-center">{item.quantity}</td>
+                            <td className="px-4 py-3 text-right font-medium">
+                              {formatMoney(item.total || item.unit_price * item.quantity)}
+                            </td>
+                          </tr>
+                        ),
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Sección 3: Totales */}
+              <div className="flex justify-end border-t pt-4">
+                <div className="w-48 space-y-2">
+                  <div className="flex justify-between text-sm text-slate-500">
+                    <span>Subtotal</span>
+                    <span>{formatMoney(viewingOrder.subtotal_amount || 0)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm text-slate-500">
+                    <span>Envío</span>
+                    <span>{formatMoney(viewingOrder.shipping_cost || 0)}</span>
+                  </div>
+                  <div className="flex justify-between text-base font-bold text-slate-900 border-t pt-2 mt-2">
+                    <span>Total</span>
+                    <span>{formatMoney(viewingOrder.total_amount || 0)}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="secondary" onClick={() => setViewingOrder(null)}>
+              Cerrar
             </Button>
           </DialogFooter>
         </DialogContent>
