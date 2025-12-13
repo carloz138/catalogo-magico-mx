@@ -12,35 +12,24 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch"; // ✅ IMPORTANTE
 import { Badge } from "@/components/ui/badge";
-import {
-  Search,
-  Filter,
-  Trash2,
-  Edit2,
-  Eye,
-  ArrowUpDown,
-  Check,
-  X,
-  Package,
-  ShoppingCart,
-  Tag,
-  Layers,
-  MoreHorizontal,
-} from "lucide-react";
+import { Search, Trash2, Edit2, Eye, ArrowUpDown, Package, Layers, Archive, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import { Product } from "@/types/products"; // Asegúrate que este tipo exista
+import { Product } from "@/types/products";
 import { useCatalogLimits } from "@/hooks/useCatalogLimits";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 // --- TIPOS ---
-// Usamos tu tipo Product existente, pero aseguramos los campos que necesitamos
 type EditorProduct = Product & {
   processing_status?: string;
+  stock_quantity?: number;
+  allow_backorder?: boolean;
 };
 
 // --- COMPONENTE DE CELDA EDITABLE ---
-const EditableCell = ({ getValue, row, column, table }: any) => {
+const EditableCell = ({ getValue, row, column, table, type = "text" }: any) => {
   const initialValue = getValue();
   const [value, setValue] = useState(initialValue);
   const [isEditing, setIsEditing] = useState(false);
@@ -52,7 +41,6 @@ const EditableCell = ({ getValue, row, column, table }: any) => {
   const onBlur = () => {
     setIsEditing(false);
     if (value != initialValue) {
-      // Solo guardar si cambió (coerción de tipo intencional para números vs strings)
       table.options.meta?.updateData(row.index, column.id, value);
     }
   };
@@ -60,6 +48,7 @@ const EditableCell = ({ getValue, row, column, table }: any) => {
   if (isEditing) {
     return (
       <Input
+        type={type === "number" ? "number" : "text"}
         value={value}
         onChange={(e) => setValue(e.target.value)}
         onBlur={onBlur}
@@ -67,7 +56,7 @@ const EditableCell = ({ getValue, row, column, table }: any) => {
           if (e.key === "Enter") onBlur();
         }}
         autoFocus
-        className="h-8 text-sm bg-white shadow-sm border-blue-500 w-full min-w-[100px]"
+        className="h-8 text-sm bg-white shadow-sm border-blue-500 w-full min-w-[60px]"
       />
     );
   }
@@ -78,7 +67,9 @@ const EditableCell = ({ getValue, row, column, table }: any) => {
       className="cursor-pointer hover:bg-gray-100 p-2 -ml-2 rounded flex items-center min-h-[32px] group w-full"
       title="Clic para editar"
     >
-      <span className="truncate block w-full">{value || <span className="text-gray-300 text-xs">Empty</span>}</span>
+      <span className="truncate block w-full text-sm">
+        {value !== null && value !== undefined ? value : <span className="text-gray-300 text-xs">-</span>}
+      </span>
       <Edit2 className="w-3 h-3 ml-auto text-gray-300 opacity-0 group-hover:opacity-100 flex-shrink-0" />
     </div>
   );
@@ -100,7 +91,7 @@ const CategoryCell = ({ getValue, row, column, table }: any) => {
     <select
       value={value || ""}
       onChange={onChange}
-      className="h-8 text-sm bg-transparent border-none hover:bg-gray-100 rounded cursor-pointer w-full focus:ring-0"
+      className="h-8 text-sm bg-transparent border-none hover:bg-gray-100 rounded cursor-pointer w-full focus:ring-0 text-slate-600"
     >
       <option value="">Sin categoría</option>
       {categories.map((c) => (
@@ -119,7 +110,6 @@ interface ProductsTableEditorProps {
   onEditVariants: (id: string) => void;
   onViewProduct: (id: string) => void;
   className?: string;
-  // Funciones para acciones masivas (pasadas desde el padre o definidas aquí)
   onBulkDelete?: (ids: string[]) => void;
   onBulkCatalog?: (ids: string[]) => void;
 }
@@ -136,9 +126,8 @@ export default function ProductsTableEditor({
   const [data, setData] = useState(externalProducts);
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const [globalFilter, setGlobalFilter] = useState("");
-  const { canGenerate } = useCatalogLimits(); // Tu hook para validar el botón de catálogo
+  const { canGenerate } = useCatalogLimits();
 
-  // Sincronizar datos externos
   useEffect(() => {
     setData(externalProducts);
   }, [externalProducts]);
@@ -163,13 +152,15 @@ export default function ProductsTableEditor({
 
     // 3. Guardar en Supabase
     try {
-      // Manejo especial para precios (convertir a centavos si es necesario)
       let dbValue = value;
+
+      // Conversiones de tipo
       if (columnId === "price_retail" || columnId === "price_wholesale") {
-        dbValue = Math.round(parseFloat(value) * 100);
-      } else if (columnId === "wholesale_min_qty") {
-        dbValue = parseInt(value);
+        dbValue = Math.round(parseFloat(value) * 100); // Centavos
+      } else if (columnId === "wholesale_min_qty" || columnId === "stock_quantity") {
+        dbValue = parseInt(value) || 0;
       }
+      // allow_backorder es boolean, pasa directo
 
       const { error } = await supabase
         .from("products")
@@ -177,16 +168,16 @@ export default function ProductsTableEditor({
         .eq("id", product.id);
 
       if (error) throw error;
-      toast({ title: "Guardado", description: "Campo actualizado correctamente", duration: 1500 });
+      toast({ title: "Guardado", description: "Actualizado correctamente", duration: 1000 });
     } catch (error) {
       console.error(error);
       setData(oldData); // Revertir
-      toast({ title: "Error", description: "No se pudo guardar el cambio", variant: "destructive" });
+      toast({ title: "Error", description: "No se pudo guardar", variant: "destructive" });
     }
   };
 
-  // Definición de Columnas
   const columnHelper = createColumnHelper<EditorProduct>();
+
   const columns = useMemo(
     () => [
       {
@@ -211,8 +202,14 @@ export default function ProductsTableEditor({
       columnHelper.accessor("original_image_url", {
         header: "Img",
         cell: (info) => (
-          <div className="w-10 h-10 rounded overflow-hidden bg-gray-100 border shrink-0">
-            {info.getValue() && <img src={info.getValue() || ""} alt="" className="w-full h-full object-cover" />}
+          <div className="w-10 h-10 rounded overflow-hidden bg-gray-50 border shrink-0">
+            {info.getValue() ? (
+              <img src={info.getValue() || ""} alt="" className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-gray-300">
+                <Package size={16} />
+              </div>
+            )}
           </div>
         ),
         enableSorting: false,
@@ -230,34 +227,53 @@ export default function ProductsTableEditor({
         ),
         cell: EditableCell,
       }),
-      columnHelper.accessor("sku", {
-        header: "SKU",
-        cell: EditableCell,
-      }),
       columnHelper.accessor("category", {
         header: "Categoría",
         cell: CategoryCell,
       }),
+      // ✅ NUEVO: STOCK (Inventario)
+      columnHelper.accessor("stock_quantity", {
+        header: "Stock",
+        cell: ({ row, getValue, column, table }) => (
+          <EditableCell getValue={getValue} row={row} column={column} table={table} type="number" />
+        ),
+      }),
+      // ✅ NUEVO: BACKORDER (Preventa)
+      columnHelper.accessor("allow_backorder", {
+        header: () => (
+          <div className="flex items-center gap-1 cursor-help" title="¿Permitir vender cuando el stock llegue a 0?">
+            Preventa
+            <AlertCircle className="w-3 h-3 text-slate-400" />
+          </div>
+        ),
+        cell: ({ row, getValue, column, table }) => {
+          const val = getValue();
+          return (
+            <div className="flex justify-center">
+              <Switch
+                checked={!!val}
+                onCheckedChange={(checked) => table.options.meta?.updateData(row.index, column.id, checked)}
+                className="scale-75 data-[state=checked]:bg-indigo-600"
+              />
+            </div>
+          );
+        },
+      }),
       columnHelper.accessor("price_retail", {
-        header: "Precio",
+        header: "P. Público",
         cell: ({ row, getValue, column, table }) => {
           const val = getValue();
           const displayVal = val ? (val / 100).toFixed(2) : "0.00";
-          // Pasamos el valor formateado al EditableCell, pero ojo: al guardar hay que convertir
-          return <EditableCell getValue={() => displayVal} row={row} column={column} table={table} />;
+          return <EditableCell getValue={() => displayVal} row={row} column={column} table={table} type="number" />;
         },
       }),
       columnHelper.accessor("price_wholesale", {
-        header: "Mayoreo",
+        header: "P. Mayoreo",
         cell: ({ row, getValue, column, table }) => {
           const val = getValue();
           const displayVal = val ? (val / 100).toFixed(2) : "0.00";
-          return <EditableCell getValue={() => displayVal} row={row} column={column} table={table} />;
+          return <EditableCell getValue={() => displayVal} row={row} column={column} table={table} type="number" />;
         },
-      }),
-      columnHelper.accessor("wholesale_min_qty", {
-        header: "Mín.",
-        cell: EditableCell,
       }),
       {
         id: "actions",
@@ -294,8 +310,8 @@ export default function ProductsTableEditor({
     onRowSelectionChange: setRowSelection,
     onGlobalFilterChange: setGlobalFilter,
     meta: {
-      updateData, // Pasamos la función de update a las celdas
-    } as any, // Type assertion simple para evitar conflictos complejos
+      updateData,
+    } as any,
   });
 
   const selectedIds = Object.keys(rowSelection).map((index) => data[parseInt(index)].id);
@@ -307,7 +323,7 @@ export default function ProductsTableEditor({
         <div className="relative w-72">
           <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
           <Input
-            placeholder="Buscar productos..."
+            placeholder="Buscar por nombre, SKU..."
             value={globalFilter ?? ""}
             onChange={(event) => setGlobalFilter(event.target.value)}
             className="pl-8"
@@ -324,7 +340,7 @@ export default function ProductsTableEditor({
               {table.getHeaderGroups().map((headerGroup) => (
                 <tr key={headerGroup.id}>
                   {headerGroup.headers.map((header) => (
-                    <th key={header.id} className="px-4 py-3 font-medium align-middle">
+                    <th key={header.id} className="px-4 py-3 font-medium align-middle whitespace-nowrap">
                       {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                     </th>
                   ))}
@@ -362,18 +378,17 @@ export default function ProductsTableEditor({
         </Button>
       </div>
 
-      {/* 👇 BARRA DE ACCIONES FLOTANTE (Sticky Bottom) */}
+      {/* Barra Flotante de Acciones */}
       {selectedIds.length > 0 && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-full shadow-2xl z-50 flex items-center gap-6 animate-in slide-in-from-bottom-4 duration-300 border border-gray-700">
           <div className="flex items-center gap-2 pl-2 border-r border-gray-700 pr-4">
             <span className="bg-white text-gray-900 text-xs font-bold px-2 py-0.5 rounded-full">
               {selectedIds.length}
             </span>
-            <span className="text-sm font-medium">seleccionados</span>
+            <span className="text-sm font-medium">items</span>
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Botón Crear Catálogo con validación de límites */}
             <Button
               size="sm"
               variant="ghost"
@@ -382,12 +397,11 @@ export default function ProductsTableEditor({
               disabled={!canGenerate}
             >
               <Package className="w-3.5 h-3.5 mr-1.5" />
-              {canGenerate ? "Crear Catálogo" : "Límite Catálogos"}
+              {canGenerate ? "Crear Catálogo" : "Límite"}
             </Button>
 
             <div className="w-px h-4 bg-gray-700 mx-1"></div>
 
-            {/* Botón Eliminar */}
             <Button
               size="sm"
               variant="ghost"
@@ -404,7 +418,7 @@ export default function ProductsTableEditor({
             className="h-6 w-6 rounded-full hover:bg-gray-800 text-gray-400"
             onClick={() => table.toggleAllRowsSelected(false)}
           >
-            <X className="w-3.5 h-3.5" />
+            <alert-circle className="w-3.5 h-3.5" />
           </Button>
         </div>
       )}
