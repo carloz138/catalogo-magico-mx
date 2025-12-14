@@ -18,7 +18,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogClose,
 } from "@/components/ui/dialog";
 import {
   Loader2,
@@ -90,8 +89,8 @@ interface OrderItem {
   unit_price?: number;
   total?: number;
   subtotal?: number;
-  // Campos auxiliares para fallback de imágenes
-  products?: { image_url?: string };
+  // Campos auxiliares para búsqueda robusta de imágenes
+  products?: { image_url?: string; original_image_url?: string };
   image_url?: string;
 }
 
@@ -140,7 +139,7 @@ export default function UnifiedOrdersPage() {
   const [activeTab, setActiveTab] = useState("sales");
   const [viewMode, setViewMode] = useState<"active" | "history">("active");
 
-  // ✅ NUEVO: Estado para el Zoom de Imagen
+  // ✅ ESTADO PARA EL ZOOM DE IMAGEN
   const [zoomedImage, setZoomedImage] = useState<string | null>(null);
 
   // --- LÓGICA RETAIL ---
@@ -152,7 +151,7 @@ export default function UnifiedOrdersPage() {
   const [isSubmittingRetail, setIsSubmittingRetail] = useState(false);
   const [viewingOrder, setViewingOrder] = useState<Quote | null>(null);
 
-  // FETCH ON DEMAND
+  // Fetch on Demand para detalles
   const { data: retailDetails, isLoading: loadingDetails } = useQuery({
     queryKey: ["quote-detail-modal", viewingOrder?.id],
     queryFn: async () => {
@@ -363,6 +362,7 @@ export default function UnifiedOrdersPage() {
                             {format(new Date(order.created_at), "PPP", { locale: es })}
                           </div>
                         </div>
+
                         {order.fulfillment_status === "unfulfilled" || order.fulfillment_status === "processing" ? (
                           <Button
                             size="sm"
@@ -679,14 +679,19 @@ export default function UnifiedOrdersPage() {
                       ) : (
                         ((retailDetails as any)?.items || (viewingOrder as any).items || []).map(
                           (item: any, idx: number) => {
-                            // ✅ Lógica de Imagen Robusta: Busca en varios lados
-                            const imgSrc = item.product_image_url || item.products?.image_url || item.image_url;
+                            // ✅ BUSQUEDA ROBUSTA DE IMAGEN (5 NIVELES DE PRIORIDAD)
+                            const imgSrc =
+                              item.product_image_url ||
+                              item.image_url ||
+                              item.products?.image_url ||
+                              item.products?.original_image_url ||
+                              (Array.isArray(item.products) ? item.products[0]?.image_url : null);
 
                             return (
                               <tr key={idx} className="bg-white">
                                 <td className="px-4 py-3">
                                   <div className="flex items-center gap-3">
-                                    {/* ✅ IMAGEN CON ZOOM */}
+                                    {/* ✅ IMAGEN CLICKEABLE (ZOOM) */}
                                     <div
                                       className={`h-10 w-10 rounded border bg-slate-100 flex-shrink-0 overflow-hidden relative group ${imgSrc ? "cursor-pointer" : ""}`}
                                       onClick={() => imgSrc && setZoomedImage(imgSrc)}
