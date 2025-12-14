@@ -3,8 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { DigitalCatalog } from "@/types/digital-catalog";
-// SECCIÓN MODIFICADA: Agregué iconos más comerciales (Banknote, Sparkles, Store)
-import { Lock, AlertCircle, Loader2, Banknote, Sparkles, Store, ChevronRight } from "lucide-react";
+import { Lock, AlertCircle, Loader2, Sparkles, Store, ChevronRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -38,6 +37,19 @@ interface Product {
 interface PublicCatalogProps {
   subdomainSlug?: string;
 }
+
+// --- UTILIDAD: FORMATEAR DIRECCIÓN ---
+// Convierte el objeto JSON nuevo a texto plano para que no rompa la UI
+const formatAddress = (addr: any): string | null => {
+  if (!addr) return null;
+  if (typeof addr === "string") return addr; // Formato viejo
+  if (typeof addr === "object") {
+    // Formato nuevo (JSON)
+    const parts = [addr.street, addr.colony, addr.city, addr.state, addr.zip_code ? `CP ${addr.zip_code}` : null];
+    return parts.filter(Boolean).join(", ");
+  }
+  return null;
+};
 
 // --- COMPONENTES AUXILIARES ---
 
@@ -84,7 +96,6 @@ export default function PublicCatalog({ subdomainSlug }: PublicCatalogProps = {}
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
 
-  // Estados para el flujo moderno de suscripción
   const [isMarginModalOpen, setIsMarginModalOpen] = useState(false);
   const [isProcessingSubscription, setIsProcessingSubscription] = useState(false);
 
@@ -168,8 +179,30 @@ export default function PublicCatalog({ subdomainSlug }: PublicCatalogProps = {}
             phone: businessInfo.phone,
             email: businessInfo.email,
             website: businessInfo.website,
-            address: businessInfo.address,
+            // ✅ APLICAMOS EL FORMATEADOR AQUÍ
+            address: formatAddress(businessInfo.address),
             social_media: businessInfo.social_media,
+          };
+        }
+      } else if (!isReplicated) {
+        // Si es L1, también necesitamos buscar su Business Info para mostrar la dirección correcta en el catálogo
+        // (Antes tal vez lo tomaba de otro lado, pero ahora es buena práctica unificarlo)
+        const { data: l1Info } = await supabase
+          .from("business_info")
+          .select("*")
+          .eq("user_id", catalogHeader.user_id)
+          .maybeSingle();
+
+        if (l1Info) {
+          // Inyectamos la info estructurada también para el L1
+          catalogHeader.business_info = {
+            business_name: l1Info.business_name || catalogHeader.name,
+            logo_url: l1Info.logo_url || catalogHeader.logo_url,
+            phone: l1Info.phone,
+            email: l1Info.email,
+            website: l1Info.website,
+            address: formatAddress(l1Info.address),
+            social_media: l1Info.social_media,
           };
         }
       }
@@ -245,7 +278,6 @@ export default function PublicCatalog({ subdomainSlug }: PublicCatalogProps = {}
     retry: false,
   });
 
-  // Fetch subscribed vendor IDs for L2 multi-vendor analytics attribution
   const { data: subscribedVendorIds = [] } = useQuery({
     queryKey: ["subscribed-vendors", catalog?.resellerId],
     queryFn: async () => {
@@ -285,11 +317,9 @@ export default function PublicCatalog({ subdomainSlug }: PublicCatalogProps = {}
     }
   }, [catalog?.id]);
 
-  // --- LÓGICA DE BOTÓN VENDER AHORA ---
   const handleSellNowClick = () => {
     if (!catalog) return;
 
-    // A. Si no hay sesión: Guardar intención y redirigir
     if (!currentUser) {
       localStorage.setItem("pending_replication_catalog_id", catalog.id);
       toast({
@@ -300,17 +330,14 @@ export default function PublicCatalog({ subdomainSlug }: PublicCatalogProps = {}
       return;
     }
 
-    // B. Si hay sesión: Abrir Modal de Margen
     setIsMarginModalOpen(true);
   };
 
-  // --- LÓGICA DE CONFIRMACIÓN DEL MODAL ---
   const handleConfirmSubscription = async (marginPercentage: number) => {
     if (!catalog || !currentUser) return;
 
     setIsProcessingSubscription(true);
     try {
-      // Llamada al RPC moderno que calcula precios sobre costo mayoreo
       const { data, error } = await supabase.rpc("subscribe_with_margin", {
         p_catalog_id: catalog.id,
         p_margin_percentage: marginPercentage,
@@ -324,9 +351,8 @@ export default function PublicCatalog({ subdomainSlug }: PublicCatalogProps = {}
         className: "bg-green-50 border-green-200 text-green-800",
       });
 
-      // Refrescar rol y redirigir
       await refreshRole();
-      navigate("/products"); // Redirigir a "Mis Productos" para ver el inventario nuevo
+      navigate("/products");
     } catch (err: any) {
       console.error("Error subscribing:", err);
       toast({
@@ -392,10 +418,6 @@ export default function PublicCatalog({ subdomainSlug }: PublicCatalogProps = {}
     );
   }
 
-  // Mostrar botón "Vender Ahora" solo si:
-  // 1. El catálogo permite distribución (L1 lo activó)
-  // 2. NO es mi propio catálogo (L1 viendo su obra)
-  // 3. NO es ya un catálogo replicado (L2 viendo su tienda)
   const canReplicate =
     catalog.enable_distribution && (!currentUser || currentUser.id !== catalog.user_id) && !catalog.isReplicated;
 
@@ -416,21 +438,11 @@ export default function PublicCatalog({ subdomainSlug }: PublicCatalogProps = {}
 
       <ScriptInjector headScripts={catalog.tracking_head_scripts} bodyScripts={catalog.tracking_body_scripts} />
 
-      {/* ✅ Pasar propiedades nuevas al componente de contenido si fuera necesario */}
       <PublicCatalogContent catalog={catalog} onTrackEvent={trackEvent} subscribedVendorIds={subscribedVendorIds} />
 
-      {/* --- UX MEJORADA: TARJETA FLOTANTE "VENDER AHORA" --- 
-        Cambios:
-        1. Posicionamiento: Fixed Bottom-Left (Desktop) o Bottom (Mobile con max-width).
-           - md:left-6 md:bottom-6 md:right-auto: En PC se va a la esquina izquierda (no tapa el carrito a la derecha).
-           - Mobile: Se mantiene abajo pero como una "cápsula" flotante, no barra full-width.
-        2. Estilo: Glassmorphism suave + Borde sutil.
-        3. Animación: Slide-in y hover scale.
-      */}
       {canReplicate && (
         <div className="fixed bottom-4 left-4 right-4 z-40 md:left-8 md:bottom-8 md:right-auto md:w-auto animate-in slide-in-from-bottom-4 duration-700 fade-in">
           <div className="bg-white/90 backdrop-blur-md border border-purple-100 shadow-2xl rounded-2xl p-1 flex items-center gap-3 pr-2 md:max-w-sm ring-1 ring-black/5">
-            {/* Icon Box Visual */}
             <div className="bg-gradient-to-br from-purple-600 to-indigo-600 w-12 h-12 rounded-xl flex items-center justify-center shrink-0 shadow-lg shadow-purple-200">
               <Store className="w-6 h-6 text-white" />
             </div>
@@ -455,7 +467,6 @@ export default function PublicCatalog({ subdomainSlug }: PublicCatalogProps = {}
         </div>
       )}
 
-      {/* ✅ MODAL DE MARGEN */}
       <MarginModal
         open={isMarginModalOpen}
         onOpenChange={setIsMarginModalOpen}
