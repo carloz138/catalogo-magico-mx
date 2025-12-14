@@ -33,9 +33,8 @@ import {
   User,
   Map as MapIcon,
   ChevronRight,
-  Filter,
-  History,
   Clock,
+  History,
 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -133,8 +132,6 @@ export default function UnifiedOrdersPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("sales");
-
-  // ✅ NUEVO ESTADO: Filtro de Vistas (Pendientes vs Historial)
   const [viewMode, setViewMode] = useState<"active" | "history">("active");
 
   // --- LÓGICA RETAIL ---
@@ -146,54 +143,52 @@ export default function UnifiedOrdersPage() {
   const [isSubmittingRetail, setIsSubmittingRetail] = useState(false);
   const [viewingOrder, setViewingOrder] = useState<Quote | null>(null);
 
-  // Filtrado de Retail
+  // ✅ NUEVO: FETCH ON DEMAND (Traer items cuando se abre el modal)
+  // Solo se activa si hay viewingOrder Y NO es wholesale (wholesale ya tiene items)
+  const { data: retailDetails, isLoading: loadingDetails } = useQuery({
+    queryKey: ["quote-detail-modal", viewingOrder?.id],
+    queryFn: async () => {
+      if (!viewingOrder || !user) return null;
+      return QuoteService.getQuoteDetail(viewingOrder.id, user.id);
+    },
+    // Solo ejecutamos si hay orden seleccionada y NO es una orden de wholesale (que tiene distributor)
+    enabled: !!viewingOrder && !!user && !(viewingOrder as any).distributor,
+  });
+
   const retailOrders = quotes.filter((q) => (q as any).payment_status === "paid");
 
-  // ✅ LÓGICA DE FILTRADO (PENDIENTES vs HISTORIAL)
+  // Filtro Active/History
   const activeStatuses = ["unfulfilled", "processing", "ready_for_pickup"];
-
   const filteredRetail = retailOrders.filter((o) => {
-    // 1. Filtro por Texto
     const matchesSearch =
       o.customer_name.toLowerCase().includes(retailSearch.toLowerCase()) ||
       o.order_number?.toLowerCase().includes(retailSearch.toLowerCase());
-
     if (!matchesSearch) return false;
-
-    // 2. Filtro por Modo (Active vs History)
-    if (viewMode === "active") {
-      return activeStatuses.includes(o.fulfillment_status);
-    } else {
-      // History: shipped, delivered, cancelled (o cualquier otro no activo)
-      return !activeStatuses.includes(o.fulfillment_status);
-    }
+    return viewMode === "active"
+      ? activeStatuses.includes(o.fulfillment_status)
+      : !activeStatuses.includes(o.fulfillment_status);
   });
 
   const handleUpdateRetail = async (newStatusOverride?: FulfillmentStatus) => {
     if (!selectedRetailOrder || !user) return;
     setIsSubmittingRetail(true);
     try {
-      // Si recibimos un status directo (ej: delivered), lo usamos. Si no, calculamos.
       let newStatus: FulfillmentStatus = newStatusOverride || "processing";
-
       if (!newStatusOverride) {
         const isPickup = selectedRetailOrder.delivery_method === "pickup";
         newStatus = isPickup ? "ready_for_pickup" : "shipped";
       }
-
       await QuoteService.updateFulfillmentStatus(
         selectedRetailOrder.id,
         user.id,
         newStatus,
-        // Solo enviamos tracking si estamos marcando como shipped
         newStatus === "shipped" && selectedRetailOrder.delivery_method !== "pickup"
           ? { code: retailTracking.code, carrier: retailTracking.carrier }
           : undefined,
       );
-
       toast({ title: "✅ Pedido Actualizado", description: "El estado ha cambiado exitosamente." });
       setIsRetailModalOpen(false);
-      setSelectedRetailOrder(null); // Limpiar selección
+      setSelectedRetailOrder(null);
       refetchQuotes();
     } catch (e) {
       toast({ title: "Error", variant: "destructive" });
@@ -270,8 +265,7 @@ export default function UnifiedOrdersPage() {
               value="sales"
               className="py-2.5 data-[state=active]:bg-indigo-50 data-[state=active]:text-indigo-700"
             >
-              <ShoppingBag className="w-4 h-4 mr-2" />
-              Mis Ventas
+              <ShoppingBag className="w-4 h-4 mr-2" /> Mis Ventas
               {retailOrders.filter((o) => activeStatuses.includes(o.fulfillment_status)).length > 0 && (
                 <Badge className="ml-2 bg-indigo-600 hover:bg-indigo-700 h-5 px-1.5">
                   {retailOrders.filter((o) => activeStatuses.includes(o.fulfillment_status)).length}
@@ -282,8 +276,7 @@ export default function UnifiedOrdersPage() {
               value="wholesale"
               className="py-2.5 data-[state=active]:bg-rose-50 data-[state=active]:text-rose-700"
             >
-              <PackageCheck className="w-4 h-4 mr-2" />
-              Surtir a Revendedores
+              <PackageCheck className="w-4 h-4 mr-2" /> Surtir a Revendedores
               {pendingWholesaleCount > 0 && (
                 <Badge className="ml-2 bg-rose-600 hover:bg-rose-700 h-5 px-1.5">{pendingWholesaleCount}</Badge>
               )}
@@ -292,33 +285,21 @@ export default function UnifiedOrdersPage() {
 
           {/* === TAB 1: MIS VENTAS (RETAIL) === */}
           <TabsContent value="sales" className="space-y-6 animate-in fade-in-50">
-            {/* ✅ NUEVO FILTRO VISUAL: PENDIENTES vs HISTORIAL */}
             <div className="flex flex-col sm:flex-row gap-4 mb-4 justify-between items-start sm:items-center">
               <div className="bg-slate-200/50 p-1 rounded-lg flex items-center gap-1">
                 <button
                   onClick={() => setViewMode("active")}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
-                    viewMode === "active"
-                      ? "bg-white text-indigo-700 shadow-sm"
-                      : "text-slate-500 hover:text-slate-700 hover:bg-slate-200"
-                  }`}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${viewMode === "active" ? "bg-white text-indigo-700 shadow-sm" : "text-slate-500 hover:text-slate-700 hover:bg-slate-200"}`}
                 >
-                  <Clock className="w-4 h-4" />
-                  Pendientes
+                  <Clock className="w-4 h-4" /> Pendientes
                 </button>
                 <button
                   onClick={() => setViewMode("history")}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
-                    viewMode === "history"
-                      ? "bg-white text-indigo-700 shadow-sm"
-                      : "text-slate-500 hover:text-slate-700 hover:bg-slate-200"
-                  }`}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${viewMode === "history" ? "bg-white text-indigo-700 shadow-sm" : "text-slate-500 hover:text-slate-700 hover:bg-slate-200"}`}
                 >
-                  <History className="w-4 h-4" />
-                  Historial
+                  <History className="w-4 h-4" /> Historial
                 </button>
               </div>
-
               <div className="relative w-full sm:w-72">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                 <Input
@@ -348,11 +329,7 @@ export default function UnifiedOrdersPage() {
                 {filteredRetail.map((order) => (
                   <Card
                     key={order.id}
-                    className={`transition-all cursor-pointer group ${
-                      viewMode === "active"
-                        ? "hover:border-indigo-300 border-l-4 border-l-indigo-500"
-                        : "hover:border-slate-300 bg-slate-50/50"
-                    }`}
+                    className={`transition-all cursor-pointer group ${viewMode === "active" ? "hover:border-indigo-300 border-l-4 border-l-indigo-500" : "hover:border-slate-300 bg-slate-50/50"}`}
                     onClick={() => setViewingOrder(order)}
                   >
                     <CardContent className="p-5 flex flex-col md:flex-row justify-between md:items-center gap-4">
@@ -380,8 +357,6 @@ export default function UnifiedOrdersPage() {
                             {format(new Date(order.created_at), "PPP", { locale: es })}
                           </div>
                         </div>
-
-                        {/* BOTONES DE ACCIÓN LÓGICA */}
                         {order.fulfillment_status === "unfulfilled" || order.fulfillment_status === "processing" ? (
                           <Button
                             size="sm"
@@ -397,32 +372,18 @@ export default function UnifiedOrdersPage() {
                           </Button>
                         ) : order.fulfillment_status === "shipped" ||
                           order.fulfillment_status === "ready_for_pickup" ? (
-                          // ✅ BOTÓN PARA FINALIZAR (Marcar como entregado)
                           <Button
                             size="sm"
                             variant="outline"
                             className="border-emerald-200 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800"
                             onClick={(e) => {
                               e.stopPropagation();
-                              // Hack rápido: Usamos setSelected para tener el ID, y llamamos update directo
-                              setSelectedRetailOrder(order);
-                              // Pequeña trampa de UX: Invocamos la actualización directa aquí
-                              // Idealmente haríamos un modal de confirmación, pero para agilidad:
-                              if (confirm("¿Confirmar que el cliente ya recibió su pedido?")) {
-                                // Usamos un timeout minúsculo para que el estado se asiente si fuera necesario,
-                                // o llamamos directo a una función separada.
-                                // Para mantenerlo simple, usaremos el handleUpdateRetail adaptado.
-                                // Re-seteamos el selected aquí para asegurar que handleUpdateRetail lo vea
-                                // (React state batching podría ser tricky, así que mejor pasar params)
-                              }
                             }}
-                            // NOTA: Para no complicar el state, haremos un wrapper inline mejor:
                           >
                             <div
                               onClick={async (ev) => {
                                 ev.stopPropagation();
                                 if (confirm("¿Confirmar entrega final? Esto moverá el pedido al historial.")) {
-                                  // Llamada directa al servicio para no depender del estado asíncrono del modal
                                   await QuoteService.updateFulfillmentStatus(order.id, user!.id, "delivered");
                                   toast({
                                     title: "✅ Entrega Confirmada",
@@ -449,7 +410,7 @@ export default function UnifiedOrdersPage() {
             )}
           </TabsContent>
 
-          {/* === TAB 2: WHOLESALE (Sin cambios mayores, solo visual) === */}
+          {/* === TAB 2: WHOLESALE === */}
           <TabsContent value="wholesale" className="space-y-6 animate-in fade-in-50">
             <div className="flex gap-4 mb-4">
               <div className="relative flex-1">
@@ -462,7 +423,6 @@ export default function UnifiedOrdersPage() {
                 />
               </div>
             </div>
-
             {loadingWholesale ? (
               <div className="flex justify-center p-12">
                 <Loader2 className="animate-spin text-rose-600" />
@@ -538,7 +498,7 @@ export default function UnifiedOrdersPage() {
         </Tabs>
       </div>
 
-      {/* --- MODAL 1: ATENDER (Para Retail) --- */}
+      {/* --- MODAL 1: ATENDER --- */}
       <Dialog open={isRetailModalOpen} onOpenChange={setIsRetailModalOpen}>
         <DialogContent>
           <DialogHeader>
@@ -570,7 +530,6 @@ export default function UnifiedOrdersPage() {
             </div>
           )}
           <DialogFooter>
-            {/* Llama a handleUpdateRetail sin argumentos para usar el flujo estándar */}
             <Button onClick={() => handleUpdateRetail()} disabled={isSubmittingRetail} className="bg-indigo-600">
               {isSubmittingRetail ? <Loader2 className="animate-spin" /> : "Confirmar"}
             </Button>
@@ -585,7 +544,6 @@ export default function UnifiedOrdersPage() {
             <DialogTitle>Surtir Pedido #{selectedWholesaleOrder?.id.slice(0, 6)}</DialogTitle>
             <DialogDescription>Confirma los productos antes de enviar.</DialogDescription>
           </DialogHeader>
-
           {selectedWholesaleOrder && (
             <div className="space-y-6 py-2">
               <div className="bg-slate-50 p-3 rounded-lg border border-slate-100">
@@ -632,7 +590,6 @@ export default function UnifiedOrdersPage() {
               </div>
             </div>
           )}
-
           <DialogFooter>
             <Button
               onClick={() => fulfillMutation.mutate()}
@@ -645,7 +602,7 @@ export default function UnifiedOrdersPage() {
         </DialogContent>
       </Dialog>
 
-      {/* --- MODAL 3: VISOR DETALLES --- */}
+      {/* --- MODAL 3: VISOR DETALLES (CORREGIDO PARA CARGA LAZY) --- */}
       <Dialog open={!!viewingOrder} onOpenChange={(open) => !open && setViewingOrder(null)}>
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
@@ -707,32 +664,42 @@ export default function UnifiedOrdersPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y">
-                      {((viewingOrder as any).items || (viewingOrder as any).quote_items || []).map(
-                        (item: any, idx: number) => (
-                          <tr key={idx} className="bg-white">
-                            <td className="px-4 py-3">
-                              <div className="flex items-center gap-3">
-                                {item.product_image_url && (
-                                  <img
-                                    src={item.product_image_url}
-                                    alt=""
-                                    className="w-10 h-10 rounded object-cover border bg-slate-100"
-                                  />
-                                )}
-                                <div>
-                                  <p className="font-medium text-slate-900 line-clamp-1">
-                                    {item.product_name || item.name}
-                                  </p>
-                                  <p className="text-xs text-slate-500">{item.sku}</p>
+                      {/* ✅ LÓGICA DE CARGA: Si hay data 'lazy' la usamos, si no, lo que tengamos */}
+                      {loadingDetails ? (
+                        <tr>
+                          <td colSpan={3} className="p-8 text-center">
+                            <Loader2 className="animate-spin mx-auto text-indigo-500" />
+                          </td>
+                        </tr>
+                      ) : (
+                        // PRIORIDAD: 1. Detalles cargados al abrir (Retail) | 2. Items locales (Wholesale)
+                        ((retailDetails as any)?.items || (viewingOrder as any).items || []).map(
+                          (item: any, idx: number) => (
+                            <tr key={idx} className="bg-white">
+                              <td className="px-4 py-3">
+                                <div className="flex items-center gap-3">
+                                  {item.product_image_url && (
+                                    <img
+                                      src={item.product_image_url}
+                                      alt=""
+                                      className="w-10 h-10 rounded object-cover border bg-slate-100"
+                                    />
+                                  )}
+                                  <div>
+                                    <p className="font-medium text-slate-900 line-clamp-1">
+                                      {item.product_name || item.name}
+                                    </p>
+                                    <p className="text-xs text-slate-500">{item.sku}</p>
+                                  </div>
                                 </div>
-                              </div>
-                            </td>
-                            <td className="px-4 py-3 text-center">{item.quantity}</td>
-                            <td className="px-4 py-3 text-right font-medium">
-                              {formatMoney(item.subtotal || item.total || item.unit_price * item.quantity)}
-                            </td>
-                          </tr>
-                        ),
+                              </td>
+                              <td className="px-4 py-3 text-center">{item.quantity}</td>
+                              <td className="px-4 py-3 text-right font-medium">
+                                {formatMoney(item.subtotal || item.total || item.unit_price * item.quantity)}
+                              </td>
+                            </tr>
+                          ),
+                        )
                       )}
                     </tbody>
                   </table>
@@ -743,13 +710,13 @@ export default function UnifiedOrdersPage() {
                 <div className="w-48 space-y-2">
                   <div className="flex justify-between text-base font-bold text-slate-900 border-t pt-2 mt-2">
                     <span>Total</span>
-                    <span>{formatMoney(viewingOrder.total_amount || 0)}</span>
+                    {/* Preferimos el total del detalle si existe para mayor precisión */}
+                    <span>{formatMoney((retailDetails as any)?.total_amount || viewingOrder.total_amount || 0)}</span>
                   </div>
                 </div>
               </div>
             </div>
           )}
-
           <DialogFooter>
             <Button variant="secondary" onClick={() => setViewingOrder(null)}>
               Cerrar
