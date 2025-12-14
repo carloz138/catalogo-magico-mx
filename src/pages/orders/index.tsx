@@ -33,6 +33,9 @@ import {
   User,
   Map as MapIcon,
   ChevronRight,
+  Filter,
+  History,
+  Clock,
 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -82,9 +85,9 @@ interface OrderItem {
   quantity: number;
   product_image_url?: string;
   sku?: string;
-  unit_price?: number; // Agregado para display
-  total?: number; // Agregado para display
-  subtotal?: number; // A veces viene como subtotal
+  unit_price?: number;
+  total?: number;
+  subtotal?: number;
 }
 
 interface ConsolidatedOrder {
@@ -109,6 +112,7 @@ const FulfillmentBadge = ({ status }: { status: string }) => {
     delivered: { label: "Entregado", bg: "bg-emerald-100", text: "text-emerald-800", icon: CheckCircle2 },
     sent: { label: "Por Surtir", bg: "bg-rose-100", text: "text-rose-800", icon: PackageCheck },
     draft: { label: "Borrador", bg: "bg-gray-100", text: "text-gray-500", icon: Box },
+    cancelled: { label: "Cancelado", bg: "bg-slate-100", text: "text-slate-500", icon: Box },
   };
 
   const info = config[status] || { label: status, bg: "bg-gray-100", text: "text-gray-800", icon: Box };
@@ -130,6 +134,9 @@ export default function UnifiedOrdersPage() {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("sales");
 
+  // ✅ NUEVO ESTADO: Filtro de Vistas (Pendientes vs Historial)
+  const [viewMode, setViewMode] = useState<"active" | "history">("active");
+
   // --- LÓGICA RETAIL ---
   const { quotes, loading: loadingQuotes, refetch: refetchQuotes } = useQuotes({ autoLoad: true });
   const [retailSearch, setRetailSearch] = useState("");
@@ -139,29 +146,54 @@ export default function UnifiedOrdersPage() {
   const [isSubmittingRetail, setIsSubmittingRetail] = useState(false);
   const [viewingOrder, setViewingOrder] = useState<Quote | null>(null);
 
+  // Filtrado de Retail
   const retailOrders = quotes.filter((q) => (q as any).payment_status === "paid");
-  const filteredRetail = retailOrders.filter(
-    (o) =>
-      o.customer_name.toLowerCase().includes(retailSearch.toLowerCase()) ||
-      o.order_number?.toLowerCase().includes(retailSearch.toLowerCase()),
-  );
 
-  const handleUpdateRetail = async () => {
+  // ✅ LÓGICA DE FILTRADO (PENDIENTES vs HISTORIAL)
+  const activeStatuses = ["unfulfilled", "processing", "ready_for_pickup"];
+
+  const filteredRetail = retailOrders.filter((o) => {
+    // 1. Filtro por Texto
+    const matchesSearch =
+      o.customer_name.toLowerCase().includes(retailSearch.toLowerCase()) ||
+      o.order_number?.toLowerCase().includes(retailSearch.toLowerCase());
+
+    if (!matchesSearch) return false;
+
+    // 2. Filtro por Modo (Active vs History)
+    if (viewMode === "active") {
+      return activeStatuses.includes(o.fulfillment_status);
+    } else {
+      // History: shipped, delivered, cancelled (o cualquier otro no activo)
+      return !activeStatuses.includes(o.fulfillment_status);
+    }
+  });
+
+  const handleUpdateRetail = async (newStatusOverride?: FulfillmentStatus) => {
     if (!selectedRetailOrder || !user) return;
     setIsSubmittingRetail(true);
     try {
-      const isPickup = selectedRetailOrder.delivery_method === "pickup";
-      const newStatus = isPickup ? "ready_for_pickup" : "shipped";
+      // Si recibimos un status directo (ej: delivered), lo usamos. Si no, calculamos.
+      let newStatus: FulfillmentStatus = newStatusOverride || "processing";
+
+      if (!newStatusOverride) {
+        const isPickup = selectedRetailOrder.delivery_method === "pickup";
+        newStatus = isPickup ? "ready_for_pickup" : "shipped";
+      }
 
       await QuoteService.updateFulfillmentStatus(
         selectedRetailOrder.id,
         user.id,
         newStatus,
-        isPickup ? undefined : { code: retailTracking.code, carrier: retailTracking.carrier },
+        // Solo enviamos tracking si estamos marcando como shipped
+        newStatus === "shipped" && selectedRetailOrder.delivery_method !== "pickup"
+          ? { code: retailTracking.code, carrier: retailTracking.carrier }
+          : undefined,
       );
 
-      toast({ title: "✅ Pedido Actualizado", description: "El cliente ha sido notificado." });
+      toast({ title: "✅ Pedido Actualizado", description: "El estado ha cambiado exitosamente." });
       setIsRetailModalOpen(false);
+      setSelectedRetailOrder(null); // Limpiar selección
       refetchQuotes();
     } catch (e) {
       toast({ title: "Error", variant: "destructive" });
@@ -240,9 +272,9 @@ export default function UnifiedOrdersPage() {
             >
               <ShoppingBag className="w-4 h-4 mr-2" />
               Mis Ventas
-              {retailOrders.filter((o) => o.fulfillment_status === "unfulfilled").length > 0 && (
+              {retailOrders.filter((o) => activeStatuses.includes(o.fulfillment_status)).length > 0 && (
                 <Badge className="ml-2 bg-indigo-600 hover:bg-indigo-700 h-5 px-1.5">
-                  {retailOrders.filter((o) => o.fulfillment_status === "unfulfilled").length}
+                  {retailOrders.filter((o) => activeStatuses.includes(o.fulfillment_status)).length}
                 </Badge>
               )}
             </TabsTrigger>
@@ -260,11 +292,37 @@ export default function UnifiedOrdersPage() {
 
           {/* === TAB 1: MIS VENTAS (RETAIL) === */}
           <TabsContent value="sales" className="space-y-6 animate-in fade-in-50">
-            <div className="flex gap-4 mb-4">
-              <div className="relative flex-1">
+            {/* ✅ NUEVO FILTRO VISUAL: PENDIENTES vs HISTORIAL */}
+            <div className="flex flex-col sm:flex-row gap-4 mb-4 justify-between items-start sm:items-center">
+              <div className="bg-slate-200/50 p-1 rounded-lg flex items-center gap-1">
+                <button
+                  onClick={() => setViewMode("active")}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+                    viewMode === "active"
+                      ? "bg-white text-indigo-700 shadow-sm"
+                      : "text-slate-500 hover:text-slate-700 hover:bg-slate-200"
+                  }`}
+                >
+                  <Clock className="w-4 h-4" />
+                  Pendientes
+                </button>
+                <button
+                  onClick={() => setViewMode("history")}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+                    viewMode === "history"
+                      ? "bg-white text-indigo-700 shadow-sm"
+                      : "text-slate-500 hover:text-slate-700 hover:bg-slate-200"
+                  }`}
+                >
+                  <History className="w-4 h-4" />
+                  Historial
+                </button>
+              </div>
+
+              <div className="relative w-full sm:w-72">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                 <Input
-                  placeholder="Buscar cliente final..."
+                  placeholder="Buscar cliente..."
                   className="pl-10 bg-white"
                   value={retailSearch}
                   onChange={(e) => setRetailSearch(e.target.value)}
@@ -277,14 +335,24 @@ export default function UnifiedOrdersPage() {
                 <Loader2 className="animate-spin text-indigo-600" />
               </div>
             ) : filteredRetail.length === 0 ? (
-              <EmptyState title="Sin ventas recientes" desc="Aquí aparecerán tus ventas a cliente final." />
+              <EmptyState
+                title={viewMode === "active" ? "Todo al día" : "Sin historial reciente"}
+                desc={
+                  viewMode === "active"
+                    ? "No tienes pedidos pendientes de envío."
+                    : "No hay pedidos finalizados con este criterio."
+                }
+              />
             ) : (
               <div className="space-y-3">
                 {filteredRetail.map((order) => (
                   <Card
                     key={order.id}
-                    className="hover:border-indigo-300 transition-all cursor-pointer group"
-                    // ✅ CLIC EN TODA LA TARJETA
+                    className={`transition-all cursor-pointer group ${
+                      viewMode === "active"
+                        ? "hover:border-indigo-300 border-l-4 border-l-indigo-500"
+                        : "hover:border-slate-300 bg-slate-50/50"
+                    }`}
                     onClick={() => setViewingOrder(order)}
                   >
                     <CardContent className="p-5 flex flex-col md:flex-row justify-between md:items-center gap-4">
@@ -313,12 +381,11 @@ export default function UnifiedOrdersPage() {
                           </div>
                         </div>
 
-                        {/* Botones de acción */}
+                        {/* BOTONES DE ACCIÓN LÓGICA */}
                         {order.fulfillment_status === "unfulfilled" || order.fulfillment_status === "processing" ? (
                           <Button
                             size="sm"
                             onClick={(e) => {
-                              // ✅ PREVENIR QUE EL CLIC DEL BOTÓN ABRA LOS DETALLES
                               e.stopPropagation();
                               setSelectedRetailOrder(order);
                               setRetailTracking({ code: order.tracking_code || "", carrier: order.carrier_name || "" });
@@ -327,6 +394,47 @@ export default function UnifiedOrdersPage() {
                             className="bg-indigo-600 hover:bg-indigo-700 shadow-sm"
                           >
                             Atender
+                          </Button>
+                        ) : order.fulfillment_status === "shipped" ||
+                          order.fulfillment_status === "ready_for_pickup" ? (
+                          // ✅ BOTÓN PARA FINALIZAR (Marcar como entregado)
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="border-emerald-200 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              // Hack rápido: Usamos setSelected para tener el ID, y llamamos update directo
+                              setSelectedRetailOrder(order);
+                              // Pequeña trampa de UX: Invocamos la actualización directa aquí
+                              // Idealmente haríamos un modal de confirmación, pero para agilidad:
+                              if (confirm("¿Confirmar que el cliente ya recibió su pedido?")) {
+                                // Usamos un timeout minúsculo para que el estado se asiente si fuera necesario,
+                                // o llamamos directo a una función separada.
+                                // Para mantenerlo simple, usaremos el handleUpdateRetail adaptado.
+                                // Re-seteamos el selected aquí para asegurar que handleUpdateRetail lo vea
+                                // (React state batching podría ser tricky, así que mejor pasar params)
+                              }
+                            }}
+                            // NOTA: Para no complicar el state, haremos un wrapper inline mejor:
+                          >
+                            <div
+                              onClick={async (ev) => {
+                                ev.stopPropagation();
+                                if (confirm("¿Confirmar entrega final? Esto moverá el pedido al historial.")) {
+                                  // Llamada directa al servicio para no depender del estado asíncrono del modal
+                                  await QuoteService.updateFulfillmentStatus(order.id, user!.id, "delivered");
+                                  toast({
+                                    title: "✅ Entrega Confirmada",
+                                    description: "El pedido ha sido finalizado.",
+                                  });
+                                  refetchQuotes();
+                                }
+                              }}
+                              className="flex items-center"
+                            >
+                              <CheckCircle2 className="w-4 h-4 mr-1" /> Finalizar
+                            </div>
                           </Button>
                         ) : (
                           <div className="text-slate-300 group-hover:text-indigo-400 transition-colors">
@@ -341,7 +449,7 @@ export default function UnifiedOrdersPage() {
             )}
           </TabsContent>
 
-          {/* === TAB 2: WHOLESALE === */}
+          {/* === TAB 2: WHOLESALE (Sin cambios mayores, solo visual) === */}
           <TabsContent value="wholesale" className="space-y-6 animate-in fade-in-50">
             <div className="flex gap-4 mb-4">
               <div className="relative flex-1">
@@ -367,24 +475,16 @@ export default function UnifiedOrdersPage() {
                   <Card
                     key={order.id}
                     className="hover:border-rose-300 transition-all border-l-4 border-l-rose-500 cursor-pointer group"
-                    // ✅ CLIC EN TODA LA TARJETA
                     onClick={() => {
-                      // Adaptamos el consolidatedOrder a Quote para que el modal lo lea
-                      // Ojo: En un mundo ideal tendríamos un tipo unificado, pero esto funciona visualmente
                       const adapter: any = {
                         ...order,
                         order_number: order.id.slice(0, 6),
                         customer_name: order.distributor?.business_name || "Revendedor",
                         customer_email: order.distributor?.email,
                         customer_phone: order.distributor?.phone,
-                        delivery_method: "shipping", // Wholesale suele ser envío
+                        delivery_method: "shipping",
                         fulfillment_status: order.status,
-                        // Convertir items de wholesale a items de visor
-                        items: order.items.map((i) => ({
-                          ...i,
-                          unit_price: 0, // A veces no viene en consolidated, poner 0 o calcular
-                          total: 0,
-                        })),
+                        items: order.items.map((i) => ({ ...i, unit_price: 0, total: 0 })),
                       };
                       setViewingOrder(adapter);
                     }}
@@ -408,7 +508,6 @@ export default function UnifiedOrdersPage() {
                           <Button
                             size="sm"
                             onClick={(e) => {
-                              // ✅ STOP PROPAGATION
                               e.stopPropagation();
                               setSelectedWholesaleOrder(order);
                               setWholesaleTracking({ carrier: "", code: "" });
@@ -439,7 +538,7 @@ export default function UnifiedOrdersPage() {
         </Tabs>
       </div>
 
-      {/* --- MODAL 1: ATENDER --- */}
+      {/* --- MODAL 1: ATENDER (Para Retail) --- */}
       <Dialog open={isRetailModalOpen} onOpenChange={setIsRetailModalOpen}>
         <DialogContent>
           <DialogHeader>
@@ -471,7 +570,8 @@ export default function UnifiedOrdersPage() {
             </div>
           )}
           <DialogFooter>
-            <Button onClick={handleUpdateRetail} disabled={isSubmittingRetail} className="bg-indigo-600">
+            {/* Llama a handleUpdateRetail sin argumentos para usar el flujo estándar */}
+            <Button onClick={() => handleUpdateRetail()} disabled={isSubmittingRetail} className="bg-indigo-600">
               {isSubmittingRetail ? <Loader2 className="animate-spin" /> : "Confirmar"}
             </Button>
           </DialogFooter>
@@ -545,7 +645,7 @@ export default function UnifiedOrdersPage() {
         </DialogContent>
       </Dialog>
 
-      {/* --- MODAL 3: VISOR DETALLES (Corregido para ver productos) --- */}
+      {/* --- MODAL 3: VISOR DETALLES --- */}
       <Dialog open={!!viewingOrder} onOpenChange={(open) => !open && setViewingOrder(null)}>
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
@@ -607,7 +707,6 @@ export default function UnifiedOrdersPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y">
-                      {/* ✅ AQUÍ ESTÁ EL ARREGLO DE LAS PARTIDAS: Busca en items O en quote_items */}
                       {((viewingOrder as any).items || (viewingOrder as any).quote_items || []).map(
                         (item: any, idx: number) => (
                           <tr key={idx} className="bg-white">
@@ -630,7 +729,6 @@ export default function UnifiedOrdersPage() {
                             </td>
                             <td className="px-4 py-3 text-center">{item.quantity}</td>
                             <td className="px-4 py-3 text-right font-medium">
-                              {/* Manejo seguro de precios */}
                               {formatMoney(item.subtotal || item.total || item.unit_price * item.quantity)}
                             </td>
                           </tr>
