@@ -32,6 +32,7 @@ import {
   CheckCircle2,
   User,
   Map as MapIcon,
+  ChevronRight,
 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -47,11 +48,10 @@ const formatMoney = (amountInCents: number) => {
   }).format(amountInCents / 100);
 };
 
-// --- COMPONENTE INTELIGENTE PARA MOSTRAR DIRECCIÓN (CORREGIDO) ---
+// --- COMPONENTE INTELIGENTE PARA MOSTRAR DIRECCIÓN ---
 const AddressDisplay = ({ address }: { address: string | ShippingAddressStructured | null }) => {
   if (!address) return <p className="text-sm text-slate-400 italic">No especificada</p>;
 
-  // Caso 1: Es el objeto nuevo (JSON Estructurado)
   if (typeof address === "object" && address !== null) {
     const addr = address as ShippingAddressStructured;
     return (
@@ -72,8 +72,6 @@ const AddressDisplay = ({ address }: { address: string | ShippingAddressStructur
       </div>
     );
   }
-
-  // Caso 2: Es texto plano (Pedidos viejos) - FORZAMOS EL TIPO STRING
   return <p className="text-sm text-slate-600 whitespace-pre-wrap">{address as string}</p>;
 };
 
@@ -84,6 +82,9 @@ interface OrderItem {
   quantity: number;
   product_image_url?: string;
   sku?: string;
+  unit_price?: number; // Agregado para display
+  total?: number; // Agregado para display
+  subtotal?: number; // A veces viene como subtotal
 }
 
 interface ConsolidatedOrder {
@@ -257,7 +258,7 @@ export default function UnifiedOrdersPage() {
             </TabsTrigger>
           </TabsList>
 
-          {/* === TAB 1: MIS VENTAS === */}
+          {/* === TAB 1: MIS VENTAS (RETAIL) === */}
           <TabsContent value="sales" className="space-y-6 animate-in fade-in-50">
             <div className="flex gap-4 mb-4">
               <div className="relative flex-1">
@@ -280,11 +281,18 @@ export default function UnifiedOrdersPage() {
             ) : (
               <div className="space-y-3">
                 {filteredRetail.map((order) => (
-                  <Card key={order.id} className="hover:border-indigo-200 transition-all">
+                  <Card
+                    key={order.id}
+                    className="hover:border-indigo-300 transition-all cursor-pointer group"
+                    // ✅ CLIC EN TODA LA TARJETA
+                    onClick={() => setViewingOrder(order)}
+                  >
                     <CardContent className="p-5 flex flex-col md:flex-row justify-between md:items-center gap-4">
                       <div>
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="font-bold text-slate-900">#{order.order_number}</span>
+                          <span className="font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">
+                            #{order.order_number}
+                          </span>
                           <FulfillmentBadge status={order.fulfillment_status} />
                         </div>
                         <div className="text-sm text-slate-600 font-medium">{order.customer_name}</div>
@@ -304,22 +312,26 @@ export default function UnifiedOrdersPage() {
                             {format(new Date(order.created_at), "PPP", { locale: es })}
                           </div>
                         </div>
+
+                        {/* Botones de acción */}
                         {order.fulfillment_status === "unfulfilled" || order.fulfillment_status === "processing" ? (
                           <Button
                             size="sm"
-                            onClick={() => {
+                            onClick={(e) => {
+                              // ✅ PREVENIR QUE EL CLIC DEL BOTÓN ABRA LOS DETALLES
+                              e.stopPropagation();
                               setSelectedRetailOrder(order);
                               setRetailTracking({ code: order.tracking_code || "", carrier: order.carrier_name || "" });
                               setIsRetailModalOpen(true);
                             }}
-                            className="bg-indigo-600 hover:bg-indigo-700"
+                            className="bg-indigo-600 hover:bg-indigo-700 shadow-sm"
                           >
                             Atender
                           </Button>
                         ) : (
-                          <Button variant="outline" size="sm" onClick={() => setViewingOrder(order)}>
-                            Ver Detalles
-                          </Button>
+                          <div className="text-slate-300 group-hover:text-indigo-400 transition-colors">
+                            <ChevronRight className="w-5 h-5" />
+                          </div>
                         )}
                       </div>
                     </CardContent>
@@ -352,11 +364,37 @@ export default function UnifiedOrdersPage() {
             ) : (
               <div className="space-y-3">
                 {filteredWholesale.map((order) => (
-                  <Card key={order.id} className="hover:border-rose-200 transition-all border-l-4 border-l-rose-500">
+                  <Card
+                    key={order.id}
+                    className="hover:border-rose-300 transition-all border-l-4 border-l-rose-500 cursor-pointer group"
+                    // ✅ CLIC EN TODA LA TARJETA
+                    onClick={() => {
+                      // Adaptamos el consolidatedOrder a Quote para que el modal lo lea
+                      // Ojo: En un mundo ideal tendríamos un tipo unificado, pero esto funciona visualmente
+                      const adapter: any = {
+                        ...order,
+                        order_number: order.id.slice(0, 6),
+                        customer_name: order.distributor?.business_name || "Revendedor",
+                        customer_email: order.distributor?.email,
+                        customer_phone: order.distributor?.phone,
+                        delivery_method: "shipping", // Wholesale suele ser envío
+                        fulfillment_status: order.status,
+                        // Convertir items de wholesale a items de visor
+                        items: order.items.map((i) => ({
+                          ...i,
+                          unit_price: 0, // A veces no viene en consolidated, poner 0 o calcular
+                          total: 0,
+                        })),
+                      };
+                      setViewingOrder(adapter);
+                    }}
+                  >
                     <CardContent className="p-5 flex flex-col md:flex-row justify-between md:items-center gap-4">
                       <div>
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="font-bold text-slate-900">ABASTO #{order.id.slice(0, 6)}</span>
+                          <span className="font-bold text-slate-900 group-hover:text-rose-600 transition-colors">
+                            ABASTO #{order.id.slice(0, 6)}
+                          </span>
                           <FulfillmentBadge status={order.status} />
                         </div>
                         <div className="flex items-center gap-2 text-sm text-slate-700">
@@ -369,21 +407,26 @@ export default function UnifiedOrdersPage() {
                         {order.status === "sent" ? (
                           <Button
                             size="sm"
-                            onClick={() => {
+                            onClick={(e) => {
+                              // ✅ STOP PROPAGATION
+                              e.stopPropagation();
                               setSelectedWholesaleOrder(order);
                               setWholesaleTracking({ carrier: "", code: "" });
                               setIsWholesaleModalOpen(true);
                             }}
-                            className="bg-rose-600 hover:bg-rose-700"
+                            className="bg-rose-600 hover:bg-rose-700 shadow-sm"
                           >
                             Despachar <Package className="w-4 h-4 ml-2" />
                           </Button>
                         ) : (
-                          <div className="text-right">
-                            <Badge variant="outline" className="text-emerald-600 border-emerald-200 bg-emerald-50">
-                              Enviado
-                            </Badge>
-                            <div className="text-xs text-slate-400 mt-1">{order.tracking_company}</div>
+                          <div className="text-right flex items-center gap-2">
+                            <div>
+                              <Badge variant="outline" className="text-emerald-600 border-emerald-200 bg-emerald-50">
+                                Enviado
+                              </Badge>
+                              <div className="text-xs text-slate-400 mt-1">{order.tracking_company}</div>
+                            </div>
+                            <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-rose-400" />
                           </div>
                         )}
                       </div>
@@ -502,7 +545,7 @@ export default function UnifiedOrdersPage() {
         </DialogContent>
       </Dialog>
 
-      {/* --- MODAL 3: VISOR DETALLES (ACTUALIZADO CON AddressDisplay) --- */}
+      {/* --- MODAL 3: VISOR DETALLES (Corregido para ver productos) --- */}
       <Dialog open={!!viewingOrder} onOpenChange={(open) => !open && setViewingOrder(null)}>
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
@@ -539,9 +582,7 @@ export default function UnifiedOrdersPage() {
                     </div>
                   ) : (
                     <>
-                      {/* 🔥 AQUÍ USAMOS EL COMPONENTE INTELIGENTE 🔥 */}
                       <AddressDisplay address={viewingOrder.shipping_address} />
-
                       {viewingOrder.tracking_code && (
                         <div className="mt-2 text-xs bg-white p-1.5 border rounded w-fit">
                           <span className="font-bold">{viewingOrder.carrier_name}:</span> {viewingOrder.tracking_code}
@@ -566,6 +607,7 @@ export default function UnifiedOrdersPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y">
+                      {/* ✅ AQUÍ ESTÁ EL ARREGLO DE LAS PARTIDAS: Busca en items O en quote_items */}
                       {((viewingOrder as any).items || (viewingOrder as any).quote_items || []).map(
                         (item: any, idx: number) => (
                           <tr key={idx} className="bg-white">
@@ -588,7 +630,8 @@ export default function UnifiedOrdersPage() {
                             </td>
                             <td className="px-4 py-3 text-center">{item.quantity}</td>
                             <td className="px-4 py-3 text-right font-medium">
-                              {formatMoney(item.total || item.unit_price * item.quantity)}
+                              {/* Manejo seguro de precios */}
+                              {formatMoney(item.subtotal || item.total || item.unit_price * item.quantity)}
                             </td>
                           </tr>
                         ),
