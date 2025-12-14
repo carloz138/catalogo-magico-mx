@@ -18,6 +18,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   Loader2,
   ArrowLeft,
@@ -35,11 +36,11 @@ import {
   Calendar as CalendarIcon,
   MapPin,
   Gift,
-  Map as MapIcon, // Importado para el AddressDisplay
+  Map as MapIcon,
+  Plane,
 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-// ✅ IMPORTAR EL TIPO NUEVO
 import { QuoteStatus, ShippingAddressStructured } from "@/types/digital-catalog";
 import { QuoteService } from "@/services/quote.service";
 import { QuoteTrackingService } from "@/services/quote-tracking.service";
@@ -47,6 +48,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
 import { WhatsAppShareButton } from "@/components/quotes/WhatsAppShareButton";
+import { supabase } from "@/integrations/supabase/client"; // Necesario para Edge Functions
 
 // --- COMPONENTE AUXILIAR PARA MOSTRAR DIRECCIÓN ---
 const AddressDisplay = ({ address }: { address: string | ShippingAddressStructured | null }) => {
@@ -88,6 +90,11 @@ export default function QuoteDetailPage() {
   const [trackingUrl, setTrackingUrl] = useState("");
   const [showWhatsAppButton, setShowWhatsAppButton] = useState(false);
 
+  // Estados para cotización de envío
+  const [isShippingModalOpen, setIsShippingModalOpen] = useState(false);
+  const [shippingRates, setShippingRates] = useState<any[]>([]);
+  const [loadingRates, setLoadingRates] = useState(false);
+
   const [shippingCostInput, setShippingCostInput] = useState<string>("0");
   const [deliveryDateInput, setDeliveryDateInput] = useState<string>("");
 
@@ -124,6 +131,45 @@ export default function QuoteDetailPage() {
   }, [quote]);
 
   // --- HANDLERS ---
+
+  // ✅ NUEVO: Función para llamar a la Edge Function de Envíos
+  const handleGetShippingRates = async () => {
+    if (!quote) return;
+    setLoadingRates(true);
+    setIsShippingModalOpen(true);
+    setShippingRates([]); // Limpiar anteriores
+
+    try {
+      const { data, error } = await supabase.functions.invoke("get-shipping-rates", {
+        body: { quoteId: quote.id },
+      });
+
+      if (error) throw error;
+      if (data.error) throw new Error(data.error);
+
+      setShippingRates(data.rates || []);
+    } catch (err: any) {
+      console.error("Error getting rates:", err);
+      toast({
+        title: "Error al cotizar",
+        description: err.message || "Verifica que las direcciones de origen y destino estén completas (CP, Ciudad).",
+        variant: "destructive",
+      });
+      setIsShippingModalOpen(false); // Cerrar si hay error fatal
+    } finally {
+      setLoadingRates(false);
+    }
+  };
+
+  // ✅ NUEVO: Función Placeholder para comprar (siguiente paso)
+  const handleBuyLabel = async (rate: any) => {
+    // AQUÍ IRÁ LA LÓGICA DE COMPRA EN EL SIGUIENTE PASO
+    // Por ahora solo mostramos qué seleccionó
+    if (confirm(`¿Comprar guía de ${rate.carrier} por $${rate.finalPrice} MXN?`)) {
+      toast({ title: "Próximamente", description: "En el siguiente paso conectaremos la compra real." });
+    }
+  };
+
   const handleManualPayment = async () => {
     if (!quote || !user?.id) return;
 
@@ -477,13 +523,31 @@ export default function QuoteDetailPage() {
                     <br />
                     Ya puedes realizar el envío.
                   </p>
-                  <p className="text-xs text-emerald-600">
+                  <p className="text-xs text-emerald-600 mb-4">
                     Fecha Pago: {format(new Date(paymentTx.created_at), "dd/MM/yy HH:mm")}
                   </p>
+
+                  {/* ✅ BOTÓN DE GENERAR GUÍA (Solo si no es pickup) */}
+                  {quote.delivery_method === "shipping" && (
+                    <>
+                      <Separator className="my-4 bg-emerald-200/50" />
+                      <Button
+                        onClick={handleGetShippingRates}
+                        className="w-full bg-emerald-600 hover:bg-emerald-700 text-white shadow-md transition-all active:scale-95"
+                      >
+                        {loadingRates ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Truck className="w-4 h-4 mr-2" />
+                        )}
+                        Generar Guía de Envío
+                      </Button>
+                    </>
+                  )}
                 </CardContent>
               </Card>
             ) : (
-              // ✅ BOTÓN DE PAGO MANUAL CON MODAL
+              // BOTÓN DE PAGO MANUAL CON MODAL
               quote.status === "accepted" && (
                 <Card className="bg-amber-50 border-amber-200 shadow-sm">
                   <CardContent className="p-6 text-center">
@@ -510,8 +574,7 @@ export default function QuoteDetailPage() {
                           <AlertDialogTitle>¿Confirmar Pago Manual?</AlertDialogTitle>
                           <AlertDialogDescription>
                             Estás a punto de registrar que recibiste{" "}
-                            <strong>${(quote.total_amount / 100).toFixed(2)}</strong> por fuera de la plataforma
-                            (Efectivo, Transferencia Directa, etc.).
+                            <strong>${(quote.total_amount / 100).toFixed(2)}</strong> por fuera de la plataforma.
                             <br />
                             <br />
                             Esta acción marcará el pedido como <strong>PAGADO</strong> y habilitará la opción de envío.
@@ -533,7 +596,7 @@ export default function QuoteDetailPage() {
               )
             )}
 
-            {/* Panel de Gestión (Logística) */}
+            {/* Panel de Gestión (Logística) - Igual que antes */}
             {(quote.status === "pending" || quote.status === "negotiation") && (
               <Card className="border-indigo-100 bg-gradient-to-b from-white to-indigo-50/30 shadow-md">
                 <CardHeader className="pb-3">
@@ -674,7 +737,6 @@ export default function QuoteDetailPage() {
                   {quote.shipping_address && (
                     <div className="flex items-start gap-3 text-slate-600">
                       <Truck className="w-4 h-4 text-slate-400 mt-0.5" />
-                      {/* 🔥 AQUÍ USAMOS EL AddressDisplay PARA QUE NO EXPLOTE 🔥 */}
                       <div className="flex-1">
                         <AddressDisplay address={quote.shipping_address} />
                       </div>
@@ -686,6 +748,61 @@ export default function QuoteDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* ✅ MODAL DE RESULTADOS DE ENVÍO */}
+      <Dialog open={isShippingModalOpen} onOpenChange={setIsShippingModalOpen}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Opciones de Envío</DialogTitle>
+            <DialogDescription>Selecciona una paquetería para generar la guía.</DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-2 py-2">
+            {loadingRates ? (
+              <div className="flex flex-col items-center justify-center py-10 space-y-4">
+                <Loader2 className="w-10 h-10 animate-spin text-indigo-500" />
+                <p className="text-sm text-slate-500">Cotizando con paqueterías...</p>
+              </div>
+            ) : shippingRates.length === 0 ? (
+              <div className="text-center py-8 bg-slate-50 rounded-lg">
+                <AlertCircle className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+                <p className="text-slate-600 font-medium">No se encontraron opciones</p>
+                <p className="text-xs text-slate-400">Verifica la dirección de destino.</p>
+              </div>
+            ) : (
+              <div className="grid gap-3">
+                {shippingRates.map((rate: any, idx: number) => (
+                  <div
+                    key={idx}
+                    className="flex items-center justify-between p-4 border rounded-lg hover:border-indigo-300 hover:bg-indigo-50/30 transition-all cursor-pointer bg-white shadow-sm"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="h-10 w-10 bg-slate-100 rounded-full flex items-center justify-center border">
+                        <Plane className="w-5 h-5 text-slate-500" />
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-slate-900 capitalize">{rate.carrier}</h4>
+                        <p className="text-xs text-slate-500">
+                          {rate.service} • Llega: {rate.deliveryEstimate || "Pendiente"}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <div className="text-right">
+                        <span className="block font-bold text-lg text-slate-900">${rate.finalPrice}</span>
+                        <span className="text-[10px] text-slate-400 uppercase">{rate.currency}</span>
+                      </div>
+                      <Button size="sm" onClick={() => handleBuyLabel(rate)}>
+                        Comprar
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
