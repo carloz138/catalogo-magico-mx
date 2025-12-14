@@ -18,6 +18,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogClose,
 } from "@/components/ui/dialog";
 import {
   Loader2,
@@ -35,6 +36,8 @@ import {
   ChevronRight,
   Clock,
   History,
+  ZoomIn,
+  X,
 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -87,6 +90,9 @@ interface OrderItem {
   unit_price?: number;
   total?: number;
   subtotal?: number;
+  // Campos auxiliares para fallback de imágenes
+  products?: { image_url?: string };
+  image_url?: string;
 }
 
 interface ConsolidatedOrder {
@@ -134,6 +140,9 @@ export default function UnifiedOrdersPage() {
   const [activeTab, setActiveTab] = useState("sales");
   const [viewMode, setViewMode] = useState<"active" | "history">("active");
 
+  // ✅ NUEVO: Estado para el Zoom de Imagen
+  const [zoomedImage, setZoomedImage] = useState<string | null>(null);
+
   // --- LÓGICA RETAIL ---
   const { quotes, loading: loadingQuotes, refetch: refetchQuotes } = useQuotes({ autoLoad: true });
   const [retailSearch, setRetailSearch] = useState("");
@@ -143,21 +152,18 @@ export default function UnifiedOrdersPage() {
   const [isSubmittingRetail, setIsSubmittingRetail] = useState(false);
   const [viewingOrder, setViewingOrder] = useState<Quote | null>(null);
 
-  // ✅ NUEVO: FETCH ON DEMAND (Traer items cuando se abre el modal)
-  // Solo se activa si hay viewingOrder Y NO es wholesale (wholesale ya tiene items)
+  // FETCH ON DEMAND
   const { data: retailDetails, isLoading: loadingDetails } = useQuery({
     queryKey: ["quote-detail-modal", viewingOrder?.id],
     queryFn: async () => {
       if (!viewingOrder || !user) return null;
       return QuoteService.getQuoteDetail(viewingOrder.id, user.id);
     },
-    // Solo ejecutamos si hay orden seleccionada y NO es una orden de wholesale (que tiene distributor)
     enabled: !!viewingOrder && !!user && !(viewingOrder as any).distributor,
   });
 
   const retailOrders = quotes.filter((q) => (q as any).payment_status === "paid");
 
-  // Filtro Active/History
   const activeStatuses = ["unfulfilled", "processing", "ready_for_pickup"];
   const filteredRetail = retailOrders.filter((o) => {
     const matchesSearch =
@@ -602,7 +608,7 @@ export default function UnifiedOrdersPage() {
         </DialogContent>
       </Dialog>
 
-      {/* --- MODAL 3: VISOR DETALLES (CORREGIDO PARA CARGA LAZY) --- */}
+      {/* --- MODAL 3: VISOR DETALLES --- */}
       <Dialog open={!!viewingOrder} onOpenChange={(open) => !open && setViewingOrder(null)}>
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
@@ -664,7 +670,6 @@ export default function UnifiedOrdersPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y">
-                      {/* ✅ LÓGICA DE CARGA: Si hay data 'lazy' la usamos, si no, lo que tengamos */}
                       {loadingDetails ? (
                         <tr>
                           <td colSpan={3} className="p-8 text-center">
@@ -672,33 +677,48 @@ export default function UnifiedOrdersPage() {
                           </td>
                         </tr>
                       ) : (
-                        // PRIORIDAD: 1. Detalles cargados al abrir (Retail) | 2. Items locales (Wholesale)
                         ((retailDetails as any)?.items || (viewingOrder as any).items || []).map(
-                          (item: any, idx: number) => (
-                            <tr key={idx} className="bg-white">
-                              <td className="px-4 py-3">
-                                <div className="flex items-center gap-3">
-                                  {item.product_image_url && (
-                                    <img
-                                      src={item.product_image_url}
-                                      alt=""
-                                      className="w-10 h-10 rounded object-cover border bg-slate-100"
-                                    />
-                                  )}
-                                  <div>
-                                    <p className="font-medium text-slate-900 line-clamp-1">
-                                      {item.product_name || item.name}
-                                    </p>
-                                    <p className="text-xs text-slate-500">{item.sku}</p>
+                          (item: any, idx: number) => {
+                            // ✅ Lógica de Imagen Robusta: Busca en varios lados
+                            const imgSrc = item.product_image_url || item.products?.image_url || item.image_url;
+
+                            return (
+                              <tr key={idx} className="bg-white">
+                                <td className="px-4 py-3">
+                                  <div className="flex items-center gap-3">
+                                    {/* ✅ IMAGEN CON ZOOM */}
+                                    <div
+                                      className={`h-10 w-10 rounded border bg-slate-100 flex-shrink-0 overflow-hidden relative group ${imgSrc ? "cursor-pointer" : ""}`}
+                                      onClick={() => imgSrc && setZoomedImage(imgSrc)}
+                                    >
+                                      {imgSrc ? (
+                                        <>
+                                          <img src={imgSrc} alt="" className="h-full w-full object-cover" />
+                                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all flex items-center justify-center">
+                                            <ZoomIn className="w-4 h-4 text-white opacity-0 group-hover:opacity-100" />
+                                          </div>
+                                        </>
+                                      ) : (
+                                        <div className="h-full w-full flex items-center justify-center text-slate-300">
+                                          <Package className="w-5 h-5" />
+                                        </div>
+                                      )}
+                                    </div>
+                                    <div>
+                                      <p className="font-medium text-slate-900 line-clamp-1">
+                                        {item.product_name || item.name}
+                                      </p>
+                                      <p className="text-xs text-slate-500">{item.sku}</p>
+                                    </div>
                                   </div>
-                                </div>
-                              </td>
-                              <td className="px-4 py-3 text-center">{item.quantity}</td>
-                              <td className="px-4 py-3 text-right font-medium">
-                                {formatMoney(item.subtotal || item.total || item.unit_price * item.quantity)}
-                              </td>
-                            </tr>
-                          ),
+                                </td>
+                                <td className="px-4 py-3 text-center">{item.quantity}</td>
+                                <td className="px-4 py-3 text-right font-medium">
+                                  {formatMoney(item.subtotal || item.total || item.unit_price * item.quantity)}
+                                </td>
+                              </tr>
+                            );
+                          },
                         )
                       )}
                     </tbody>
@@ -710,7 +730,6 @@ export default function UnifiedOrdersPage() {
                 <div className="w-48 space-y-2">
                   <div className="flex justify-between text-base font-bold text-slate-900 border-t pt-2 mt-2">
                     <span>Total</span>
-                    {/* Preferimos el total del detalle si existe para mayor precisión */}
                     <span>{formatMoney((retailDetails as any)?.total_amount || viewingOrder.total_amount || 0)}</span>
                   </div>
                 </div>
@@ -722,6 +741,23 @@ export default function UnifiedOrdersPage() {
               Cerrar
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ✅ MODAL LIGHTBOX (ZOOM IMAGEN) */}
+      <Dialog open={!!zoomedImage} onOpenChange={() => setZoomedImage(null)}>
+        <DialogContent className="max-w-3xl bg-transparent border-none shadow-none p-0 flex items-center justify-center">
+          <div className="relative">
+            <Button
+              variant="secondary"
+              size="icon"
+              className="absolute -top-4 -right-4 rounded-full h-8 w-8 shadow-md z-10"
+              onClick={() => setZoomedImage(null)}
+            >
+              <X className="w-4 h-4" />
+            </Button>
+            {zoomedImage && <img src={zoomedImage} alt="Zoom" className="max-h-[85vh] w-auto rounded-lg shadow-2xl" />}
+          </div>
         </DialogContent>
       </Dialog>
     </div>
