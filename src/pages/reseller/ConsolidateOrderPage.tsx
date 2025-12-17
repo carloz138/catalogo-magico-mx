@@ -53,7 +53,7 @@ export default function ConsolidateOrderPage() {
   const [catalogInfo, setCatalogInfo] = useState<{ name: string; user_id: string } | null>(null);
   const [resellerInfo, setResellerInfo] = useState<{
     business_name?: string;
-    address?: string;
+    address?: any;  // Json from database
     phone?: string;
   } | null>(null);
 
