@@ -1,12 +1,11 @@
 // ==========================================
 // FUNCION: send-quote-notification
-// DESCRIPCIÓN: Notifica al VENDEDOR (L1 o L2) de una nueva venta
-// INTEGRACIÓN: Meta WhatsApp Cloud API + Resend
-// ESTADO: MIGRATED_TO_META
+// DESCRIPCIÓN: Notifica al VENDEDOR (Dueño) de una nueva venta
+// INTEGRACIÓN: Meta WhatsApp + Resend + Complex Owner Lookup
 // ==========================================
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 
-// 1. HARDENING: Protocolo de Versionado por Hash
+// 1. HARDENING: Protocolo de Versionado
 const DEPLOY_VERSION = Deno.env.get('FUNCTION_HASH') || "UNKNOWN_HASH";
 
 const corsHeaders = {
@@ -15,7 +14,6 @@ const corsHeaders = {
 };
 
 Deno.serve(async (req) => {
-  // LOG DE INICIO CON HASH
   console.log(JSON.stringify({
     event: "FUNC_START",
     function: "send-quote-notification",
@@ -31,14 +29,14 @@ Deno.serve(async (req) => {
     const { quoteId } = await req.json();
     if (!quoteId) throw new Error('Quote ID is required');
 
-    // 1. INICIAR SUPABASE ADMIN
+    // 1. SUPABASE ADMIN
     const supabaseAdmin = createClient(
         Deno.env.get('SUPABASE_URL') ?? '', 
         Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '', 
         { auth: { persistSession: false } }
     );
 
-    // 2. OBTENER DATOS DE LA COTIZACIÓN
+    // 2. OBTENER QUOTE
     const { data: quote, error: quoteError } = await supabaseAdmin
         .from('quotes')
         .select(`
@@ -51,20 +49,20 @@ Deno.serve(async (req) => {
 
     if (quoteError || !quote) {
       console.error(`Error fetching quote: ${JSON.stringify(quoteError)}`);
-      throw new Error("Quote not found in database.");
+      throw new Error("Quote not found.");
     }
 
-    // 3. IDENTIFICAR AL DUEÑO (VENDEDOR)
+    // 3. IDENTIFICAR AL VENDEDOR
     const ownerId = quote.user_id; 
-    console.log(`🔔 Notificando al Vendedor ID: ${ownerId}`);
-
+    
+    // Helper robusto para buscar datos del dueño
     let user = await getOwnerDataReal(supabaseAdmin, ownerId);
 
     if (!user || !user.email) {
-        throw new Error("Owner user data not accessible.");
+        throw new Error("Owner user data not found.");
     }
     
-    // 4. VERIFICAR SUSCRIPCIÓN (Para activar WhatsApp)
+    // 4. VERIFICAR SUSCRIPCIÓN (Solo planes pro tienen whats)
     const { data: subscription } = await supabaseAdmin
         .from('subscriptions')
         .select('package_id, credit_packages(name)')
@@ -73,10 +71,8 @@ Deno.serve(async (req) => {
         .maybeSingle();
         
     const packageName = subscription?.credit_packages?.name?.toLowerCase() || '';
-    // Regla de Negocio: Solo planes medios/altos tienen whats
     const hasWhatsApp = packageName.includes('medio') || packageName.includes('profesional') || packageName.includes('premium') || packageName.includes('empresarial');
     
-    // Variables de reporte
     let emailSent = false;
     let whatsappSent = false;
 
@@ -99,12 +95,7 @@ Deno.serve(async (req) => {
         })
       });
 
-      if (res.ok) {
-        emailSent = true;
-        console.log(JSON.stringify({ event: "EMAIL_SENT", to: user.email }));
-      } else {
-        console.error('Resend Error:', await res.text());
-      }
+      if (res.ok) emailSent = true;
     }
 
     // ---------------------------------------------------------
@@ -113,15 +104,10 @@ Deno.serve(async (req) => {
     const metaToken = Deno.env.get('META_ACCESS_TOKEN');
     const metaPhoneId = Deno.env.get('META_PHONE_ID');
 
-    // Solo enviamos si: tiene plan, hay credenciales y el usuario tiene teléfono
     if (hasWhatsApp && metaToken && metaPhoneId && user.phone) {
       try {
-        // Limpieza de teléfono (Solo dígitos)
-        // OJO: Si el teléfono en BD ya tiene 52, lo dejamos. Si no, habría que validarlo.
-        // Aquí asumimos que user.phone viene más o menos limpio o lo limpiamos de guiones.
         const cleanPhone = user.phone.replace(/\D/g, ''); 
         
-        // Validación básica de longitud (México = 10 dígitos + país)
         if (cleanPhone.length >= 10) {
             const metaRes = await fetch(`https://graph.facebook.com/v17.0/${metaPhoneId}/messages`, {
               method: 'POST',
@@ -135,7 +121,7 @@ Deno.serve(async (req) => {
                 to: cleanPhone, 
                 type: "template",
                 template: {
-                    name: "new_quote_alert", // <--- ASEGÚRATE DE CREAR ESTA PLANTILLA EN META
+                    name: "new_quote_alert", // <--- PLANTILLA META
                     language: { code: "es_MX" },
                     components: [
                         {
@@ -151,16 +137,12 @@ Deno.serve(async (req) => {
               })
             });
 
-            const metaData = await metaRes.json();
-            
             if (metaRes.ok) {
               whatsappSent = true;
-              console.log(JSON.stringify({ event: "WHATSAPP_SENT", to: cleanPhone, id: metaData.messages?.[0]?.id }));
+              console.log("✅ WhatsApp enviado al vendedor");
             } else {
-              console.error('Meta API Error:', JSON.stringify(metaData));
+              console.error('Meta API Error:', await metaRes.text());
             }
-        } else {
-            console.warn(`Phone number invalid for WhatsApp: ${cleanPhone}`);
         }
       } catch (err) {
         console.error('Meta Fetch Error:', err);
@@ -181,12 +163,12 @@ Deno.serve(async (req) => {
     console.error(`FATAL ERROR in ${DEPLOY_VERSION}:`, error);
     return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 500
+      status: 500,
     });
   }
 });
 
-// --- HELPERS (Sin cambios mayores, solo formatting) ---
+// --- HELPERS OBLIGATORIOS ---
 
 async function getOwnerDataReal(supabaseAdmin: any, ownerId: string): Promise<any> {
     const { data: authData } = await supabaseAdmin.auth.admin.getUserById(ownerId);
@@ -207,7 +189,7 @@ async function getOwnerDataReal(supabaseAdmin: any, ownerId: string): Promise<an
     const displayName = business?.business_name || profile?.full_name || "Vendedor";
     let phone = "";
     
-    // Lógica de cascada para encontrar el teléfono
+    // Cascada de teléfonos
     if (business?.social_media && typeof business.social_media === 'object') {
         const social = business.social_media as any;
         if (social.whatsapp) phone = social.whatsapp;
@@ -230,7 +212,15 @@ function formatCurrency(valueInCents: number): string {
 }
 
 function generateEmailTemplate(quote: any, user: any) {
-    // ... (Tu template HTML existente se mantiene igual, lo omito para ahorrar espacio pero debe ir aquí)
-    // Asegúrate de copiar el helper generateEmailTemplate del código anterior si no lo tienes a la mano
-    return `<h1>Nueva Venta: ${quote.customer_name}</h1>`; // Placeholder, usa el tuyo completo
+    // HTML simple para no saturar el código aquí
+    const total = formatCurrency(quote.total_amount || 0);
+    return `
+      <div style="font-family: Arial;">
+        <h2>¡Nueva Venta! 🚀</h2>
+        <p>Hola <strong>${user.business_name}</strong>,</p>
+        <p>El cliente <strong>${quote.customer_name}</strong> ha creado una cotización.</p>
+        <h3>Total: ${total}</h3>
+        <a href="https://catifypro.com/quotes/${quote.id}">Ver en Dashboard</a>
+      </div>
+    `;
 }
