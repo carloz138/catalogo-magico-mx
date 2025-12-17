@@ -8,6 +8,43 @@ import { Textarea } from "@/components/ui/textarea";
 import { Building2, Upload, Palette, Eye, Save, MapPin } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
 import SubscriptionCard from "@/components/SubscriptionCard";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+// Lista oficial de Estados de México (ISO 3166-2:MX) para Envia.com
+const MEXICO_STATES = [
+  { value: "AGU", label: "Aguascalientes" },
+  { value: "BCN", label: "Baja California" },
+  { value: "BCS", label: "Baja California Sur" },
+  { value: "CAM", label: "Campeche" },
+  { value: "CHP", label: "Chiapas" },
+  { value: "CHH", label: "Chihuahua" },
+  { value: "COA", label: "Coahuila" },
+  { value: "COL", label: "Colima" },
+  { value: "DIF", label: "Ciudad de México" },
+  { value: "DUR", label: "Durango" },
+  { value: "GUA", label: "Guanajuato" },
+  { value: "GRO", label: "Guerrero" },
+  { value: "HID", label: "Hidalgo" },
+  { value: "JAL", label: "Jalisco" },
+  { value: "MEX", label: "Estado de México" },
+  { value: "MIC", label: "Michoacán" },
+  { value: "MOR", label: "Morelos" },
+  { value: "NAY", label: "Nayarit" },
+  { value: "NLE", label: "Nuevo León" },
+  { value: "OAX", label: "Oaxaca" },
+  { value: "PUE", label: "Puebla" },
+  { value: "QUE", label: "Querétaro" },
+  { value: "ROO", label: "Quintana Roo" },
+  { value: "SLP", label: "San Luis Potosí" },
+  { value: "SIN", label: "Sinaloa" },
+  { value: "SON", label: "Sonora" },
+  { value: "TAB", label: "Tabasco" },
+  { value: "TAM", label: "Tamaulipas" },
+  { value: "TLA", label: "Tlaxcala" },
+  { value: "VER", label: "Veracruz" },
+  { value: "YUC", label: "Yucatán" },
+  { value: "ZAC", label: "Zacatecas" },
+];
 
 interface BusinessInfoForm {
   business_name: string;
@@ -20,12 +57,15 @@ interface BusinessInfoForm {
   whatsapp: string;
   primary_color: string;
   secondary_color: string;
-  // Desglosamos la dirección
+  // Dirección Estructurada
   address_street: string;
   address_colony: string;
   address_zip_code: string;
   address_city: string;
   address_state: string;
+  // Coordenadas (Opcional - Plan de Respaldo)
+  address_latitude: string;
+  address_longitude: string;
 }
 
 const BusinessInfoPage: React.FC = () => {
@@ -53,6 +93,8 @@ const BusinessInfoPage: React.FC = () => {
     address_zip_code: "",
     address_city: "",
     address_state: "",
+    address_latitude: "",
+    address_longitude: "",
   });
 
   useEffect(() => {
@@ -77,21 +119,31 @@ const BusinessInfoPage: React.FC = () => {
       if (data) {
         setExistingInfo(data);
 
-        // --- 🧠 LÓGICA DE MAPEO DE DIRECCIÓN ---
-        let addr = { street: "", colony: "", zip_code: "", city: "", state: "" };
+        // --- 🧠 LÓGICA DE CARGA INTELIGENTE ---
+        let addr = {
+          street: "",
+          colony: "",
+          zip_code: "",
+          city: "",
+          state: "",
+          latitude: "",
+          longitude: "",
+        };
 
         if (data.address) {
           if (typeof data.address === "object") {
-            // Es el formato nuevo (JSON)
+            // Formato JSON Nuevo
             addr = {
               street: data.address.street || "",
               colony: data.address.colony || "",
               zip_code: data.address.zip_code || "",
               city: data.address.city || "",
               state: data.address.state || "",
+              latitude: data.address.latitude ? String(data.address.latitude) : "",
+              longitude: data.address.longitude ? String(data.address.longitude) : "",
             };
           } else if (typeof data.address === "string") {
-            // Es el formato viejo (Texto) -> Lo ponemos en calle para que el usuario lo corrija
+            // Formato Texto Viejo -> Todo a calle
             addr.street = data.address;
           }
         }
@@ -107,12 +159,14 @@ const BusinessInfoPage: React.FC = () => {
           whatsapp: data.social_media?.whatsapp || "",
           primary_color: data.primary_color || "#3B82F6",
           secondary_color: data.secondary_color || "#1F2937",
-          // Mapeamos a los inputs individuales
+          // Mapeo de Dirección
           address_street: addr.street,
           address_colony: addr.colony,
           address_zip_code: addr.zip_code,
           address_city: addr.city,
           address_state: addr.state,
+          address_latitude: addr.latitude,
+          address_longitude: addr.longitude,
         });
 
         if (data.logo_url) {
@@ -134,7 +188,10 @@ const BusinessInfoPage: React.FC = () => {
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    // Validaciones de logo...
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("El logo debe ser menor a 5MB");
+      return;
+    }
     setLogoFile(file);
     const reader = new FileReader();
     reader.onload = (e) => setLogoPreview(e.target?.result as string);
@@ -143,7 +200,6 @@ const BusinessInfoPage: React.FC = () => {
 
   const uploadLogo = async (userId: string): Promise<string | null> => {
     if (!logoFile) return existingInfo?.logo_url || null;
-    // Lógica de subida igual...
     const fileExt = logoFile.name.split(".").pop();
     const fileName = `logo-${Date.now()}.${fileExt}`;
     const filePath = `${userId}/${fileName}`;
@@ -161,6 +217,17 @@ const BusinessInfoPage: React.FC = () => {
       return;
     }
 
+    // ✅ VALIDACIÓN ESTRICTA (NIVEL 2)
+    const cpRegex = /^[0-9]{5}$/;
+    if (formData.address_zip_code && !cpRegex.test(formData.address_zip_code)) {
+      toast.error("El Código Postal debe ser de 5 dígitos numéricos.");
+      return;
+    }
+    if (formData.address_street && !formData.address_state) {
+      toast.error("Si llenas la dirección, debes seleccionar un Estado.");
+      return;
+    }
+
     try {
       setSaving(true);
       const {
@@ -170,24 +237,23 @@ const BusinessInfoPage: React.FC = () => {
 
       const logoUrl = await uploadLogo(user.id);
 
-      // --- 📦 EMPAQUETADO PARA ENVIA.COM ---
-      // Guardamos la dirección como un objeto JSON estructurado
+      // --- 📦 EMPAQUETADO ROBUSTO PARA ENVIA.COM ---
       const structuredAddress = {
         street: formData.address_street,
         colony: formData.address_colony,
         zip_code: formData.address_zip_code,
         city: formData.address_city,
-        state: formData.address_state,
+        state: formData.address_state, // Ahora envía código ISO (ej: NLE)
+        // ✅ Guardamos Coordenadas
+        latitude: formData.address_latitude ? parseFloat(formData.address_latitude) : null,
+        longitude: formData.address_longitude ? parseFloat(formData.address_longitude) : null,
       };
 
       const businessData = {
         user_id: user.id,
         business_name: formData.business_name.trim(),
         description: formData.description.trim() || null,
-
-        // Aquí guardamos el JSON
         address: structuredAddress,
-
         phone: formData.phone.trim() || null,
         email: formData.email.trim() || null,
         website: formData.website.trim() || null,
@@ -201,7 +267,6 @@ const BusinessInfoPage: React.FC = () => {
         secondary_color: formData.secondary_color,
       };
 
-      // Limpieza de objeto social_media
       const socialMedia: any = businessData.social_media;
       Object.keys(socialMedia).forEach((key) => {
         if (!socialMedia[key]) delete socialMedia[key];
@@ -257,7 +322,6 @@ const BusinessInfoPage: React.FC = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8 w-full overflow-x-hidden min-w-0">
         <div className="space-y-4 sm:space-y-6">
-          {/* SECCIÓN INFORMACIÓN BÁSICA */}
           <div className="bg-white rounded-lg sm:rounded-xl shadow-sm p-4 sm:p-6">
             <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4 flex items-center gap-2">
               <Building2 className="h-5 w-5" /> Información Básica
@@ -283,7 +347,7 @@ const BusinessInfoPage: React.FC = () => {
             </div>
           </div>
 
-          {/* ✅ NUEVA SECCIÓN DE DIRECCIÓN ESTRUCTURADA */}
+          {/* ✅ DIRECCIÓN CON ESTANDARIZACIÓN Y COORDENADAS */}
           <div className="bg-white rounded-lg sm:rounded-xl shadow-sm p-4 sm:p-6 border-l-4 border-l-indigo-500">
             <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4 flex items-center gap-2">
               <MapPin className="h-5 w-5 text-indigo-600" /> Dirección de Origen (Envíos)
@@ -318,6 +382,7 @@ const BusinessInfoPage: React.FC = () => {
                     value={formData.address_zip_code}
                     onChange={(e) => handleInputChange("address_zip_code", e.target.value)}
                     placeholder="00000"
+                    maxLength={5}
                     disabled={previewMode}
                   />
                 </div>
@@ -333,19 +398,61 @@ const BusinessInfoPage: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <Label>Estado</Label>
-                  <Input
-                    value={formData.address_state}
-                    onChange={(e) => handleInputChange("address_state", e.target.value)}
-                    placeholder="Nuevo León"
+                  <Label>Estado *</Label>
+                  {/* ✅ SELECT DE ESTADOS ESTANDARIZADO */}
+                  <Select
                     disabled={previewMode}
-                  />
+                    value={formData.address_state}
+                    onValueChange={(val) => handleInputChange("address_state", val)}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Selecciona..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {MEXICO_STATES.map((state) => (
+                        <SelectItem key={state.value} value={state.value}>
+                          {state.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* ✅ SECCIÓN DE COORDENADAS (OPCIONAL) */}
+              <div className="pt-2 border-t border-slate-100 mt-2">
+                <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 mt-2">
+                  Ubicación Exacta (Opcional)
+                </h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-xs text-slate-600">Latitud</Label>
+                    <Input
+                      type="number"
+                      value={formData.address_latitude}
+                      onChange={(e) => handleInputChange("address_latitude", e.target.value)}
+                      placeholder="25.6866"
+                      className="h-8 text-xs"
+                      disabled={previewMode}
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs text-slate-600">Longitud</Label>
+                    <Input
+                      type="number"
+                      value={formData.address_longitude}
+                      onChange={(e) => handleInputChange("address_longitude", e.target.value)}
+                      placeholder="-100.3161"
+                      className="h-8 text-xs"
+                      disabled={previewMode}
+                    />
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* SECCIÓN CONTACTO */}
+          {/* CONTACTO */}
           <div className="bg-white rounded-lg sm:rounded-xl shadow-sm p-4 sm:p-6">
             <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4">Información de Contacto</h2>
             <div className="space-y-3 sm:space-y-4">
@@ -380,14 +487,13 @@ const BusinessInfoPage: React.FC = () => {
           </div>
         </div>
 
-        {/* COLUMNA DERECHA (PERSONALIZACIÓN Y PREVIEW) */}
+        {/* COLUMNA DERECHA */}
         <div className="lg:sticky lg:top-8 space-y-4 sm:space-y-6 h-fit">
-          {/* ... (Sección de Logo y Colores igual que antes) ... */}
+          {/* ... (Sección Logo y Colores - Igual) ... */}
           <div className="bg-white rounded-lg sm:rounded-xl shadow-sm p-4 sm:p-6">
             <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4 flex items-center">
               <Palette className="h-4 w-4 sm:h-5 sm:w-5 mr-2" /> Personalización
             </h2>
-            {/* Inputs de Logo y Colores */}
             <div className="space-y-3 sm:space-y-4">
               <div>
                 <Label>Logo de la Empresa</Label>
@@ -456,7 +562,7 @@ const BusinessInfoPage: React.FC = () => {
 
           <SubscriptionCard compact={false} showTitle={true} />
 
-          {/* Preview del Catálogo (Muestra la dirección formateada) */}
+          {/* Preview del Catálogo */}
           <div className="bg-white rounded-lg sm:rounded-xl shadow-sm p-4 sm:p-6">
             <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4">Vista Previa del Catálogo</h2>
             <div
@@ -484,10 +590,9 @@ const BusinessInfoPage: React.FC = () => {
               <div className="space-y-1">
                 {formData.phone && <p>📞 {formData.phone}</p>}
                 {formData.email && <p>✉️ {formData.email}</p>}
-                {/* Mostramos la dirección formateada en el preview */}
                 {(formData.address_street || formData.address_city) && (
                   <p className="truncate">
-                    📍 {formData.address_street}, {formData.address_colony}, {formData.address_city}
+                    📍 {formData.address_street}, {formData.address_city}
                   </p>
                 )}
               </div>
@@ -496,7 +601,6 @@ const BusinessInfoPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Botones Móviles */}
       <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-3 shadow-lg z-40 safe-bottom">
         <div className="flex items-center gap-2 max-w-7xl mx-auto">
           <Button variant="outline" onClick={() => setPreviewMode(!previewMode)} className="flex-1 h-11">
