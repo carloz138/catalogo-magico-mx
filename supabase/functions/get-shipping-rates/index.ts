@@ -1,26 +1,26 @@
 // ==========================================
 // FUNCIÓN: get-shipping-rates
 // DESCRIPCIÓN: Cotiza envíos usando Envia.com
-// ESTADO: V1.1 (HARDENING + HASHING PROTOCOL)
+// ESTADO: V1.2 (DEBUGGING MEJORADO + ERROR HANDLING)
 // ==========================================
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 
-// 1. HARDENING: Leer el Hash de la variable de entorno para trazabilidad
-const DEPLOY_VERSION = Deno.env.get("FUNCTION_HASH") || "UNKNOWN_HASH";
+const DEPLOY_VERSION = Deno.env.get("FUNCTION_HASH") || "DEBUG_V1.2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-// URL de Envia.com (Usa 'api-test.envia.com' para pruebas o 'api.envia.com' para producción)
+// Asegúrate de que esta URL sea la correcta según tus credenciales (Sandbox vs Live)
+// Live: https://api.envia.com/ship/rate/
+// Sandbox: https://api-test.envia.com/ship/rate/
 const ENVIA_URL = "https://api.envia.com/ship/rate/"; 
 
 Deno.serve(async (req) => {
-  // 2. LOGGING ESTRUCTURADO: Registrar inicio de ejecución con versión
+  // LOGGING INICIAL
   console.log(JSON.stringify({
     event: "FUNC_START",
-    function: "get-shipping-rates",
     version: DEPLOY_VERSION,
     timestamp: new Date().toISOString()
   }));
@@ -32,28 +32,27 @@ Deno.serve(async (req) => {
   try {
     const { quoteId } = await req.json()
     
-    // Inicializar Supabase Client
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
       { global: { headers: { Authorization: req.headers.get('Authorization')! } } }
     )
 
-    // 1. Obtener datos de la Cotización (Destino)
+    // 1. Obtener Cotización (Destino)
     const { data: quote, error: quoteError } = await supabaseClient
       .from('quotes')
       .select('*, items:quote_items(*)')
       .eq('id', quoteId)
       .single()
 
-    if (quoteError || !quote) throw new Error("Cotización no encontrada")
+    if (quoteError || !quote) throw new Error("Cotización no encontrada en DB.")
 
     const destinationAddr = quote.shipping_address;
     if (!destinationAddr || typeof destinationAddr !== 'object') {
-      throw new Error("La dirección de destino no es válida o es formato antiguo. Edita la orden para corregir.")
+      throw new Error("Dirección de destino inválida o formato antiguo.")
     }
 
-    // 2. Obtener datos del Negocio (Origen)
+    // 2. Obtener Negocio (Origen)
     const sellerId = quote.user_id; 
     const { data: business, error: businessError } = await supabaseClient
       .from('business_info')
@@ -61,28 +60,30 @@ Deno.serve(async (req) => {
       .eq('user_id', sellerId)
       .single()
 
-    if (businessError || !business) throw new Error("No se encontró la información del negocio para el origen.")
+    if (businessError || !business) throw new Error("Info del negocio (origen) no encontrada.")
 
     const originAddr = business.address;
     if (!originAddr || typeof originAddr !== 'object') {
-      throw new Error("Tu dirección de origen no está configurada. Ve a Configuración > Info del Negocio.")
+      throw new Error("Dirección de origen no configurada. Ve a Configuración del Negocio.")
     }
 
-    // 3. Preparar Payload para Envia.com
-    
-    // Cálculo de peso estimado (Fallback: 1kg o 0.5kg por item)
+    // 3. Preparar Payload
     const totalItems = quote.items.reduce((sum: number, i: any) => sum + i.quantity, 0);
     const estimatedWeight = Math.max(1, totalItems * 0.5); 
 
-    // Helper para separar calle y número
     const splitStreet = (fullStreet: string) => {
-      const match = fullStreet.match(/^(.+?)\s+(\d+\w*)$/);
+      const match = fullStreet?.match(/^(.+?)\s+(\d+\w*)$/);
       if (match) return { street: match[1], number: match[2] };
-      return { street: fullStreet, number: "S/N" };
+      return { street: fullStreet || "Calle Conocida", number: "S/N" };
     };
 
-    const originSplit = splitStreet(originAddr.street || "Calle Conocida");
-    const destSplit = splitStreet(destinationAddr.street || "Calle Conocida");
+    const originSplit = splitStreet(originAddr.street);
+    const destSplit = splitStreet(destinationAddr.street);
+
+    // Validación preventiva de datos críticos
+    if (!originAddr.zip_code || !destinationAddr.zip_code) {
+        throw new Error(`Falta Código Postal: Origen(${originAddr.zip_code}) - Destino(${destinationAddr.zip_code})`);
+    }
 
     const enviaPayload = {
       origin: {
@@ -93,7 +94,7 @@ Deno.serve(async (req) => {
         street: originSplit.street,
         number: originSplit.number,
         district: originAddr.colony || "Centro",
-        city: originAddr.city,
+        city: originAddr.city || "Monterrey", // Fallback para evitar error fatal
         state_code: (originAddr.state || "MX").substring(0, 2).toUpperCase(),
         country_code: "MX",
         postal_code: originAddr.zip_code,
@@ -107,7 +108,7 @@ Deno.serve(async (req) => {
         street: destSplit.street,
         number: destSplit.number,
         district: destinationAddr.colony || "Centro",
-        city: destinationAddr.city,
+        city: destinationAddr.city || "Ciudad",
         state_code: (destinationAddr.state || "MX").substring(0, 2).toUpperCase(),
         country_code: "MX",
         postal_code: destinationAddr.zip_code,
@@ -115,7 +116,7 @@ Deno.serve(async (req) => {
         references: destinationAddr.references || ""
       },
       shipment: {
-        carrier: "fedex", // Opcional: Quitar para cotizar todas
+        carrier: "fedex", 
         type: 1, 
         parcels: [
           {
@@ -134,9 +135,9 @@ Deno.serve(async (req) => {
       }
     };
 
-    console.log(`📤 [${DEPLOY_VERSION}] Enviando payload a Envia.com`);
+    console.log(`📤 Enviando Payload:`, JSON.stringify(enviaPayload));
 
-    // 4. Llamar a la API de Envia
+    // 4. Llamar API Envia
     const response = await fetch(ENVIA_URL, {
       method: "POST",
       headers: {
@@ -147,16 +148,32 @@ Deno.serve(async (req) => {
     });
 
     const result = await response.json();
+    
+    // 🔥 LOG CRÍTICO: Ver qué respondió exactamente Envia
+    console.log("📦 Respuesta RAW de Envia:", JSON.stringify(result));
 
     if (!response.ok) {
-        console.error(`❌ [${DEPLOY_VERSION}] Error Envia:`, result);
-        throw new Error(result.meta?.error?.message || "Error al conectar con paquetería");
+        throw new Error(result.meta?.error?.message || "Error HTTP al conectar con Envia.");
     }
 
-    // 5. Procesar respuesta y aplicar Markup
-    const MARKUP_AMOUNT = 20; 
-    const rates = Array.isArray(result.data) ? result.data : result;
+    // 5. Validación Robusta de Array
+    // Envia a veces devuelve { data: [...] } y a veces solo el objeto de error en data.
+    let rates = [];
+    
+    if (Array.isArray(result.data)) {
+        rates = result.data;
+    } else if (Array.isArray(result)) {
+        rates = result;
+    } else {
+        // Si no es array, es un error lógico de negocio (ej: CP no válido)
+        // aunque el HTTP status haya sido 200/201
+        console.error("❌ La respuesta no contiene un array de tarifas:", result);
+        const errorMsg = result.meta?.error?.message || "No se encontraron tarifas para esta ruta.";
+        throw new Error(errorMsg);
+    }
 
+    // 6. Procesar
+    const MARKUP_AMOUNT = 20; 
     const processedRates = rates.map((rate: any) => ({
       carrier: rate.carrier,
       service: rate.service,
@@ -171,7 +188,7 @@ Deno.serve(async (req) => {
     })
 
   } catch (error) {
-    console.error(`❌ FATAL ERROR in ${DEPLOY_VERSION}:`, error.message);
+    console.error(`❌ FATAL ERROR:`, error.message);
     return new Response(JSON.stringify({ error: error.message }), {
       status: 400,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
