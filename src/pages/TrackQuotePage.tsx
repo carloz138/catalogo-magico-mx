@@ -47,7 +47,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { QuoteTrackingService, TrackingQuoteData } from "@/services/quote-tracking.service";
 
 // 🚨 SWITCH MAESTRO DE PAGOS 🚨
-const ENABLE_ONLINE_PAYMENTS = false;
+const ENABLE_ONLINE_PAYMENTS = true;
 
 export default function TrackQuotePage() {
   const { token } = useParams();
