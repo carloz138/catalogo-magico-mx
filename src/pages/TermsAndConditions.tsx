@@ -77,7 +77,7 @@ const TermsAndConditions = () => {
                   </li>
                 </ul>
 
-                {/* Bloque de Cumplimiento OpenPay */}
+                {/* Bloque de Cumplimiento OpenPay - Ligas Actualizadas */}
                 <div className="bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800 rounded-lg p-5 text-sm">
                   <h3 className="font-bold text-base mb-2">Procesamiento de Pagos con OpenPay</h3>
                   <p className="leading-relaxed mb-3">
@@ -87,7 +87,7 @@ const TermsAndConditions = () => {
                   <p className="leading-relaxed mb-3">
                     Al utilizar este servicio para realizar pagos en la Plataforma, el usuario reconoce y acepta los{" "}
                     <a
-                      href="https://www.openpay.mx/terminos-condiciones.html"
+                      href="https://www.openpay.mx/terminos-condiciones"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-blue-600 dark:text-blue-400 underline font-medium hover:text-blue-800"
@@ -96,7 +96,7 @@ const TermsAndConditions = () => {
                     </a>{" "}
                     y el{" "}
                     <a
-                      href="https://www.openpay.mx/aviso-de-privacidad.html"
+                      href="https://www.openpay.mx/aviso-privacidad"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-blue-600 dark:text-blue-400 underline font-medium hover:text-blue-800"
