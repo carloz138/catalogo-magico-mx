@@ -61,15 +61,11 @@ const TermsAndConditions = () => {
 
               <section className="mb-8">
                 <h2 className="text-2xl font-semibold text-primary mb-4">4. Planes, Pagos y Facturación</h2>
-                <ul className="list-disc pl-6 space-y-2">
+                <ul className="list-disc pl-6 space-y-2 mb-6">
                   <li>CatifyPro opera bajo un esquema de suscripciones y créditos.</li>
                   <li>
                     Todos los precios están expresados en pesos mexicanos (MXN) e incluyen impuestos aplicables, salvo
                     que se indique lo contrario.
-                  </li>
-                  <li>
-                    El pago se procesa a través de proveedores externos de pago seguros (ej. Stripe, PayPal, tarjetas de
-                    crédito/débito).
                   </li>
                   <li>
                     No se otorgan reembolsos por suscripciones o créditos adquiridos, salvo que la legislación mexicana
@@ -80,6 +76,40 @@ const TermsAndConditions = () => {
                     Para ello, deberá proporcionar su RFC y datos de facturación correctos.
                   </li>
                 </ul>
+
+                {/* Bloque de Cumplimiento OpenPay */}
+                <div className="bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800 rounded-lg p-5 text-sm">
+                  <h3 className="font-bold text-base mb-2">Procesamiento de Pagos con OpenPay</h3>
+                  <p className="leading-relaxed mb-3">
+                    Los servicios de procesamiento de pagos para tarjetas de crédito, débito y transferencias bancarias
+                    son proporcionados por <strong>Openpay S.A. de C.V.</strong> (en adelante "OpenPay").
+                  </p>
+                  <p className="leading-relaxed mb-3">
+                    Al utilizar este servicio para realizar pagos en la Plataforma, el usuario reconoce y acepta los{" "}
+                    <a
+                      href="https://www.openpay.mx/terminos-condiciones.html"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 dark:text-blue-400 underline font-medium hover:text-blue-800"
+                    >
+                      Términos y Condiciones de Uso
+                    </a>{" "}
+                    y el{" "}
+                    <a
+                      href="https://www.openpay.mx/aviso-de-privacidad.html"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 dark:text-blue-400 underline font-medium hover:text-blue-800"
+                    >
+                      Aviso de Privacidad
+                    </a>{" "}
+                    de OpenPay.
+                  </p>
+                  <p className="leading-relaxed text-muted-foreground italic">
+                    Asimismo, el usuario consiente que OpenPay recopile información técnica del dispositivo (incluyendo
+                    huella digital del navegador) estrictamente con fines de seguridad y prevención de fraudes.
+                  </p>
+                </div>
               </section>
 
               <section className="mb-8">
