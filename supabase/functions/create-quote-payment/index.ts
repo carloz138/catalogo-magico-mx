@@ -1,11 +1,12 @@
 // ==========================================
 // FUNCION: create-quote-payment
 // DESCRIPCIÓN: Genera una ficha de pago SPEI en Openpay para una COTIZACIÓN
-// ESTADO: V1.0 (CON HASHING PROTOCOL)
+// ESTADO: V1.2 (CON DEMO PATCH & HASHING ENV)
 // ==========================================
 import { createClient } from 'jsr:@supabase/supabase-js@2.49.8';
 
-const DEPLOY_VERSION = Deno.env.get("FUNCTION_HASH") || "UNKNOWN_HASH";
+// RECOMENDACIÓN: Cambié el fallback a "DEMO_PATCH_ACTIVE" por si la var de entorno no existe
+const DEPLOY_VERSION = Deno.env.get("FUNCTION_HASH") || "DEMO_PATCH_ACTIVE";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -27,7 +28,7 @@ const getAuthHeader = () => {
 };
 
 Deno.serve(async (req) => {
-  // Logging Inicial con el nuevo nombre
+  // Logging Inicial
   console.log(JSON.stringify({
     event: "FUNC_START",
     function: "create-quote-payment",
@@ -47,20 +48,29 @@ Deno.serve(async (req) => {
       { auth: { persistSession: false } }
     );
 
+    // =================================================================
+    // 🚧 DETECTOR DE MODO DEMO (PARCHE TEMPORAL)
+    // =================================================================
+    const DEMO_ID = "00000000-0000-0000-0000-000000000000";
+    const isDemo = quoteId === DEMO_ID;
+
+    if (isDemo) {
+        console.log(`🧹 [${DEPLOY_VERSION}] MODO DEMO: Limpiando transacciones previas...`);
+        // Borrado preventivo para evitar unique constraint errors en la BD
+        await supabaseAdmin.from('payment_transactions').delete().eq('quote_id', quoteId);
+    }
+    // =================================================================
+
     // 1. Obtener Cotización y Vendedor
     const { data: quote, error: quoteError } = await supabaseAdmin
       .from('quotes')
-      .select(`
-        *,
-        quote_items (*),
-        user_id
-      `)
+      .select(`*, quote_items (*), user_id`)
       .eq('id', quoteId)
       .single();
 
     if (quoteError || !quote) throw new Error("Cotización no encontrada");
 
-    // 2. Obtener Datos del Vendedor (Merchant)
+    // 2. Obtener Datos del Vendedor
     const { data: merchant } = await supabaseAdmin
       .from('merchants')
       .select('*')
@@ -71,36 +81,34 @@ Deno.serve(async (req) => {
       throw new Error("El vendedor no ha configurado sus datos bancarios.");
     }
 
-    // 3. IDEMPOTENCIA: Verificar si ya existe una transacción pendiente para esta cotización
-    const { data: existingTx } = await supabaseAdmin
-      .from('payment_transactions')
-      .select('*')
-      .eq('quote_id', quoteId)
-      .eq('status', 'pending')
-      .maybeSingle();
+    // 3. IDEMPOTENCIA
+    // (Solo verificamos si NO es demo, porque si es demo ya lo borramos arriba)
+    if (!isDemo) {
+        const { data: existingTx } = await supabaseAdmin
+        .from('payment_transactions')
+        .select('*')
+        .eq('quote_id', quoteId)
+        .eq('status', 'pending')
+        .maybeSingle();
 
-    if (existingTx) {
-      console.log("🔄 Retornando transacción SPEI existente");
-      return new Response(JSON.stringify({ 
-        success: true, 
-        payment_method: {
-            clabe: existingTx.clabe_virtual_in,
-            bank: 'STP' // Openpay usa STP por defecto
-        },
-        amount: existingTx.amount_total / 100, // Devolver a pesos
-        version: DEPLOY_VERSION 
-      }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        if (existingTx) {
+            console.log("🔄 Retornando transacción existente");
+            return new Response(JSON.stringify({ 
+                success: true, 
+                payment_method: { clabe: existingTx.clabe_virtual_in, bank: 'STP' },
+                amount: existingTx.amount_total / 100, 
+                version: DEPLOY_VERSION 
+            }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        }
     }
 
-    // 4. CÁLCULO DE MONTOS Y COMISIONES
-    // Si ya tiene total_amount guardado en DB, usamos ese. Si no, sumamos items + envío.
+    // 4. CÁLCULO DE MONTOS
     let totalCents = quote.total_amount;
     if (!totalCents || totalCents === 0) {
         const itemsTotal = quote.quote_items.reduce((sum, i) => sum + i.subtotal, 0);
         totalCents = itemsTotal + (quote.shipping_cost || 0);
     }
 
-    // Obtener regla de comisión activa
     const { data: rule } = await supabaseAdmin
         .from('commission_rules')
         .select('*')
@@ -108,23 +116,23 @@ Deno.serve(async (req) => {
         .limit(1)
         .single();
     
-    const commissionPercent = rule?.percentage_fee || 1.0; // Default 1%
-    const commissionMin = rule?.fixed_fee_min || 1500;     // Default $15.00 MXN
-
-    // Cálculo: Max( (Total * %), Mínimo )
-    const percentageAmount = Math.round(totalCents * (commissionPercent / 100));
-    const commissionSaas = Math.max(percentageAmount, commissionMin);
+    const commissionPercent = rule?.percentage_fee || 1.0; 
+    const commissionMin = rule?.fixed_fee_min || 1500;     
+    const commissionSaas = Math.max(Math.round(totalCents * (commissionPercent / 100)), commissionMin);
     const netToMerchant = totalCents - commissionSaas;
 
-    console.log(`💰 Cálculo: Total: ${totalCents}, Comisión: ${commissionSaas}, Neto: ${netToMerchant}`);
+    // 5. GENERAR CARGO OPENPAY
+    // 🔥 PARCHE DEMO: ID DINÁMICO
+    const orderIdToSend = isDemo ? `${quote.id}-${Date.now()}` : quote.id;
 
-    // 5. GENERAR CARGO EN OPENPAY (SPEI)
+    if(isDemo) console.log(`🧪 [${DEPLOY_VERSION}] Usando Order ID Dinámico: ${orderIdToSend}`);
+
     const chargeRequest = {
         method: "bank_account",
-        amount: totalCents / 100, // Openpay recibe decimales (pesos)
+        amount: totalCents / 100, 
         currency: "MXN",
         description: `Pedido #${quote.order_number || quoteId.slice(0,8)}`,
-        order_id: quote.id, // Usamos el UUID de la quote como referencia
+        order_id: orderIdToSend, // <--- ID Dinámico
         customer: {
             name: quote.customer_name,
             email: quote.customer_email,
@@ -132,27 +140,22 @@ Deno.serve(async (req) => {
         }
     };
 
-    console.log("Enviando a Openpay Charges...");
     const openpayRes = await fetch(`${getOpenpayUrl()}/charges`, {
         method: 'POST',
-        headers: {
-            'Authorization': getAuthHeader(),
-            'Content-Type': 'application/json'
-        },
+        headers: { 'Authorization': getAuthHeader(), 'Content-Type': 'application/json' },
         body: JSON.stringify(chargeRequest)
     });
 
     const openpayData = await openpayRes.json();
 
     if (!openpayRes.ok) {
-        console.error("Openpay Error:", openpayData);
+        console.error(`Openpay Error [${DEPLOY_VERSION}]:`, openpayData);
         throw new Error(`Error Openpay: ${openpayData.description || 'No se pudo generar el pago'}`);
     }
 
-    // Extraer CLABE (A veces es 'clabe', a veces 'reference' dependiendo de la versión de API)
     const clabe = openpayData.payment_method?.clabe || openpayData.payment_method?.reference; 
 
-    // 6. GUARDAR EN DB (payment_transactions)
+    // 6. GUARDAR EN DB
     const { error: insertError } = await supabaseAdmin
         .from('payment_transactions')
         .insert({
@@ -160,7 +163,7 @@ Deno.serve(async (req) => {
             merchant_id: merchant.id,
             amount_total: totalCents,
             commission_saas: commissionSaas,
-            cost_gateway: 0, // Se actualizará post-pago o fijo
+            cost_gateway: 0, 
             net_to_merchant: netToMerchant,
             payment_method: 'SPEI',
             clabe_virtual_in: clabe,
@@ -170,24 +173,23 @@ Deno.serve(async (req) => {
 
     if (insertError) {
         console.error("Error guardando transacción:", insertError);
+        // Si es demo, ignoramos el error de insert para no romper la UI
+        if (!isDemo) throw insertError;
     }
 
     return new Response(JSON.stringify({ 
         success: true, 
-        payment_method: {
-            clabe: clabe,
-            bank: 'STP'
-        },
+        payment_method: { clabe: clabe, bank: 'STP' },
         amount: totalCents / 100,
         dueDate: openpayData.due_date,
-        version: DEPLOY_VERSION 
+        version: DEPLOY_VERSION
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200
     });
 
   } catch (error) {
-    console.error('❌ Error create-quote-payment:', error);
+    console.error(`❌ Error [${DEPLOY_VERSION}]:`, error);
     return new Response(JSON.stringify({ 
         error: error.message,
         version: DEPLOY_VERSION
