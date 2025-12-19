@@ -35,15 +35,16 @@ import {
   MessageSquare,
   DollarSign,
   Package,
-  Gift, // ✅ NUEVO
-  Copy, // ✅ NUEVO
-  Check, // ✅ NUEVO
+  Gift,
+  Copy,
+  Check,
+  Rocket, // Icono para founders
 } from "lucide-react";
 
 export default function MainDashboard() {
   const { user } = useAuth();
   const { userRole, isL1, isL2, isLoadingRole, refreshRole } = useUserRole();
-  const { paqueteUsuario } = useSubscription();
+  const { paqueteUsuario } = useSubscription(); // Aquí podrías forzar un refresh si tu contexto lo permite
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -52,9 +53,9 @@ export default function MainDashboard() {
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [isProcessingPending, setIsProcessingPending] = useState(false);
 
-  // ✅ ESTADO PARA EL CÓDIGO PROMOCIONAL
-  const [copiedPromo, setCopiedPromo] = useState(false);
-  const PROMO_CODE = "4MESES100"; // 👈 TU CÓDIGO DE STRIPE AQUÍ
+  // ✅ ESTADOS PARA EL PROMO CODE
+  const [isClaiming, setIsClaiming] = useState(false);
+  const PROMO_CODE = "CYBER-AI-3"; // 👈 CÓDIGO ACTUALIZADO
 
   // Estado de Métricas
   const [metrics, setMetrics] = useState({
@@ -152,20 +153,51 @@ export default function MainDashboard() {
     loadMetrics();
   }, [user]);
 
-  // ✅ FUNCIÓN PARA COPIAR CÓDIGO Y REDIRIGIR
-  const handleCopyAndRedirect = () => {
-    navigator.clipboard.writeText(PROMO_CODE);
-    setCopiedPromo(true);
-    toast({
-      title: "🎁 Código copiado",
-      description: "Serás redirigido al checkout en unos segundos.",
-      className: "bg-green-600 text-white border-none",
-    });
+  // ✅ NUEVA LÓGICA: RECLAMAR GRATIS (BYPASS STRIPE)
+  const handleClaimFounder = async () => {
+    if (!user) return;
+    setIsClaiming(true);
 
-    // Redirigir después de 1.5s para dar tiempo a leer el toast
-    setTimeout(() => {
-      navigate("/checkout?plan=Empresarial"); // Redirige al plan más alto por defecto
-    }, 1500);
+    try {
+      // 1. Copiar al portapapeles (UX)
+      navigator.clipboard.writeText(PROMO_CODE);
+
+      // 2. Llamada Mágica al Backend
+      const { data, error } = await supabase.rpc("claim_founder_plan", {
+        p_user_id: user.id,
+      });
+
+      if (error) throw error;
+
+      const result = data as any; // Cast simple
+
+      if (result.success) {
+        toast({
+          title: "🎉 ¡Felicidades Fundador!",
+          description: "Has activado el Plan Empresarial de por vida GRATIS.",
+          className: "bg-green-600 text-white border-none",
+          duration: 5000,
+        });
+
+        // Refrescar la página o el contexto para que se vea el plan activo
+        setTimeout(() => window.location.reload(), 2000);
+      } else {
+        toast({
+          title: "No se pudo activar",
+          description: result.message || "Tal vez ya tienes un plan activo o se agotaron los lugares.",
+          variant: "destructive",
+        });
+      }
+    } catch (err) {
+      console.error(err);
+      toast({
+        title: "Error",
+        description: "Hubo un problema al procesar tu solicitud.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsClaiming(false);
+    }
   };
 
   if (isProcessingPending) {
@@ -239,53 +271,56 @@ export default function MainDashboard() {
         )}
       </div>
 
-      {/* 🔥 BANNER PROMOCIONAL (100% DISCOUNT 4 MONTHS) 🔥 */}
+      {/* 🔥 BANNER FOUNDERS (GRATIS DE POR VIDA) 🔥 */}
       {!paqueteUsuario?.name?.toLowerCase().includes("empresarial") && (
         <motion.div
           variants={itemVariants}
-          className="relative overflow-hidden rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 shadow-xl"
+          className="relative overflow-hidden rounded-xl bg-gradient-to-r from-slate-900 to-indigo-900 shadow-xl border border-indigo-500/30"
         >
           {/* Decoración de fondo */}
-          <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-white opacity-10 rounded-full blur-xl"></div>
-          <div className="absolute bottom-0 left-0 -mb-4 -ml-4 w-32 h-32 bg-purple-400 opacity-20 rounded-full blur-2xl"></div>
+          <div className="absolute top-0 right-0 -mt-4 -mr-4 w-32 h-32 bg-indigo-500 opacity-20 rounded-full blur-3xl"></div>
+          <div className="absolute bottom-0 left-0 -mb-4 -ml-4 w-40 h-40 bg-purple-500 opacity-20 rounded-full blur-3xl"></div>
 
           <div className="relative p-6 sm:p-8 flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex items-start gap-4 flex-1">
-              <div className="p-3 bg-white/20 backdrop-blur-sm rounded-lg shadow-inner hidden sm:block">
-                <Gift className="w-8 h-8 text-white" />
+              <div className="p-3 bg-white/10 backdrop-blur-sm rounded-lg shadow-inner hidden sm:block border border-white/10">
+                <Rocket className="w-8 h-8 text-yellow-400" />
               </div>
               <div className="text-white space-y-1 text-center sm:text-left">
-                <Badge className="bg-yellow-400 text-yellow-900 hover:bg-yellow-500 border-0 mb-2 font-bold animate-pulse">
-                  ¡OFERTA LIMITADA!
+                <Badge className="bg-yellow-400 text-black hover:bg-yellow-500 border-0 mb-2 font-bold animate-pulse">
+                  PROGRAMA FOUNDERS
                 </Badge>
                 <h3 className="text-xl sm:text-2xl font-bold leading-tight">
-                  Obtén 4 Meses <span className="text-yellow-300">GRATIS</span> del Plan Empresarial
+                  Acceso <span className="text-yellow-400">GRATIS DE POR VIDA</span>
                 </h3>
-                <p className="text-indigo-100 text-sm max-w-xl">
-                  Desbloquea catálogos ilimitados, IA predictiva y análisis de stock sin costo por 120 días.
+                <p className="text-slate-300 text-sm max-w-xl">
+                  Sé uno de los primeros 50 fundadores y obtén el Plan Empresarial para siempre. Sin tarjetas, sin
+                  costos ocultos.
                 </p>
               </div>
             </div>
 
             {/* Caja de Código y Botón */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto bg-white/10 p-2 rounded-xl backdrop-blur-sm border border-white/10">
-              <div className="flex-1 flex flex-col justify-center px-4 py-2 border-2 border-dashed border-white/30 rounded-lg bg-black/20 text-center">
-                <span className="text-[10px] text-indigo-200 uppercase tracking-widest font-semibold">
-                  Usa el cupón
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto bg-white/5 p-2 rounded-xl backdrop-blur-sm border border-white/10">
+              <div className="flex-1 flex flex-col justify-center px-4 py-2 border border-dashed border-white/20 rounded-lg bg-black/40 text-center">
+                <span className="text-[10px] text-slate-400 uppercase tracking-widest font-semibold">
+                  Código Fundador
                 </span>
                 <code className="text-lg font-mono font-bold text-white tracking-wider select-all">{PROMO_CODE}</code>
               </div>
+
               <Button
-                onClick={handleCopyAndRedirect}
-                className="h-auto py-3 px-6 bg-white text-indigo-700 hover:bg-indigo-50 font-bold shadow-lg transition-all active:scale-95"
+                onClick={handleClaimFounder}
+                disabled={isClaiming}
+                className="h-auto py-3 px-6 bg-yellow-400 text-black hover:bg-yellow-500 font-bold shadow-lg shadow-yellow-400/20 transition-all active:scale-95"
               >
-                {copiedPromo ? (
+                {isClaiming ? (
                   <>
-                    <Check className="w-4 h-4 mr-2" /> Copiado
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Activando...
                   </>
                 ) : (
                   <>
-                    <Copy className="w-4 h-4 mr-2" /> Canjear Ahora
+                    <Check className="w-4 h-4 mr-2" /> Canjear Ahora
                   </>
                 )}
               </Button>
