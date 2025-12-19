@@ -35,27 +35,25 @@ import {
   MessageSquare,
   DollarSign,
   Package,
-  Gift,
-  Copy,
   Check,
   Rocket, // Icono para founders
 } from "lucide-react";
 
 export default function MainDashboard() {
   const { user } = useAuth();
-  const { userRole, isL1, isL2, isLoadingRole, refreshRole } = useUserRole();
-  const { paqueteUsuario } = useSubscription(); // Aquí podrías forzar un refresh si tu contexto lo permite
+  const { isL1, isL2, isLoadingRole, refreshRole } = useUserRole();
+  const { paqueteUsuario } = useSubscription();
   const navigate = useNavigate();
   const { toast } = useToast();
 
   const [activeTab, setActiveTab] = useState("resumen");
   const [hasActiveCatalog, setHasActiveCatalog] = useState(false);
-  const [isLoadingData, setIsLoadingData] = useState(true);
+  const [isLoadingData, setIsLoadingData] = useState(true); // Se mantiene para loading de metricas aunque no bloquee UI
   const [isProcessingPending, setIsProcessingPending] = useState(false);
 
   // ✅ ESTADOS PARA EL PROMO CODE
   const [isClaiming, setIsClaiming] = useState(false);
-  const PROMO_CODE = "CYBER-AI-3"; // 👈 CÓDIGO ACTUALIZADO
+  const PROMO_CODE = "CYBER-AI-3";
 
   // Estado de Métricas
   const [metrics, setMetrics] = useState({
@@ -153,25 +151,27 @@ export default function MainDashboard() {
     loadMetrics();
   }, [user]);
 
-  // ✅ NUEVA LÓGICA: RECLAMAR GRATIS (BYPASS STRIPE)
+  // ✅ LÓGICA HÍBRIDA: RECLAMAR GRATIS O REDIRIGIR A STRIPE
   const handleClaimFounder = async () => {
     if (!user) return;
     setIsClaiming(true);
 
     try {
-      // 1. Copiar al portapapeles (UX)
-      navigator.clipboard.writeText(PROMO_CODE);
+      // 1. Copiar al portapapeles siempre (sirve para ambos casos)
+      await navigator.clipboard.writeText(PROMO_CODE);
 
-      // 2. Llamada Mágica al Backend
-      const { data, error } = await supabase.rpc("claim_founder_plan", {
+      // 2. Intentar activar directo en base de datos
+      // Usamos 'as any' para evitar el error de TypeScript si los tipos no se han regenerado
+      const { data, error } = await supabase.rpc("claim_founder_plan" as any, {
         p_user_id: user.id,
       });
 
       if (error) throw error;
 
-      const result = data as any; // Cast simple
+      const result = data as any;
 
       if (result.success) {
+        // --- CASO A: ÉXITO TOTAL (LIFETIME GRATIS) ---
         toast({
           title: "🎉 ¡Felicidades Fundador!",
           description: "Has activado el Plan Empresarial de por vida GRATIS.",
@@ -179,14 +179,36 @@ export default function MainDashboard() {
           duration: 5000,
         });
 
-        // Refrescar la página o el contexto para que se vea el plan activo
+        // Recargar para actualizar el estado de la suscripción visualmente
         setTimeout(() => window.location.reload(), 2000);
       } else {
-        toast({
-          title: "No se pudo activar",
-          description: result.message || "Tal vez ya tienes un plan activo o se agotaron los lugares.",
-          variant: "destructive",
-        });
+        // --- CASO B: FALLO (PERO CON PLAN B - STRIPE) ---
+        if (result.reason === "LIMIT_REACHED") {
+          toast({
+            title: "⏳ Lugares agotados",
+            description: "¡Pero te regalamos 4 MESES GRATIS! Redirigiendo al pago...",
+            className: "bg-indigo-600 text-white border-none",
+            duration: 4000,
+          });
+
+          // Redirigimos al Checkout para que usen el código ahí
+          setTimeout(() => {
+            navigate("/checkout?plan=Empresarial");
+          }, 2500);
+        } else if (result.reason === "ALREADY_SUBSCRIBED") {
+          toast({
+            title: "Ya tienes un plan",
+            description: "Ya cuentas con una suscripción activa.",
+            variant: "default",
+          });
+        } else {
+          // Otros errores genéricos
+          toast({
+            title: "Aviso",
+            description: result.message,
+            variant: "destructive",
+          });
+        }
       }
     } catch (err) {
       console.error(err);
@@ -316,7 +338,7 @@ export default function MainDashboard() {
               >
                 {isClaiming ? (
                   <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Activando...
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Verificando...
                   </>
                 ) : (
                   <>
@@ -329,11 +351,10 @@ export default function MainDashboard() {
         </motion.div>
       )}
 
-      {/* --- TARJETAS DE ACCIÓN INTELIGENTE (TOP PRIORITY) --- */}
+      {/* --- TARJETAS DE ACCIÓN INTELIGENTE --- */}
       <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* 1. NEGOCIACIÓN / LOGÍSTICA (PRIORIDAD ALTA) */}
+        {/* 1. NEGOCIACIÓN / LOGÍSTICA */}
         {metrics.ordersToDispatchCount > 0 ? (
-          // CASO A: Hay que enviar (Ya pagaron)
           <Card className="bg-emerald-50 border-emerald-200 shadow-sm relative overflow-hidden">
             <div className="absolute top-0 right-0 p-3 opacity-10">
               <Truck className="w-16 h-16 text-emerald-600" />
@@ -358,7 +379,6 @@ export default function MainDashboard() {
             </CardContent>
           </Card>
         ) : metrics.pendingNegotiationCount > 0 ? (
-          // CASO B: Hay que cotizar (Negociación)
           <Card className="bg-blue-50 border-blue-200 shadow-sm relative overflow-hidden">
             <div className="absolute top-0 right-0 p-3 opacity-10">
               <MessageSquare className="w-16 h-16 text-blue-600" />
@@ -383,7 +403,6 @@ export default function MainDashboard() {
             </CardContent>
           </Card>
         ) : (
-          // CASO C: Todo tranquilo
           <Card className="bg-white border-slate-100 shadow-sm opacity-80">
             <CardHeader className="pb-2">
               <CardTitle className="text-slate-500 text-base flex items-center gap-2">
@@ -468,7 +487,7 @@ export default function MainDashboard() {
           </Card>
         )}
 
-        {/* 3. DEMANDA PERDIDA (SOLO L1 - Los revendedores no fabrican) */}
+        {/* 3. DEMANDA PERDIDA (SOLO L1) */}
         {isL1 && metrics.missedSearchCount > 2 && (
           <Card className="bg-orange-50 border-orange-200 shadow-sm relative overflow-hidden">
             <div className="absolute top-0 right-0 p-3 opacity-10">
