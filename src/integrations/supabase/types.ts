@@ -2953,6 +2953,7 @@ export type Database = {
           message: string;
         }[];
       };
+      claim_founder_plan: { Args: { p_user_id: string }; Returns: Json };
       clone_catalog_direct: {
         Args: { p_original_catalog_id: string };
         Returns: Json;
