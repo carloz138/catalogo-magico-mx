@@ -70,27 +70,28 @@ Deno.serve(async (req) => {
         return new Response("Already processed", { status: 200 });
     }
 
-    // 3. ACTUALIZAR ESTADO A PAGADO
+    // 3. ACTUALIZAR ESTADO A PAGADO Y GUARDAR METADATA
     const { error: updateError } = await supabaseAdmin
         .from("payment_transactions")
         .update({
             status: 'paid',
             paid_at: new Date().toISOString(),
-            // Guardamos metadata útil de Openpay
+            // Guardamos metadata útil de Openpay (ya arreglamos la columna en SQL)
             metadata: transaction
         })
         .eq("id", localTx.id);
 
     if (updateError) throw updateError;
 
-    // 4. DESCONTAR INVENTARIO (Lógica de negocio crítica)
-    // Llamamos al RPC que ya tienes configurado
+    // 4. DESCONTAR INVENTARIO (CORREGIDO)
+    // El RPC espera 'quote_id', no 'quote_uuid'.
+    // Al pasar el ID correcto, la función SQL se encarga de revisar si hay variantes o productos simples.
     const { error: stockError } = await supabaseAdmin.rpc('process_inventory_deduction', {
-        quote_uuid: localTx.quote_id
+        quote_id: localTx.quote_id  // <--- CAMBIO CRÍTICO AQUÍ
     });
 
     if (stockError) console.error("❌ Error descontando stock:", stockError);
-    else console.log("✅ Stock descontado correctamente");
+    else console.log("✅ Stock descontado correctamente (Soportando variantes L1/L2)");
 
     // 5. NOTIFICACIONES (Email + WhatsApp)
     const quote = localTx.quotes;
@@ -130,7 +131,7 @@ Deno.serve(async (req) => {
                         to: phone,
                         type: "template",
                         template: {
-                            name: "payment_confirmed", // <--- PLANTILLA META
+                            name: "payment_confirmed", 
                             language: { code: "es_MX" },
                             components: [
                                 {
