@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
-import { useToast } from "@/hooks/use-toast"; // ✅ Agregado para notificaciones
+import { useToast } from "@/hooks/use-toast";
 
 // Contextos
 import { useAuth } from "@/contexts/AuthContext";
@@ -35,11 +35,14 @@ import {
   MessageSquare,
   DollarSign,
   Package,
+  Gift, // ✅ NUEVO
+  Copy, // ✅ NUEVO
+  Check, // ✅ NUEVO
 } from "lucide-react";
 
 export default function MainDashboard() {
   const { user } = useAuth();
-  const { userRole, isL1, isL2, isLoadingRole, refreshRole } = useUserRole(); // ✅ Obtenemos refreshRole
+  const { userRole, isL1, isL2, isLoadingRole, refreshRole } = useUserRole();
   const { paqueteUsuario } = useSubscription();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -47,9 +50,11 @@ export default function MainDashboard() {
   const [activeTab, setActiveTab] = useState("resumen");
   const [hasActiveCatalog, setHasActiveCatalog] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(true);
-
-  // ✅ ESTADO NUEVO: Para mostrar pantalla de carga si estamos clonando
   const [isProcessingPending, setIsProcessingPending] = useState(false);
+
+  // ✅ ESTADO PARA EL CÓDIGO PROMOCIONAL
+  const [copiedPromo, setCopiedPromo] = useState(false);
+  const PROMO_CODE = "4MESES100"; // 👈 TU CÓDIGO DE STRIPE AQUÍ
 
   // Estado de Métricas
   const [metrics, setMetrics] = useState({
@@ -67,25 +72,20 @@ export default function MainDashboard() {
   // --- 🔥 LOGICA DE REPLICACIÓN AUTOMÁTICA AL ENTRAR ---
   useEffect(() => {
     const checkPendingReplication = async () => {
-      // 1. Buscamos si hay algo pendiente en la "mochila" del navegador
       const pendingCatalogId = localStorage.getItem("pending_replication_catalog_id");
 
       if (pendingCatalogId && user) {
         console.log("⚡ Detectada replicación pendiente:", pendingCatalogId);
-        setIsProcessingPending(true); // Activamos pantalla de carga
+        setIsProcessingPending(true);
 
         try {
-          // 2. Ejecutamos la clonación (RPC)
           const { data, error } = await supabase.rpc("clone_catalog_direct", {
             p_original_catalog_id: pendingCatalogId,
           });
 
           if (error) throw error;
 
-          // 3. Limpiamos la mochila (ya no está pendiente)
           localStorage.removeItem("pending_replication_catalog_id");
-
-          // 4. Actualizamos el rol (para que el dashboard detecte L2/Both)
           await refreshRole();
 
           toast({
@@ -93,7 +93,6 @@ export default function MainDashboard() {
             description: "Te hemos redirigido para que configures tus precios.",
           });
 
-          // 5. Redirigimos al editor de precios
           const result = data as any;
           if (result && result.catalog_id) {
             navigate(`/reseller/edit-prices?catalog_id=${result.catalog_id}`);
@@ -105,7 +104,6 @@ export default function MainDashboard() {
             description: "No pudimos procesar tu solicitud pendiente.",
             variant: "destructive",
           });
-          // Si falla, borramos el item para evitar un bucle infinito
           localStorage.removeItem("pending_replication_catalog_id");
         } finally {
           setIsProcessingPending(false);
@@ -154,7 +152,22 @@ export default function MainDashboard() {
     loadMetrics();
   }, [user]);
 
-  // --- RENDERIZADO DE PANTALLA DE CARGA (Si estamos clonando) ---
+  // ✅ FUNCIÓN PARA COPIAR CÓDIGO Y REDIRIGIR
+  const handleCopyAndRedirect = () => {
+    navigator.clipboard.writeText(PROMO_CODE);
+    setCopiedPromo(true);
+    toast({
+      title: "🎁 Código copiado",
+      description: "Serás redirigido al checkout en unos segundos.",
+      className: "bg-green-600 text-white border-none",
+    });
+
+    // Redirigir después de 1.5s para dar tiempo a leer el toast
+    setTimeout(() => {
+      navigate("/checkout?plan=Empresarial"); // Redirige al plan más alto por defecto
+    }, 1500);
+  };
+
   if (isProcessingPending) {
     return (
       <div className="h-[80vh] flex flex-col items-center justify-center space-y-4">
@@ -225,6 +238,61 @@ export default function MainDashboard() {
           </div>
         )}
       </div>
+
+      {/* 🔥 BANNER PROMOCIONAL (100% DISCOUNT 4 MONTHS) 🔥 */}
+      {!paqueteUsuario?.name?.toLowerCase().includes("empresarial") && (
+        <motion.div
+          variants={itemVariants}
+          className="relative overflow-hidden rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 shadow-xl"
+        >
+          {/* Decoración de fondo */}
+          <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-white opacity-10 rounded-full blur-xl"></div>
+          <div className="absolute bottom-0 left-0 -mb-4 -ml-4 w-32 h-32 bg-purple-400 opacity-20 rounded-full blur-2xl"></div>
+
+          <div className="relative p-6 sm:p-8 flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="flex items-start gap-4 flex-1">
+              <div className="p-3 bg-white/20 backdrop-blur-sm rounded-lg shadow-inner hidden sm:block">
+                <Gift className="w-8 h-8 text-white" />
+              </div>
+              <div className="text-white space-y-1 text-center sm:text-left">
+                <Badge className="bg-yellow-400 text-yellow-900 hover:bg-yellow-500 border-0 mb-2 font-bold animate-pulse">
+                  ¡OFERTA LIMITADA!
+                </Badge>
+                <h3 className="text-xl sm:text-2xl font-bold leading-tight">
+                  Obtén 4 Meses <span className="text-yellow-300">GRATIS</span> del Plan Empresarial
+                </h3>
+                <p className="text-indigo-100 text-sm max-w-xl">
+                  Desbloquea catálogos ilimitados, IA predictiva y análisis de stock sin costo por 120 días.
+                </p>
+              </div>
+            </div>
+
+            {/* Caja de Código y Botón */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto bg-white/10 p-2 rounded-xl backdrop-blur-sm border border-white/10">
+              <div className="flex-1 flex flex-col justify-center px-4 py-2 border-2 border-dashed border-white/30 rounded-lg bg-black/20 text-center">
+                <span className="text-[10px] text-indigo-200 uppercase tracking-widest font-semibold">
+                  Usa el cupón
+                </span>
+                <code className="text-lg font-mono font-bold text-white tracking-wider select-all">{PROMO_CODE}</code>
+              </div>
+              <Button
+                onClick={handleCopyAndRedirect}
+                className="h-auto py-3 px-6 bg-white text-indigo-700 hover:bg-indigo-50 font-bold shadow-lg transition-all active:scale-95"
+              >
+                {copiedPromo ? (
+                  <>
+                    <Check className="w-4 h-4 mr-2" /> Copiado
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-4 h-4 mr-2" /> Canjear Ahora
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </motion.div>
+      )}
 
       {/* --- TARJETAS DE ACCIÓN INTELIGENTE (TOP PRIORITY) --- */}
       <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-3 gap-4">
