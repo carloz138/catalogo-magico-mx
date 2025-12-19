@@ -41,6 +41,7 @@ import WhySubscribePage from "@/pages/WhySubscribePage";
 import QuoteTracking from "@/pages/QuoteTracking";
 import TrackQuotePage from "@/pages/TrackQuotePage";
 import OpenpayDemo from "@/pages/OpenpayDemo";
+import Tracking from "@/pages/Tracking"; // <--- ✅ 1. NUEVA PÁGINA IMPORTADA
 
 // Protected (Dashboard) Pages
 import MainDashboard from "@/pages/MainDashboard";
@@ -70,7 +71,7 @@ import ConsolidatedOrdersListPage from "@/pages/reseller/ConsolidatedOrdersListP
 import MarketRadar from "@/pages/MarketRadar";
 import Marketplace from "@/pages/Marketplace";
 import BankingSettings from "@/pages/dashboard/BankingSettings";
-import OrdersPage from "@/pages/orders/index"; // ✅ SOLO MANTENEMOS ESTA
+import OrdersPage from "@/pages/orders/index";
 
 const queryClient = new QueryClient();
 
@@ -94,6 +95,7 @@ const App = () => {
     <BrowserRouter>
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
+          <Toaster />
           <Toaster />
           <Sonner />
           <SaaSMarketingProvider>
@@ -136,8 +138,13 @@ const App = () => {
                       <Route path="/track" element={<ActivateCatalog />} />
                       <Route path="/blog" element={<Blog />} />
                       <Route path="/blog/:slug" element={<BlogPost />} />
+
+                      {/* Tracking antiguo por token */}
                       <Route path="/tracking/:token" element={<QuoteTracking />} />
                       <Route path="/track/:token" element={<TrackQuotePage />} />
+
+                      {/* ✅ 2. NUEVA RUTA DE RASTREO PÚBLICO (Buscador) */}
+                      <Route path="/rastreo" element={<Tracking />} />
 
                       {/* --- Rutas Protegidas (Con Sidebar) --- */}
                       <Route element={<ProtectedRoute />}>
