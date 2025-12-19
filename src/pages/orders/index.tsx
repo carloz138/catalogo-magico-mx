@@ -37,6 +37,8 @@ import {
   History,
   ZoomIn,
   X,
+  Building2,
+  ArrowUpRight,
 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -89,7 +91,6 @@ interface OrderItem {
   unit_price?: number;
   total?: number;
   subtotal?: number;
-  // Campos auxiliares para búsqueda robusta de imágenes
   products?: { image_url?: string; original_image_url?: string };
   image_url?: string;
 }
@@ -97,26 +98,34 @@ interface OrderItem {
 interface ConsolidatedOrder {
   id: string;
   created_at: string;
-  status: "draft" | "sent" | "shipped" | "delivered" | "cancelled";
+  status: "draft" | "sent" | "paid" | "accepted" | "shipped" | "delivered" | "cancelled";
   total_amount: number;
   shipping_address?: string;
   tracking_company?: string;
   tracking_number?: string;
+  // Para cuando soy proveedor (veo al distribuidor)
   distributor?: { business_name: string; phone: string; email: string };
+  // Para cuando soy distribuidor (veo al proveedor)
+  supplier?: { business_name: string; email: string }; // <-- NUEVO
   items: OrderItem[];
 }
 
 // --- SUB-COMPONENTE: BADGE DE ESTATUS ---
 const FulfillmentBadge = ({ status }: { status: string }) => {
   const config: Record<string, { label: string; bg: string; text: string; icon: any }> = {
+    // Retail Statuses
     unfulfilled: { label: "Por Empacar", bg: "bg-amber-100", text: "text-amber-800", icon: Box },
     processing: { label: "Empacando", bg: "bg-blue-100", text: "text-blue-800", icon: Loader2 },
     ready_for_pickup: { label: "Listo en Tienda", bg: "bg-indigo-100", text: "text-indigo-800", icon: MapPin },
-    shipped: { label: "En Camino", bg: "bg-purple-100", text: "text-purple-800", icon: Truck },
-    delivered: { label: "Entregado", bg: "bg-emerald-100", text: "text-emerald-800", icon: CheckCircle2 },
-    sent: { label: "Por Surtir", bg: "bg-rose-100", text: "text-rose-800", icon: PackageCheck },
+
+    // Consolidated Order Statuses
     draft: { label: "Borrador", bg: "bg-gray-100", text: "text-gray-500", icon: Box },
-    cancelled: { label: "Cancelado", bg: "bg-slate-100", text: "text-slate-500", icon: Box },
+    sent: { label: "Solicitado", bg: "bg-blue-50", text: "text-blue-600", icon: ArrowUpRight },
+    paid: { label: "Pagado", bg: "bg-emerald-100", text: "text-emerald-700", icon: CheckCircle2 },
+    accepted: { label: "Confirmado", bg: "bg-emerald-100", text: "text-emerald-700", icon: CheckCircle2 },
+    shipped: { label: "En Camino", bg: "bg-purple-100", text: "text-purple-800", icon: Truck },
+    delivered: { label: "Entregado", bg: "bg-green-100", text: "text-green-800", icon: CheckCircle2 },
+    cancelled: { label: "Cancelado", bg: "bg-slate-100", text: "text-slate-500", icon: X },
   };
 
   const info = config[status] || { label: status, bg: "bg-gray-100", text: "text-gray-800", icon: Box };
@@ -142,28 +151,34 @@ export default function UnifiedOrdersPage() {
   // ✅ ESTADO PARA EL ZOOM DE IMAGEN
   const [zoomedImage, setZoomedImage] = useState<string | null>(null);
 
-  // --- LÓGICA RETAIL ---
+  // ==========================================
+  // 1. LÓGICA RETAIL (MIS VENTAS A CLIENTES)
+  // ==========================================
   const { quotes, loading: loadingQuotes, refetch: refetchQuotes } = useQuotes({ autoLoad: true });
   const [retailSearch, setRetailSearch] = useState("");
   const [selectedRetailOrder, setSelectedRetailOrder] = useState<Quote | null>(null);
   const [isRetailModalOpen, setIsRetailModalOpen] = useState(false);
   const [retailTracking, setRetailTracking] = useState({ code: "", carrier: "" });
   const [isSubmittingRetail, setIsSubmittingRetail] = useState(false);
-  const [viewingOrder, setViewingOrder] = useState<Quote | null>(null);
+  const [viewingOrder, setViewingOrder] = useState<Quote | any | null>(null);
 
-  // Fetch on Demand para detalles
+  // Fetch on Demand para detalles retail
   const { data: retailDetails, isLoading: loadingDetails } = useQuery({
     queryKey: ["quote-detail-modal", viewingOrder?.id],
     queryFn: async () => {
       if (!viewingOrder || !user) return null;
-      return QuoteService.getQuoteDetail(viewingOrder.id, user.id);
+      // Solo buscamos si es una Quote real (tiene customer_name directo)
+      if (!(viewingOrder as any).distributor && !(viewingOrder as any).supplier) {
+        return QuoteService.getQuoteDetail(viewingOrder.id, user.id);
+      }
+      return null;
     },
-    enabled: !!viewingOrder && !!user && !(viewingOrder as any).distributor,
+    enabled: !!viewingOrder && !!user,
   });
 
   const retailOrders = quotes.filter((q) => (q as any).payment_status === "paid");
-
   const activeStatuses = ["unfulfilled", "processing", "ready_for_pickup"];
+
   const filteredRetail = retailOrders.filter((o) => {
     const matchesSearch =
       o.customer_name.toLowerCase().includes(retailSearch.toLowerCase()) ||
@@ -202,7 +217,9 @@ export default function UnifiedOrdersPage() {
     }
   };
 
-  // --- LÓGICA WHOLESALE ---
+  // ==========================================
+  // 2. LÓGICA WHOLESALE (YO COMO PROVEEDOR)
+  // ==========================================
   const [wholesaleSearch, setWholesaleSearch] = useState("");
   const [selectedWholesaleOrder, setSelectedWholesaleOrder] = useState<ConsolidatedOrder | null>(null);
   const [isWholesaleModalOpen, setIsWholesaleModalOpen] = useState(false);
@@ -253,19 +270,45 @@ export default function UnifiedOrdersPage() {
       o.distributor?.business_name.toLowerCase().includes(wholesaleSearch.toLowerCase()) ||
       o.id.toLowerCase().includes(wholesaleSearch.toLowerCase()),
   );
+  const pendingWholesaleCount = wholesaleOrders.filter((o) => o.status === "sent" || o.status === "paid").length;
 
-  const pendingWholesaleCount = wholesaleOrders.filter((o) => o.status === "sent").length;
+  // ==========================================
+  // 3. LÓGICA COMPRAS (YO COMO DISTRIBUIDOR) - ¡NUEVO!
+  // ==========================================
+  const { data: myPurchases = [], isLoading: loadingPurchases } = useQuery({
+    queryKey: ["my-purchases", user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      // Buscamos órdenes donde YO soy el distributor_id
+      const { data, error } = await supabase
+        .from("consolidated_orders")
+        .select(
+          `
+          *, 
+          items:consolidated_order_items(*), 
+          supplier:business_info!consolidated_orders_supplier_id_fkey(business_name, email)
+        `,
+        )
+        .eq("distributor_id", user.id)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      return data as unknown as ConsolidatedOrder[];
+    },
+    enabled: !!user,
+  });
 
   return (
     <div className="min-h-screen bg-slate-50/50 p-4 md:p-8 pb-20 font-sans text-slate-900">
       <header className="max-w-6xl mx-auto mb-8">
         <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Gestión de Pedidos</h1>
-        <p className="text-slate-500 mt-1">Administra tus ventas directas y tus envíos a revendedores.</p>
+        <p className="text-slate-500 mt-1">Administra tus ventas, compras y logística en un solo lugar.</p>
       </header>
 
       <div className="max-w-6xl mx-auto">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="bg-white border border-slate-200 mb-6 p-1 h-auto w-full md:w-auto grid grid-cols-2 md:inline-flex">
+          <TabsList className="bg-white border border-slate-200 mb-6 p-1 h-auto w-full md:w-auto grid grid-cols-3 md:inline-flex">
+            {/* TAB: MIS VENTAS */}
             <TabsTrigger
               value="sales"
               className="py-2.5 data-[state=active]:bg-indigo-50 data-[state=active]:text-indigo-700"
@@ -277,18 +320,28 @@ export default function UnifiedOrdersPage() {
                 </Badge>
               )}
             </TabsTrigger>
+
+            {/* TAB: MIS PEDIDOS A PROVEEDOR (NUEVO) */}
+            <TabsTrigger
+              value="purchases"
+              className="py-2.5 data-[state=active]:bg-emerald-50 data-[state=active]:text-emerald-700"
+            >
+              <Truck className="w-4 h-4 mr-2" /> Mis Pedidos
+            </TabsTrigger>
+
+            {/* TAB: SURTIR A OTROS */}
             <TabsTrigger
               value="wholesale"
               className="py-2.5 data-[state=active]:bg-rose-50 data-[state=active]:text-rose-700"
             >
-              <PackageCheck className="w-4 h-4 mr-2" /> Surtir a Revendedores
+              <PackageCheck className="w-4 h-4 mr-2" /> Surtir
               {pendingWholesaleCount > 0 && (
                 <Badge className="ml-2 bg-rose-600 hover:bg-rose-700 h-5 px-1.5">{pendingWholesaleCount}</Badge>
               )}
             </TabsTrigger>
           </TabsList>
 
-          {/* === TAB 1: MIS VENTAS (RETAIL) === */}
+          {/* === CONTENIDO TAB 1: MIS VENTAS (RETAIL) === */}
           <TabsContent value="sales" className="space-y-6 animate-in fade-in-50">
             <div className="flex flex-col sm:flex-row gap-4 mb-4 justify-between items-start sm:items-center">
               <div className="bg-slate-200/50 p-1 rounded-lg flex items-center gap-1">
@@ -384,24 +437,14 @@ export default function UnifiedOrdersPage() {
                             className="border-emerald-200 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800"
                             onClick={(e) => {
                               e.stopPropagation();
+                              if (confirm("¿Confirmar entrega final?")) {
+                                QuoteService.updateFulfillmentStatus(order.id, user!.id, "delivered");
+                                toast({ title: "✅ Entrega Confirmada" });
+                                refetchQuotes();
+                              }
                             }}
                           >
-                            <div
-                              onClick={async (ev) => {
-                                ev.stopPropagation();
-                                if (confirm("¿Confirmar entrega final? Esto moverá el pedido al historial.")) {
-                                  await QuoteService.updateFulfillmentStatus(order.id, user!.id, "delivered");
-                                  toast({
-                                    title: "✅ Entrega Confirmada",
-                                    description: "El pedido ha sido finalizado.",
-                                  });
-                                  refetchQuotes();
-                                }
-                              }}
-                              className="flex items-center"
-                            >
-                              <CheckCircle2 className="w-4 h-4 mr-1" /> Finalizar
-                            </div>
+                            <CheckCircle2 className="w-4 h-4 mr-1" /> Finalizar
                           </Button>
                         ) : (
                           <div className="text-slate-300 group-hover:text-indigo-400 transition-colors">
@@ -416,7 +459,85 @@ export default function UnifiedOrdersPage() {
             )}
           </TabsContent>
 
-          {/* === TAB 2: WHOLESALE === */}
+          {/* === TAB 2: MIS PEDIDOS A PROVEEDOR (NUEVO) === */}
+          <TabsContent value="purchases" className="space-y-6 animate-in fade-in-50">
+            {loadingPurchases ? (
+              <div className="flex justify-center p-12">
+                <Loader2 className="animate-spin text-emerald-600" />
+              </div>
+            ) : myPurchases.length === 0 ? (
+              <EmptyState title="Sin compras" desc="No has realizado pedidos a proveedores todavía." />
+            ) : (
+              <div className="space-y-3">
+                {myPurchases.map((order) => (
+                  <Card
+                    key={order.id}
+                    className="hover:border-emerald-300 transition-all border-l-4 border-l-emerald-500 cursor-pointer group"
+                    onClick={() => {
+                      // Adaptador para usar el mismo modal de visualización
+                      const adapter = {
+                        ...order,
+                        order_number: order.id.slice(0, 8),
+                        customer_name: "Yo (Autoconsumo/Stock)",
+                        // Mostramos al proveedor como dato relevante
+                        carrier_name: order.tracking_company,
+                        tracking_code: order.tracking_number,
+                        fulfillment_status: order.status, // Mapeamos status -> fulfillment
+                        notes: order.supplier ? `Proveedor: ${order.supplier.business_name}` : "",
+                      };
+                      setViewingOrder(adapter);
+                    }}
+                  >
+                    <CardContent className="p-5 flex flex-col md:flex-row justify-between md:items-center gap-4">
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-bold text-slate-900 group-hover:text-emerald-600 transition-colors">
+                            ID: {order.id.slice(0, 6)}...
+                          </span>
+                          <FulfillmentBadge status={order.status} />
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-slate-700">
+                          <Building2 className="w-4 h-4 text-slate-400" />
+                          <span className="font-semibold">
+                            {order.supplier?.business_name || "Proveedor Desconocido"}
+                          </span>
+                        </div>
+                        <div className="text-xs text-slate-500 mt-1">
+                          {format(new Date(order.created_at), "PPP", { locale: es })}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-4">
+                        <div className="text-right">
+                          <div className="font-bold text-slate-900">{formatMoney(order.total_amount)}</div>
+                          <div className="text-xs text-slate-400">{order.items.length} items</div>
+                        </div>
+
+                        {/* Botón de acción si hay guía */}
+                        {order.status === "shipped" && order.tracking_number && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toast({ title: "Copiado", description: `Guía: ${order.tracking_number}` });
+                              navigator.clipboard.writeText(order.tracking_number);
+                            }}
+                          >
+                            <Truck className="w-4 h-4 mr-2" /> Rastrear
+                          </Button>
+                        )}
+
+                        <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-emerald-400" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          {/* === TAB 3: SURTIR A OTROS (WHOLESALE) === */}
           <TabsContent value="wholesale" className="space-y-6 animate-in fade-in-50">
             <div className="flex gap-4 mb-4">
               <div className="relative flex-1">
@@ -470,7 +591,7 @@ export default function UnifiedOrdersPage() {
                         <div className="text-xs text-slate-500 mt-1">{order.items.length} productos para empacar</div>
                       </div>
                       <div className="flex items-center gap-4">
-                        {order.status === "sent" ? (
+                        {order.status === "sent" || order.status === "paid" ? (
                           <Button
                             size="sm"
                             onClick={(e) => {
@@ -504,7 +625,7 @@ export default function UnifiedOrdersPage() {
         </Tabs>
       </div>
 
-      {/* --- MODAL 1: ATENDER --- */}
+      {/* --- MODAL 1: ATENDER RETAIL --- */}
       <Dialog open={isRetailModalOpen} onOpenChange={setIsRetailModalOpen}>
         <DialogContent>
           <DialogHeader>
@@ -543,7 +664,7 @@ export default function UnifiedOrdersPage() {
         </DialogContent>
       </Dialog>
 
-      {/* --- MODAL 2: WHOLESALE --- */}
+      {/* --- MODAL 2: ATENDER WHOLESALE --- */}
       <Dialog open={isWholesaleModalOpen} onOpenChange={setIsWholesaleModalOpen}>
         <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader>
@@ -625,18 +746,18 @@ export default function UnifiedOrdersPage() {
             <div className="space-y-6 mt-2">
               <div className="grid md:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-lg border border-slate-100">
                 <div>
-                  <h4 className="font-semibold text-sm text-slate-900 mb-1">Cliente</h4>
+                  <h4 className="font-semibold text-sm text-slate-900 mb-1">Cliente / Destino</h4>
                   <p className="text-sm text-slate-600">{viewingOrder.customer_name}</p>
                   <p className="text-sm text-slate-500">{viewingOrder.customer_email}</p>
                   <p className="text-sm text-slate-500">{viewingOrder.customer_phone}</p>
                   {viewingOrder.notes && (
                     <div className="mt-2 p-2 bg-yellow-50 text-yellow-800 text-xs rounded border border-yellow-100">
-                      <strong>Nota:</strong> {viewingOrder.notes}
+                      <strong>Info:</strong> {viewingOrder.notes}
                     </div>
                   )}
                 </div>
                 <div>
-                  <h4 className="font-semibold text-sm text-slate-900 mb-1">Entrega</h4>
+                  <h4 className="font-semibold text-sm text-slate-900 mb-1">Logística</h4>
                   {viewingOrder.delivery_method === "pickup" ? (
                     <div className="text-sm text-slate-600">
                       <span className="flex items-center gap-1">
@@ -679,7 +800,6 @@ export default function UnifiedOrdersPage() {
                       ) : (
                         ((retailDetails as any)?.items || (viewingOrder as any).items || []).map(
                           (item: any, idx: number) => {
-                            // ✅ BUSQUEDA ROBUSTA DE IMAGEN (5 NIVELES DE PRIORIDAD)
                             const imgSrc =
                               item.product_image_url ||
                               item.image_url ||
@@ -691,7 +811,6 @@ export default function UnifiedOrdersPage() {
                               <tr key={idx} className="bg-white">
                                 <td className="px-4 py-3">
                                   <div className="flex items-center gap-3">
-                                    {/* ✅ IMAGEN CLICKEABLE (ZOOM) */}
                                     <div
                                       className={`h-10 w-10 rounded border bg-slate-100 flex-shrink-0 overflow-hidden relative group ${imgSrc ? "cursor-pointer" : ""}`}
                                       onClick={() => imgSrc && setZoomedImage(imgSrc)}
