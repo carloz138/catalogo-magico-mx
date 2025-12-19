@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUserRole } from "@/contexts/RoleContext"; // 👈 IMPORTANTE: Usamos tu contexto
 import { useQuotes } from "@/hooks/useQuotes";
 import { QuoteService } from "@/services/quote.service";
 import { FulfillmentStatus, Quote, ShippingAddressStructured } from "@/types/digital-catalog";
@@ -103,22 +104,20 @@ interface ConsolidatedOrder {
   shipping_address?: string;
   tracking_company?: string;
   tracking_number?: string;
-  // Para cuando soy proveedor (veo al distribuidor)
   distributor?: { business_name: string; phone: string; email: string };
-  // Para cuando soy distribuidor (veo al proveedor)
-  supplier?: { business_name: string; email: string }; // <-- NUEVO
+  supplier?: { business_name: string; email: string };
   items: OrderItem[];
 }
 
-// --- SUB-COMPONENTE: BADGE DE ESTATUS ---
+// --- BADGE DE ESTATUS ---
 const FulfillmentBadge = ({ status }: { status: string }) => {
   const config: Record<string, { label: string; bg: string; text: string; icon: any }> = {
-    // Retail Statuses
+    // Retail
     unfulfilled: { label: "Por Empacar", bg: "bg-amber-100", text: "text-amber-800", icon: Box },
     processing: { label: "Empacando", bg: "bg-blue-100", text: "text-blue-800", icon: Loader2 },
     ready_for_pickup: { label: "Listo en Tienda", bg: "bg-indigo-100", text: "text-indigo-800", icon: MapPin },
 
-    // Consolidated Order Statuses
+    // Consolidated
     draft: { label: "Borrador", bg: "bg-gray-100", text: "text-gray-500", icon: Box },
     sent: { label: "Solicitado", bg: "bg-blue-50", text: "text-blue-600", icon: ArrowUpRight },
     paid: { label: "Pagado", bg: "bg-emerald-100", text: "text-emerald-700", icon: CheckCircle2 },
@@ -143,16 +142,18 @@ const FulfillmentBadge = ({ status }: { status: string }) => {
 
 export default function UnifiedOrdersPage() {
   const { user } = useAuth();
+
+  // ✅ USAMOS TU ROLE CONTEXT
+  const { isL1, isL2, isBoth, isLoadingRole } = useUserRole();
+
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("sales");
   const [viewMode, setViewMode] = useState<"active" | "history">("active");
-
-  // ✅ ESTADO PARA EL ZOOM DE IMAGEN
   const [zoomedImage, setZoomedImage] = useState<string | null>(null);
 
   // ==========================================
-  // 1. LÓGICA RETAIL (MIS VENTAS A CLIENTES)
+  // 1. DATA FETCHING (MIS VENTAS - RETAIL)
   // ==========================================
   const { quotes, loading: loadingQuotes, refetch: refetchQuotes } = useQuotes({ autoLoad: true });
   const [retailSearch, setRetailSearch] = useState("");
@@ -162,12 +163,11 @@ export default function UnifiedOrdersPage() {
   const [isSubmittingRetail, setIsSubmittingRetail] = useState(false);
   const [viewingOrder, setViewingOrder] = useState<Quote | any | null>(null);
 
-  // Fetch on Demand para detalles retail
   const { data: retailDetails, isLoading: loadingDetails } = useQuery({
     queryKey: ["quote-detail-modal", viewingOrder?.id],
     queryFn: async () => {
       if (!viewingOrder || !user) return null;
-      // Solo buscamos si es una Quote real (tiene customer_name directo)
+      // Evitar fetch si es wholesale/purchase
       if (!(viewingOrder as any).distributor && !(viewingOrder as any).supplier) {
         return QuoteService.getQuoteDetail(viewingOrder.id, user.id);
       }
@@ -218,7 +218,7 @@ export default function UnifiedOrdersPage() {
   };
 
   // ==========================================
-  // 2. LÓGICA WHOLESALE (YO COMO PROVEEDOR)
+  // 2. DATA FETCHING (SURTIR - WHOLESALE) - SOLO L1
   // ==========================================
   const [wholesaleSearch, setWholesaleSearch] = useState("");
   const [selectedWholesaleOrder, setSelectedWholesaleOrder] = useState<ConsolidatedOrder | null>(null);
@@ -240,7 +240,8 @@ export default function UnifiedOrdersPage() {
       if (error) throw error;
       return data as unknown as ConsolidatedOrder[];
     },
-    enabled: !!user,
+    // Solo activamos si es L1 o BOTH
+    enabled: !!user && (isL1 || isBoth),
   });
 
   const fulfillMutation = useMutation({
@@ -273,13 +274,12 @@ export default function UnifiedOrdersPage() {
   const pendingWholesaleCount = wholesaleOrders.filter((o) => o.status === "sent" || o.status === "paid").length;
 
   // ==========================================
-  // 3. LÓGICA COMPRAS (YO COMO DISTRIBUIDOR) - ¡NUEVO!
+  // 3. DATA FETCHING (MIS PEDIDOS - PURCHASES) - SOLO L2
   // ==========================================
   const { data: myPurchases = [], isLoading: loadingPurchases } = useQuery({
     queryKey: ["my-purchases", user?.id],
     queryFn: async () => {
       if (!user) return [];
-      // Buscamos órdenes donde YO soy el distributor_id
       const { data, error } = await supabase
         .from("consolidated_orders")
         .select(
@@ -295,20 +295,35 @@ export default function UnifiedOrdersPage() {
       if (error) throw error;
       return data as unknown as ConsolidatedOrder[];
     },
-    enabled: !!user,
+    // Solo activamos si es L2 o BOTH
+    enabled: !!user && (isL2 || isBoth),
   });
+
+  if (isLoadingRole) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50/50 p-4 md:p-8 pb-20 font-sans text-slate-900">
       <header className="max-w-6xl mx-auto mb-8">
         <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Gestión de Pedidos</h1>
-        <p className="text-slate-500 mt-1">Administra tus ventas, compras y logística en un solo lugar.</p>
+        <p className="text-slate-500 mt-1">
+          {isBoth
+            ? "Administra ventas directas, compras a proveedores y despachos a revendedores."
+            : isL1
+              ? "Administra tus ventas y los pedidos de tus distribuidores."
+              : "Administra tus ventas a clientes y tus compras de stock."}
+        </p>
       </header>
 
       <div className="max-w-6xl mx-auto">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="bg-white border border-slate-200 mb-6 p-1 h-auto w-full md:w-auto grid grid-cols-3 md:inline-flex">
-            {/* TAB: MIS VENTAS */}
+          <TabsList className="bg-white border border-slate-200 mb-6 p-1 h-auto w-full md:w-auto grid grid-cols-2 md:inline-flex gap-1">
+            {/* TAB: MIS VENTAS (SIEMPRE VISIBLE) */}
             <TabsTrigger
               value="sales"
               className="py-2.5 data-[state=active]:bg-indigo-50 data-[state=active]:text-indigo-700"
@@ -321,28 +336,33 @@ export default function UnifiedOrdersPage() {
               )}
             </TabsTrigger>
 
-            {/* TAB: MIS PEDIDOS A PROVEEDOR (NUEVO) */}
-            <TabsTrigger
-              value="purchases"
-              className="py-2.5 data-[state=active]:bg-emerald-50 data-[state=active]:text-emerald-700"
-            >
-              <Truck className="w-4 h-4 mr-2" /> Mis Pedidos
-            </TabsTrigger>
+            {/* TAB: MIS PEDIDOS A PROVEEDOR (VISIBLE PARA L2 o BOTH) */}
+            {(isL2 || isBoth) && (
+              <TabsTrigger
+                value="purchases"
+                className="py-2.5 data-[state=active]:bg-emerald-50 data-[state=active]:text-emerald-700"
+              >
+                <Truck className="w-4 h-4 mr-2" /> Mis Compras
+              </TabsTrigger>
+            )}
 
-            {/* TAB: SURTIR A OTROS */}
-            <TabsTrigger
-              value="wholesale"
-              className="py-2.5 data-[state=active]:bg-rose-50 data-[state=active]:text-rose-700"
-            >
-              <PackageCheck className="w-4 h-4 mr-2" /> Surtir
-              {pendingWholesaleCount > 0 && (
-                <Badge className="ml-2 bg-rose-600 hover:bg-rose-700 h-5 px-1.5">{pendingWholesaleCount}</Badge>
-              )}
-            </TabsTrigger>
+            {/* TAB: SURTIR A OTROS (VISIBLE PARA L1 o BOTH) */}
+            {(isL1 || isBoth) && (
+              <TabsTrigger
+                value="wholesale"
+                className="py-2.5 data-[state=active]:bg-rose-50 data-[state=active]:text-rose-700"
+              >
+                <PackageCheck className="w-4 h-4 mr-2" /> Surtir Revendedores
+                {pendingWholesaleCount > 0 && (
+                  <Badge className="ml-2 bg-rose-600 hover:bg-rose-700 h-5 px-1.5">{pendingWholesaleCount}</Badge>
+                )}
+              </TabsTrigger>
+            )}
           </TabsList>
 
           {/* === CONTENIDO TAB 1: MIS VENTAS (RETAIL) === */}
           <TabsContent value="sales" className="space-y-6 animate-in fade-in-50">
+            {/* ... (MISMA LOGICA DE FILTROS Y VISTA) ... */}
             <div className="flex flex-col sm:flex-row gap-4 mb-4 justify-between items-start sm:items-center">
               <div className="bg-slate-200/50 p-1 rounded-lg flex items-center gap-1">
                 <button
@@ -415,7 +435,6 @@ export default function UnifiedOrdersPage() {
                             {format(new Date(order.created_at), "PPP", { locale: es })}
                           </div>
                         </div>
-
                         {order.fulfillment_status === "unfulfilled" || order.fulfillment_status === "processing" ? (
                           <Button
                             size="sm"
@@ -459,173 +478,170 @@ export default function UnifiedOrdersPage() {
             )}
           </TabsContent>
 
-          {/* === TAB 2: MIS PEDIDOS A PROVEEDOR (NUEVO) === */}
-          <TabsContent value="purchases" className="space-y-6 animate-in fade-in-50">
-            {loadingPurchases ? (
-              <div className="flex justify-center p-12">
-                <Loader2 className="animate-spin text-emerald-600" />
-              </div>
-            ) : myPurchases.length === 0 ? (
-              <EmptyState title="Sin compras" desc="No has realizado pedidos a proveedores todavía." />
-            ) : (
-              <div className="space-y-3">
-                {myPurchases.map((order) => (
-                  <Card
-                    key={order.id}
-                    className="hover:border-emerald-300 transition-all border-l-4 border-l-emerald-500 cursor-pointer group"
-                    onClick={() => {
-                      // Adaptador para usar el mismo modal de visualización
-                      const adapter = {
-                        ...order,
-                        order_number: order.id.slice(0, 8),
-                        customer_name: "Yo (Autoconsumo/Stock)",
-                        // Mostramos al proveedor como dato relevante
-                        carrier_name: order.tracking_company,
-                        tracking_code: order.tracking_number,
-                        fulfillment_status: order.status, // Mapeamos status -> fulfillment
-                        notes: order.supplier ? `Proveedor: ${order.supplier.business_name}` : "",
-                      };
-                      setViewingOrder(adapter);
-                    }}
-                  >
-                    <CardContent className="p-5 flex flex-col md:flex-row justify-between md:items-center gap-4">
-                      <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="font-bold text-slate-900 group-hover:text-emerald-600 transition-colors">
-                            ID: {order.id.slice(0, 6)}...
-                          </span>
-                          <FulfillmentBadge status={order.status} />
-                        </div>
-                        <div className="flex items-center gap-2 text-sm text-slate-700">
-                          <Building2 className="w-4 h-4 text-slate-400" />
-                          <span className="font-semibold">
-                            {order.supplier?.business_name || "Proveedor Desconocido"}
-                          </span>
-                        </div>
-                        <div className="text-xs text-slate-500 mt-1">
-                          {format(new Date(order.created_at), "PPP", { locale: es })}
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-4">
-                        <div className="text-right">
-                          <div className="font-bold text-slate-900">{formatMoney(order.total_amount)}</div>
-                          <div className="text-xs text-slate-400">{order.items.length} items</div>
-                        </div>
-
-                        {/* Botón de acción si hay guía */}
-                        {order.status === "shipped" && order.tracking_number && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              toast({ title: "Copiado", description: `Guía: ${order.tracking_number}` });
-                              navigator.clipboard.writeText(order.tracking_number);
-                            }}
-                          >
-                            <Truck className="w-4 h-4 mr-2" /> Rastrear
-                          </Button>
-                        )}
-
-                        <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-emerald-400" />
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </TabsContent>
-
-          {/* === TAB 3: SURTIR A OTROS (WHOLESALE) === */}
-          <TabsContent value="wholesale" className="space-y-6 animate-in fade-in-50">
-            <div className="flex gap-4 mb-4">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                <Input
-                  placeholder="Buscar revendedor o ID..."
-                  className="pl-10 bg-white"
-                  value={wholesaleSearch}
-                  onChange={(e) => setWholesaleSearch(e.target.value)}
-                />
-              </div>
-            </div>
-            {loadingWholesale ? (
-              <div className="flex justify-center p-12">
-                <Loader2 className="animate-spin text-rose-600" />
-              </div>
-            ) : filteredWholesale.length === 0 ? (
-              <EmptyState title="Sin pedidos de abasto" desc="No tienes solicitudes de otros revendedores." />
-            ) : (
-              <div className="space-y-3">
-                {filteredWholesale.map((order) => (
-                  <Card
-                    key={order.id}
-                    className="hover:border-rose-300 transition-all border-l-4 border-l-rose-500 cursor-pointer group"
-                    onClick={() => {
-                      const adapter: any = {
-                        ...order,
-                        order_number: order.id.slice(0, 6),
-                        customer_name: order.distributor?.business_name || "Revendedor",
-                        customer_email: order.distributor?.email,
-                        customer_phone: order.distributor?.phone,
-                        delivery_method: "shipping",
-                        fulfillment_status: order.status,
-                        items: order.items.map((i) => ({ ...i, unit_price: 0, total: 0 })),
-                      };
-                      setViewingOrder(adapter);
-                    }}
-                  >
-                    <CardContent className="p-5 flex flex-col md:flex-row justify-between md:items-center gap-4">
-                      <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="font-bold text-slate-900 group-hover:text-rose-600 transition-colors">
-                            ABASTO #{order.id.slice(0, 6)}
-                          </span>
-                          <FulfillmentBadge status={order.status} />
-                        </div>
-                        <div className="flex items-center gap-2 text-sm text-slate-700">
-                          <User className="w-4 h-4 text-slate-400" />
-                          <span className="font-semibold">{order.distributor?.business_name || "Revendedor"}</span>
-                        </div>
-                        <div className="text-xs text-slate-500 mt-1">{order.items.length} productos para empacar</div>
-                      </div>
-                      <div className="flex items-center gap-4">
-                        {order.status === "sent" || order.status === "paid" ? (
-                          <Button
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedWholesaleOrder(order);
-                              setWholesaleTracking({ carrier: "", code: "" });
-                              setIsWholesaleModalOpen(true);
-                            }}
-                            className="bg-rose-600 hover:bg-rose-700 shadow-sm"
-                          >
-                            Despachar <Package className="w-4 h-4 ml-2" />
-                          </Button>
-                        ) : (
-                          <div className="text-right flex items-center gap-2">
-                            <div>
-                              <Badge variant="outline" className="text-emerald-600 border-emerald-200 bg-emerald-50">
-                                Enviado
-                              </Badge>
-                              <div className="text-xs text-slate-400 mt-1">{order.tracking_company}</div>
-                            </div>
-                            <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-rose-400" />
+          {/* === TAB 2: MIS COMPRAS (Solo si es L2 o BOTH) === */}
+          {(isL2 || isBoth) && (
+            <TabsContent value="purchases" className="space-y-6 animate-in fade-in-50">
+              {loadingPurchases ? (
+                <div className="flex justify-center p-12">
+                  <Loader2 className="animate-spin text-emerald-600" />
+                </div>
+              ) : myPurchases.length === 0 ? (
+                <EmptyState title="Sin compras" desc="No has realizado pedidos a proveedores todavía." />
+              ) : (
+                <div className="space-y-3">
+                  {myPurchases.map((order) => (
+                    <Card
+                      key={order.id}
+                      className="hover:border-emerald-300 transition-all border-l-4 border-l-emerald-500 cursor-pointer group"
+                      onClick={() => {
+                        setViewingOrder({
+                          ...order,
+                          order_number: order.id.slice(0, 8),
+                          customer_name: "Yo (Autoconsumo/Stock)",
+                          carrier_name: order.tracking_company,
+                          tracking_code: order.tracking_number,
+                          fulfillment_status: order.status,
+                          notes: order.supplier ? `Proveedor: ${order.supplier.business_name}` : "",
+                        });
+                      }}
+                    >
+                      <CardContent className="p-5 flex flex-col md:flex-row justify-between md:items-center gap-4">
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-bold text-slate-900 group-hover:text-emerald-600 transition-colors">
+                              ID: {order.id.slice(0, 6)}...
+                            </span>
+                            <FulfillmentBadge status={order.status} />
                           </div>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                          <div className="flex items-center gap-2 text-sm text-slate-700">
+                            <Building2 className="w-4 h-4 text-slate-400" />
+                            <span className="font-semibold">
+                              {order.supplier?.business_name || "Proveedor Desconocido"}
+                            </span>
+                          </div>
+                          <div className="text-xs text-slate-500 mt-1">
+                            {format(new Date(order.created_at), "PPP", { locale: es })}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <div className="text-right">
+                            <div className="font-bold text-slate-900">{formatMoney(order.total_amount)}</div>
+                            <div className="text-xs text-slate-400">{order.items.length} items</div>
+                          </div>
+                          {order.status === "shipped" && order.tracking_number && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toast({ title: "Copiado", description: `Guía: ${order.tracking_number}` });
+                                navigator.clipboard.writeText(order.tracking_number);
+                              }}
+                            >
+                              <Truck className="w-4 h-4 mr-2" /> Rastrear
+                            </Button>
+                          )}
+                          <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-emerald-400" />
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+          )}
+
+          {/* === TAB 3: SURTIR (Solo si es L1 o BOTH) === */}
+          {(isL1 || isBoth) && (
+            <TabsContent value="wholesale" className="space-y-6 animate-in fade-in-50">
+              <div className="flex gap-4 mb-4">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <Input
+                    placeholder="Buscar revendedor o ID..."
+                    className="pl-10 bg-white"
+                    value={wholesaleSearch}
+                    onChange={(e) => setWholesaleSearch(e.target.value)}
+                  />
+                </div>
               </div>
-            )}
-          </TabsContent>
+              {loadingWholesale ? (
+                <div className="flex justify-center p-12">
+                  <Loader2 className="animate-spin text-rose-600" />
+                </div>
+              ) : filteredWholesale.length === 0 ? (
+                <EmptyState title="Sin pedidos de abasto" desc="No tienes solicitudes de otros revendedores." />
+              ) : (
+                <div className="space-y-3">
+                  {filteredWholesale.map((order) => (
+                    <Card
+                      key={order.id}
+                      className="hover:border-rose-300 transition-all border-l-4 border-l-rose-500 cursor-pointer group"
+                      onClick={() => {
+                        const adapter: any = {
+                          ...order,
+                          order_number: order.id.slice(0, 6),
+                          customer_name: order.distributor?.business_name || "Revendedor",
+                          customer_email: order.distributor?.email,
+                          customer_phone: order.distributor?.phone,
+                          delivery_method: "shipping",
+                          fulfillment_status: order.status,
+                          items: order.items.map((i) => ({ ...i, unit_price: 0, total: 0 })),
+                        };
+                        setViewingOrder(adapter);
+                      }}
+                    >
+                      <CardContent className="p-5 flex flex-col md:flex-row justify-between md:items-center gap-4">
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-bold text-slate-900 group-hover:text-rose-600 transition-colors">
+                              ABASTO #{order.id.slice(0, 6)}
+                            </span>
+                            <FulfillmentBadge status={order.status} />
+                          </div>
+                          <div className="flex items-center gap-2 text-sm text-slate-700">
+                            <User className="w-4 h-4 text-slate-400" />
+                            <span className="font-semibold">{order.distributor?.business_name || "Revendedor"}</span>
+                          </div>
+                          <div className="text-xs text-slate-500 mt-1">{order.items.length} productos para empacar</div>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          {order.status === "sent" || order.status === "paid" ? (
+                            <Button
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedWholesaleOrder(order);
+                                setWholesaleTracking({ carrier: "", code: "" });
+                                setIsWholesaleModalOpen(true);
+                              }}
+                              className="bg-rose-600 hover:bg-rose-700 shadow-sm"
+                            >
+                              Despachar <Package className="w-4 h-4 ml-2" />
+                            </Button>
+                          ) : (
+                            <div className="text-right flex items-center gap-2">
+                              <div>
+                                <Badge variant="outline" className="text-emerald-600 border-emerald-200 bg-emerald-50">
+                                  Enviado
+                                </Badge>
+                                <div className="text-xs text-slate-400 mt-1">{order.tracking_company}</div>
+                              </div>
+                              <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-rose-400" />
+                            </div>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+          )}
         </Tabs>
       </div>
 
-      {/* --- MODAL 1: ATENDER RETAIL --- */}
+      {/* --- MODALES (IDÉNTICOS AL CÓDIGO ANTERIOR, YA INCLUIDOS EN ESTE BLOQUE) --- */}
       <Dialog open={isRetailModalOpen} onOpenChange={setIsRetailModalOpen}>
         <DialogContent>
           <DialogHeader>
@@ -664,7 +680,6 @@ export default function UnifiedOrdersPage() {
         </DialogContent>
       </Dialog>
 
-      {/* --- MODAL 2: ATENDER WHOLESALE --- */}
       <Dialog open={isWholesaleModalOpen} onOpenChange={setIsWholesaleModalOpen}>
         <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader>
@@ -729,7 +744,6 @@ export default function UnifiedOrdersPage() {
         </DialogContent>
       </Dialog>
 
-      {/* --- MODAL 3: VISOR DETALLES --- */}
       <Dialog open={!!viewingOrder} onOpenChange={(open) => !open && setViewingOrder(null)}>
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
@@ -776,7 +790,6 @@ export default function UnifiedOrdersPage() {
                   )}
                 </div>
               </div>
-
               <div>
                 <h4 className="font-semibold text-sm text-slate-900 mb-3 flex items-center gap-2">
                   <Box className="w-4 h-4 text-slate-500" /> Productos
@@ -806,7 +819,6 @@ export default function UnifiedOrdersPage() {
                               item.products?.image_url ||
                               item.products?.original_image_url ||
                               (Array.isArray(item.products) ? item.products[0]?.image_url : null);
-
                             return (
                               <tr key={idx} className="bg-white">
                                 <td className="px-4 py-3">
@@ -849,7 +861,6 @@ export default function UnifiedOrdersPage() {
                   </table>
                 </div>
               </div>
-
               <div className="flex justify-end border-t pt-4">
                 <div className="w-48 space-y-2">
                   <div className="flex justify-between text-base font-bold text-slate-900 border-t pt-2 mt-2">
@@ -867,8 +878,6 @@ export default function UnifiedOrdersPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* ✅ MODAL LIGHTBOX (ZOOM IMAGEN) */}
       <Dialog open={!!zoomedImage} onOpenChange={() => setZoomedImage(null)}>
         <DialogContent className="max-w-3xl bg-transparent border-none shadow-none p-0 flex items-center justify-center">
           <div className="relative">
