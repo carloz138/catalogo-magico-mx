@@ -81,7 +81,7 @@ export default function Tracking() {
 
       // Supabase a veces devuelve 'any', aseguramos que es del tipo Order
       // Como rpc devuelve un set, tomamos el primero (data[0])
-      setOrder(data[0] as Order);
+      setOrder(data[0] as unknown as Order);
     } catch (err: any) {
       console.error(err);
       setError(err.message || "Error al buscar. Intenta de nuevo.");
