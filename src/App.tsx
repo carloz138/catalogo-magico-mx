@@ -71,6 +71,8 @@ import ConsolidatedOrdersListPage from "@/pages/reseller/ConsolidatedOrdersListP
 import MarketRadar from "@/pages/MarketRadar";
 import Marketplace from "@/pages/Marketplace";
 import BankingSettings from "@/pages/dashboard/BankingSettings";
+import MoneyDashboard from "@/pages/dashboard/MoneyDashboard";
+import AdminFinance from "@/pages/admin/AdminFinance";
 import OrdersPage from "@/pages/orders/index";
 
 const queryClient = new QueryClient();
@@ -182,6 +184,11 @@ const App = () => {
                           <Route path="/complete-activation" element={<CompleteActivation />} />
                           <Route path="/business-info" element={<BusinessInfoPage />} />
                           <Route path="/settings/business" element={<BusinessInfoSettings />} />
+                          <Route path="/dashboard/banking" element={<BankingSettings />} />
+                          <Route path="/dashboard/money" element={<MoneyDashboard />} />
+
+                          {/* Admin Routes */}
+                          <Route path="/admin/finance" element={<AdminFinance />} />
                           <Route path="/dashboard/banking" element={<BankingSettings />} />
 
                           <Route path="/onboarding" element={<OnboardingPage />} />

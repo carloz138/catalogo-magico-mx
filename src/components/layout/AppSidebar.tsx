@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBusinessInfo } from "@/hooks/useBusinessInfo";
 import { useUserRole } from "@/contexts/RoleContext";
+import { useSuperAdmin } from "@/hooks/useSuperAdmin";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -39,6 +40,7 @@ import {
   Landmark,
   Truck,
   ShoppingBag,
+  CircleDollarSign,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -68,6 +70,7 @@ export function AppSidebar() {
   const { user, signOut } = useAuth();
   const { businessInfo, hasBusinessInfo, hasMerchantAccount } = useBusinessInfo();
   const { isL1, isL2, isBoth } = useUserRole();
+  const { isSuperAdmin } = useSuperAdmin();
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -182,6 +185,15 @@ export function AppSidebar() {
     { title: "Carga Masiva", path: "/products/bulk-upload", icon: PackageOpen, roles: ["L1", "BOTH"] },
     { title: "Subir Productos", path: "/upload", icon: Upload, roles: ["L1", "BOTH", "NONE"] },
     { title: "Analytics", path: "/analytics", icon: BarChart3, roles: ["L1", "BOTH"] },
+    {
+      title: "Mis Ganancias",
+      path: "/dashboard/money",
+      icon: CircleDollarSign,
+      badge: "$",
+      badgeColor: "bg-emerald-900/50 text-emerald-300 border-emerald-700/50",
+      primary: true,
+      roles: ["L1", "L2", "BOTH", "NONE"],
+    },
     { title: "Facturación", path: "/checkout", icon: CreditCard, roles: ["L1", "BOTH", "NONE"] },
     { title: "Guía de Inicio", path: "/onboarding", icon: PlayCircle, roles: ["L1", "L2", "BOTH", "NONE"] },
     {
@@ -195,15 +207,33 @@ export function AppSidebar() {
     { title: "Configuración", path: "/business-info", icon: Settings, roles: ["L1", "L2", "BOTH", "NONE"] },
   ];
 
+  // Admin-only items
+  const adminItems: MenuItem[] = isSuperAdmin
+    ? [
+        {
+          title: "Finanzas Admin",
+          path: "/admin/finance",
+          icon: Landmark,
+          badge: "Admin",
+          badgeColor: "bg-indigo-900/50 text-indigo-300 border-indigo-700/50",
+          primary: true,
+          roles: ["L1", "L2", "BOTH", "NONE"],
+        },
+      ]
+    : [];
+
   const { userRole } = useUserRole();
 
-  const navigationItems = allNavigationItems.filter((item) => {
-    if (!item.roles) return true;
-    return (
-      item.roles.includes(userRole) ||
-      (isBoth && (item.roles.includes("L1") || item.roles.includes("L2") || item.roles.includes("BOTH")))
-    );
-  });
+  const navigationItems = [
+    ...allNavigationItems.filter((item) => {
+      if (!item.roles) return true;
+      return (
+        item.roles.includes(userRole) ||
+        (isBoth && (item.roles.includes("L1") || item.roles.includes("L2") || item.roles.includes("BOTH")))
+      );
+    }),
+    ...adminItems,
+  ];
 
   const getWarningConfig = () => {
     if (!hasBusinessInfo) {
