@@ -1,10 +1,10 @@
 // ==========================================
 // FUNCIÓN: get-shipping-rates
-// ESTADO: V2.3 (FIX: Missing 'country' field)
+// ESTADO: V2.4 (FIX: postalCode CamelCase)
 // ==========================================
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 
-const DEPLOY_VERSION = Deno.env.get("FUNCTION_HASH") || "DEBUG_V2.3_COUNTRY_FIX";
+const DEPLOY_VERSION = Deno.env.get("FUNCTION_HASH") || "DEBUG_V2.4_POSTALCODE";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -74,7 +74,7 @@ Deno.serve(async (req) => {
     const originSplit = splitStreet(originAddr.street);
     const destSplit = splitStreet(destinationAddr.street);
 
-    // 3. CONSTRUIR PAYLOAD (V2.3: FULL REDUNDANCY)
+    // 3. CONSTRUIR PAYLOAD (V2.4: REDUNDANCIA TOTAL)
     const enviaPayload = {
       origin: {
         name: business.business_name || "Vendedor",
@@ -89,11 +89,13 @@ Deno.serve(async (req) => {
         state_code: mapStateToISO2(originAddr.state),
         state: mapStateToISO2(originAddr.state),
         
-        // 🔥 CORRECCIÓN: Agregamos 'country' duplicado
         country_code: "MX",
         country: "MX",
         
+        // 🔥 CORRECCIÓN: Enviamos ambas versiones del CP
         postal_code: originAddr.zip_code,
+        postalCode: originAddr.zip_code, // Lo que pide el error
+        
         type: "business"
       },
       destination: {
@@ -109,11 +111,13 @@ Deno.serve(async (req) => {
         state_code: mapStateToISO2(destinationAddr.state),
         state: mapStateToISO2(destinationAddr.state),
         
-        // 🔥 CORRECCIÓN: Agregamos 'country' duplicado
         country_code: "MX",
         country: "MX",
         
+        // 🔥 CORRECCIÓN: Enviamos ambas versiones del CP
         postal_code: destinationAddr.zip_code,
+        postalCode: destinationAddr.zip_code, // Lo que pide el error
+        
         type: "residential",
         references: destinationAddr.references || ""
       },
@@ -142,7 +146,7 @@ Deno.serve(async (req) => {
       }
     };
 
-    console.log(`📤 Payload V2.3:`, JSON.stringify(enviaPayload));
+    console.log(`📤 Payload V2.4:`, JSON.stringify(enviaPayload));
 
     // 4. Llamar API Envia
     const response = await fetch(ENVIA_URL, {
