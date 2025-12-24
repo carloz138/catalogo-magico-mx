@@ -1,11 +1,10 @@
 // ==========================================
 // FUNCIÓN: get-shipping-rates
-// ESTADO: CORREGIDO (Parcels -> Packages + State Normalization)
+// ESTADO: V1.4 (FIX: Multi-carrier + Parcels)
 // ==========================================
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 
-// ✅ MANTENIDO: Tu versión dinámica para GitHub
-const DEPLOY_VERSION = Deno.env.get("FUNCTION_HASH") || "DEBUG_V1.2";
+const DEPLOY_VERSION = Deno.env.get("FUNCTION_HASH") || "DEBUG_V1.4";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -13,17 +12,12 @@ const corsHeaders = {
 }
 
 // Live: https://api.envia.com/ship/rate/
-// Sandbox: https://api-test.envia.com/ship/rate/
 const ENVIA_URL = "https://api.envia.com/ship/rate/"; 
 
-// --- HELPER: NORMALIZAR ESTADOS (CRÍTICO PARA ENVIA) ---
-// Convierte códigos de 3 letras (NLE) o nombres sucios (N.) a ISO 2 letras (NL)
+// --- HELPER: NORMALIZAR ESTADOS ---
 const mapStateToISO2 = (stateInput: any) => {
   if (!stateInput) return "MX";
-  
-  const code = String(stateInput).toUpperCase().trim().replace(".", ""); // Quita puntos
-  
-  // Mapa de conversión (Frontend 3 chars -> Envia 2 chars)
+  const code = String(stateInput).toUpperCase().trim().replace(".", "");
   const mapping: Record<string, string> = {
     "NLE": "NL", "NUEVO LEON": "NL", "NL": "NL", "N": "NL",
     "AGU": "AG", "BCN": "BC", "BCS": "BS", "CAM": "CM",
@@ -35,21 +29,13 @@ const mapStateToISO2 = (stateInput: any) => {
     "SIN": "SI", "SON": "SO", "TAB": "TB", "TAM": "TM",
     "TLA": "TL", "VER": "VE", "YUC": "YU", "ZAC": "ZA"
   };
-
-  return mapping[code] || code.substring(0, 2); // Fallback: primeras 2 letras
+  return mapping[code] || code.substring(0, 2);
 };
 
 Deno.serve(async (req) => {
-  // LOGGING INICIAL
-  console.log(JSON.stringify({
-    event: "FUNC_START",
-    version: DEPLOY_VERSION,
-    timestamp: new Date().toISOString()
-  }));
+  console.log(JSON.stringify({ event: "FUNC_START", version: DEPLOY_VERSION, timestamp: new Date().toISOString() }));
 
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
-  }
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
   try {
     const { quoteId } = await req.json()
@@ -60,40 +46,26 @@ Deno.serve(async (req) => {
       { global: { headers: { Authorization: req.headers.get('Authorization')! } } }
     )
 
-    // 1. Obtener Cotización (Destino)
+    // 1. Obtener Datos
     const { data: quote, error: quoteError } = await supabaseClient
-      .from('quotes')
-      .select('*, items:quote_items(*)')
-      .eq('id', quoteId)
-      .single()
+      .from('quotes').select('*, items:quote_items(*)').eq('id', quoteId).single()
+    if (quoteError || !quote) throw new Error("Cotización no encontrada.")
 
-    if (quoteError || !quote) throw new Error("Cotización no encontrada en DB.")
-
-    const destinationAddr = quote.shipping_address;
-    if (!destinationAddr || typeof destinationAddr !== 'object') {
-      throw new Error("Dirección de destino inválida o formato antiguo.")
-    }
-
-    // 2. Obtener Negocio (Origen)
-    const sellerId = quote.user_id; 
     const { data: business, error: businessError } = await supabaseClient
-      .from('business_info')
-      .select('address, phone, email, business_name')
-      .eq('user_id', sellerId)
-      .single()
-
-    if (businessError || !business) throw new Error("Info del negocio (origen) no encontrada.")
+      .from('business_info').select('address, phone, email, business_name').eq('user_id', quote.user_id).single()
+    if (businessError || !business) throw new Error("Info del negocio no encontrada.")
 
     const originAddr = business.address;
-    if (!originAddr || typeof originAddr !== 'object') {
-      throw new Error("Dirección de origen no configurada. Ve a Configuración del Negocio.")
+    const destinationAddr = quote.shipping_address;
+
+    if (!originAddr?.zip_code || !destinationAddr?.zip_code) {
+        throw new Error(`Falta Código Postal: Origen(${originAddr?.zip_code}) - Destino(${destinationAddr?.zip_code})`);
     }
 
-    // 3. Preparar Datos
+    // 2. Preparar Datos
     const totalItems = quote.items.reduce((sum: number, i: any) => sum + i.quantity, 0);
-    const estimatedWeight = Math.max(1, totalItems * 0.5); // Peso mínimo 1kg
+    const estimatedWeight = Math.max(1, totalItems * 0.5);
 
-    // Helper para separar calle y número (Envia prefiere separado)
     const splitStreet = (fullStreet: string) => {
       const match = fullStreet?.match(/^(.+?)\s+(\d+\w*)$/);
       if (match) return { street: match[1], number: match[2] };
@@ -103,12 +75,7 @@ Deno.serve(async (req) => {
     const originSplit = splitStreet(originAddr.street);
     const destSplit = splitStreet(destinationAddr.street);
 
-    // Validación preventiva
-    if (!originAddr.zip_code || !destinationAddr.zip_code) {
-        throw new Error(`Falta Código Postal: Origen(${originAddr.zip_code}) - Destino(${destinationAddr.zip_code})`);
-    }
-
-    // 4. CONSTRUIR PAYLOAD (CORREGIDO)
+    // 3. CONSTRUIR PAYLOAD (MULTI-CARRIER)
     const enviaPayload = {
       origin: {
         name: business.business_name || "Vendedor",
@@ -119,7 +86,7 @@ Deno.serve(async (req) => {
         number: originSplit.number,
         district: originAddr.colony || "Centro",
         city: originAddr.city || "Monterrey",
-        state_code: mapStateToISO2(originAddr.state), // ✅ USO DE HELPER
+        state_code: mapStateToISO2(originAddr.state),
         country_code: "MX",
         postal_code: originAddr.zip_code,
         type: "business"
@@ -133,17 +100,17 @@ Deno.serve(async (req) => {
         number: destSplit.number,
         district: destinationAddr.colony || "Centro",
         city: destinationAddr.city || "Ciudad",
-        state_code: mapStateToISO2(destinationAddr.state), // ✅ USO DE HELPER
+        state_code: mapStateToISO2(destinationAddr.state),
         country_code: "MX",
         postal_code: destinationAddr.zip_code,
         type: "residential",
         references: destinationAddr.references || ""
       },
       shipment: {
-        carrier: "fedex", 
+        // 🔴 QUITAMOS 'carrier' para que busque en TODAS las paqueterías
         type: 1, 
-        // ✅ CORRECCIÓN CRÍTICA: 'packages' en lugar de 'parcels'
-        packages: [ 
+        // 🟢 VOLVEMOS A 'parcels' (estándar oficial)
+        parcels: [ 
           {
             quantity: 1,
             weight: estimatedWeight,
@@ -160,9 +127,9 @@ Deno.serve(async (req) => {
       }
     };
 
-    console.log(`📤 Enviando Payload a Envia...`);
+    console.log(`📤 Payload Multi-Carrier:`, JSON.stringify(enviaPayload));
 
-    // 5. Llamar API Envia
+    // 4. Llamar API Envia
     const response = await fetch(ENVIA_URL, {
       method: "POST",
       headers: {
@@ -174,14 +141,14 @@ Deno.serve(async (req) => {
 
     const result = await response.json();
     
-    // Loguear respuesta para debugging si falla
+    // Debugging exhaustivo
     if (!response.ok || result.meta === "error") {
        console.error("📦 Error RAW de Envia:", JSON.stringify(result));
        const errorMsg = result.error?.message || result.meta?.error?.message || "Error desconocido de Envia";
        throw new Error(`Envia.com dice: ${errorMsg}`);
     }
 
-    // 6. Validación Robusta de Array
+    // 5. Validación Robusta de Array
     let rates = [];
     if (Array.isArray(result.data)) {
         rates = result.data;
@@ -189,11 +156,11 @@ Deno.serve(async (req) => {
         rates = result;
     } else {
         console.error("❌ Formato inesperado:", result);
-        throw new Error("No se encontraron tarifas disponibles para esta ruta.");
+        throw new Error("No se encontraron tarifas. Verifica las direcciones.");
     }
 
-    // 7. Procesar y Añadir Margen
-    const MARKUP_AMOUNT = 20; // Margen de ganancia $20 MXN
+    // 6. Procesar y Añadir Margen
+    const MARKUP_AMOUNT = 20; 
     
     const processedRates = rates.map((rate: any) => ({
       carrier: rate.carrier,
