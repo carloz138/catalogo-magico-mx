@@ -1,10 +1,10 @@
 // ==========================================
 // FUNCIÓN: get-shipping-rates
-// ESTADO: V1.9 (FIX: Surgical Payload - Bare Minimum)
+// ESTADO: V2.1 (FIX: ROOT LEVEL PACKAGES)
 // ==========================================
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 
-const DEPLOY_VERSION = Deno.env.get("FUNCTION_HASH") || "DEBUG_V1.9_SURGICAL";
+const DEPLOY_VERSION = Deno.env.get("FUNCTION_HASH") || "DEBUG_V2.1_ROOT_PACKAGES";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -75,7 +75,7 @@ Deno.serve(async (req) => {
     const originSplit = splitStreet(originAddr.street);
     const destSplit = splitStreet(destinationAddr.street);
 
-    // 3. CONSTRUIR PAYLOAD (V1.9: LIMPIEZA QUIRÚRGICA)
+    // 3. CONSTRUIR PAYLOAD (V2.1: ESTRUCTURA PLANA SEGÚN DOCS)
     const enviaPayload = {
       origin: {
         name: business.business_name || "Vendedor",
@@ -106,32 +106,34 @@ Deno.serve(async (req) => {
         type: "residential",
         references: destinationAddr.references || ""
       },
+      
+      // ✅ CORRECCIÓN MAESTRA: 'packages' va en la RAÍZ, no dentro de shipment
+      packages: [
+        {
+          content: "Articulos Varios",
+          amount: 1, // Valor declarado simbólico para cotizar
+          type: "box",
+          weight: estimatedWeight,
+          weight_unit: "KG",
+          length: 20,
+          width: 20,
+          height: 20,
+          dimension_unit: "CM"
+        }
+      ],
+
+      // ✅ 'shipment' solo lleva datos generales
       shipment: {
-        // "type": 1 significa Paquete.
-        type: 1, 
-        // 🚨 IMPORTANTE: En rate, la description a veces va afuera o no va.
-        // La dejamos limpia aquí por si acaso.
-        
-        // ✅ CORRECCIÓN: Solo las propiedades físicas obligatorias
-        packages: [
-          {
-            quantity: 1,
-            weight: estimatedWeight,
-            weight_unit: "KG",
-            length: 20,
-            width: 20,
-            height: 20,
-            dimension_unit: "CM"
-            // ❌ REMOVIDO: content, amount, type (Causantes del error 400)
-          }
-        ]
+        carrier: "fedex", // Opcional: filtro por carrier
+        type: 1 
       },
+
       settings: {
         currency: "MXN"
       }
     };
 
-    console.log(`📤 Payload V1.9:`, JSON.stringify(enviaPayload));
+    console.log(`📤 Payload V2.1 Root:`, JSON.stringify(enviaPayload));
 
     // 4. Llamar API Envia
     const response = await fetch(ENVIA_URL, {
@@ -148,11 +150,8 @@ Deno.serve(async (req) => {
     if (!response.ok || result.meta === "error") {
        console.error("📦 Error RAW de Envia:", JSON.stringify(result));
        
-       // Análisis de error
-       const errorMsg = result.error?.message || result.meta?.error?.message || "Error desconocido de Envia";
-       
-       // Si sigue fallando, vamos a intentar ver si devuelve tarifas en "data" aunque diga error (algunas APIs son raras)
        if(!Array.isArray(result.data)) {
+           const errorMsg = result.error?.message || result.meta?.error?.message || "Error desconocido de Envia";
            throw new Error(`Envia.com dice: ${errorMsg}`);
        }
     }
