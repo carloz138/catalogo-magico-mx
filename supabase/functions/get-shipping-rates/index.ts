@@ -1,10 +1,10 @@
 // ==========================================
 // FUNCIÓN: get-shipping-rates
-// ESTADO: V2.4 (FIX: postalCode CamelCase)
+// ESTADO: V2.5 (FIX: Missing 'dimensions' object + CamelCase Units)
 // ==========================================
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 
-const DEPLOY_VERSION = Deno.env.get("FUNCTION_HASH") || "DEBUG_V2.4_POSTALCODE";
+const DEPLOY_VERSION = Deno.env.get("FUNCTION_HASH") || "DEBUG_V2.5_DIMENSIONS_FIX";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -74,7 +74,7 @@ Deno.serve(async (req) => {
     const originSplit = splitStreet(originAddr.street);
     const destSplit = splitStreet(destinationAddr.street);
 
-    // 3. CONSTRUIR PAYLOAD (V2.4: REDUNDANCIA TOTAL)
+    // 3. CONSTRUIR PAYLOAD (V2.5: REDUNDANCIA MASIVA EN PAQUETES)
     const enviaPayload = {
       origin: {
         name: business.business_name || "Vendedor",
@@ -85,17 +85,12 @@ Deno.serve(async (req) => {
         number: originSplit.number,
         district: originAddr.colony || "Centro",
         city: originAddr.city || "Monterrey",
-        
         state_code: mapStateToISO2(originAddr.state),
         state: mapStateToISO2(originAddr.state),
-        
         country_code: "MX",
         country: "MX",
-        
-        // 🔥 CORRECCIÓN: Enviamos ambas versiones del CP
         postal_code: originAddr.zip_code,
-        postalCode: originAddr.zip_code, // Lo que pide el error
-        
+        postalCode: originAddr.zip_code,
         type: "business"
       },
       destination: {
@@ -107,17 +102,12 @@ Deno.serve(async (req) => {
         number: destSplit.number,
         district: destinationAddr.colony || "Centro",
         city: destinationAddr.city || "Ciudad",
-        
         state_code: mapStateToISO2(destinationAddr.state),
         state: mapStateToISO2(destinationAddr.state),
-        
         country_code: "MX",
         country: "MX",
-        
-        // 🔥 CORRECCIÓN: Enviamos ambas versiones del CP
         postal_code: destinationAddr.zip_code,
-        postalCode: destinationAddr.zip_code, // Lo que pide el error
-        
+        postalCode: destinationAddr.zip_code,
         type: "residential",
         references: destinationAddr.references || ""
       },
@@ -127,12 +117,26 @@ Deno.serve(async (req) => {
           content: "Articulos Varios",
           amount: 1,
           type: "box",
+          
+          // --- PESO (Todas las variantes posibles) ---
           weight: estimatedWeight,
           weight_unit: "KG",
+          weightUnit: "KG", // CamelCase
+
+          // --- DIMENSIONES PLANAS ---
           length: 20,
           width: 20,
           height: 20,
-          dimension_unit: "CM"
+          dimension_unit: "CM",
+          dimensionUnit: "CM", // CamelCase
+
+          // --- 🔥 DIMENSIONES AGRUPADAS (Lo que pide el error) ---
+          dimensions: {
+            length: 20,
+            width: 20,
+            height: 20,
+            unit: "CM"
+          }
         }
       ],
 
@@ -146,7 +150,7 @@ Deno.serve(async (req) => {
       }
     };
 
-    console.log(`📤 Payload V2.4:`, JSON.stringify(enviaPayload));
+    console.log(`📤 Payload V2.5:`, JSON.stringify(enviaPayload));
 
     // 4. Llamar API Envia
     const response = await fetch(ENVIA_URL, {
