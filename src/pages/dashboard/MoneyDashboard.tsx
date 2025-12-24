@@ -3,7 +3,16 @@ import { useMerchantStats } from "@/hooks/useMerchantStats";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { CircleDollarSign, Clock, CheckCircle2, TrendingUp, Calendar, Receipt } from "lucide-react";
+import {
+  CircleDollarSign,
+  Clock,
+  CheckCircle2,
+  TrendingUp,
+  Calendar,
+  Receipt,
+  Wallet, // <--- NUEVO ICONO
+  HandCoins, // <--- NUEVO ICONO
+} from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 
@@ -54,9 +63,7 @@ export default function MoneyDashboard() {
                   {formatCurrencyRaw(stats?.balance_pending ?? 0)}
                 </p>
               )}
-              <p className="text-xs text-muted-foreground mt-1">
-                Dinero que ya vendiste pero aún no te depositamos
-              </p>
+              <p className="text-xs text-muted-foreground mt-1">Dinero en plataforma pendiente de depósito</p>
             </CardContent>
           </Card>
 
@@ -76,9 +83,7 @@ export default function MoneyDashboard() {
                   {formatCurrencyRaw(stats?.balance_paid ?? 0)}
                 </p>
               )}
-              <p className="text-xs text-muted-foreground mt-1">
-                Lo que ya te hemos transferido anteriormente
-              </p>
+              <p className="text-xs text-muted-foreground mt-1">Lo que ya te hemos transferido anteriormente</p>
             </CardContent>
           </Card>
 
@@ -98,9 +103,7 @@ export default function MoneyDashboard() {
                   {formatCurrencyRaw(stats?.total_earnings ?? 0)}
                 </p>
               )}
-              <p className="text-xs text-muted-foreground mt-1">
-                Suma total de tus ganancias netas
-              </p>
+              <p className="text-xs text-muted-foreground mt-1">Suma total de tus ganancias netas</p>
             </CardContent>
           </Card>
         </div>
@@ -111,9 +114,7 @@ export default function MoneyDashboard() {
             <Receipt className="h-5 w-5 text-muted-foreground" />
             Historial de Ventas Pagadas
           </h2>
-          <p className="text-sm text-muted-foreground">
-            Desglose de transparencia de cada transacción
-          </p>
+          <p className="text-sm text-muted-foreground">Desglose de transparencia de cada transacción</p>
         </div>
 
         {/* Transactions List - Mobile Cards */}
@@ -133,31 +134,49 @@ export default function MoneyDashboard() {
             <Card className="p-8 text-center">
               <CircleDollarSign className="h-12 w-12 mx-auto text-muted-foreground/50 mb-3" />
               <p className="text-muted-foreground">No hay ventas pagadas aún</p>
-              <p className="text-sm text-muted-foreground/70 mt-1">
-                Cuando tus clientes paguen, aparecerán aquí
-              </p>
+              <p className="text-sm text-muted-foreground/70 mt-1">Cuando tus clientes paguen, aparecerán aquí</p>
             </Card>
           ) : (
             transactions.map((tx) => {
               const commission = tx.amount_total - tx.net_to_merchant;
+              // Detectar si el dinero lo tenemos nosotros o el usuario
+              const isPlatformFunds = tx.funds_held_by_platform;
+
               return (
-                <Card key={tx.id} className="p-4 hover:shadow-md transition-shadow">
+                <Card
+                  key={tx.id}
+                  className="p-4 hover:shadow-md transition-shadow border-l-4 border-l-transparent hover:border-l-primary/20"
+                >
                   {/* Header Row */}
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
                       <Calendar className="h-4 w-4 text-muted-foreground" />
                       <span className="text-sm text-muted-foreground">
-                        {format(new Date(tx.paid_at), "dd MMM yyyy, HH:mm", { locale: es })}
+                        {format(new Date(tx.paid_at), "dd MMM, HH:mm", { locale: es })}
                       </span>
                     </div>
-                    <Badge variant="outline" className="text-xs bg-emerald-500/10 text-emerald-600 border-emerald-500/30">
-                      Pagado
-                    </Badge>
+
+                    {/* BADGE INTELIGENTE 🧠 */}
+                    {isPlatformFunds ? (
+                      <Badge
+                        variant="secondary"
+                        className="bg-indigo-100 text-indigo-700 hover:bg-indigo-100 border-indigo-200"
+                      >
+                        <Wallet className="w-3 h-3 mr-1" /> Saldo en Plataforma
+                      </Badge>
+                    ) : (
+                      <Badge
+                        variant="secondary"
+                        className="bg-amber-100 text-amber-700 hover:bg-amber-100 border-amber-200"
+                      >
+                        <HandCoins className="w-3 h-3 mr-1" /> Cobrado por Ti
+                      </Badge>
+                    )}
                   </div>
 
                   {/* Order ID */}
                   <p className="text-xs text-muted-foreground mb-3">
-                    #Orden: <span className="font-mono">{tx.quote_id.slice(0, 8)}</span>
+                    #Orden: <span className="font-mono font-medium text-foreground">{tx.quote_id.slice(0, 8)}</span>
                   </p>
 
                   {/* Financial Breakdown */}
@@ -165,32 +184,40 @@ export default function MoneyDashboard() {
                     {/* Venta */}
                     <div className="text-center">
                       <p className="text-xs text-muted-foreground mb-1">Venta</p>
-                      <p className="text-sm font-medium text-foreground">
-                        {formatCurrency(tx.amount_total)}
-                      </p>
+                      <p className="text-sm font-medium text-foreground">{formatCurrency(tx.amount_total)}</p>
                     </div>
 
                     {/* Comisión */}
                     <div className="text-center">
                       <p className="text-xs text-muted-foreground mb-1">Comisión</p>
-                      <p className="text-sm font-medium text-rose-500">
-                        -{formatCurrency(commission)}
-                      </p>
+                      <p className="text-sm font-medium text-rose-500">-{formatCurrency(commission)}</p>
                     </div>
 
-                    {/* Tu Ganancia */}
-                    <div className="text-center bg-emerald-500/10 -mx-1 px-1 py-1 rounded">
-                      <p className="text-xs text-emerald-600 mb-1">Tu Ganancia</p>
-                      <p className="text-sm font-bold text-emerald-600">
+                    {/* Tu Ganancia (Dinámica según quién tiene el dinero) */}
+                    <div
+                      className={`text-center -mx-1 px-1 py-1 rounded ${
+                        isPlatformFunds ? "bg-emerald-500/10" : "bg-amber-500/10"
+                      }`}
+                    >
+                      <p className={`text-xs mb-1 ${isPlatformFunds ? "text-emerald-600" : "text-amber-700"}`}>
+                        Tu Ganancia
+                      </p>
+
+                      <p className={`text-sm font-bold ${isPlatformFunds ? "text-emerald-600" : "text-amber-700"}`}>
                         {formatCurrency(tx.net_to_merchant)}
                       </p>
+
+                      {/* Aviso extra si es efectivo */}
+                      {!isPlatformFunds && (
+                        <span className="text-[10px] text-amber-600/80 block leading-tight mt-0.5">Ya recibido</span>
+                      )}
                     </div>
                   </div>
 
                   {/* Payment Method */}
                   <div className="mt-3 pt-2 border-t border-border/50">
                     <span className="text-xs text-muted-foreground">
-                      Método: <span className="font-medium">{tx.payment_method}</span>
+                      Método: <span className="font-medium uppercase">{tx.payment_method}</span>
                     </span>
                   </div>
                 </Card>
