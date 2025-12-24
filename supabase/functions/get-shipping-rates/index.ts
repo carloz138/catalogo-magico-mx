@@ -1,10 +1,10 @@
 // ==========================================
 // FUNCIÓN: get-shipping-rates
-// ESTADO: V1.5 (FIX: Estrategia Doble Llave + Content)
+// ESTADO: V1.6 (FIX: Strict Clean Payload)
 // ==========================================
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 
-const DEPLOY_VERSION = Deno.env.get("FUNCTION_HASH") || "DEBUG_V1.5_DOUBLE_KEY";
+const DEPLOY_VERSION = Deno.env.get("FUNCTION_HASH") || "DEBUG_V1.6_CLEAN";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -59,12 +59,12 @@ Deno.serve(async (req) => {
     const destinationAddr = quote.shipping_address;
 
     if (!originAddr?.zip_code || !destinationAddr?.zip_code) {
-        throw new Error(`Falta Código Postal: Origen(${originAddr?.zip_code}) - Destino(${destinationAddr?.zip_code})`);
+        throw new Error(`Falta Código Postal`);
     }
 
     // 2. Preparar Datos
     const totalItems = quote.items.reduce((sum: number, i: any) => sum + i.quantity, 0);
-    const estimatedWeight = Math.max(1, totalItems * 0.5); // Peso mínimo
+    const estimatedWeight = Math.max(1, totalItems * 0.5); 
 
     const splitStreet = (fullStreet: string) => {
       const match = fullStreet?.match(/^(.+?)\s+(\d+\w*)$/);
@@ -75,23 +75,7 @@ Deno.serve(async (req) => {
     const originSplit = splitStreet(originAddr.street);
     const destSplit = splitStreet(destinationAddr.street);
 
-    // Definimos el array de paquetes una vez
-    const packagesArray = [
-      {
-        content: "Articulos Varios", // ✅ A veces requerido
-        amount: 1,
-        type: "box",
-        quantity: 1,
-        weight: estimatedWeight,
-        weight_unit: "KG",
-        length: 20,
-        height: 20,
-        width: 20,
-        dimension_unit: "CM"
-      }
-    ];
-
-    // 3. CONSTRUIR PAYLOAD (HACK DE DOBLE LLAVE)
+    // 3. CONSTRUIR PAYLOAD (LIMPIO V1.6)
     const enviaPayload = {
       origin: {
         name: business.business_name || "Vendedor",
@@ -124,20 +108,26 @@ Deno.serve(async (req) => {
       },
       shipment: {
         type: 1, // 1 = Paquete
-        content: "Mercancía General", // ✅ Descripción global
-        
-        // 🔥 EL TRUCO FINAL: Enviamos ambas llaves por si acaso
-        packages: packagesArray,
-        parcels: packagesArray
+        // 🔥 FIX: Solo 'packages', sin 'parcels', sin 'carrier', unidades lowercase
+        packages: [
+          {
+            content: "Mercancia General", 
+            quantity: 1,
+            weight: estimatedWeight,
+            weight_unit: "kg", // minúsculas
+            length: 20,
+            height: 20,
+            width: 20,
+            dimension_unit: "cm" // minúsculas
+          }
+        ]
       },
       settings: {
-        currency: "MXN",
-        print_format: "PDF",
-        label_format: "PDF"
+        currency: "MXN"
       }
     };
 
-    console.log(`📤 Payload Blindado:`, JSON.stringify(enviaPayload));
+    console.log(`📤 Payload Clean:`, JSON.stringify(enviaPayload));
 
     // 4. Llamar API Envia
     const response = await fetch(ENVIA_URL, {
