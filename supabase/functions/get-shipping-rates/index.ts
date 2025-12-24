@@ -1,10 +1,10 @@
 // ==========================================
 // FUNCIÓN: get-shipping-rates
-// ESTADO: V1.8 (FIX: Clean Payload - No Description at Root)
+// ESTADO: V1.9 (FIX: Surgical Payload - Bare Minimum)
 // ==========================================
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 
-const DEPLOY_VERSION = Deno.env.get("FUNCTION_HASH") || "DEBUG_V1.8_CLEANEST";
+const DEPLOY_VERSION = Deno.env.get("FUNCTION_HASH") || "DEBUG_V1.9_SURGICAL";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -75,7 +75,7 @@ Deno.serve(async (req) => {
     const originSplit = splitStreet(originAddr.street);
     const destSplit = splitStreet(destinationAddr.street);
 
-    // 3. CONSTRUIR PAYLOAD (V1.8: STRICT MINIMAL)
+    // 3. CONSTRUIR PAYLOAD (V1.9: LIMPIEZA QUIRÚRGICA)
     const enviaPayload = {
       origin: {
         name: business.business_name || "Vendedor",
@@ -107,21 +107,22 @@ Deno.serve(async (req) => {
         references: destinationAddr.references || ""
       },
       shipment: {
+        // "type": 1 significa Paquete.
         type: 1, 
-        // 🔴 ELIMINAMOS 'description' DE AQUÍ (Causaba el Invalid Option)
+        // 🚨 IMPORTANTE: En rate, la description a veces va afuera o no va.
+        // La dejamos limpia aquí por si acaso.
         
-        // ✅ USAMOS 'packages' (Lo que pide el error)
+        // ✅ CORRECCIÓN: Solo las propiedades físicas obligatorias
         packages: [
           {
-            content: "Articulos Varios", // Aquí SÍ va el contenido
-            amount: 1,
-            type: "box",
+            quantity: 1,
             weight: estimatedWeight,
-            weight_unit: "KG", // Mayúsculas
+            weight_unit: "KG",
             length: 20,
-            height: 20,
             width: 20,
-            dimension_unit: "CM" // Mayúsculas
+            height: 20,
+            dimension_unit: "CM"
+            // ❌ REMOVIDO: content, amount, type (Causantes del error 400)
           }
         ]
       },
@@ -130,7 +131,7 @@ Deno.serve(async (req) => {
       }
     };
 
-    console.log(`📤 Payload V1.8 Clean:`, JSON.stringify(enviaPayload));
+    console.log(`📤 Payload V1.9:`, JSON.stringify(enviaPayload));
 
     // 4. Llamar API Envia
     const response = await fetch(ENVIA_URL, {
@@ -147,9 +148,11 @@ Deno.serve(async (req) => {
     if (!response.ok || result.meta === "error") {
        console.error("📦 Error RAW de Envia:", JSON.stringify(result));
        
-       // Si sigue fallando, vamos a intentar ver si devuelve tarifas en "data" aunque diga error
+       // Análisis de error
+       const errorMsg = result.error?.message || result.meta?.error?.message || "Error desconocido de Envia";
+       
+       // Si sigue fallando, vamos a intentar ver si devuelve tarifas en "data" aunque diga error (algunas APIs son raras)
        if(!Array.isArray(result.data)) {
-           const errorMsg = result.error?.message || result.meta?.error?.message || "Error desconocido de Envia";
            throw new Error(`Envia.com dice: ${errorMsg}`);
        }
     }
