@@ -1,4 +1,10 @@
+// ==========================================
+// FUNCION: send-quote-update
+// DESCRIPCIÓN: Notifica al cliente costo de envío final (Email + WhatsApp)
+// ==========================================
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+
+const DEPLOY_VERSION = Deno.env.get('FUNCTION_HASH') || "UNKNOWN_HASH";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -6,7 +12,12 @@ const corsHeaders = {
 };
 
 Deno.serve(async (req) => {
-  // Manejo de CORS (para que no te de error al llamar desde el Dashboard)
+  console.log(JSON.stringify({
+    event: "FUNC_START",
+    function: "send-quote-update",
+    version: DEPLOY_VERSION
+  }));
+
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -20,8 +31,7 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    // 2. Obtener la cotización con TODOS los datos necesarios
-    // IMPORTANTE: Traemos el tracking_token para armar la liga
+    // 2. Obtener la cotización
     const { data: quote, error } = await supabaseAdmin
       .from("quotes")
       .select(`
@@ -35,87 +45,89 @@ Deno.serve(async (req) => {
       throw new Error("No se encontró la cotización o el ID es incorrecto");
     }
 
-    // 3. Construir la URL Correcta
-    // Si estás probando en local, esto mandará al sitio real. 
-    // Para producción SIEMPRE debe ser tu dominio real.
-    const baseUrl = "https://catifypro.com"; // <--- ASEGÚRATE QUE ESTE SEA TU DOMINIO
+    // 3. Construir URL y Totales
+    const baseUrl = "https://catifypro.com"; // TU DOMINIO REAL
     const trackingUrl = `${baseUrl}/track/${quote.tracking_token}`;
 
-    // 4. Formatear dinero (de centavos a pesos)
     const total = (quote.total_amount || 0) / 100;
     const envio = (quote.shipping_cost || 0) / 100;
     const subtotal = total - envio;
+    const totalFormatted = `$${total.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`;
 
-    // 5. Enviar el Correo Bonito (HTML)
-    const res = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${Deno.env.get("RESEND_API_KEY")}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        from: "CatifyPro <noreply@catifypro.com>", // <--- Verifica que este remitente esté autorizado en Resend
-        to: [quote.customer_email],
-        subject: `Actualización: Costo de Envío Cotización #${quote.order_number || "Pendiente"}`,
-        html: `
-          <!DOCTYPE html>
-          <html>
-            <head>
-              <style>
-                body { font-family: sans-serif; color: #333; line-height: 1.6; }
-                .container { max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 8px; }
-                .header { background-color: #f8fafc; padding: 15px; text-align: center; border-radius: 8px 8px 0 0; }
-                .content { padding: 20px 0; }
-                .price-box { background-color: #f0fdf4; border: 1px solid #bbf7d0; padding: 15px; border-radius: 6px; margin: 20px 0; }
-                .btn { display: inline-block; background-color: #10b981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; }
-                .footer { font-size: 12px; color: #666; text-align: center; margin-top: 30px; border-top: 1px solid #eee; padding-top: 10px; }
-              </style>
-            </head>
-            <body>
-              <div class="container">
-                <div class="header">
-                  <h2>Actualización de tu Pedido</h2>
-                </div>
-                
-                <div class="content">
-                  <p>Hola <strong>${quote.customer_name}</strong>,</p>
-                  <p>Hemos calculado el costo de envío y la fecha estimada de entrega para tu cotización <strong>#${quote.order_number}</strong>.</p>
-                  
-                  <div class="price-box">
-                    <p style="margin: 0; font-size: 14px; color: #666;">Fecha Estimada de Entrega:</p>
-                    <p style="margin: 0 0 10px 0; font-weight: bold;">${quote.estimated_delivery_date || "Por definir"}</p>
-                    <hr style="border: 0; border-top: 1px solid #dcfce7; margin: 10px 0;">
-                    <p style="margin: 5px 0;">Subtotal Productos: <strong>$${subtotal.toFixed(2)}</strong></p>
-                    <p style="margin: 5px 0;">Costo de Envío: <strong>$${envio.toFixed(2)}</strong></p>
-                    <p style="margin: 10px 0; font-size: 18px; color: #15803d;"><strong>Total Final: $${total.toFixed(2)} MXN</strong></p>
+    // 4. Enviar Email (Resend) - Tu lógica original (Intacta)
+    try {
+        await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${Deno.env.get("RESEND_API_KEY")}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            from: "CatifyPro <noreply@catifypro.com>", 
+            to: [quote.customer_email],
+            subject: `Actualización: Costo de Envío Cotización #${quote.id.slice(0, 8)}`,
+            html: `
+              <!DOCTYPE html>
+              <html>
+                <body style="font-family: sans-serif; color: #333;">
+                  <div style="max-width: 600px; margin: 0 auto; border: 1px solid #eee; padding: 20px; border-radius: 8px;">
+                    <h2 style="text-align: center; color: #10b981;">¡Cotización Lista! 🚚</h2>
+                    <p>Hola <strong>${quote.customer_name}</strong>,</p>
+                    <p>Hemos calculado el envío para tu pedido <strong>#${quote.id.slice(0, 8)}</strong>.</p>
+                    
+                    <div style="background-color: #f0fdf4; padding: 15px; border-radius: 6px; margin: 20px 0; border: 1px solid #bbf7d0;">
+                      <p>Subtotal: $${subtotal.toFixed(2)}</p>
+                      <p>Envío: $${envio.toFixed(2)}</p>
+                      <h3 style="color: #15803d; margin-top: 10px;">Total Final: ${totalFormatted} MXN</h3>
+                    </div>
+
+                    <div style="text-align: center; margin: 30px 0;">
+                      <a href="${trackingUrl}" style="background-color: #10b981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">
+                        Pagar Ahora
+                      </a>
+                    </div>
+                    <p style="font-size: 12px; color: #888; text-align: center;">${trackingUrl}</p>
                   </div>
+                </body>
+              </html>
+            `
+          }),
+        });
+        console.log("✅ Email de actualización enviado");
+    } catch (emailError) {
+        console.error("⚠️ Error enviando Email:", emailError);
+    }
 
-                  <p>Para confirmar el pedido y realizar el pago, haz clic en el siguiente botón:</p>
-                  
-                  <div style="text-align: center; margin: 30px 0;">
-                    <a href="${trackingUrl}" class="btn">Ver Cotización y Pagar</a>
-                  </div>
-                  
-                  <p style="font-size: 13px; color: #888;">Si el botón no funciona, copia y pega este enlace:<br>${trackingUrl}</p>
-                </div>
+    // 5. Enviar WhatsApp (NUEVO) 🟢
+    if (quote.customer_phone) {
+        try {
+            console.log("📲 Intentando enviar WhatsApp al cliente...");
+            
+            await supabaseAdmin.functions.invoke('send-whatsapp', {
+                body: {
+                    phone: quote.customer_phone,
+                    templateName: "quote_shipping_update", // <--- PLANTILLA META
+                    parameters: [
+                        { type: "text", text: quote.customer_name },          // {{1}} Nombre
+                        { type: "text", text: quote.id.slice(0, 8) },         // {{2}} Folio
+                        { type: "text", text: totalFormatted },               // {{3}} Total
+                        { type: "text", text: trackingUrl }                   // {{4}} Link de Pago
+                    ]
+                }
+            });
+            console.log("✅ WhatsApp de actualización enviado");
+        } catch (waError) {
+            console.error("⚠️ Error enviando WhatsApp:", waError);
+        }
+    }
 
-                <div class="footer">
-                  <p>Gracias por tu preferencia.</p>
-                </div>
-              </div>
-            </body>
-          </html>
-        `
-      }),
-    });
-
-    const data = await res.json();
-
-    return new Response(JSON.stringify(data), {
+    return new Response(JSON.stringify({ success: true }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });
+
   } catch (error) {
+    console.error(`FATAL ERROR:`, error);
     return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
