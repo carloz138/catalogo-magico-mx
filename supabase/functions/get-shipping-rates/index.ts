@@ -1,10 +1,10 @@
 // ==========================================
 // FUNCIÓN: get-shipping-rates
-// ESTADO: V1.6 (FIX: Strict Clean Payload)
+// ESTADO: V1.7 (FIX: Packages + UPPERCASE Units)
 // ==========================================
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 
-const DEPLOY_VERSION = Deno.env.get("FUNCTION_HASH") || "DEBUG_V1.6_CLEAN";
+const DEPLOY_VERSION = Deno.env.get("FUNCTION_HASH") || "DEBUG_V1.7_UPPERCASE";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -75,7 +75,7 @@ Deno.serve(async (req) => {
     const originSplit = splitStreet(originAddr.street);
     const destSplit = splitStreet(destinationAddr.street);
 
-    // 3. CONSTRUIR PAYLOAD (LIMPIO V1.6)
+    // 3. CONSTRUIR PAYLOAD (V1.7: Packages + UPPERCASE)
     const enviaPayload = {
       origin: {
         name: business.business_name || "Vendedor",
@@ -107,18 +107,22 @@ Deno.serve(async (req) => {
         references: destinationAddr.references || ""
       },
       shipment: {
-        type: 1, // 1 = Paquete
-        // 🔥 FIX: Solo 'packages', sin 'parcels', sin 'carrier', unidades lowercase
+        type: 1, 
+        // ✅ AÑADIDO: Descripción global requerida
+        description: "Articulos Varios",
+        // ✅ CORRECCIÓN FINAL: 'packages' + Unidades en MAYÚSCULAS
         packages: [
           {
-            content: "Mercancia General", 
+            content: "Articulos Varios", 
+            amount: 1,
+            type: "box",
             quantity: 1,
             weight: estimatedWeight,
-            weight_unit: "kg", // minúsculas
+            weight_unit: "KG", // 🔥 MAYÚSCULAS
             length: 20,
             height: 20,
             width: 20,
-            dimension_unit: "cm" // minúsculas
+            dimension_unit: "CM" // 🔥 MAYÚSCULAS
           }
         ]
       },
@@ -127,7 +131,7 @@ Deno.serve(async (req) => {
       }
     };
 
-    console.log(`📤 Payload Clean:`, JSON.stringify(enviaPayload));
+    console.log(`📤 Payload V1.7:`, JSON.stringify(enviaPayload));
 
     // 4. Llamar API Envia
     const response = await fetch(ENVIA_URL, {
@@ -147,7 +151,7 @@ Deno.serve(async (req) => {
        throw new Error(`Envia.com dice: ${errorMsg}`);
     }
 
-    // 5. Validación Robusta
+    // 5. Validación
     let rates = [];
     if (Array.isArray(result.data)) {
         rates = result.data;
