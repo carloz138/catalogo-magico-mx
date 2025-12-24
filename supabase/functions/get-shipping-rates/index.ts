@@ -1,10 +1,10 @@
 // ==========================================
 // FUNCIÓN: get-shipping-rates
-// DESCRIPCIÓN: Cotiza envíos usando Envia.com
-// ESTADO: V1.2 (DEBUGGING MEJORADO + ERROR HANDLING)
+// ESTADO: CORREGIDO (Parcels -> Packages + State Normalization)
 // ==========================================
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 
+// ✅ MANTENIDO: Tu versión dinámica para GitHub
 const DEPLOY_VERSION = Deno.env.get("FUNCTION_HASH") || "DEBUG_V1.2";
 
 const corsHeaders = {
@@ -12,10 +12,32 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-// Asegúrate de que esta URL sea la correcta según tus credenciales (Sandbox vs Live)
 // Live: https://api.envia.com/ship/rate/
 // Sandbox: https://api-test.envia.com/ship/rate/
 const ENVIA_URL = "https://api.envia.com/ship/rate/"; 
+
+// --- HELPER: NORMALIZAR ESTADOS (CRÍTICO PARA ENVIA) ---
+// Convierte códigos de 3 letras (NLE) o nombres sucios (N.) a ISO 2 letras (NL)
+const mapStateToISO2 = (stateInput: any) => {
+  if (!stateInput) return "MX";
+  
+  const code = String(stateInput).toUpperCase().trim().replace(".", ""); // Quita puntos
+  
+  // Mapa de conversión (Frontend 3 chars -> Envia 2 chars)
+  const mapping: Record<string, string> = {
+    "NLE": "NL", "NUEVO LEON": "NL", "NL": "NL", "N": "NL",
+    "AGU": "AG", "BCN": "BC", "BCS": "BS", "CAM": "CM",
+    "CHP": "CS", "CHH": "CH", "COA": "CO", "COL": "CL",
+    "DIF": "DF", "CDMX": "DF", "CIUDAD DE MEXICO": "DF", "DUR": "DG", 
+    "GUA": "GT", "GRO": "GR", "HID": "HG", "JAL": "JA", "MEX": "EM", "ESTADO DE MEXICO": "EM",
+    "MIC": "MI", "MOR": "MO", "NAY": "NA", "OAX": "OA",
+    "PUE": "PU", "QUE": "QT", "ROO": "QR", "SLP": "SL",
+    "SIN": "SI", "SON": "SO", "TAB": "TB", "TAM": "TM",
+    "TLA": "TL", "VER": "VE", "YUC": "YU", "ZAC": "ZA"
+  };
+
+  return mapping[code] || code.substring(0, 2); // Fallback: primeras 2 letras
+};
 
 Deno.serve(async (req) => {
   // LOGGING INICIAL
@@ -67,10 +89,11 @@ Deno.serve(async (req) => {
       throw new Error("Dirección de origen no configurada. Ve a Configuración del Negocio.")
     }
 
-    // 3. Preparar Payload
+    // 3. Preparar Datos
     const totalItems = quote.items.reduce((sum: number, i: any) => sum + i.quantity, 0);
-    const estimatedWeight = Math.max(1, totalItems * 0.5); 
+    const estimatedWeight = Math.max(1, totalItems * 0.5); // Peso mínimo 1kg
 
+    // Helper para separar calle y número (Envia prefiere separado)
     const splitStreet = (fullStreet: string) => {
       const match = fullStreet?.match(/^(.+?)\s+(\d+\w*)$/);
       if (match) return { street: match[1], number: match[2] };
@@ -80,11 +103,12 @@ Deno.serve(async (req) => {
     const originSplit = splitStreet(originAddr.street);
     const destSplit = splitStreet(destinationAddr.street);
 
-    // Validación preventiva de datos críticos
+    // Validación preventiva
     if (!originAddr.zip_code || !destinationAddr.zip_code) {
         throw new Error(`Falta Código Postal: Origen(${originAddr.zip_code}) - Destino(${destinationAddr.zip_code})`);
     }
 
+    // 4. CONSTRUIR PAYLOAD (CORREGIDO)
     const enviaPayload = {
       origin: {
         name: business.business_name || "Vendedor",
@@ -94,8 +118,8 @@ Deno.serve(async (req) => {
         street: originSplit.street,
         number: originSplit.number,
         district: originAddr.colony || "Centro",
-        city: originAddr.city || "Monterrey", // Fallback para evitar error fatal
-        state_code: (originAddr.state || "MX").substring(0, 2).toUpperCase(),
+        city: originAddr.city || "Monterrey",
+        state_code: mapStateToISO2(originAddr.state), // ✅ USO DE HELPER
         country_code: "MX",
         postal_code: originAddr.zip_code,
         type: "business"
@@ -109,7 +133,7 @@ Deno.serve(async (req) => {
         number: destSplit.number,
         district: destinationAddr.colony || "Centro",
         city: destinationAddr.city || "Ciudad",
-        state_code: (destinationAddr.state || "MX").substring(0, 2).toUpperCase(),
+        state_code: mapStateToISO2(destinationAddr.state), // ✅ USO DE HELPER
         country_code: "MX",
         postal_code: destinationAddr.zip_code,
         type: "residential",
@@ -118,7 +142,8 @@ Deno.serve(async (req) => {
       shipment: {
         carrier: "fedex", 
         type: 1, 
-        parcels: [
+        // ✅ CORRECCIÓN CRÍTICA: 'packages' en lugar de 'parcels'
+        packages: [ 
           {
             quantity: 1,
             weight: estimatedWeight,
@@ -135,9 +160,9 @@ Deno.serve(async (req) => {
       }
     };
 
-    console.log(`📤 Enviando Payload:`, JSON.stringify(enviaPayload));
+    console.log(`📤 Enviando Payload a Envia...`);
 
-    // 4. Llamar API Envia
+    // 5. Llamar API Envia
     const response = await fetch(ENVIA_URL, {
       method: "POST",
       headers: {
@@ -149,31 +174,27 @@ Deno.serve(async (req) => {
 
     const result = await response.json();
     
-    // 🔥 LOG CRÍTICO: Ver qué respondió exactamente Envia
-    console.log("📦 Respuesta RAW de Envia:", JSON.stringify(result));
-
-    if (!response.ok) {
-        throw new Error(result.meta?.error?.message || "Error HTTP al conectar con Envia.");
+    // Loguear respuesta para debugging si falla
+    if (!response.ok || result.meta === "error") {
+       console.error("📦 Error RAW de Envia:", JSON.stringify(result));
+       const errorMsg = result.error?.message || result.meta?.error?.message || "Error desconocido de Envia";
+       throw new Error(`Envia.com dice: ${errorMsg}`);
     }
 
-    // 5. Validación Robusta de Array
-    // Envia a veces devuelve { data: [...] } y a veces solo el objeto de error en data.
+    // 6. Validación Robusta de Array
     let rates = [];
-    
     if (Array.isArray(result.data)) {
         rates = result.data;
     } else if (Array.isArray(result)) {
         rates = result;
     } else {
-        // Si no es array, es un error lógico de negocio (ej: CP no válido)
-        // aunque el HTTP status haya sido 200/201
-        console.error("❌ La respuesta no contiene un array de tarifas:", result);
-        const errorMsg = result.meta?.error?.message || "No se encontraron tarifas para esta ruta.";
-        throw new Error(errorMsg);
+        console.error("❌ Formato inesperado:", result);
+        throw new Error("No se encontraron tarifas disponibles para esta ruta.");
     }
 
-    // 6. Procesar
-    const MARKUP_AMOUNT = 20; 
+    // 7. Procesar y Añadir Margen
+    const MARKUP_AMOUNT = 20; // Margen de ganancia $20 MXN
+    
     const processedRates = rates.map((rate: any) => ({
       carrier: rate.carrier,
       service: rate.service,
@@ -187,7 +208,7 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
 
-  } catch (error) {
+  } catch (error: any) {
     console.error(`❌ FATAL ERROR:`, error.message);
     return new Response(JSON.stringify({ error: error.message }), {
       status: 400,
