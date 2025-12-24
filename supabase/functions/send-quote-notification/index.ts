@@ -1,11 +1,10 @@
 // ==========================================
 // FUNCION: send-quote-notification
 // DESCRIPCIÓN: Notifica al VENDEDOR (Dueño) de una nueva venta
-// INTEGRACIÓN: Meta WhatsApp + Resend + Complex Owner Lookup
+// INTEGRACIÓN: Meta WhatsApp (PARA TODOS) + Resend + Owner Lookup
 // ==========================================
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 
-// 1. HARDENING: Protocolo de Versionado
 const DEPLOY_VERSION = Deno.env.get('FUNCTION_HASH') || "UNKNOWN_HASH";
 
 const corsHeaders = {
@@ -62,16 +61,9 @@ Deno.serve(async (req) => {
         throw new Error("Owner user data not found.");
     }
     
-    // 4. VERIFICAR SUSCRIPCIÓN (Solo planes pro tienen whats)
-    const { data: subscription } = await supabaseAdmin
-        .from('subscriptions')
-        .select('package_id, credit_packages(name)')
-        .eq('user_id', ownerId)
-        .eq('status', 'active')
-        .maybeSingle();
-        
-    const packageName = subscription?.credit_packages?.name?.toLowerCase() || '';
-    const hasWhatsApp = packageName.includes('medio') || packageName.includes('profesional') || packageName.includes('premium') || packageName.includes('empresarial');
+    // 4. CONFIGURACIÓN WHATSAPP: ¡AHORA ES GENERAL! 🚀
+    // Ya no filtramos por plan. Si tiene teléfono, se lo mandamos.
+    const hasWhatsApp = true; 
     
     let emailSent = false;
     let whatsappSent = false;
@@ -104,11 +96,13 @@ Deno.serve(async (req) => {
     const metaToken = Deno.env.get('META_ACCESS_TOKEN');
     const metaPhoneId = Deno.env.get('META_PHONE_ID');
 
+    // Solo verificamos que tengamos credenciales y el usuario tenga teléfono
     if (hasWhatsApp && metaToken && metaPhoneId && user.phone) {
       try {
         const cleanPhone = user.phone.replace(/\D/g, ''); 
         
         if (cleanPhone.length >= 10) {
+            console.log(`📲 Enviando WhatsApp a dueño: ${cleanPhone}`);
             const metaRes = await fetch(`https://graph.facebook.com/v17.0/${metaPhoneId}/messages`, {
               method: 'POST',
               headers: {
@@ -121,7 +115,7 @@ Deno.serve(async (req) => {
                 to: cleanPhone, 
                 type: "template",
                 template: {
-                    name: "new_quote_alert", // <--- PLANTILLA META
+                    name: "new_quote_alert", // <--- ASEGÚRATE QUE ESTA PLANTILLA EXISTA EN META
                     language: { code: "es_MX" },
                     components: [
                         {
@@ -141,8 +135,11 @@ Deno.serve(async (req) => {
               whatsappSent = true;
               console.log("✅ WhatsApp enviado al vendedor");
             } else {
-              console.error('Meta API Error:', await metaRes.text());
+              const errorData = await metaRes.text();
+              console.error('Meta API Error:', errorData);
             }
+        } else {
+            console.log(`⚠️ El teléfono del vendedor no es válido para WA: ${user.phone}`);
         }
       } catch (err) {
         console.error('Meta Fetch Error:', err);
@@ -189,7 +186,7 @@ async function getOwnerDataReal(supabaseAdmin: any, ownerId: string): Promise<an
     const displayName = business?.business_name || profile?.full_name || "Vendedor";
     let phone = "";
     
-    // Cascada de teléfonos
+    // Prioridad de teléfono: WhatsApp Social > Negocio > Perfil > Auth
     if (business?.social_media && typeof business.social_media === 'object') {
         const social = business.social_media as any;
         if (social.whatsapp) phone = social.whatsapp;
@@ -212,7 +209,6 @@ function formatCurrency(valueInCents: number): string {
 }
 
 function generateEmailTemplate(quote: any, user: any) {
-    // HTML simple para no saturar el código aquí
     const total = formatCurrency(quote.total_amount || 0);
     return `
       <div style="font-family: Arial;">
