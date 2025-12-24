@@ -22,6 +22,7 @@ interface PaymentTransaction {
   payout_status: string | null;
   payout_date: string | null;
   payout_reference: string | null;
+  funds_held_by_platform: boolean; // <--- 1. AGREGADO: Dato vital
 }
 
 export function useMerchantStats() {
@@ -30,16 +31,13 @@ export function useMerchantStats() {
   const statsQuery = useQuery({
     queryKey: ["merchant-stats", user?.id],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("my_merchant_stats")
-        .select("*")
-        .single();
-      
+      const { data, error } = await supabase.from("my_merchant_stats").select("*").single();
+
       if (error) {
         console.error("Error fetching merchant stats:", error);
         return null;
       }
-      
+
       return data as MerchantStats;
     },
     enabled: !!user,
@@ -50,15 +48,30 @@ export function useMerchantStats() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("payment_transactions")
-        .select("id, quote_id, amount_total, commission_saas, net_to_merchant, status, payment_method, paid_at, payout_status, payout_date, payout_reference")
+        .select(
+          `
+          id, 
+          quote_id, 
+          amount_total, 
+          commission_saas, 
+          net_to_merchant, 
+          status, 
+          payment_method, 
+          paid_at, 
+          payout_status, 
+          payout_date, 
+          payout_reference,
+          funds_held_by_platform  
+        `,
+        ) // <--- 2. AGREGADO: Pedimos la columna a la BD
         .eq("status", "paid")
         .order("paid_at", { ascending: false });
-      
+
       if (error) {
         console.error("Error fetching transactions:", error);
         return [];
       }
-      
+
       return data as PaymentTransaction[];
     },
     enabled: !!user,
