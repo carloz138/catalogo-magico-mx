@@ -108,7 +108,6 @@ export class QuoteService {
       (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
     );
 
-    // --- AQUÍ ESTABA EL ERROR 406 ---
     const quotesWithMetadata = await Promise.all(
       allQuotes.map(async (quote) => {
         if (quote.is_from_replicated) return quote;
@@ -118,7 +117,7 @@ export class QuoteService {
           .select("id")
           .eq("quote_id", quote.id)
           .eq("is_active", true)
-          .maybeSingle(); // 🔥 CAMBIO CLAVE: .maybeSingle() en lugar de .single()
+          .maybeSingle();
 
         return {
           ...quote,
@@ -129,8 +128,6 @@ export class QuoteService {
 
     return quotesWithMetadata as any;
   }
-
-  // ... (El resto del archivo se mantiene igual que antes)
 
   static async getQuoteDetail(
     quoteId: string,
@@ -146,7 +143,7 @@ export class QuoteService {
           enable_free_shipping, free_shipping_min_amount
         ),
         payment_transactions (
-          id, status, amount_total, created_at
+          id, status, amount_total, created_at, funds_held_by_platform
         )
       `,
       )
@@ -279,7 +276,11 @@ export class QuoteService {
     if (error) throw error;
   }
 
+  /**
+   * ACTUALIZADO: Registra pago manual, marca fondos como "usuario" y descuenta stock.
+   */
   static async markAsPaidManually(quoteId: string, userId: string, amount: number): Promise<void> {
+    // 1. Crear transacción (MARCANDO QUE EL DINERO LO TIENE EL USUARIO)
     const { error: txError } = await supabase.from("payment_transactions").insert({
       quote_id: quoteId,
       amount_total: amount,
@@ -289,15 +290,29 @@ export class QuoteService {
       payment_method: "manual",
       status: "paid",
       paid_at: new Date().toISOString(),
+      funds_held_by_platform: false, // <--- 🟢 IMPORTANTE: Dinero en mano del usuario
     });
+
     if (txError) throw txError;
 
+    // 2. Actualizar fecha de la cotización
     const { error: quoteError } = await supabase
       .from("quotes")
       .update({ updated_at: new Date().toISOString() })
       .eq("id", quoteId)
       .eq("user_id", userId);
+
     if (quoteError) throw quoteError;
+
+    // 3. DESCONTAR INVENTARIO (Vital para que no vendas de más) 📦
+    try {
+      await supabase.rpc("process_inventory_deduction", {
+        quote_id: quoteId,
+      });
+      console.log("✅ Inventario descontado tras pago manual");
+    } catch (stockError) {
+      console.error("⚠️ Advertencia: Pago registrado pero falló descuento de stock:", stockError);
+    }
   }
 
   static async getQuoteStats(userId: string): Promise<{
