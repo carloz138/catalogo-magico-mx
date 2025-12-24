@@ -1,17 +1,16 @@
 // ==========================================
 // FUNCIÓN: get-shipping-rates
-// ESTADO: V2.1 (FIX: ROOT LEVEL PACKAGES)
+// ESTADO: V2.2 (FIX: Missing 'state' field)
 // ==========================================
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 
-const DEPLOY_VERSION = Deno.env.get("FUNCTION_HASH") || "DEBUG_V2.1_ROOT_PACKAGES";
+const DEPLOY_VERSION = Deno.env.get("FUNCTION_HASH") || "DEBUG_V2.2_STATE_FIX";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-// Live: https://api.envia.com/ship/rate/
 const ENVIA_URL = "https://api.envia.com/ship/rate/"; 
 
 // --- HELPER: NORMALIZAR ESTADOS ---
@@ -75,7 +74,7 @@ Deno.serve(async (req) => {
     const originSplit = splitStreet(originAddr.street);
     const destSplit = splitStreet(destinationAddr.street);
 
-    // 3. CONSTRUIR PAYLOAD (V2.1: ESTRUCTURA PLANA SEGÚN DOCS)
+    // 3. CONSTRUIR PAYLOAD (V2.2: STATE + STATE_CODE)
     const enviaPayload = {
       origin: {
         name: business.business_name || "Vendedor",
@@ -86,7 +85,11 @@ Deno.serve(async (req) => {
         number: originSplit.number,
         district: originAddr.colony || "Centro",
         city: originAddr.city || "Monterrey",
+        
+        // 🔥 CORRECCIÓN: Enviamos AMBOS para que no falle
         state_code: mapStateToISO2(originAddr.state),
+        state: mapStateToISO2(originAddr.state), // Envia a veces pide este campo explícito
+        
         country_code: "MX",
         postal_code: originAddr.zip_code,
         type: "business"
@@ -100,18 +103,22 @@ Deno.serve(async (req) => {
         number: destSplit.number,
         district: destinationAddr.colony || "Centro",
         city: destinationAddr.city || "Ciudad",
+        
+        // 🔥 CORRECCIÓN AQUÍ TAMBIÉN
         state_code: mapStateToISO2(destinationAddr.state),
+        state: mapStateToISO2(destinationAddr.state),
+        
         country_code: "MX",
         postal_code: destinationAddr.zip_code,
         type: "residential",
         references: destinationAddr.references || ""
       },
       
-      // ✅ CORRECCIÓN MAESTRA: 'packages' va en la RAÍZ, no dentro de shipment
+      // ✅ Packages se queda en la raíz (esto ya funcionó)
       packages: [
         {
           content: "Articulos Varios",
-          amount: 1, // Valor declarado simbólico para cotizar
+          amount: 1,
           type: "box",
           weight: estimatedWeight,
           weight_unit: "KG",
@@ -122,9 +129,8 @@ Deno.serve(async (req) => {
         }
       ],
 
-      // ✅ 'shipment' solo lleva datos generales
       shipment: {
-        carrier: "fedex", // Opcional: filtro por carrier
+        carrier: "fedex", 
         type: 1 
       },
 
@@ -133,7 +139,7 @@ Deno.serve(async (req) => {
       }
     };
 
-    console.log(`📤 Payload V2.1 Root:`, JSON.stringify(enviaPayload));
+    console.log(`📤 Payload V2.2:`, JSON.stringify(enviaPayload));
 
     // 4. Llamar API Envia
     const response = await fetch(ENVIA_URL, {
