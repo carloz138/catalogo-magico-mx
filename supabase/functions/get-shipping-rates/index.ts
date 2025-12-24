@@ -1,10 +1,10 @@
 // ==========================================
 // FUNCIÓN: get-shipping-rates
-// ESTADO: V1.4 (FIX: Multi-carrier + Parcels)
+// ESTADO: V1.5 (FIX: Estrategia Doble Llave + Content)
 // ==========================================
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 
-const DEPLOY_VERSION = Deno.env.get("FUNCTION_HASH") || "DEBUG_V1.4";
+const DEPLOY_VERSION = Deno.env.get("FUNCTION_HASH") || "DEBUG_V1.5_DOUBLE_KEY";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -64,7 +64,7 @@ Deno.serve(async (req) => {
 
     // 2. Preparar Datos
     const totalItems = quote.items.reduce((sum: number, i: any) => sum + i.quantity, 0);
-    const estimatedWeight = Math.max(1, totalItems * 0.5);
+    const estimatedWeight = Math.max(1, totalItems * 0.5); // Peso mínimo
 
     const splitStreet = (fullStreet: string) => {
       const match = fullStreet?.match(/^(.+?)\s+(\d+\w*)$/);
@@ -75,7 +75,23 @@ Deno.serve(async (req) => {
     const originSplit = splitStreet(originAddr.street);
     const destSplit = splitStreet(destinationAddr.street);
 
-    // 3. CONSTRUIR PAYLOAD (MULTI-CARRIER)
+    // Definimos el array de paquetes una vez
+    const packagesArray = [
+      {
+        content: "Articulos Varios", // ✅ A veces requerido
+        amount: 1,
+        type: "box",
+        quantity: 1,
+        weight: estimatedWeight,
+        weight_unit: "KG",
+        length: 20,
+        height: 20,
+        width: 20,
+        dimension_unit: "CM"
+      }
+    ];
+
+    // 3. CONSTRUIR PAYLOAD (HACK DE DOBLE LLAVE)
     const enviaPayload = {
       origin: {
         name: business.business_name || "Vendedor",
@@ -107,27 +123,21 @@ Deno.serve(async (req) => {
         references: destinationAddr.references || ""
       },
       shipment: {
-        // 🔴 QUITAMOS 'carrier' para que busque en TODAS las paqueterías
-        type: 1, 
-        // 🟢 VOLVEMOS A 'parcels' (estándar oficial)
-        parcels: [ 
-          {
-            quantity: 1,
-            weight: estimatedWeight,
-            weight_unit: "KG",
-            length: 20,
-            height: 20,
-            width: 20,
-            dimension_unit: "CM"
-          }
-        ]
+        type: 1, // 1 = Paquete
+        content: "Mercancía General", // ✅ Descripción global
+        
+        // 🔥 EL TRUCO FINAL: Enviamos ambas llaves por si acaso
+        packages: packagesArray,
+        parcels: packagesArray
       },
       settings: {
-        currency: "MXN"
+        currency: "MXN",
+        print_format: "PDF",
+        label_format: "PDF"
       }
     };
 
-    console.log(`📤 Payload Multi-Carrier:`, JSON.stringify(enviaPayload));
+    console.log(`📤 Payload Blindado:`, JSON.stringify(enviaPayload));
 
     // 4. Llamar API Envia
     const response = await fetch(ENVIA_URL, {
@@ -141,14 +151,13 @@ Deno.serve(async (req) => {
 
     const result = await response.json();
     
-    // Debugging exhaustivo
     if (!response.ok || result.meta === "error") {
        console.error("📦 Error RAW de Envia:", JSON.stringify(result));
        const errorMsg = result.error?.message || result.meta?.error?.message || "Error desconocido de Envia";
        throw new Error(`Envia.com dice: ${errorMsg}`);
     }
 
-    // 5. Validación Robusta de Array
+    // 5. Validación Robusta
     let rates = [];
     if (Array.isArray(result.data)) {
         rates = result.data;
@@ -156,10 +165,10 @@ Deno.serve(async (req) => {
         rates = result;
     } else {
         console.error("❌ Formato inesperado:", result);
-        throw new Error("No se encontraron tarifas. Verifica las direcciones.");
+        throw new Error("No se encontraron tarifas.");
     }
 
-    // 6. Procesar y Añadir Margen
+    // 6. Procesar
     const MARKUP_AMOUNT = 20; 
     
     const processedRates = rates.map((rate: any) => ({
