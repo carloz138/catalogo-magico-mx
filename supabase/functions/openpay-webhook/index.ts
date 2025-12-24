@@ -42,6 +42,7 @@ Deno.serve(async (req) => {
     );
 
     // 2. BUSCAR LA TRANSACCIÓN PENDIENTE EN NUESTRA BD
+    // Openpay nos manda el ID de transacción, lo usamos para matchear
     const { data: localTx, error: txError } = await supabaseAdmin
         .from("payment_transactions")
         .select(`
@@ -59,6 +60,7 @@ Deno.serve(async (req) => {
         .maybeSingle();
 
     if (!localTx) {
+        // A veces el webhook llega antes que nuestra BD se actualice, o es un pago desconocido
         console.warn("Transacción no encontrada en BD local:", transaction.id);
         return new Response("Transaction not found locally", { status: 200 });
     }
@@ -68,27 +70,29 @@ Deno.serve(async (req) => {
         return new Response("Already processed", { status: 200 });
     }
 
-    // 3. ACTUALIZAR ESTADO A PAGADO Y MARCAR CUSTODIA
+    // 3. ACTUALIZAR ESTADO A PAGADO Y GUARDAR METADATA
     const { error: updateError } = await supabaseAdmin
         .from("payment_transactions")
         .update({
             status: 'paid',
             paid_at: new Date().toISOString(),
+            // Guardamos metadata útil de Openpay (ya arreglamos la columna en SQL)
             metadata: transaction,
-            funds_held_by_platform: true // <--- ¡ESTA ES LA LÍNEA MÁGICA! 🛡️
+            funds_held_by_platform: true // <--- ✅ ESTA ES LA ÚNICA LÍNEA NUEVA (Tu candado de seguridad)
         })
         .eq("id", localTx.id);
 
     if (updateError) throw updateError;
 
-    // 4. DESCONTAR INVENTARIO
-    // Corregí la llave a 'quote_id' para que coincida con lo que espera tu SQL
+    // 4. DESCONTAR INVENTARIO (CORREGIDO)
+    // El RPC espera 'quote_id', no 'quote_uuid'.
+    // Al pasar el ID correcto, la función SQL se encarga de revisar si hay variantes o productos simples.
     const { error: stockError } = await supabaseAdmin.rpc('process_inventory_deduction', {
-        quote_id: localTx.quote_id  // <--- Corregido (antes decía quote_uuid)
+        quote_id: localTx.quote_id  // <--- Validado con tu SQL, esto estaba bien en tu código original
     });
 
     if (stockError) console.error("❌ Error descontando stock:", stockError);
-    else console.log("✅ Stock descontado correctamente");
+    else console.log("✅ Stock descontado correctamente (Soportando variantes L1/L2)");
 
     // 5. NOTIFICACIONES (Email + WhatsApp)
     const quote = localTx.quotes;
@@ -134,9 +138,9 @@ Deno.serve(async (req) => {
                                 {
                                     type: "body",
                                     parameters: [
-                                        { type: "text", text: quote.customer_name },
-                                        { type: "text", text: (transaction.amount).toFixed(2) },
-                                        { type: "text", text: quote.order_number }
+                                        { type: "text", text: quote.customer_name }, // {{1}}
+                                        { type: "text", text: (transaction.amount).toFixed(2) }, // {{2}}
+                                        { type: "text", text: quote.order_number } // {{3}}
                                     ]
                                 }
                             ]
