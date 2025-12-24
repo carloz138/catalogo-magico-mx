@@ -1,7 +1,6 @@
 // ==========================================
 // FUNCION: send-quote-notification
-// DESCRIPCIÓN: Notifica al VENDEDOR (Dueño) de una nueva venta
-// INTEGRACIÓN: Meta WhatsApp (PARA TODOS) + Resend + Owner Lookup
+// DESCRIPCIÓN: Notifica al VENDEDOR con Botón Dinámico de WhatsApp
 // ==========================================
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 
@@ -53,18 +52,14 @@ Deno.serve(async (req) => {
 
     // 3. IDENTIFICAR AL VENDEDOR
     const ownerId = quote.user_id; 
-    
-    // Helper robusto para buscar datos del dueño
     let user = await getOwnerDataReal(supabaseAdmin, ownerId);
 
     if (!user || !user.email) {
         throw new Error("Owner user data not found.");
     }
     
-    // 4. CONFIGURACIÓN WHATSAPP: ¡AHORA ES GENERAL! 🚀
-    // Ya no filtramos por plan. Si tiene teléfono, se lo mandamos.
-    const hasWhatsApp = true; 
-    
+    // 4. PREPARACIÓN DE ENVÍO
+    const hasWhatsApp = true; // Habilitado para todos
     let emailSent = false;
     let whatsappSent = false;
 
@@ -91,18 +86,18 @@ Deno.serve(async (req) => {
     }
 
     // ---------------------------------------------------------
-    // 🟢 CANAL 2: WHATSAPP (Meta Cloud API)
+    // 🟢 CANAL 2: WHATSAPP (Meta Cloud API) con BOTÓN
     // ---------------------------------------------------------
     const metaToken = Deno.env.get('META_ACCESS_TOKEN');
     const metaPhoneId = Deno.env.get('META_PHONE_ID');
 
-    // Solo verificamos que tengamos credenciales y el usuario tenga teléfono
     if (hasWhatsApp && metaToken && metaPhoneId && user.phone) {
       try {
         const cleanPhone = user.phone.replace(/\D/g, ''); 
         
         if (cleanPhone.length >= 10) {
             console.log(`📲 Enviando WhatsApp a dueño: ${cleanPhone}`);
+            
             const metaRes = await fetch(`https://graph.facebook.com/v17.0/${metaPhoneId}/messages`, {
               method: 'POST',
               headers: {
@@ -115,15 +110,25 @@ Deno.serve(async (req) => {
                 to: cleanPhone, 
                 type: "template",
                 template: {
-                    name: "new_quote_alert", // <--- ASEGÚRATE QUE ESTA PLANTILLA EXISTA EN META
+                    name: "new_quote_alert",
                     language: { code: "es_MX" },
                     components: [
+                        // 1. CUERPO DEL MENSAJE (Los 3 datos de texto)
                         {
                             type: "body",
                             parameters: [
                                 { type: "text", text: user.business_name || "Vendedor" }, // {{1}}
                                 { type: "text", text: quote.customer_name }, // {{2}}
                                 { type: "text", text: formatCurrency(quote.total_amount || 0) } // {{3}}
+                            ]
+                        },
+                        // 2. EL BOTÓN (El ID del pedido para la URL)
+                        {
+                            type: "button",
+                            sub_type: "url",
+                            index: 0, // Índice 0 = Primer botón
+                            parameters: [
+                                { type: "text", text: quote.id } // Esto se pega al final de la URL base
                             ]
                         }
                     ]
@@ -133,13 +138,13 @@ Deno.serve(async (req) => {
 
             if (metaRes.ok) {
               whatsappSent = true;
-              console.log("✅ WhatsApp enviado al vendedor");
+              console.log("✅ WhatsApp con botón enviado");
             } else {
               const errorData = await metaRes.text();
               console.error('Meta API Error:', errorData);
             }
         } else {
-            console.log(`⚠️ El teléfono del vendedor no es válido para WA: ${user.phone}`);
+            console.log(`⚠️ Teléfono inválido: ${user.phone}`);
         }
       } catch (err) {
         console.error('Meta Fetch Error:', err);
@@ -165,7 +170,7 @@ Deno.serve(async (req) => {
   }
 });
 
-// --- HELPERS OBLIGATORIOS ---
+// --- HELPERS ---
 
 async function getOwnerDataReal(supabaseAdmin: any, ownerId: string): Promise<any> {
     const { data: authData } = await supabaseAdmin.auth.admin.getUserById(ownerId);
@@ -186,7 +191,7 @@ async function getOwnerDataReal(supabaseAdmin: any, ownerId: string): Promise<an
     const displayName = business?.business_name || profile?.full_name || "Vendedor";
     let phone = "";
     
-    // Prioridad de teléfono: WhatsApp Social > Negocio > Perfil > Auth
+    // Prioridad de teléfono
     if (business?.social_media && typeof business.social_media === 'object') {
         const social = business.social_media as any;
         if (social.whatsapp) phone = social.whatsapp;
