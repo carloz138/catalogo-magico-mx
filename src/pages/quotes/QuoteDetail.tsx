@@ -129,47 +129,53 @@ export default function QuoteDetailPage() {
     }
   }, [quote]);
 
-  // --- LOGICA DE ENVÍOS (CORREGIDA) ---
+  // --- LOGICA DE ENVÍOS (MODIFICADA PARA EVITAR CRASH) ---
 
   const handleOpenRatesModal = async (mode: "quote" | "buy") => {
     if (!quote) return;
     setShippingMode(mode);
     setLoadingRates(true);
     setIsShippingModalOpen(true);
-    setShippingRates([]); // Limpiar anteriores
+    setShippingRates([]); // Limpiar estado anterior
 
     try {
-      console.log("🚀 Solicitando tarifas para Quote ID:", quote.id);
+      console.log("🚀 Solicitando tarifas...");
 
       const { data, error } = await supabase.functions.invoke("get-shipping-rates", {
         body: { quoteId: quote.id },
       });
 
+      // 1. Error de red o de conexión con la función
       if (error) {
-        throw new Error(error.message || "Error de conexión con la función.");
+        throw new Error(error.message || "Error al conectar con el servidor.");
       }
 
-      // Si la función devuelve un error lógico (ej: "No hay tarifas")
+      // 2. Validación CRÍTICA: Si data es null, lanzamos error antes de leer propiedades
+      // Esto evita el "pantallazo blanco"
+      if (!data) {
+        throw new Error("El servidor no devolvió datos.");
+      }
+
+      // 3. Error lógico devuelto por tu Edge Function
       if (data.error) {
         throw new Error(data.error);
       }
 
-      // Si no hay tasas o el array está vacío
-      if (!data.rates || data.rates.length === 0) {
-        throw new Error("No se encontraron paqueterías disponibles para esta ruta.");
+      // 4. Validar que existan tarifas en el array
+      if (!data.rates || !Array.isArray(data.rates) || data.rates.length === 0) {
+        throw new Error("No se encontraron tarifas disponibles para esta ruta.");
       }
 
       console.log("📦 Tarifas recibidas:", data.rates);
       setShippingRates(data.rates);
     } catch (err: any) {
-      console.error("Error getting rates:", err);
+      console.error("Error al cotizar:", err);
       toast({
-        title: "No se pudo cotizar",
-        description: err.message || "Verifica que el Origen y Destino tengan Código Postal válido.",
+        title: "Atención",
+        description: err.message || "Verifica los Códigos Postales de origen y destino.",
         variant: "destructive",
       });
-      // No cerramos el modal para que el usuario vea que falló, pero mostramos estado vacío
-      setShippingRates([]);
+      setShippingRates([]); // Dejamos la lista vacía para mostrar el estado "sin resultados"
     } finally {
       setLoadingRates(false);
     }
@@ -194,7 +200,7 @@ export default function QuoteDetailPage() {
     }
   };
 
-  // --- HANDLERS EXISTENTES ---
+  // --- HANDLERS EXISTENTES (INTACTOS) ---
 
   const handleManualPayment = async () => {
     if (!quote || !user?.id) return;
