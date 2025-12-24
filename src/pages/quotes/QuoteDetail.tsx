@@ -129,32 +129,47 @@ export default function QuoteDetailPage() {
     }
   }, [quote]);
 
-  // --- LOGICA DE ENVÍOS ---
+  // --- LOGICA DE ENVÍOS (CORREGIDA) ---
 
   const handleOpenRatesModal = async (mode: "quote" | "buy") => {
     if (!quote) return;
     setShippingMode(mode);
     setLoadingRates(true);
     setIsShippingModalOpen(true);
-    setShippingRates([]);
+    setShippingRates([]); // Limpiar anteriores
 
     try {
+      console.log("🚀 Solicitando tarifas para Quote ID:", quote.id);
+
       const { data, error } = await supabase.functions.invoke("get-shipping-rates", {
         body: { quoteId: quote.id },
       });
 
-      if (error) throw error;
-      if (data.error) throw new Error(data.error);
+      if (error) {
+        throw new Error(error.message || "Error de conexión con la función.");
+      }
 
-      setShippingRates(data.rates || []);
+      // Si la función devuelve un error lógico (ej: "No hay tarifas")
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      // Si no hay tasas o el array está vacío
+      if (!data.rates || data.rates.length === 0) {
+        throw new Error("No se encontraron paqueterías disponibles para esta ruta.");
+      }
+
+      console.log("📦 Tarifas recibidas:", data.rates);
+      setShippingRates(data.rates);
     } catch (err: any) {
       console.error("Error getting rates:", err);
       toast({
-        title: "Error al cotizar",
-        description: err.message || "Verifica las direcciones de origen y destino.",
+        title: "No se pudo cotizar",
+        description: err.message || "Verifica que el Origen y Destino tengan Código Postal válido.",
         variant: "destructive",
       });
-      setIsShippingModalOpen(false);
+      // No cerramos el modal para que el usuario vea que falló, pero mostramos estado vacío
+      setShippingRates([]);
     } finally {
       setLoadingRates(false);
     }
