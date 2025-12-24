@@ -1,10 +1,10 @@
 // ==========================================
 // FUNCIÓN: get-shipping-rates
-// ESTADO: V2.2 (FIX: Missing 'state' field)
+// ESTADO: V2.3 (FIX: Missing 'country' field)
 // ==========================================
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 
-const DEPLOY_VERSION = Deno.env.get("FUNCTION_HASH") || "DEBUG_V2.2_STATE_FIX";
+const DEPLOY_VERSION = Deno.env.get("FUNCTION_HASH") || "DEBUG_V2.3_COUNTRY_FIX";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -74,7 +74,7 @@ Deno.serve(async (req) => {
     const originSplit = splitStreet(originAddr.street);
     const destSplit = splitStreet(destinationAddr.street);
 
-    // 3. CONSTRUIR PAYLOAD (V2.2: STATE + STATE_CODE)
+    // 3. CONSTRUIR PAYLOAD (V2.3: FULL REDUNDANCY)
     const enviaPayload = {
       origin: {
         name: business.business_name || "Vendedor",
@@ -86,11 +86,13 @@ Deno.serve(async (req) => {
         district: originAddr.colony || "Centro",
         city: originAddr.city || "Monterrey",
         
-        // 🔥 CORRECCIÓN: Enviamos AMBOS para que no falle
         state_code: mapStateToISO2(originAddr.state),
-        state: mapStateToISO2(originAddr.state), // Envia a veces pide este campo explícito
+        state: mapStateToISO2(originAddr.state),
         
+        // 🔥 CORRECCIÓN: Agregamos 'country' duplicado
         country_code: "MX",
+        country: "MX",
+        
         postal_code: originAddr.zip_code,
         type: "business"
       },
@@ -104,17 +106,18 @@ Deno.serve(async (req) => {
         district: destinationAddr.colony || "Centro",
         city: destinationAddr.city || "Ciudad",
         
-        // 🔥 CORRECCIÓN AQUÍ TAMBIÉN
         state_code: mapStateToISO2(destinationAddr.state),
         state: mapStateToISO2(destinationAddr.state),
         
+        // 🔥 CORRECCIÓN: Agregamos 'country' duplicado
         country_code: "MX",
+        country: "MX",
+        
         postal_code: destinationAddr.zip_code,
         type: "residential",
         references: destinationAddr.references || ""
       },
       
-      // ✅ Packages se queda en la raíz (esto ya funcionó)
       packages: [
         {
           content: "Articulos Varios",
@@ -139,7 +142,7 @@ Deno.serve(async (req) => {
       }
     };
 
-    console.log(`📤 Payload V2.2:`, JSON.stringify(enviaPayload));
+    console.log(`📤 Payload V2.3:`, JSON.stringify(enviaPayload));
 
     // 4. Llamar API Envia
     const response = await fetch(ENVIA_URL, {
