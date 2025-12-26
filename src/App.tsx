@@ -6,6 +6,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 
+// Hooks
+import { useAffiliateTracker } from "@/hooks/useAffiliateTracker"; // ✅ 1. Importamos el hook
+
 // Providers
 import { AuthProvider } from "@/contexts/AuthContext";
 import { RoleProvider } from "@/contexts/RoleContext";
@@ -41,7 +44,7 @@ import WhySubscribePage from "@/pages/WhySubscribePage";
 import QuoteTracking from "@/pages/QuoteTracking";
 import TrackQuotePage from "@/pages/TrackQuotePage";
 import OpenpayDemo from "@/pages/OpenpayDemo";
-import Tracking from "@/pages/Tracking"; // <--- ✅ 1. NUEVA PÁGINA IMPORTADA
+import Tracking from "@/pages/Tracking";
 
 // Protected (Dashboard) Pages
 import MainDashboard from "@/pages/MainDashboard";
@@ -77,6 +80,12 @@ import OrdersPage from "@/pages/orders/index";
 
 const queryClient = new QueryClient();
 
+// ✅ 2. Componente Auxiliar para activar el rastreador dentro del Router
+const AffiliateTracker = () => {
+  useAffiliateTracker();
+  return null; // No renderiza nada, solo ejecuta la lógica
+};
+
 const App = () => {
   // --- 🔥 FIX CRÍTICO: DETECTOR DE SESIÓN CORRUPTA ---
   useEffect(() => {
@@ -95,6 +104,9 @@ const App = () => {
 
   return (
     <BrowserRouter>
+      {/* ✅ 3. Activamos el rastreador aquí, dentro del Router */}
+      <AffiliateTracker />
+
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <Toaster />
@@ -145,7 +157,7 @@ const App = () => {
                       <Route path="/tracking/:token" element={<QuoteTracking />} />
                       <Route path="/track/:token" element={<TrackQuotePage />} />
 
-                      {/* ✅ 2. NUEVA RUTA DE RASTREO PÚBLICO (Buscador) */}
+                      {/* ✅ NUEVA RUTA DE RASTREO PÚBLICO (Buscador) */}
                       <Route path="/rastreo" element={<Tracking />} />
 
                       {/* --- Rutas Protegidas (Con Sidebar) --- */}
