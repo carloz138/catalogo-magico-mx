@@ -33,6 +33,33 @@ export type Database = {
   };
   public: {
     Tables: {
+      affiliates: {
+        Row: {
+          balance_mxn: number | null;
+          created_at: string | null;
+          referral_code: string;
+          referred_by: string | null;
+          total_earnings_mxn: number | null;
+          user_id: string;
+        };
+        Insert: {
+          balance_mxn?: number | null;
+          created_at?: string | null;
+          referral_code: string;
+          referred_by?: string | null;
+          total_earnings_mxn?: number | null;
+          user_id: string;
+        };
+        Update: {
+          balance_mxn?: number | null;
+          created_at?: string | null;
+          referral_code?: string;
+          referred_by?: string | null;
+          total_earnings_mxn?: number | null;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
       backup_view_definitions: {
         Row: {
           backup_date: string | null;
@@ -2975,6 +3002,10 @@ export type Database = {
         Args: { p_reseller_id: string; p_token: string };
         Returns: boolean;
       };
+      add_referral_commission: {
+        Args: { p_amount: number; p_paying_user_id: string };
+        Returns: Json;
+      };
       allocate_stock_to_backorders: {
         Args: {
           p_new_stock: number;
@@ -3593,6 +3624,10 @@ export type Database = {
         Returns: undefined;
       };
       increment_view_count: { Args: { row_id: string }; Returns: undefined };
+      link_referral: {
+        Args: { p_code: string; p_new_user_id: string };
+        Returns: undefined;
+      };
       mark_production_batch_ready: {
         Args: { p_quote_item_ids: string[]; p_user_id: string };
         Returns: Json;
