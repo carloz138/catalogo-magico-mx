@@ -1,9 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useMerchantStats } from "@/hooks/useMerchantStats";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { useAuth } from "@/contexts/AuthContext"; // Asumo que tienes esto basado en tus archivos anteriores
+import { supabase } from "@/lib/supabase"; // Asegúrate que esta ruta sea correcta para tu cliente
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"; // <--- IMPORTANTE
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   CircleDollarSign,
   Clock,
@@ -16,17 +18,20 @@ import {
   Users,
   Lock,
   Unlock,
+  Loader2,
 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 
+// Formateador para montos en centavos (Stripe/Ventas)
 const formatCurrency = (amount: number) => {
   return new Intl.NumberFormat("es-MX", {
     style: "currency",
     currency: "MXN",
-  }).format(amount / 100); // asumiendo centavos
+  }).format(amount / 100);
 };
 
+// Formateador para montos directos (Base de Datos/Referidos)
 const formatCurrencyRaw = (amount: number) => {
   return new Intl.NumberFormat("es-MX", {
     style: "currency",
@@ -34,49 +39,46 @@ const formatCurrencyRaw = (amount: number) => {
   }).format(amount);
 };
 
-// --- MOCK DATA PARA REFERIDOS (Hasta que conectemos el Hook real) ---
-// Esto simula la lógica de "2 meses" que hablamos
-const mockReferralPayouts = [
-  {
-    id: "pay-101",
-    referred_user: "Disfraces Monterrey",
-    amount: 25000, // $250.00
-    status: "ready", // Mes 1 (Ya pasó)
-    release_date: "2025-01-01T00:00:00Z",
-    payment_number: 1,
-    total_payments: 2,
-  },
-  {
-    id: "pay-102",
-    referred_user: "Disfraces Monterrey",
-    amount: 25000, // $250.00
-    status: "locked", // Mes 2 (Futuro)
-    release_date: "2025-02-01T00:00:00Z",
-    payment_number: 2,
-    total_payments: 2,
-  },
-  {
-    id: "pay-103",
-    referred_user: "Fiestas Juan",
-    amount: 25000,
-    status: "processed", // Ya pagado
-    release_date: "2024-12-01T00:00:00Z",
-    payment_number: 1,
-    total_payments: 2,
-  },
-];
-
 export default function MoneyDashboard() {
+  // 1. Hooks existentes (Ventas)
+  const { user } = useAuth();
   const { stats, isLoadingStats, transactions, isLoadingTransactions } = useMerchantStats();
 
-  // Calcular totales de referidos (Simulado)
-  const referralAvailable = mockReferralPayouts
-    .filter((p) => p.status === "ready")
-    .reduce((acc, curr) => acc + curr.amount, 0);
+  // 2. Nuevos Estados (Referidos)
+  const [referrals, setReferrals] = useState<any[]>([]);
+  const [loadingReferrals, setLoadingReferrals] = useState(true);
 
-  const referralLocked = mockReferralPayouts
+  // 3. Cargar datos reales de la tabla 'affiliate_payouts'
+  useEffect(() => {
+    const fetchReferrals = async () => {
+      if (!user) return;
+      try {
+        const { data, error } = await supabase
+          .from("affiliate_payouts")
+          .select("*")
+          .eq("user_id", user.id)
+          .order("release_date", { ascending: false });
+
+        if (error) throw error;
+        setReferrals(data || []);
+      } catch (err) {
+        console.error("Error cargando referidos:", err);
+      } finally {
+        setLoadingReferrals(false);
+      }
+    };
+
+    fetchReferrals();
+  }, [user]);
+
+  // 4. Calcular totales de Referidos
+  const referralAvailable = referrals
+    .filter((p) => p.status === "ready")
+    .reduce((acc, curr) => acc + Number(curr.amount), 0); // Convertir a Number por si viene string de DB
+
+  const referralLocked = referrals
     .filter((p) => p.status === "locked")
-    .reduce((acc, curr) => acc + curr.amount, 0);
+    .reduce((acc, curr) => acc + Number(curr.amount), 0);
 
   return (
     <div className="min-h-screen bg-background">
@@ -90,7 +92,7 @@ export default function MoneyDashboard() {
           <p className="text-muted-foreground mt-1">Gestiona tus ingresos por ventas y referidos</p>
         </div>
 
-        {/* --- SISTEMA DE PESTAÑAS --- */}
+        {/* --- SISTEMA DE PESTAÑAS (TABS) --- */}
         <Tabs defaultValue="sales" className="w-full">
           <TabsList className="grid w-full grid-cols-2 mb-8">
             <TabsTrigger value="sales" className="flex items-center gap-2">
@@ -106,9 +108,9 @@ export default function MoneyDashboard() {
           {/* =================================================================================
                                           TAB 1: VENTAS (Tu código original)
              ================================================================================= */}
-          <TabsContent value="sales">
+          <TabsContent value="sales" className="space-y-6">
             {/* KPI Cards Ventas */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {/* Por Cobrar */}
               <Card className="border-amber-500/20 bg-gradient-to-br from-amber-500/5 to-transparent">
                 <CardHeader className="pb-2">
@@ -172,7 +174,7 @@ export default function MoneyDashboard() {
 
             {/* Transactions Section */}
             <div className="space-y-3">
-              <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <h2 className="text-lg font-semibold flex items-center gap-2">
                 <Receipt className="h-5 w-5 text-muted-foreground" />
                 Historial de Ventas
               </h2>
@@ -198,7 +200,6 @@ export default function MoneyDashboard() {
                       key={tx.id}
                       className="p-4 hover:shadow-md transition-shadow border-l-4 border-l-transparent hover:border-l-primary/20"
                     >
-                      {/* ... (Todo tu código interno de la tarjeta de transacción se mantiene igual) ... */}
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
                           <Calendar className="h-4 w-4 text-muted-foreground" />
@@ -241,10 +242,11 @@ export default function MoneyDashboard() {
           </TabsContent>
 
           {/* =================================================================================
-                                          TAB 2: REFERIDOS (NUEVO)
+                                          TAB 2: REFERIDOS (NUEVO & CONECTADO)
              ================================================================================= */}
-          <TabsContent value="referrals">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+          <TabsContent value="referrals" className="space-y-6">
+            {/* KPI Cards Referidos */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Disponible Ahora */}
               <Card className="border-emerald-500/20 bg-emerald-50/30">
                 <CardHeader className="pb-2">
@@ -254,7 +256,11 @@ export default function MoneyDashboard() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-3xl font-bold text-emerald-700">{formatCurrency(referralAvailable)}</p>
+                  {loadingReferrals ? (
+                    <Skeleton className="h-8 w-24" />
+                  ) : (
+                    <p className="text-3xl font-bold text-emerald-700">{formatCurrencyRaw(referralAvailable)}</p>
+                  )}
                   <p className="text-xs text-emerald-600/80 mt-1">Se depositará en tu próximo corte</p>
                 </CardContent>
               </Card>
@@ -268,56 +274,77 @@ export default function MoneyDashboard() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-3xl font-bold text-slate-600">{formatCurrency(referralLocked)}</p>
+                  {loadingReferrals ? (
+                    <Skeleton className="h-8 w-24" />
+                  ) : (
+                    <p className="text-3xl font-bold text-slate-600">{formatCurrencyRaw(referralLocked)}</p>
+                  )}
                   <p className="text-xs text-slate-400 mt-1">Comisiones futuras (2do mes)</p>
                 </CardContent>
               </Card>
             </div>
 
-            <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-              <Users className="h-5 w-5 text-muted-foreground" />
-              Desglose de Comisiones
-            </h2>
-
+            {/* Listado de Pagos Referidos */}
             <div className="space-y-3">
-              {mockReferralPayouts.map((payout) => (
-                <Card key={payout.id} className="p-4 flex items-center justify-between">
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="font-semibold text-slate-700">{payout.referred_user}</span>
-                      <Badge variant="outline" className="text-xs font-normal">
-                        Pago {payout.payment_number} de {payout.total_payments}
-                      </Badge>
-                    </div>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <Calendar className="h-3 w-3" />
-                      Liberación: {format(new Date(payout.release_date), "dd MMM yyyy", { locale: es })}
-                    </div>
-                  </div>
+              <h2 className="text-lg font-semibold flex items-center gap-2">
+                <Users className="h-5 w-5 text-muted-foreground" />
+                Desglose de Comisiones
+              </h2>
 
-                  <div className="text-right">
-                    <p className="font-bold text-lg text-slate-700">{formatCurrency(payout.amount)}</p>
-                    {payout.status === "locked" && (
-                      <Badge variant="secondary" className="bg-amber-100 text-amber-700 border-amber-200 text-[10px]">
-                        <Lock className="w-3 h-3 mr-1" /> Bloqueado
-                      </Badge>
-                    )}
-                    {payout.status === "ready" && (
-                      <Badge
-                        variant="secondary"
-                        className="bg-emerald-100 text-emerald-700 border-emerald-200 text-[10px]"
-                      >
-                        <CheckCircle2 className="w-3 h-3 mr-1" /> Listo
-                      </Badge>
-                    )}
-                    {payout.status === "processed" && (
-                      <Badge variant="secondary" className="bg-slate-100 text-slate-500 border-slate-200 text-[10px]">
-                        Pagado
-                      </Badge>
-                    )}
-                  </div>
+              {loadingReferrals ? (
+                <div className="flex justify-center p-8">
+                  <Loader2 className="animate-spin h-6 w-6 text-indigo-600" />
+                </div>
+              ) : referrals.length === 0 ? (
+                <Card className="p-8 text-center bg-slate-50">
+                  <Users className="h-12 w-12 mx-auto text-slate-300 mb-3" />
+                  <p className="text-slate-500">Aún no tienes comisiones por referidos</p>
+                  <p className="text-xs text-slate-400 mt-1">Invita amigos a usar CatifyPro para ganar dinero.</p>
                 </Card>
-              ))}
+              ) : (
+                referrals.map((payout) => (
+                  <Card key={payout.id} className="p-4 flex items-center justify-between">
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-semibold text-slate-700">Comisión por Suscripción</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <Calendar className="h-3 w-3" />
+                        Liberación: {format(new Date(payout.release_date), "dd MMM yyyy", { locale: es })}
+                      </div>
+                    </div>
+
+                    <div className="text-right">
+                      {/* Usamos formatCurrencyRaw porque en DB ya está en pesos, no centavos */}
+                      <p className="font-bold text-lg text-slate-700">{formatCurrencyRaw(payout.amount)}</p>
+
+                      {payout.status === "locked" && (
+                        <Badge variant="secondary" className="bg-amber-100 text-amber-700 border-amber-200 text-[10px]">
+                          <Lock className="w-3 h-3 mr-1" /> Bloqueado
+                        </Badge>
+                      )}
+                      {payout.status === "ready" && (
+                        <Badge
+                          variant="secondary"
+                          className="bg-emerald-100 text-emerald-700 border-emerald-200 text-[10px]"
+                        >
+                          <CheckCircle2 className="w-3 h-3 mr-1" /> Listo
+                        </Badge>
+                      )}
+                      {payout.status === "processed" && (
+                        <Badge variant="secondary" className="bg-slate-100 text-slate-500 border-slate-200 text-[10px]">
+                          Pagado
+                        </Badge>
+                      )}
+                      {payout.status === "cancelled" && (
+                        <Badge variant="destructive" className="text-[10px]">
+                          Cancelado
+                        </Badge>
+                      )}
+                    </div>
+                  </Card>
+                ))
+              )}
             </div>
           </TabsContent>
         </Tabs>
