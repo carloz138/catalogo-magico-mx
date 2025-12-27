@@ -18,11 +18,7 @@ export function AffiliateStats() {
 
     const fetchAffiliateData = async () => {
       try {
-        const { data, error } = await supabase
-          .from("affiliates")
-          .select("*")
-          .eq("user_id", user.id)
-          .single();
+        const { data, error } = await supabase.from("affiliates").select("*").eq("user_id", user.id).single();
 
         if (error && error.code !== "PGRST116") {
           console.error("Error cargando afiliados:", error);
@@ -58,14 +54,15 @@ export function AffiliateStats() {
   };
 
   if (loading) return <div className="h-32 bg-slate-100 animate-pulse rounded-lg"></div>;
-  
+
   // Si no hay datos de afiliado, no mostramos nada (o podrías mostrar un botón para activar)
-  if (!affiliateData) return (
-    <div className="p-6 text-center border rounded-lg bg-slate-50">
+  if (!affiliateData)
+    return (
+      <div className="p-6 text-center border rounded-lg bg-slate-50">
         <p className="text-slate-500 mb-2">Generando tu código de afiliado...</p>
         <p className="text-xs text-slate-400">Recarga la página en unos segundos.</p>
-    </div>
-  );
+      </div>
+    );
 
   const referralLink = `${window.location.origin}/?ref=${affiliateData.referral_code}`;
 
@@ -75,9 +72,7 @@ export function AffiliateStats() {
         {/* TARJETA 1: GANANCIAS */}
         <Card className="bg-gradient-to-br from-indigo-600 to-purple-700 text-white border-none shadow-lg">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-indigo-100">
-              Saldo Disponible
-            </CardTitle>
+            <CardTitle className="text-sm font-medium text-indigo-100">Saldo Disponible</CardTitle>
             <DollarSign className="h-4 w-4 text-indigo-100" />
           </CardHeader>
           <CardContent>
@@ -88,10 +83,10 @@ export function AffiliateStats() {
               +${Number(affiliateData.total_earnings_mxn || 0).toLocaleString("es-MX")} ganados históricamente
             </p>
             {Number(affiliateData.balance_mxn) > 0 && (
-              <Button 
+              <Button
                 onClick={handleWithdraw}
-                variant="secondary" 
-                size="sm" 
+                variant="secondary"
+                size="sm"
                 className="mt-3 w-full bg-white text-indigo-700 hover:bg-indigo-50"
               >
                 Solicitar Retiro
@@ -110,13 +105,14 @@ export function AffiliateStats() {
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm text-slate-600">
-              Comparte este enlace. Cuando alguien se registre y pague, tú ganarás el <span className="font-bold text-green-600">50% de su mensualidad</span> de por vida.
+              Comparte este enlace. Cuando alguien se registre y pague, tú ganarás el{" "}
+              <span className="font-bold text-green-600">50% de su mensualidad</span> de los primeros 2 meses.
             </p>
             <div className="flex gap-2">
               <div className="relative flex-1">
-                <Input 
-                  readOnly 
-                  value={referralLink} 
+                <Input
+                  readOnly
+                  value={referralLink}
                   className="bg-slate-50 border-slate-200 pr-10 font-mono text-xs md:text-sm text-slate-600"
                 />
               </div>
