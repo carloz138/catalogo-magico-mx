@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Copy, DollarSign, Gift } from "lucide-react";
+import { Copy, DollarSign, Gift, Loader2 } from "lucide-react";
 
 export function AffiliateStats() {
   const { user } = useAuth();
@@ -13,19 +13,44 @@ export function AffiliateStats() {
   const [loading, setLoading] = useState(true);
   const [affiliateData, setAffiliateData] = useState<any>(null);
 
+  // Variables para saldos reales calculados desde la nueva tabla
+  const [realBalance, setRealBalance] = useState(0);
+  const [totalHistorical, setTotalHistorical] = useState(0);
+
   useEffect(() => {
     if (!user) return;
 
     const fetchAffiliateData = async () => {
       try {
-        const { data, error } = await supabase.from("affiliates").select("*").eq("user_id", user.id).single();
+        // 1. Obtener datos del perfil (para el código de referido)
+        const { data: profile, error } = await supabase.from("affiliates").select("*").eq("user_id", user.id).single();
 
         if (error && error.code !== "PGRST116") {
           console.error("Error cargando afiliados:", error);
         }
 
-        if (data) {
-          setAffiliateData(data);
+        if (profile) {
+          setAffiliateData(profile);
+        }
+
+        // 2. CALCULAR SALDOS REALES (La corrección clave)
+        // Leemos 'affiliate_payouts' en lugar de confiar en columnas viejas
+        const { data: payouts, error: payoutsError } = await supabase
+          .from("affiliate_payouts" as any)
+          .select("amount, status")
+          .eq("user_id", user.id);
+
+        if (!payoutsError && payouts) {
+          // Saldo Disponible: Suma solo lo que está 'ready'
+          const available = payouts
+            .filter((p: any) => p.status === "ready")
+            .reduce((acc: number, curr: any) => acc + Number(curr.amount), 0);
+
+          // Histórico: Suma todo lo generado
+          const historical = payouts.reduce((acc: number, curr: any) => acc + Number(curr.amount), 0);
+
+          setRealBalance(available);
+          setTotalHistorical(historical);
         }
       } catch (err) {
         console.error(err);
@@ -48,14 +73,19 @@ export function AffiliateStats() {
   };
 
   const handleWithdraw = () => {
-    const message = `Hola, soy el usuario ${user?.email}. Quiero retirar mis ganancias de $${affiliateData?.balance_mxn} MXN. Mi código es ${affiliateData?.referral_code}.`;
+    // Usamos el saldo real calculado
+    const message = `Hola, soy el usuario ${user?.email}. Quiero retirar mis ganancias disponibles de $${realBalance.toFixed(2)} MXN. Mi código es ${affiliateData?.referral_code}.`;
     const whatsappUrl = `https://wa.me/528183745074?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, "_blank");
   };
 
-  if (loading) return <div className="h-32 bg-slate-100 animate-pulse rounded-lg"></div>;
+  if (loading)
+    return (
+      <div className="h-32 bg-slate-100 animate-pulse rounded-lg flex items-center justify-center">
+        <Loader2 className="animate-spin text-slate-400" />
+      </div>
+    );
 
-  // Si no hay datos de afiliado, no mostramos nada (o podrías mostrar un botón para activar)
   if (!affiliateData)
     return (
       <div className="p-6 text-center border rounded-lg bg-slate-50">
@@ -69,7 +99,7 @@ export function AffiliateStats() {
   return (
     <div className="space-y-6">
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {/* TARJETA 1: GANANCIAS */}
+        {/* TARJETA 1: SALDO (Con datos reales) */}
         <Card className="bg-gradient-to-br from-indigo-600 to-purple-700 text-white border-none shadow-lg">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-indigo-100">Saldo Disponible</CardTitle>
@@ -77,17 +107,17 @@ export function AffiliateStats() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              ${Number(affiliateData.balance_mxn || 0).toLocaleString("es-MX", { minimumFractionDigits: 2 })}
+              ${realBalance.toLocaleString("es-MX", { minimumFractionDigits: 2 })}
             </div>
             <p className="text-xs text-indigo-200 mt-1">
-              +${Number(affiliateData.total_earnings_mxn || 0).toLocaleString("es-MX")} ganados históricamente
+              +${totalHistorical.toLocaleString("es-MX")} generados históricamente
             </p>
-            {Number(affiliateData.balance_mxn) > 0 && (
+            {realBalance > 0 && (
               <Button
                 onClick={handleWithdraw}
                 variant="secondary"
                 size="sm"
-                className="mt-3 w-full bg-white text-indigo-700 hover:bg-indigo-50"
+                className="mt-3 w-full bg-white text-indigo-700 hover:bg-indigo-700 font-semibold"
               >
                 Solicitar Retiro
               </Button>
@@ -95,7 +125,7 @@ export function AffiliateStats() {
           </CardContent>
         </Card>
 
-        {/* TARJETA 2: TU ENLACE */}
+        {/* TARJETA 2: ENLACE */}
         <Card className="col-span-1 lg:col-span-2 border-indigo-100 bg-white">
           <CardHeader>
             <CardTitle className="text-base font-bold flex items-center gap-2 text-slate-800">
