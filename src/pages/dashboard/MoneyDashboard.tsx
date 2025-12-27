@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useMerchantStats } from "@/hooks/useMerchantStats";
 import { useAuth } from "@/contexts/AuthContext"; // Asumo que tienes esto basado en tus archivos anteriores
-import { supabase } from "@/lib/supabase"; // Asegúrate que esta ruta sea correcta para tu cliente
+import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
