@@ -19,7 +19,7 @@ import {
   TrendingUp,
   Lock,
   Play,
-  BrainCircuit, // ✅ AGREGADO
+  BrainCircuit, // ✅ AGREGADOO
   Radar, // ✅ AGREGADO
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
