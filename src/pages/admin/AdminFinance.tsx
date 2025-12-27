@@ -63,8 +63,13 @@ export default function AdminFinance() {
 
   const fetchReferralsQueue = async () => {
     setLoadingReferrals(true);
-    // Usamos 'as any' para evitar errores de tipado temporal
-    const { data } = await supabase.from("admin_pending_payouts_view" as any).select("*");
+    // ✅ AQUÍ ESTÁ EL CAMBIO: Apuntamos a la vista nueva que acabas de crear
+    const { data, error } = await supabase.from("admin_referrals_payout_view" as any).select("*");
+
+    if (error) {
+      console.error("Error cargando referidos:", error);
+      // No mostramos toast error intrusivo si solo está vacío, pero lo logueamos
+    }
     setReferralsQueue(data || []);
     setLoadingReferrals(false);
   };
@@ -120,19 +125,18 @@ export default function AdminFinance() {
           .from("affiliate_payouts" as any)
           .update({ batch_id: batchId }) // Vinculamos al lote
           .in("user_id", userIds)
-          .eq("status", "ready");
+          .eq("status", "ready")
+          .is("batch_id", null);
       }
 
       // 4. Generar CSV para el Banco
       const batchData = queue.map((item) => ({
         ID_Sistema: isMerchant ? item.merchant_id : item.user_id,
         Beneficiario: isMerchant ? item.business_name : item.email,
-        CLABE: isMerchant ? item.clabe_deposit : "N/A (Revisar Perfil)",
+        CLABE: isMerchant ? item.clabe_deposit : "PENDIENTE", // Placeholder
         Monto: (isMerchant ? item.amount_to_pay : item.total_to_pay).toFixed(2),
-        Concepto: isMerchant
-          ? `Pago Ventas Lote ${batchId.slice(0, 4)}`
-          : `Comision Referido Lote ${batchId.slice(0, 4)}`,
-        Batch_ID: batchId, // CRUCIAL PARA CONCILIAR
+        Concepto: isMerchant ? `Pago Ventas ${batchId.slice(0, 4)}` : `Comis Ref ${batchId.slice(0, 4)}`,
+        Batch_ID: batchId,
       }));
 
       const fileName = `LOTE_${isMerchant ? "VENTAS" : "REF"}_${format(new Date(), "yyyyMMdd")}_${batchId.slice(0, 6)}.csv`;
@@ -177,11 +181,9 @@ export default function AdminFinance() {
 
       for (const row of rows) {
         if (!row.trim()) continue;
-
-        // Asumimos el orden del CSV generado: ID, Ben, CLABE, Monto, Concepto, BATCH_ID
         const cols = row.split(",").map((c) => c.replace(/"/g, "").trim());
 
-        // Validar que tenga datos
+        // Validar que tenga datos mínimos
         if (cols.length < 6) continue;
 
         const userId = cols[0];
@@ -212,7 +214,7 @@ export default function AdminFinance() {
         }
       }
 
-      toast.success(`Conciliación Finalizada: ${successCount} registros actualizados.`);
+      toast.success(`Conciliación Finalizada: ${successCount} registros marcados como pagados.`);
       refetchMerchants();
       fetchReferralsQueue();
     } catch (error: any) {
@@ -243,7 +245,6 @@ export default function AdminFinance() {
           </div>
 
           <div className="flex gap-2">
-            {/* Input oculto para subir archivo */}
             <Input type="file" accept=".csv" className="hidden" ref={fileInputRef} onChange={handleUploadResponse} />
 
             <Button variant="outline" onClick={() => fileInputRef.current?.click()} disabled={processingBatch}>
@@ -346,7 +347,7 @@ export default function AdminFinance() {
                   <TableRow>
                     <TableHead>Email Usuario</TableHead>
                     <TableHead className="text-right">Monto</TableHead>
-                    <TableHead className="text-center">Status</TableHead>
+                    <TableHead className="text-center">Pagos Agrupados</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -375,7 +376,7 @@ export default function AdminFinance() {
                         </TableCell>
                         <TableCell className="text-center">
                           <Badge variant="outline" className="bg-amber-50 text-amber-600 border-amber-200">
-                            Por Dispersar
+                            {item.payouts_count} comisiones
                           </Badge>
                         </TableCell>
                       </TableRow>
@@ -386,25 +387,6 @@ export default function AdminFinance() {
             </Card>
           </TabsContent>
         </Tabs>
-
-        <div className="mt-6 p-4 bg-slate-50 border border-slate-200 rounded-lg flex gap-3 items-start">
-          <AlertCircle className="h-5 w-5 text-indigo-500 mt-0.5" />
-          <div className="text-sm text-slate-600">
-            <p className="font-semibold text-slate-800 mb-1">¿Cómo funciona la dispersión masiva?</p>
-            <ol className="list-decimal list-inside space-y-1">
-              <li>
-                Selecciona la pestaña (Ventas o Referidos) y haz clic en <b>Generar Lote Bancario</b>. Se descargará un
-                CSV.
-              </li>
-              <li>Sube ese archivo a tu portal bancario para realizar las transferencias.</li>
-              <li>
-                Cuando el banco confirme, descarga el comprobante (o usa el mismo CSV si todos pasaron) y súbelo en{" "}
-                <b>Conciliar Respuesta</b>.
-              </li>
-              <li>El sistema marcará automáticamente los pagos como "Completados".</li>
-            </ol>
-          </div>
-        </div>
       </div>
     </div>
   );
