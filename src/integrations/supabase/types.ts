@@ -33,6 +33,68 @@ export type Database = {
   };
   public: {
     Tables: {
+      affiliate_payouts: {
+        Row: {
+          amount: number;
+          batch_id: string | null;
+          created_at: string | null;
+          id: string;
+          origin_subscription_id: string;
+          release_date: string;
+          status: string | null;
+          user_id: string;
+        };
+        Insert: {
+          amount: number;
+          batch_id?: string | null;
+          created_at?: string | null;
+          id?: string;
+          origin_subscription_id: string;
+          release_date: string;
+          status?: string | null;
+          user_id: string;
+        };
+        Update: {
+          amount?: number;
+          batch_id?: string | null;
+          created_at?: string | null;
+          id?: string;
+          origin_subscription_id?: string;
+          release_date?: string;
+          status?: string | null;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "affiliate_payouts_origin_subscription_id_fkey";
+            columns: ["origin_subscription_id"];
+            isOneToOne: false;
+            referencedRelation: "subscriptions";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      affiliate_relationships: {
+        Row: {
+          created_at: string | null;
+          id: string;
+          referred_user_id: string;
+          referrer_id: string;
+        };
+        Insert: {
+          created_at?: string | null;
+          id?: string;
+          referred_user_id: string;
+          referrer_id: string;
+        };
+        Update: {
+          created_at?: string | null;
+          id?: string;
+          referred_user_id?: string;
+          referrer_id?: string;
+        };
+        Relationships: [];
+      };
       affiliates: {
         Row: {
           balance_mxn: number | null;
@@ -1248,6 +1310,30 @@ export type Database = {
             referencedColumns: ["id"];
           },
         ];
+      };
+      payout_batches: {
+        Row: {
+          id: string;
+          processed_at: string | null;
+          provider_response: Json | null;
+          status: string | null;
+          total_amount: number;
+        };
+        Insert: {
+          id?: string;
+          processed_at?: string | null;
+          provider_response?: Json | null;
+          status?: string | null;
+          total_amount: number;
+        };
+        Update: {
+          id?: string;
+          processed_at?: string | null;
+          provider_response?: Json | null;
+          status?: string | null;
+          total_amount?: number;
+        };
+        Relationships: [];
       };
       product_archive: {
         Row: {
@@ -2738,6 +2824,15 @@ export type Database = {
           merchant_id: string | null;
           oldest_payment_date: string | null;
           transactions_count: number | null;
+        };
+        Relationships: [];
+      };
+      admin_pending_payouts_view: {
+        Row: {
+          email: string | null;
+          pending_items_count: number | null;
+          total_to_pay: number | null;
+          user_id: string | null;
         };
         Relationships: [];
       };
