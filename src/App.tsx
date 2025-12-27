@@ -7,7 +7,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 
 // Hooks
-import { useAffiliateTracker } from "@/hooks/useAffiliateTracker"; // ✅ 1. Importamos el hook
+import { useAffiliateTracker } from "@/hooks/useAffiliateTracker";
 
 // Providers
 import { AuthProvider } from "@/contexts/AuthContext";
@@ -23,6 +23,7 @@ import { MockModeBanner } from "@/components/dev/MockModeBanner";
 
 // Components & Layouts
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import { ReferralHandler } from "@/components/auth/ReferralHandler"; // ✅ 1. IMPORT NUEVO: Manejador de Referidos Post-Login
 import DashboardLayout from "@/components/layout/DashboardLayout";
 
 // --- Pages ---
@@ -80,14 +81,14 @@ import OrdersPage from "@/pages/orders/index";
 
 const queryClient = new QueryClient();
 
-// ✅ 2. Componente Auxiliar para activar el rastreador dentro del Router
+// Componente Auxiliar para activar el rastreador dentro del Router (Captura el ?ref= en localStorage)
 const AffiliateTracker = () => {
   useAffiliateTracker();
-  return null; // No renderiza nada, solo ejecuta la lógica
+  return null;
 };
 
 const App = () => {
-  // --- 🔥 FIX CRÍTICO: DETECTOR DE SESIÓN CORRUPTA ---
+  // --- FIX CRÍTICO: DETECTOR DE SESIÓN CORRUPTA ---
   useEffect(() => {
     const {
       data: { subscription },
@@ -104,7 +105,7 @@ const App = () => {
 
   return (
     <BrowserRouter>
-      {/* ✅ 3. Activamos el rastreador aquí, dentro del Router */}
+      {/* Activamos el rastreador aquí para guardar la cookie/localstorage al entrar a la web */}
       <AffiliateTracker />
 
       <QueryClientProvider client={queryClient}>
@@ -117,6 +118,11 @@ const App = () => {
               <DevSimulationProvider>
                 <RoleProvider>
                   <SubscriptionProvider>
+                    {/* ✅ 2. ACTIVACIÓN NUEVA: Procesador de Referidos */}
+                    {/* Este componente vigila cuando el usuario se loguea (Email o Google) 
+                        y canjea el código guardado en localStorage contra la base de datos */}
+                    <ReferralHandler />
+
                     {/* Dev Tools - only visible to admins */}
                     <MockModeBanner />
                     <DevToolbar />
@@ -157,7 +163,7 @@ const App = () => {
                       <Route path="/tracking/:token" element={<QuoteTracking />} />
                       <Route path="/track/:token" element={<TrackQuotePage />} />
 
-                      {/* ✅ NUEVA RUTA DE RASTREO PÚBLICO (Buscador) */}
+                      {/* NUEVA RUTA DE RASTREO PÚBLICO (Buscador) */}
                       <Route path="/rastreo" element={<Tracking />} />
 
                       {/* --- Rutas Protegidas (Con Sidebar) --- */}
