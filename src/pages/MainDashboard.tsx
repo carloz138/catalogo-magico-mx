@@ -19,6 +19,7 @@ import { MarketIntelligenceWidget } from "@/components/dashboard/MarketIntellige
 import { SearchStatsWidget } from "@/components/dashboard/SearchStatsWidget";
 import { DeadStockAnalysis } from "@/components/dashboard/analytics/DeadStockAnalysis";
 import { DemandForecastWidget } from "@/components/dashboard/analytics/DemandForecastWidget";
+import { AffiliateStats } from "@/components/dashboard/AffiliateStats"; // ✅ 1. IMPORTADO
 
 // Iconos
 import {
@@ -36,7 +37,8 @@ import {
   DollarSign,
   Package,
   Check,
-  Rocket, // Icono para founders
+  Rocket,
+  Gift, // ✅ 2. IMPORTADO
 } from "lucide-react";
 
 export default function MainDashboard() {
@@ -48,10 +50,10 @@ export default function MainDashboard() {
 
   const [activeTab, setActiveTab] = useState("resumen");
   const [hasActiveCatalog, setHasActiveCatalog] = useState(false);
-  const [isLoadingData, setIsLoadingData] = useState(true); // Se mantiene para loading de metricas aunque no bloquee UI
+  const [isLoadingData, setIsLoadingData] = useState(true);
   const [isProcessingPending, setIsProcessingPending] = useState(false);
 
-  // ✅ ESTADOS PARA EL PROMO CODE
+  // ESTADOS PARA EL PROMO CODE
   const [isClaiming, setIsClaiming] = useState(false);
   const PROMO_CODE = "CYBER-AI-3";
 
@@ -68,7 +70,7 @@ export default function MainDashboard() {
     marketOpportunities: 0,
   });
 
-  // --- 🔥 LOGICA DE REPLICACIÓN AUTOMÁTICA AL ENTRAR ---
+  // LOGICA DE REPLICACIÓN AUTOMÁTICA
   useEffect(() => {
     const checkPendingReplication = async () => {
       const pendingCatalogId = localStorage.getItem("pending_replication_catalog_id");
@@ -113,7 +115,7 @@ export default function MainDashboard() {
     checkPendingReplication();
   }, [user, navigate, refreshRole]);
 
-  // 1. Verificar catálogo activo
+  // Verificar catálogo activo
   useEffect(() => {
     if (!user) return;
     const checkCatalog = async () => {
@@ -132,7 +134,7 @@ export default function MainDashboard() {
     checkCatalog();
   }, [user]);
 
-  // 2. Cargar RPC
+  // Cargar RPC
   useEffect(() => {
     const loadMetrics = async () => {
       if (!user) return;
@@ -151,38 +153,28 @@ export default function MainDashboard() {
     loadMetrics();
   }, [user]);
 
-  // ✅ LÓGICA HÍBRIDA: RECLAMAR GRATIS O REDIRIGIR A STRIPE
   const handleClaimFounder = async () => {
     if (!user) return;
     setIsClaiming(true);
 
     try {
-      // 1. Copiar al portapapeles siempre (sirve para ambos casos)
       await navigator.clipboard.writeText(PROMO_CODE);
-
-      // 2. Intentar activar directo en base de datos
-      // Usamos 'as any' para evitar el error de TypeScript si los tipos no se han regenerado
       const { data, error } = await supabase.rpc("claim_founder_plan" as any, {
         p_user_id: user.id,
       });
 
       if (error) throw error;
-
       const result = data as any;
 
       if (result.success) {
-        // --- CASO A: ÉXITO TOTAL (LIFETIME GRATIS) ---
         toast({
           title: "🎉 ¡Felicidades Fundador!",
           description: "Has activado el Plan Empresarial de por vida GRATIS.",
           className: "bg-green-600 text-white border-none",
           duration: 5000,
         });
-
-        // Recargar para actualizar el estado de la suscripción visualmente
         setTimeout(() => window.location.reload(), 2000);
       } else {
-        // --- CASO B: FALLO (PERO CON PLAN B - STRIPE) ---
         if (result.reason === "LIMIT_REACHED") {
           toast({
             title: "⏳ Lugares agotados",
@@ -190,8 +182,6 @@ export default function MainDashboard() {
             className: "bg-indigo-600 text-white border-none",
             duration: 4000,
           });
-
-          // Redirigimos al Checkout para que usen el código ahí
           setTimeout(() => {
             navigate("/checkout?plan=Empresarial");
           }, 2500);
@@ -202,7 +192,6 @@ export default function MainDashboard() {
             variant: "default",
           });
         } else {
-          // Otros errores genéricos
           toast({
             title: "Aviso",
             description: result.message,
@@ -293,13 +282,12 @@ export default function MainDashboard() {
         )}
       </div>
 
-      {/* 🔥 BANNER FOUNDERS (GRATIS DE POR VIDA) 🔥 */}
+      {/* BANNER FOUNDERS */}
       {!paqueteUsuario?.name?.toLowerCase().includes("empresarial") && (
         <motion.div
           variants={itemVariants}
           className="relative overflow-hidden rounded-xl bg-gradient-to-r from-slate-900 to-indigo-900 shadow-xl border border-indigo-500/30"
         >
-          {/* Decoración de fondo */}
           <div className="absolute top-0 right-0 -mt-4 -mr-4 w-32 h-32 bg-indigo-500 opacity-20 rounded-full blur-3xl"></div>
           <div className="absolute bottom-0 left-0 -mb-4 -ml-4 w-40 h-40 bg-purple-500 opacity-20 rounded-full blur-3xl"></div>
 
@@ -316,13 +304,11 @@ export default function MainDashboard() {
                   Acceso <span className="text-yellow-400">GRATIS DE POR VIDA</span>
                 </h3>
                 <p className="text-slate-300 text-sm max-w-xl">
-                  Sé uno de los primeros 50 fundadores y obtén el Plan Empresarial para siempre. Sin tarjetas, sin
-                  costos ocultos.
+                  Sé uno de los primeros 50 fundadores y obtén el Plan Empresarial para siempre.
                 </p>
               </div>
             </div>
 
-            {/* Caja de Código y Botón */}
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto bg-white/5 p-2 rounded-xl backdrop-blur-sm border border-white/10">
               <div className="flex-1 flex flex-col justify-center px-4 py-2 border border-dashed border-white/20 rounded-lg bg-black/40 text-center">
                 <span className="text-[10px] text-slate-400 uppercase tracking-widest font-semibold">
@@ -353,7 +339,6 @@ export default function MainDashboard() {
 
       {/* --- TARJETAS DE ACCIÓN INTELIGENTE --- */}
       <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* 1. NEGOCIACIÓN / LOGÍSTICA */}
         {metrics.ordersToDispatchCount > 0 ? (
           <Card className="bg-emerald-50 border-emerald-200 shadow-sm relative overflow-hidden">
             <div className="absolute top-0 right-0 p-3 opacity-10">
@@ -366,8 +351,7 @@ export default function MainDashboard() {
             </CardHeader>
             <CardContent>
               <p className="text-emerald-700 text-sm mb-3">
-                Tienes <span className="font-bold text-2xl mx-1">{metrics.ordersToDispatchCount}</span> pedidos pagados
-                listos para despachar.
+                Tienes <span className="font-bold text-2xl mx-1">{metrics.ordersToDispatchCount}</span> pedidos pagados.
               </p>
               <Button
                 size="sm"
@@ -391,7 +375,7 @@ export default function MainDashboard() {
             <CardContent>
               <p className="text-blue-700 text-sm mb-3">
                 Tienes <span className="font-bold text-2xl mx-1">{metrics.pendingNegotiationCount}</span> clientes
-                esperando precio y fecha.
+                esperando.
               </p>
               <Button
                 size="sm"
@@ -410,20 +394,11 @@ export default function MainDashboard() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-slate-400 text-sm">
-                Tu bandeja está al día.{" "}
-                <span
-                  className="block mt-1 text-indigo-500 font-medium cursor-pointer"
-                  onClick={() => navigate("/catalogs")}
-                >
-                  ¡Comparte tu catálogo para vender más!
-                </span>
-              </p>
+              <p className="text-slate-400 text-sm">Tu bandeja está al día.</p>
             </CardContent>
           </Card>
         )}
 
-        {/* 2. RADAR DE OPORTUNIDADES (SOLO L1) */}
         {isL1 &&
           (metrics.marketOpportunities > 0 ? (
             <Card className="bg-indigo-50 border-indigo-200 shadow-sm relative overflow-hidden">
@@ -437,8 +412,7 @@ export default function MainDashboard() {
               </CardHeader>
               <CardContent>
                 <p className="text-indigo-700 text-sm mb-3">
-                  <span className="font-bold text-2xl mx-1">{metrics.marketOpportunities}</span> solicitudes de
-                  productos que no tienes.
+                  <span className="font-bold text-2xl mx-1">{metrics.marketOpportunities}</span> solicitudes nuevas.
                 </p>
                 <Button
                   size="sm"
@@ -463,7 +437,6 @@ export default function MainDashboard() {
             </Card>
           ))}
 
-        {/* 2.5 TARJETA DE ACCIÓN L2 (Si es revendedor) */}
         {isL2 && (
           <Card className="bg-violet-50 border-violet-200 shadow-sm relative overflow-hidden">
             <div className="absolute top-0 right-0 p-3 opacity-10">
@@ -487,7 +460,6 @@ export default function MainDashboard() {
           </Card>
         )}
 
-        {/* 3. DEMANDA PERDIDA (SOLO L1) */}
         {isL1 && metrics.missedSearchCount > 2 && (
           <Card className="bg-orange-50 border-orange-200 shadow-sm relative overflow-hidden">
             <div className="absolute top-0 right-0 p-3 opacity-10">
@@ -500,7 +472,7 @@ export default function MainDashboard() {
             </CardHeader>
             <CardContent>
               <p className="text-orange-700 text-sm mb-3">
-                Buscan <strong>"{metrics.missedSearchTerm}"</strong> ({metrics.missedSearchCount} veces) y no está.
+                Buscan <strong>"{metrics.missedSearchTerm}"</strong> ({metrics.missedSearchCount} veces).
               </p>
               <Button
                 size="sm"
@@ -521,7 +493,11 @@ export default function MainDashboard() {
             <BarChart3 className="w-4 h-4 mr-2" /> Resumen
           </TabsTrigger>
 
-          {/* Inteligencia y Estrategia solo para L1 o Híbridos */}
+          {/* ✅ NUEVA PESTAÑA: GANA DINERO */}
+          <TabsTrigger value="afiliados" className="px-6 py-2.5">
+            <Gift className="w-4 h-4 mr-2 text-purple-600" /> Gana Dinero
+          </TabsTrigger>
+
           {isL1 && (
             <>
               <TabsTrigger value="inteligencia" className="px-6 py-2.5">
@@ -552,7 +528,6 @@ export default function MainDashboard() {
                 <SalesChart userId={user.id} />
               </CardContent>
             </Card>
-            {/* Tarjeta Lateral Informativa */}
             <Card className="bg-white border-slate-200">
               <CardHeader>
                 <CardTitle className="text-sm uppercase tracking-wider text-slate-500 font-bold">
@@ -566,7 +541,7 @@ export default function MainDashboard() {
                       <Package className="w-8 h-8 text-blue-600" />
                     </div>
                     <p className="text-2xl font-bold text-slate-800">{metrics.newProviderProducts}</p>
-                    <p className="text-xs text-slate-500">Productos Nuevos del Proveedor</p>
+                    <p className="text-xs text-slate-500">Productos Nuevos</p>
                     <Button
                       variant="link"
                       size="sm"
@@ -590,6 +565,13 @@ export default function MainDashboard() {
                 )}
               </CardContent>
             </Card>
+          </motion.div>
+        </TabsContent>
+
+        {/* ✅ CONTENIDO PESTAÑA: GANA DINERO */}
+        <TabsContent value="afiliados" className="space-y-6 focus-visible:outline-none">
+          <motion.div variants={itemVariants}>
+            <AffiliateStats />
           </motion.div>
         </TabsContent>
 
