@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
-import { Landmark, Upload, Download, Building2, Users, Loader2, FileSpreadsheet, AlertCircle } from "lucide-react";
+import { Landmark, Upload, Download, Building2, Users, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 
@@ -104,8 +104,6 @@ export default function AdminFinance() {
       // 3. Vincular los pagos individuales a este Lote (UPDATE masivo)
       if (isMerchant) {
         // Para comercios: Actualizamos payment_transactions
-        // Nota: Esto asume que payoutQueue trae el merchant_id.
-        // Actualizamos TODAS las transacciones pendientes de esos merchants.
         const merchantIds = queue.map((q) => q.merchant_id);
 
         await supabase
@@ -142,7 +140,7 @@ export default function AdminFinance() {
 
       toast.success("Lote generado y descargado. Súbelo a tu banco.");
 
-      // Recargar listas (ahora deberían salir vacías o podrías filtrar los que ya tienen batch_id)
+      // Recargar listas
       refetchMerchants();
       fetchReferralsQueue();
     } catch (error: any) {
@@ -189,9 +187,6 @@ export default function AdminFinance() {
         const userId = cols[0];
         const batchId = cols[5];
 
-        // Si el CSV trae una columna de "Status" del banco, podrías leerla aquí.
-        // Por ahora, asumimos que si está en el archivo, se pagó.
-
         if (activeTab === "merchants") {
           // Marcar VENTAS como pagadas
           const { error } = await supabase
@@ -202,7 +197,7 @@ export default function AdminFinance() {
               payout_reference: `BATCH_${batchId}`,
             })
             .eq("net_to_merchant", userId)
-            .eq("batch_id", batchId); // Solo las de este lote
+            .eq("batch_id", batchId);
 
           if (!error) successCount++;
         } else {
@@ -211,15 +206,11 @@ export default function AdminFinance() {
             .from("affiliate_payouts" as any)
             .update({ status: "processed" })
             .eq("user_id", userId)
-            .eq("batch_id", batchId); // Solo los de este lote
+            .eq("batch_id", batchId);
 
           if (!error) successCount++;
         }
       }
-
-      // Marcar el Lote como Completado
-      // (Esto es opcional, depende de si todos pasaron)
-      // await supabase.from('payout_batches' as any).update({ status: 'completed' }).eq('id', batchId)...
 
       toast.success(`Conciliación Finalizada: ${successCount} registros actualizados.`);
       refetchMerchants();
