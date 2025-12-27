@@ -9,9 +9,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
 import { useAuth } from "../contexts/AuthContext";
 import { toast } from "../components/ui/use-toast";
-import { Mail, Loader2, CheckCircle, AlertCircle, ArrowLeft, Lock } from "lucide-react";
+import { Mail, Loader2, CheckCircle, AlertCircle, ArrowLeft, Lock, Gift } from "lucide-react"; // [+] Agregué Gift
 import { useNavigate, useLocation } from "react-router-dom";
 import { useSaaSMarketing } from "@/providers/SaaSMarketingProvider";
+import { Badge } from "../components/ui/badge"; // [+] Agregué Badge
 
 const businessTypeOptions = [
   { value: "pyme", label: "PyME / Pequeña Empresa" },
@@ -36,8 +37,10 @@ export default function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // ✅ CAMBIO 1: El default ahora es "/dashboard" (La página segura para todos)
   const [redirectPath, setRedirectPath] = useState("/dashboard");
+
+  // [+] Estado para el código de referido
+  const [referralCode, setReferralCode] = useState<string | null>(null);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -45,6 +48,19 @@ export default function LoginPage() {
     if (redirectTo) {
       console.log("📍 Detectada redirección pendiente a:", redirectTo);
       setRedirectPath(redirectTo);
+    }
+
+    // [+] Lógica para capturar el código de referido de la URL
+    const refParam = params.get("ref");
+    if (refParam) {
+      setReferralCode(refParam);
+      localStorage.setItem("catify_ref_code", refParam); // Persistir por si recarga
+    } else {
+      // Intentar recuperar del storage si no viene en URL
+      const storedRef = localStorage.getItem("catify_ref_code");
+      if (storedRef) {
+        setReferralCode(storedRef);
+      }
     }
   }, [location]);
 
@@ -76,16 +92,24 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     setFeedback({ type: "", message: "" });
+
+    // [+] Se agrega referral_code a la metadata del registro
     const { error } = await signUp(signupData.email, signupData.password, {
       full_name: signupData.full_name,
       business_name: signupData.business_name,
       business_type: signupData.business_type,
       phone: signupData.phone,
+      referral_code: referralCode, // [+] Aquí se envía el código
     });
+
     if (error) {
       setFeedback({ type: "error", message: error.message });
     } else {
       trackSaaSEvent("CompleteRegistration", { content_name: "New User Signup" });
+
+      // [+] Limpiar código usado
+      if (referralCode) localStorage.removeItem("catify_ref_code");
+
       setFeedback({ type: "success", message: "¡Cuenta creada! Revisa tu email para confirmar tu cuenta." });
     }
     setLoading(false);
@@ -97,8 +121,9 @@ export default function LoginPage() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          // ✅ CAMBIO 2: Si no hay redirectPath específico, usa /dashboard
           redirectTo: `${window.location.origin}${redirectPath === "/dashboard" ? "/dashboard" : redirectPath}`,
+          // [+] Pasar el ref como query param para que no se pierda en el redirect de Google
+          queryParams: referralCode ? { ref: referralCode } : undefined,
         },
       });
 
@@ -144,13 +169,14 @@ export default function LoginPage() {
       return;
     }
 
-    // ✅ CAMBIO 3: Aseguramos el fallback a /dashboard
     const destinationUrl = `${window.location.origin}${redirectPath}`;
 
     const { error } = await supabase.auth.signInWithOtp({
       email: emailToUse,
       options: {
         emailRedirectTo: destinationUrl,
+        // [+] Opcional: pasar referral code en data si lo soporta tu flujo de magic link
+        data: referralCode ? { referral_code: referralCode } : undefined,
       },
     });
 
@@ -189,11 +215,25 @@ export default function LoginPage() {
             )}
           </CardTitle>
           {!showResetPassword && (
-            <CardDescription>
-              {redirectPath.includes("quotes")
-                ? "Inicia sesión para ver tu cotización."
-                : "Elige tu método preferido para acceder o crear tu cuenta."}
-            </CardDescription>
+            <>
+              <CardDescription>
+                {redirectPath.includes("quotes")
+                  ? "Inicia sesión para ver tu cotización."
+                  : "Elige tu método preferido para acceder o crear tu cuenta."}
+              </CardDescription>
+              {/* [+] Badge visual de referido */}
+              {referralCode && (
+                <div className="flex justify-center mt-2">
+                  <Badge
+                    variant="secondary"
+                    className="bg-emerald-100 text-emerald-700 border-emerald-200 flex gap-1 items-center px-3 py-1"
+                  >
+                    <Gift className="h-3 w-3" />
+                    Código de invitado aplicado
+                  </Badge>
+                </div>
+              )}
+            </>
           )}
         </CardHeader>
 
