@@ -1,63 +1,54 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSuperAdmin } from "@/hooks/useSuperAdmin";
-import { useAdminFinance } from "@/hooks/useAdminFinance"; // Tu hook existente
-import { supabase } from "@/integrations/supabase/client"; // Cliente Supabase
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useAdminFinance } from "@/hooks/useAdminFinance";
+import { supabase } from "@/integrations/supabase/client";
+import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  Landmark,
-  TrendingUp,
-  Wallet,
-  AlertCircle,
-  Download,
-  Building2,
-  CreditCard,
-  Users,
-  CheckCircle2,
-  Copy,
-  Loader2,
-} from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Landmark, Upload, Download, Building2, Users, Loader2, FileSpreadsheet, AlertCircle } from "lucide-react";
 import { format } from "date-fns";
-import { es } from "date-fns/locale";
 import { toast } from "sonner";
 
-const formatCurrency = (amount: number) => {
-  return new Intl.NumberFormat("es-MX", {
-    style: "currency",
-    currency: "MXN",
-  }).format(amount);
+// --- UTILIDAD: DESCARGAR CSV ---
+const downloadCSV = (data: any[], filename: string) => {
+  if (!data || data.length === 0) return;
+  const csvContent = [
+    Object.keys(data[0]).join(","), // Encabezados
+    ...data.map((row) =>
+      Object.values(row)
+        .map((val) => `"${val}"`)
+        .join(","),
+    ), // Filas
+  ].join("\n");
+
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = filename;
+  link.click();
 };
 
 export default function AdminFinance() {
   const navigate = useNavigate();
   const { isSuperAdmin, isLoading: isLoadingAdmin } = useSuperAdmin();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // 1. DATA DE VENTAS (Tu hook original)
-  const { summary, isLoadingSummary, payoutQueue, isLoadingPayoutQueue, refetch: refetchMerchants } = useAdminFinance();
+  // 1. DATA DE VENTAS (Merchants)
+  const { payoutQueue, refetch: refetchMerchants } = useAdminFinance();
 
-  // 2. DATA DE REFERIDOS (Nueva lógica manual)
+  // 2. DATA DE REFERIDOS
   const [referralsQueue, setReferralsQueue] = useState<any[]>([]);
   const [loadingReferrals, setLoadingReferrals] = useState(true);
 
-  // 3. ESTADOS PARA MODALES
-  const [modalType, setModalType] = useState<"product" | "referral" | null>(null);
-  const [selectedItem, setSelectedItem] = useState<any>(null);
-  const [processingPayment, setProcessingPayment] = useState(false);
+  // ESTADOS DE UI
+  const [processingBatch, setProcessingBatch] = useState(false);
+  const [activeTab, setActiveTab] = useState("merchants");
 
-  // Redirect if not super admin
+  // VALIDACIÓN DE SEGURIDAD
   useEffect(() => {
     if (!isLoadingAdmin && !isSuperAdmin) {
       toast.error("Acceso denegado");
@@ -65,121 +56,179 @@ export default function AdminFinance() {
     }
   }, [isSuperAdmin, isLoadingAdmin, navigate]);
 
-  // Cargar Referidos al iniciar
+  // CARGAR REFERIDOS
   useEffect(() => {
     if (isSuperAdmin) fetchReferralsQueue();
   }, [isSuperAdmin]);
 
   const fetchReferralsQueue = async () => {
     setLoadingReferrals(true);
-    // Usamos 'as any' para evitar errores de tipado si no has regenerado types
-    const { data, error } = await supabase.from("admin_pending_payouts_view" as any).select("*");
-    if (error) {
-      console.error("Error cargando referidos:", error);
-      toast.error("Error al cargar cola de referidos");
-    } else {
-      setReferralsQueue(data || []);
-    }
+    // Usamos 'as any' para evitar errores de tipado temporal
+    const { data } = await supabase.from("admin_pending_payouts_view" as any).select("*");
+    setReferralsQueue(data || []);
     setLoadingReferrals(false);
   };
 
-  // --- ACCIÓN 1: MARCAR PAGADO (PRODUCTOS / COMISIONES DE VENTA) ---
-  const handleMarkProductBatchPaid = async () => {
-    if (!selectedItem || modalType !== "product") return;
-    setProcessingPayment(true);
+  // ==============================================================================
+  // A. GENERAR LOTE (BATCH) Y DESCARGAR CSV
+  // ==============================================================================
+  const handleGenerateBatch = async () => {
+    const isMerchant = activeTab === "merchants";
+    const queue = isMerchant ? payoutQueue : referralsQueue;
 
-    try {
-      // Buscamos todas las transacciones de este merchant que estén "pendientes" (payout_status IS NULL)
-      // y que la plataforma tenga los fondos.
-      // NOTA: Asumimos que tu tabla se llama 'payment_transactions'. Ajusta si es diferente.
-      const { error } = await supabase
-        .from("payment_transactions" as any)
-        .update({
-          payout_status: "paid",
-          payout_date: new Date().toISOString(),
-          payout_reference: "MANUAL_BATCH", // Opcional: podrías pedir un input de referencia
-        })
-        .eq("net_to_merchant", selectedItem.merchant_id) // Usamos el ID del merchant de la cola
-        .eq("funds_held_by_platform", true) // Solo fondos que tenemos nosotros
-        .is("payout_status", null); // Que no hayan sido pagados antes
-
-      if (error) throw error;
-
-      toast.success(`Pagos registrados para ${selectedItem.business_name}`);
-      setModalType(null);
-      refetchMerchants(); // Recargar la lista de useAdminFinance
-    } catch (error: any) {
-      console.error(error);
-      toast.error("Error al actualizar transacciones: " + error.message);
-    } finally {
-      setProcessingPayment(false);
+    if (queue.length === 0) {
+      toast.error("No hay pagos pendientes para generar.");
+      return;
     }
-  };
 
-  // --- ACCIÓN 2: MARCAR PAGADO (REFERIDOS / SUSCRIPCIONES) ---
-  const handleMarkReferralPaid = async () => {
-    if (!selectedItem || modalType !== "referral") return;
-    setProcessingPayment(true);
-
+    setProcessingBatch(true);
     try {
-      // A. Crear Batch
-      const { data: batch, error: batchError } = await supabase
+      // 1. Calcular total del lote
+      const totalAmount = queue.reduce((acc, item) => acc + (isMerchant ? item.amount_to_pay : item.total_to_pay), 0);
+
+      // 2. Crear el registro en 'payout_batches'
+      const { data: batch, error: batchErr } = await supabase
         .from("payout_batches" as any)
-        .insert({ total_amount: selectedItem.total_to_pay, status: "completed" })
+        .insert({
+          total_amount: totalAmount,
+          status: "sent", // Estado inicial: Enviado al banco
+          batch_type: isMerchant ? "merchant" : "referral",
+        })
         .select()
         .single();
 
-      if (batchError) throw batchError;
+      if (batchErr) throw batchErr;
 
       const batchId = (batch as any).id;
 
-      // B. Actualizar registros individuales
-      const { error: updateError } = await supabase
-        .from("affiliate_payouts" as any)
-        .update({ status: "processed", batch_id: batchId })
-        .eq("user_id", selectedItem.user_id)
-        .eq("status", "ready");
+      // 3. Vincular los pagos individuales a este Lote (UPDATE masivo)
+      if (isMerchant) {
+        // Para comercios: Actualizamos payment_transactions
+        // Nota: Esto asume que payoutQueue trae el merchant_id.
+        // Actualizamos TODAS las transacciones pendientes de esos merchants.
+        const merchantIds = queue.map((q) => q.merchant_id);
 
-      if (updateError) throw updateError;
+        await supabase
+          .from("payment_transactions" as any)
+          .update({ batch_id: batchId }) // Vinculamos al lote
+          .in("net_to_merchant", merchantIds)
+          .eq("funds_held_by_platform", true)
+          .is("payout_status", null);
+      } else {
+        // Para referidos: Actualizamos affiliate_payouts
+        const userIds = queue.map((q) => q.user_id);
 
-      toast.success(`Pago de referidos registrado para ${selectedItem.email}`);
-      setModalType(null);
-      fetchReferralsQueue(); // Recargar lista manual
+        await supabase
+          .from("affiliate_payouts" as any)
+          .update({ batch_id: batchId }) // Vinculamos al lote
+          .in("user_id", userIds)
+          .eq("status", "ready");
+      }
+
+      // 4. Generar CSV para el Banco
+      const batchData = queue.map((item) => ({
+        ID_Sistema: isMerchant ? item.merchant_id : item.user_id,
+        Beneficiario: isMerchant ? item.business_name : item.email,
+        CLABE: isMerchant ? item.clabe_deposit : "N/A (Revisar Perfil)",
+        Monto: (isMerchant ? item.amount_to_pay : item.total_to_pay).toFixed(2),
+        Concepto: isMerchant
+          ? `Pago Ventas Lote ${batchId.slice(0, 4)}`
+          : `Comision Referido Lote ${batchId.slice(0, 4)}`,
+        Batch_ID: batchId, // CRUCIAL PARA CONCILIAR
+      }));
+
+      const fileName = `LOTE_${isMerchant ? "VENTAS" : "REF"}_${format(new Date(), "yyyyMMdd")}_${batchId.slice(0, 6)}.csv`;
+      downloadCSV(batchData, fileName);
+
+      toast.success("Lote generado y descargado. Súbelo a tu banco.");
+
+      // Recargar listas (ahora deberían salir vacías o podrías filtrar los que ya tienen batch_id)
+      refetchMerchants();
+      fetchReferralsQueue();
     } catch (error: any) {
-      toast.error("Error al procesar pago: " + error.message);
+      console.error(error);
+      toast.error("Error generando lote: " + error.message);
     } finally {
-      setProcessingPayment(false);
+      setProcessingBatch(false);
     }
   };
 
-  const handleExportCSV = () => {
-    if (payoutQueue.length === 0) {
-      toast.error("No hay datos para exportar");
-      return;
-    }
-    const headers = ["Nombre Negocio", "CLABE", "Monto a Pagar", "Email", "Transacciones", "Fecha Más Antigua"];
-    const rows = payoutQueue.map((item) => [
-      item.business_name,
-      item.clabe_deposit,
-      item.amount_to_pay.toFixed(2),
-      item.contact_email,
-      item.transactions_count.toString(),
-      format(new Date(item.oldest_payment_date), "yyyy-MM-dd"),
-    ]);
+  // ==============================================================================
+  // B. CONCILIAR RESPUESTA (SUBIR CSV)
+  // ==============================================================================
+  const handleUploadResponse = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
 
-    const csvContent = [headers.join(","), ...rows.map((row) => row.map((cell) => `"${cell}"`).join(","))].join("\n");
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const text = e.target?.result as string;
+      await processConciliation(text);
+    };
+    reader.readAsText(file);
 
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = `dispersiones_ventas_${format(new Date(), "yyyy-MM-dd")}.csv`;
-    link.click();
-    toast.success("CSV exportado correctamente");
+    // Limpiar input
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    toast.success("Copiado al portapapeles");
+  const processConciliation = async (csvText: string) => {
+    setProcessingBatch(true);
+    try {
+      const rows = csvText.split("\n").slice(1); // Ignorar header
+      let successCount = 0;
+
+      for (const row of rows) {
+        if (!row.trim()) continue;
+
+        // Asumimos el orden del CSV generado: ID, Ben, CLABE, Monto, Concepto, BATCH_ID
+        const cols = row.split(",").map((c) => c.replace(/"/g, "").trim());
+
+        // Validar que tenga datos
+        if (cols.length < 6) continue;
+
+        const userId = cols[0];
+        const batchId = cols[5];
+
+        // Si el CSV trae una columna de "Status" del banco, podrías leerla aquí.
+        // Por ahora, asumimos que si está en el archivo, se pagó.
+
+        if (activeTab === "merchants") {
+          // Marcar VENTAS como pagadas
+          const { error } = await supabase
+            .from("payment_transactions" as any)
+            .update({
+              payout_status: "paid",
+              payout_date: new Date().toISOString(),
+              payout_reference: `BATCH_${batchId}`,
+            })
+            .eq("net_to_merchant", userId)
+            .eq("batch_id", batchId); // Solo las de este lote
+
+          if (!error) successCount++;
+        } else {
+          // Marcar REFERIDOS como pagados
+          const { error } = await supabase
+            .from("affiliate_payouts" as any)
+            .update({ status: "processed" })
+            .eq("user_id", userId)
+            .eq("batch_id", batchId); // Solo los de este lote
+
+          if (!error) successCount++;
+        }
+      }
+
+      // Marcar el Lote como Completado
+      // (Esto es opcional, depende de si todos pasaron)
+      // await supabase.from('payout_batches' as any).update({ status: 'completed' }).eq('id', batchId)...
+
+      toast.success(`Conciliación Finalizada: ${successCount} registros actualizados.`);
+      refetchMerchants();
+      fetchReferralsQueue();
+    } catch (error: any) {
+      toast.error("Error al procesar archivo: " + error.message);
+    } finally {
+      setProcessingBatch(false);
+    }
   };
 
   if (isLoadingAdmin)
@@ -193,96 +242,41 @@ export default function AdminFinance() {
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-6 max-w-6xl">
-        {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-2xl md:text-3xl font-bold text-foreground flex items-center gap-2">
-            <Landmark className="h-7 w-7 text-indigo-500" />
-            Finanzas Admin
-          </h1>
-          <p className="text-muted-foreground mt-1">Panel de control financiero unificado</p>
-        </div>
+        {/* Header con Botones de Acción */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold flex items-center gap-2">
+              <Landmark className="h-7 w-7 text-indigo-500" /> Finanzas Admin
+            </h1>
+            <p className="text-muted-foreground mt-1">Dispersión Masiva y Conciliación Bancaria</p>
+          </div>
 
-        {/* KPI Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          {/* Ventas Brutas */}
-          <Card className="border-blue-500/20 bg-gradient-to-br from-blue-500/5 to-transparent">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <TrendingUp className="h-4 w-4 text-blue-500" />
-                Ventas Brutas
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {isLoadingSummary ? (
-                <Skeleton className="h-8 w-28" />
-              ) : (
-                <p className="text-xl md:text-2xl font-bold text-blue-600">
-                  {formatCurrency(summary?.total_sales_gross ?? 0)}
-                </p>
-              )}
-            </CardContent>
-          </Card>
+          <div className="flex gap-2">
+            {/* Input oculto para subir archivo */}
+            <Input type="file" accept=".csv" className="hidden" ref={fileInputRef} onChange={handleUploadResponse} />
 
-          {/* Ganancia SaaS */}
-          <Card className="border-emerald-500/20 bg-gradient-to-br from-emerald-500/5 to-transparent">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <Wallet className="h-4 w-4 text-emerald-500" />
-                Ganancia Plataforma
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {isLoadingSummary ? (
-                <Skeleton className="h-8 w-28" />
-              ) : (
-                <p className="text-xl md:text-2xl font-bold text-emerald-600">
-                  {formatCurrency(summary?.total_earnings_saas ?? 0)}
-                </p>
-              )}
-            </CardContent>
-          </Card>
+            <Button variant="outline" onClick={() => fileInputRef.current?.click()} disabled={processingBatch}>
+              <Upload className="h-4 w-4 mr-2" />
+              1. Conciliar Respuesta
+            </Button>
 
-          {/* Ya Dispersado */}
-          <Card className="border-slate-500/20 bg-gradient-to-br from-slate-500/5 to-transparent">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <CreditCard className="h-4 w-4 text-slate-500" />
-                Ya Dispersado
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {isLoadingSummary ? (
-                <Skeleton className="h-8 w-28" />
+            <Button
+              onClick={handleGenerateBatch}
+              disabled={processingBatch}
+              className="bg-indigo-600 hover:bg-indigo-700"
+            >
+              {processingBatch ? (
+                <Loader2 className="animate-spin h-4 w-4 mr-2" />
               ) : (
-                <p className="text-xl md:text-2xl font-bold text-slate-600">
-                  {formatCurrency(summary?.total_paid_out ?? 0)}
-                </p>
+                <Download className="h-4 w-4 mr-2" />
               )}
-            </CardContent>
-          </Card>
-
-          {/* Deuda Pendiente */}
-          <Card className="border-amber-500/20 bg-gradient-to-br from-amber-500/5 to-transparent">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <AlertCircle className="h-4 w-4 text-amber-500" />
-                Deuda Ventas
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {isLoadingSummary ? (
-                <Skeleton className="h-8 w-28" />
-              ) : (
-                <p className="text-xl md:text-2xl font-bold text-amber-600">
-                  {formatCurrency(summary?.pending_payout_balance ?? 0)}
-                </p>
-              )}
-            </CardContent>
-          </Card>
+              2. Generar Lote Bancario
+            </Button>
+          </div>
         </div>
 
         {/* --- TABS --- */}
-        <Tabs defaultValue="merchants" className="w-full">
+        <Tabs defaultValue="merchants" onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-2 mb-6 max-w-md">
             <TabsTrigger value="merchants" className="flex gap-2">
               <Building2 className="h-4 w-4" /> Dispersión Ventas
@@ -294,38 +288,31 @@ export default function AdminFinance() {
 
           {/* TAB 1: VENTAS DE PRODUCTOS */}
           <TabsContent value="merchants">
-            <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-              <div>
-                <h2 className="text-lg font-semibold text-foreground">Cola de Dispersión (Ventas)</h2>
-                <p className="text-sm text-muted-foreground">Pago a proveedores por productos vendidos</p>
-              </div>
-              <Button onClick={handleExportCSV} className="gap-2" disabled={payoutQueue.length === 0}>
-                <Download className="h-4 w-4" /> CSV Bancario
-              </Button>
-            </div>
-
             <Card>
+              <CardHeader>
+                <CardTitle className="flex justify-between items-center">
+                  <span>Pagos Pendientes a Comercios</span>
+                  <Badge variant="secondary">{payoutQueue.length} pendientes</Badge>
+                </CardTitle>
+              </CardHeader>
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Negocio</TableHead>
                     <TableHead>CLABE</TableHead>
-                    <TableHead className="text-center">Transacciones</TableHead>
-                    <TableHead className="text-right">Monto a Pagar</TableHead>
-                    <TableHead className="text-right">Acción</TableHead>
+                    <TableHead className="text-right">Monto</TableHead>
+                    <TableHead className="text-center">Status</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {isLoadingPayoutQueue ? (
+                  {payoutQueue.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center">
-                        Cargando...
-                      </TableCell>
-                    </TableRow>
-                  ) : payoutQueue.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                        No hay pagos pendientes
+                      <TableCell
+                        colSpan={4}
+                        className="text-center py-12 text-muted-foreground flex flex-col items-center justify-center gap-2"
+                      >
+                        <CheckCircle2 className="h-8 w-8 text-green-500/50" />
+                        Todo pagado. No hay ventas pendientes.
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -336,35 +323,15 @@ export default function AdminFinance() {
                           <p className="text-xs text-muted-foreground">{item.contact_email}</p>
                         </TableCell>
                         <TableCell>
-                          <div className="flex items-center gap-2">
-                            <code className="text-xs bg-muted px-2 py-1 rounded">{item.clabe_deposit}</code>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6"
-                              onClick={() => copyToClipboard(item.clabe_deposit)}
-                            >
-                              <Copy className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <Badge variant="secondary">{item.transactions_count}</Badge>
+                          <code className="bg-muted px-2 py-1 rounded text-xs">{item.clabe_deposit}</code>
                         </TableCell>
                         <TableCell className="text-right font-bold text-emerald-600">
-                          {formatCurrency(item.amount_to_pay)}
+                          ${item.amount_to_pay.toFixed(2)}
                         </TableCell>
-                        <TableCell className="text-right">
-                          {/* AQUÍ AGREGUÉ EL BOTÓN QUE FALTABA */}
-                          <Button
-                            size="sm"
-                            onClick={() => {
-                              setSelectedItem(item);
-                              setModalType("product");
-                            }}
-                          >
-                            Marcar Pagado
-                          </Button>
+                        <TableCell className="text-center">
+                          <Badge variant="outline" className="bg-amber-50 text-amber-600 border-amber-200">
+                            Por Dispersar
+                          </Badge>
                         </TableCell>
                       </TableRow>
                     ))
@@ -376,54 +343,49 @@ export default function AdminFinance() {
 
           {/* TAB 2: REFERIDOS */}
           <TabsContent value="referrals">
-            <div className="mb-4">
-              <h2 className="text-lg font-semibold text-foreground">Cola de Dispersión (Referidos)</h2>
-              <p className="text-sm text-muted-foreground">Comisiones por suscripciones (Lógica 2 meses)</p>
-            </div>
-
             <Card>
+              <CardHeader>
+                <CardTitle className="flex justify-between items-center">
+                  <span>Pagos Pendientes a Afiliados</span>
+                  <Badge variant="secondary">{referralsQueue.length} pendientes</Badge>
+                </CardTitle>
+              </CardHeader>
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Usuario / Email</TableHead>
-                    <TableHead className="text-center">Pagos</TableHead>
-                    <TableHead className="text-right">Total a Pagar</TableHead>
-                    <TableHead className="text-right">Acción</TableHead>
+                    <TableHead>Email Usuario</TableHead>
+                    <TableHead className="text-right">Monto</TableHead>
+                    <TableHead className="text-center">Status</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {loadingReferrals ? (
                     <TableRow>
-                      <TableCell colSpan={4} className="text-center">
-                        Cargando...
+                      <TableCell colSpan={3} className="text-center py-4">
+                        <Loader2 className="animate-spin inline mr-2" /> Cargando...
                       </TableCell>
                     </TableRow>
                   ) : referralsQueue.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
-                        No hay comisiones pendientes
+                      <TableCell
+                        colSpan={3}
+                        className="text-center py-12 text-muted-foreground flex flex-col items-center justify-center gap-2"
+                      >
+                        <CheckCircle2 className="h-8 w-8 text-green-500/50" />
+                        Todo pagado. No hay comisiones pendientes.
                       </TableCell>
                     </TableRow>
                   ) : (
                     referralsQueue.map((item) => (
                       <TableRow key={item.user_id}>
-                        <TableCell className="font-medium">{item.email}</TableCell>
-                        <TableCell className="text-center">
-                          <Badge variant="outline">{item.pending_items_count}</Badge>
-                        </TableCell>
+                        <TableCell>{item.email}</TableCell>
                         <TableCell className="text-right font-bold text-emerald-600">
-                          {formatCurrency(item.total_to_pay)}
+                          ${item.total_to_pay.toFixed(2)}
                         </TableCell>
-                        <TableCell className="text-right">
-                          <Button
-                            size="sm"
-                            onClick={() => {
-                              setSelectedItem(item);
-                              setModalType("referral");
-                            }}
-                          >
-                            Pagar
-                          </Button>
+                        <TableCell className="text-center">
+                          <Badge variant="outline" className="bg-amber-50 text-amber-600 border-amber-200">
+                            Por Dispersar
+                          </Badge>
                         </TableCell>
                       </TableRow>
                     ))
@@ -434,46 +396,24 @@ export default function AdminFinance() {
           </TabsContent>
         </Tabs>
 
-        {/* MODAL DE CONFIRMACIÓN ÚNICO (ADAPTATIVO) */}
-        <Dialog open={modalType !== null} onOpenChange={(open) => !open && setModalType(null)}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Confirmar Pago Manual</DialogTitle>
-              <DialogDescription>
-                {modalType === "product"
-                  ? "Esto marcará todas las transacciones pendientes de este negocio como 'Pagadas'. Asegúrate de haber hecho la transferencia."
-                  : "Esto marcará las comisiones de referido como 'Pagadas'."}
-              </DialogDescription>
-            </DialogHeader>
-
-            {selectedItem && (
-              <div className="py-4 text-center">
-                <p className="text-sm text-slate-500">Destinatario</p>
-                <p className="font-bold mb-2">
-                  {modalType === "product" ? selectedItem.business_name : selectedItem.email}
-                </p>
-
-                <p className="text-sm text-slate-500">Monto Transferido</p>
-                <p className="text-3xl font-bold text-emerald-600">
-                  {formatCurrency(modalType === "product" ? selectedItem.amount_to_pay : selectedItem.total_to_pay)}
-                </p>
-              </div>
-            )}
-
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setModalType(null)}>
-                Cancelar
-              </Button>
-              <Button
-                onClick={modalType === "product" ? handleMarkProductBatchPaid : handleMarkReferralPaid}
-                disabled={processingPayment}
-                className="bg-emerald-600 hover:bg-emerald-700"
-              >
-                {processingPayment ? <Loader2 className="animate-spin h-4 w-4" /> : "Confirmar Pago"}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        <div className="mt-6 p-4 bg-slate-50 border border-slate-200 rounded-lg flex gap-3 items-start">
+          <AlertCircle className="h-5 w-5 text-indigo-500 mt-0.5" />
+          <div className="text-sm text-slate-600">
+            <p className="font-semibold text-slate-800 mb-1">¿Cómo funciona la dispersión masiva?</p>
+            <ol className="list-decimal list-inside space-y-1">
+              <li>
+                Selecciona la pestaña (Ventas o Referidos) y haz clic en <b>Generar Lote Bancario</b>. Se descargará un
+                CSV.
+              </li>
+              <li>Sube ese archivo a tu portal bancario para realizar las transferencias.</li>
+              <li>
+                Cuando el banco confirme, descarga el comprobante (o usa el mismo CSV si todos pasaron) y súbelo en{" "}
+                <b>Conciliar Respuesta</b>.
+              </li>
+              <li>El sistema marcará automáticamente los pagos como "Completados".</li>
+            </ol>
+          </div>
+        </div>
       </div>
     </div>
   );
