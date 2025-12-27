@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Copy, DollarSign, Users, ExternalLink, Gift } from "lucide-react";
+import { Copy, DollarSign, Gift, Loader2 } from "lucide-react";
 
 export function AffiliateStats() {
   const { user } = useAuth();
@@ -13,27 +13,44 @@ export function AffiliateStats() {
   const [loading, setLoading] = useState(true);
   const [affiliateData, setAffiliateData] = useState<any>(null);
 
+  // Variables para calcular el dinero real desde la nueva tabla
+  const [realBalance, setRealBalance] = useState(0);
+  const [totalHistorical, setTotalHistorical] = useState(0);
+
   useEffect(() => {
     if (!user) return;
 
     const fetchAffiliateData = async () => {
       try {
-        const { data, error } = await supabase
-          .from("affiliates")
-          .select("*")
-          .eq("user_id", user.id)
-          .single();
+        // 1. Obtener datos del perfil (para el código de referido)
+        const { data: profile, error } = await supabase.from("affiliates").select("*").eq("user_id", user.id).single();
 
         if (error && error.code !== "PGRST116") {
           console.error("Error cargando afiliados:", error);
         }
 
-        // Si no existe, lo creamos al vuelo (autocorrelación por si falló el trigger)
-        if (!data) {
-           // Opcional: Podríamos llamar a una función para crearlo, 
-           // pero el trigger de la BD debería haberlo hecho.
-        } else {
-          setAffiliateData(data);
+        if (profile) {
+          setAffiliateData(profile);
+        }
+
+        // 2. CALCULAR SALDOS REALES (Conexión con el nuevo Backend)
+        // Leemos 'affiliate_payouts' para sumar lo que realmente se generó
+        const { data: payouts, error: payoutsError } = await supabase
+          .from("affiliate_payouts" as any)
+          .select("amount, status")
+          .eq("user_id", user.id);
+
+        if (!payoutsError && payouts) {
+          // Saldo Disponible: Suma solo lo que está 'ready' (listo para cobrar)
+          const available = payouts
+            .filter((p: any) => p.status === "ready")
+            .reduce((acc: number, curr: any) => acc + Number(curr.amount), 0);
+
+          // Histórico: Suma todo lo generado (ready + locked + processed)
+          const historical = payouts.reduce((acc: number, curr: any) => acc + Number(curr.amount), 0);
+
+          setRealBalance(available);
+          setTotalHistorical(historical);
         }
       } catch (err) {
         console.error(err);
@@ -56,14 +73,19 @@ export function AffiliateStats() {
   };
 
   const handleWithdraw = () => {
-    // MVP: Retiro por WhatsApp
-    const message = `Hola, soy el usuario ${user?.email}. Quiero retirar mis ganancias de $${affiliateData?.balance_mxn} MXN. Mi código es ${affiliateData?.referral_code}.`;
+    // Usamos realBalance (lo calculado) en lugar del dato viejo
+    const message = `Hola, soy el usuario ${user?.email}. Quiero retirar mis ganancias disponibles de $${realBalance.toFixed(2)} MXN. Mi código es ${affiliateData?.referral_code}.`;
     const whatsappUrl = `https://wa.me/528183745074?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, "_blank");
   };
 
-  if (loading) return <div className="h-32 bg-slate-100 animate-pulse rounded-lg"></div>;
-  if (!affiliateData) return null; // No mostrar si no hay datos
+  if (loading)
+    return (
+      <div className="h-32 bg-slate-100 animate-pulse rounded-lg flex items-center justify-center">
+        <Loader2 className="animate-spin text-slate-400" />
+      </div>
+    );
+  if (!affiliateData) return null;
 
   const referralLink = `${window.location.origin}/?ref=${affiliateData.referral_code}`;
 
@@ -73,24 +95,23 @@ export function AffiliateStats() {
         {/* TARJETA 1: GANANCIAS */}
         <Card className="bg-gradient-to-br from-indigo-600 to-purple-700 text-white border-none shadow-lg">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-indigo-100">
-              Saldo Disponible
-            </CardTitle>
+            <CardTitle className="text-sm font-medium text-indigo-100">Saldo Disponible</CardTitle>
             <DollarSign className="h-4 w-4 text-indigo-100" />
           </CardHeader>
           <CardContent>
+            {/* Aquí mostramos el saldo real calculado */}
             <div className="text-2xl font-bold">
-              ${Number(affiliateData.balance_mxn).toLocaleString("es-MX", { minimumFractionDigits: 2 })}
+              ${realBalance.toLocaleString("es-MX", { minimumFractionDigits: 2 })}
             </div>
             <p className="text-xs text-indigo-200 mt-1">
-              +${Number(affiliateData.total_earnings_mxn).toLocaleString("es-MX")} ganados históricamente
+              +${totalHistorical.toLocaleString("es-MX")} ganados históricamente
             </p>
-            {Number(affiliateData.balance_mxn) > 0 && (
-              <Button 
+            {realBalance > 0 && (
+              <Button
                 onClick={handleWithdraw}
-                variant="secondary" 
-                size="sm" 
-                className="mt-3 w-full bg-white text-indigo-700 hover:bg-indigo-50"
+                variant="secondary"
+                size="sm"
+                className="mt-3 w-full bg-white text-indigo-700 hover:bg-indigo-50 font-semibold"
               >
                 Solicitar Retiro
               </Button>
@@ -108,13 +129,14 @@ export function AffiliateStats() {
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm text-slate-600">
-              Comparte este enlace. Cuando alguien se registre y pague, tú ganarás el <span className="font-bold text-green-600">50% de su mensualidad</span> de por vida.
+              Comparte este enlace. Cuando alguien se registre y pague, tú ganarás el{" "}
+              <span className="font-bold text-green-600">50% de su mensualidad</span> de los primeros 2 meses.
             </p>
             <div className="flex gap-2">
               <div className="relative flex-1">
-                <Input 
-                  readOnly 
-                  value={referralLink} 
+                <Input
+                  readOnly
+                  value={referralLink}
                   className="bg-slate-50 border-slate-200 pr-10 font-mono text-xs md:text-sm text-slate-600"
                 />
               </div>
