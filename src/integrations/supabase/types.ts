@@ -38,6 +38,7 @@ export type Database = {
           amount: number;
           batch_id: string | null;
           created_at: string | null;
+          failure_reason: string | null;
           id: string;
           origin_subscription_id: string;
           release_date: string;
@@ -48,6 +49,7 @@ export type Database = {
           amount: number;
           batch_id?: string | null;
           created_at?: string | null;
+          failure_reason?: string | null;
           id?: string;
           origin_subscription_id: string;
           release_date: string;
@@ -58,6 +60,7 @@ export type Database = {
           amount?: number;
           batch_id?: string | null;
           created_at?: string | null;
+          failure_reason?: string | null;
           id?: string;
           origin_subscription_id?: string;
           release_date?: string;
@@ -1229,10 +1232,12 @@ export type Database = {
       payment_transactions: {
         Row: {
           amount_total: number;
+          batch_id: string | null;
           clabe_virtual_in: string | null;
           commission_saas: number;
           cost_gateway: number | null;
           created_at: string | null;
+          failure_reason: string | null;
           funds_held_by_platform: boolean | null;
           id: string;
           merchant_id: string | null;
@@ -1249,10 +1254,12 @@ export type Database = {
         };
         Insert: {
           amount_total: number;
+          batch_id?: string | null;
           clabe_virtual_in?: string | null;
           commission_saas: number;
           cost_gateway?: number | null;
           created_at?: string | null;
+          failure_reason?: string | null;
           funds_held_by_platform?: boolean | null;
           id?: string;
           merchant_id?: string | null;
@@ -1269,10 +1276,12 @@ export type Database = {
         };
         Update: {
           amount_total?: number;
+          batch_id?: string | null;
           clabe_virtual_in?: string | null;
           commission_saas?: number;
           cost_gateway?: number | null;
           created_at?: string | null;
+          failure_reason?: string | null;
           funds_held_by_platform?: boolean | null;
           id?: string;
           merchant_id?: string | null;
@@ -1288,6 +1297,13 @@ export type Database = {
           status?: string | null;
         };
         Relationships: [
+          {
+            foreignKeyName: "payment_transactions_batch_id_fkey";
+            columns: ["batch_id"];
+            isOneToOne: false;
+            referencedRelation: "payout_batches";
+            referencedColumns: ["id"];
+          },
           {
             foreignKeyName: "payment_transactions_merchant_id_fkey";
             columns: ["merchant_id"];
@@ -1313,6 +1329,9 @@ export type Database = {
       };
       payout_batches: {
         Row: {
+          bank_response_json: Json | null;
+          batch_type: string | null;
+          file_url: string | null;
           id: string;
           processed_at: string | null;
           provider_response: Json | null;
@@ -1320,6 +1339,9 @@ export type Database = {
           total_amount: number;
         };
         Insert: {
+          bank_response_json?: Json | null;
+          batch_type?: string | null;
+          file_url?: string | null;
           id?: string;
           processed_at?: string | null;
           provider_response?: Json | null;
@@ -1327,6 +1349,9 @@ export type Database = {
           total_amount: number;
         };
         Update: {
+          bank_response_json?: Json | null;
+          batch_type?: string | null;
+          file_url?: string | null;
           id?: string;
           processed_at?: string | null;
           provider_response?: Json | null;
@@ -2255,6 +2280,7 @@ export type Database = {
           status: string | null;
           stripe_customer_id: string | null;
           stripe_subscription_id: string | null;
+          unit_amount: number | null;
           updated_at: string | null;
           user_id: string | null;
         };
@@ -2268,6 +2294,7 @@ export type Database = {
           status?: string | null;
           stripe_customer_id?: string | null;
           stripe_subscription_id?: string | null;
+          unit_amount?: number | null;
           updated_at?: string | null;
           user_id?: string | null;
         };
@@ -2281,6 +2308,7 @@ export type Database = {
           status?: string | null;
           stripe_customer_id?: string | null;
           stripe_subscription_id?: string | null;
+          unit_amount?: number | null;
           updated_at?: string | null;
           user_id?: string | null;
         };
@@ -2836,6 +2864,15 @@ export type Database = {
         };
         Relationships: [];
       };
+      admin_referrals_payout_view: {
+        Row: {
+          email: string | null;
+          payouts_count: number | null;
+          total_to_pay: number | null;
+          user_id: string | null;
+        };
+        Relationships: [];
+      };
       my_merchant_stats: {
         Row: {
           balance_paid: number | null;
@@ -3382,6 +3419,7 @@ export type Database = {
         };
       };
       generate_activation_token: { Args: never; Returns: string };
+      generate_affiliate_code: { Args: never; Returns: string };
       generate_catalog_slug: { Args: never; Returns: string };
       generate_order_number: { Args: never; Returns: string };
       get_backorder_alerts: {
@@ -3732,6 +3770,7 @@ export type Database = {
         Returns: boolean;
       };
       process_inventory_deduction: { Args: { quote_id: string }; Returns: Json };
+      redeem_referral_code: { Args: { code_input: string }; Returns: Json };
       restore_product: {
         Args: { product_id: string; requesting_user_id: string };
         Returns: boolean;
