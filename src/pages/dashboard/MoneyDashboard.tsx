@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { useMerchantStats } from "@/hooks/useMerchantStats";
-import { useAuth } from "@/contexts/AuthContext"; // Asumo que tienes esto basado en tus archivos anteriores
+import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import ReferralLinkCard from "@/components/dashboard/ReferralLinkCard";
 import {
   CircleDollarSign,
   Clock,
@@ -23,38 +24,39 @@ import {
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 
-// Formateador para montos en centavos (Stripe/Ventas)
+// Formateadores de moneda
 const formatCurrency = (amount: number) => {
   return new Intl.NumberFormat("es-MX", {
     style: "currency",
     currency: "MXN",
-  }).format(amount / 100);
+  }).format(amount / 100); // Para montos en centavos (Stripe)
 };
 
-// Formateador para montos directos (Base de Datos/Referidos)
 const formatCurrencyRaw = (amount: number) => {
   return new Intl.NumberFormat("es-MX", {
     style: "currency",
     currency: "MXN",
-  }).format(amount);
+  }).format(amount); // Para montos directos (Base de Datos)
 };
 
 export default function MoneyDashboard() {
-  // 1. Hooks existentes (Ventas)
   const { user } = useAuth();
+
+  // 1. DATA DE VENTAS (Tu hook existente)
   const { stats, isLoadingStats, transactions, isLoadingTransactions } = useMerchantStats();
 
-  // 2. Nuevos Estados (Referidos)
+  // 2. DATA DE REFERIDOS (Nueva lógica)
   const [referrals, setReferrals] = useState<any[]>([]);
   const [loadingReferrals, setLoadingReferrals] = useState(true);
 
-  // 3. Cargar datos reales de la tabla 'affiliate_payouts'
+  // Cargar datos de referidos desde Supabase
   useEffect(() => {
     const fetchReferrals = async () => {
       if (!user) return;
       try {
+        // Usamos 'as any' temporalmente para evitar errores de tipado si no has actualizado types
         const { data, error } = await supabase
-          .from("affiliate_payouts")
+          .from("affiliate_payouts" as any)
           .select("*")
           .eq("user_id", user.id)
           .order("release_date", { ascending: false });
@@ -71,10 +73,10 @@ export default function MoneyDashboard() {
     fetchReferrals();
   }, [user]);
 
-  // 4. Calcular totales de Referidos
+  // Calcular totales de Referidos
   const referralAvailable = referrals
     .filter((p) => p.status === "ready")
-    .reduce((acc, curr) => acc + Number(curr.amount), 0); // Convertir a Number por si viene string de DB
+    .reduce((acc, curr) => acc + Number(curr.amount), 0);
 
   const referralLocked = referrals
     .filter((p) => p.status === "locked")
@@ -83,7 +85,7 @@ export default function MoneyDashboard() {
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-6 max-w-4xl">
-        {/* Header General */}
+        {/* Header Principal */}
         <div className="mb-6">
           <h1 className="text-2xl md:text-3xl font-bold text-foreground flex items-center gap-2">
             <CircleDollarSign className="h-7 w-7 text-indigo-600" />
@@ -92,21 +94,19 @@ export default function MoneyDashboard() {
           <p className="text-muted-foreground mt-1">Gestiona tus ingresos por ventas y referidos</p>
         </div>
 
-        {/* --- SISTEMA DE PESTAÑAS (TABS) --- */}
+        {/* Sistema de Pestañas */}
         <Tabs defaultValue="sales" className="w-full">
           <TabsList className="grid w-full grid-cols-2 mb-8">
             <TabsTrigger value="sales" className="flex items-center gap-2">
-              <Receipt className="h-4 w-4" />
-              Ventas de Productos
+              <Receipt className="h-4 w-4" /> Ventas de Productos
             </TabsTrigger>
             <TabsTrigger value="referrals" className="flex items-center gap-2">
-              <Users className="h-4 w-4" />
-              Programa de Referidos
+              <Users className="h-4 w-4" /> Programa de Referidos
             </TabsTrigger>
           </TabsList>
 
           {/* =================================================================================
-                                          TAB 1: VENTAS (Tu código original)
+                                          TAB 1: VENTAS DE PRODUCTOS
              ================================================================================= */}
           <TabsContent value="sales" className="space-y-6">
             {/* KPI Cards Ventas */}
@@ -114,9 +114,8 @@ export default function MoneyDashboard() {
               {/* Por Cobrar */}
               <Card className="border-amber-500/20 bg-gradient-to-br from-amber-500/5 to-transparent">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-amber-500" />
-                    Por Cobrar (Ventas)
+                  <CardTitle className="text-sm font-medium text-amber-600 flex items-center gap-2">
+                    <Clock className="h-4 w-4" /> Por Cobrar
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -134,9 +133,8 @@ export default function MoneyDashboard() {
               {/* Pagado Histórico */}
               <Card className="border-emerald-500/20 bg-gradient-to-br from-emerald-500/5 to-transparent">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-                    Pagado Histórico
+                  <CardTitle className="text-sm font-medium text-emerald-600 flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4" /> Pagado Histórico
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -154,9 +152,8 @@ export default function MoneyDashboard() {
               {/* Ventas Totales */}
               <Card className="border-blue-500/20 bg-gradient-to-br from-blue-500/5 to-transparent">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                    <TrendingUp className="h-4 w-4 text-blue-500" />
-                    Ventas Totales
+                  <CardTitle className="text-sm font-medium text-blue-600 flex items-center gap-2">
+                    <TrendingUp className="h-4 w-4" /> Ventas Totales
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -172,11 +169,10 @@ export default function MoneyDashboard() {
               </Card>
             </div>
 
-            {/* Transactions Section */}
+            {/* Historial de Transacciones (Ventas) */}
             <div className="space-y-3">
               <h2 className="text-lg font-semibold flex items-center gap-2">
-                <Receipt className="h-5 w-5 text-muted-foreground" />
-                Historial de Ventas
+                <Receipt className="h-5 w-5 text-muted-foreground" /> Historial de Ventas
               </h2>
 
               {isLoadingTransactions ? (
@@ -186,8 +182,8 @@ export default function MoneyDashboard() {
                   </Card>
                 ))
               ) : transactions.length === 0 ? (
-                <Card className="p-8 text-center">
-                  <CircleDollarSign className="h-12 w-12 mx-auto text-muted-foreground/50 mb-3" />
+                <Card className="p-8 text-center bg-slate-50">
+                  <CircleDollarSign className="h-12 w-12 mx-auto text-slate-300 mb-3" />
                   <p className="text-muted-foreground">No hay ventas pagadas aún</p>
                 </Card>
               ) : (
@@ -198,7 +194,7 @@ export default function MoneyDashboard() {
                   return (
                     <Card
                       key={tx.id}
-                      className="p-4 hover:shadow-md transition-shadow border-l-4 border-l-transparent hover:border-l-primary/20"
+                      className="p-4 hover:shadow-md transition-shadow border-l-4 border-l-transparent hover:border-l-indigo-500/20"
                     >
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
@@ -208,17 +204,11 @@ export default function MoneyDashboard() {
                           </span>
                         </div>
                         {isPlatformFunds ? (
-                          <Badge
-                            variant="secondary"
-                            className="bg-indigo-100 text-indigo-700 hover:bg-indigo-100 border-indigo-200"
-                          >
+                          <Badge variant="secondary" className="bg-indigo-100 text-indigo-700 border-indigo-200">
                             <Wallet className="w-3 h-3 mr-1" /> Saldo en Plataforma
                           </Badge>
                         ) : (
-                          <Badge
-                            variant="secondary"
-                            className="bg-amber-100 text-amber-700 hover:bg-amber-100 border-amber-200"
-                          >
+                          <Badge variant="secondary" className="bg-amber-100 text-amber-700 border-amber-200">
                             <HandCoins className="w-3 h-3 mr-1" /> Cobrado por Ti
                           </Badge>
                         )}
@@ -234,6 +224,17 @@ export default function MoneyDashboard() {
                           <p className="text-lg font-bold text-emerald-600">+{formatCurrency(tx.net_to_merchant)}</p>
                         </div>
                       </div>
+
+                      {/* Mostrar status de pago si ya se depositó */}
+                      {tx.payout_status === "paid" && (
+                        <div className="mt-3 pt-2 border-t border-slate-100 flex items-center gap-2 text-xs text-emerald-600 font-medium">
+                          <CheckCircle2 className="h-3 w-3" />
+                          Depositado el{" "}
+                          {tx.payout_date
+                            ? format(new Date(tx.payout_date), "dd MMM yyyy", { locale: es })
+                            : "Recientemente"}
+                        </div>
+                      )}
                     </Card>
                   );
                 })
@@ -242,17 +243,18 @@ export default function MoneyDashboard() {
           </TabsContent>
 
           {/* =================================================================================
-                                          TAB 2: REFERIDOS (NUEVO & CONECTADO)
+                                          TAB 2: PROGRAMA DE REFERIDOS
              ================================================================================= */}
           <TabsContent value="referrals" className="space-y-6">
+            {/* === COMPONENTE DE LINK (Aquí se usa el que creamos) === */}
+            <ReferralLinkCard />
+
             {/* KPI Cards Referidos */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Disponible Ahora */}
               <Card className="border-emerald-500/20 bg-emerald-50/30">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-emerald-700 flex items-center gap-2">
-                    <Unlock className="h-4 w-4" />
-                    Disponible para Corte
+                    <Unlock className="h-4 w-4" /> Disponible para Corte
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -265,12 +267,10 @@ export default function MoneyDashboard() {
                 </CardContent>
               </Card>
 
-              {/* Bloqueado (Mes 2) */}
               <Card className="border-slate-200 bg-slate-50">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-slate-500 flex items-center gap-2">
-                    <Lock className="h-4 w-4" />
-                    Retenido (En espera)
+                    <Lock className="h-4 w-4" /> Retenido (En espera)
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -287,8 +287,7 @@ export default function MoneyDashboard() {
             {/* Listado de Pagos Referidos */}
             <div className="space-y-3">
               <h2 className="text-lg font-semibold flex items-center gap-2">
-                <Users className="h-5 w-5 text-muted-foreground" />
-                Desglose de Comisiones
+                <Users className="h-5 w-5 text-muted-foreground" /> Desglose de Comisiones
               </h2>
 
               {loadingReferrals ? (
@@ -299,11 +298,14 @@ export default function MoneyDashboard() {
                 <Card className="p-8 text-center bg-slate-50">
                   <Users className="h-12 w-12 mx-auto text-slate-300 mb-3" />
                   <p className="text-slate-500">Aún no tienes comisiones por referidos</p>
-                  <p className="text-xs text-slate-400 mt-1">Invita amigos a usar CatifyPro para ganar dinero.</p>
+                  <p className="text-xs text-slate-400 mt-1">Comparte tu link de arriba para empezar a ganar.</p>
                 </Card>
               ) : (
                 referrals.map((payout) => (
-                  <Card key={payout.id} className="p-4 flex items-center justify-between">
+                  <Card
+                    key={payout.id}
+                    className="p-4 flex items-center justify-between hover:shadow-sm transition-shadow"
+                  >
                     <div>
                       <div className="flex items-center gap-2 mb-1">
                         <span className="font-semibold text-slate-700">Comisión por Suscripción</span>
@@ -315,7 +317,6 @@ export default function MoneyDashboard() {
                     </div>
 
                     <div className="text-right">
-                      {/* Usamos formatCurrencyRaw porque en DB ya está en pesos, no centavos */}
                       <p className="font-bold text-lg text-slate-700">{formatCurrencyRaw(payout.amount)}</p>
 
                       {payout.status === "locked" && (
