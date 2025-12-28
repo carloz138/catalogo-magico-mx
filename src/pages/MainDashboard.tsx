@@ -10,7 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 // Contextos
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/contexts/RoleContext";
-import { useSubscription } from "@/contexts/SubscriptionContext"; // ✅ 1. IMPORTANTE
+import { useSubscription } from "@/contexts/SubscriptionContext";
 import { supabase } from "@/integrations/supabase/client";
 
 // Componentes Hijos
@@ -36,30 +36,19 @@ import {
   MessageSquare,
   DollarSign,
   Package,
-  Check,
-  Rocket,
   Gift,
-  Lock, // ✅ Icono visual para upsell (opcional si quisieras mostrarlo bloqueado)
 } from "lucide-react";
 
 export default function MainDashboard() {
   const { user } = useAuth();
   const { isL1, isL2, isLoadingRole, refreshRole } = useUserRole();
-
-  // ✅ 2. OBTENEMOS PERMISOS DEL PLAN ($49, $149, $499)
   const { paqueteUsuario, hasAccess } = useSubscription();
-
   const navigate = useNavigate();
   const { toast } = useToast();
 
   const [activeTab, setActiveTab] = useState("resumen");
   const [hasActiveCatalog, setHasActiveCatalog] = useState(false);
-  const [isLoadingData, setIsLoadingData] = useState(true);
   const [isProcessingPending, setIsProcessingPending] = useState(false);
-
-  // ESTADOS PARA EL PROMO CODE
-  const [isClaiming, setIsClaiming] = useState(false);
-  const PROMO_CODE = "CYBER-AI-3";
 
   // Estado de Métricas
   const [metrics, setMetrics] = useState({
@@ -150,71 +139,10 @@ export default function MainDashboard() {
         }
       } catch (e) {
         console.error("Error loading stats:", e);
-      } finally {
-        setIsLoadingData(false);
       }
     };
     loadMetrics();
   }, [user]);
-
-  // LÓGICA HÍBRIDA: RECLAMAR GRATIS O REDIRIGIR A STRIPE
-  const handleClaimFounder = async () => {
-    if (!user) return;
-    setIsClaiming(true);
-
-    try {
-      await navigator.clipboard.writeText(PROMO_CODE);
-      const { data, error } = await supabase.rpc("claim_founder_plan" as any, {
-        p_user_id: user.id,
-      });
-
-      if (error) throw error;
-      const result = data as any;
-
-      if (result.success) {
-        toast({
-          title: "🎉 ¡Felicidades Fundador!",
-          description: "Has activado el Plan Elite de por vida GRATIS.",
-          className: "bg-green-600 text-white border-none",
-          duration: 5000,
-        });
-        setTimeout(() => window.location.reload(), 2000);
-      } else {
-        if (result.reason === "LIMIT_REACHED") {
-          toast({
-            title: "⏳ Lugares agotados",
-            description: "¡Pero te regalamos 4 MESES GRATIS! Redirigiendo al pago...",
-            className: "bg-indigo-600 text-white border-none",
-            duration: 4000,
-          });
-          setTimeout(() => {
-            navigate("/checkout?plan=Elite");
-          }, 2500);
-        } else if (result.reason === "ALREADY_SUBSCRIBED") {
-          toast({
-            title: "Ya tienes un plan",
-            description: "Ya cuentas con una suscripción activa.",
-            variant: "default",
-          });
-        } else {
-          toast({
-            title: "Aviso",
-            description: result.message,
-            variant: "destructive",
-          });
-        }
-      }
-    } catch (err) {
-      console.error(err);
-      toast({
-        title: "Error",
-        description: "Hubo un problema al procesar tu solicitud.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsClaiming(false);
-    }
-  };
 
   if (isProcessingPending) {
     return (
@@ -287,65 +215,7 @@ export default function MainDashboard() {
         )}
       </div>
 
-      {/* BANNER FOUNDERS */}
-      {!paqueteUsuario?.name?.toLowerCase().includes("elite") &&
-        !paqueteUsuario?.name?.toLowerCase().includes("empresarial") && (
-          <motion.div
-            variants={itemVariants}
-            className="relative overflow-hidden rounded-xl bg-gradient-to-r from-slate-900 to-indigo-900 shadow-xl border border-indigo-500/30"
-          >
-            {/* Decoración de fondo */}
-            <div className="absolute top-0 right-0 -mt-4 -mr-4 w-32 h-32 bg-indigo-500 opacity-20 rounded-full blur-3xl"></div>
-            <div className="absolute bottom-0 left-0 -mb-4 -ml-4 w-40 h-40 bg-purple-500 opacity-20 rounded-full blur-3xl"></div>
-
-            <div className="relative p-6 sm:p-8 flex flex-col md:flex-row items-center justify-between gap-6">
-              <div className="flex items-start gap-4 flex-1">
-                <div className="p-3 bg-white/10 backdrop-blur-sm rounded-lg shadow-inner hidden sm:block border border-white/10">
-                  <Rocket className="w-8 h-8 text-yellow-400" />
-                </div>
-                <div className="text-white space-y-1 text-center sm:text-left">
-                  <Badge className="bg-yellow-400 text-black hover:bg-yellow-500 border-0 mb-2 font-bold animate-pulse">
-                    PROGRAMA FOUNDERS
-                  </Badge>
-                  <h3 className="text-xl sm:text-2xl font-bold leading-tight">
-                    Acceso <span className="text-yellow-400">GRATIS DE POR VIDA</span>
-                  </h3>
-                  <p className="text-slate-300 text-sm max-w-xl">
-                    Sé uno de los primeros 50 fundadores y obtén el Plan Elite para siempre. Sin tarjetas, sin costos
-                    ocultos.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto bg-white/5 p-2 rounded-xl backdrop-blur-sm border border-white/10">
-                <div className="flex-1 flex flex-col justify-center px-4 py-2 border border-dashed border-white/20 rounded-lg bg-black/40 text-center">
-                  <span className="text-[10px] text-slate-400 uppercase tracking-widest font-semibold">
-                    Código Fundador
-                  </span>
-                  <code className="text-lg font-mono font-bold text-white tracking-wider select-all">{PROMO_CODE}</code>
-                </div>
-
-                <Button
-                  onClick={handleClaimFounder}
-                  disabled={isClaiming}
-                  className="h-auto py-3 px-6 bg-yellow-400 text-black hover:bg-yellow-500 font-bold shadow-lg shadow-yellow-400/20 transition-all active:scale-95"
-                >
-                  {isClaiming ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Verificando...
-                    </>
-                  ) : (
-                    <>
-                      <Check className="w-4 h-4 mr-2" /> Canjear Ahora
-                    </>
-                  )}
-                </Button>
-              </div>
-            </div>
-          </motion.div>
-        )}
-
-      {/* --- TARJETAS DE ACCIÓN INTELIGENTE --- */}
+      {/* --- TARJETAS DE ACCIÓN INTELIGENTE (Accesibles a todos para incentivar uso) --- */}
       <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* 1. NEGOCIACIÓN / LOGÍSTICA */}
         {metrics.ordersToDispatchCount > 0 ? (
@@ -417,8 +287,7 @@ export default function MainDashboard() {
           </Card>
         )}
 
-        {/* 2. RADAR DE OPORTUNIDADES (SOLO L1 + PLAN ADVANCED/PRO) */}
-        {/* ✅ BLOQUEO AQUÍ TAMBIÉN PARA QUE LA TARJETA NO SALGA EN PLAN DE $49 */}
+        {/* 2. RADAR DE OPORTUNIDADES (SOLO SI TIENE PERMISO) */}
         {isL1 &&
           hasAccess("radar_inteligente") &&
           (metrics.marketOpportunities > 0 ? (
@@ -483,8 +352,7 @@ export default function MainDashboard() {
           </Card>
         )}
 
-        {/* 3. DEMANDA PERDIDA (SOLO L1 + PLAN ADVANCED/PRO) */}
-        {/* ✅ BLOQUEO AQUÍ TAMBIÉN */}
+        {/* 3. DEMANDA PERDIDA (SOLO SI TIENE PERMISO) */}
         {isL1 && hasAccess("radar_inteligente") && metrics.missedSearchCount > 2 && (
           <Card className="bg-orange-50 border-orange-200 shadow-sm relative overflow-hidden">
             <div className="absolute top-0 right-0 p-3 opacity-10">
@@ -518,12 +386,10 @@ export default function MainDashboard() {
             <BarChart3 className="w-4 h-4 mr-2" /> Resumen
           </TabsTrigger>
 
-          {/* PESTAÑA AFILIADOS (Para todos) */}
           <TabsTrigger value="afiliados" className="px-6 py-2.5">
             <Gift className="w-4 h-4 mr-2 text-purple-600" /> Gana Dinero
           </TabsTrigger>
 
-          {/* ✅ TABS INTELIGENCIA (Solo $149+) */}
           {isL1 && hasAccess("radar_inteligente") && (
             <TabsTrigger value="inteligencia" className="px-6 py-2.5">
               <Users className="w-4 h-4 mr-2" /> Inteligencia
@@ -535,7 +401,6 @@ export default function MainDashboard() {
             </TabsTrigger>
           )}
 
-          {/* ✅ TABS ESTRATEGIA (Solo $499 Elite) */}
           {isL1 && hasAccess("predictivo") && (
             <TabsTrigger value="estrategia" className="px-6 py-2.5">
               <BrainCircuit className="w-4 h-4 mr-2" /> Estrategia
@@ -602,7 +467,6 @@ export default function MainDashboard() {
           </motion.div>
         </TabsContent>
 
-        {/* ✅ RENDERIZADO CONDICIONAL DEL CONTENIDO DE TABS */}
         {isL1 && hasAccess("radar_inteligente") && (
           <TabsContent value="inteligencia" className="space-y-6 focus-visible:outline-none">
             <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-2 gap-6">
