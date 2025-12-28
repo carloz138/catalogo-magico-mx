@@ -10,7 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 // Contextos
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/contexts/RoleContext";
-import { useSubscription } from "@/contexts/SubscriptionContext";
+import { useSubscription } from "@/contexts/SubscriptionContext"; // ✅ 1. IMPORTANTE
 import { supabase } from "@/integrations/supabase/client";
 
 // Componentes Hijos
@@ -19,7 +19,7 @@ import { MarketIntelligenceWidget } from "@/components/dashboard/MarketIntellige
 import { SearchStatsWidget } from "@/components/dashboard/SearchStatsWidget";
 import { DeadStockAnalysis } from "@/components/dashboard/analytics/DeadStockAnalysis";
 import { DemandForecastWidget } from "@/components/dashboard/analytics/DemandForecastWidget";
-import { AffiliateStats } from "@/components/dashboard/AffiliateStats"; // ✅ 1. NUEVO IMPORT
+import { AffiliateStats } from "@/components/dashboard/AffiliateStats";
 
 // Iconos
 import {
@@ -38,13 +38,17 @@ import {
   Package,
   Check,
   Rocket,
-  Gift, // ✅ 2. NUEVO ICONO
+  Gift,
+  Lock, // ✅ Icono visual para upsell (opcional si quisieras mostrarlo bloqueado)
 } from "lucide-react";
 
 export default function MainDashboard() {
   const { user } = useAuth();
   const { isL1, isL2, isLoadingRole, refreshRole } = useUserRole();
-  const { paqueteUsuario } = useSubscription();
+
+  // ✅ 2. OBTENEMOS PERMISOS DEL PLAN ($49, $149, $499)
+  const { paqueteUsuario, hasAccess } = useSubscription();
+
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -53,7 +57,7 @@ export default function MainDashboard() {
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [isProcessingPending, setIsProcessingPending] = useState(false);
 
-  // ✅ ESTADOS PARA EL PROMO CODE
+  // ESTADOS PARA EL PROMO CODE
   const [isClaiming, setIsClaiming] = useState(false);
   const PROMO_CODE = "CYBER-AI-3";
 
@@ -70,7 +74,7 @@ export default function MainDashboard() {
     marketOpportunities: 0,
   });
 
-  // --- 🔥 LOGICA DE REPLICACIÓN AUTOMÁTICA AL ENTRAR ---
+  // --- LOGICA DE REPLICACIÓN AUTOMÁTICA AL ENTRAR ---
   useEffect(() => {
     const checkPendingReplication = async () => {
       const pendingCatalogId = localStorage.getItem("pending_replication_catalog_id");
@@ -153,37 +157,29 @@ export default function MainDashboard() {
     loadMetrics();
   }, [user]);
 
-  // ✅ LÓGICA HÍBRIDA: RECLAMAR GRATIS O REDIRIGIR A STRIPE
+  // LÓGICA HÍBRIDA: RECLAMAR GRATIS O REDIRIGIR A STRIPE
   const handleClaimFounder = async () => {
     if (!user) return;
     setIsClaiming(true);
 
     try {
-      // 1. Copiar al portapapeles siempre
       await navigator.clipboard.writeText(PROMO_CODE);
-
-      // 2. Intentar activar directo en base de datos
       const { data, error } = await supabase.rpc("claim_founder_plan" as any, {
         p_user_id: user.id,
       });
 
       if (error) throw error;
-
       const result = data as any;
 
       if (result.success) {
-        // --- CASO A: ÉXITO TOTAL (LIFETIME GRATIS) ---
         toast({
           title: "🎉 ¡Felicidades Fundador!",
-          description: "Has activado el Plan Empresarial de por vida GRATIS.",
+          description: "Has activado el Plan Elite de por vida GRATIS.",
           className: "bg-green-600 text-white border-none",
           duration: 5000,
         });
-
-        // Recargar para actualizar el estado
         setTimeout(() => window.location.reload(), 2000);
       } else {
-        // --- CASO B: FALLO (PERO CON PLAN B - STRIPE) ---
         if (result.reason === "LIMIT_REACHED") {
           toast({
             title: "⏳ Lugares agotados",
@@ -191,10 +187,8 @@ export default function MainDashboard() {
             className: "bg-indigo-600 text-white border-none",
             duration: 4000,
           });
-
-          // Redirigimos al Checkout
           setTimeout(() => {
-            navigate("/checkout?plan=Empresarial");
+            navigate("/checkout?plan=Elite");
           }, 2500);
         } else if (result.reason === "ALREADY_SUBSCRIBED") {
           toast({
@@ -203,7 +197,6 @@ export default function MainDashboard() {
             variant: "default",
           });
         } else {
-          // Otros errores genéricos
           toast({
             title: "Aviso",
             description: result.message,
@@ -250,7 +243,7 @@ export default function MainDashboard() {
 
   const planName = paqueteUsuario?.name || "Plan Gratuito";
   const planBadgeColor =
-    paqueteUsuario?.analytics_level === "enterprise" ? "bg-purple-100 text-purple-700" : "bg-green-100 text-green-700";
+    paqueteUsuario?.analytics_level === "pro" ? "bg-purple-100 text-purple-700" : "bg-green-100 text-green-700";
 
   return (
     <motion.div
@@ -294,63 +287,63 @@ export default function MainDashboard() {
         )}
       </div>
 
-      {/* 🔥 BANNER FOUNDERS (GRATIS DE POR VIDA) 🔥 */}
-      {!paqueteUsuario?.name?.toLowerCase().includes("empresarial") && (
-        <motion.div
-          variants={itemVariants}
-          className="relative overflow-hidden rounded-xl bg-gradient-to-r from-slate-900 to-indigo-900 shadow-xl border border-indigo-500/30"
-        >
-          {/* Decoración de fondo */}
-          <div className="absolute top-0 right-0 -mt-4 -mr-4 w-32 h-32 bg-indigo-500 opacity-20 rounded-full blur-3xl"></div>
-          <div className="absolute bottom-0 left-0 -mb-4 -ml-4 w-40 h-40 bg-purple-500 opacity-20 rounded-full blur-3xl"></div>
+      {/* BANNER FOUNDERS */}
+      {!paqueteUsuario?.name?.toLowerCase().includes("elite") &&
+        !paqueteUsuario?.name?.toLowerCase().includes("empresarial") && (
+          <motion.div
+            variants={itemVariants}
+            className="relative overflow-hidden rounded-xl bg-gradient-to-r from-slate-900 to-indigo-900 shadow-xl border border-indigo-500/30"
+          >
+            {/* Decoración de fondo */}
+            <div className="absolute top-0 right-0 -mt-4 -mr-4 w-32 h-32 bg-indigo-500 opacity-20 rounded-full blur-3xl"></div>
+            <div className="absolute bottom-0 left-0 -mb-4 -ml-4 w-40 h-40 bg-purple-500 opacity-20 rounded-full blur-3xl"></div>
 
-          <div className="relative p-6 sm:p-8 flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="flex items-start gap-4 flex-1">
-              <div className="p-3 bg-white/10 backdrop-blur-sm rounded-lg shadow-inner hidden sm:block border border-white/10">
-                <Rocket className="w-8 h-8 text-yellow-400" />
+            <div className="relative p-6 sm:p-8 flex flex-col md:flex-row items-center justify-between gap-6">
+              <div className="flex items-start gap-4 flex-1">
+                <div className="p-3 bg-white/10 backdrop-blur-sm rounded-lg shadow-inner hidden sm:block border border-white/10">
+                  <Rocket className="w-8 h-8 text-yellow-400" />
+                </div>
+                <div className="text-white space-y-1 text-center sm:text-left">
+                  <Badge className="bg-yellow-400 text-black hover:bg-yellow-500 border-0 mb-2 font-bold animate-pulse">
+                    PROGRAMA FOUNDERS
+                  </Badge>
+                  <h3 className="text-xl sm:text-2xl font-bold leading-tight">
+                    Acceso <span className="text-yellow-400">GRATIS DE POR VIDA</span>
+                  </h3>
+                  <p className="text-slate-300 text-sm max-w-xl">
+                    Sé uno de los primeros 50 fundadores y obtén el Plan Elite para siempre. Sin tarjetas, sin costos
+                    ocultos.
+                  </p>
+                </div>
               </div>
-              <div className="text-white space-y-1 text-center sm:text-left">
-                <Badge className="bg-yellow-400 text-black hover:bg-yellow-500 border-0 mb-2 font-bold animate-pulse">
-                  PROGRAMA FOUNDERS
-                </Badge>
-                <h3 className="text-xl sm:text-2xl font-bold leading-tight">
-                  Acceso <span className="text-yellow-400">GRATIS DE POR VIDA</span>
-                </h3>
-                <p className="text-slate-300 text-sm max-w-xl">
-                  Sé uno de los primeros 50 fundadores y obtén el Plan Empresarial para siempre. Sin tarjetas, sin
-                  costos ocultos.
-                </p>
+
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto bg-white/5 p-2 rounded-xl backdrop-blur-sm border border-white/10">
+                <div className="flex-1 flex flex-col justify-center px-4 py-2 border border-dashed border-white/20 rounded-lg bg-black/40 text-center">
+                  <span className="text-[10px] text-slate-400 uppercase tracking-widest font-semibold">
+                    Código Fundador
+                  </span>
+                  <code className="text-lg font-mono font-bold text-white tracking-wider select-all">{PROMO_CODE}</code>
+                </div>
+
+                <Button
+                  onClick={handleClaimFounder}
+                  disabled={isClaiming}
+                  className="h-auto py-3 px-6 bg-yellow-400 text-black hover:bg-yellow-500 font-bold shadow-lg shadow-yellow-400/20 transition-all active:scale-95"
+                >
+                  {isClaiming ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Verificando...
+                    </>
+                  ) : (
+                    <>
+                      <Check className="w-4 h-4 mr-2" /> Canjear Ahora
+                    </>
+                  )}
+                </Button>
               </div>
             </div>
-
-            {/* Caja de Código y Botón */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto bg-white/5 p-2 rounded-xl backdrop-blur-sm border border-white/10">
-              <div className="flex-1 flex flex-col justify-center px-4 py-2 border border-dashed border-white/20 rounded-lg bg-black/40 text-center">
-                <span className="text-[10px] text-slate-400 uppercase tracking-widest font-semibold">
-                  Código Fundador
-                </span>
-                <code className="text-lg font-mono font-bold text-white tracking-wider select-all">{PROMO_CODE}</code>
-              </div>
-
-              <Button
-                onClick={handleClaimFounder}
-                disabled={isClaiming}
-                className="h-auto py-3 px-6 bg-yellow-400 text-black hover:bg-yellow-500 font-bold shadow-lg shadow-yellow-400/20 transition-all active:scale-95"
-              >
-                {isClaiming ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Verificando...
-                  </>
-                ) : (
-                  <>
-                    <Check className="w-4 h-4 mr-2" /> Canjear Ahora
-                  </>
-                )}
-              </Button>
-            </div>
-          </div>
-        </motion.div>
-      )}
+          </motion.div>
+        )}
 
       {/* --- TARJETAS DE ACCIÓN INTELIGENTE --- */}
       <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -424,8 +417,10 @@ export default function MainDashboard() {
           </Card>
         )}
 
-        {/* 2. RADAR DE OPORTUNIDADES (SOLO L1) */}
+        {/* 2. RADAR DE OPORTUNIDADES (SOLO L1 + PLAN ADVANCED/PRO) */}
+        {/* ✅ BLOQUEO AQUÍ TAMBIÉN PARA QUE LA TARJETA NO SALGA EN PLAN DE $49 */}
         {isL1 &&
+          hasAccess("radar_inteligente") &&
           (metrics.marketOpportunities > 0 ? (
             <Card className="bg-indigo-50 border-indigo-200 shadow-sm relative overflow-hidden">
               <div className="absolute top-0 right-0 p-3 opacity-10">
@@ -488,8 +483,9 @@ export default function MainDashboard() {
           </Card>
         )}
 
-        {/* 3. DEMANDA PERDIDA (SOLO L1) */}
-        {isL1 && metrics.missedSearchCount > 2 && (
+        {/* 3. DEMANDA PERDIDA (SOLO L1 + PLAN ADVANCED/PRO) */}
+        {/* ✅ BLOQUEO AQUÍ TAMBIÉN */}
+        {isL1 && hasAccess("radar_inteligente") && metrics.missedSearchCount > 2 && (
           <Card className="bg-orange-50 border-orange-200 shadow-sm relative overflow-hidden">
             <div className="absolute top-0 right-0 p-3 opacity-10">
               <Search className="w-16 h-16 text-orange-600" />
@@ -522,26 +518,28 @@ export default function MainDashboard() {
             <BarChart3 className="w-4 h-4 mr-2" /> Resumen
           </TabsTrigger>
 
-          {/* ✅ 3. NUEVA PESTAÑA AGREGADA AQUÍ */}
+          {/* PESTAÑA AFILIADOS (Para todos) */}
           <TabsTrigger value="afiliados" className="px-6 py-2.5">
             <Gift className="w-4 h-4 mr-2 text-purple-600" /> Gana Dinero
           </TabsTrigger>
 
-          {/* Inteligencia y Estrategia solo para L1 o Híbridos */}
-          {isL1 && (
-            <>
-              <TabsTrigger value="inteligencia" className="px-6 py-2.5">
-                <Users className="w-4 h-4 mr-2" /> Inteligencia
-                {metrics.marketOpportunities > 0 && (
-                  <span className="ml-2 bg-indigo-100 text-indigo-600 text-[10px] px-1.5 py-0.5 rounded-full font-bold">
-                    {metrics.marketOpportunities}
-                  </span>
-                )}
-              </TabsTrigger>
-              <TabsTrigger value="estrategia" className="px-6 py-2.5">
-                <BrainCircuit className="w-4 h-4 mr-2" /> Estrategia
-              </TabsTrigger>
-            </>
+          {/* ✅ TABS INTELIGENCIA (Solo $149+) */}
+          {isL1 && hasAccess("radar_inteligente") && (
+            <TabsTrigger value="inteligencia" className="px-6 py-2.5">
+              <Users className="w-4 h-4 mr-2" /> Inteligencia
+              {metrics.marketOpportunities > 0 && (
+                <span className="ml-2 bg-indigo-100 text-indigo-600 text-[10px] px-1.5 py-0.5 rounded-full font-bold">
+                  {metrics.marketOpportunities}
+                </span>
+              )}
+            </TabsTrigger>
+          )}
+
+          {/* ✅ TABS ESTRATEGIA (Solo $499 Elite) */}
+          {isL1 && hasAccess("predictivo") && (
+            <TabsTrigger value="estrategia" className="px-6 py-2.5">
+              <BrainCircuit className="w-4 h-4 mr-2" /> Estrategia
+            </TabsTrigger>
           )}
         </TabsList>
 
@@ -558,7 +556,6 @@ export default function MainDashboard() {
                 <SalesChart userId={user.id} />
               </CardContent>
             </Card>
-            {/* Tarjeta Lateral Informativa */}
             <Card className="bg-white border-slate-200">
               <CardHeader>
                 <CardTitle className="text-sm uppercase tracking-wider text-slate-500 font-bold">
@@ -599,47 +596,47 @@ export default function MainDashboard() {
           </motion.div>
         </TabsContent>
 
-        {/* ✅ 4. CONTENIDO DE LA NUEVA PESTAÑA */}
         <TabsContent value="afiliados" className="space-y-6 focus-visible:outline-none">
           <motion.div variants={itemVariants}>
             <AffiliateStats />
           </motion.div>
         </TabsContent>
 
-        {isL1 && (
-          <>
-            <TabsContent value="inteligencia" className="space-y-6 focus-visible:outline-none">
-              <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <Card className="col-span-1 lg:col-span-2 shadow-lg border-indigo-100">
-                  <CardHeader className="bg-indigo-50/50 border-b border-indigo-100">
-                    <CardTitle className="text-indigo-900 flex items-center gap-2">
-                      <Zap className="w-5 h-5" /> Radar de Mercado
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-0">
-                    <MarketIntelligenceWidget userId={user.id} />
-                  </CardContent>
-                </Card>
-                <Card className="col-span-1 lg:col-span-2 shadow-lg border-slate-200">
-                  <CardHeader className="bg-slate-50/50 border-b border-slate-100">
-                    <CardTitle className="text-slate-900 flex items-center gap-2">
-                      <Search className="w-5 h-5" /> Búsquedas Fallidas
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-0">
-                    <SearchStatsWidget userId={user.id} />
-                  </CardContent>
-                </Card>
-              </motion.div>
-            </TabsContent>
+        {/* ✅ RENDERIZADO CONDICIONAL DEL CONTENIDO DE TABS */}
+        {isL1 && hasAccess("radar_inteligente") && (
+          <TabsContent value="inteligencia" className="space-y-6 focus-visible:outline-none">
+            <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card className="col-span-1 lg:col-span-2 shadow-lg border-indigo-100">
+                <CardHeader className="bg-indigo-50/50 border-b border-indigo-100">
+                  <CardTitle className="text-indigo-900 flex items-center gap-2">
+                    <Zap className="w-5 h-5" /> Radar de Mercado
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <MarketIntelligenceWidget userId={user.id} />
+                </CardContent>
+              </Card>
+              <Card className="col-span-1 lg:col-span-2 shadow-lg border-slate-200">
+                <CardHeader className="bg-slate-50/50 border-b border-slate-100">
+                  <CardTitle className="text-slate-900 flex items-center gap-2">
+                    <Search className="w-5 h-5" /> Búsquedas Fallidas
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <SearchStatsWidget userId={user.id} />
+                </CardContent>
+              </Card>
+            </motion.div>
+          </TabsContent>
+        )}
 
-            <TabsContent value="estrategia" className="space-y-8 focus-visible:outline-none">
-              <motion.div variants={itemVariants} className="space-y-8">
-                <DemandForecastWidget userId={user.id} />
-                <DeadStockAnalysis userId={user.id} />
-              </motion.div>
-            </TabsContent>
-          </>
+        {isL1 && hasAccess("predictivo") && (
+          <TabsContent value="estrategia" className="space-y-8 focus-visible:outline-none">
+            <motion.div variants={itemVariants} className="space-y-8">
+              <DemandForecastWidget userId={user.id} />
+              <DeadStockAnalysis userId={user.id} />
+            </motion.div>
+          </TabsContent>
         )}
       </Tabs>
     </motion.div>
