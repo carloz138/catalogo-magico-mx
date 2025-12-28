@@ -107,7 +107,8 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
 
       case "predictivo":
         // Disponible solo para Enterprise (Plan más alto)
-        return level === "pro" && name.toLowerCase().includes("empresarial");
+        // ✅ AQUÍ AGREGUÉ LA VALIDACIÓN PARA "elite"
+        return level === "pro" && (name.toLowerCase().includes("empresarial") || name.toLowerCase().includes("elite"));
 
       default:
         return false;
