@@ -608,7 +608,9 @@ export default function QuoteDetailPage() {
                 <CardContent className="space-y-4">
                   <div className="space-y-3 p-3 bg-white rounded-lg border border-indigo-100">
                     <div className="space-y-1">
-                      <Label className="text-xs font-semibold text-slate-600">Fecha Estimada Entrega *</Label>
+                      <Label className="text-xs font-semibold text-slate-600">
+                        {isPickup ? "Fecha Lista para Recolección *" : "Fecha Estimada Entrega *"}
+                      </Label>
                       <div className="relative">
                         <CalendarIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
                         <Input
@@ -647,25 +649,38 @@ export default function QuoteDetailPage() {
                         )}
                       </div>
                     ) : (
-                      <Alert className="py-2 bg-slate-50">
-                        <MapPin className="h-3 w-3" />
-                        <AlertDescription className="text-xs text-slate-500 ml-1">
-                          Recoge en tienda ($0)
-                        </AlertDescription>
-                      </Alert>
+                      <div className="space-y-1">
+                        <Label className="text-xs font-semibold text-slate-600">Costo Logístico</Label>
+                        <Alert className="py-2 bg-amber-50 border-amber-200">
+                          <MapPin className="h-3 w-3 text-amber-600" />
+                          <AlertDescription className="text-xs text-amber-700 ml-1 font-medium">
+                            El cliente pasará a recoger ($0.00)
+                          </AlertDescription>
+                        </Alert>
+                      </div>
                     )}
                   </div>
                   <Button
-                    className="w-full bg-indigo-600 hover:bg-indigo-700 shadow-md"
+                    className={`w-full shadow-md ${
+                      isPickup 
+                        ? "bg-amber-600 hover:bg-amber-700" 
+                        : "bg-indigo-600 hover:bg-indigo-700"
+                    }`}
                     onClick={handleNegotiateQuote}
                     disabled={actionLoading}
                   >
                     {actionLoading ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : isPickup ? (
+                      <MapPin className="w-4 h-4 mr-2" />
                     ) : (
                       <MessageSquare className="w-4 h-4 mr-2" />
                     )}
-                    {quote.status === "negotiation" ? "Actualizar y Re-enviar" : "Enviar Cotización con Flete"}
+                    {quote.status === "negotiation" 
+                      ? "Actualizar y Re-enviar" 
+                      : isPickup 
+                        ? "Confirmar Recolección" 
+                        : "Enviar Cotización con Flete"}
                   </Button>
                   <Separator className="my-2" />
                   <div className="grid grid-cols-2 gap-2">
