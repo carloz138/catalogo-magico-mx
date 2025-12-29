@@ -83,13 +83,6 @@ const Index = () => {
             <div className="hidden md:flex items-center space-x-6">
               <Button
                 variant="ghost"
-                onClick={() => navigate("/why-subscribe")}
-                className="text-slate-600 hover:text-indigo-600"
-              >
-                Por qué suscribirse
-              </Button>
-              <Button
-                variant="ghost"
                 onClick={() => navigate("/afiliados")}
                 className="text-slate-600 hover:text-emerald-600"
               >
@@ -136,13 +129,6 @@ const Index = () => {
           {mobileMenuOpen && (
             <div className="md:hidden absolute top-16 left-0 w-full bg-white border-b border-slate-100 shadow-xl animate-in slide-in-from-top-5 z-40">
               <div className="flex flex-col p-4 space-y-2">
-                <Button
-                  variant="ghost"
-                  onClick={() => navigate("/why-subscribe")}
-                  className="w-full justify-start h-12 text-lg font-medium"
-                >
-                  Por qué suscribirse
-                </Button>
                 <Button
                   variant="ghost"
                   onClick={() => navigate("/afiliados")}
