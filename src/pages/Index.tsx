@@ -19,9 +19,10 @@ import {
   TrendingUp,
   Lock,
   Play,
-  BrainCircuit, // ✅ AGREGADOO
-  Radar, // ✅ AGREGADO
+  BrainCircuit,
+  Radar,
 } from "lucide-react";
+import { ReferralPromoSection } from "@/components/landing/ReferralPromoSection";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
@@ -530,7 +531,10 @@ const Index = () => {
         </div>
       </section>
 
-      {/* 6. CTA FINAL */}
+      {/* 6. PROGRAMA DE AFILIADOS */}
+      <ReferralPromoSection />
+
+      {/* 7. CTA FINAL */}
       <section className="py-20 bg-indigo-600 px-4">
         <div className="max-w-3xl mx-auto text-center">
           <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">¿Listo para fortalecer tu red?</h2>
