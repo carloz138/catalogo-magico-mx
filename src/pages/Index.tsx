@@ -90,6 +90,13 @@ const Index = () => {
               </Button>
               <Button
                 variant="ghost"
+                onClick={() => navigate("/afiliados")}
+                className="text-slate-600 hover:text-emerald-600"
+              >
+                Programa de Afiliados
+              </Button>
+              <Button
+                variant="ghost"
                 onClick={() => navigate("/blog")}
                 className="text-slate-600 hover:text-indigo-600"
               >
@@ -135,6 +142,13 @@ const Index = () => {
                   className="w-full justify-start h-12 text-lg font-medium"
                 >
                   Por qué suscribirse
+                </Button>
+                <Button
+                  variant="ghost"
+                  onClick={() => navigate("/afiliados")}
+                  className="w-full justify-start h-12 text-lg font-medium"
+                >
+                  Programa de Afiliados
                 </Button>
                 <Button
                   variant="ghost"

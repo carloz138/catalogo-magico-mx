@@ -42,6 +42,7 @@ import Blog from "@/pages/Blog";
 import BlogPost from "@/pages/BlogPost";
 import NotFound from "@/pages/NotFound";
 import WhySubscribePage from "@/pages/WhySubscribePage";
+import AffiliateProgramPage from "@/pages/AffiliateProgramPage";
 import QuoteTracking from "@/pages/QuoteTracking";
 import TrackQuotePage from "@/pages/TrackQuotePage";
 import OpenpayDemo from "@/pages/OpenpayDemo";
@@ -137,6 +138,7 @@ const App = () => {
 
                       <Route path="/creditos" element={<Navigate to="/checkout" replace />} />
                       <Route path="/why-subscribe" element={<WhySubscribePage />} />
+                      <Route path="/afiliados" element={<AffiliateProgramPage />} />
                       <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
                       <Route path="/privacy-policy" element={<PrivacyPolicy />} />
                       <Route path="/reset-password" element={<ResetPassword />} />
