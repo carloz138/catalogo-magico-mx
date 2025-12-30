@@ -206,18 +206,6 @@ const SLIDES = [
     ],
     punchline: "Toda la cadena de suministro te informa a ti.",
   },
-  {
-    id: "close",
-    visual: VisualCrown,
-    title: "Empieza con ventaja injusta",
-    subtitle: "El cliente de tu cliente se lleva un catálogo gratuito y tú te llevas la data.",
-    bullets: [
-      "Acceso total a la plataforma.",
-      "Todas las herramientas de inteligencia activadas.",
-      "Capacidad de replicación ilimitada.",
-    ],
-    punchline: "3 Meses GRATIS Plan Enterprise.",
-  },
 ];
 
 export default function WelcomeTour({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
