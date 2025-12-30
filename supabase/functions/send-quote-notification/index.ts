@@ -1,9 +1,10 @@
 // ==========================================
 // FUNCION: send-quote-notification
-// DESCRIPCIÓN: Notifica al VENDEDOR con Botón Dinámico de WhatsApp
+// DESCRIPCIÓN: Notifica al VENDEDOR con Email Detallado y WhatsApp
 // ==========================================
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 
+// ✅ PROTOCOLO DE VERSIONADO INTACTO
 const DEPLOY_VERSION = Deno.env.get('FUNCTION_HASH') || "UNKNOWN_HASH";
 
 const corsHeaders = {
@@ -34,7 +35,7 @@ Deno.serve(async (req) => {
         { auth: { persistSession: false } }
     );
 
-    // 2. OBTENER QUOTE
+    // 2. OBTENER QUOTE Y SUS ITEMS
     const { data: quote, error: quoteError } = await supabaseAdmin
         .from('quotes')
         .select(`
@@ -59,12 +60,12 @@ Deno.serve(async (req) => {
     }
     
     // 4. PREPARACIÓN DE ENVÍO
-    const hasWhatsApp = true; // Habilitado para todos
+    const hasWhatsApp = true; 
     let emailSent = false;
     let whatsappSent = false;
 
     // ---------------------------------------------------------
-    // 📧 CANAL 1: EMAIL (Resend)
+    // 📧 CANAL 1: EMAIL (Resend) - AHORA USA EL TEMPLATE MEJORADO
     // ---------------------------------------------------------
     const resendKey = Deno.env.get('RESEND_API_KEY');
     if (resendKey) {
@@ -77,8 +78,8 @@ Deno.serve(async (req) => {
         body: JSON.stringify({
           from: 'Catálogos Digitales <noreply@catifypro.com>',
           to: [user.email],
-          subject: `Nueva cotización de ${quote.customer_name}`,
-          html: generateEmailTemplate(quote, user)
+          subject: `Nueva venta de ${quote.customer_name} (${formatCurrency(quote.total_amount || 0)})`,
+          html: generateEmailTemplate(quote, user) // <--- AQUÍ ESTÁ EL CAMBIO
         })
       });
 
@@ -86,7 +87,7 @@ Deno.serve(async (req) => {
     }
 
     // ---------------------------------------------------------
-    // 🟢 CANAL 2: WHATSAPP (Meta Cloud API) con BOTÓN
+    // 🟢 CANAL 2: WHATSAPP (Meta Cloud API)
     // ---------------------------------------------------------
     const metaToken = Deno.env.get('META_ACCESS_TOKEN');
     const metaPhoneId = Deno.env.get('META_PHONE_ID');
@@ -113,7 +114,6 @@ Deno.serve(async (req) => {
                     name: "new_quote_alert",
                     language: { code: "es_MX" },
                     components: [
-                        // 1. CUERPO DEL MENSAJE (Los 3 datos de texto)
                         {
                             type: "body",
                             parameters: [
@@ -122,13 +122,12 @@ Deno.serve(async (req) => {
                                 { type: "text", text: formatCurrency(quote.total_amount || 0) } // {{3}}
                             ]
                         },
-                        // 2. EL BOTÓN (El ID del pedido para la URL)
                         {
                             type: "button",
                             sub_type: "url",
-                            index: 0, // Índice 0 = Primer botón
+                            index: 0,
                             parameters: [
-                                { type: "text", text: quote.id } // Esto se pega al final de la URL base
+                                { type: "text", text: quote.id }
                             ]
                         }
                     ]
@@ -213,15 +212,94 @@ function formatCurrency(valueInCents: number): string {
     return `$${valueInUnits.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
+// ✅ FUNCIÓN DE EMAIL ACTUALIZADA (CAMBIO ÚNICO Y NECESARIO)
 function generateEmailTemplate(quote: any, user: any) {
     const total = formatCurrency(quote.total_amount || 0);
+    const isPickup = quote.delivery_method === 'pickup';
+    // Determina etiqueta visualmente clara
+    const deliveryLabel = isPickup ? "📍 RECOLECCIÓN EN TIENDA" : "🚚 ENVÍO A DOMICILIO";
+    
+    // Si es envío, mostramos dirección. Si es pickup, ocultamos.
+    const addressHtml = (!isPickup && quote.shipping_address) 
+      ? `<p style="margin: 5px 0 0; font-size: 14px; color: #64748b;">
+           <strong>Destino:</strong> ${typeof quote.shipping_address === 'string' ? quote.shipping_address : (quote.shipping_address.street || 'Dirección en dashboard')}
+         </p>` 
+      : '';
+
+    // Generar filas de la tabla de productos con variantes
+    const itemsHtml = (quote.quote_items || []).map((item: any) => {
+      const subtotal = formatCurrency(item.subtotal || 0);
+      const variantInfo = item.variant_description 
+        ? `<br><span style="color: #666; font-size: 12px; font-style: italic;">${item.variant_description}</span>` 
+        : '';
+      
+      const imageCell = item.product_image_url 
+        ? `<img src="${item.product_image_url}" width="40" height="40" style="border-radius: 4px; object-fit: cover;">`
+        : '<span style="font-size: 20px;">📦</span>';
+
+      return `
+        <tr style="border-bottom: 1px solid #eee;">
+          <td style="padding: 12px 8px; width: 50px; text-align: center;">${imageCell}</td>
+          <td style="padding: 12px 8px;">
+            <div style="font-weight: bold; color: #334155;">${item.product_name}</div>
+            ${variantInfo}
+          </td>
+          <td style="padding: 12px 8px; text-align: center; color: #64748b;">${item.quantity}</td>
+          <td style="padding: 12px 8px; text-align: right; font-weight: 600; color: #334155;">${subtotal}</td>
+        </tr>
+      `;
+    }).join('');
+
     return `
-      <div style="font-family: Arial;">
-        <h2>¡Nueva Venta! 🚀</h2>
-        <p>Hola <strong>${user.business_name}</strong>,</p>
-        <p>El cliente <strong>${quote.customer_name}</strong> ha creado una cotización.</p>
-        <h3>Total: ${total}</h3>
-        <a href="https://catifypro.com/quotes/${quote.id}">Ver en Dashboard</a>
+      <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+        <div style="background-color: #4f46e5; padding: 24px; text-align: center; border-radius: 8px 8px 0 0;">
+          <h2 style="color: #ffffff; margin: 0; font-size: 24px;">¡Nueva Venta Confirmada!</h2>
+        </div>
+        
+        <div style="padding: 24px; border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 8px 8px;">
+          <p style="font-size: 16px; margin-bottom: 20px;">Hola <strong>${user.business_name}</strong>,</p>
+          <p style="font-size: 16px; color: #475569; margin-bottom: 24px;">
+            Tienes un nuevo pedido de <strong>${quote.customer_name}</strong>.
+          </p>
+          
+          <div style="background-color: ${isPickup ? '#fffbeb' : '#f1f5f9'}; border: 1px solid ${isPickup ? '#fcd34d' : '#e2e8f0'}; padding: 16px; border-radius: 8px; margin-bottom: 24px;">
+            <p style="margin: 0; font-weight: bold; font-size: 15px; color: ${isPickup ? '#92400e' : '#334155'};">
+              ${deliveryLabel}
+            </p>
+            ${addressHtml}
+          </div>
+
+          <table style="width: 100%; border-collapse: collapse; font-size: 14px; margin-bottom: 24px;">
+            <thead>
+              <tr style="border-bottom: 2px solid #e2e8f0;">
+                <th style="padding: 8px; text-align: center; color: #64748b; font-weight: 600;">#</th>
+                <th style="padding: 8px; text-align: left; color: #64748b; font-weight: 600;">Producto</th>
+                <th style="padding: 8px; text-align: center; color: #64748b; font-weight: 600;">Cant.</th>
+                <th style="padding: 8px; text-align: right; color: #64748b; font-weight: 600;">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${itemsHtml}
+            </tbody>
+          </table>
+
+          <div style="text-align: right; margin-top: 10px; padding-top: 10px; border-top: 2px solid #e2e8f0;">
+            <p style="font-size: 20px; font-weight: bold; margin: 0; color: #0f172a;">Total: ${total}</p>
+          </div>
+
+          <div style="text-align: center; margin-top: 32px;">
+            <a href="https://catifypro.com/quotes/${quote.id}" 
+               style="background-color: #4f46e5; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px; display: inline-block;">
+              Gestionar Pedido en Dashboard
+            </a>
+          </div>
+        </div>
+        
+        <div style="text-align: center; padding-top: 20px;">
+          <p style="color: #94a3b8; font-size: 12px; margin: 0;">
+            ID del Pedido: ${quote.id}
+          </p>
+        </div>
       </div>
     `;
 }
