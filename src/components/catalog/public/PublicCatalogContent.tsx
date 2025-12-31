@@ -782,17 +782,29 @@ export function PublicCatalogContent({ catalog, onTrackEvent, subscribedVendorId
         )}
       </AnimatePresence>
 
-      {/* MODAL DETALLES PRODUCTO (Mantenido Igual) */}
+      {/* MODAL DETALLES PRODUCTO - Refactorizado Mobile First */}
       <Dialog open={!!selectedProduct} onOpenChange={(open) => !open && setSelectedProduct(null)}>
-        {/* ... (Dialog Content from your file) ... */}
-        <DialogContent className="max-w-3xl w-full p-0 overflow-hidden bg-transparent border-none shadow-2xl rounded-xl">
-          <div className="relative bg-white flex flex-col md:flex-row h-full md:max-h-[85vh]">
-            <div className="w-full md:w-2/3 bg-slate-100 flex items-center justify-center relative aspect-square md:aspect-auto min-h-[300px]">
+        <DialogContent className="w-[95vw] max-w-4xl max-h-[90vh] p-0 gap-0 overflow-hidden rounded-2xl flex flex-col border-0 shadow-2xl [&>button]:hidden">
+          
+          {/* Botón de cierre manual - único visible */}
+          <button
+            onClick={() => setSelectedProduct(null)}
+            className="absolute right-4 top-4 z-50 rounded-full bg-black/50 backdrop-blur-sm p-2 shadow-lg hover:bg-black/70 transition-colors"
+            aria-label="Cerrar"
+          >
+            <X className="h-5 w-5 text-white" />
+          </button>
+
+          {/* Wrapper Principal: Flex Col en Móvil, Flex Row en Desktop */}
+          <div className="flex flex-col md:flex-row h-full overflow-hidden">
+
+            {/* ZONA 1: IMAGEN (Superior en móvil / Izquierda en desktop) */}
+            <div className="relative shrink-0 h-48 md:h-auto md:w-1/2 bg-slate-100 flex items-center justify-center p-4">
               {selectedProduct && (selectedProduct.image_url || selectedProduct.original_image_url) ? (
                 <img
                   src={selectedProduct.image_url || selectedProduct.original_image_url || "/placeholder.png"}
                   alt={selectedProduct.name}
-                  className="w-full h-full object-contain max-h-[50vh] md:max-h-full p-4"
+                  className="max-h-full max-w-full object-contain"
                 />
               ) : (
                 <div className="text-slate-300 flex flex-col items-center">
@@ -800,28 +812,32 @@ export function PublicCatalogContent({ catalog, onTrackEvent, subscribedVendorId
                   <span>Sin imagen</span>
                 </div>
               )}
-              <DialogClose className="absolute top-3 right-3 bg-black/50 text-white hover:bg-black/70 rounded-full p-2 backdrop-blur-sm transition-colors z-10 cursor-pointer">
-                <X className="h-5 w-5" />
-              </DialogClose>
             </div>
 
-            <div className="w-full md:w-1/3 bg-white flex flex-col h-full border-l border-slate-100">
-              <div className="p-6 overflow-y-auto flex-1">
+            {/* ZONA 2: CONTENIDO + FOOTER (Inferior en móvil / Derecha en desktop) */}
+            <div className="flex flex-col flex-1 min-h-0 md:w-1/2 bg-white">
+              
+              {/* 2a. Cuerpo Scrolleable */}
+              <div className="flex-1 overflow-y-auto p-5 space-y-4">
                 {selectedProduct && (
                   <>
-                    {selectedProduct.category && (
-                      <span className="text-xs font-bold text-indigo-600 uppercase tracking-wider mb-2 block">
-                        {selectedProduct.category}
-                      </span>
-                    )}
-                    <h2 className="text-xl md:text-2xl font-bold text-slate-900 mb-2 leading-tight">
-                      {selectedProduct.name}
-                    </h2>
-                    {selectedProduct.sku && (
-                      <span className="text-xs font-mono text-slate-400 block mb-4">SKU: {selectedProduct.sku}</span>
-                    )}
+                    {/* Info del producto */}
+                    <div className="space-y-1">
+                      {selectedProduct.category && (
+                        <span className="text-xs font-bold text-indigo-600 uppercase tracking-wider">
+                          {selectedProduct.category}
+                        </span>
+                      )}
+                      <h2 className="text-xl font-bold text-slate-900 leading-tight pr-8">
+                        {selectedProduct.name}
+                      </h2>
+                      {selectedProduct.sku && (
+                        <span className="text-xs font-mono text-slate-400 block">SKU: {selectedProduct.sku}</span>
+                      )}
+                    </div>
 
-                    <div className="text-3xl font-bold text-slate-900 mb-6">
+                    {/* Precio */}
+                    <div className="text-2xl font-bold text-slate-900">
                       $
                       {(
                         (selectedProduct.variants?.find((v) => v.id === selectedVariantId)?.price_retail ||
@@ -829,12 +845,14 @@ export function PublicCatalogContent({ catalog, onTrackEvent, subscribedVendorId
                       ).toFixed(2)}
                     </div>
 
-                    <p className="text-slate-600 leading-relaxed mb-8 text-sm">
+                    {/* Descripción */}
+                    <p className="text-slate-600 leading-relaxed text-sm">
                       {selectedProduct.description || "Sin descripción disponible para este producto."}
                     </p>
 
+                    {/* Selector de variantes */}
                     {selectedProduct.variants && selectedProduct.variants.length > 0 && (
-                      <div className="space-y-3 mb-8">
+                      <div className="space-y-2 pt-2">
                         <Label className="text-slate-900 font-medium text-sm">Opciones disponibles</Label>
                         <div className="flex flex-wrap gap-2">
                           {selectedProduct.variants.map((variant) => (
@@ -858,9 +876,11 @@ export function PublicCatalogContent({ catalog, onTrackEvent, subscribedVendorId
                 )}
               </div>
 
-              <div className="p-4 border-t border-slate-100 bg-slate-50/80 mt-auto backdrop-blur-sm">
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center bg-white border border-slate-200 rounded-lg h-11 shrink-0">
+              {/* 2b. Footer Fijo - shrink-0 evita que se aplaste */}
+              <div className="p-4 border-t border-slate-100 bg-slate-50/80 shrink-0">
+                <div className="flex gap-3">
+                  {/* Selector de cantidad */}
+                  <div className="flex items-center bg-white border border-slate-200 rounded-lg h-12 shrink-0">
                     <button
                       onClick={() => setQuantity(Math.max(1, quantity - 1))}
                       className="w-10 h-full flex items-center justify-center hover:bg-slate-50 text-slate-600 rounded-l-lg"
@@ -875,8 +895,9 @@ export function PublicCatalogContent({ catalog, onTrackEvent, subscribedVendorId
                       <Plus className="w-4 h-4" />
                     </button>
                   </div>
+                  {/* Botón Agregar */}
                   <Button
-                    className="flex-1 h-11 text-sm bg-slate-900 hover:bg-slate-800 shadow-md"
+                    className="flex-1 h-12 text-base font-medium bg-slate-900 hover:bg-slate-800 shadow-md rounded-full"
                     onClick={handleAddVariantToCart}
                   >
                     Agregar al Pedido
