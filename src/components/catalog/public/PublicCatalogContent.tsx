@@ -468,18 +468,17 @@ export function PublicCatalogContent({ catalog, onTrackEvent, subscribedVendorId
     <div className="catalog-public-container min-h-screen bg-slate-50/50 pb-24 md:pb-20 font-sans flex flex-col">
       <style>{templateCSS}</style>
 
-      {/* BANNER HERO */}
-      <div className="relative bg-slate-900 overflow-hidden shadow-lg">
-        {/* ... (Banner code same as before) ... */}
-        <div
-          className="absolute inset-0 bg-cover bg-center"
-          style={{
-            backgroundImage: catalog.background_pattern
-              ? `url(${catalog.background_pattern})`
-              : "linear-gradient(to bottom right, #1e293b, #334155)",
-            backgroundColor: catalog.brand_colors?.primary || "#1e293b",
-          }}
-        />
+      {/* BANNER HERO - Color dinámico: 1. brand_colors.primary -> 2. Template primary -> 3. Fallback gris */}
+      <div 
+        className="relative overflow-hidden shadow-lg" 
+        style={{ backgroundColor: catalog.brand_colors?.primary || activeTemplate?.colorScheme?.primary || "#1e293b" }}
+      >
+        {catalog.background_pattern && (
+          <div
+            className="absolute inset-0 bg-cover bg-center"
+            style={{ backgroundImage: `url(${catalog.background_pattern})` }}
+          />
+        )}
         <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px]" />
         <div className="relative z-10 container mx-auto px-4 py-12 md:py-20 flex flex-col items-center text-center">
           {catalog.logo_url && (
