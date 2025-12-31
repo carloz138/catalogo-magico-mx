@@ -104,8 +104,8 @@ export function AddToQuoteModal({ product, priceConfig, isOpen, onClose, onAdd, 
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="w-[95vw] max-w-4xl p-0 overflow-hidden rounded-2xl md:rounded-3xl border-0 shadow-2xl [&>button]:hidden">
-        {/* Single close button - absolute positioned, always visible */}
+      <DialogContent className="w-[95vw] max-w-4xl max-h-[90vh] p-0 overflow-hidden flex flex-col rounded-2xl md:rounded-3xl border-0 shadow-2xl [&>button]:hidden">
+        {/* Single close button */}
         <button
           onClick={onClose}
           className="absolute right-3 top-3 z-50 rounded-full bg-background/90 backdrop-blur-sm p-2 shadow-lg hover:bg-background transition-colors border border-border/50"
@@ -114,22 +114,22 @@ export function AddToQuoteModal({ product, priceConfig, isOpen, onClose, onAdd, 
           <X className="h-5 w-5 text-foreground" />
         </button>
 
-        {/* Main layout: Column on mobile, Row on desktop */}
-        <div className="flex flex-col md:flex-row max-h-[90vh] md:max-h-[85vh]">
+        {/* Main layout wrapper - h-full for flex children */}
+        <div className="flex flex-col md:flex-row h-full overflow-hidden">
           
-          {/* IMAGE SECTION: Top on mobile, Left on desktop */}
-          <div className="relative w-full md:w-1/2 h-56 sm:h-64 md:h-auto bg-muted/30 flex items-center justify-center flex-shrink-0">
+          {/* IMAGE SECTION: shrink-0 prevents collapse */}
+          <div className="relative w-full md:w-1/2 h-64 md:h-auto shrink-0 bg-muted/30 flex items-center justify-center p-4">
             <img
               src={imageUrl}
               alt={product.name}
-              className="w-full h-full object-contain p-4 md:p-8"
+              className="object-contain max-h-full max-w-full"
             />
           </div>
 
-          {/* CONTENT SECTION: Bottom on mobile, Right on desktop */}
-          <div className="flex-1 flex flex-col w-full md:w-1/2 min-h-0">
+          {/* CONTENT SECTION: flex-col with h-full for proper scroll */}
+          <div className="flex flex-col w-full md:w-1/2 h-full bg-background">
             
-            {/* Scrollable content area */}
+            {/* SCROLLABLE AREA: flex-1 + overflow-y-auto */}
             <div className="flex-1 overflow-y-auto p-5 md:p-6 space-y-4">
               {/* Product info */}
               <div className="space-y-2">
@@ -188,8 +188,8 @@ export function AddToQuoteModal({ product, priceConfig, isOpen, onClose, onAdd, 
               </div>
             </div>
 
-            {/* STICKY FOOTER: Quantity + Action buttons */}
-            <div className="sticky bottom-0 bg-background/95 backdrop-blur-sm border-t border-border p-4 md:p-5 space-y-4 flex-shrink-0">
+            {/* FIXED FOOTER: shrink-0 ensures it never collapses */}
+            <div className="p-4 md:p-5 border-t border-border bg-background shrink-0 space-y-4">
               {/* Quantity selector */}
               <div className="flex items-center justify-between gap-4">
                 <Label className="text-sm font-medium text-foreground whitespace-nowrap">Cantidad</Label>
