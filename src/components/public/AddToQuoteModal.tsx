@@ -104,36 +104,37 @@ export function AddToQuoteModal({ product, priceConfig, isOpen, onClose, onAdd, 
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="w-[95vw] max-w-4xl max-h-[90vh] p-0 overflow-hidden flex flex-col rounded-2xl md:rounded-3xl border-0 shadow-2xl [&>button]:hidden">
-        {/* Single close button */}
+      <DialogContent className="w-[95vw] max-w-4xl max-h-[90vh] p-0 gap-0 overflow-hidden rounded-2xl flex flex-col border-0 shadow-2xl [&>button]:hidden">
+        
+        {/* Botón de cierre manual - único visible */}
         <button
           onClick={onClose}
-          className="absolute right-3 top-3 z-50 rounded-full bg-background/90 backdrop-blur-sm p-2 shadow-lg hover:bg-background transition-colors border border-border/50"
+          className="absolute right-4 top-4 z-50 rounded-full bg-background/90 backdrop-blur-sm p-2 shadow-lg hover:bg-background transition-colors border border-border/50"
           aria-label="Cerrar"
         >
           <X className="h-5 w-5 text-foreground" />
         </button>
 
-        {/* Main layout wrapper - h-full for flex children */}
+        {/* Wrapper Principal: Flex Col en Móvil, Flex Row en Desktop */}
         <div className="flex flex-col md:flex-row h-full overflow-hidden">
-          
-          {/* IMAGE SECTION: shrink-0 prevents collapse */}
-          <div className="relative w-full md:w-1/2 h-64 md:h-auto shrink-0 bg-muted/30 flex items-center justify-center p-4">
+
+          {/* ZONA 1: IMAGEN (Superior en móvil / Izquierda en desktop) */}
+          <div className="relative shrink-0 h-48 md:h-auto md:w-1/2 bg-muted/30 flex items-center justify-center p-4">
             <img
               src={imageUrl}
               alt={product.name}
-              className="object-contain max-h-full max-w-full"
+              className="max-h-full max-w-full object-contain mix-blend-multiply"
             />
           </div>
 
-          {/* CONTENT SECTION: flex-col with h-full for proper scroll */}
-          <div className="flex flex-col w-full md:w-1/2 h-full bg-background">
+          {/* ZONA 2: CONTENIDO + FOOTER (Inferior en móvil / Derecha en desktop) */}
+          <div className="flex flex-col flex-1 min-h-0 md:w-1/2 bg-background">
             
-            {/* SCROLLABLE AREA: flex-1 + overflow-y-auto */}
-            <div className="flex-1 overflow-y-auto p-5 md:p-6 space-y-4">
-              {/* Product info */}
-              <div className="space-y-2">
-                <h2 className="text-xl md:text-2xl font-bold text-foreground leading-tight pr-8">
+            {/* 2a. Cuerpo Scrolleable */}
+            <div className="flex-1 overflow-y-auto p-5 space-y-4">
+              {/* Info del producto */}
+              <div className="space-y-1">
+                <h2 className="text-xl font-bold text-foreground leading-tight pr-8">
                   {product.name}
                 </h2>
                 {(selectedVariant?.sku || product.sku) && (
@@ -143,7 +144,7 @@ export function AddToQuoteModal({ product, priceConfig, isOpen, onClose, onAdd, 
                 )}
               </div>
 
-              {/* Variant selector */}
+              {/* Selector de variantes */}
               {product.has_variants && product.variants && product.variants.length > 0 && catalog.enable_variants && (
                 <div className="pt-2">
                   <VariantSelector
@@ -154,7 +155,7 @@ export function AddToQuoteModal({ product, priceConfig, isOpen, onClose, onAdd, 
                 </div>
               )}
 
-              {/* Price info */}
+              {/* Info de precios */}
               {priceConfig.display === 'both' && wholesalePrice && (
                 <div className="bg-muted/50 p-4 rounded-xl space-y-1">
                   <div className="flex items-center justify-between">
@@ -179,7 +180,7 @@ export function AddToQuoteModal({ product, priceConfig, isOpen, onClose, onAdd, 
                 </div>
               )}
 
-              {/* Subtotal preview */}
+              {/* Preview del subtotal */}
               <div className="flex justify-between items-center py-3 border-y border-border">
                 <span className="text-base font-medium text-muted-foreground">Subtotal:</span>
                 <span className="text-2xl font-bold text-foreground">
@@ -188,9 +189,9 @@ export function AddToQuoteModal({ product, priceConfig, isOpen, onClose, onAdd, 
               </div>
             </div>
 
-            {/* FIXED FOOTER: shrink-0 ensures it never collapses */}
-            <div className="p-4 md:p-5 border-t border-border bg-background shrink-0 space-y-4">
-              {/* Quantity selector */}
+            {/* 2b. Footer Fijo - shrink-0 evita que se aplaste */}
+            <div className="p-4 border-t border-border bg-background shrink-0 space-y-3">
+              {/* Selector de cantidad */}
               <div className="flex items-center justify-between gap-4">
                 <Label className="text-sm font-medium text-foreground whitespace-nowrap">Cantidad</Label>
                 <div className="flex items-center gap-2">
@@ -223,21 +224,21 @@ export function AddToQuoteModal({ product, priceConfig, isOpen, onClose, onAdd, 
                 </div>
               </div>
 
-              {/* Action buttons */}
-              <div className="flex flex-col sm:flex-row gap-3">
+              {/* Botones de acción */}
+              <div className="flex gap-3">
                 <Button 
                   variant="outline" 
                   onClick={onClose} 
-                  className="h-12 text-base font-medium rounded-full order-2 sm:order-1 sm:flex-1"
+                  className="h-12 text-base font-medium rounded-full flex-1"
                 >
                   Cancelar
                 </Button>
                 <Button 
                   onClick={handleAdd} 
-                  className="h-12 text-base font-medium rounded-full order-1 sm:order-2 flex-1"
+                  className="h-12 text-base font-medium rounded-full flex-1"
                 >
                   <ShoppingCart className="h-4 w-4 mr-2" />
-                  Agregar al Pedido
+                  Agregar
                 </Button>
               </div>
             </div>
