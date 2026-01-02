@@ -35,7 +35,6 @@ import {
   AlertTriangle,
   ChevronLeft,
   ChevronRight,
-  Radar,
   PackageSearch,
   Landmark,
   Truck,
@@ -149,15 +148,6 @@ export function AppSidebar() {
     },
     { title: "Mis Catálogos", path: "/catalogs", icon: BookOpen, primary: true, roles: ["L1", "L2", "BOTH", "NONE"] },
     {
-      title: "Radar de Mercado",
-      path: "/market-radar",
-      icon: Radar,
-      badge: "IA",
-      badgeColor: "bg-violet-500/20 text-violet-200 border-violet-500/30",
-      primary: true,
-      roles: ["L1", "BOTH"],
-    },
-    {
       title: "Marketplace",
       path: "/marketplace",
       icon: ShoppingBag,
@@ -165,14 +155,6 @@ export function AppSidebar() {
       badgeColor: "bg-pink-500/20 text-pink-200 border-pink-500/30",
       primary: true,
       roles: ["L2", "BOTH", "NONE"],
-    },
-    {
-      title: "Red de Distribución",
-      path: "/network",
-      icon: Network,
-      badge: "Viral",
-      badgeColor: "bg-emerald-500/20 text-emerald-200 border-emerald-500/30",
-      roles: ["L1", "BOTH"],
     },
     {
       title: "Gestión de Productos",
@@ -184,7 +166,6 @@ export function AppSidebar() {
     { title: "Inventario", path: "/products", icon: Package, roles: ["L1", "BOTH", "NONE"] },
     { title: "Carga Masiva", path: "/products/bulk-upload", icon: PackageOpen, roles: ["L1", "BOTH"] },
     { title: "Subir Productos", path: "/upload", icon: Upload, roles: ["L1", "BOTH", "NONE"] },
-    { title: "Analytics", path: "/analytics", icon: BarChart3, roles: ["L1", "BOTH"] },
     {
       title: "Mis Ganancias",
       path: "/dashboard/money",
@@ -194,7 +175,7 @@ export function AppSidebar() {
       primary: true,
       roles: ["L1", "L2", "BOTH", "NONE"],
     },
-    { title: "Facturación", path: "/checkout", icon: CreditCard, roles: ["L1", "BOTH", "NONE"] },
+    { title: "Planes", path: "/checkout", icon: CreditCard, roles: ["L1", "BOTH", "NONE"] },
     { title: "Guía de Inicio", path: "/onboarding", icon: PlayCircle, roles: ["L1", "L2", "BOTH", "NONE"] },
     {
       title: "Datos Bancarios",
