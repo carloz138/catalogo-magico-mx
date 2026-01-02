@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetClose } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Progress } from "@/components/ui/progress";
@@ -13,7 +13,6 @@ import {
   Truck,
   ArrowRight,
   Sparkles,
-  X,
   Factory,
   Clock,
   AlertTriangle,
@@ -220,12 +219,7 @@ export function QuoteCartModal({
     <Sheet open={isOpen} onOpenChange={onClose}>
       <SheetContent className="w-full sm:max-w-md flex flex-col p-0 gap-0">
         <SheetHeader className="px-6 py-4 border-b">
-          <div className="flex items-center justify-between">
-            <SheetTitle>Tu Pedido ({items.length})</SheetTitle>
-            <SheetClose>
-              <X className="h-5 w-5" />
-            </SheetClose>
-          </div>
+          <SheetTitle>Tu Pedido ({items.length})</SheetTitle>
         </SheetHeader>
 
         {shippingStatus && (
