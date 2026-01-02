@@ -167,16 +167,35 @@ serve(async (req) => {
                 .single();
 
             if (sub) {
-                // Solo reseteamos créditos mensuales
                 if (invoice.billing_reason === 'subscription_cycle') {
                     const currentMonth = parseInt(new Date().getFullYear().toString() + (new Date().getMonth() + 1).toString().padStart(2, '0'));
-                    await supabase.from('catalog_usage').upsert({
-                        user_id: sub.user_id,
-                        usage_month: currentMonth,
-                        subscription_plan_id: sub.package_id,
-                        catalogs_generated: 0,
-                        uploads_used: 0
-                    }, { onConflict: 'user_id, usage_month' });
+                    
+                    // 🔥 FIX: Verificar si ya existe registro para este mes
+                    const { data: existingUsage } = await supabase
+                        .from('catalog_usage')
+                        .select('id')
+                        .eq('user_id', sub.user_id)
+                        .eq('usage_month', currentMonth)
+                        .maybeSingle();
+                    
+                    if (existingUsage) {
+                        // ✅ Ya existe: Solo actualizar el plan (por si cambió), NO resetear contadores
+                        console.log(`📊 catalog_usage ya existe para ${sub.user_id} mes ${currentMonth}, solo actualizando plan_id`);
+                        await supabase.from('catalog_usage')
+                            .update({ subscription_plan_id: sub.package_id })
+                            .eq('user_id', sub.user_id)
+                            .eq('usage_month', currentMonth);
+                    } else {
+                        // ✅ No existe: Crear nuevo registro con contadores en 0
+                        console.log(`📊 Creando nuevo catalog_usage para ${sub.user_id} mes ${currentMonth}`);
+                        await supabase.from('catalog_usage').insert({
+                            user_id: sub.user_id,
+                            usage_month: currentMonth,
+                            subscription_plan_id: sub.package_id,
+                            catalogs_generated: 0,
+                            uploads_used: 0
+                        });
+                    }
                 }
                 
                 // ⚠️ NOTA: Ya no calculamos comisiones aquí manualmente.
