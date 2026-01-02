@@ -173,6 +173,43 @@ export default function MainDashboard() {
   const planBadgeColor =
     paqueteUsuario?.analytics_level === "pro" ? "bg-purple-100 text-purple-700" : "bg-green-100 text-green-700";
 
+  // Si no tiene plan activo (paqueteUsuario es null o es free_l2 sin suscripción real para L1)
+  const hasNoActivePlan = !paqueteUsuario || (paqueteUsuario as any).id === "free_l2";
+  const isL1WithoutPlan = isL1 && !paqueteUsuario;
+
+  // Mostrar banner de activación si es L1 sin plan
+  if (isL1WithoutPlan) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="p-4 md:p-8 max-w-2xl mx-auto"
+      >
+        <Card className="border-amber-200 bg-amber-50 shadow-lg">
+          <CardHeader className="text-center pb-2">
+            <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Zap className="w-8 h-8 text-amber-600" />
+            </div>
+            <CardTitle className="text-2xl text-amber-900">¡Activa tu Plan!</CardTitle>
+          </CardHeader>
+          <CardContent className="text-center space-y-4">
+            <p className="text-amber-700">
+              Aún no tienes un plan activo. Para comenzar a subir productos y crear catálogos, 
+              necesitas activar una suscripción.
+            </p>
+            <Button 
+              size="lg"
+              className="bg-amber-600 hover:bg-amber-700 text-white shadow-lg"
+              onClick={() => navigate("/checkout")}
+            >
+              <Zap className="w-4 h-4 mr-2" /> Ver Planes y Activar
+            </Button>
+          </CardContent>
+        </Card>
+      </motion.div>
+    );
+  }
+
   return (
     <motion.div
       variants={containerVariants}
