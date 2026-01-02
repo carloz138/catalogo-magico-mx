@@ -2,6 +2,14 @@ import { useEffect, useCallback, useRef } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { supabase } from "@/integrations/supabase/client";
 
+function getCookie(name: string): string | null {
+  if (typeof document === 'undefined') return null;
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop()?.split(';').shift() || null;
+  return null;
+}
+
 interface MetaPixelConfig {
   pixelId?: string;
   accessToken?: string;
@@ -18,50 +26,55 @@ interface UseMetaPixelProps {
   isL2?: boolean;
 }
 
-interface EventData {
-  currency?: string;
-  value?: number;
-  [key: string]: any;
+interface CAPIEventPayload {
+  event_name: string;
+  event_id: string;
+  user_data: Record<string, any>;
+  custom_data: Record<string, any>;
 }
 
-interface UserData {
-  email?: string;
-  phone?: string;
-  fn?: string; // first name
-  ln?: string; // last name
-  ct?: string; // city
-  st?: string; // state
-  zp?: string; // zip
-  country?: string;
-}
-
-/**
- * Hook unificado para Meta (Facebook) Pixel + Conversions API (CAPI)
- * Estrategia híbrida: Dispara eventos al navegador y servidor simultáneamente
- */
 export const useMetaPixel = ({ trackingConfig, isL2 = false }: UseMetaPixelProps) => {
   const pixelInitialized = useRef(false);
 
-  // Determinar qué pixel usar (legacy vs CAPI)
   const activePixelId = trackingConfig?.meta_capi?.enabled 
     ? trackingConfig.meta_capi.pixel_id 
     : trackingConfig?.pixelId;
 
-  const capiEnabled = trackingConfig?.meta_capi?.enabled || false;
+  const capiEnabled = trackingConfig?.meta_capi?.enabled || (!!trackingConfig?.accessToken);
   const accessToken = trackingConfig?.meta_capi?.access_token || trackingConfig?.accessToken;
   const testCode = trackingConfig?.meta_capi?.test_code;
 
-  /**
-   * Inicializar el script de Facebook Pixel (Browser-Side)
-   */
+  const sendEventToCAPI = useCallback(async ({ event_name, event_id, user_data, custom_data }: CAPIEventPayload) => {
+    if (!capiEnabled || !accessToken || !activePixelId) return;
+    
+    // Fire and Forget - don't await
+    supabase.functions.invoke("tracking-events", {
+      body: {
+        pixel_id: activePixelId,
+        access_token: accessToken,
+        event_name,
+        event_id,
+        event_source_url: window.location.href,
+        user_data: {
+          ...user_data,
+          fbc: getCookie('_fbc'),
+          fbp: getCookie('_fbp'),
+          client_user_agent: navigator.userAgent,
+        },
+        custom_data,
+        test_event_code: testCode,
+      },
+    }).catch((err) => console.error('[CAPI] Error sending event:', err));
+  }, [capiEnabled, accessToken, activePixelId, testCode]);
+
+  // Initialize Pixel and send PageView once
   useEffect(() => {
     if (!activePixelId || pixelInitialized.current) return;
-
+    
     const win = window as any;
 
-    // Verificar si el script ya existe
+    // Load Facebook Pixel script if not already loaded
     if (!win.fbq) {
-      // Inyectar el script estándar de Facebook
       (function (f: any, b: any, e: any, v: any, n?: any, t?: any, s?: any) {
         if (f.fbq) return;
         n = f.fbq = function () {
@@ -80,14 +93,13 @@ export const useMetaPixel = ({ trackingConfig, isL2 = false }: UseMetaPixelProps
       })(window, document, "script", "https://connect.facebook.net/en_US/fbevents.js");
     }
 
-    // Inicializar el pixel
     win.fbq("init", activePixelId);
-
-    // Disparar PageView automático con event_id para deduplicación
+    
+    // Automatic PageView with Deduplication
     const pageViewEventId = uuidv4();
     win.fbq("track", "PageView", {}, { eventID: pageViewEventId });
 
-    // Si CAPI está habilitado, enviar también al servidor
+    // Send to CAPI as well for hybrid tracking
     if (capiEnabled && accessToken) {
       sendEventToCAPI({
         event_name: "PageView",
@@ -97,96 +109,33 @@ export const useMetaPixel = ({ trackingConfig, isL2 = false }: UseMetaPixelProps
       });
     }
 
+    console.log(`[Meta Pixel] Initialized with ID: ${activePixelId}, L2: ${isL2}`);
     pixelInitialized.current = true;
+  }, [activePixelId, capiEnabled, accessToken, isL2, sendEventToCAPI]);
 
-    console.log("✅ Meta Pixel inicializado:", {
-      pixelId: activePixelId,
-      capiEnabled,
-      isL2,
-    });
-  }, [activePixelId, capiEnabled, accessToken, isL2]);
+  const trackEvent = useCallback((eventName: string, data: Record<string, any> = {}, userData: Record<string, any> = {}) => {
+    if (!activePixelId) return;
+    
+    const eventId = uuidv4();
+    const win = window as any;
 
-  /**
-   * Enviar evento a la Edge Function (CAPI - Server-Side)
-   */
-  const sendEventToCAPI = async ({
-    event_name,
-    event_id,
-    user_data,
-    custom_data,
-  }: {
-    event_name: string;
-    event_id: string;
-    user_data: UserData;
-    custom_data: EventData;
-  }) => {
-    if (!capiEnabled || !accessToken) {
-      console.log("⏭️ CAPI deshabilitado o sin access_token, saltando envío server-side");
-      return;
+    // Browser-side tracking
+    if (win.fbq) {
+      win.fbq("track", eventName, data, { eventID: eventId });
     }
-
-    try {
-      const { data, error } = await supabase.functions.invoke("tracking-events", {
-        body: {
-          provider: "meta",
-          event_name,
-          event_id,
-          user_data,
-          custom_data,
-          pixel_id: activePixelId,
-          access_token: accessToken,
-          test_code: testCode,
-        },
+    
+    // Server-side tracking (CAPI)
+    if (capiEnabled && accessToken) {
+      sendEventToCAPI({
+        event_name: eventName,
+        event_id: eventId,
+        user_data: userData,
+        custom_data: data,
       });
-
-      if (error) {
-        console.error("❌ Error enviando evento a CAPI:", error);
-      } else {
-        console.log("✅ Evento enviado a CAPI:", { event_name, event_id, response: data });
-      }
-    } catch (error) {
-      console.error("❌ Error al invocar tracking-events:", error);
     }
-  };
+    
+    console.log(`[Meta Pixel] Event: ${eventName}`, { eventId, data });
+  }, [activePixelId, capiEnabled, accessToken, sendEventToCAPI]);
 
-  /**
-   * Función principal para trackear eventos (Híbrido: Browser + Server)
-   */
-  const trackEvent = useCallback(
-    (eventName: string, data: EventData = {}, userData: UserData = {}) => {
-      if (!activePixelId) {
-        console.warn("⚠️ Meta Pixel no configurado, saltando tracking");
-        return;
-      }
-
-      // Generar event_id único para deduplicación
-      const eventId = uuidv4();
-
-      const win = window as any;
-
-      // 1. DISPARAR AL NAVEGADOR (Browser Pixel)
-      if (win.fbq) {
-        win.fbq("track", eventName, data, { eventID: eventId });
-        console.log("📊 Evento enviado al navegador:", { eventName, eventId, data });
-      }
-
-      // 2. DISPARAR AL SERVIDOR (CAPI) - SIMULTÁNEAMENTE
-      if (capiEnabled && accessToken) {
-        sendEventToCAPI({
-          event_name: eventName,
-          event_id: eventId,
-          user_data: userData,
-          custom_data: data,
-        });
-      }
-    },
-    [activePixelId, capiEnabled, accessToken, testCode]
-  );
-
-  return {
-    trackEvent,
-    pixelId: activePixelId,
-    isInitialized: pixelInitialized.current,
-    capiEnabled,
-  };
+  return { trackEvent };
 };
