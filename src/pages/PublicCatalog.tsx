@@ -350,6 +350,16 @@ export default function PublicCatalog({ subdomainSlug }: PublicCatalogProps = {}
       });
 
       await refreshRole();
+      
+      // Disparar evento de "Nuevo Distribuidor" para el L1 (dueño original)
+      if (catalog.user_id) {
+        trackEvent("CompleteRegistration", { 
+          content_name: "Nuevo Distribuidor",
+          currency: "MXN",
+          value: 0 
+        });
+      }
+      
       navigate("/products");
     } catch (err: any) {
       console.error("Error subscribing:", err);
