@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 
 // Minimal product interface for cart - compatible with full Product type
 export interface CartProduct {
@@ -51,8 +51,40 @@ interface QuoteCartContextType {
 
 const QuoteCartContext = createContext<QuoteCartContextType | undefined>(undefined);
 
-export function QuoteCartProvider({ children }: { children: React.ReactNode }) {
-  const [items, setItems] = useState<QuoteItem[]>([]);
+interface QuoteCartProviderProps {
+  children: React.ReactNode;
+  catalogId?: string;
+}
+
+const getStorageKey = (catalogId?: string) => `quote_cart_${catalogId || 'default'}`;
+
+export function QuoteCartProvider({ children, catalogId }: QuoteCartProviderProps) {
+  const storageKey = getStorageKey(catalogId);
+  const isInitialized = useRef(false);
+
+  const [items, setItems] = useState<QuoteItem[]>(() => {
+    // Initialize from localStorage on mount
+    if (typeof window === 'undefined') return [];
+    try {
+      const stored = localStorage.getItem(storageKey);
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  // Persist to localStorage whenever items change (after initialization)
+  useEffect(() => {
+    if (!isInitialized.current) {
+      isInitialized.current = true;
+      return;
+    }
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(items));
+    } catch (e) {
+      console.error('Failed to persist cart:', e);
+    }
+  }, [items, storageKey]);
 
   const addItem = useCallback((
     product: CartProduct, 
@@ -122,7 +154,12 @@ export function QuoteCartProvider({ children }: { children: React.ReactNode }) {
 
   const clearCart = useCallback(() => {
     setItems([]);
-  }, []);
+    try {
+      localStorage.removeItem(storageKey);
+    } catch (e) {
+      console.error('Failed to clear cart from storage:', e);
+    }
+  }, [storageKey]);
 
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
   const totalAmount = items.reduce((sum, item) => sum + (item.unitPrice * item.quantity), 0);

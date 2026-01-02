@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
-import { useMetaTracking } from "@/hooks/useMetaTracking";
+import { useMetaPixel } from "@/hooks/useMetaPixel";
 import { QuoteCartProvider } from "@/contexts/QuoteCartContext";
 import { Helmet } from "react-helmet-async";
 import { useUserRole } from "@/contexts/RoleContext";
@@ -298,17 +298,15 @@ export default function PublicCatalog({ subdomainSlug }: PublicCatalogProps = {}
     enabled: !!catalog?.resellerId,
   });
 
-  const trackingConfig = (catalog?.tracking_config as any) || {};
-  const { trackEvent } = useMetaTracking({
-    enabled: true,
-    pixelId: trackingConfig.pixelId,
-    accessToken: trackingConfig.accessToken,
-    isEnterprise: !!trackingConfig.accessToken,
+  const trackingConfig = (catalog?.tracking_config as any) || null;
+  const { trackEvent } = useMetaPixel({
+    trackingConfig,
+    isL2: catalog?.isReplicated,
   });
 
+  // ViewContent tracking after catalog loads
   useEffect(() => {
     if (catalog) {
-      trackEvent("PageView");
       trackEvent("ViewContent", {
         content_name: catalog.name,
         content_ids: [catalog.id],
@@ -422,7 +420,7 @@ export default function PublicCatalog({ subdomainSlug }: PublicCatalogProps = {}
     catalog.enable_distribution && (!currentUser || currentUser.id !== catalog.user_id) && !catalog.isReplicated;
 
   return (
-    <QuoteCartProvider>
+    <QuoteCartProvider catalogId={catalog.id}>
       <Helmet>
         <title>{catalog.name}</title>
         <meta property="og:type" content="website" />
