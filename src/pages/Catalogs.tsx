@@ -6,6 +6,14 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"; // ✅ IMPORT NUEVO
+import {
   Eye,
   Share2,
   Edit,
@@ -22,8 +30,9 @@ import {
   Search,
   Truck,
   Store,
-  Rocket, // ✅ Icono para el Super Catálogo
+  Rocket,
   Loader2,
+  ChevronDown, // ✅ IMPORT NUEVO
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -37,7 +46,7 @@ import { DigitalCatalog } from "@/types/digital-catalog";
 import { supabase } from "@/integrations/supabase/client";
 import { BusinessInfoBanner } from "@/components/dashboard/BusinessInfoBanner";
 
-// ... (Tipos e Interfaces iguales) ...
+// ... (Tipos e Interfaces iguales - Mantenlos como los tenías o impórtalos)
 interface PDFCatalog {
   id: string;
   user_id: string;
@@ -81,11 +90,9 @@ const itemVariants = {
   show: { opacity: 1, y: 0 },
 };
 
-// ... (Componentes DigitalCatalogCard, ReplicatedCatalogCard, PDFCatalogCard, CatalogSkeleton IGUALES que antes) ...
-// Para ahorrar espacio aquí, asumo que mantienes los componentes de Card que ya tenías bien hechos.
-// Si necesitas que los repita, avísame, pero son idénticos al código anterior.
-// Solo voy a poner el DigitalCatalogCard como referencia y luego el componente principal Catalogs.
-
+// ==========================================
+// 1. DIGITAL CATALOG CARD (ACTUALIZADA 🚀)
+// ==========================================
 const DigitalCatalogCard = ({
   catalog,
   onShare,
@@ -95,36 +102,63 @@ const DigitalCatalogCard = ({
   onShare: (c: DigitalCatalog) => void;
   onDelete: (c: DigitalCatalog) => void;
 }) => {
-  // ... (Mantén tu código actual de DigitalCatalogCard)
   const navigate = useNavigate();
   const isExpired = catalog.expires_at ? new Date(catalog.expires_at) < new Date() : false;
   const isActive = catalog.is_active && !isExpired;
-  const formatDate = (d: string) =>
-    new Date(d).toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric" });
+
+  // ✅ DETECCIÓN DE TIPO DE CATÁLOGO
+  const isSuper = catalog.catalog_type === "super";
 
   return (
     <motion.div variants={itemVariants}>
-      <Card className="group relative overflow-hidden border border-slate-200 bg-white hover:border-indigo-300 hover:shadow-md transition-all duration-300 h-full flex flex-col">
-        <div className={`absolute top-0 left-0 w-1 h-full ${isActive ? "bg-indigo-500" : "bg-slate-300"}`} />
-        <div className="relative h-32 bg-slate-100 overflow-hidden shrink-0">
+      <Card
+        className={`group relative overflow-hidden border bg-white transition-all duration-300 h-full flex flex-col 
+        ${isSuper ? "border-indigo-200 hover:border-indigo-400 hover:shadow-lg hover:shadow-indigo-100" : "border-slate-200 hover:border-indigo-300 hover:shadow-md"}`}
+      >
+        {/* Barra lateral de estado */}
+        <div
+          className={`absolute top-0 left-0 w-1 h-full ${isActive ? (isSuper ? "bg-indigo-600" : "bg-slate-400") : "bg-slate-300"}`}
+        />
+
+        <div className={`relative h-32 overflow-hidden shrink-0 ${isSuper ? "bg-indigo-50/50" : "bg-slate-100"}`}>
           <div className="absolute top-3 left-4 right-3 flex justify-between items-start">
-            <Badge variant="outline" className="bg-white/90 backdrop-blur text-indigo-700 border-indigo-100 shadow-sm">
-              <Globe className="w-3 h-3 mr-1.5" /> Tienda Unificada
-            </Badge>
+            {/* ✅ BADGE DINÁMICO */}
+            {isSuper ? (
+              <Badge
+                variant="outline"
+                className="bg-white/90 backdrop-blur text-indigo-700 border-indigo-200 shadow-sm font-bold"
+              >
+                <Rocket className="w-3 h-3 mr-1.5" /> SUPER STORE
+              </Badge>
+            ) : (
+              <Badge variant="outline" className="bg-white/90 backdrop-blur text-slate-600 border-slate-200 shadow-sm">
+                <Store className="w-3 h-3 mr-1.5" /> Fabricante
+              </Badge>
+            )}
+
             {catalog.is_private && (
               <div className="bg-slate-900/80 p-1.5 rounded-full text-white">
                 <Lock className="w-3 h-3" />
               </div>
             )}
           </div>
+
           <div className="flex h-full items-center justify-center">
-            <Globe className="w-12 h-12 text-indigo-200 group-hover:scale-110 group-hover:text-indigo-400 transition-all duration-500" />
+            {/* ✅ ICONO DINÁMICO */}
+            {isSuper ? (
+              <Rocket className="w-12 h-12 text-indigo-300 group-hover:scale-110 group-hover:text-indigo-500 transition-all duration-500" />
+            ) : (
+              <Globe className="w-12 h-12 text-slate-300 group-hover:scale-110 group-hover:text-slate-500 transition-all duration-500" />
+            )}
           </div>
         </div>
+
         <CardContent className="p-4 pl-5 flex flex-col flex-1">
           <div className="mb-4 flex-1">
             <div className="flex justify-between items-start mb-1">
-              <h3 className="font-semibold text-slate-900 line-clamp-1 group-hover:text-indigo-600 transition-colors">
+              <h3
+                className={`font-semibold line-clamp-1 transition-colors ${isSuper ? "text-indigo-900 group-hover:text-indigo-700" : "text-slate-900 group-hover:text-indigo-600"}`}
+              >
                 {catalog.name}
               </h3>
               <Badge
@@ -134,12 +168,15 @@ const DigitalCatalogCard = ({
                 {isActive ? "ACTIVO" : "INACTIVO"}
               </Badge>
             </div>
-            <p className="text-xs text-slate-500 line-clamp-2">{catalog.description || "Tu tienda personalizada."}</p>
+            <p className="text-xs text-slate-500 line-clamp-2">
+              {catalog.description || (isSuper ? "Catálogo unificado." : "Catálogo de fabricante.")}
+            </p>
           </div>
+
           <div className="flex items-center gap-2 pt-3 mt-auto">
             <Button
               size="sm"
-              className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white h-8 text-xs"
+              className={`flex-1 text-white h-8 text-xs ${isSuper ? "bg-indigo-600 hover:bg-indigo-700" : "bg-slate-700 hover:bg-slate-800"}`}
               onClick={() => window.open(`/c/${catalog.slug}`, "_blank")}
               disabled={!isActive}
             >
@@ -169,7 +206,7 @@ const DigitalCatalogCard = ({
   );
 };
 
-// ... (ReplicatedCatalogCard y PDFCatalogCard MANTENLOS IGUAL, ya funcionaban bien)
+// ... (ReplicatedCatalogCard y PDFCatalogCard se quedan IGUAL)
 const ReplicatedCatalogCard = ({
   catalog,
   onShare,
@@ -253,7 +290,6 @@ const ReplicatedCatalogCard = ({
 };
 
 const PDFCatalogCard = ({ catalog, onDelete }: { catalog: PDFCatalog; onDelete: (id: string) => void }) => {
-  // ... Manten el código del PDF Card
   const handleDownload = () =>
     catalog.pdf_url
       ? window.open(catalog.pdf_url, "_blank")
@@ -302,7 +338,7 @@ const CatalogSkeleton = () => (
 );
 
 // ==========================================
-// 4. COMPONENTE PRINCIPAL (Page) - AQUÍ ESTÁ LA MAGIA
+// 4. COMPONENTE PRINCIPAL (Page)
 // ==========================================
 
 const Catalogs = () => {
@@ -318,7 +354,7 @@ const Catalogs = () => {
 
   const { limits, loading: limitsLoading } = useCatalogLimits();
 
-  // --- QUERY 1: Digital Catalogs (L1/Super Tiendas) ---
+  // --- QUERY 1: Digital Catalogs ---
   const { data: digitalCatalogs = [], isLoading: loadingDigital } = useQuery({
     queryKey: ["digital-catalogs", user?.id],
     queryFn: async () => {
@@ -344,7 +380,7 @@ const Catalogs = () => {
     enabled: !!user,
   });
 
-  // --- QUERY 3: Replicated Catalogs (Suscripciones) ---
+  // --- QUERY 3: Replicated Catalogs ---
   const { data: replicatedCatalogs = [], isLoading: loadingReplicated } = useQuery({
     queryKey: ["replicated-catalogs", user?.id],
     queryFn: async () => {
@@ -378,7 +414,7 @@ const Catalogs = () => {
     enabled: !!user,
   });
 
-  // --- 🔥 FUNCIÓN MÁGICA: CREAR SUPER CATÁLOGO ---
+  // --- 🔥 FUNCIÓN: CREAR SUPER CATÁLOGO (Actualizada) ---
   const handleCreateSuperCatalog = async () => {
     if (!user) return;
     setIsCreatingSuper(true);
@@ -390,7 +426,7 @@ const Catalogs = () => {
 
       if (subError) throw subError;
 
-      // 2. Obtener mis productos propios (opcional, pero buena práctica)
+      // 2. Obtener mis productos propios
       const { data: myProducts, error: myError } = await supabase
         .from("products")
         .select("id")
@@ -418,12 +454,13 @@ const Catalogs = () => {
       const newCatalogDTO = {
         name: "Mi Super Tienda " + new Date().toLocaleDateString(),
         description: "Catálogo unificado con todos mis proveedores y productos.",
-        product_ids: [...new Set(allProductIds)], // Eliminar duplicados
-        web_template_id: "sidebar-detail-warm", // Default bonito
+        product_ids: [...new Set(allProductIds)],
+        web_template_id: "sidebar-detail-warm",
         price_display: "both",
         show_stock: true,
         is_private: false,
-        expires_at: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(), // 3 meses
+        catalog_type: "super", // ✅ CAMBIO: Marcamos como Super Tienda
+        expires_at: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
       };
 
       await DigitalCatalogService.createCatalog(user.id, newCatalogDTO as any);
@@ -460,8 +497,8 @@ const Catalogs = () => {
 
   const handleCreateNew = () => navigate("/catalogs/new");
   const isLoading = loadingDigital || loadingPDF || loadingReplicated;
-  const totalCatalogs = digitalCatalogs.length + pdfCatalogs.length + replicatedCatalogs.length;
 
+  // ✅ ACCIONES UNIFICADAS (DROPDOWN)
   const actions = (
     <div className="flex items-center gap-2 w-full md:w-auto">
       <div className="relative flex-1 md:w-64 md:mr-2">
@@ -473,26 +510,45 @@ const Catalogs = () => {
         />
       </div>
 
-      {/* 🔥 BOTÓN SUPER CATÁLOGO */}
-      {(replicatedCatalogs.length > 0 || digitalCatalogs.length > 0) && (
-        <Button
-          onClick={handleCreateSuperCatalog}
-          disabled={isCreatingSuper}
-          className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white shadow-md border-0"
-        >
-          {isCreatingSuper ? (
-            <Loader2 className="w-4 h-4 animate-spin md:mr-2" />
-          ) : (
-            <Rocket className="w-4 h-4 md:mr-2" />
-          )}
-          <span className="hidden md:inline">Crear Super Tienda</span>
-        </Button>
-      )}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button className="bg-slate-900 hover:bg-slate-800 text-white shadow-md gap-2">
+            <Plus className="w-4 h-4" />
+            <span className="hidden md:inline">Crear Catálogo</span>
+            <ChevronDown className="w-3 h-3 opacity-50" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-56 bg-white border-slate-200 shadow-xl">
+          <DropdownMenuLabel>Selecciona el tipo</DropdownMenuLabel>
+          <DropdownMenuSeparator />
 
-      <Button onClick={handleCreateNew} className="bg-slate-900 hover:bg-slate-800 text-white shadow-md">
-        <Plus className="w-4 h-4 md:mr-2" />
-        <span className="hidden md:inline">Nuevo</span>
-      </Button>
+          <DropdownMenuItem onClick={handleCreateNew} className="cursor-pointer py-3 hover:bg-slate-50">
+            <Store className="w-4 h-4 mr-2 text-slate-500" />
+            <div className="flex flex-col">
+              <span className="font-medium text-slate-900">Catálogo Estándar</span>
+              <span className="text-[10px] text-slate-400">Selección manual de productos</span>
+            </div>
+          </DropdownMenuItem>
+
+          {(replicatedCatalogs.length > 0 || digitalCatalogs.length > 0) && (
+            <DropdownMenuItem
+              onClick={handleCreateSuperCatalog}
+              disabled={isCreatingSuper}
+              className="cursor-pointer py-3 bg-indigo-50/50 hover:bg-indigo-100 focus:bg-indigo-100 mt-1"
+            >
+              {isCreatingSuper ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Rocket className="w-4 h-4 mr-2 text-indigo-600" />
+              )}
+              <div className="flex flex-col">
+                <span className="font-medium text-indigo-700">Super Tienda 🚀</span>
+                <span className="text-[10px] text-indigo-500">Unifica todo tu inventario</span>
+              </div>
+            </DropdownMenuItem>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   );
 
@@ -538,7 +594,7 @@ const Catalogs = () => {
         {visibleDigital.length > 0 && (
           <section>
             <div className="flex items-center gap-3 mb-5 pb-2 border-b border-slate-200/60">
-              <h2 className="text-lg font-bold text-slate-800">Mis Super Tiendas (Personalizadas)</h2>
+              <h2 className="text-lg font-bold text-slate-800">Mis Catálogos</h2>
               <Badge variant="secondary" className="bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border-indigo-100">
                 {visibleDigital.length}
               </Badge>
@@ -569,7 +625,7 @@ const Catalogs = () => {
               <Share2 className="w-5 h-5 shrink-0 mt-0.5" />
               <p>
                 Estos son los enlaces directos de tus proveedores. Para mezclar productos de varios, usa el botón "Crear
-                Super Tienda".
+                Catálogo" &gt; "Super Tienda".
               </p>
             </div>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
