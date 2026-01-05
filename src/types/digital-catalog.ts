@@ -26,6 +26,10 @@ export interface DigitalCatalog {
   user_id: string;
   name: string;
   slug: string;
+
+  // ✅ CAMBIO: Identificador para Super Tiendas
+  catalog_type?: "standard" | "super";
+
   description: string | null;
   template_id: string | null;
   web_template_id: string | null;
@@ -163,6 +167,10 @@ export interface CatalogView {
 
 export interface CreateDigitalCatalogDTO {
   name: string;
+
+  // ✅ CAMBIO: Campo opcional para crear Super Tiendas
+  catalog_type?: "standard" | "super";
+
   description?: string;
   template_id?: string;
   web_template_id?: string;
