@@ -946,6 +946,7 @@ export type Database = {
           access_password: string | null
           additional_info: string | null
           background_pattern: string | null
+          catalog_type: string | null
           created_at: string | null
           description: string | null
           enable_distribution: boolean | null
@@ -983,6 +984,7 @@ export type Database = {
           access_password?: string | null
           additional_info?: string | null
           background_pattern?: string | null
+          catalog_type?: string | null
           created_at?: string | null
           description?: string | null
           enable_distribution?: boolean | null
@@ -1020,6 +1022,7 @@ export type Database = {
           access_password?: string | null
           additional_info?: string | null
           background_pattern?: string | null
+          catalog_type?: string | null
           created_at?: string | null
           description?: string | null
           enable_distribution?: boolean | null
