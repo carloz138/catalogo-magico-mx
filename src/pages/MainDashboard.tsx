@@ -220,8 +220,21 @@ export default function MainDashboard() {
       {/* HEADER */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <Badge className={`${isL2 ? "bg-violet-100 text-violet-700" : "bg-slate-100 text-slate-700"} border-0 mb-2`}>
-            {isL2 ? "Panel de Revendedor" : "Panel de Fabricante"}
+          {/* Badge con lógica para 3 casos: Híbrido, Solo L2, Solo L1 */}
+          <Badge 
+            className={`border-0 mb-2 ${
+              isL1 && isL2 
+                ? "bg-blue-100 text-blue-700" 
+                : isL2 
+                  ? "bg-violet-100 text-violet-700" 
+                  : "bg-slate-100 text-slate-700"
+            }`}
+          >
+            {isL1 && isL2 
+              ? "Panel Híbrido (Fab + Rev)" 
+              : isL2 
+                ? "Panel de Revendedor" 
+                : "Panel de Fabricante"}
           </Badge>
           <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Centro de Comando</h1>
           <p className="text-slate-500 flex items-center gap-2 mt-1">
@@ -233,6 +246,7 @@ export default function MainDashboard() {
 
         {hasActiveCatalog && (
           <div className="flex gap-2">
+            {/* Botón de Precios: visible para L2 (incluyendo híbridos) */}
             {isL2 && (
               <Button
                 variant="outline"
@@ -242,11 +256,17 @@ export default function MainDashboard() {
                 <DollarSign className="w-4 h-4 mr-2" /> Precios
               </Button>
             )}
+            {/* Botón principal con texto adaptativo */}
             <Button
               className="bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-200 gap-2"
               onClick={() => navigate("/catalogs")}
             >
-              <Share2 className="w-4 h-4" /> {isL2 ? "Compartir mi Tienda" : "Invitar Revendedor"}
+              <Share2 className="w-4 h-4" /> 
+              {isL1 && isL2 
+                ? "Gestionar Red" 
+                : isL2 
+                  ? "Compartir mi Tienda" 
+                  : "Invitar Revendedor"}
             </Button>
           </div>
         )}
