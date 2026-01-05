@@ -2,35 +2,33 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Switch } from "@/components/ui/switch";
 import { 
   Search, 
-  CheckSquare, 
-  Square, 
   Loader2, 
   X,
-  ShoppingCart,
   Package,
-  Filter,
-  CheckCircle2
+  Store,
+  Users,
+  ShoppingBag
 } from "lucide-react";
 import { formatPrice } from "@/lib/utils/price-calculator";
 import { cn } from "@/lib/utils";
-import { useBreakpoint } from "@/hooks/useMediaQuery";
 
-interface Product {
+// ==========================================
+// TYPES
+// ==========================================
+
+interface OwnProduct {
   id: string;
   name: string;
   sku: string | null;
   description: string | null;
   price_retail: number;
   price_wholesale: number | null;
-  wholesale_min_qty: number | null;
   original_image_url: string;
   processed_image_url: string | null;
   catalog_image_url: string | null;
@@ -39,595 +37,454 @@ interface Product {
   tags: string[] | null;
 }
 
-interface ProductSelectorProps {
-  selectedIds: string[];
-  onChange: (ids: string[], products: Product[]) => void;
+interface SubscribedProduct {
+  product_id: string;
+  product_name: string;
+  product_sku: string | null;
+  product_description: string | null;
+  price_retail: number | null;
+  price_wholesale: number | null;
+  image_url: string | null;
+  vendor_name: string;
+  catalog_id: string;
+  catalog_name: string;
 }
 
-export function ProductSelector({ selectedIds, onChange }: ProductSelectorProps) {
+// Unified product type for internal use
+interface UnifiedProduct {
+  id: string;
+  name: string;
+  sku: string | null;
+  price: number;
+  imageUrl: string;
+  source: "own" | "vendor";
+  vendorName?: string;
+}
+
+interface ProductSelectorProps {
+  selectedIds: string[];
+  onChange: (ids: string[], products: any[]) => void;
+  catalogType?: "standard" | "super";
+}
+
+// ==========================================
+// COMPONENT
+// ==========================================
+
+export function ProductSelector({ selectedIds, onChange, catalogType = "standard" }: ProductSelectorProps) {
   const { user } = useAuth();
-  const { isMobile, isTablet, isDesktop } = useBreakpoint();
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
+  
+  // Data states
+  const [ownProducts, setOwnProducts] = useState<OwnProduct[]>([]);
+  const [subscribedProducts, setSubscribedProducts] = useState<SubscribedProduct[]>([]);
+  const [loadingOwn, setLoadingOwn] = useState(true);
+  const [loadingSubscribed, setLoadingSubscribed] = useState(true);
+  
+  // UI states
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [isOpen, setIsOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<"own" | "vendors">("own");
+
+  // ==========================================
+  // DATA LOADING
+  // ==========================================
 
   useEffect(() => {
     if (user) {
-      loadProducts();
+      loadOwnProducts();
+      loadSubscribedProducts();
     }
   }, [user]);
 
-  const loadProducts = async () => {
+  const loadOwnProducts = async () => {
     if (!user) return;
-
-    setLoading(true);
+    setLoadingOwn(true);
     try {
       const { data, error } = await supabase
         .from("products")
         .select(`
-          id, 
-          name, 
-          sku,
-          description,
-          tags,
-          price_retail, 
-          price_wholesale,
-          wholesale_min_qty,
-          original_image_url, 
-          processed_image_url, 
-          catalog_image_url,
-          thumbnail_image_url,
-          image_url
+          id, name, sku, description, tags,
+          price_retail, price_wholesale,
+          original_image_url, processed_image_url, 
+          catalog_image_url, thumbnail_image_url, image_url
         `)
         .eq("user_id", user.id)
         .is("deleted_at", null)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      setProducts(data || []);
+      setOwnProducts(data || []);
     } catch (error) {
-      console.error("Error loading products:", error);
+      console.error("Error loading own products:", error);
     } finally {
-      setLoading(false);
+      setLoadingOwn(false);
     }
   };
 
-  const availableTags = useMemo(() => {
-    const tagsSet = new Set<string>();
-    products.forEach((product) => {
-      if (product.tags && Array.isArray(product.tags)) {
-        product.tags.forEach((tag) => tagsSet.add(tag));
-      }
-    });
-    return Array.from(tagsSet).sort();
-  }, [products]);
-
-  const filteredProducts = useMemo(() => {
-    let filtered = products;
-
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(
-        (p) => p.name.toLowerCase().includes(query) || (p.sku && p.sku.toLowerCase().includes(query)),
-      );
-    }
-
-    if (selectedTags.length > 0) {
-      filtered = filtered.filter((p) => {
-        if (!p.tags || !Array.isArray(p.tags)) return false;
-        return selectedTags.some((tag) => p.tags!.includes(tag));
+  const loadSubscribedProducts = async () => {
+    if (!user) return;
+    setLoadingSubscribed(true);
+    try {
+      const { data, error } = await supabase.rpc('get_subscribed_catalog_products', {
+        p_subscriber_id: user.id
       });
+
+      if (error) throw error;
+      setSubscribedProducts((data as SubscribedProduct[]) || []);
+    } catch (error) {
+      console.error("Error loading subscribed products:", error);
+    } finally {
+      setLoadingSubscribed(false);
     }
+  };
 
-    return filtered;
-  }, [products, searchQuery, selectedTags]);
+  // ==========================================
+  // UNIFIED PRODUCT LISTS
+  // ==========================================
 
-  const sortedProducts = useMemo(() => {
-    return [...filteredProducts].sort((a, b) => {
-      const aSelected = selectedIds.includes(a.id);
-      const bSelected = selectedIds.includes(b.id);
-      if (aSelected && !bSelected) return -1;
-      if (!aSelected && bSelected) return 1;
-      return 0;
-    });
-  }, [filteredProducts, selectedIds]);
+  const unifiedOwnProducts: UnifiedProduct[] = useMemo(() => {
+    return ownProducts.map(p => ({
+      id: p.id,
+      name: p.name,
+      sku: p.sku,
+      price: p.price_retail || 0,
+      imageUrl: p.catalog_image_url || p.processed_image_url || p.thumbnail_image_url || p.original_image_url || p.image_url || "",
+      source: "own" as const,
+    }));
+  }, [ownProducts]);
 
-  const handleToggleProduct = useCallback(
-    (productId: string, e?: React.MouseEvent) => {
-      e?.stopPropagation();
+  const unifiedSubscribedProducts: UnifiedProduct[] = useMemo(() => {
+    return subscribedProducts.map(p => ({
+      id: p.product_id,
+      name: p.product_name,
+      sku: p.product_sku,
+      price: p.price_retail || 0,
+      imageUrl: p.image_url || "",
+      source: "vendor" as const,
+      vendorName: p.vendor_name,
+    }));
+  }, [subscribedProducts]);
 
-      const isSelected = selectedIds.includes(productId);
-      let newSelectedIds: string[];
-      let newSelectedProducts: Product[];
+  // ==========================================
+  // FILTERING
+  // ==========================================
 
-      if (isSelected) {
-        newSelectedIds = selectedIds.filter((id) => id !== productId);
-        newSelectedProducts = products.filter((p) => newSelectedIds.includes(p.id));
-      } else {
-        newSelectedIds = [...selectedIds, productId];
-        newSelectedProducts = products.filter((p) => newSelectedIds.includes(p.id));
-      }
+  const filterProducts = useCallback((products: UnifiedProduct[]) => {
+    if (!searchQuery.trim()) return products;
+    
+    const query = searchQuery.toLowerCase();
+    return products.filter(p => 
+      p.name.toLowerCase().includes(query) || 
+      (p.sku && p.sku.toLowerCase().includes(query))
+    );
+  }, [searchQuery]);
 
-      onChange(newSelectedIds, newSelectedProducts);
-    },
-    [selectedIds, products, onChange],
+  const filteredOwnProducts = useMemo(() => 
+    filterProducts(unifiedOwnProducts), 
+    [unifiedOwnProducts, filterProducts]
   );
 
-  const handleSelectAll = useCallback(() => {
-    const allIds = filteredProducts.map((p) => p.id);
-    onChange(allIds, filteredProducts);
-  }, [filteredProducts, onChange]);
+  const filteredSubscribedProducts = useMemo(() => 
+    filterProducts(unifiedSubscribedProducts), 
+    [unifiedSubscribedProducts, filterProducts]
+  );
 
-  const handleDeselectAll = useCallback(() => {
-    onChange([], []);
-  }, [onChange]);
+  // ==========================================
+  // SELECTION HANDLERS
+  // ==========================================
 
-  const handleToggleTag = useCallback((tag: string) => {
-    setSelectedTags((prev) =>
-      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+  const handleToggleProduct = useCallback((productId: string) => {
+    const isSelected = selectedIds.includes(productId);
+    let newSelectedIds: string[];
+
+    if (isSelected) {
+      newSelectedIds = selectedIds.filter(id => id !== productId);
+    } else {
+      newSelectedIds = [...selectedIds, productId];
+    }
+
+    // Build full products array for onChange
+    const allProducts = [...ownProducts, ...subscribedProducts.map(p => ({
+      id: p.product_id,
+      name: p.product_name,
+      sku: p.product_sku,
+      price_retail: p.price_retail,
+      image_url: p.image_url,
+    }))];
+    
+    const selectedProducts = allProducts.filter(p => 
+      newSelectedIds.includes('id' in p ? p.id : (p as any).product_id)
     );
-  }, []);
 
-  const handleClearFilters = useCallback(() => {
-    setSearchQuery("");
-    setSelectedTags([]);
-  }, []);
+    onChange(newSelectedIds, selectedProducts);
+  }, [selectedIds, ownProducts, subscribedProducts, onChange]);
 
-  const SelectorContent = () => {
-    if (loading) {
-      return (
-        <div className="flex items-center justify-center py-12">
-          <div className="text-center space-y-3">
-            <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
-            <p className="text-sm text-muted-foreground">Cargando productos...</p>
-          </div>
-        </div>
-      );
-    }
+  // ==========================================
+  // COUNTS
+  // ==========================================
 
-    if (products.length === 0) {
-      return (
-        <div className="text-center py-12 px-4">
-          <Package className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
-          <p className="text-base font-medium mb-1">No tienes productos disponibles</p>
-          <p className="text-sm text-muted-foreground">Crea productos para incluirlos en tu catálogo</p>
-        </div>
-      );
-    }
+  const selectedOwnCount = useMemo(() => 
+    unifiedOwnProducts.filter(p => selectedIds.includes(p.id)).length,
+    [unifiedOwnProducts, selectedIds]
+  );
+
+  const selectedVendorCount = useMemo(() => 
+    unifiedSubscribedProducts.filter(p => selectedIds.includes(p.id)).length,
+    [unifiedSubscribedProducts, selectedIds]
+  );
+
+  const totalSelected = selectedIds.length;
+
+  // ==========================================
+  // RENDER HELPERS
+  // ==========================================
+
+  const renderProductCard = (product: UnifiedProduct) => {
+    const isSelected = selectedIds.includes(product.id);
 
     return (
-      <div className="space-y-4">
-        {/* Búsqueda prominente */}
-        <div className="space-y-3">
-          <div className="relative">
-            <Search className={cn(
-              "absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground",
-              isMobile ? "h-5 w-5" : "h-4 w-4"
-            )} />
-            <Input
-              placeholder={isMobile ? "Buscar productos..." : "Buscar por nombre o SKU..."}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className={cn(
-                "pl-10 pr-10",
-                isMobile ? "h-12 text-base" : "h-11 text-sm"
-              )}
-            />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            )}
-          </div>
-
-          <div className="flex gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size={isMobile ? "default" : "sm"}
-              onClick={selectedIds.length === filteredProducts.length ? handleDeselectAll : handleSelectAll}
-              className={cn(
-                "flex-1",
-                isMobile && "h-11"
-              )}
-            >
-              {selectedIds.length === filteredProducts.length ? (
-                <>
-                  <Square className="h-4 w-4 mr-2" />
-                  Deseleccionar todo
-                </>
-              ) : (
-                <>
-                  <CheckSquare className="h-4 w-4 mr-2" />
-                  Seleccionar todo
-                </>
-              )}
-            </Button>
-
-            {(searchQuery || selectedTags.length > 0) && (
-              <Button
-                type="button"
-                variant="ghost"
-                size={isMobile ? "default" : "sm"}
-                onClick={handleClearFilters}
-                className={isMobile ? "h-11 px-4" : ""}
-              >
-                <X className="h-4 w-4 mr-2" />
-                {!isMobile && "Limpiar"}
-              </Button>
-            )}
-          </div>
-        </div>
-
-        {/* Filtros por tags */}
-        {availableTags.length > 0 && (
-          <div className="space-y-2.5">
-            <div className="flex items-center gap-2">
-              <Filter className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm font-medium">Filtrar por categoría</span>
-              {selectedTags.length > 0 && (
-                <Badge variant="secondary" className="ml-auto">
-                  {selectedTags.length} activo{selectedTags.length !== 1 ? 's' : ''}
-                </Badge>
-              )}
-            </div>
-            
-            <ScrollArea className="w-full">
-              <div className={cn(
-                "flex gap-2",
-                isMobile ? "pb-2" : "flex-wrap"
-              )}>
-                {availableTags.map((tag) => {
-                  const isSelected = selectedTags.includes(tag);
-                  return (
-                    <Badge
-                      key={tag}
-                      variant={isSelected ? "default" : "outline"}
-                      className={cn(
-                        "cursor-pointer transition-all",
-                        isMobile && "px-4 py-2.5 text-sm whitespace-nowrap",
-                        !isMobile && "px-3 py-1.5 hover:bg-accent",
-                        isMobile && "active:scale-95",
-                        isSelected && "bg-primary text-primary-foreground shadow-sm"
-                      )}
-                      onClick={() => handleToggleTag(tag)}
-                    >
-                      {isSelected && <CheckCircle2 className="h-3 w-3 mr-1" />}
-                      {tag}
-                    </Badge>
-                  );
-                })}
-              </div>
-            </ScrollArea>
-          </div>
+      <div
+        key={product.id}
+        onClick={() => handleToggleProduct(product.id)}
+        className={cn(
+          "flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all",
+          "active:scale-[0.98] touch-manipulation",
+          "md:p-4",
+          isSelected 
+            ? "border-primary bg-primary/5 shadow-sm" 
+            : "border-border bg-card hover:border-primary/40"
         )}
-
-        {/* Contador visual */}
-        <div className={cn(
-          "flex items-center justify-between py-2 px-3 rounded-lg",
-          selectedIds.length > 0 ? "bg-primary/10 border border-primary/20" : "bg-muted"
-        )}>
-          <div className="flex items-center gap-2">
-            <ShoppingCart className={cn(
-              "h-4 w-4",
-              selectedIds.length > 0 ? "text-primary" : "text-muted-foreground"
-            )} />
-            <span className={cn(
-              "text-sm font-medium",
-              selectedIds.length > 0 ? "text-primary" : "text-muted-foreground"
-            )}>
-              {selectedIds.length} producto{selectedIds.length !== 1 ? 's' : ''} seleccionado{selectedIds.length !== 1 ? 's' : ''}
-            </span>
-          </div>
-          {(searchQuery || selectedTags.length > 0) && (
-            <span className="text-xs text-muted-foreground">
-              {filteredProducts.length} en resultados
-            </span>
+      >
+        {/* Image */}
+        <div className="relative w-16 h-16 md:w-20 md:h-20 flex-shrink-0 rounded-lg overflow-hidden bg-muted">
+          {product.imageUrl ? (
+            <img
+              src={product.imageUrl}
+              alt={product.name}
+              className="w-full h-full object-cover"
+              loading="lazy"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center">
+              <Package className="h-6 w-6 text-muted-foreground" />
+            </div>
           )}
         </div>
 
-        {/* Grid de productos */}
-        <ScrollArea className={cn(
-          "rounded-lg border",
-          isMobile ? "h-[calc(100vh-420px)]" : isTablet ? "h-[400px]" : "h-[450px]"
-        )}>
-          {sortedProducts.length === 0 ? (
-            <div className="text-center py-12 px-4">
-              <Search className="h-10 w-10 mx-auto text-muted-foreground mb-3 opacity-50" />
-              <p className="text-sm font-medium mb-1">No se encontraron productos</p>
-              <p className="text-xs text-muted-foreground">Intenta con otros términos de búsqueda</p>
-            </div>
-          ) : (
-            <div className={cn(
-              "p-3 gap-3",
-              isMobile ? "grid grid-cols-1" : isTablet ? "grid grid-cols-2" : "grid grid-cols-2 lg:grid-cols-3"
-            )}>
-              {sortedProducts.map((product) => {
-                const isSelected = selectedIds.includes(product.id);
-                const imageUrl = product.catalog_image_url || 
-                                product.processed_image_url || 
-                                product.thumbnail_image_url || 
-                                product.original_image_url || 
-                                product.image_url;
+        {/* Content */}
+        <div className="flex-1 min-w-0 space-y-1">
+          <h4 className="font-medium text-sm md:text-base line-clamp-2 leading-tight">
+            {product.name}
+          </h4>
+          
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Origin Badge */}
+            {product.source === "own" ? (
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-muted text-muted-foreground">
+                Propio
+              </Badge>
+            ) : (
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300">
+                {product.vendorName || "Proveedor"}
+              </Badge>
+            )}
+            
+            {/* SKU */}
+            {product.sku && (
+              <span className="text-[10px] text-muted-foreground font-mono">
+                {product.sku}
+              </span>
+            )}
+          </div>
 
-                return (
-                  <div
-                    key={product.id}
-                    onClick={() => handleToggleProduct(product.id)}
-                    className={cn(
-                      "group relative rounded-lg border-2 cursor-pointer transition-all",
-                      "hover:shadow-md",
-                      isMobile && "active:scale-[0.98]",
-                      isSelected 
-                        ? "border-primary bg-primary/5 shadow-sm" 
-                        : "border-border hover:border-primary/50"
-                    )}
-                  >
-                    {/* Checkbox visual */}
-                    <div className={cn(
-                      "absolute top-2 left-2 z-10",
-                      isMobile ? "top-3 left-3" : "top-2 left-2"
-                    )}>
-                      <div className={cn(
-                        "rounded-md border-2 transition-all flex items-center justify-center",
-                        isMobile ? "h-7 w-7" : "h-6 w-6",
-                        isSelected 
-                          ? "bg-primary border-primary" 
-                          : "bg-background border-border group-hover:border-primary/50"
-                      )}>
-                        {isSelected && (
-                          <CheckCircle2 className={cn(
-                            "text-primary-foreground",
-                            isMobile ? "h-5 w-5" : "h-4 w-4"
-                          )} />
-                        )}
-                      </div>
-                    </div>
+          {/* Price */}
+          <p className="text-sm md:text-base font-semibold text-primary">
+            {formatPrice(product.price / 100)}
+          </p>
+        </div>
 
-                    {/* Imagen */}
-                    <div className={cn(
-                      "relative overflow-hidden rounded-t-lg bg-muted",
-                      isMobile ? "aspect-square" : "aspect-[4/3]"
-                    )}>
-                      <img
-                        src={imageUrl}
-                        alt={product.name}
-                        className="w-full h-full object-cover"
-                      />
-                      
-                      {!isMobile && (
-                        <div className={cn(
-                          "absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all pointer-events-none"
-                        )} />
-                      )}
-                    </div>
-
-                    {/* Info del producto */}
-                    <div className={cn(
-                      "p-3 space-y-2",
-                      isMobile && "p-4"
-                    )}>
-                      <h4 className={cn(
-                        "font-semibold line-clamp-2 leading-tight",
-                        isMobile ? "text-base" : "text-sm"
-                      )}>
-                        {product.name}
-                      </h4>
-                      
-                      <div className="flex items-center justify-between gap-2">
-                        <span className={cn(
-                          "font-bold text-primary",
-                          isMobile ? "text-base" : "text-sm"
-                        )}>
-                          {formatPrice(product.price_retail / 100)}
-                        </span>
-                        
-                        {product.sku && (
-                          <Badge variant="outline" className="text-[10px] font-mono">
-                            {product.sku}
-                          </Badge>
-                        )}
-                      </div>
-
-                      {product.tags && product.tags.length > 0 && (
-                        <div className="flex flex-wrap gap-1">
-                          {product.tags.slice(0, isMobile ? 2 : 2).map((tag, i) => (
-                            <Badge key={i} variant="secondary" className="text-[10px] py-0 px-1.5">
-                              {tag}
-                            </Badge>
-                          ))}
-                          {product.tags.length > 2 && (
-                            <Badge variant="secondary" className="text-[10px] py-0 px-1.5">
-                              +{product.tags.length - 2}
-                            </Badge>
-                          )}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Badge seleccionado */}
-                    {isSelected && (
-                      <div className="absolute top-2 right-2 bg-primary text-primary-foreground rounded-full px-2 py-0.5 text-[10px] font-medium shadow-sm">
-                        Seleccionado
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </ScrollArea>
+        {/* Switch */}
+        <div className="flex-shrink-0 pl-2">
+          <Switch
+            checked={isSelected}
+            onCheckedChange={() => handleToggleProduct(product.id)}
+            onClick={(e) => e.stopPropagation()}
+            className="data-[state=checked]:bg-primary scale-110 md:scale-100"
+          />
+        </div>
       </div>
     );
   };
 
-  // Mobile: Sheet Drawer
-  if (isMobile) {
-    return (
-      <>
-        <button
-          type="button"
-          onClick={() => setIsOpen(true)}
-          className={cn(
-            "w-full rounded-lg border-2 transition-all",
-            "hover:border-primary/50 active:scale-[0.98]",
-            selectedIds.length > 0 
-              ? "border-primary bg-primary/5" 
-              : "border-border bg-background"
-          )}
-        >
-          <div className="flex items-center gap-3 p-4">
-            <div className={cn(
-              "flex items-center justify-center rounded-lg h-12 w-12 flex-shrink-0 relative",
-              selectedIds.length > 0 ? "bg-primary text-primary-foreground" : "bg-muted"
-            )}>
-              <ShoppingCart className="h-6 w-6" />
-              {selectedIds.length > 0 && (
-                <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground rounded-full h-5 w-5 text-xs flex items-center justify-center font-bold">
-                  {selectedIds.length}
-                </span>
-              )}
-            </div>
-            
-            <div className="flex-1 text-left">
-              <p className="font-semibold text-sm">
-                {selectedIds.length === 0 
-                  ? "Seleccionar productos" 
-                  : `${selectedIds.length} producto${selectedIds.length !== 1 ? 's' : ''} seleccionado${selectedIds.length !== 1 ? 's' : ''}`
-                }
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {selectedIds.length === 0 
-                  ? "Toca para elegir productos" 
-                  : "Toca para modificar selección"
-                }
-              </p>
-            </div>
+  const renderEmptyState = (type: "own" | "vendors") => (
+    <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
+      {type === "own" ? (
+        <>
+          <Store className="h-12 w-12 text-muted-foreground mb-3" />
+          <p className="font-medium mb-1">No tienes productos propios</p>
+          <p className="text-sm text-muted-foreground">
+            Crea productos en tu inventario para agregarlos
+          </p>
+        </>
+      ) : (
+        <>
+          <Users className="h-12 w-12 text-muted-foreground mb-3" />
+          <p className="font-medium mb-1">Sin productos de proveedores</p>
+          <p className="text-sm text-muted-foreground">
+            Suscríbete a catálogos para agregar productos externos
+          </p>
+        </>
+      )}
+    </div>
+  );
 
-            <div className="text-muted-foreground">
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </div>
-          </div>
-        </button>
+  const renderNoResults = () => (
+    <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
+      <Search className="h-10 w-10 text-muted-foreground mb-3 opacity-50" />
+      <p className="font-medium mb-1">Sin resultados</p>
+      <p className="text-sm text-muted-foreground">
+        Intenta con otros términos de búsqueda
+      </p>
+    </div>
+  );
 
-        <Sheet open={isOpen} onOpenChange={setIsOpen}>
-          <SheetContent 
-            side="bottom" 
-            className="h-[95vh] flex flex-col p-0 rounded-t-2xl"
-          >
-            <SheetHeader className="p-6 pb-4 border-b">
-              <SheetTitle className="text-xl">Seleccionar Productos</SheetTitle>
-              <SheetDescription>
-                Toca los productos que quieres incluir en tu catálogo
-              </SheetDescription>
-            </SheetHeader>
+  const renderLoading = () => (
+    <div className="flex items-center justify-center py-12">
+      <div className="text-center space-y-3">
+        <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
+        <p className="text-sm text-muted-foreground">Cargando productos...</p>
+      </div>
+    </div>
+  );
 
-            <div className="flex-1 overflow-hidden px-6 pt-4">
-              <SelectorContent />
-            </div>
+  // ==========================================
+  // MAIN RENDER
+  // ==========================================
 
-            <div className="border-t p-4 bg-background">
-              <Button 
-                className="w-full h-12 text-base font-semibold" 
-                onClick={() => setIsOpen(false)}
-              >
-                <CheckCircle2 className="mr-2 h-5 w-5" />
-                Confirmar selección ({selectedIds.length})
-              </Button>
-            </div>
-          </SheetContent>
-        </Sheet>
-      </>
-    );
-  }
+  const isLoading = loadingOwn || loadingSubscribed;
+  const hasVendorProducts = subscribedProducts.length > 0;
+  const showTabs = catalogType === "super" || hasVendorProducts;
 
-  // Tablet: Dialog Modal
-  if (isTablet) {
-    return (
-      <>
-        <button
-          type="button"
-          onClick={() => setIsOpen(true)}
-          className={cn(
-            "w-full rounded-lg border-2 transition-all hover:border-primary/50",
-            selectedIds.length > 0 
-              ? "border-primary bg-primary/5" 
-              : "border-border bg-background"
-          )}
-        >
-          <div className="flex items-center gap-3 p-4">
-            <div className={cn(
-              "flex items-center justify-center rounded-lg h-10 w-10 flex-shrink-0 relative",
-              selectedIds.length > 0 ? "bg-primary text-primary-foreground" : "bg-muted"
-            )}>
-              <ShoppingCart className="h-5 w-5" />
-              {selectedIds.length > 0 && (
-                <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground rounded-full h-5 w-5 text-xs flex items-center justify-center font-bold">
-                  {selectedIds.length}
-                </span>
-              )}
-            </div>
-            
-            <div className="flex-1 text-left">
-              <p className="font-semibold text-sm">
-                {selectedIds.length === 0 
-                  ? "Seleccionar productos" 
-                  : `${selectedIds.length} seleccionado${selectedIds.length !== 1 ? 's' : ''}`
-                }
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Haz clic para elegir productos
-              </p>
-            </div>
-          </div>
-        </button>
-
-        <Dialog open={isOpen} onOpenChange={setIsOpen}>
-          <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col p-0">
-            <DialogHeader className="p-6 pb-4 border-b">
-              <DialogTitle className="text-lg">Seleccionar Productos</DialogTitle>
-              <DialogDescription>
-                Elige los productos que aparecerán en tu catálogo
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className="flex-1 overflow-hidden px-6 pt-4">
-              <SelectorContent />
-            </div>
-
-            <div className="border-t p-4 flex gap-3">
-              <Button 
-                variant="outline"
-                className="flex-1 h-10" 
-                onClick={() => setIsOpen(false)}
-              >
-                Cancelar
-              </Button>
-              <Button 
-                className="flex-1 h-10" 
-                onClick={() => setIsOpen(false)}
-              >
-                <CheckCircle2 className="mr-2 h-4 w-4" />
-                Confirmar ({selectedIds.length})
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-      </>
-    );
-  }
-
-  // Desktop: Inline
   return (
-    <div className="space-y-4">
-      <SelectorContent />
+    <div className="flex flex-col h-full">
+      {/* Sticky Search Bar */}
+      <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-sm pb-3 border-b mb-3">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Buscar por nombre o SKU..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10 pr-10 h-11 md:h-10"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Content Area */}
+      <div className="flex-1 min-h-0">
+        {showTabs ? (
+          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "own" | "vendors")} className="h-full flex flex-col">
+            <TabsList className="grid w-full grid-cols-2 mb-3">
+              <TabsTrigger value="own" className="gap-2 text-xs md:text-sm">
+                <Store className="h-4 w-4" />
+                <span className="hidden sm:inline">Mi Inventario</span>
+                <span className="sm:hidden">Míos</span>
+                {selectedOwnCount > 0 && (
+                  <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-[10px]">
+                    {selectedOwnCount}
+                  </Badge>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="vendors" className="gap-2 text-xs md:text-sm">
+                <Users className="h-4 w-4" />
+                <span className="hidden sm:inline">Red de Proveedores</span>
+                <span className="sm:hidden">Proveedores</span>
+                {selectedVendorCount > 0 && (
+                  <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-[10px]">
+                    {selectedVendorCount}
+                  </Badge>
+                )}
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="own" className="flex-1 m-0 min-h-0">
+              <ScrollArea className="h-[calc(100vh-380px)] md:h-[400px]">
+                {loadingOwn ? renderLoading() : (
+                  filteredOwnProducts.length === 0 ? (
+                    searchQuery ? renderNoResults() : renderEmptyState("own")
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 pr-3">
+                      {filteredOwnProducts.map(renderProductCard)}
+                    </div>
+                  )
+                )}
+              </ScrollArea>
+            </TabsContent>
+
+            <TabsContent value="vendors" className="flex-1 m-0 min-h-0">
+              <ScrollArea className="h-[calc(100vh-380px)] md:h-[400px]">
+                {loadingSubscribed ? renderLoading() : (
+                  filteredSubscribedProducts.length === 0 ? (
+                    searchQuery ? renderNoResults() : renderEmptyState("vendors")
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 pr-3">
+                      {filteredSubscribedProducts.map(renderProductCard)}
+                    </div>
+                  )
+                )}
+              </ScrollArea>
+            </TabsContent>
+          </Tabs>
+        ) : (
+          // Standard catalog: only own products
+          <ScrollArea className="h-[calc(100vh-320px)] md:h-[450px]">
+            {loadingOwn ? renderLoading() : (
+              filteredOwnProducts.length === 0 ? (
+                searchQuery ? renderNoResults() : renderEmptyState("own")
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 pr-3">
+                  {filteredOwnProducts.map(renderProductCard)}
+                </div>
+              )
+            )}
+          </ScrollArea>
+        )}
+      </div>
+
+      {/* Floating Counter */}
+      <div className={cn(
+        "sticky bottom-0 mt-3 pt-3 border-t bg-background",
+        "flex items-center justify-between gap-3 px-1"
+      )}>
+        <div className="flex items-center gap-2">
+          <ShoppingBag className={cn(
+            "h-5 w-5",
+            totalSelected > 0 ? "text-primary" : "text-muted-foreground"
+          )} />
+          <span className={cn(
+            "text-sm font-medium",
+            totalSelected > 0 ? "text-foreground" : "text-muted-foreground"
+          )}>
+            {totalSelected} producto{totalSelected !== 1 ? "s" : ""} seleccionado{totalSelected !== 1 ? "s" : ""}
+          </span>
+        </div>
+
+        {showTabs && totalSelected > 0 && (
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <span className="bg-muted px-2 py-0.5 rounded">{selectedOwnCount} propios</span>
+            <span className="bg-violet-100 dark:bg-violet-900/30 px-2 py-0.5 rounded text-violet-700 dark:text-violet-300">
+              {selectedVendorCount} proveedores
+            </span>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
