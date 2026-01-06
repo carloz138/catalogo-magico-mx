@@ -1707,6 +1707,7 @@ export type Database = {
         Row: {
           created_at: string | null
           id: string
+          origin_replicated_catalog_id: string | null
           price_type: string | null
           product_id: string | null
           product_image_url: string | null
@@ -1723,6 +1724,7 @@ export type Database = {
         Insert: {
           created_at?: string | null
           id?: string
+          origin_replicated_catalog_id?: string | null
           price_type?: string | null
           product_id?: string | null
           product_image_url?: string | null
@@ -1739,6 +1741,7 @@ export type Database = {
         Update: {
           created_at?: string | null
           id?: string
+          origin_replicated_catalog_id?: string | null
           price_type?: string | null
           product_id?: string | null
           product_image_url?: string | null
@@ -1753,6 +1756,13 @@ export type Database = {
           variant_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "quote_items_origin_replicated_catalog_id_fkey"
+            columns: ["origin_replicated_catalog_id"]
+            isOneToOne: false
+            referencedRelation: "replicated_catalogs"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "quote_items_product_id_fkey"
             columns: ["product_id"]
