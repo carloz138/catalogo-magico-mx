@@ -16,7 +16,6 @@ import {
   Users,
   ShoppingBag
 } from "lucide-react";
-import { formatPrice } from "@/lib/utils/price-calculator";
 import { cn } from "@/lib/utils";
 
 // ==========================================
@@ -63,7 +62,7 @@ interface UnifiedProduct {
 
 interface ProductSelectorProps {
   selectedIds: string[];
-  onChange: (ids: string[], products: any[]) => void;
+  onChange: (ids: string[], products: any[], hasVendorProducts: boolean) => void;
   catalogType?: "standard" | "super";
 }
 
@@ -209,13 +208,17 @@ export function ProductSelector({ selectedIds, onChange, catalogType = "standard
       sku: p.product_sku,
       price_retail: p.price_retail,
       image_url: p.image_url,
+      _isVendor: true, // Mark vendor products
     }))];
     
     const selectedProducts = allProducts.filter(p => 
       newSelectedIds.includes('id' in p ? p.id : (p as any).product_id)
     );
 
-    onChange(newSelectedIds, selectedProducts);
+    // Check if any selected product is from vendors
+    const hasVendorProducts = selectedProducts.some((p: any) => p._isVendor);
+
+    onChange(newSelectedIds, selectedProducts, hasVendorProducts);
   }, [selectedIds, ownProducts, subscribedProducts, onChange]);
 
   // ==========================================
@@ -283,34 +286,34 @@ export function ProductSelector({ selectedIds, onChange, catalogType = "standard
         </div>
 
         {/* Content */}
-        <div className="flex-1 min-w-0 space-y-1">
-          <h4 className="font-medium text-sm leading-tight line-clamp-2">
+        <div className="flex-1 min-w-0 space-y-0.5">
+          {/* Product Name - truncated */}
+          <h4 className="font-medium text-sm leading-tight truncate" title={product.name}>
             {product.name}
           </h4>
           
-          <div className="flex items-center gap-1.5 flex-wrap">
-            {/* Origin Badge */}
+          {/* Origin Badge + SKU row */}
+          <div className="flex items-center gap-1.5">
             {product.source === "own" ? (
-              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 bg-muted text-muted-foreground font-normal">
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 bg-muted text-muted-foreground font-normal shrink-0">
                 Propio
               </Badge>
             ) : (
-              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300 font-normal">
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300 font-normal shrink-0 max-w-[100px] truncate">
                 {product.vendorName || "Proveedor"}
               </Badge>
             )}
             
-            {/* SKU */}
             {product.sku && (
-              <span className="text-[10px] text-muted-foreground font-mono truncate max-w-[80px]">
+              <span className="text-[10px] text-muted-foreground font-mono truncate max-w-[60px]" title={product.sku}>
                 {product.sku}
               </span>
             )}
           </div>
 
-          {/* Price */}
+          {/* Price - formatted correctly (divide by 100 for cents) */}
           <p className="text-sm font-semibold text-primary">
-            {formatPrice(product.price)}
+            {new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(product.price / 100)}
           </p>
         </div>
       </div>

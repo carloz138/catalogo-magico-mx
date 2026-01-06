@@ -230,6 +230,8 @@ export default function DigitalCatalogForm() {
 
   const [activeAccordion, setActiveAccordion] = useState("products");
 
+  const [catalogType, setCatalogType] = useState<"standard" | "super">("standard");
+
   const isEditing = !!id;
 
   const canCreatePrivate = limits?.planName !== "Básico" && limits?.planName !== "Starter";
@@ -845,11 +847,13 @@ export default function DigitalCatalogForm() {
                           <FormItem>
                             <ProductSelector
                               selectedIds={field.value}
-                              onChange={(ids, products) => {
+                              onChange={(ids, products, hasVendorProducts) => {
                                 field.onChange(ids);
-
                                 setSelectedProducts(products);
+                                // Auto-detect catalog type based on selected products
+                                setCatalogType(hasVendorProducts ? "super" : "standard");
                               }}
+                              catalogType={catalogType}
                             />
 
                             <FormMessage />
@@ -1140,42 +1144,47 @@ export default function DigitalCatalogForm() {
                         </Alert>
                       )}
 
-                      {(watchedValues.price_display === "menudeo_only" || watchedValues.price_display === "both") && (
-                        <FormField
-                          control={form.control}
-                          name="price_adjustment_menudeo"
-                          render={({ field }) => (
-                            <FormItem>
-                              <PriceAdjustmentInput
-                                label="Ajuste de precio menudeo"
-                                value={field.value}
-                                onChange={field.onChange}
-                                basePrice={100}
-                              />
+                      {/* Hide price adjustments for Super Tiendas - they use reseller prices */}
+                      {catalogType !== "super" && (
+                        <>
+                          {(watchedValues.price_display === "menudeo_only" || watchedValues.price_display === "both") && (
+                            <FormField
+                              control={form.control}
+                              name="price_adjustment_menudeo"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <PriceAdjustmentInput
+                                    label="Ajuste de precio menudeo"
+                                    value={field.value}
+                                    onChange={field.onChange}
+                                    basePrice={100}
+                                  />
 
-                              <FormMessage />
-                            </FormItem>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
                           )}
-                        />
-                      )}
 
-                      {(watchedValues.price_display === "mayoreo_only" || watchedValues.price_display === "both") && (
-                        <FormField
-                          control={form.control}
-                          name="price_adjustment_mayoreo"
-                          render={({ field }) => (
-                            <FormItem>
-                              <PriceAdjustmentInput
-                                label="Ajuste de precio mayoreo"
-                                value={field.value}
-                                onChange={field.onChange}
-                                basePrice={100}
-                              />
+                          {(watchedValues.price_display === "mayoreo_only" || watchedValues.price_display === "both") && (
+                            <FormField
+                              control={form.control}
+                              name="price_adjustment_mayoreo"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <PriceAdjustmentInput
+                                    label="Ajuste de precio mayoreo"
+                                    value={field.value}
+                                    onChange={field.onChange}
+                                    basePrice={100}
+                                  />
 
-                              <FormMessage />
-                            </FormItem>
-                        )}
-                        />
+                                  <FormMessage />
+                                </FormItem>
+                            )}
+                            />
+                          )}
+                        </>
                       )}
 
                       {/* Wholesale Rules Section */}
@@ -1904,11 +1913,13 @@ export default function DigitalCatalogForm() {
                         <FormItem>
                           <ProductSelector
                             selectedIds={field.value}
-                            onChange={(ids, products) => {
+                            onChange={(ids, products, hasVendorProducts) => {
                               field.onChange(ids);
-
                               setSelectedProducts(products);
+                              // Auto-detect catalog type based on selected products
+                              setCatalogType(hasVendorProducts ? "super" : "standard");
                             }}
+                            catalogType={catalogType}
                           />
 
                           <FormMessage />
@@ -2117,42 +2128,47 @@ export default function DigitalCatalogForm() {
                       </Alert>
                     )}
 
-                    {(watchedValues.price_display === "menudeo_only" || watchedValues.price_display === "both") && (
-                      <FormField
-                        control={form.control}
-                        name="price_adjustment_menudeo"
-                        render={({ field }) => (
-                          <FormItem>
-                            <PriceAdjustmentInput
-                              label="Ajuste de precio menudeo"
-                              value={field.value}
-                              onChange={field.onChange}
-                              basePrice={100}
-                            />
+                    {/* Hide price adjustments for Super Tiendas - they use reseller prices */}
+                    {catalogType !== "super" && (
+                      <>
+                        {(watchedValues.price_display === "menudeo_only" || watchedValues.price_display === "both") && (
+                          <FormField
+                            control={form.control}
+                            name="price_adjustment_menudeo"
+                            render={({ field }) => (
+                              <FormItem>
+                                <PriceAdjustmentInput
+                                  label="Ajuste de precio menudeo"
+                                  value={field.value}
+                                  onChange={field.onChange}
+                                  basePrice={100}
+                                />
 
-                            <FormMessage />
-                          </FormItem>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
                         )}
-                      />
-                    )}
 
-                    {(watchedValues.price_display === "mayoreo_only" || watchedValues.price_display === "both") && (
-                      <FormField
-                        control={form.control}
-                        name="price_adjustment_mayoreo"
-                        render={({ field }) => (
-                          <FormItem>
-                            <PriceAdjustmentInput
-                              label="Ajuste de precio mayoreo"
-                              value={field.value}
-                              onChange={field.onChange}
-                              basePrice={100}
-                            />
+                        {(watchedValues.price_display === "mayoreo_only" || watchedValues.price_display === "both") && (
+                          <FormField
+                            control={form.control}
+                            name="price_adjustment_mayoreo"
+                            render={({ field }) => (
+                              <FormItem>
+                                <PriceAdjustmentInput
+                                  label="Ajuste de precio mayoreo"
+                                  value={field.value}
+                                  onChange={field.onChange}
+                                  basePrice={100}
+                                />
 
-                            <FormMessage />
-                          </FormItem>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
                         )}
-                      />
+                      </>
                     )}
 
                     {/* Wholesale Rules Section - Desktop */}
