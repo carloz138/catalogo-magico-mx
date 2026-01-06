@@ -414,65 +414,9 @@ const Catalogs = () => {
     enabled: !!user,
   });
 
-  // --- 🔥 FUNCIÓN: CREAR SUPER CATÁLOGO (Actualizada) ---
-  const handleCreateSuperCatalog = async () => {
-    if (!user) return;
-    setIsCreatingSuper(true);
-    try {
-      // 1. Obtener TODOS los productos suscritos
-      const { data: subscribedProducts, error: subError } = await supabase.rpc("get_subscribed_catalog_products", {
-        p_subscriber_id: user.id,
-      });
-
-      if (subError) throw subError;
-
-      // 2. Obtener mis productos propios
-      const { data: myProducts, error: myError } = await supabase
-        .from("products")
-        .select("id")
-        .eq("user_id", user.id)
-        .is("deleted_at", null);
-
-      if (myError) throw myError;
-
-      // 3. Juntar IDs
-      const allProductIds = [
-        ...(subscribedProducts || []).map((p: any) => p.product_id),
-        ...(myProducts || []).map((p: any) => p.id),
-      ];
-
-      if (allProductIds.length === 0) {
-        toast({
-          title: "Sin inventario",
-          description: "No tienes productos propios ni suscripciones activas.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // 4. Crear el catálogo
-      const newCatalogDTO = {
-        name: "Mi Super Tienda " + new Date().toLocaleDateString(),
-        description: "Catálogo unificado con todos mis proveedores y productos.",
-        product_ids: [...new Set(allProductIds)],
-        web_template_id: "sidebar-detail-warm",
-        price_display: "both",
-        show_stock: true,
-        is_private: false,
-        catalog_type: "super", // ✅ CAMBIO: Marcamos como Super Tienda
-        expires_at: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
-      };
-
-      await DigitalCatalogService.createCatalog(user.id, newCatalogDTO as any);
-
-      queryClient.invalidateQueries({ queryKey: ["digital-catalogs"] });
-      toast({ title: "¡Super Catálogo Creado! 🚀", description: "Contiene todos tus productos y suscripciones." });
-    } catch (error: any) {
-      console.error(error);
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-    } finally {
-      setIsCreatingSuper(false);
-    }
+  // --- 🔥 FUNCIÓN: CREAR SUPER CATÁLOGO (Redirige al formulario) ---
+  const handleCreateSuperCatalog = () => {
+    navigate("/catalogs/new?type=super");
   };
 
   // --- MUTATIONS (Delete) ---
