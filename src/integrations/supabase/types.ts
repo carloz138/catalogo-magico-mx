@@ -3729,6 +3729,40 @@ export type Database = {
           vendor_name: string
         }[]
       }
+      get_super_catalog_products: {
+        Args: { p_catalog_id: string; p_catalog_owner_id: string }
+        Returns: {
+          category: string
+          description: string
+          has_variants: boolean
+          id: string
+          is_own_product: boolean
+          name: string
+          original_image_url: string
+          price_retail: number
+          price_wholesale: number
+          processed_image_url: string
+          replicated_catalog_id: string
+          sku: string
+          source_vendor_name: string
+          tags: string[]
+          user_id: string
+          vendor_id: string
+          wholesale_min_qty: number
+        }[]
+      }
+      get_super_catalog_variants: {
+        Args: { p_product_id: string; p_replicated_catalog_id: string }
+        Returns: {
+          id: string
+          is_default: boolean
+          price_retail: number
+          price_wholesale: number
+          sku: string
+          stock_quantity: number
+          variant_combination: Json
+        }[]
+      }
       get_user_analytics_level: {
         Args: { user_id_param: string }
         Returns: string
