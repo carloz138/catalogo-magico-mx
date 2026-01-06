@@ -1,11 +1,12 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { 
   Search, 
   Loader2, 
@@ -50,7 +51,6 @@ interface SubscribedProduct {
   catalog_name: string;
 }
 
-// Unified product type for internal use
 interface UnifiedProduct {
   id: string;
   name: string;
@@ -68,37 +68,15 @@ interface ProductSelectorProps {
 }
 
 // ==========================================
-// COMPONENT
+// DATA FETCHING HOOKS
 // ==========================================
 
-export function ProductSelector({ selectedIds, onChange, catalogType = "standard" }: ProductSelectorProps) {
-  const { user } = useAuth();
-  
-  // Data states
-  const [ownProducts, setOwnProducts] = useState<OwnProduct[]>([]);
-  const [subscribedProducts, setSubscribedProducts] = useState<SubscribedProduct[]>([]);
-  const [loadingOwn, setLoadingOwn] = useState(true);
-  const [loadingSubscribed, setLoadingSubscribed] = useState(true);
-  
-  // UI states
-  const [searchQuery, setSearchQuery] = useState("");
-  const [activeTab, setActiveTab] = useState<"own" | "vendors">("own");
-
-  // ==========================================
-  // DATA LOADING
-  // ==========================================
-
-  useEffect(() => {
-    if (user) {
-      loadOwnProducts();
-      loadSubscribedProducts();
-    }
-  }, [user]);
-
-  const loadOwnProducts = async () => {
-    if (!user) return;
-    setLoadingOwn(true);
-    try {
+function useOwnProducts(userId: string | undefined) {
+  return useQuery({
+    queryKey: ["own-products", userId],
+    queryFn: async () => {
+      if (!userId) return [];
+      
       const { data, error } = await supabase
         .from("products")
         .select(`
@@ -107,35 +85,57 @@ export function ProductSelector({ selectedIds, onChange, catalogType = "standard
           original_image_url, processed_image_url, 
           catalog_image_url, thumbnail_image_url, image_url
         `)
-        .eq("user_id", user.id)
+        .eq("user_id", userId)
         .is("deleted_at", null)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      setOwnProducts(data || []);
-    } catch (error) {
-      console.error("Error loading own products:", error);
-    } finally {
-      setLoadingOwn(false);
-    }
-  };
+      return (data || []) as OwnProduct[];
+    },
+    enabled: !!userId,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
+}
 
-  const loadSubscribedProducts = async () => {
-    if (!user) return;
-    setLoadingSubscribed(true);
-    try {
+function useSubscribedProducts(userId: string | undefined) {
+  return useQuery({
+    queryKey: ["subscribed-products", userId],
+    queryFn: async () => {
+      if (!userId) return [];
+      
       const { data, error } = await supabase.rpc('get_subscribed_catalog_products', {
-        p_subscriber_id: user.id
+        p_subscriber_id: userId
       });
 
       if (error) throw error;
-      setSubscribedProducts((data as SubscribedProduct[]) || []);
-    } catch (error) {
-      console.error("Error loading subscribed products:", error);
-    } finally {
-      setLoadingSubscribed(false);
-    }
-  };
+      return (data || []) as SubscribedProduct[];
+    },
+    enabled: !!userId,
+    staleTime: 1000 * 60 * 5,
+  });
+}
+
+// ==========================================
+// COMPONENT
+// ==========================================
+
+export function ProductSelector({ selectedIds, onChange, catalogType = "standard" }: ProductSelectorProps) {
+  const { user } = useAuth();
+  
+  // UI states
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeTab, setActiveTab] = useState<"own" | "vendors">("own");
+
+  // Data queries
+  const { 
+    data: ownProducts = [], 
+    isLoading: loadingOwn 
+  } = useOwnProducts(user?.id);
+  
+  const { 
+    data: subscribedProducts = [], 
+    isLoading: loadingSubscribed 
+  } = useSubscribedProducts(user?.id);
 
   // ==========================================
   // UNIFIED PRODUCT LISTS
@@ -246,16 +246,28 @@ export function ProductSelector({ selectedIds, onChange, catalogType = "standard
         key={product.id}
         onClick={() => handleToggleProduct(product.id)}
         className={cn(
-          "flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all",
+          "flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all",
           "active:scale-[0.98] touch-manipulation",
           "md:p-4",
           isSelected 
-            ? "border-primary bg-primary/5 shadow-sm" 
-            : "border-border bg-card hover:border-primary/40"
+            ? "border-primary bg-primary/5 ring-1 ring-primary/20" 
+            : "border-border bg-card hover:border-muted-foreground/30"
         )}
       >
+        {/* Checkbox - Large tap target */}
+        <div 
+          className="flex-shrink-0"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <Checkbox
+            checked={isSelected}
+            onCheckedChange={() => handleToggleProduct(product.id)}
+            className="h-6 w-6 rounded-md data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+          />
+        </div>
+
         {/* Image */}
-        <div className="relative w-16 h-16 md:w-20 md:h-20 flex-shrink-0 rounded-lg overflow-hidden bg-muted">
+        <div className="relative w-14 h-14 md:w-16 md:h-16 flex-shrink-0 rounded-lg overflow-hidden bg-muted">
           {product.imageUrl ? (
             <img
               src={product.imageUrl}
@@ -265,71 +277,65 @@ export function ProductSelector({ selectedIds, onChange, catalogType = "standard
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
-              <Package className="h-6 w-6 text-muted-foreground" />
+              <Package className="h-5 w-5 text-muted-foreground" />
             </div>
           )}
         </div>
 
         {/* Content */}
         <div className="flex-1 min-w-0 space-y-1">
-          <h4 className="font-medium text-sm md:text-base line-clamp-2 leading-tight">
+          <h4 className="font-medium text-sm leading-tight line-clamp-2">
             {product.name}
           </h4>
           
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-1.5 flex-wrap">
             {/* Origin Badge */}
             {product.source === "own" ? (
-              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-muted text-muted-foreground">
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 bg-muted text-muted-foreground font-normal">
                 Propio
               </Badge>
             ) : (
-              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300">
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300 font-normal">
                 {product.vendorName || "Proveedor"}
               </Badge>
             )}
             
             {/* SKU */}
             {product.sku && (
-              <span className="text-[10px] text-muted-foreground font-mono">
+              <span className="text-[10px] text-muted-foreground font-mono truncate max-w-[80px]">
                 {product.sku}
               </span>
             )}
           </div>
 
           {/* Price */}
-          <p className="text-sm md:text-base font-semibold text-primary">
-            {formatPrice(product.price / 100)}
+          <p className="text-sm font-semibold text-primary">
+            {formatPrice(product.price)}
           </p>
-        </div>
-
-        {/* Switch */}
-        <div className="flex-shrink-0 pl-2">
-          <Switch
-            checked={isSelected}
-            onCheckedChange={() => handleToggleProduct(product.id)}
-            onClick={(e) => e.stopPropagation()}
-            className="data-[state=checked]:bg-primary scale-110 md:scale-100"
-          />
         </div>
       </div>
     );
   };
 
   const renderEmptyState = (type: "own" | "vendors") => (
-    <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
+    <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
       {type === "own" ? (
         <>
-          <Store className="h-12 w-12 text-muted-foreground mb-3" />
+          <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
+            <Store className="h-8 w-8 text-muted-foreground" />
+          </div>
           <p className="font-medium mb-1">No tienes productos propios</p>
-          <p className="text-sm text-muted-foreground">
-            Crea productos en tu inventario para agregarlos
+          <p className="text-sm text-muted-foreground max-w-[250px]">
+            Crea productos en tu inventario para agregarlos aquí
           </p>
         </>
       ) : (
         <>
-          <Users className="h-12 w-12 text-muted-foreground mb-3" />
+          <div className="w-16 h-16 rounded-full bg-violet-100 dark:bg-violet-900/20 flex items-center justify-center mb-4">
+            <Users className="h-8 w-8 text-violet-600 dark:text-violet-400" />
+          </div>
           <p className="font-medium mb-1">Sin productos de proveedores</p>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-muted-foreground max-w-[250px]">
             Suscríbete a catálogos para agregar productos externos
           </p>
         </>
@@ -338,8 +344,10 @@ export function ProductSelector({ selectedIds, onChange, catalogType = "standard
   );
 
   const renderNoResults = () => (
-    <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-      <Search className="h-10 w-10 text-muted-foreground mb-3 opacity-50" />
+    <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
+      <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center mb-3">
+        <Search className="h-6 w-6 text-muted-foreground" />
+      </div>
       <p className="font-medium mb-1">Sin resultados</p>
       <p className="text-sm text-muted-foreground">
         Intenta con otros términos de búsqueda
@@ -348,11 +356,17 @@ export function ProductSelector({ selectedIds, onChange, catalogType = "standard
   );
 
   const renderLoading = () => (
-    <div className="flex items-center justify-center py-12">
+    <div className="flex items-center justify-center py-16">
       <div className="text-center space-y-3">
         <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
         <p className="text-sm text-muted-foreground">Cargando productos...</p>
       </div>
+    </div>
+  );
+
+  const renderProductGrid = (products: UnifiedProduct[]) => (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 md:gap-3 pb-4">
+      {products.map(renderProductCard)}
     </div>
   );
 
@@ -367,21 +381,21 @@ export function ProductSelector({ selectedIds, onChange, catalogType = "standard
   return (
     <div className="flex flex-col h-full">
       {/* Sticky Search Bar */}
-      <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-sm pb-3 border-b mb-3">
+      <div className="sticky top-0 z-20 bg-background pb-3">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Buscar por nombre o SKU..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 pr-10 h-11 md:h-10"
+            className="pl-10 pr-10 h-12 md:h-10 text-base md:text-sm"
           />
           {searchQuery && (
             <button
               onClick={() => setSearchQuery("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-muted transition-colors"
             >
-              <X className="h-4 w-4" />
+              <X className="h-4 w-4 text-muted-foreground" />
             </button>
           )}
         </div>
@@ -390,24 +404,28 @@ export function ProductSelector({ selectedIds, onChange, catalogType = "standard
       {/* Content Area */}
       <div className="flex-1 min-h-0">
         {showTabs ? (
-          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "own" | "vendors")} className="h-full flex flex-col">
-            <TabsList className="grid w-full grid-cols-2 mb-3">
-              <TabsTrigger value="own" className="gap-2 text-xs md:text-sm">
+          <Tabs 
+            value={activeTab} 
+            onValueChange={(v) => setActiveTab(v as "own" | "vendors")} 
+            className="h-full flex flex-col"
+          >
+            <TabsList className="grid w-full grid-cols-2 mb-3 h-11">
+              <TabsTrigger value="own" className="gap-1.5 text-sm data-[state=active]:bg-background">
                 <Store className="h-4 w-4" />
-                <span className="hidden sm:inline">Mi Inventario</span>
-                <span className="sm:hidden">Míos</span>
+                <span className="hidden xs:inline">Mis Productos</span>
+                <span className="xs:hidden">Míos</span>
                 {selectedOwnCount > 0 && (
-                  <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-[10px]">
+                  <Badge className="ml-1 h-5 min-w-[20px] px-1.5 text-[10px] bg-primary text-primary-foreground">
                     {selectedOwnCount}
                   </Badge>
                 )}
               </TabsTrigger>
-              <TabsTrigger value="vendors" className="gap-2 text-xs md:text-sm">
+              <TabsTrigger value="vendors" className="gap-1.5 text-sm data-[state=active]:bg-background">
                 <Users className="h-4 w-4" />
-                <span className="hidden sm:inline">Red de Proveedores</span>
-                <span className="sm:hidden">Proveedores</span>
+                <span className="hidden xs:inline">Proveedores</span>
+                <span className="xs:hidden">Ext.</span>
                 {selectedVendorCount > 0 && (
-                  <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-[10px]">
+                  <Badge className="ml-1 h-5 min-w-[20px] px-1.5 text-[10px] bg-violet-600 text-white">
                     {selectedVendorCount}
                   </Badge>
                 )}
@@ -415,28 +433,24 @@ export function ProductSelector({ selectedIds, onChange, catalogType = "standard
             </TabsList>
 
             <TabsContent value="own" className="flex-1 m-0 min-h-0">
-              <ScrollArea className="h-[calc(100vh-380px)] md:h-[400px]">
+              <ScrollArea className="h-[calc(100vh-420px)] md:h-[380px]">
                 {loadingOwn ? renderLoading() : (
                   filteredOwnProducts.length === 0 ? (
                     searchQuery ? renderNoResults() : renderEmptyState("own")
                   ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 pr-3">
-                      {filteredOwnProducts.map(renderProductCard)}
-                    </div>
+                    renderProductGrid(filteredOwnProducts)
                   )
                 )}
               </ScrollArea>
             </TabsContent>
 
             <TabsContent value="vendors" className="flex-1 m-0 min-h-0">
-              <ScrollArea className="h-[calc(100vh-380px)] md:h-[400px]">
+              <ScrollArea className="h-[calc(100vh-420px)] md:h-[380px]">
                 {loadingSubscribed ? renderLoading() : (
                   filteredSubscribedProducts.length === 0 ? (
                     searchQuery ? renderNoResults() : renderEmptyState("vendors")
                   ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 pr-3">
-                      {filteredSubscribedProducts.map(renderProductCard)}
-                    </div>
+                    renderProductGrid(filteredSubscribedProducts)
                   )
                 )}
               </ScrollArea>
@@ -444,14 +458,12 @@ export function ProductSelector({ selectedIds, onChange, catalogType = "standard
           </Tabs>
         ) : (
           // Standard catalog: only own products
-          <ScrollArea className="h-[calc(100vh-320px)] md:h-[450px]">
+          <ScrollArea className="h-[calc(100vh-360px)] md:h-[420px]">
             {loadingOwn ? renderLoading() : (
               filteredOwnProducts.length === 0 ? (
                 searchQuery ? renderNoResults() : renderEmptyState("own")
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 pr-3">
-                  {filteredOwnProducts.map(renderProductCard)}
-                </div>
+                renderProductGrid(filteredOwnProducts)
               )
             )}
           </ScrollArea>
@@ -460,14 +472,19 @@ export function ProductSelector({ selectedIds, onChange, catalogType = "standard
 
       {/* Floating Counter */}
       <div className={cn(
-        "sticky bottom-0 mt-3 pt-3 border-t bg-background",
-        "flex items-center justify-between gap-3 px-1"
+        "sticky bottom-0 mt-auto pt-3 border-t bg-background",
+        "flex items-center justify-between gap-3"
       )}>
         <div className="flex items-center gap-2">
-          <ShoppingBag className={cn(
-            "h-5 w-5",
-            totalSelected > 0 ? "text-primary" : "text-muted-foreground"
-          )} />
+          <div className={cn(
+            "w-8 h-8 rounded-full flex items-center justify-center",
+            totalSelected > 0 ? "bg-primary/10" : "bg-muted"
+          )}>
+            <ShoppingBag className={cn(
+              "h-4 w-4",
+              totalSelected > 0 ? "text-primary" : "text-muted-foreground"
+            )} />
+          </div>
           <span className={cn(
             "text-sm font-medium",
             totalSelected > 0 ? "text-foreground" : "text-muted-foreground"
@@ -477,10 +494,10 @@ export function ProductSelector({ selectedIds, onChange, catalogType = "standard
         </div>
 
         {showTabs && totalSelected > 0 && (
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <span className="bg-muted px-2 py-0.5 rounded">{selectedOwnCount} propios</span>
-            <span className="bg-violet-100 dark:bg-violet-900/30 px-2 py-0.5 rounded text-violet-700 dark:text-violet-300">
-              {selectedVendorCount} proveedores
+          <div className="flex items-center gap-1.5 text-xs">
+            <span className="bg-muted px-2 py-1 rounded-full">{selectedOwnCount} propios</span>
+            <span className="bg-violet-100 dark:bg-violet-900/30 px-2 py-1 rounded-full text-violet-700 dark:text-violet-300">
+              {selectedVendorCount} ext.
             </span>
           </div>
         )}
