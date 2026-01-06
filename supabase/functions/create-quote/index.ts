@@ -133,7 +133,8 @@ Deno.serve(async (req) => {
         quantity: item.quantity,
         unit_price: item.unit_price,
         price_type: item.price_type,
-        subtotal: item.unit_price * item.quantity
+        subtotal: item.unit_price * item.quantity,
+        origin_replicated_catalog_id: item.origin_replicated_catalog_id || null
       }));
 
     const { error: itemsError } = await supabaseAdmin
