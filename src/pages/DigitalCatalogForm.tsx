@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 import { useForm, useWatch } from "react-hook-form";
 
@@ -201,6 +201,7 @@ type CatalogFormData = z.infer<typeof catalogSchema>;
 
 export default function DigitalCatalogForm() {
   const { id } = useParams();
+  const [searchParams] = useSearchParams();
 
   const navigate = useNavigate();
 
@@ -230,7 +231,9 @@ export default function DigitalCatalogForm() {
 
   const [activeAccordion, setActiveAccordion] = useState("products");
 
-  const [catalogType, setCatalogType] = useState<"standard" | "super">("standard");
+  // Detectar si es Super Tienda desde URL o desde catálogo existente
+  const urlType = searchParams.get("type");
+  const isSuperStore = urlType === "super" || catalogData?.catalog_type === "super";
 
   const isEditing = !!id;
 
@@ -646,6 +649,9 @@ export default function DigitalCatalogForm() {
 
           accessToken: data.accessToken,
         },
+
+        // Tipo de catálogo (super o standard)
+        catalog_type: (isSuperStore ? "super" : "standard") as "super" | "standard",
       };
 
       if (isEditing && id) {
@@ -847,13 +853,11 @@ export default function DigitalCatalogForm() {
                           <FormItem>
                             <ProductSelector
                               selectedIds={field.value}
-                              onChange={(ids, products, hasVendorProducts) => {
+                              onChange={(ids, products) => {
                                 field.onChange(ids);
                                 setSelectedProducts(products);
-                                // Auto-detect catalog type based on selected products
-                                setCatalogType(hasVendorProducts ? "super" : "standard");
                               }}
-                              catalogType={catalogType}
+                              catalogType={isSuperStore ? "super" : "standard"}
                             />
 
                             <FormMessage />
@@ -1023,17 +1027,17 @@ export default function DigitalCatalogForm() {
                         <Button 
                           type="button" 
                           size="sm" 
-                          onClick={() => handleNextStep("info", catalogType === "super" ? "shipping" : "pricing")}
+                          onClick={() => handleNextStep("info", isSuperStore ? "shipping" : "pricing")}
                           className="bg-gray-900 text-white hover:bg-gray-800 touch-manipulation"
                         >
-                          Siguiente: {catalogType === "super" ? "Envíos" : "Precios"} <ChevronRight className="ml-2 h-4 w-4" />
+                          Siguiente: {isSuperStore ? "Envíos" : "Precios"} <ChevronRight className="ml-2 h-4 w-4" />
                         </Button>
                       </div>
                     </AccordionContent>
                   </AccordionItem>
 
                   {/* Accordion Item 4: Precios - Hidden for Super Tiendas */}
-                  {catalogType !== "super" && (
+                  {!isSuperStore && (
                   <AccordionItem value="pricing" id="accordion-pricing" className="border-none bg-white rounded-xl shadow-sm mb-4 overflow-hidden ring-1 ring-gray-200">
                     <AccordionTrigger className="px-4 py-4 hover:no-underline hover:bg-muted/50 transition-colors">
                       <div className="flex items-center gap-3 w-full">
@@ -1907,13 +1911,11 @@ export default function DigitalCatalogForm() {
                         <FormItem>
                           <ProductSelector
                             selectedIds={field.value}
-                            onChange={(ids, products, hasVendorProducts) => {
+                            onChange={(ids, products) => {
                               field.onChange(ids);
                               setSelectedProducts(products);
-                              // Auto-detect catalog type based on selected products
-                              setCatalogType(hasVendorProducts ? "super" : "standard");
                             }}
-                            catalogType={catalogType}
+                            catalogType={isSuperStore ? "super" : "standard"}
                           />
 
                           <FormMessage />
@@ -2123,7 +2125,7 @@ export default function DigitalCatalogForm() {
                     )}
 
                     {/* Hide price adjustments for Super Tiendas - they use reseller prices */}
-                    {catalogType !== "super" && (
+                    {!isSuperStore && (
                       <>
                         {(watchedValues.price_display === "menudeo_only" || watchedValues.price_display === "both") && (
                           <FormField
