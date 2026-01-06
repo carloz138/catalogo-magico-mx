@@ -251,6 +251,7 @@ export interface CreateQuoteDTO {
     price_type: PriceType;
     variant_id?: string | null;
     variant_description?: string | null;
+    origin_replicated_catalog_id?: string | null;
   }[];
 }
 
@@ -279,9 +280,6 @@ export interface PublicCatalogView extends DigitalCatalog {
     tags: string[] | null;
     category: string | null;
     has_variants?: boolean;
-    // Super Tienda fields
-    is_own_product?: boolean;
-    source_vendor_name?: string | null;
     variants?: Array<{
       id: string;
       variant_combination: Record<string, string>;
@@ -306,7 +304,6 @@ export interface PublicCatalogView extends DigitalCatalog {
   isReplicated?: boolean;
   replicatedCatalogId?: string;
   originalOwnerId?: string;
-  isSuperCatalog?: boolean;
   resellerInfo?: {
     reseller_id: string;
   };
