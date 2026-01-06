@@ -377,7 +377,90 @@ export class DigitalCatalogService {
       throw new Error("Catálogo expirado");
     }
 
-    // Get catalog products (CORREGIDO CON FK EXPLÍCITA + vendor_id for analytics)
+    // 3. FLUJO SUPER TIENDA - Usar RPC con precios inteligentes
+    if (catalog.catalog_type === 'super') {
+      const { data: superProducts, error: superError } = await supabase
+        .rpc('get_super_catalog_products', {
+          p_catalog_id: catalog.id,
+          p_catalog_owner_id: catalog.user_id
+        });
+
+      if (superError) {
+        console.error("Error fetching super catalog products:", superError);
+        throw superError;
+      }
+
+      // Cargar variantes para cada producto externo que las tenga
+      const productsWithVariants = await Promise.all(
+        (superProducts || []).map(async (product: any) => {
+          let variants: any[] = [];
+          
+          if (product.has_variants) {
+            if (product.is_own_product) {
+              // Producto propio: variantes sin precios custom
+              const { data: productVariants } = await supabase
+                .from("product_variants")
+                .select("id, variant_combination, sku, price_retail, price_wholesale, stock_quantity, is_default")
+                .eq("product_id", product.id)
+                .eq("is_active", true)
+                .order("is_default", { ascending: false });
+              
+              variants = productVariants || [];
+            } else if (product.replicated_catalog_id) {
+              // Producto externo: usar RPC para variantes con precios custom
+              const { data: customVariants } = await supabase
+                .rpc('get_super_catalog_variants', {
+                  p_product_id: product.id,
+                  p_replicated_catalog_id: product.replicated_catalog_id
+                });
+              
+              variants = customVariants || [];
+            } else {
+              // Producto externo sin relación: variantes originales
+              const { data: productVariants } = await supabase
+                .from("product_variants")
+                .select("id, variant_combination, sku, price_retail, price_wholesale, stock_quantity, is_default")
+                .eq("product_id", product.id)
+                .eq("is_active", true)
+                .order("is_default", { ascending: false });
+              
+              variants = productVariants || [];
+            }
+          }
+
+          return {
+            ...product,
+            image_url: product.processed_image_url || product.original_image_url,
+            variants,
+          };
+        })
+      );
+
+      const { data: businessInfo } = await supabase
+        .from("business_info")
+        .select("business_name, logo_url, phone, email, website, address")
+        .eq("user_id", catalog.user_id)
+        .single();
+
+      return {
+        ...catalog,
+        products: productsWithVariants,
+        business_info: businessInfo || {
+          business_name: "Catálogo Digital",
+          logo_url: null,
+          phone: null,
+          email: null,
+          website: null,
+          address: null,
+        },
+        purchasedProductIds: [],
+        isReplicated: false,
+        replicatedCatalogId: null,
+        isSuperCatalog: true,
+      } as unknown as PublicCatalogView;
+    }
+
+    // 4. FLUJO ESTÁNDAR (L1) - Catálogo normal
     const { data: catalogProducts, error: productsError } = await supabase
       .from("catalog_products")
       .select(
