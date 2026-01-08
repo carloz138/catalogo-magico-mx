@@ -40,6 +40,7 @@ import {
   Truck,
   ShoppingBag,
   CircleDollarSign,
+  PackageCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -143,6 +144,15 @@ export function AppSidebar() {
       icon: Truck,
       primary: true,
       roles: ["L1", "L2", "BOTH"],
+      badge: stats?.orders && stats.orders > 0 ? stats.orders : undefined,
+      badgeColor: "bg-emerald-500 text-white border-emerald-600 animate-pulse",
+    },
+    {
+      title: "Pedidos a Proveedores",
+      path: "/reseller/consolidated-orders",
+      icon: PackageCheck,
+      primary: true,
+      roles: ["L2", "BOTH"],
       badge: stats?.orders && stats.orders > 0 ? stats.orders : undefined,
       badgeColor: "bg-emerald-500 text-white border-emerald-600 animate-pulse",
     },
