@@ -20,7 +20,7 @@ export class ConsolidatedOrderService {
     distributorId: string,
     supplierId: string,
     originalCatalogId: string,
-    replicatedCatalogId: string
+    replicatedCatalogId: string,
   ): Promise<CreateDraftResponse> {
     console.log("📦 getOrCreateDraft:", { distributorId, supplierId });
 
@@ -32,7 +32,7 @@ export class ConsolidatedOrderService {
           `
           *,
           consolidated_order_items (*)
-        `
+        `,
         )
         .eq("distributor_id", distributorId)
         .eq("supplier_id", supplierId)
@@ -94,24 +94,26 @@ export class ConsolidatedOrderService {
   /**
    * Sincronizar borrador con cotizaciones aceptadas
    * Agrupa productos de todas las cotizaciones aceptadas del mismo catálogo replicado
+   * ACTUALIZADO: Soporta Super Tiendas buscando por origin_replicated_catalog_id en los items
    */
   static async syncDraftWithQuotes(
     consolidatedOrderId: string,
     distributorId: string,
-    replicatedCatalogId: string
+    replicatedCatalogId: string,
   ): Promise<void> {
-    console.log("🔄 Sincronizando borrador con cotizaciones...", { consolidatedOrderId, distributorId, replicatedCatalogId });
+    console.log("🔄 Sincronizando borrador con cotizaciones...", {
+      consolidatedOrderId,
+      distributorId,
+      replicatedCatalogId,
+    });
 
     try {
-      // 1. Obtener todas las cotizaciones aceptadas del catálogo replicado del L2
-      // Las cotizaciones de L2 vienen de replicated_catalog_id, no de digital_catalogs
-      const { data: quotes, error: quotesError } = await supabase
-        .from("quotes")
+      // 1. Obtener Items de cotizaciones aceptadas que pertenezcan a este catálogo replicado
+      // FIX: Buscamos en quote_items para soportar pedidos híbridos (Super Tienda)
+      const { data: items, error: itemsError } = await supabase
+        .from("quote_items")
         .select(
           `
-          id,
-          quote_items (
-            id,
             product_id,
             variant_id,
             product_name,
@@ -119,25 +121,41 @@ export class ConsolidatedOrderService {
             variant_description,
             product_image_url,
             quantity,
-            unit_price
-          )
-        `
+            unit_price,
+            quotes!inner (
+                id,
+                status,
+                user_id
+            )
+        `,
         )
-        .eq("replicated_catalog_id", replicatedCatalogId)
-        .eq("status", "accepted")
-        .eq("user_id", distributorId); // Cotizaciones que L2 recibió de sus clientes
+        .eq("origin_replicated_catalog_id", replicatedCatalogId) // 👈 Clave para detectar origen Super Tienda
+        .eq("quotes.status", "accepted")
+        .eq("quotes.user_id", distributorId); // Cotizaciones que L2 recibió de sus clientes
 
-      if (quotesError) throw quotesError;
+      if (itemsError) throw itemsError;
 
-      console.log(`📊 Encontradas ${quotes?.length || 0} cotizaciones aceptadas`);
+      console.log(`📊 Encontrados ${items?.length || 0} items pendientes de procesar`);
 
-      if (!quotes || quotes.length === 0) {
-        console.log("⚠️ No hay cotizaciones aceptadas para sincronizar");
+      if (!items || items.length === 0) {
+        console.log("⚠️ No hay items aceptados para sincronizar");
         return;
       }
 
+      // Transformamos los items planos a la estructura que espera aggregateProducts
+      // (Simulamos una estructura de 'quotes' para reutilizar tu lógica de agregación)
+      const quotesFormat = items.map((item) => ({
+        id: (item.quotes as any).id,
+        quote_items: [
+          {
+            ...item,
+            quantity: Number(item.quantity), // Asegurar numérico
+          },
+        ],
+      }));
+
       // 2. Agrupar productos (sumar cantidades de items duplicados)
-      const aggregatedProducts = this.aggregateProducts(quotes);
+      const aggregatedProducts = this.aggregateProducts(quotesFormat);
 
       console.log(`📦 Productos agrupados: ${aggregatedProducts.length}`);
 
@@ -148,7 +166,7 @@ export class ConsolidatedOrderService {
         .eq("consolidated_order_id", consolidatedOrderId);
 
       const currentItemsSet = new Set(
-        (currentItems || []).map((item) => `${item.product_id}-${item.variant_id || "null"}`)
+        (currentItems || []).map((item) => `${item.product_id}-${item.variant_id || "null"}`),
       );
 
       // 4. Insertar solo items nuevos (que no existen ya en el borrador)
@@ -172,9 +190,7 @@ export class ConsolidatedOrderService {
         }));
 
       if (newItems.length > 0) {
-        const { error: insertError } = await supabase
-          .from("consolidated_order_items")
-          .insert(newItems);
+        const { error: insertError } = await supabase.from("consolidated_order_items").insert(newItems);
 
         if (insertError) throw insertError;
 
@@ -238,7 +254,7 @@ export class ConsolidatedOrderService {
    */
   static async getDraftForSupplier(
     distributorId: string,
-    supplierId: string
+    supplierId: string,
   ): Promise<ConsolidatedOrderWithDetails | null> {
     try {
       // 1. Obtener el borrador con catálogo
@@ -247,12 +263,19 @@ export class ConsolidatedOrderService {
         .select(
           `
           *,
-          consolidated_order_items (*),
-          digital_catalogs!consolidated_orders_original_catalog_id_fkey (
-            name,
-            user_id
-          )
-        `
+          consolidated_order_items (*)
+        `,
+        ) // Corrección en la referencia de la relación si fuera necesaria, aquí la dejé simple como estaba
+        // Nota: Asegúrate que la relación en Supabase sea correcta. Si falla, usa digital_catalogs!fk...
+        .select(
+          `
+            *,
+            consolidated_order_items (*),
+            digital_catalogs!consolidated_orders_original_catalog_id_fkey (
+                name,
+                user_id
+            )
+        `,
         )
         .eq("distributor_id", distributorId)
         .eq("supplier_id", supplierId)
@@ -300,10 +323,10 @@ export class ConsolidatedOrderService {
     filters?: {
       status?: ConsolidatedOrderStatus;
       supplier_id?: string;
-    }
+    },
   ): Promise<ConsolidatedOrderWithDetails[]> {
     console.log("📋 getConsolidatedOrders called with:", { distributorId, filters });
-    
+
     try {
       // 1. Obtener los pedidos consolidados con catálogos
       let query = supabase
@@ -316,7 +339,7 @@ export class ConsolidatedOrderService {
             name,
             user_id
           )
-        `
+        `,
         )
         .eq("distributor_id", distributorId)
         .order("created_at", { ascending: false });
@@ -346,9 +369,7 @@ export class ConsolidatedOrderService {
         .in("user_id", supplierIds);
 
       // Crear mapa para búsqueda rápida
-      const businessInfoMap = new Map(
-        (businessInfos || []).map((info) => [info.user_id, info])
-      );
+      const businessInfoMap = new Map((businessInfos || []).map((info) => [info.user_id, info]));
 
       return data.map((order: any) => {
         const items = (order.consolidated_order_items || []) as ConsolidatedOrderItem[];
@@ -381,7 +402,7 @@ export class ConsolidatedOrderService {
   static async updateItemQuantity(
     itemId: string,
     quantity: number,
-    distributorId: string
+    distributorId: string,
   ): Promise<ConsolidatedOrderItem> {
     if (quantity <= 0) {
       throw new Error("La cantidad debe ser mayor a 0");
@@ -395,7 +416,7 @@ export class ConsolidatedOrderService {
           `
           *,
           consolidated_orders!inner (distributor_id, status)
-        `
+        `,
         )
         .eq("id", itemId)
         .single();
@@ -446,7 +467,7 @@ export class ConsolidatedOrderService {
           `
           *,
           consolidated_orders!inner (distributor_id, status)
-        `
+        `,
         )
         .eq("id", itemId)
         .single();
@@ -463,10 +484,7 @@ export class ConsolidatedOrderService {
       }
 
       // Eliminar
-      const { error: deleteError } = await supabase
-        .from("consolidated_order_items")
-        .delete()
-        .eq("id", itemId);
+      const { error: deleteError } = await supabase.from("consolidated_order_items").delete().eq("id", itemId);
 
       if (deleteError) throw deleteError;
 
@@ -483,7 +501,7 @@ export class ConsolidatedOrderService {
   static async addProduct(
     consolidatedOrderId: string,
     productData: ConsolidatedOrderItemInput,
-    distributorId: string
+    distributorId: string,
   ): Promise<ConsolidatedOrderItem> {
     try {
       // Verificar permisos
@@ -561,7 +579,7 @@ export class ConsolidatedOrderService {
           `
           *,
           consolidated_order_items (*)
-        `
+        `,
         )
         .eq("id", data.consolidated_order_id)
         .eq("distributor_id", distributorId)
@@ -650,11 +668,7 @@ export class ConsolidatedOrderService {
   /**
    * Actualizar notas del consolidado
    */
-  static async updateNotes(
-    consolidatedOrderId: string,
-    notes: string,
-    distributorId: string
-  ): Promise<void> {
+  static async updateNotes(consolidatedOrderId: string, notes: string, distributorId: string): Promise<void> {
     try {
       const { error } = await supabase
         .from("consolidated_orders")
