@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -142,6 +143,7 @@ const FulfillmentBadge = ({ status }: { status: string }) => {
 
 export default function UnifiedOrdersPage() {
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   // ✅ USAMOS TU ROLE CONTEXT
   const { isL1, isL2, isBoth, isLoadingRole } = useUserRole();
@@ -481,6 +483,19 @@ export default function UnifiedOrdersPage() {
           {/* === TAB 2: MIS COMPRAS (Solo si es L2 o BOTH) === */}
           {(isL2 || isBoth) && (
             <TabsContent value="purchases" className="space-y-6 animate-in fade-in-50">
+              {/* Enlace a gestión completa de pedidos consolidados */}
+              <div className="flex justify-end">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate("/reseller/consolidated-orders")}
+                  className="text-emerald-600 border-emerald-200 hover:bg-emerald-50"
+                >
+                  <PackageCheck className="w-4 h-4 mr-2" />
+                  Gestionar Borradores
+                </Button>
+              </div>
+              
               {loadingPurchases ? (
                 <div className="flex justify-center p-12">
                   <Loader2 className="animate-spin text-emerald-600" />
