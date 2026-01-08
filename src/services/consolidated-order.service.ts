@@ -99,8 +99,14 @@ export class ConsolidatedOrderService {
   static async syncDraftWithQuotes(
     consolidatedOrderId: string,
     distributorId: string,
-    replicatedCatalogId: string,
+    replicatedCatalogId: string | null,
   ): Promise<void> {
+    // Guard clause: Si no hay replicatedCatalogId, no podemos sincronizar
+    if (!replicatedCatalogId) {
+      console.warn("⚠️ syncDraftWithQuotes: No se puede sincronizar sin replicatedCatalogId. Saltando sincronización.");
+      return;
+    }
+
     console.log("🔄 Sincronizando borrador con cotizaciones...", {
       consolidatedOrderId,
       distributorId,
@@ -260,13 +266,6 @@ export class ConsolidatedOrderService {
       // 1. Obtener el borrador con catálogo
       const { data, error } = await supabase
         .from("consolidated_orders")
-        .select(
-          `
-          *,
-          consolidated_order_items (*)
-        `,
-        ) // Corrección en la referencia de la relación si fuera necesaria, aquí la dejé simple como estaba
-        // Nota: Asegúrate que la relación en Supabase sea correcta. Si falla, usa digital_catalogs!fk...
         .select(
           `
             *,
