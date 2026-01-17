@@ -76,7 +76,8 @@ interface GenerationOptions {
   skipAudit?: boolean;
   catalogTitle?: string;
   productsPerPage?: 4 | 6 | 9;
-  showWholesalePrices?: boolean; // 🆕 Controlar si se muestran precios de mayoreo
+  priceDisplay?: 'menudeo_only' | 'mayoreo_only' | 'both'; // 🆕 Configuración de precios
+  showWholesalePrices?: boolean; // Compatibilidad legacy
 }
 
 export class UnifiedCatalogGenerator {
@@ -308,7 +309,7 @@ export class UnifiedCatalogGenerator {
             pdfGenerationSuccess = true;
             finalMethod = 'puppeteer';
             generationStats = { ...(result.stats || {}), grid2x2Fixed: isGrid2x2 };
-            htmlContent = TemplateGenerator.generateCatalogHTML(products, businessInfo, template, productsPerPage, options.showWholesalePrices ?? true);
+            htmlContent = TemplateGenerator.generateCatalogHTML(products, businessInfo, template, productsPerPage, options.priceDisplay ?? 'both');
             
             console.log(`✅ PDF generado CORREGIDO + FIX 2x2 y subido con ${productsPerPage} productos/página ${isGrid2x2 ? 'GRID 2x2 CONFIRMADO' : ''}`);
           } else {
@@ -325,7 +326,7 @@ export class UnifiedCatalogGenerator {
             );
             pdfGenerationSuccess = fallbackResult.success;
             finalMethod = 'dynamic';
-            htmlContent = TemplateGenerator.generateCatalogHTML(products, businessInfo, template, productsPerPage, options.showWholesalePrices ?? true);
+            htmlContent = TemplateGenerator.generateCatalogHTML(products, businessInfo, template, productsPerPage, options.priceDisplay ?? 'both');
           }
           
         } else if (generationMethod === 'dynamic') {
@@ -341,7 +342,7 @@ export class UnifiedCatalogGenerator {
           if (result.success) {
             pdfGenerationSuccess = true;
             finalMethod = 'dynamic';
-            htmlContent = TemplateGenerator.generateCatalogHTML(products, businessInfo, template, productsPerPage, options.showWholesalePrices ?? true);
+            htmlContent = TemplateGenerator.generateCatalogHTML(products, businessInfo, template, productsPerPage, options.priceDisplay ?? 'both');
           } else {
             console.warn(`⚠️ Dynamic engine falló CORREGIDO + FIX 2x2 para ${productsPerPage}/página ${isGrid2x2 ? '(GRID 2x2)' : ''}, usando fallback clásico`);
             warnings.push(`Motor dinámico no disponible para ${productsPerPage}/página ${isGrid2x2 ? 'Grid 2x2' : ''}, usando método clásico CORREGIDO`);
@@ -814,8 +815,8 @@ export class UnifiedCatalogGenerator {
         },
         quality: 'high' as const,
         catalogTitle: options.catalogTitle,
-        productsPerPage: productsPerPage, // 🆕 PASAR PRODUCTOS POR PÁGINA AL PUPPETEER CORREGIDO + FIX 2x2
-        showWholesalePrices: options.showWholesalePrices ?? true // 🆕 Default true para compatibilidad
+        productsPerPage: productsPerPage,
+        priceDisplay: options.priceDisplay ?? 'both'
       };
       
       // 🎯 LOG ESPECÍFICO PARA GRID 2x2
@@ -1044,7 +1045,7 @@ export class UnifiedCatalogGenerator {
         businessInfo,
         optimizedTemplate,
         productsPerPage, // 🆕 PASAR PRODUCTOS POR PÁGINA CORREGIDOS + FIX 2x2
-        options.showWholesalePrices ?? true // 🆕 Default true
+        options.priceDisplay ?? 'both'
       );
       
       if (options.onProgress) options.onProgress(60);
@@ -1561,7 +1562,7 @@ export const generatePuppeteerCatalog = async (
   onProgress?: (progress: number) => void,
   catalogTitle?: string,
   productsPerPage: 4 | 6 | 9 = 6,
-  showWholesalePrices: boolean = true
+  priceDisplay: 'menudeo_only' | 'mayoreo_only' | 'both' = 'both'
 ): Promise<GenerationResult> => {
   const isGrid2x2 = productsPerPage === 4;
   console.log(`🔍 DEBUG - generatePuppeteerCatalog dinámico CORREGIDO + FIX 2x2 recibió: ${productsPerPage}/página ${isGrid2x2 ? 'GRID 2x2' : ''}, título: ${catalogTitle}`);
@@ -1574,7 +1575,7 @@ export const generatePuppeteerCatalog = async (
     autoFix: true,
     catalogTitle,
     productsPerPage,
-    showWholesalePrices
+    priceDisplay
   });
 };
 
@@ -1589,7 +1590,7 @@ export const generateDynamicCatalog = async (
   onProgress?: (progress: number) => void,
   catalogTitle?: string,
   productsPerPage: 4 | 6 | 9 = 6,
-  showWholesalePrices: boolean = true
+  priceDisplay: 'menudeo_only' | 'mayoreo_only' | 'both' = 'both'
 ): Promise<GenerationResult> => {
   return generateCatalog(products, businessInfo, templateId, userId, {
     usePuppeteerService: false,
@@ -1600,7 +1601,7 @@ export const generateDynamicCatalog = async (
     autoFix: true,
     catalogTitle,
     productsPerPage,
-    showWholesalePrices
+    priceDisplay
   });
 };
 
@@ -1615,7 +1616,7 @@ export const generateClassicCatalog = async (
   onProgress?: (progress: number) => void,
   catalogTitle?: string,
   productsPerPage: 4 | 6 | 9 = 6,
-  showWholesalePrices: boolean = true
+  priceDisplay: 'menudeo_only' | 'mayoreo_only' | 'both' = 'both'
 ): Promise<GenerationResult> => {
   return generateCatalog(products, businessInfo, templateId, userId, {
     forceClassicMode: true,
@@ -1625,7 +1626,7 @@ export const generateClassicCatalog = async (
     autoFix: true,
     catalogTitle,
     productsPerPage,
-    showWholesalePrices
+    priceDisplay
   });
 };
 

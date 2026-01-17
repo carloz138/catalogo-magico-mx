@@ -123,7 +123,8 @@ const TemplateSelection = () => {
 
   // ESTADO PARA PRODUCTOS POR PÁGINA
   const [productsPerPage, setProductsPerPage] = useState<4 | 6 | 9>(6);
-  const [showWholesalePrices, setShowWholesalePrices] = useState(true);
+  const [priceDisplay, setPriceDisplay] = useState<'menudeo_only' | 'mayoreo_only' | 'both'>('both');
+  const showWholesalePrices = priceDisplay === 'mayoreo_only' || priceDisplay === 'both'; // Compatibilidad
 
   // Estados de límites y calidad
   const [limits, setLimits] = useState<UsageLimits | null>(null);
@@ -388,7 +389,7 @@ const TemplateSelection = () => {
         businessData,
         template,
         productsPerPage,
-        showWholesalePrices,
+        priceDisplay,
       );
 
       setPreviewHTML(htmlContent);
@@ -470,7 +471,7 @@ const TemplateSelection = () => {
             onProgress,
             catalogTitle,
             productsPerPage,
-            showWholesalePrices,
+            priceDisplay,
           );
           break;
 
@@ -484,7 +485,7 @@ const TemplateSelection = () => {
             onProgress,
             catalogTitle,
             productsPerPage,
-            showWholesalePrices,
+            priceDisplay,
           );
           break;
 
@@ -498,7 +499,7 @@ const TemplateSelection = () => {
             onProgress,
             catalogTitle,
             productsPerPage,
-            showWholesalePrices,
+            priceDisplay,
           );
           break;
 
@@ -514,7 +515,7 @@ const TemplateSelection = () => {
             autoFix: true,
             catalogTitle: catalogTitle,
             productsPerPage: productsPerPage,
-            showWholesalePrices: showWholesalePrices,
+            priceDisplay: priceDisplay,
           });
           break;
       }
@@ -794,7 +795,7 @@ const TemplateSelection = () => {
             <div className="grid grid-cols-2 gap-3">
               <button
                 type="button"
-                onClick={() => setShowWholesalePrices(true)}
+                onClick={() => setPriceDisplay('both')}
                 disabled={generating || previewLoading}
                 className={`
                   relative flex flex-col items-center p-4 rounded-lg border-2 transition-all
@@ -822,7 +823,7 @@ const TemplateSelection = () => {
 
               <button
                 type="button"
-                onClick={() => setShowWholesalePrices(false)}
+                onClick={() => setPriceDisplay('menudeo_only')}
                 disabled={generating || previewLoading}
                 className={`
                   relative flex flex-col items-center p-4 rounded-lg border-2 transition-all
