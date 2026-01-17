@@ -26,11 +26,21 @@ export const EditableCell = ({ getValue, row, column, table, type = "text", clas
     setValue(initialValue);
   }, [initialValue]);
 
-  const handleSave = (newValue: any) => {
+  const handleSave = (newValue: any, isCurrency: boolean = false) => {
     setIsEditing(false);
-    const isValuesDifferent = JSON.stringify(newValue) !== JSON.stringify(initialValue);
+    
+    // Para currency: convertir el valor ingresado (en pesos) a centavos para la BD
+    let valueToSave = newValue;
+    if (isCurrency && newValue !== null && newValue !== undefined && newValue !== "") {
+      const numericValue = parseFloat(newValue);
+      if (!isNaN(numericValue)) {
+        valueToSave = Math.round(numericValue * 100); // Convertir pesos a centavos
+      }
+    }
+    
+    const isValuesDifferent = JSON.stringify(valueToSave) !== JSON.stringify(initialValue);
     if (isValuesDifferent) {
-      table.options.meta?.updateData(row.original.id, column.id, newValue);
+      table.options.meta?.updateData(row.original.id, column.id, valueToSave);
     }
   };
 
@@ -44,12 +54,14 @@ export const EditableCell = ({ getValue, row, column, table, type = "text", clas
           .map((t) => t.trim())
           .filter(Boolean);
         handleSave(tagsArray);
+      } else if (type === "currency") {
+        handleSave(value, true);
       } else {
         handleSave(value);
       }
     }
     if (e.key === "Escape") {
-      setValue(initialValue);
+      setValue(type === "currency" ? (initialValue ? initialValue / 100 : "") : initialValue);
       setIsEditing(false);
     }
   };
@@ -95,8 +107,18 @@ export const EditableCell = ({ getValue, row, column, table, type = "text", clas
       );
     }
 
-    // Preparar valor para el input de tags (array -> string)
-    const inputValue = type === "tags" && Array.isArray(value) ? value.join(", ") : value || "";
+    // Preparar valor para el input
+    // - Para tags: array -> string
+    // - Para currency: centavos -> pesos (dividir entre 100)
+    let inputValue: string | number = "";
+    if (type === "tags" && Array.isArray(value)) {
+      inputValue = value.join(", ");
+    } else if (type === "currency") {
+      // Mostrar valor en pesos para edición (el valor almacenado está en centavos)
+      inputValue = initialValue ? (initialValue / 100).toString() : "";
+    } else {
+      inputValue = value || "";
+    }
 
     return (
       <Input
@@ -113,12 +135,16 @@ export const EditableCell = ({ getValue, row, column, table, type = "text", clas
               .map((t: string) => t.trim())
               .filter(Boolean);
             handleSave(tagsArray);
+          } else if (type === "currency") {
+            handleSave(value, true);
           } else {
             handleSave(value);
           }
         }}
         onKeyDown={handleKeyDown}
         autoFocus
+        step={type === "currency" ? "0.01" : undefined}
+        placeholder={type === "currency" ? "Ej: 150.00" : undefined}
         className={cn(
           "h-8 text-sm shadow-sm border-indigo-500 ring-2 ring-indigo-200",
           (type === "number" || type === "currency") && "text-right font-mono",
