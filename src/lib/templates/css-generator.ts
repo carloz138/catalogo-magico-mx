@@ -165,7 +165,7 @@ export class TemplateGenerator {
   static generateTemplateCSS(
     template: IndustryTemplate, 
     productsPerPage: 4 | 6 | 9 = 6,
-    showWholesalePrices: boolean = true // 🆕 Default true para compatibilidad
+    showWholesalePrices: boolean = true
   ): string {
     const layoutConfig = this.calculateDynamicLayout(productsPerPage);
     const dimensions = this.calculateCorrectedDimensions(template, layoutConfig);
@@ -1470,7 +1470,7 @@ export class TemplateGenerator {
     businessInfo: BusinessInfo,
     template: IndustryTemplate,
     productsPerPage: 4 | 6 | 9 = 6,
-    showWholesalePrices: boolean = true, // 🆕 Controlar si se muestran precios de mayoreo
+    priceDisplay: 'menudeo_only' | 'mayoreo_only' | 'both' = 'both', // 🆕 Configuración de precios
     useBrandColors: boolean = true // 🆕 NUEVO PARÁMETRO - Brand-Aware System
   ): string {
     
@@ -1501,8 +1501,9 @@ export class TemplateGenerator {
       });
     }
     
-    const css = this.generateTemplateCSS(template, productsPerPage, showWholesalePrices);
-    const productsHTML = this.generateProductsHTMLGrid(products, template, productsPerPage, showWholesalePrices);
+    const showWholesale = priceDisplay === 'mayoreo_only' || priceDisplay === 'both';
+    const css = this.generateTemplateCSS(template, productsPerPage, showWholesale);
+    const productsHTML = this.generateProductsHTMLGrid(products, template, productsPerPage, priceDisplay);
     const footerHTML = this.generateFooterHTML(businessInfo);
     
     const businessName = businessInfo.business_name || 'Mi Negocio';
@@ -1545,7 +1546,7 @@ export class TemplateGenerator {
     products: Product[], 
     template: IndustryTemplate, 
     productsPerPage: 4 | 6 | 9 = 6,
-    showWholesalePrices: boolean = true // 🆕 Controlar si se muestran precios de mayoreo
+    priceDisplay: 'menudeo_only' | 'mayoreo_only' | 'both' = 'both' // 🆕 Configuración de precios
   ): string {
     const totalPages = Math.ceil(products.length / productsPerPage);
     
@@ -1586,7 +1587,7 @@ export class TemplateGenerator {
         <div class="products-page ${pageBreakClass}">
           <div class="products-grid">
             ${totalCards.map(product => 
-              product ? this.generateProductCard(product, template, showWholesalePrices) : this.generateEmptyCard()
+              product ? this.generateProductCard(product, template, priceDisplay) : this.generateEmptyCard()
             ).join('')}
           </div>
         </div>
@@ -1616,7 +1617,7 @@ export class TemplateGenerator {
     };
   }
   
-  private static generateProductCard(product: Product, template: IndustryTemplate, showWholesalePrices: boolean = true): string {
+  private static generateProductCard(product: Product, template: IndustryTemplate, priceDisplay: 'menudeo_only' | 'mayoreo_only' | 'both' = 'both'): string {
     const productName = product.name || 'Producto';
     const productPrice = typeof product.price_retail === 'number' ? product.price_retail : 0;
     const productImage = product.image_url || '';
@@ -1638,6 +1639,42 @@ export class TemplateGenerator {
          <div style="font-size: 7pt;">Sin imagen</div>
        </div>`;
     
+    // 🆕 Generar HTML de precios según priceDisplay
+    const formatPrice = (cents: number) => `$${(cents / 100).toLocaleString('es-MX', { 
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    })}`;
+    
+    let priceHTML = '';
+    
+    if (priceDisplay === 'menudeo_only') {
+      // Solo precio de menudeo (retail)
+      priceHTML = `<div class="product-price-retail">${formatPrice(productPrice)}</div>`;
+    } else if (priceDisplay === 'mayoreo_only') {
+      // Solo precio de mayoreo (o retail si no hay mayoreo)
+      const displayPrice = product.price_wholesale || productPrice;
+      priceHTML = `
+        <div class="product-price-retail">${formatPrice(displayPrice)}</div>
+        ${product.price_wholesale && product.wholesale_min_qty ? `
+          <div class="wholesale-min-badge">Min. ${product.wholesale_min_qty} pzas</div>
+        ` : ''}
+      `;
+    } else {
+      // Ambos precios
+      priceHTML = `
+        <div class="product-price-retail">${formatPrice(productPrice)}</div>
+        ${product.price_wholesale && template.showInfo?.wholesalePrice ? `
+          <div class="product-price-wholesale">
+            <span class="wholesale-label">Mayoreo:</span>
+            <span class="wholesale-price">${formatPrice(product.price_wholesale)}</span>
+            ${product.wholesale_min_qty && template.showInfo?.wholesaleMinQty ? `
+              <span class="wholesale-min">Min. ${product.wholesale_min_qty}</span>
+            ` : ''}
+          </div>
+        ` : ''}
+      `;
+    }
+    
     return `
       <div class="product-card page-break-avoid">
         <div class="product-card-inner">
@@ -1651,22 +1688,7 @@ export class TemplateGenerator {
             <h3 class="product-name">${productName}</h3>
             
             <div class="product-pricing">
-              <div class="product-price-retail">$${(productPrice / 100).toLocaleString('es-MX', { 
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2
-              })}</div>
-              ${showWholesalePrices && product.price_wholesale && template.showInfo?.wholesalePrice ? `
-                <div class="product-price-wholesale">
-                  <span class="wholesale-label">Mayoreo:</span>
-                  <span class="wholesale-price">$${(product.price_wholesale / 100).toLocaleString('es-MX', { 
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2
-                  })}</span>
-                  ${product.wholesale_min_qty && template.showInfo?.wholesaleMinQty ? `
-                    <span class="wholesale-min">Min. ${product.wholesale_min_qty}</span>
-                  ` : ''}
-                </div>
-              ` : ''}
+              ${priceHTML}
             </div>
             
             ${template.showInfo.description && productDescription ? 

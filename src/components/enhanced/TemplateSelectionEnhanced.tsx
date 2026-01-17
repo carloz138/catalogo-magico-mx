@@ -40,7 +40,8 @@ import {
   Crown,
   Settings,
   Grid3X3,
-  Zap
+  Zap,
+  DollarSign
 } from 'lucide-react';
 
 interface Product {
@@ -146,8 +147,8 @@ const TemplateSelectionEnhanced = () => {
   // 🆕 ESTADO PARA PRODUCTOS POR PÁGINA
   const [productsPerPage, setProductsPerPage] = useState<4 | 6 | 9>(6);
   
-  // Estado para control de precios de mayoreo
-  const [showWholesalePrices, setShowWholesalePrices] = useState(true);
+  // Estado para control de precios (menudeo, mayoreo, ambos)
+  const [priceDisplay, setPriceDisplay] = useState<'menudeo_only' | 'mayoreo_only' | 'both'>('both');
   
   // Estados de límites
   const [limits, setLimits] = useState<UsageLimits | null>(null);
@@ -491,8 +492,8 @@ const TemplateSelectionEnhanced = () => {
           catalogTitle: catalogTitle,
           qualityCheck: true,
           autoFix: true,
-          productsPerPage: productsPerPage, // 🔧 PASAR PRODUCTOS POR PÁGINA
-          showWholesalePrices: showWholesalePrices // 🆕 AGREGAR ESTA LÍNEA
+          productsPerPage: productsPerPage,
+          priceDisplay: priceDisplay // 🆕 Configuración de precios (menudeo, mayoreo, ambos)
         }
       );
       
@@ -760,14 +761,14 @@ const TemplateSelectionEnhanced = () => {
                 </p>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-3 gap-3">
                 <button
                   type="button"
-                  onClick={() => setShowWholesalePrices(true)}
+                  onClick={() => setPriceDisplay('menudeo_only')}
                   disabled={generating}
                   className={`
                     relative flex flex-col items-center p-4 rounded-lg border-2 transition-all
-                    ${showWholesalePrices 
+                    ${priceDisplay === 'menudeo_only' 
                       ? 'border-purple-600 bg-purple-50 shadow-sm' 
                       : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                     }
@@ -776,15 +777,15 @@ const TemplateSelectionEnhanced = () => {
                 >
                   <div className={`
                     w-10 h-10 rounded-full flex items-center justify-center mb-2
-                    ${showWholesalePrices ? 'bg-purple-100' : 'bg-gray-100'}
+                    ${priceDisplay === 'menudeo_only' ? 'bg-purple-100' : 'bg-gray-100'}
                   `}>
-                    <Package className={`w-5 h-5 ${showWholesalePrices ? 'text-purple-600' : 'text-gray-600'}`} />
+                    <Zap className={`w-5 h-5 ${priceDisplay === 'menudeo_only' ? 'text-purple-600' : 'text-gray-600'}`} />
                   </div>
-                  <div className="text-sm font-medium text-center">Mayoreo</div>
+                  <div className="text-sm font-medium text-center">Menudeo</div>
                   <div className="text-xs text-gray-500 mt-1 text-center">
-                    Con precios al por mayor
+                    Solo precio público
                   </div>
-                  {showWholesalePrices && (
+                  {priceDisplay === 'menudeo_only' && (
                     <div className="absolute top-2 right-2">
                       <CheckCircle className="w-5 h-5 text-purple-600" />
                     </div>
@@ -793,11 +794,11 @@ const TemplateSelectionEnhanced = () => {
 
                 <button
                   type="button"
-                  onClick={() => setShowWholesalePrices(false)}
+                  onClick={() => setPriceDisplay('mayoreo_only')}
                   disabled={generating}
                   className={`
                     relative flex flex-col items-center p-4 rounded-lg border-2 transition-all
-                    ${!showWholesalePrices 
+                    ${priceDisplay === 'mayoreo_only' 
                       ? 'border-purple-600 bg-purple-50 shadow-sm' 
                       : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                     }
@@ -806,15 +807,45 @@ const TemplateSelectionEnhanced = () => {
                 >
                   <div className={`
                     w-10 h-10 rounded-full flex items-center justify-center mb-2
-                    ${!showWholesalePrices ? 'bg-purple-100' : 'bg-gray-100'}
+                    ${priceDisplay === 'mayoreo_only' ? 'bg-purple-100' : 'bg-gray-100'}
                   `}>
-                    <Zap className={`w-5 h-5 ${!showWholesalePrices ? 'text-purple-600' : 'text-gray-600'}`} />
+                    <Package className={`w-5 h-5 ${priceDisplay === 'mayoreo_only' ? 'text-purple-600' : 'text-gray-600'}`} />
                   </div>
-                  <div className="text-sm font-medium text-center">Retail</div>
+                  <div className="text-sm font-medium text-center">Mayoreo</div>
                   <div className="text-xs text-gray-500 mt-1 text-center">
-                    Solo precio al público
+                    Solo precio mayoreo
                   </div>
-                  {!showWholesalePrices && (
+                  {priceDisplay === 'mayoreo_only' && (
+                    <div className="absolute top-2 right-2">
+                      <CheckCircle className="w-5 h-5 text-purple-600" />
+                    </div>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setPriceDisplay('both')}
+                  disabled={generating}
+                  className={`
+                    relative flex flex-col items-center p-4 rounded-lg border-2 transition-all
+                    ${priceDisplay === 'both' 
+                      ? 'border-purple-600 bg-purple-50 shadow-sm' 
+                      : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                    }
+                    ${generating ? 'opacity-50 cursor-not-allowed' : ''}
+                  `}
+                >
+                  <div className={`
+                    w-10 h-10 rounded-full flex items-center justify-center mb-2
+                    ${priceDisplay === 'both' ? 'bg-purple-100' : 'bg-gray-100'}
+                  `}>
+                    <DollarSign className={`w-5 h-5 ${priceDisplay === 'both' ? 'text-purple-600' : 'text-gray-600'}`} />
+                  </div>
+                  <div className="text-sm font-medium text-center">Ambos</div>
+                  <div className="text-xs text-gray-500 mt-1 text-center">
+                    Menudeo + Mayoreo
+                  </div>
+                  {priceDisplay === 'both' && (
                     <div className="absolute top-2 right-2">
                       <CheckCircle className="w-5 h-5 text-purple-600" />
                     </div>
