@@ -32,14 +32,26 @@ export function CatalogProductCard({
     const { display, adjustmentMenudeo, adjustmentMayoreo } = priceConfig;
     const menudeo = calculateAdjustedPrice(product.price_retail / 100, adjustmentMenudeo);
     const mayoreo = product.price_wholesale ? calculateAdjustedPrice(product.price_wholesale / 100, adjustmentMayoreo) : null;
+    const minQty = product.wholesale_min_qty;
 
     if (display === "menudeo_only") return <div className="catalog-product-price text-lg font-bold">{formatPrice(menudeo)}</div>;
-    if (display === "mayoreo_only") return <div className="catalog-product-price text-lg font-bold">{mayoreo ? formatPrice(mayoreo) : formatPrice(menudeo)}</div>;
+    if (display === "mayoreo_only") {
+      return (
+        <div className="flex flex-col items-start">
+          <div className="catalog-product-price text-lg font-bold">{mayoreo ? formatPrice(mayoreo) : formatPrice(menudeo)}</div>
+          {mayoreo && minQty && <div className="text-[10px] text-muted-foreground">Min. {minQty} pzas</div>}
+        </div>
+      );
+    }
     
     return (
       <div className="flex flex-col items-start">
         <div className="catalog-product-price text-lg font-bold">{formatPrice(menudeo)}</div>
-        {mayoreo && <div className="text-xs text-muted-foreground font-medium">Mayoreo: {formatPrice(mayoreo)}</div>}
+        {mayoreo && (
+          <div className="text-xs text-muted-foreground font-medium">
+            Mayoreo: {formatPrice(mayoreo)}{minQty ? ` (min. ${minQty})` : ''}
+          </div>
+        )}
       </div>
     );
   };
