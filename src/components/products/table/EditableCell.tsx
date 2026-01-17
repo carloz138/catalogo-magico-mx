@@ -109,13 +109,13 @@ export const EditableCell = ({ getValue, row, column, table, type = "text", clas
 
     // Preparar valor para el input
     // - Para tags: array -> string
-    // - Para currency: centavos -> pesos (dividir entre 100)
+    // - Para currency: centavos -> pesos (dividir entre 100) - solo al iniciar edición
     let inputValue: string | number = "";
     if (type === "tags" && Array.isArray(value)) {
       inputValue = value.join(", ");
     } else if (type === "currency") {
-      // Mostrar valor en pesos para edición (el valor almacenado está en centavos)
-      inputValue = initialValue ? (initialValue / 100).toString() : "";
+      // Usar value para permitir escritura, pero si es el valor inicial (en centavos), convertir
+      inputValue = value !== undefined && value !== null && value !== "" ? value : "";
     } else {
       inputValue = value || "";
     }
@@ -210,7 +210,13 @@ export const EditableCell = ({ getValue, row, column, table, type = "text", clas
 
   return (
     <div
-      onClick={() => setIsEditing(true)}
+      onClick={() => {
+        // Para currency, convertir centavos a pesos al iniciar edición
+        if (type === "currency" && value) {
+          setValue((value / 100).toString());
+        }
+        setIsEditing(true);
+      }}
       className={cn(
         "cursor-pointer px-2 py-1.5 rounded hover:bg-slate-100 border border-transparent hover:border-slate-200 transition-all min-h-[32px] flex items-center truncate text-sm",
         (type === "number" || type === "currency") && "justify-end font-mono",
