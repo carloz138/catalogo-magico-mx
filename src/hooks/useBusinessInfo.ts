@@ -4,9 +4,14 @@ import { BusinessInfo } from "@/types/business";
 
 export const useBusinessInfo = () => {
   const [businessInfo, setBusinessInfo] = useState<BusinessInfo | null>(null);
-  const [merchantInfo, setMerchantInfo] = useState<any | null>(null); // ✅ Nuevo estado para Banco
+  const [merchantInfo, setMerchantInfo] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Auto-load on mount
+  useEffect(() => {
+    loadBusinessInfo();
+  }, []);
 
   const loadBusinessInfo = async () => {
     try {
