@@ -1,6 +1,6 @@
-// src/lib/templates/css-generator.ts - VERSIÓN CORREGIDA PARA 4 Y 9 PRODUCTOS + FIX 2x2
+// src/lib/templates/css-generator.ts - VERSIÓN OPTIMIZADA PRECIOS + FIX 2x2
 
-import { IndustryTemplate } from './industry-templates';
+import { IndustryTemplate } from "./industry-templates";
 
 interface Product {
   id: string;
@@ -31,7 +31,7 @@ interface BusinessInfo {
   secondary_color?: string;
 }
 
-// 🆕 NUEVA INTERFACE PARA CONFIGURACIÓN DINÁMICA
+// 🆕 INTERFACE PARA CONFIGURACIÓN DINÁMICA
 interface DynamicLayoutConfig {
   productsPerPage: 4 | 6 | 9;
   columns: number;
@@ -39,28 +39,23 @@ interface DynamicLayoutConfig {
 }
 
 export class TemplateGenerator {
-  
   /**
    * Genera CSS específico para templates minimalistas
    */
-  private static generateMinimalistCSS(
-    template: IndustryTemplate,
-    productsPerPage: 4 | 6 | 9
-  ): string {
-    
-    const isMinimalist = template.id.startsWith('minimalist-');
-    
-    if (!isMinimalist) return '';
-    
+  private static generateMinimalistCSS(template: IndustryTemplate, productsPerPage: 4 | 6 | 9): string {
+    const isMinimalist = template.id.startsWith("minimalist-");
+
+    if (!isMinimalist) return "";
+
     return `
       /* ===== ESTILOS MINIMALISTAS ===== */
       
       .product-card {
         background: ${template.colors.cardBackground} !important;
-        border: ${template.design?.shadows ? '0' : '1px solid #e2e8f0'} !important;
-        box-shadow: ${template.design?.shadows ? 
-          '0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)' : 
-          'none'} !important;
+        border: ${template.design?.shadows ? "0" : "1px solid #e2e8f0"} !important;
+        box-shadow: ${
+          template.design?.shadows ? "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)" : "none"
+        } !important;
         padding: calc(${productsPerPage === 4 ? 8 : productsPerPage === 6 ? 6 : 5}mm * var(--padding-scale)) !important;
         transition: transform 0.2s ease, box-shadow 0.2s ease !important;
       }
@@ -86,26 +81,18 @@ export class TemplateGenerator {
         text-transform: uppercase !important;
         margin-bottom: calc(2mm * var(--padding-scale)) !important;
       }
-      
-      .product-price-retail {
-        background: transparent !important;
-        background-image: none !important;
-        color: ${template.colors.primary} !important;
+
+      /* Estilos Minimalistas de Precios Redefinidos */
+      .price-main {
         font-weight: 600 !important;
-        font-size: calc(var(--price-size) * 1.1) !important;
-        padding: 0 !important;
-        border-radius: 0 !important;
-        box-shadow: none !important;
+        color: ${template.colors.primary} !important;
         border-bottom: 2px solid ${template.colors.accent} !important;
-        padding-bottom: calc(1mm * var(--padding-scale)) !important;
-        display: inline-block !important;
+        padding-bottom: 2px !important;
       }
       
-      .product-price-wholesale {
+      .wholesale-container {
         background: ${template.colors.background} !important;
-        border: 1px solid ${template.colors.accent} !important;
-        padding: calc(2mm * var(--padding-scale)) !important;
-        border-radius: calc(4px * var(--border-radius-scale)) !important;
+        border: 1px dashed ${template.colors.accent} !important;
       }
       
       .product-image-container {
@@ -143,35 +130,41 @@ export class TemplateGenerator {
         color: ${template.colors.text} !important;
       }
       
-      ${productsPerPage === 4 ? `
+      ${
+        productsPerPage === 4
+          ? `
         .products-grid {
           gap: calc(8mm * var(--padding-scale)) !important;
         }
-      ` : productsPerPage === 6 ? `
+      `
+          : productsPerPage === 6
+            ? `
         .products-grid {
           gap: calc(6mm * var(--padding-scale)) !important;
         }
-      ` : `
+      `
+            : `
         .products-grid {
           gap: calc(5mm * var(--padding-scale)) !important;
         }
-      `}
+      `
+      }
     `;
   }
-  
+
   /**
    * 🎯 FUNCIÓN PRINCIPAL CON PRODUCTOS POR PÁGINA DINÁMICOS - CORREGIDA + FIX 2x2
    */
   static generateTemplateCSS(
-    template: IndustryTemplate, 
+    template: IndustryTemplate,
     productsPerPage: 4 | 6 | 9 = 6,
-    showWholesalePrices: boolean = true
+    showWholesalePrices: boolean = true,
   ): string {
     const layoutConfig = this.calculateDynamicLayout(productsPerPage);
     const dimensions = this.calculateCorrectedDimensions(template, layoutConfig);
     const colors = this.generateColorScheme(template);
     const typography = this.calculateTypography(template, layoutConfig);
-    
+
     return `
       /* ===== TEMPLATE: ${template.displayName.toUpperCase()} - ${productsPerPage} PRODUCTOS/PÁGINA - CORREGIDO + FIX 2x2 ===== */
       
@@ -220,12 +213,16 @@ export class TemplateGenerator {
         --footer-margin: ${this.getFooterMargin(productsPerPage)}mm;
         
         /* 🚀 VARIABLES ESPECÍFICAS PARA FIX 2x2 */
-        ${productsPerPage === 4 ? `
+        ${
+          productsPerPage === 4
+            ? `
           --grid-total-height: ${dimensions.cardHeight * 2 + dimensions.gap}mm;
           --grid-2x2-mode: 1;
-        ` : `
+        `
+            : `
           --grid-2x2-mode: 0;
-        `}
+        `
+        }
       }
       
       /* ===== RESET ABSOLUTO ===== */
@@ -359,11 +356,12 @@ export class TemplateGenerator {
         grid-template-columns: repeat(var(--columns), 1fr) !important;
         
         /* 🔧 FIX CRÍTICO PARA 2x2: Altura fija vs auto */
-        ${productsPerPage === 4 ? 
-          `grid-template-rows: repeat(var(--rows), var(--card-height)) !important;
+        ${
+          productsPerPage === 4
+            ? `grid-template-rows: repeat(var(--rows), var(--card-height)) !important;
            height: var(--grid-total-height) !important;
-           min-height: var(--grid-total-height) !important;` :
-          `grid-template-rows: repeat(var(--rows), auto) !important;`
+           min-height: var(--grid-total-height) !important;`
+            : `grid-template-rows: repeat(var(--rows), auto) !important;`
         }
         
         gap: var(--gap) !important;
@@ -374,10 +372,11 @@ export class TemplateGenerator {
         page-break-inside: avoid;
         
         /* 🔧 Place items específico para cada layout */
-        ${productsPerPage === 4 ? 
-          `place-items: start center !important;
-           place-content: start center !important;` :
-          `align-items: stretch !important;
+        ${
+          productsPerPage === 4
+            ? `place-items: start center !important;
+           place-content: start center !important;`
+            : `align-items: stretch !important;
            justify-content: center !important;
            place-content: center stretch !important;`
         }
@@ -395,11 +394,12 @@ export class TemplateGenerator {
         width: 100% !important;
         
         /* 🔧 FIX ALTURA ESPECÍFICA PARA 2x2 */
-        ${productsPerPage === 4 ? 
-          `height: var(--card-height) !important;
+        ${
+          productsPerPage === 4
+            ? `height: var(--card-height) !important;
            min-height: var(--card-height) !important;
-           max-height: var(--card-height) !important;` :
-          `height: var(--card-height) !important;
+           max-height: var(--card-height) !important;`
+            : `height: var(--card-height) !important;
            min-height: var(--card-height) !important;
            max-height: none !important;`
         }
@@ -415,17 +415,18 @@ export class TemplateGenerator {
         box-sizing: border-box !important;
         
         /* 🔧 POSICIONAMIENTO ESPECÍFICO PARA 2x2 */
-        ${productsPerPage === 4 ? 
-          `align-self: start !important;
-           justify-self: center !important;` :
-          `align-self: stretch !important;
+        ${
+          productsPerPage === 4
+            ? `align-self: start !important;
+           justify-self: center !important;`
+            : `align-self: stretch !important;
            justify-self: center !important;`
         }
         
         padding: calc(var(--padding-scale) * ${this.getCardPadding(productsPerPage)}mm) !important;
         gap: calc(2mm * var(--padding-scale)) !important;
         
-        ${template.design.shadows ? `box-shadow: 0 calc(1mm * var(--layout-scale)) calc(3mm * var(--layout-scale)) rgba(0, 0, 0, 0.08);` : ''}
+        ${template.design.shadows ? `box-shadow: 0 calc(1mm * var(--layout-scale)) calc(3mm * var(--layout-scale)) rgba(0, 0, 0, 0.08);` : ""}
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
         
@@ -434,7 +435,9 @@ export class TemplateGenerator {
       }
       
       /* 🔧 FIX POSICIONAMIENTO EXPLÍCITO PARA 2x2 */
-      ${productsPerPage === 4 ? `
+      ${
+        productsPerPage === 4
+          ? `
         .product-card:nth-child(1) { grid-area: 1 / 1 / 2 / 2 !important; }
         .product-card:nth-child(2) { grid-area: 1 / 2 / 2 / 3 !important; }
         .product-card:nth-child(3) { grid-area: 2 / 1 / 3 / 2 !important; }
@@ -450,7 +453,9 @@ export class TemplateGenerator {
           background: transparent !important;
           box-shadow: none !important;
         }
-      ` : ''}
+      `
+          : ""
+      }
       
       /* ===== CONTENIDO INTERNO ESCALADO ===== */
       .product-card-inner {
@@ -524,7 +529,9 @@ export class TemplateGenerator {
       
       /* 🚀 INFORMACIÓN ESCALADA DINÁMICAMENTE - CORREGIDA */
       .product-info {
-        ${productsPerPage === 6 ? `
+        ${
+          productsPerPage === 6
+            ? `
           /* CONTAINER OPTIMIZADO - MÁS ESPACIO VERTICAL */
           display: flex !important;
           flex-direction: column !important;
@@ -535,14 +542,16 @@ export class TemplateGenerator {
           max-height: none !important;
           padding: calc(0.8mm * var(--padding-scale)) 0 !important;
           gap: calc(1.2mm * var(--padding-scale)) !important;
-        ` : `
+        `
+            : `
           flex: 1 1 auto !important;
           display: flex !important;
           flex-direction: column !important;
           justify-content: flex-start !important;
           min-height: var(--text-area-height) !important;
           text-align: center !important;
-        `}
+        `
+        }
         min-height: var(--text-area-height) !important;
         height: auto !important;
         text-align: center !important;
@@ -553,7 +562,9 @@ export class TemplateGenerator {
       
       /* ===== NOMBRE ESCALADO CORREGIDO ===== */
       .product-name {
-        ${productsPerPage === 6 ? `
+        ${
+          productsPerPage === 6
+            ? `
 /* NOMBRE DE PRODUCTO - 3 LÍNEAS PARA TÍTULOS LARGOS */
           display: -webkit-box !important;
           -webkit-box-orient: vertical !important;
@@ -590,7 +601,8 @@ export class TemplateGenerator {
           /* HYPHENATION */
           hyphens: auto !important;
           -webkit-hyphens: auto !important;
-        ` : `
+        `
+            : `
           font-size: var(--title-size) !important;
           font-weight: 600 !important;
           color: var(--primary) !important;
@@ -599,7 +611,8 @@ export class TemplateGenerator {
           -webkit-line-clamp: ${this.getNameLines(template.density, productsPerPage)} !important;
           -webkit-box-orient: vertical !important;
           overflow: hidden !important;
-        `}
+        `
+        }
         font-weight: 600 !important;
         color: var(--primary) !important;
         margin-bottom: 0 !important;
@@ -613,189 +626,92 @@ export class TemplateGenerator {
         flex-shrink: 0 !important;
       }
       
-      /* ===== SISTEMA DE PRECIOS ESCALADO CORREGIDO ===== */
+      /* ===== SISTEMA DE PRECIOS OPTIMIZADO PARA JERARQUÍA CLARA ===== */
       .product-pricing {
-        ${productsPerPage === 6 ? `
-          /* PRICING CONTAINER - COMPACTO Y EFICIENTE */
-          display: flex !important;
-          flex-direction: column !important;
-          align-items: center !important;
-          overflow: visible !important;
-          margin: calc(1.2mm * var(--padding-scale)) 0 !important;
-          padding: 0 !important;
-          min-height: calc(14mm * var(--padding-scale)) !important;
-          text-align: center !important;
-        ` : `
-          display: flex !important;
-          flex-direction: column !important;
-          align-items: center !important;
-          gap: calc(${this.getPricingGap(productsPerPage)}mm * var(--padding-scale)) !important;
-        `}
-        margin: 0 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
         width: 100% !important;
-        flex-grow: 1 !important;
-        justify-content: flex-start !important;
-        overflow: visible !important;
-        min-height: 0 !important;
+        margin-top: auto !important;
+        gap: calc(2mm * var(--padding-scale)) !important;
+        min-height: 15mm !important;
       }
 
-      /* ===== PRECIO RETAIL ESCALADO CORREGIDO ===== */
-      .product-price-retail {
-        ${productsPerPage === 6 ? `
-          /* PRECIO RETAIL - NO TRUNCAR (CRÍTICO) */
-          font-size: calc(var(--price-size) * 0.95) !important;
-          white-space: normal !important;
-          overflow: visible !important;
-          text-overflow: unset !important;
-          padding: calc(1.5mm * var(--padding-scale)) calc(3mm * var(--padding-scale)) !important;
-          margin: 0 auto calc(3mm * var(--padding-scale)) auto !important;
-          max-width: 98% !important;
-          word-wrap: break-word !important;
-          text-align: center !important;
-        ` : `
-          font-size: var(--price-size) !important;
-          padding: calc(1.5mm * var(--padding-scale)) calc(3mm * var(--padding-scale)) !important;
-        `}
+      /* Estilo del precio PRINCIPAL (el más grande) */
+      .price-main {
+        font-size: var(--price-size) !important;
         font-weight: 700 !important;
+        padding: calc(1mm * var(--padding-scale)) calc(3mm * var(--padding-scale)) !important;
+        border-radius: 6px !important;
+        line-height: 1.1 !important;
+        display: inline-block !important;
+        margin-bottom: 2px !important;
+      }
+      
+      /* Estilo específico para RETAIL cuando es el principal */
+      .price-main.retail {
         color: white !important;
         background: var(--secondary) !important;
         background-image: linear-gradient(135deg, var(--secondary), var(--primary)) !important;
-        border-radius: calc(12px * var(--border-radius-scale)) !important;
-        display: inline-block !important;
-        text-align: center !important;
-        white-space: nowrap !important;
-        max-width: 95% !important;
-        overflow: hidden !important;
-        text-overflow: ellipsis !important;
-        box-shadow: 0 calc(1pt * var(--layout-scale)) calc(2pt * var(--layout-scale)) rgba(0,0,0,0.15) !important;
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-        flex-shrink: 0 !important;
-        line-height: 1.2 !important;
-        margin: 0 !important;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
       }
 
-      /* ===== PRECIO MAYOREO ESCALADO CORREGIDO ===== */
-      .product-price-wholesale {
-        ${showWholesalePrices ? `
-          /* MOSTRAR precios de mayoreo */
-          ${productsPerPage === 6 ? `
-            display: block !important;
-            overflow: visible !important;
-            font-size: calc(var(--price-size) * 0.8) !important;
-            padding: calc(2mm * var(--padding-scale)) !important;
-            margin: calc(2mm * var(--padding-scale)) auto 0 auto !important;
-            width: 95% !important;
-            max-height: calc(12mm * var(--padding-scale)) !important;
-            min-height: calc(8mm * var(--padding-scale)) !important;
-            line-height: 1.3 !important;
-            text-align: center !important;
-          ` : `
-            display: flex !important;
-            flex-direction: column !important;
-            align-items: center !important;
-            font-size: calc(var(--price-size) * 0.75) !important;
-            padding: calc(${this.getWholesalePadding(productsPerPage)}mm * var(--padding-scale)) !important;
-          `}
-        ` : `
-          /* OCULTAR precios de mayoreo */
-          display: none !important;
-          visibility: hidden !important;
-          height: 0 !important;
-          min-height: 0 !important;
-          max-height: 0 !important;
-          padding: 0 !important;
-          margin: 0 !important;
-          overflow: hidden !important;
-        `}
-        
-        /* Estilos base (solo cuando showWholesalePrices = true) */
-        ${showWholesalePrices ? `
-          flex-direction: column !important;
-          align-items: center !important;
-          gap: calc(1mm * var(--padding-scale)) !important;
-          color: var(--text) !important;
-          background: rgba(0,0,0,0.12) !important;
-          border-radius: calc(6px * var(--border-radius-scale)) !important;
-          border: calc(0.5pt * var(--layout-scale)) solid var(--border) !important;
-          width: 90% !important;
-          text-align: center !important;
-          -webkit-print-color-adjust: exact !important;
-          flex-shrink: 0 !important;
-          position: relative !important;
-          z-index: 2 !important;
-        ` : ''}
+      /* Estilo específico para WHOLESALE cuando es el principal (Modo Mayoreo Only) */
+      .price-main.wholesale {
+        color: white !important;
+        background: var(--primary) !important; /* Color primario para resaltar */
+        border: 2px solid var(--secondary) !important;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.15) !important;
       }
 
-      .wholesale-label {
-        ${!showWholesalePrices ? 'display: none !important;' : ''}
+      /* Contenedor del precio SECUNDARIO (Modo Both) */
+      .wholesale-container {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+        width: 95% !important;
+        background: rgba(0,0,0,0.03) !important;
+        border: 1px solid var(--border) !important;
+        border-radius: 6px !important;
+        padding: calc(1.5mm * var(--padding-scale)) !important;
+        margin-top: 2px !important;
+      }
+
+      .price-label {
         font-size: calc(var(--info-size) * 0.9) !important;
         font-weight: 600 !important;
-        color: var(--text) !important;
         text-transform: uppercase !important;
-        letter-spacing: 0.3pt !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        line-height: 1.1 !important;
+        color: var(--text-light) !important;
+        margin-bottom: 1px !important;
+        line-height: 1 !important;
       }
 
-      .wholesale-price {
-        ${!showWholesalePrices ? 'display: none !important;' : ''}
+      .price-amount {
+        font-size: calc(var(--price-size) * 0.9) !important;
         font-weight: 700 !important;
         color: var(--primary) !important;
-        font-size: calc(var(--price-size) * 0.8) !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        line-height: 1.1 !important;
+        line-height: 1.2 !important;
       }
 
-      .wholesale-min {
-        ${!showWholesalePrices ? 'display: none !important;' : ''}
-        font-size: calc(var(--info-size) * 0.8) !important;
-        color: var(--text-light) !important;
-        font-weight: 400 !important;
-        font-style: italic !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        line-height: 1.1 !important;
+      /* Badge para cantidad mínima */
+      .min-qty-badge {
+        font-size: calc(var(--info-size) * 0.85) !important;
+        color: var(--text) !important;
+        background: #fff !important;
+        border: 1px solid var(--border) !important;
+        padding: 1px 6px !important;
+        border-radius: 10px !important;
+        margin-top: 2px !important;
+        white-space: nowrap !important;
+        display: inline-block !important;
       }
-      
-      ${productsPerPage === 6 ? `
-        /* ETIQUETAS WHOLESALE - SELECTIVO */
-        .wholesale-label {
-          display: inline-block !important;
-          white-space: nowrap !important; /* "MAYOREO:" siempre completo */
-          overflow: visible !important;
-          text-overflow: unset !important;
-          font-size: calc(var(--info-size) * 0.9) !important;
-          font-weight: 600 !important;
-          margin-right: calc(2mm * var(--padding-scale)) !important;
-        }
-
-        .wholesale-price {
-          display: inline-block !important;
-          white-space: nowrap !important; /* Precio siempre completo */
-          overflow: visible !important;
-          text-overflow: unset !important;
-          font-size: calc(var(--price-size) * 0.8) !important;
-          font-weight: 700 !important;
-        }
-
-        .wholesale-min {
-          display: block !important;
-          white-space: nowrap !important;
-          overflow: hidden !important;
-          text-overflow: ellipsis !important; /* Solo cantidad puede truncarse */
-          max-width: 100% !important;
-          font-size: calc(var(--info-size) * 0.8) !important;
-          margin-top: calc(1mm * var(--padding-scale)) !important;
-          opacity: 0.8 !important;
-        }
-      ` : ''}
       
       /* ===== ELEMENTOS CONDICIONALES ESCALADOS ===== */
       
-      ${template.showInfo.category ? `
+      ${
+        template.showInfo.category
+          ? `
       .product-category {
         font-size: var(--info-size) !important;
         color: var(--accent) !important;
@@ -812,9 +728,13 @@ export class TemplateGenerator {
         white-space: nowrap !important;
         -webkit-print-color-adjust: exact !important;
       }
-      ` : `.product-category { display: none !important; }`}
+      `
+          : `.product-category { display: none !important; }`
+      }
       
-      ${template.showInfo.description ? `
+      ${
+        template.showInfo.description
+          ? `
       .product-description {
         font-size: var(--desc-size) !important;
         color: var(--text-light) !important;
@@ -830,7 +750,9 @@ export class TemplateGenerator {
         -webkit-print-color-adjust: exact !important;
         text-align: center !important;
       }
-      ` : `.product-description { display: none !important; }`}
+      `
+          : `.product-description { display: none !important; }`
+      }
       
       /* ===== FOOTER ESCALADO ===== */
       .catalog-footer {
@@ -900,15 +822,16 @@ export class TemplateGenerator {
       
       /* ===== CARDS VACÍAS CORREGIDAS PARA 2x2 ===== */
       .product-card.empty-card {
-        ${productsPerPage === 4 ? 
-          `visibility: hidden !important;
+        ${
+          productsPerPage === 4
+            ? `visibility: hidden !important;
            height: var(--card-height) !important;
            min-height: var(--card-height) !important;
            max-height: var(--card-height) !important;
            border: none !important;
            background: transparent !important;
-           box-shadow: none !important;` :
-          `visibility: hidden !important;
+           box-shadow: none !important;`
+            : `visibility: hidden !important;
            height: var(--card-height) !important;
            min-height: var(--card-height) !important;
            border: none !important;
@@ -918,7 +841,9 @@ export class TemplateGenerator {
       }
       
       /* 🚀 PRE-PRINT FIXES CORREGIDOS PARA 2x2 */
-      ${productsPerPage === 4 ? `
+      ${
+        productsPerPage === 4
+          ? `
         .products-grid {
           grid-template-rows: minmax(0, 1fr) minmax(0, 1fr) !important;
           height: auto !important;
@@ -949,13 +874,9 @@ export class TemplateGenerator {
           height: auto !important;
           max-height: 15mm !important;
         }
-        
-        .product-price-wholesale {
-          overflow: visible !important;
-          max-height: 8mm !important;
-          line-height: 1.1 !important;
-        }
-      ` : ''}
+      `
+          : ""
+      }
 
       /* ===== MEDIA PRINT DINÁMICO CORREGIDO + FIX 2x2 ===== */
       @media print {
@@ -966,7 +887,9 @@ export class TemplateGenerator {
         }
         
         /* 🚀 PRINT FIXES COMPLETOS PARA 2x2 */
-        ${productsPerPage === 4 ? `
+        ${
+          productsPerPage === 4
+            ? `
           .products-grid {
             height: auto !important;
             min-height: auto !important;
@@ -1012,17 +935,8 @@ export class TemplateGenerator {
             height: auto !important;
             max-height: none !important;
           }
-          
-          .product-price-wholesale {
-            overflow: visible !important;
-            display: block !important;
-            position: static !important;
-            margin-top: 3mm !important;
-            margin-bottom: 3mm !important;
-            min-height: auto !important;
-            height: auto !important;
-          }
-        ` : `
+        `
+            : `
           /* Print normal para 3x2 y 3x3 (SIN CAMBIOS) */
           .product-card {
             page-break-inside: avoid !important;
@@ -1036,7 +950,8 @@ export class TemplateGenerator {
             page-break-inside: auto !important;
             grid-auto-rows: calc(var(--card-height) + calc(${this.getPrintExtraHeight(productsPerPage)}mm * var(--padding-scale))) !important;
           }
-        `}
+        `
+        }
         
         .product-info {
           overflow: visible !important;
@@ -1049,7 +964,9 @@ export class TemplateGenerator {
       }
       
       /* ===== OPTIMIZACIONES POR DENSIDAD Y LAYOUT CORREGIDAS ===== */
-      ${productsPerPage === 6 ? `
+      ${
+        productsPerPage === 6
+          ? `
         @media print {
           /* PRINT PRESERVANDO INFORMACIÓN CRÍTICA - FIX DEFINITIVO */
           .product-name {
@@ -1071,71 +988,56 @@ export class TemplateGenerator {
             -webkit-hyphens: auto !important;
           }
           
-          .product-price-retail {
+          .price-main {
             white-space: normal !important;
             overflow: visible !important;
             text-overflow: unset !important;
-            word-wrap: break-word !important;
-          }
-          
-          .product-price-wholesale {
-            overflow: visible !important;
-            height: auto !important;
-            min-height: 8mm !important;
-          }
-          
-          .wholesale-label,
-          .wholesale-price {
-            overflow: visible !important;
-            white-space: nowrap !important;
-            text-overflow: unset !important;
           }
         }
-      ` : ''}
+      `
+          : ""
+      }
       ${this.generateDensitySpecificCSS(template, productsPerPage)}
       
       /* ===== ESTILOS MINIMALISTAS SI APLICA ===== */
       ${this.generateMinimalistCSS(template, productsPerPage)}
     `;
   }
-  
+
   /**
    * 🔧 DIMENSIONES DINÁMICAS CORREGIDAS + FIX 2x2
    */
-  private static calculateCorrectedDimensions(
-    template: IndustryTemplate, 
-    layoutConfig: DynamicLayoutConfig
-  ) {
+  private static calculateCorrectedDimensions(template: IndustryTemplate, layoutConfig: DynamicLayoutConfig) {
     const pageWidth = 210;
     const pageHeight = 297;
-    
-    const marginMap = { 
+
+    const marginMap = {
       alta: 6,
       media: 7,
-      baja: 8
+      baja: 8,
     };
     const margin = marginMap[template.density as keyof typeof marginMap] || 10;
-    
-    const contentWidth = pageWidth - (margin * 2);
-    const contentHeight = pageHeight - (margin * 2);
-    
+
+    const contentWidth = pageWidth - margin * 2;
+    const contentHeight = pageHeight - margin * 2;
+
     const { columns, productsPerPage } = layoutConfig;
-    
+
     // 🔧 GAP DINÁMICO CORREGIDO BASADO EN PRODUCTOS POR PÁGINA
-    const gapMap = { 
-      4: Math.max(6, contentWidth * 0.025),  // REDUCIDO de 0.035 a 0.025
-      6: Math.max(5, contentWidth * 0.020),  // Gap estándar (era 4)
-      9: Math.max(6, contentWidth * 0.025)   // MÁS GAP para 9 productos (era 3)
+    const gapMap = {
+      4: Math.max(6, contentWidth * 0.025), // REDUCIDO de 0.035 a 0.025
+      6: Math.max(5, contentWidth * 0.02), // Gap estándar (era 4)
+      9: Math.max(6, contentWidth * 0.025), // MÁS GAP para 9 productos (era 3)
     };
     const gap = gapMap[productsPerPage] || 5;
-    
+
     const totalGapWidth = (columns - 1) * gap;
     const availableWidth = contentWidth - totalGapWidth;
     const cardWidth = availableWidth / columns;
-    
+
     // 🚀 ALTURA DINÁMICA CORREGIDA BASADA EN PRODUCTOS POR PÁGINA + FIX 2x2
     let cardHeight;
-    
+
     if (productsPerPage === 4) {
       // 🔧 REDUCIDO: Altura compacta para mantener grid 2x2 funcional
       cardHeight = cardWidth + 30; // REDUCIDO a +30 para grid 2x2 sin overflow
@@ -1147,28 +1049,32 @@ export class TemplateGenerator {
     } else {
       cardHeight = cardWidth + 30;
     }
-    
+
     // 🔧 RATIO DINÁMICO DE IMAGEN REDUCIDO PARA 4
-    const imageHeightRatio = productsPerPage === 4 ? 0.56 :
-                            productsPerPage === 6 ? 0.48 :
-                            0.62;
-    
+    const imageHeightRatio = productsPerPage === 4 ? 0.56 : productsPerPage === 6 ? 0.48 : 0.62;
+
     const imageHeight = cardHeight * imageHeightRatio;
     const textAreaHeight = cardHeight - imageHeight;
-    
+
     // 🔧 LÍMITES DINÁMICOS REDUCIDOS PARA 4
-    const minCardHeight = productsPerPage === 4 ? 45 : // REDUCIDO para grid 2x2
-                         productsPerPage === 6 ? 40 : // SIN CAMBIOS  
-                         38; // AUMENTADO de 35 para 9 productos
-                         
-    const maxCardHeight = productsPerPage === 4 ? 85 : // REDUCIDO para grid 2x2
-                         productsPerPage === 6 ? 100 : // SIN CAMBIOS
-                         75; // REDUCIDO de 80 para 9 productos
-    
+    const minCardHeight =
+      productsPerPage === 4
+        ? 45 // REDUCIDO para grid 2x2
+        : productsPerPage === 6
+          ? 40 // SIN CAMBIOS
+          : 38; // AUMENTADO de 35 para 9 productos
+
+    const maxCardHeight =
+      productsPerPage === 4
+        ? 85 // REDUCIDO para grid 2x2
+        : productsPerPage === 6
+          ? 100 // SIN CAMBIOS
+          : 75; // REDUCIDO de 80 para 9 productos
+
     const finalCardHeight = Math.max(minCardHeight, Math.min(maxCardHeight, cardHeight));
     const finalImageHeight = finalCardHeight * imageHeightRatio;
     const finalTextAreaHeight = finalCardHeight - finalImageHeight;
-    
+
     return {
       pageWidth,
       pageHeight,
@@ -1180,74 +1086,74 @@ export class TemplateGenerator {
       cardWidth: Math.floor(cardWidth * 100) / 100,
       cardHeight: Math.floor(finalCardHeight * 100) / 100,
       imageHeight: Math.floor(finalImageHeight * 100) / 100,
-      textAreaHeight: Math.floor(finalTextAreaHeight * 100) / 100
+      textAreaHeight: Math.floor(finalTextAreaHeight * 100) / 100,
     };
   }
-  
+
   /**
    * 🔧 NUEVAS FUNCIONES PARA CORREGIR PROBLEMAS DE SPACING + FIX 2x2
    */
-  
+
   // Márgenes de header específicos
   private static getHeaderMargin(productsPerPage: 4 | 6 | 9): number {
     const margins = { 4: 8, 6: 6, 9: 5 }; // 4: más margen, 9: menos margen
     return margins[productsPerPage];
   }
-  
+
   // Margen superior del contenido (separación del header)
   private static getContentTopMargin(productsPerPage: 4 | 6 | 9): number {
     const margins = { 4: 5, 6: 8, 9: 12 }; // 4: REDUCIDO para evitar overflow
     return margins[productsPerPage];
   }
-  
+
   // Margen del footer
   private static getFooterMargin(productsPerPage: 4 | 6 | 9): number {
     const margins = { 4: 10, 6: 8, 9: 8 };
     return margins[productsPerPage];
   }
-  
+
   // Padding interno de cards
   private static getCardPadding(productsPerPage: 4 | 6 | 9): number {
     const paddings = { 4: 4, 6: 3, 9: 4 }; // 9: MÁS padding interno
     return paddings[productsPerPage];
   }
-  
+
   // Gap entre elementos de texto
   private static getTextGap(productsPerPage: 4 | 6 | 9): number {
     const gaps = { 4: 3, 6: 2.5, 9: 3 };
     return gaps[productsPerPage];
   }
-  
+
   // Gap entre precios
   private static getPricingGap(productsPerPage: 4 | 6 | 9): number {
-    const gaps = { 4: 3, 6: 2, 9: 2.8 }; // 🔧 REDUCIDO de 2.5 a 2 para 6 productos  
+    const gaps = { 4: 3, 6: 2, 9: 2.8 }; // 🔧 REDUCIDO de 2.5 a 2 para 6 productos
     return gaps[productsPerPage];
   }
-  
+
   // Padding del precio wholesale
   private static getWholesalePadding(productsPerPage: 4 | 6 | 9): number {
     const paddings = { 4: 2.5, 6: 2, 9: 2.2 }; // 9: Más padding
     return paddings[productsPerPage];
   }
-  
+
   // Altura mínima del wholesale
   private static getWholesaleMinHeight(productsPerPage: 4 | 6 | 9): number {
     const heights = { 4: 12, 6: 8, 9: 9 }; // AUMENTADO de 10 a 12 para evitar overflow
     return heights[productsPerPage];
   }
-  
+
   // Extra height para print
   private static getPrintExtraHeight(productsPerPage: 4 | 6 | 9): number {
     const extras = { 4: 8, 6: 8, 9: 10 }; // 9: Más altura extra en print
     return extras[productsPerPage];
   }
-  
-  // Extra height para texto en print  
+
+  // Extra height para texto en print
   private static getPrintTextExtraHeight(productsPerPage: 4 | 6 | 9): number {
     const extras = { 4: 5, 6: 5, 9: 7 }; // 9: Más altura de texto en print
     return extras[productsPerPage];
   }
-  
+
   /**
    * 🔧 CSS ESPECÍFICO PARA PRINT CORREGIDO + FIX 2x2
    */
@@ -1266,12 +1172,8 @@ export class TemplateGenerator {
           justify-self: center !important;
           align-self: start !important;
         }
-        
-        .product-price-wholesale {
-          min-height: 12mm !important; /* ASEGURAR ALTURA MÍNIMA */
-        }
       `;
-      } else if (productsPerPage === 9) {
+    } else if (productsPerPage === 9) {
       return `
         /* PRINT OPTIMIZATIONS PARA 9 PRODUCTOS - COMPACTO */
         .products-grid {
@@ -1291,18 +1193,13 @@ export class TemplateGenerator {
         .product-pricing {
           gap: calc(${this.getPricingGap(9) + 1}mm * var(--padding-scale)) !important;
         }
-        
-        .product-price-wholesale {
-          min-height: calc(${this.getWholesaleMinHeight(9) + 2}mm * var(--padding-scale)) !important;
-          padding: calc(${this.getWholesalePadding(9) + 0.5}mm * var(--padding-scale)) !important;
-        }
       `;
     }
-    return '';
+    return "";
   }
-  
+
   // ===== RESTO DE FUNCIONES SIN CAMBIOS CRÍTICOS =====
-  
+
   /**
    * 🎯 NUEVA FUNCIÓN: Calcular configuración de layout dinámico
    */
@@ -1310,47 +1207,44 @@ export class TemplateGenerator {
     const layoutConfigs = {
       4: { productsPerPage: 4 as const, columns: 2, rows: 2 },
       6: { productsPerPage: 6 as const, columns: 3, rows: 2 },
-      9: { productsPerPage: 9 as const, columns: 3, rows: 3 }
+      9: { productsPerPage: 9 as const, columns: 3, rows: 3 },
     };
-    
+
     return layoutConfigs[productsPerPage];
   }
-  
+
   /**
    * 🎯 TIPOGRAFÍA DINÁMICA
    */
-  private static calculateTypography(
-    template: IndustryTemplate, 
-    layoutConfig: DynamicLayoutConfig
-  ) {
+  private static calculateTypography(template: IndustryTemplate, layoutConfig: DynamicLayoutConfig) {
     const { productsPerPage } = layoutConfig;
-    
+
     // Escalas por productos por página - REDUCIDO PARA 4
     const scaleMap = {
-      4: 1.05,  // REDUCIDO de 1.15 a 1.05 para 4 productos
+      4: 1.05, // REDUCIDO de 1.15 a 1.05 para 4 productos
       6: 0.85, // 🔧 REDUCIDO de 1.0 a 0.85 para 6 productos
-      9: 0.8   // Más pequeño para 9 productos
+      9: 0.8, // Más pequeño para 9 productos
     };
-    
+
     const scale = scaleMap[productsPerPage] || 1.0;
-    
+
     const baseSizes = {
       alta: { header: 14, title: 8, price: 9, desc: 6, info: 5 },
       media: { header: 18, title: 10, price: 11, desc: 7, info: 6 },
-      baja: { header: 22, title: 12, price: 13, desc: 8, info: 7 }
+      baja: { header: 22, title: 12, price: 13, desc: 8, info: 7 },
     };
-    
+
     const sizes = baseSizes[template.density as keyof typeof baseSizes] || baseSizes.media;
-    
+
     return {
       headerSize: Math.round(sizes.header * scale),
       titleSize: Math.round(sizes.title * scale),
       priceSize: Math.round(sizes.price * scale),
       descSize: Math.round(sizes.desc * scale),
-      infoSize: Math.round(sizes.info * scale)
+      infoSize: Math.round(sizes.info * scale),
     };
   }
-  
+
   /**
    * 🎛️ ESCALAS ESPECÍFICAS
    */
@@ -1358,21 +1252,21 @@ export class TemplateGenerator {
     const scales = { 4: 1.0, 6: 1.0, 9: 0.85 }; // SIN scale para 4
     return scales[productsPerPage];
   }
-  
+
   private static getPaddingScale(productsPerPage: 4 | 6 | 9): number {
     const scales = { 4: 1.0, 6: 1.0, 9: 0.8 }; // SIN scale para 4
     return scales[productsPerPage];
   }
-  
+
   private static getBorderRadiusScale(productsPerPage: 4 | 6 | 9): number {
     const scales = { 4: 1.5, 6: 1.0, 9: 0.7 };
     return scales[productsPerPage];
   }
-  
+
   private static getImageObjectFit(productsPerPage: 4 | 6 | 9): string {
-    return productsPerPage === 9 ? 'cover' : 'contain';
+    return productsPerPage === 9 ? "cover" : "contain";
   }
-  
+
   /**
    * 🎯 CSS ESPECÍFICO POR GRID CORREGIDO + FIX 2x2
    */
@@ -1407,14 +1301,11 @@ export class TemplateGenerator {
       align-items: stretch;
     `;
   }
-  
+
   /**
    * 🎯 CSS ESPECÍFICO POR CARD CORREGIDO + FIX 2x2
    */
-  private static generateCardSpecificCSS(
-    productsPerPage: 4 | 6 | 9, 
-    template: IndustryTemplate
-  ): string {
+  private static generateCardSpecificCSS(productsPerPage: 4 | 6 | 9, template: IndustryTemplate): string {
     if (productsPerPage === 4) {
       return `
         /* CARDS GRANDES - 4 PRODUCTOS CORREGIDO */
@@ -1436,7 +1327,7 @@ export class TemplateGenerator {
       max-width: 100%;
     `;
   }
-  
+
   /**
    * 🔧 LÍNEAS DINÁMICAS
    */
@@ -1444,24 +1335,24 @@ export class TemplateGenerator {
     const lineMap = {
       4: { alta: 3, media: 3, baja: 4 }, // Más líneas para 4 productos
       6: { alta: 2, media: 2, baja: 3 }, // Estándar
-      9: { alta: 1, media: 2, baja: 2 }  // Menos líneas para 9 productos
+      9: { alta: 1, media: 2, baja: 2 }, // Menos líneas para 9 productos
     };
-    
-    return lineMap[productsPerPage]?.[density as keyof typeof lineMap[4]] || 2;
+
+    return lineMap[productsPerPage]?.[density as keyof (typeof lineMap)[4]] || 2;
   }
-  
+
   private static getDescLines(density: string, productsPerPage: 4 | 6 | 9): number {
     const lineMap = {
       4: { alta: 2, media: 3, baja: 4 }, // Más descripción para 4
       6: { alta: 1, media: 2, baja: 3 }, // Estándar
-      9: { alta: 1, media: 1, baja: 2 }  // Menos para 9
+      9: { alta: 1, media: 1, baja: 2 }, // Menos para 9
     };
-    
-    return lineMap[productsPerPage]?.[density as keyof typeof lineMap[4]] || 2;
+
+    return lineMap[productsPerPage]?.[density as keyof (typeof lineMap)[4]] || 2;
   }
-  
+
   // ===== RESTO DE FUNCIONES HELPER SIN CAMBIOS =====
-  
+
   /**
    * 🎯 FUNCIÓN PRINCIPAL DE GENERACIÓN HTML CON FIX 2x2
    */
@@ -1470,10 +1361,9 @@ export class TemplateGenerator {
     businessInfo: BusinessInfo,
     template: IndustryTemplate,
     productsPerPage: 4 | 6 | 9 = 6,
-    priceDisplay: 'menudeo_only' | 'mayoreo_only' | 'both' = 'both', // 🆕 Configuración de precios
-    useBrandColors: boolean = true // 🆕 NUEVO PARÁMETRO - Brand-Aware System
+    priceDisplay: "menudeo_only" | "mayoreo_only" | "both" = "both", // 🆕 Configuración de precios
+    useBrandColors: boolean = true, // 🆕 NUEVO PARÁMETRO - Brand-Aware System
   ): string {
-    
     // 1. Obtener colores base
     let colors = template.colors;
 
@@ -1484,39 +1374,39 @@ export class TemplateGenerator {
         primary: businessInfo.primary_color,
         secondary: businessInfo.secondary_color,
         // Fondo de tarjetas blanco limpio
-        cardBackground: '#ffffff',
+        cardBackground: "#ffffff",
       };
-      
+
       // Actualizar los colores en el template
       template = {
         ...template,
-        colors
+        colors,
       };
-      
+
       // 🆕 Debug log
-      console.log('✅ Brand-Aware activado:', {
+      console.log("✅ Brand-Aware activado:", {
         template: template.id,
         primary: businessInfo.primary_color,
-        secondary: businessInfo.secondary_color
+        secondary: businessInfo.secondary_color,
       });
     }
-    
-    const showWholesale = priceDisplay === 'mayoreo_only' || priceDisplay === 'both';
+
+    const showWholesale = priceDisplay === "mayoreo_only" || priceDisplay === "both";
     const css = this.generateTemplateCSS(template, productsPerPage, showWholesale);
     const productsHTML = this.generateProductsHTMLGrid(products, template, productsPerPage, priceDisplay);
     const footerHTML = this.generateFooterHTML(businessInfo);
-    
-    const businessName = businessInfo.business_name || 'Mi Negocio';
-    const brandAwareIndicator = (useBrandColors && businessInfo.primary_color) ? ' 🎨 Brand-Aware' : '';
-    
+
+    const businessName = businessInfo.business_name || "Mi Negocio";
+    const brandAwareIndicator = useBrandColors && businessInfo.primary_color ? " 🎨 Brand-Aware" : "";
+
     return `<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=210mm, initial-scale=1.0">
-    <title>Catálogo - ${businessName} (${productsPerPage} productos/página)${productsPerPage === 4 ? ' - 2x2 Fixed' : ''}${brandAwareIndicator}</title>
+    <title>Catálogo - ${businessName} (${productsPerPage} productos/página)${productsPerPage === 4 ? " - 2x2 Fixed" : ""}${brandAwareIndicator}</title>
     <meta name="products-per-page" content="${productsPerPage}">
-    <meta name="grid-fix" content="${productsPerPage === 4 ? '2x2-fixed' : 'original'}">
+    <meta name="grid-fix" content="${productsPerPage === 4 ? "2x2-fixed" : "original"}">
     <meta name="brand-aware" content="${useBrandColors}">
     <style>
         ${css}
@@ -1526,7 +1416,7 @@ export class TemplateGenerator {
     <div class="catalog-container">
         <header class="catalog-header page-break-avoid">
             <h1 class="business-name">${businessName}</h1>
-            <p class="catalog-subtitle">Catálogo de Productos (${productsPerPage} por página)${productsPerPage === 4 ? ' - Grid 2x2 Corregido' : ''}${brandAwareIndicator}</p>
+            <p class="catalog-subtitle">Catálogo de Productos (${productsPerPage} por página)${productsPerPage === 4 ? " - Grid 2x2 Corregido" : ""}${brandAwareIndicator}</p>
         </header>
         
         <main class="products-section">
@@ -1538,31 +1428,31 @@ export class TemplateGenerator {
 </body>
 </html>`;
   }
-  
+
   /**
    * 🔧 GENERACIÓN DE GRID HTML CORREGIDA PARA 2x2
    */
   private static generateProductsHTMLGrid(
-    products: Product[], 
-    template: IndustryTemplate, 
+    products: Product[],
+    template: IndustryTemplate,
     productsPerPage: 4 | 6 | 9 = 6,
-    priceDisplay: 'menudeo_only' | 'mayoreo_only' | 'both' = 'both' // 🆕 Configuración de precios
+    priceDisplay: "menudeo_only" | "mayoreo_only" | "both" = "both", // 🆕 Configuración de precios
   ): string {
     const totalPages = Math.ceil(products.length / productsPerPage);
-    
-    let htmlPages = '';
-    
+
+    let htmlPages = "";
+
     for (let page = 0; page < totalPages; page++) {
       const startIndex = page * productsPerPage;
       const endIndex = Math.min(startIndex + productsPerPage, products.length);
       const pageProducts = products.slice(startIndex, endIndex);
-      
+
       // 🚀 FIX CRÍTICO: Para 2x2, siempre generar exactamente 4 slots
       let totalCards: (Product | null)[] = [];
-      
+
       if (productsPerPage === 4) {
         console.log(`🔧 Generando página ${page + 1} con grid 2x2, productos: ${pageProducts.length}`);
-        
+
         // Rellenar con productos reales
         for (let i = 0; i < 4; i++) {
           if (i < pageProducts.length) {
@@ -1575,106 +1465,125 @@ export class TemplateGenerator {
         // Lógica original para 3x2 y 3x3 (SIN CAMBIOS)
         totalCards = [...pageProducts];
         const emptyCardsNeeded = productsPerPage - pageProducts.length;
-        
+
         for (let i = 0; i < emptyCardsNeeded; i++) {
           totalCards.push(null);
         }
       }
-      
-      const pageBreakClass = page > 0 ? 'page-break-before' : '';
-      
+
+      const pageBreakClass = page > 0 ? "page-break-before" : "";
+
       htmlPages += `
         <div class="products-page ${pageBreakClass}">
           <div class="products-grid">
-            ${totalCards.map(product => 
-              product ? this.generateProductCard(product, template, priceDisplay) : this.generateEmptyCard()
-            ).join('')}
+            ${totalCards
+              .map((product) =>
+                product ? this.generateProductCard(product, template, priceDisplay) : this.generateEmptyCard(),
+              )
+              .join("")}
           </div>
         </div>
       `;
     }
-    
+
     return htmlPages;
   }
-  
+
   private static generateColorScheme(template: IndustryTemplate) {
     const primary = template.colors.primary;
     const secondary = template.colors.secondary || template.colors.primary;
     const accent = template.colors.accent || this.adjustColor(primary, 30);
-    const background = template.colors.background || '#ffffff';
-    
+    const background = template.colors.background || "#ffffff";
+
     const isLight = this.isLightColor(background);
-    
+
     return {
       primary,
       secondary,
       accent,
       background,
-      cardBackground: template.colors.cardBackground || (isLight ? '#ffffff' : '#f8f9fa'),
-      textPrimary: isLight ? '#2c3e50' : '#ffffff',
-      textSecondary: isLight ? '#7f8c8d' : '#bdc3c7',
-      borderColor: isLight ? '#e9ecef' : '#34495e'
+      cardBackground: template.colors.cardBackground || (isLight ? "#ffffff" : "#f8f9fa"),
+      textPrimary: isLight ? "#2c3e50" : "#ffffff",
+      textSecondary: isLight ? "#7f8c8d" : "#bdc3c7",
+      borderColor: isLight ? "#e9ecef" : "#34495e",
     };
   }
-  
-  private static generateProductCard(product: Product, template: IndustryTemplate, priceDisplay: 'menudeo_only' | 'mayoreo_only' | 'both' = 'both'): string {
-    const productName = product.name || 'Producto';
-    const productPrice = typeof product.price_retail === 'number' ? product.price_retail : 0;
-    const productImage = product.image_url || '';
-    const productDescription = product.description || '';
-    const productSku = product.sku || '';
-    const productCategory = product.category || '';
-    const productSpecs = product.specifications || '';
-    
-    const imageHTML = productImage ? 
-      `<img 
-         src="${productImage}" 
-         alt="${productName}" 
-         class="product-image contain-mode" 
-         loading="eager" 
-         crossorigin="anonymous" 
-       />` :
-      `<div class="product-image-placeholder">
-         <div style="font-size: 12pt; margin-bottom: 1mm;">📷</div>
-         <div style="font-size: 7pt;">Sin imagen</div>
-       </div>`;
-    
+
+  private static generateProductCard(
+    product: Product,
+    template: IndustryTemplate,
+    priceDisplay: "menudeo_only" | "mayoreo_only" | "both" = "both",
+  ): string {
+    const productName = product.name || "Producto";
+    const productPrice = typeof product.price_retail === "number" ? product.price_retail : 0;
+    const productImage = product.image_url || "";
+    const productDescription = product.description || "";
+    const productSku = product.sku || "";
+    const productCategory = product.category || "";
+    const productSpecs = product.specifications || "";
+
+    const imageHTML = productImage
+      ? `<img 
+          src="${productImage}" 
+          alt="${productName}" 
+          class="product-image contain-mode" 
+          loading="eager" 
+          crossorigin="anonymous" 
+        />`
+      : `<div class="product-image-placeholder">
+          <div style="font-size: 12pt; margin-bottom: 1mm;">📷</div>
+          <div style="font-size: 7pt;">Sin imagen</div>
+        </div>`;
+
     // 🆕 Generar HTML de precios según priceDisplay
-    const formatPrice = (cents: number) => `$${(cents / 100).toLocaleString('es-MX', { 
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    })}`;
-    
-    let priceHTML = '';
-    
-    if (priceDisplay === 'menudeo_only') {
-      // Solo precio de menudeo (retail)
-      priceHTML = `<div class="product-price-retail">${formatPrice(productPrice)}</div>`;
-    } else if (priceDisplay === 'mayoreo_only') {
-      // Solo precio de mayoreo (o retail si no hay mayoreo)
+    const formatPrice = (cents: number) =>
+      `$${(cents / 100).toLocaleString("es-MX", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })}`;
+
+    let priceHTML = "";
+
+    if (priceDisplay === "menudeo_only") {
+      // 1. Solo menudeo (Estilo clásico Retail Hero)
+      priceHTML = `<div class="price-main retail">${formatPrice(productPrice)}</div>`;
+    } else if (priceDisplay === "mayoreo_only") {
+      // 2. Solo mayoreo (Nuevo estilo Hero Wholesale)
       const displayPrice = product.price_wholesale || productPrice;
       priceHTML = `
-        <div class="product-price-retail">${formatPrice(displayPrice)}</div>
-        ${product.price_wholesale && product.wholesale_min_qty ? `
-          <div class="wholesale-min-badge">Min. ${product.wholesale_min_qty} pzas</div>
-        ` : ''}
+        <div class="price-main wholesale">${formatPrice(displayPrice)}</div>
+        ${
+          product.price_wholesale && product.wholesale_min_qty
+            ? `
+          <div class="min-qty-badge">Min. ${product.wholesale_min_qty} pzas</div>
+        `
+            : ""
+        }
       `;
     } else {
-      // Ambos precios
+      // 3. Ambos (Nueva estructura jerárquica)
       priceHTML = `
-        <div class="product-price-retail">${formatPrice(productPrice)}</div>
-        ${product.price_wholesale && template.showInfo?.wholesalePrice ? `
-          <div class="product-price-wholesale">
-            <span class="wholesale-label">Mayoreo:</span>
-            <span class="wholesale-price">${formatPrice(product.price_wholesale)}</span>
-            ${product.wholesale_min_qty && template.showInfo?.wholesaleMinQty ? `
-              <span class="wholesale-min">Min. ${product.wholesale_min_qty}</span>
-            ` : ''}
+        <div class="price-main retail">${formatPrice(productPrice)}</div>
+        ${
+          product.price_wholesale
+            ? `
+          <div class="wholesale-container">
+            <span class="price-label">Mayoreo</span>
+            <span class="price-amount">${formatPrice(product.price_wholesale)}</span>
+            ${
+              product.wholesale_min_qty
+                ? `
+               <div class="min-qty-badge">Min. ${product.wholesale_min_qty} pzas</div>
+            `
+                : ""
+            }
           </div>
-        ` : ''}
+        `
+            : ""
+        }
       `;
     }
-    
+
     return `
       <div class="product-card page-break-avoid">
         <div class="product-card-inner">
@@ -1682,8 +1591,11 @@ export class TemplateGenerator {
             ${imageHTML}
           </div>
           <div class="product-info">
-            ${template.showInfo.category && productCategory ? 
-              `<div class="product-category">${productCategory}</div>` : ''}
+            ${
+              template.showInfo.category && productCategory
+                ? `<div class="product-category">${productCategory}</div>`
+                : ""
+            }
             
             <h3 class="product-name">${productName}</h3>
             
@@ -1691,33 +1603,40 @@ export class TemplateGenerator {
               ${priceHTML}
             </div>
             
-            ${template.showInfo.description && productDescription ? 
-              `<p class="product-description">${productDescription}</p>` : ''}
+            ${
+              template.showInfo.description && productDescription
+                ? `<p class="product-description">${productDescription}</p>`
+                : ""
+            }
             
-            ${template.showInfo.sku && productSku ? 
-              `<div class="product-sku">SKU: ${productSku}</div>` : ''}
+            ${template.showInfo.sku && productSku ? `<div class="product-sku">SKU: ${productSku}</div>` : ""}
             
-            ${template.showInfo.specifications && productSpecs ? 
-              `<div class="product-specifications">${productSpecs}</div>` : ''}
+            ${
+              template.showInfo.specifications && productSpecs
+                ? `<div class="product-specifications">${productSpecs}</div>`
+                : ""
+            }
           </div>
         </div>
       </div>
     `;
   }
-  
+
   private static generateEmptyCard(): string {
     return `<div class="product-card empty-card"></div>`;
   }
-  
+
   private static generateFooterHTML(businessInfo: BusinessInfo): string {
     const contactItems = [
-      businessInfo.phone ? `<span class="contact-item">📞 ${businessInfo.phone}</span>` : '',
-      businessInfo.social_media?.whatsapp ? `<span class="contact-item">📱 ${businessInfo.social_media.whatsapp}</span>` : '',
-      businessInfo.email ? `<span class="contact-item">📧 ${businessInfo.email}</span>` : '',
-      businessInfo.website ? `<span class="contact-item">🌐 ${businessInfo.website}</span>` : '',
-      businessInfo.address ? `<span class="contact-item">📍 ${businessInfo.address}</span>` : ''
+      businessInfo.phone ? `<span class="contact-item">📞 ${businessInfo.phone}</span>` : "",
+      businessInfo.social_media?.whatsapp
+        ? `<span class="contact-item">📱 ${businessInfo.social_media.whatsapp}</span>`
+        : "",
+      businessInfo.email ? `<span class="contact-item">📧 ${businessInfo.email}</span>` : "",
+      businessInfo.website ? `<span class="contact-item">🌐 ${businessInfo.website}</span>` : "",
+      businessInfo.address ? `<span class="contact-item">📍 ${businessInfo.address}</span>` : "",
     ].filter(Boolean);
-    
+
     if (contactItems.length === 0) {
       return `
         <footer class="catalog-footer page-break-avoid">
@@ -1727,11 +1646,11 @@ export class TemplateGenerator {
         </footer>
       `;
     }
-    
+
     return `
       <footer class="catalog-footer page-break-avoid">
         <div class="business-contact">
-          ${contactItems.join('')}
+          ${contactItems.join("")}
         </div>
         <div class="footer-branding">
           Generado con CatifyPro v2.0 - Brand-Aware System
@@ -1739,54 +1658,51 @@ export class TemplateGenerator {
       </footer>
     `;
   }
-  
-  private static generateDensitySpecificCSS(
-    template: IndustryTemplate, 
-    productsPerPage: 4 | 6 | 9 = 6
-  ): string {
-    if (template.density === 'alta') {
+
+  private static generateDensitySpecificCSS(template: IndustryTemplate, productsPerPage: 4 | 6 | 9 = 6): string {
+    if (template.density === "alta") {
       return `
         .template-${template.id} .product-card {
           border-width: calc(0.25pt * var(--layout-scale)) !important;
         }
       `;
     }
-    
-    if (template.density === 'baja') {
+
+    if (template.density === "baja") {
       return `
         .template-${template.id} .product-card {
           border-width: calc(1pt * var(--layout-scale)) !important;
         }
       `;
     }
-    
-    return '';
+
+    return "";
   }
-  
-  // ===== UTILITY FUNCTIONS ===== 
-  
+
+  // ===== UTILITY FUNCTIONS =====
+
   private static isLightColor(hexColor: string): boolean {
-    const hex = hexColor.replace('#', '');
+    const hex = hexColor.replace("#", "");
     const r = parseInt(hex.substr(0, 2), 16);
     const g = parseInt(hex.substr(2, 2), 16);
     const b = parseInt(hex.substr(4, 2), 16);
     const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
     return luminance > 0.5;
   }
-  
+
   private static getContrastColor(hexColor: string): string {
-    return this.isLightColor(hexColor) ? '#2c3e50' : '#ffffff';
+    return this.isLightColor(hexColor) ? "#2c3e50" : "#ffffff";
   }
-  
+
   private static adjustColor(hexColor: string, adjustment: number): string {
-    const hex = hexColor.replace('#', '');
+    const hex = hexColor.replace("#", "");
     const r = Math.min(255, Math.max(0, parseInt(hex.substr(0, 2), 16) + adjustment));
     const g = Math.min(255, Math.max(0, parseInt(hex.substr(2, 2), 16) + adjustment));
     const b = Math.min(255, Math.max(0, parseInt(hex.substr(4, 2), 16) + adjustment));
-    
-    return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+
+    return `#${r.toString(16).padStart(2, "0")}${g.toString(16).padStart(2, "0")}${b.toString(16).padStart(2, "0")}`;
   }
-  
+
   private static hexToRgba(hex: string, alpha: number): string {
     const r = parseInt(hex.slice(1, 3), 16);
     const g = parseInt(hex.slice(3, 5), 16);
