@@ -1,4 +1,4 @@
-// src/lib/templates/css-generator.ts - VERSIÓN OPTIMIZADA PRECIOS + FIX 2x2
+// src/lib/templates/css-generator.ts - VERSIÓN FINAL STRICT MODE + FULL CODE
 
 import { IndustryTemplate } from "./industry-templates";
 
@@ -153,12 +153,13 @@ export class TemplateGenerator {
   }
 
   /**
-   * 🎯 FUNCIÓN PRINCIPAL CON PRODUCTOS POR PÁGINA DINÁMICOS - CORREGIDA + FIX 2x2
+   * 🎯 FUNCIÓN PRINCIPAL CSS CON CANDADO STRICT MODE
    */
   static generateTemplateCSS(
     template: IndustryTemplate,
     productsPerPage: 4 | 6 | 9 = 6,
     showWholesalePrices: boolean = true,
+    priceDisplayMode: "menudeo_only" | "mayoreo_only" | "both" = "both", // 🆕 Parámetro para el candado CSS
   ): string {
     const layoutConfig = this.calculateDynamicLayout(productsPerPage);
     const dimensions = this.calculateCorrectedDimensions(template, layoutConfig);
@@ -510,9 +511,9 @@ export class TemplateGenerator {
       .product-image-placeholder {
         width: 90% !important;
         height: 90% !important;
-        background: 
-          repeating-conic-gradient(from 0deg at 50% 50%, 
-            #f0f0f0 0deg 90deg, 
+        background: 
+          repeating-conic-gradient(from 0deg at 50% 50%, 
+            #f0f0f0 0deg 90deg, 
             transparent 90deg 180deg) !important;
         background-size: calc(8px * var(--layout-scale)) calc(8px * var(--layout-scale)) !important;
         border: calc(1pt * var(--layout-scale)) dashed #ccc !important;
@@ -626,7 +627,7 @@ export class TemplateGenerator {
         flex-shrink: 0 !important;
       }
       
-      /* ===== SISTEMA DE PRECIOS OPTIMIZADO PARA JERARQUÍA CLARA ===== */
+      /* ===== SISTEMA DE PRECIOS OPTIMIZADO PARA JERARQUÍA CLARA Y CANDADO STRICT MODE ===== */
       .product-pricing {
         display: flex !important;
         flex-direction: column !important;
@@ -705,6 +706,40 @@ export class TemplateGenerator {
         margin-top: 2px !important;
         white-space: nowrap !important;
         display: inline-block !important;
+      }
+
+      /* 🔥🔒 CANDADO CSS PARA STRICT MODE 🔒🔥 */
+      
+      /* MODO: SOLO MAYOREO -> OCULTAR RETAIL FORZOSAMENTE */
+      ${
+        priceDisplayMode === "mayoreo_only"
+          ? `
+        /* Ocultar clases nuevas de retail */
+        .price-main.retail { display: none !important; }
+        
+        /* 🔒 CANDADO: Ocultar clases LEGACY de retail (Puppeteer) */
+        .product-price-retail { display: none !important; visibility: hidden !important; height: 0 !important; margin: 0 !important; padding: 0 !important; }
+        div[class*="price-retail"] { display: none !important; }
+        
+        /* Asegurar que mayoreo se vea */
+        .price-main.wholesale { display: inline-block !important; }
+        .product-price-wholesale { display: block !important; }
+      `
+          : ""
+      }
+
+      /* MODO: SOLO MENUDEO -> OCULTAR MAYOREO FORZOSAMENTE */
+      ${
+        priceDisplayMode === "menudeo_only"
+          ? `
+        .price-main.wholesale { display: none !important; }
+        .wholesale-container { display: none !important; }
+        .min-qty-badge { display: none !important; }
+        
+        /* 🔒 CANDADO LEGACY */
+        .product-price-wholesale { display: none !important; }
+      `
+          : ""
       }
       
       /* ===== ELEMENTOS CONDICIONALES ESCALADOS ===== */
@@ -1392,7 +1427,10 @@ export class TemplateGenerator {
     }
 
     const showWholesale = priceDisplay === "mayoreo_only" || priceDisplay === "both";
-    const css = this.generateTemplateCSS(template, productsPerPage, showWholesale);
+
+    // 🔥 PASAMOS priceDisplay EXPLÍCITAMENTE AL GENERADOR DE CSS
+    const css = this.generateTemplateCSS(template, productsPerPage, showWholesale, priceDisplay);
+
     const productsHTML = this.generateProductsHTMLGrid(products, template, productsPerPage, priceDisplay);
     const footerHTML = this.generateFooterHTML(businessInfo);
 
@@ -1523,12 +1561,12 @@ export class TemplateGenerator {
     const productSpecs = product.specifications || "";
 
     const imageHTML = productImage
-      ? `<img 
-          src="${productImage}" 
-          alt="${productName}" 
-          class="product-image contain-mode" 
-          loading="eager" 
-          crossorigin="anonymous" 
+      ? `<img 
+          src="${productImage}" 
+          alt="${productName}" 
+          class="product-image contain-mode" 
+          loading="eager" 
+          crossorigin="anonymous" 
         />`
       : `<div class="product-image-placeholder">
           <div style="font-size: 12pt; margin-bottom: 1mm;">📷</div>
@@ -1549,7 +1587,9 @@ export class TemplateGenerator {
       priceHTML = `<div class="price-main retail">${formatPrice(productPrice)}</div>`;
     } else if (priceDisplay === "mayoreo_only") {
       // 2. Solo mayoreo (Nuevo estilo Hero Wholesale)
-      const displayPrice = product.price_wholesale || productPrice;
+      // 🚨 STRICT MODE: Sin fallback a retail si mayoreo es 0
+      const displayPrice = product.price_wholesale ?? 0;
+
       priceHTML = `
         <div class="price-main wholesale">${formatPrice(displayPrice)}</div>
         ${
