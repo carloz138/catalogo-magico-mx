@@ -475,6 +475,16 @@ const BusinessInfoPage: React.FC = () => {
                 />
               </div>
               <div>
+                <Label>WhatsApp</Label>
+                <Input
+                  type="tel"
+                  value={formData.whatsapp}
+                  onChange={(e) => handleInputChange("whatsapp", e.target.value)}
+                  placeholder="5512345678"
+                  disabled={previewMode}
+                />
+              </div>
+              <div>
                 <Label>Sitio Web</Label>
                 <Input
                   type="url"
