@@ -56,9 +56,7 @@ export const isBusinessInfoCompleteForCatalog = (businessInfo: any) => {
   if (!businessInfo) return false;
   
   const hasName = businessInfo.business_name?.trim();
-  const hasContact = businessInfo.phone?.trim() || 
-                    businessInfo.email?.trim() || 
-                    businessInfo.social_media?.whatsapp?.trim();
+  const hasContact = businessInfo.phone?.trim() || businessInfo.email?.trim();
   
   return !!(hasName && hasContact);
 };
