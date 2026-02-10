@@ -64,12 +64,62 @@ export default function BulkUpload() {
 
   // Vendor data
   const { data: vendors = [], isLoading: loadingVendors } = useVendors(isAdmin);
-  const { data: currentUserVendor } = useCurrentUserVendor();
+  const { data: currentUserVendor, refetch: refetchVendor } = useCurrentUserVendor();
 
   // Selected vendor for upload
   const [selectedVendorId, setSelectedVendorId] = useState<string | null>(null);
+  const [autoCreatingVendor, setAutoCreatingVendor] = useState(false);
 
-  // Auto-set vendor for non-admins
+  // Auto-create vendor for non-admins if they don't have one
+  useEffect(() => {
+    const autoCreateVendor = async () => {
+      if (isAdmin || !user || currentUserVendor || autoCreatingVendor) return;
+      
+      // Check if we already tried (currentUserVendor is explicitly null, not undefined/loading)
+      if (currentUserVendor === undefined) return;
+
+      setAutoCreatingVendor(true);
+      try {
+        // Try to get business name from business_info
+        const { data: bizInfo } = await supabase
+          .from("business_info")
+          .select("business_name")
+          .eq("user_id", user.id)
+          .maybeSingle();
+
+        const vendorName = bizInfo?.business_name || user.email?.split("@")[0] || "Mi Negocio";
+        const slug = vendorName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+
+        const { data: newVendor, error } = await supabase
+          .from("vendors")
+          .insert({
+            name: vendorName,
+            slug: `${slug}-${Date.now().toString(36)}`,
+            owner_id: user.id,
+            is_active: true,
+          })
+          .select()
+          .single();
+
+        if (error) {
+          console.error("Error auto-creating vendor:", error);
+          toast({ title: "Error creando vendor automático", description: error.message, variant: "destructive" });
+        } else if (newVendor) {
+          setSelectedVendorId(newVendor.id);
+          refetchVendor();
+          console.log("✅ Vendor auto-creado:", newVendor.name);
+        }
+      } catch (err) {
+        console.error("Error in auto-create vendor:", err);
+      } finally {
+        setAutoCreatingVendor(false);
+      }
+    };
+
+    autoCreateVendor();
+  }, [isAdmin, user, currentUserVendor, autoCreatingVendor, refetchVendor, toast]);
+
+  // Auto-set vendor for non-admins when vendor exists
   useEffect(() => {
     if (!isAdmin && currentUserVendor) {
       setSelectedVendorId(currentUserVendor.id);
