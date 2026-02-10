@@ -794,34 +794,43 @@ export default function BulkUpload() {
                   </div>
 
                   <div className="mt-auto">
-                    <label className="text-[10px] text-gray-400 uppercase font-bold mb-1 block">
-                      Asignar Imagen Manualmente:
+                    <label className="text-[10px] text-muted-foreground uppercase font-bold mb-1 block">
+                      Asignar Imagen:
                     </label>
-                    <select
-                      className={`w-full text-xs border rounded p-1.5 bg-white text-gray-700 focus:ring-2 outline-none ${
-                        match.status === "unmatched"
-                          ? "border-orange-400 focus:ring-orange-500"
-                          : "border-gray-200 focus:ring-blue-500"
-                      }`}
-                      value={match.image?.id || ""}
-                      onChange={(e) => {
-                        if (e.target.value) {
-                          setManualMatch(match.productId, e.target.value);
-                        }
-                      }}
-                      disabled={images.length === 0 || isProcessingImages}
-                    >
-                      <option value="">
-                        {images.length === 0 ? "🚫 Sin imágenes disponibles" : "-- Seleccionar de la lista --"}
-                      </option>
-                      {images
-                        .sort((a, b) => a.name.localeCompare(b.name))
-                        .map((img) => (
-                          <option key={img.id} value={img.id}>
-                            {img.name.length > 30 ? "..." + img.name.slice(-28) : img.name}
-                          </option>
-                        ))}
-                    </select>
+                    {images.length > 0 ? (
+                      <div className="grid grid-cols-4 sm:grid-cols-5 gap-1 max-h-28 overflow-y-auto rounded border p-1 bg-muted/30">
+                        {images
+                          .sort((a, b) => a.name.localeCompare(b.name))
+                          .map((img) => (
+                            <button
+                              key={img.id}
+                              type="button"
+                              className={`relative aspect-square rounded overflow-hidden border-2 transition-all touch-manipulation ${
+                                match.image?.id === img.id
+                                  ? "border-primary ring-2 ring-primary/30"
+                                  : "border-transparent hover:border-primary/40"
+                              }`}
+                              onClick={() => setManualMatch(match.productId, img.id)}
+                              disabled={isProcessingImages}
+                              title={img.name}
+                            >
+                              <img
+                                src={img.preview}
+                                alt={img.name}
+                                className="w-full h-full object-cover"
+                                loading="lazy"
+                              />
+                              {match.image?.id === img.id && (
+                                <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
+                                  <CheckCircle className="w-4 h-4 text-primary drop-shadow" />
+                                </div>
+                              )}
+                            </button>
+                          ))}
+                      </div>
+                    ) : (
+                      <p className="text-[10px] text-muted-foreground">🚫 Sin imágenes disponibles</p>
+                    )}
 
                     {match.status === "matched" && match.matchMethod === "auto" && (
                       <div className="mt-1 text-[10px] text-green-600 flex items-center gap-1">
