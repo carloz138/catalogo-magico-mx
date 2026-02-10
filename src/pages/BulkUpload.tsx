@@ -361,11 +361,7 @@ export default function BulkUpload() {
       return;
     }
 
-    // Validate vendor selection
-    if (!selectedVendorId) {
-      toast({ title: "Error", description: "No se ha seleccionado un vendor", variant: "destructive" });
-      return;
-    }
+    // vendor_id is optional - admin can upload without a vendor
 
     setStep("uploading");
     const BATCH_SIZE = 3;
@@ -435,7 +431,7 @@ export default function BulkUpload() {
             return {
               id: match.productId,
               user_id: authUser.id,
-              vendor_id: selectedVendorId, // 🔥 CRITICAL: Multi-vendor support
+              vendor_id: selectedVendorId || undefined, // Optional: Multi-vendor support
               name: product.name,
               price_retail: Math.round(product.price * 100),
               sku: product.sku,
@@ -505,6 +501,12 @@ export default function BulkUpload() {
     setStep("upload");
   };
 
+  // Handle "use current user" when no vendors exist (Admin)
+  const handleUseCurrentUser = () => {
+    setSelectedVendorId(null); // No vendor, will upload without vendor_id
+    setStep("upload");
+  };
+
   return (
     <div className="container mx-auto py-8 px-4 relative">
       {/* OVERLAY DE PÁGINA COMPLETA */}
@@ -549,13 +551,18 @@ export default function BulkUpload() {
                 <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
               </div>
             ) : vendors.length === 0 ? (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertTitle>Sin vendors disponibles</AlertTitle>
-                <AlertDescription>
-                  No hay vendors activos en el sistema. Crea uno primero.
-                </AlertDescription>
-              </Alert>
+              <div className="space-y-4">
+                <Alert>
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>Sin vendors registrados</AlertTitle>
+                  <AlertDescription>
+                    No hay vendors activos en el sistema. Puedes continuar subiendo productos con tu usuario actual.
+                  </AlertDescription>
+                </Alert>
+                <Button className="w-full" onClick={() => handleUseCurrentUser()}>
+                  <Upload className="mr-2 h-4 w-4" /> Continuar con mi usuario
+                </Button>
+              </div>
             ) : (
               <div className="space-y-4">
                 <div>
