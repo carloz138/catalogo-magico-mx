@@ -305,6 +305,7 @@ export function ProductTable({
     onGlobalFilterChange: setGlobalFilter,
     onRowSelectionChange: setRowSelection,
     getRowId: (row) => row.id,
+    autoResetPageIndex: false,
     state: { sorting, globalFilter, rowSelection },
     meta: {
       updateData: (productId: string, columnId: string, value: any) => onUpdateProduct(productId, columnId, value),
