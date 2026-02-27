@@ -49,7 +49,7 @@ const ProductsManagement = () => {
 
   // Estados para Acciones Masivas (Barra flotante negra)
   const [bulkAction, setBulkAction] = useState<{
-    type: "category" | "min_qty" | "tags" | null;
+    type: "category" | "min_qty" | "tags" | "price_retail" | "price_wholesale" | null;
     value: any;
     ids: string[];
   }>({ type: null, value: "", ids: [] });
@@ -166,6 +166,13 @@ const ProductsManagement = () => {
           setProducts((prev) => prev.map((p) => (ids.includes(p.id) ? { ...p, tags: newTags } : p)));
           await supabase.from("products").update({ tags: newTags }).in("id", ids);
         }
+      } else if (type === "price_retail" || type === "price_wholesale") {
+        const valueInCents = Math.round(Number(value) * 100);
+        setProducts((prev) => prev.map((p) => (ids.includes(p.id) ? { ...p, [type]: valueInCents } : p)));
+        await supabase
+          .from("products")
+          .update({ [type]: valueInCents })
+          .in("id", ids);
       } else {
         // Categoría o Min Qty
         const field = type === "category" ? "category" : "wholesale_min_qty";
@@ -283,6 +290,22 @@ const ProductsManagement = () => {
                   placeholder="Ej: 12"
                   onChange={(e) => setBulkAction((prev) => ({ ...prev, value: parseInt(e.target.value) }))}
                 />
+              </div>
+            )}
+            {(bulkAction.type === "price_retail" || bulkAction.type === "price_wholesale") && (
+              <div className="space-y-2">
+                <Label>
+                  {bulkAction.type === "price_retail" ? "Precio Menudeo (MXN)" : "Precio Mayoreo (MXN)"}
+                </Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  placeholder="Ej: 150.00"
+                  onChange={(e) => setBulkAction((prev) => ({ ...prev, value: e.target.value }))}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Se aplicará a los {bulkAction.ids.length} productos seleccionados.
+                </p>
               </div>
             )}
           </div>

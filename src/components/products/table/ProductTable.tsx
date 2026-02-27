@@ -16,7 +16,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { ArrowUpDown, Search, Trash2, X, Loader2, GitBranch, Layers, Tag, Hash, Clock } from "lucide-react";
+import { ArrowUpDown, Search, Trash2, X, Loader2, GitBranch, Layers, Tag, Hash, Clock, DollarSign } from "lucide-react";
 import { EditableCell } from "./EditableCell";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -265,7 +265,7 @@ interface ProductTableProps {
   onBulkDelete: (ids: string[]) => void;
   onBulkCatalog: (ids: string[]) => void;
   onOpenVariants: (product: ProductWithUI) => void;
-  onBulkAction: (action: "category" | "tags" | "min_qty", ids: string[]) => void;
+  onBulkAction: (action: "category" | "tags" | "min_qty" | "price_retail" | "price_wholesale", ids: string[]) => void;
   isAdmin?: boolean;
 }
 
@@ -457,6 +457,24 @@ export function ProductTable({
                   title="Editar Tags"
                 >
                   <Tag className="w-4 h-4 mr-1.5" /> <span className="hidden sm:inline">Tags</span>
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-8 text-indigo-200 hover:text-white hover:bg-slate-800"
+                  onClick={() => onBulkAction("price_retail", selectedIds)}
+                  title="Precio Menudeo"
+                >
+                  <DollarSign className="w-4 h-4 mr-1.5" /> <span className="hidden sm:inline">Menudeo</span>
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-8 text-indigo-200 hover:text-white hover:bg-slate-800"
+                  onClick={() => onBulkAction("price_wholesale", selectedIds)}
+                  title="Precio Mayoreo"
+                >
+                  <DollarSign className="w-4 h-4 mr-1.5" /> <span className="hidden sm:inline">Mayoreo</span>
                 </Button>
                 <Button
                   size="sm"
