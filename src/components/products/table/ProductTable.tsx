@@ -112,14 +112,28 @@ const columnHelper = createColumnHelper<ProductWithUI>();
 const getBaseColumns = () => [
   columnHelper.display({
     id: "select",
-    header: ({ table }) => (
-      <Checkbox
-        checked={table.getIsAllPageRowsSelected()}
-        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-        aria-label="Select all"
-        className="translate-y-[2px]"
-      />
-    ),
+    header: ({ table }) => {
+      const allFilteredSelected = table.getIsAllRowsSelected();
+      const someSelected = table.getIsSomeRowsSelected();
+      return (
+        <div className="flex flex-col items-center gap-0.5">
+          <Checkbox
+            checked={allFilteredSelected || (someSelected ? "indeterminate" : false)}
+            onCheckedChange={(value) => table.toggleAllRowsSelected(!!value)}
+            aria-label="Select all"
+            className="translate-y-[2px]"
+          />
+          {someSelected && !allFilteredSelected && (
+            <button
+              onClick={() => table.toggleAllRowsSelected(true)}
+              className="text-[9px] text-indigo-500 hover:underline whitespace-nowrap"
+            >
+              Todas
+            </button>
+          )}
+        </div>
+      );
+    },
     cell: ({ row }) => (
       <Checkbox
         checked={row.getIsSelected()}
