@@ -601,7 +601,9 @@ const Index = () => {
 
       {/* 7. FOOTER */}
       <ComplianceFooter />
-    </div>
+
+      {/* Login Modal */}
+      <LoginModal open={loginModalOpen} onOpenChange={setLoginModalOpen} />
   );
 };
 
