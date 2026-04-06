@@ -116,16 +116,32 @@ const Index = () => {
               </Button>
 
               <div className="h-6 w-px bg-slate-200 mx-2"></div>
-              <Button variant="ghost" onClick={handleMenuButton} className="font-medium">
-                {user ? "Dashboard" : "Login"}
-              </Button>
-              {!user && (
-                <Button
-                  onClick={() => navigate("/login")}
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-200/50 transition-all hover:translate-y-[-1px]"
-                >
-                  Comenzar Gratis
-                </Button>
+              {user ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="font-medium flex items-center gap-2">
+                      <User className="w-4 h-4" /> Mi Cuenta
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => navigate("/products")}>Dashboard</DropdownMenuItem>
+                    <DropdownMenuItem onClick={async () => { await supabase.auth.signOut(); setUser(null); }} className="text-destructive">
+                      <LogOut className="w-4 h-4 mr-2" /> Cerrar Sesión
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <>
+                  <Button variant="ghost" onClick={() => setLoginModalOpen(true)} className="font-medium">
+                    Iniciar Sesión
+                  </Button>
+                  <Button
+                    onClick={() => setLoginModalOpen(true)}
+                    className="bg-[#FC4A1A] hover:bg-[#e0421a] text-white shadow-lg transition-all hover:translate-y-[-1px]"
+                  >
+                    Registrarse
+                  </Button>
+                </>
               )}
             </div>
 
