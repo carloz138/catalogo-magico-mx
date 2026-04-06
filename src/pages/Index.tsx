@@ -4,6 +4,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/contexts/RoleContext";
 import { motion } from "framer-motion";
 import ComplianceFooter from "@/components/layout/ComplianceFooter";
+import { LoginModal } from "@/components/auth/LoginModal";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Network,
   Menu,
@@ -21,6 +28,7 @@ import {
   Play,
   BrainCircuit,
   Radar,
+  LogOut,
 } from "lucide-react";
 import { ReferralPromoSection } from "@/components/landing/ReferralPromoSection";
 import { Button } from "@/components/ui/button";
@@ -32,6 +40,8 @@ const Index = () => {
   const { userRole } = useUserRole();
   const [user, setUser] = useState<any>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [loginModalOpen, setLoginModalOpen] = useState(false);
+  const [loginTab, setLoginTab] = useState<"login" | "signup">("login");
 
   // --- STATE: Network Simulator ---
   const [simResellers, setSimResellers] = useState<number>(10);
@@ -49,10 +59,6 @@ const Index = () => {
     return () => subscription.unsubscribe();
   }, []);
 
-  const handleMenuButton = () => {
-    if (user) navigate("/products");
-    else navigate("/login");
-  };
 
   // --- CALCULATIONS ---
   const totalNetworkReach = simResellers * simEndClients;
@@ -106,16 +112,32 @@ const Index = () => {
               </Button>
 
               <div className="h-6 w-px bg-slate-200 mx-2"></div>
-              <Button variant="ghost" onClick={handleMenuButton} className="font-medium">
-                {user ? "Dashboard" : "Login"}
-              </Button>
-              {!user && (
-                <Button
-                  onClick={() => navigate("/login")}
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-200/50 transition-all hover:translate-y-[-1px]"
-                >
-                  Comenzar Gratis
-                </Button>
+              {user ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="font-medium flex items-center gap-2">
+                      <User className="w-4 h-4" /> Mi Cuenta
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => navigate("/products")}>Dashboard</DropdownMenuItem>
+                    <DropdownMenuItem onClick={async () => { await supabase.auth.signOut(); setUser(null); }} className="text-destructive">
+                      <LogOut className="w-4 h-4 mr-2" /> Cerrar Sesión
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <>
+                  <Button variant="ghost" onClick={() => setLoginModalOpen(true)} className="font-medium">
+                    Iniciar Sesión
+                  </Button>
+                  <Button
+                    onClick={() => setLoginModalOpen(true)}
+                    className="bg-[#FC4A1A] hover:bg-[#e0421a] text-white shadow-lg transition-all hover:translate-y-[-1px]"
+                  >
+                    Registrarse
+                  </Button>
+                </>
               )}
             </div>
 
@@ -153,13 +175,25 @@ const Index = () => {
                 </Button>
 
                 <div className="h-px bg-slate-100 my-2"></div>
-                <Button
-                  variant="ghost"
-                  onClick={handleMenuButton}
-                  className="w-full justify-start h-12 text-lg font-medium"
-                >
-                  {user ? "Ir al Dashboard" : "Iniciar Sesión"}
-                </Button>
+                {user ? (
+                  <>
+                    <Button variant="ghost" onClick={() => navigate("/products")} className="w-full justify-start h-12 text-lg font-medium">
+                      Dashboard
+                    </Button>
+                    <Button variant="ghost" onClick={async () => { await supabase.auth.signOut(); setUser(null); setMobileMenuOpen(false); }} className="w-full justify-start h-12 text-lg font-medium text-destructive">
+                      <LogOut className="w-4 h-4 mr-2" /> Cerrar Sesión
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button variant="ghost" onClick={() => { setLoginModalOpen(true); setMobileMenuOpen(false); }} className="w-full justify-start h-12 text-lg font-medium">
+                      Iniciar Sesión
+                    </Button>
+                    <Button onClick={() => { setLoginModalOpen(true); setMobileMenuOpen(false); }} className="w-full h-12 text-lg font-medium bg-[#FC4A1A] hover:bg-[#e0421a] text-white">
+                      Registrarse
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
           )}
@@ -563,6 +597,9 @@ const Index = () => {
 
       {/* 7. FOOTER */}
       <ComplianceFooter />
+
+      {/* Login Modal */}
+      <LoginModal open={loginModalOpen} onOpenChange={setLoginModalOpen} />
     </div>
   );
 };
