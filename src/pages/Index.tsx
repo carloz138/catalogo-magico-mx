@@ -179,13 +179,25 @@ const Index = () => {
                 </Button>
 
                 <div className="h-px bg-slate-100 my-2"></div>
-                <Button
-                  variant="ghost"
-                  onClick={handleMenuButton}
-                  className="w-full justify-start h-12 text-lg font-medium"
-                >
-                  {user ? "Ir al Dashboard" : "Iniciar Sesión"}
-                </Button>
+                {user ? (
+                  <>
+                    <Button variant="ghost" onClick={() => navigate("/products")} className="w-full justify-start h-12 text-lg font-medium">
+                      Dashboard
+                    </Button>
+                    <Button variant="ghost" onClick={async () => { await supabase.auth.signOut(); setUser(null); setMobileMenuOpen(false); }} className="w-full justify-start h-12 text-lg font-medium text-destructive">
+                      <LogOut className="w-4 h-4 mr-2" /> Cerrar Sesión
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button variant="ghost" onClick={() => { setLoginModalOpen(true); setMobileMenuOpen(false); }} className="w-full justify-start h-12 text-lg font-medium">
+                      Iniciar Sesión
+                    </Button>
+                    <Button onClick={() => { setLoginModalOpen(true); setMobileMenuOpen(false); }} className="w-full h-12 text-lg font-medium bg-[#FC4A1A] hover:bg-[#e0421a] text-white">
+                      Registrarse
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
           )}
