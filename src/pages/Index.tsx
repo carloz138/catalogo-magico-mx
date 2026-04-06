@@ -604,6 +604,7 @@ const Index = () => {
 
       {/* Login Modal */}
       <LoginModal open={loginModalOpen} onOpenChange={setLoginModalOpen} />
+    </div>
   );
 };
 
