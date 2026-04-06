@@ -40,6 +40,8 @@ const Index = () => {
   const { userRole } = useUserRole();
   const [user, setUser] = useState<any>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [loginModalOpen, setLoginModalOpen] = useState(false);
+  const [loginTab, setLoginTab] = useState<"login" | "signup">("login");
 
   // --- STATE: Network Simulator ---
   const [simResellers, setSimResellers] = useState<number>(10);
