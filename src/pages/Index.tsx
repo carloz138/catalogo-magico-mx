@@ -4,6 +4,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/contexts/RoleContext";
 import { motion } from "framer-motion";
 import ComplianceFooter from "@/components/layout/ComplianceFooter";
+import { LoginModal } from "@/components/auth/LoginModal";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Network,
   Menu,
