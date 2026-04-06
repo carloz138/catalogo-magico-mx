@@ -114,9 +114,7 @@ export default function ActivateCatalog() {
     setAuthLoading(true);
 
     // ✅ FIX: Eliminamos 'data' de la desestructuración porque tu hook useAuth no lo devuelve
-    const { error } = await signUp(signupData.email, signupData.password, {
-      full_name: signupData.fullName,
-    });
+    const { error } = await signUp(signupData.email, signupData.password, signupData.fullName);
 
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });

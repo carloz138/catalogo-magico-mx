@@ -94,13 +94,7 @@ export default function LoginPage() {
     setFeedback({ type: "", message: "" });
 
     // [+] Se agrega referral_code a la metadata del registro
-    const { error } = await signUp(signupData.email, signupData.password, {
-      full_name: signupData.full_name,
-      business_name: signupData.business_name,
-      business_type: signupData.business_type,
-      phone: signupData.phone,
-      referral_code: referralCode, // [+] Aquí se envía el código
-    });
+    const { error } = await signUp(signupData.email, signupData.password, signupData.full_name);
 
     if (error) {
       setFeedback({ type: "error", message: error.message });
