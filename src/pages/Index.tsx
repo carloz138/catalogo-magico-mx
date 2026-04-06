@@ -28,6 +28,7 @@ import {
   Play,
   BrainCircuit,
   Radar,
+  LogOut,
 } from "lucide-react";
 import { ReferralPromoSection } from "@/components/landing/ReferralPromoSection";
 import { Button } from "@/components/ui/button";
