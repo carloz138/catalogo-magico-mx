@@ -59,10 +59,6 @@ const Index = () => {
     return () => subscription.unsubscribe();
   }, []);
 
-  const handleMenuButton = () => {
-    if (user) navigate("/products");
-    else navigate("/login");
-  };
 
   // --- CALCULATIONS ---
   const totalNetworkReach = simResellers * simEndClients;
